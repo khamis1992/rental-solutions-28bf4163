@@ -284,7 +284,7 @@ export const useVehicles = () => {
           
           // If vehicle had an image, try to delete it from storage
           // This is a best-effort operation and won't fail the overall deletion
-          if (vehicle?.image_url) {
+          if (vehicle && vehicle.image_url) {
             try {
               // Extract the filename from the URL
               const urlParts = vehicle.image_url.split('/');
