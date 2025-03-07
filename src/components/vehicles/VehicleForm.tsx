@@ -38,6 +38,9 @@ const vehicleSchema = z.object({
   vehicle_type_id: z.string().optional(),
 });
 
+// Make sure the schema matches VehicleFormData
+type VehicleFormSchema = z.infer<typeof vehicleSchema>;
+
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
   onSubmit: (data: VehicleFormData) => void;
@@ -52,7 +55,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isEditMode = false,
 }) => {
   // Setup form with validation
-  const form = useForm<z.infer<typeof vehicleSchema>>({
+  const form = useForm<VehicleFormSchema>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
       make: initialData?.make || '',
@@ -78,10 +81,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   // State for the selected image file
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-  const handleFormSubmit = (data: z.infer<typeof vehicleSchema>) => {
+  const handleFormSubmit = (formValues: VehicleFormSchema) => {
     // Combine form data with selected image
     const formData: VehicleFormData = {
-      ...data,
+      ...formValues,
       image: selectedImage,
     };
     

@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
-import { Vehicle } from '@/types/vehicle';
+import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
-  filter?: Partial<Vehicle>;
+  filter?: VehicleFilterParams;
 }
 
 const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter }) => {

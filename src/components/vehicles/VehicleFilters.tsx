@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Filter, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,8 +9,16 @@ import { Input } from '@/components/ui/input';
 import { VehicleFilterParams, VehicleStatus, VehicleType } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 
+export interface VehicleFilterValues {
+  status?: VehicleStatus;
+  make?: string;
+  category?: string;
+  location?: string;
+  year?: number;
+}
+
 interface VehicleFiltersProps {
-  onFilterChange: (filters: VehicleFilterParams) => void;
+  onFilterChange: (filters: VehicleFilterValues) => void;
   makes?: string[];
   locations?: string[];
   className?: string;
@@ -23,23 +30,19 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   locations = ['Main Office', 'Downtown Branch', 'Airport Location', 'Service Center', 'North Branch', 'City Center'],
   className,
 }) => {
-  const [filters, setFilters] = useState<VehicleFilterParams>({});
+  const [filters, setFilters] = useState<VehicleFilterValues>({});
   const [expanded, setExpanded] = useState(false);
   const { useVehicleTypes } = useVehicles();
   const { data: vehicleTypes, isLoading: isLoadingTypes } = useVehicleTypes();
   
-  // Extract unique makes and locations from vehicle data for filters
   const { useList } = useVehicles();
   const { data: vehicles } = useList();
   
-  // Extract unique values for dropdowns
   const [uniqueMakes, setUniqueMakes] = useState<string[]>(makes);
   const [uniqueLocations, setUniqueLocations] = useState<string[]>(locations);
   
-  // Update dropdown options when vehicles data is loaded
   useEffect(() => {
     if (vehicles && vehicles.length > 0) {
-      // Extract unique makes
       const extractedMakes = Array.from(
         new Set(vehicles.map(v => v.make).filter(Boolean))
       );
@@ -47,7 +50,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         setUniqueMakes(extractedMakes);
       }
       
-      // Extract unique locations
       const extractedLocations = Array.from(
         new Set(vehicles.map(v => v.location).filter(Boolean))
       );
@@ -57,7 +59,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     }
   }, [vehicles]);
   
-  const updateFilters = (key: keyof VehicleFilterParams, value: string | number | undefined) => {
+  const updateFilters = (key: keyof VehicleFilterValues, value: string | number | undefined) => {
     const newFilters = { ...filters };
     
     if (value) {
@@ -150,8 +152,8 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
               <div className="space-y-2">
                 <Label htmlFor="type-filter">Vehicle Type</Label>
                 <Select 
-                  onValueChange={(value) => updateFilters('vehicle_type_id', value || undefined)}
-                  value={filters.vehicle_type_id || ''}
+                  onValueChange={(value) => updateFilters('category', value || undefined)}
+                  value={filters.category || ''}
                 >
                   <SelectTrigger id="type-filter">
                     <SelectValue placeholder="Any type" />
