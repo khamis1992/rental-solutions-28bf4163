@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Filter, X } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -7,21 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { VehicleStatus } from '@/types/vehicle';
-
-export interface VehicleFilterValues {
-  status?: VehicleStatus;
-  make?: string;
-  category?: string;
-  location?: string;
-  year?: number;
-  [key: string]: string | number | undefined;  // Index signature to allow dynamic property access
-}
+import { VehicleFilterParams, VehicleStatus, VehicleType } from '@/types/vehicle';
+import { useVehicles } from '@/hooks/use-vehicles';
 
 interface VehicleFiltersProps {
-  onFilterChange: (filters: VehicleFilterValues) => void;
+  onFilterChange: (filters: VehicleFilterParams) => void;
   makes?: string[];
-  categories?: string[];
   locations?: string[];
   className?: string;
 }
@@ -29,14 +20,44 @@ interface VehicleFiltersProps {
 const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   onFilterChange,
   makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'Nissan', 'BMW'],
-  categories = ['economy', 'compact', 'midsize', 'fullsize', 'luxury', 'suv', 'truck', 'van'],
   locations = ['Main Office', 'Downtown Branch', 'Airport Location', 'Service Center', 'North Branch', 'City Center'],
   className,
 }) => {
-  const [filters, setFilters] = useState<VehicleFilterValues>({});
+  const [filters, setFilters] = useState<VehicleFilterParams>({});
   const [expanded, setExpanded] = useState(false);
+  const { useVehicleTypes } = useVehicles();
+  const { data: vehicleTypes, isLoading: isLoadingTypes } = useVehicleTypes();
   
-  const updateFilters = (key: keyof VehicleFilterValues, value: string | number | undefined) => {
+  // Extract unique makes and locations from vehicle data for filters
+  const { useList } = useVehicles();
+  const { data: vehicles } = useList();
+  
+  // Extract unique values for dropdowns
+  const [uniqueMakes, setUniqueMakes] = useState<string[]>(makes);
+  const [uniqueLocations, setUniqueLocations] = useState<string[]>(locations);
+  
+  // Update dropdown options when vehicles data is loaded
+  useEffect(() => {
+    if (vehicles && vehicles.length > 0) {
+      // Extract unique makes
+      const extractedMakes = Array.from(
+        new Set(vehicles.map(v => v.make).filter(Boolean))
+      );
+      if (extractedMakes.length > 0) {
+        setUniqueMakes(extractedMakes);
+      }
+      
+      // Extract unique locations
+      const extractedLocations = Array.from(
+        new Set(vehicles.map(v => v.location).filter(Boolean))
+      );
+      if (extractedLocations.length > 0) {
+        setUniqueLocations(extractedLocations);
+      }
+    }
+  }, [vehicles]);
+  
+  const updateFilters = (key: keyof VehicleFilterParams, value: string | number | undefined) => {
     const newFilters = { ...filters };
     
     if (value) {
@@ -119,7 +140,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Any make</SelectItem>
-                    {makes.map((make) => (
+                    {uniqueMakes.map((make) => (
                       <SelectItem key={make} value={make}>{make}</SelectItem>
                     ))}
                   </SelectContent>
@@ -127,18 +148,18 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="category-filter">Category</Label>
+                <Label htmlFor="type-filter">Vehicle Type</Label>
                 <Select 
-                  onValueChange={(value) => updateFilters('category', value || undefined)}
-                  value={filters.category || ''}
+                  onValueChange={(value) => updateFilters('vehicle_type_id', value || undefined)}
+                  value={filters.vehicle_type_id || ''}
                 >
-                  <SelectTrigger id="category-filter">
-                    <SelectValue placeholder="Any category" />
+                  <SelectTrigger id="type-filter">
+                    <SelectValue placeholder="Any type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any category</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category} value={category} className="capitalize">{category}</SelectItem>
+                    <SelectItem value="">Any type</SelectItem>
+                    {vehicleTypes && vehicleTypes.map((type: VehicleType) => (
+                      <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -155,7 +176,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="">Any location</SelectItem>
-                    {locations.map((location) => (
+                    {uniqueLocations.map((location) => (
                       <SelectItem key={location} value={location}>{location}</SelectItem>
                     ))}
                   </SelectContent>

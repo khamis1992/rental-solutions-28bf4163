@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Vehicle, VehicleStatus } from '@/types/vehicle';
+import { Vehicle, VehicleStatus, VehicleFormData, VehicleType } from '@/types/vehicle';
 import { 
   Form, 
   FormControl, 
@@ -18,28 +18,25 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import { useVehicles } from '@/hooks/use-vehicles';
+import VehicleImageUpload from './VehicleImageUpload';
 
 // Schema for form validation
 const vehicleSchema = z.object({
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
   year: z.coerce.number().min(1900).max(new Date().getFullYear() + 1),
-  licensePlate: z.string().min(1, 'License plate is required'),
+  license_plate: z.string().min(1, 'License plate is required'),
+  vin: z.string().min(1, 'VIN is required'),
   status: z.enum(['available', 'rented', 'maintenance', 'retired'] as const),
-  imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  location: z.string().optional(),
-  fuelLevel: z.coerce.number().min(0).max(100).optional(),
-  mileage: z.coerce.number().min(0).optional(),
-  vin: z.string().optional(),
-  dailyRate: z.coerce.number().min(0).optional(),
   color: z.string().optional(),
-  transmission: z.enum(['automatic', 'manual'] as const).optional(),
-  fuelType: z.enum(['gasoline', 'diesel', 'electric', 'hybrid'] as const).optional(),
-  category: z.enum(['economy', 'compact', 'midsize', 'fullsize', 'luxury', 'suv', 'truck', 'van'] as const).optional(),
-  notes: z.string().optional(),
+  mileage: z.coerce.number().min(0).optional(),
+  location: z.string().optional(),
+  description: z.string().optional(),
+  insurance_company: z.string().optional(),
+  rent_amount: z.coerce.number().min(0).optional(),
+  vehicle_type_id: z.string().optional(),
 });
-
-type VehicleFormData = z.infer<typeof vehicleSchema>;
 
 interface VehicleFormProps {
   initialData?: Partial<Vehicle>;
@@ -54,30 +51,41 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isLoading = false,
   isEditMode = false,
 }) => {
-  const form = useForm<VehicleFormData>({
+  // Setup form with validation
+  const form = useForm<z.infer<typeof vehicleSchema>>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
       make: initialData?.make || '',
       model: initialData?.model || '',
       year: initialData?.year || new Date().getFullYear(),
-      licensePlate: initialData?.licensePlate || '',
-      status: initialData?.status || 'available',
-      imageUrl: initialData?.imageUrl || '',
-      location: initialData?.location || '',
-      fuelLevel: initialData?.fuelLevel || 100,
-      mileage: initialData?.mileage || 0,
+      license_plate: initialData?.licensePlate || initialData?.license_plate || '',
       vin: initialData?.vin || '',
-      dailyRate: initialData?.dailyRate || 0,
+      status: (initialData?.status as VehicleStatus) || 'available',
       color: initialData?.color || '',
-      transmission: initialData?.transmission || 'automatic',
-      fuelType: initialData?.fuelType || 'gasoline',
-      category: initialData?.category || 'midsize',
-      notes: initialData?.notes || '',
+      mileage: initialData?.mileage || 0,
+      location: initialData?.location || '',
+      description: initialData?.notes || initialData?.description || '',
+      insurance_company: initialData?.insurance_company || '',
+      rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
+      vehicle_type_id: initialData?.vehicle_type_id || '',
     },
   });
 
-  const handleFormSubmit = (data: VehicleFormData) => {
-    onSubmit(data);
+  // Get vehicle types for the dropdown
+  const { useVehicleTypes } = useVehicles();
+  const { data: vehicleTypes, isLoading: isLoadingTypes } = useVehicleTypes();
+  
+  // State for the selected image file
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  const handleFormSubmit = (data: z.infer<typeof vehicleSchema>) => {
+    // Combine form data with selected image
+    const formData: VehicleFormData = {
+      ...data,
+      image: selectedImage,
+    };
+    
+    onSubmit(formData);
   };
 
   return (
@@ -87,7 +95,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
+            {/* Vehicle Image */}
+            <div className="mb-6">
+              <FormLabel className="mb-2 block">Vehicle Image</FormLabel>
+              <VehicleImageUpload 
+                onImageSelected={setSelectedImage}
+                initialImageUrl={initialData?.imageUrl || initialData?.image_url}
+              />
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Basic Information */}
               <FormField
@@ -134,12 +151,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               
               <FormField
                 control={form.control}
-                name="licensePlate"
+                name="license_plate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>License Plate</FormLabel>
                     <FormControl>
                       <Input placeholder="ABC-123" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="vin"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>VIN</FormLabel>
+                    <FormControl>
+                      <Input placeholder="1HGCM82633A123456" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -175,41 +206,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               
               <FormField
                 control={form.control}
-                name="imageUrl"
+                name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Image URL</FormLabel>
+                    <FormLabel>Color</FormLabel>
                     <FormControl>
-                      <Input placeholder="https://example.com/car.jpg" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Additional Details */}
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Main Office" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="fuelLevel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fuel Level (%)</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} />
+                      <Input placeholder="Silver" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -232,12 +234,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               
               <FormField
                 control={form.control}
-                name="vin"
+                name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>VIN</FormLabel>
+                    <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="1HGCM82633A123456" {...field} />
+                      <Input placeholder="Main Office" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -246,7 +248,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               
               <FormField
                 control={form.control}
-                name="dailyRate"
+                name="insurance_company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Insurance Company</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Insurance Provider" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="rent_amount"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Daily Rate ($)</FormLabel>
@@ -260,94 +276,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               
               <FormField
                 control={form.control}
-                name="color"
+                name="vehicle_type_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Color</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Silver" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="transmission"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Transmission</FormLabel>
+                    <FormLabel>Vehicle Type</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select transmission" />
+                          <SelectValue placeholder="Select vehicle type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="automatic">Automatic</SelectItem>
-                        <SelectItem value="manual">Manual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="fuelType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fuel Type</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select fuel type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="gasoline">Gasoline</SelectItem>
-                        <SelectItem value="diesel">Diesel</SelectItem>
-                        <SelectItem value="electric">Electric</SelectItem>
-                        <SelectItem value="hybrid">Hybrid</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Category</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select category" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="economy">Economy</SelectItem>
-                        <SelectItem value="compact">Compact</SelectItem>
-                        <SelectItem value="midsize">Midsize</SelectItem>
-                        <SelectItem value="fullsize">Fullsize</SelectItem>
-                        <SelectItem value="luxury">Luxury</SelectItem>
-                        <SelectItem value="suv">SUV</SelectItem>
-                        <SelectItem value="truck">Truck</SelectItem>
-                        <SelectItem value="van">Van</SelectItem>
+                        <SelectItem value="">None</SelectItem>
+                        {vehicleTypes && vehicleTypes.map((type: VehicleType) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name} ({type.size})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -358,10 +306,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             
             <FormField
               control={form.control}
-              name="notes"
+              name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Description/Notes</FormLabel>
                   <FormControl>
                     <Textarea 
                       placeholder="Additional information about the vehicle" 

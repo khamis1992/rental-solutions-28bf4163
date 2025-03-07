@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -7,11 +7,16 @@ import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { Car, Plus } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
-import { Vehicle } from '@/types/vehicle';
+import { VehicleFilterParams } from '@/types/vehicle';
+import { useVehicles } from '@/hooks/use-vehicles';
 
 const Vehicles = () => {
   const navigate = useNavigate();
-  const [filters, setFilters] = useState<VehicleFilterValues>({});
+  const [filters, setFilters] = useState<VehicleFilterParams>({});
+  const { useRealtimeUpdates } = useVehicles();
+  
+  // Setup real-time updates
+  useRealtimeUpdates();
 
   const handleSelectVehicle = (id: string) => {
     navigate(`/vehicles/${id}`);
@@ -22,25 +27,20 @@ const Vehicles = () => {
   };
 
   const handleFilterChange = (newFilters: VehicleFilterValues) => {
-    setFilters(newFilters);
-  };
-  
-  // Convert VehicleFilterValues to Partial<Vehicle> for the Grid component
-  const convertFiltersToVehiclePartial = (filters: VehicleFilterValues): Partial<Vehicle> => {
-    const result: Partial<Vehicle> = {};
+    // Convert from VehicleFilterValues to VehicleFilterParams
+    const convertedFilters: VehicleFilterParams = {};
     
-    if (filters.status) result.status = filters.status;
-    if (filters.make) result.make = filters.make;
-    if (filters.location) result.location = filters.location;
-    if (filters.year) result.year = filters.year;
+    if (newFilters.status) convertedFilters.status = newFilters.status;
+    if (newFilters.make) convertedFilters.make = newFilters.make;
+    if (newFilters.location) convertedFilters.location = newFilters.location;
+    if (newFilters.year) convertedFilters.year = newFilters.year;
     
-    // Only add category if it's a valid category from the Vehicle type
-    if (filters.category) {
-      const category = filters.category as Vehicle['category'];
-      if (category) result.category = category;
+    // Handle the category to vehicle_type_id mapping
+    if (newFilters.category) {
+      convertedFilters.vehicle_type_id = newFilters.category;
     }
     
-    return result;
+    setFilters(convertedFilters);
   };
   
   return (
@@ -64,7 +64,7 @@ const Vehicles = () => {
       
       <VehicleGrid 
         onSelectVehicle={handleSelectVehicle} 
-        filter={convertFiltersToVehiclePartial(filters)}
+        filter={filters}
       />
     </PageContainer>
   );

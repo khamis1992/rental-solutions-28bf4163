@@ -1,180 +1,109 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { Vehicle } from '@/types/vehicle';
+import { supabase, formatVehicleForDisplay, getImagePublicUrl } from '@/lib/supabase';
+import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams } from '@/types/vehicle';
 
-// Mock data - would be replaced with actual API calls
-const sampleVehicles: Vehicle[] = [
-  {
-    id: '1',
-    make: 'Toyota',
-    model: 'Camry',
-    year: 2022,
-    licensePlate: 'ABC-123',
-    status: 'available',
-    imageUrl: 'https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2156&auto=format&fit=crop',
-    location: 'Main Office',
-    fuelLevel: 85,
-    mileage: 12450,
-    vin: 'JTDKARFU0L3092652',
-    lastServiced: '2023-10-15',
-    nextServiceDue: '2024-04-15',
-    dailyRate: 65,
-    color: 'Silver',
-    transmission: 'automatic',
-    fuelType: 'gasoline',
-    category: 'midsize',
-    features: ['Bluetooth', 'Backup Camera', 'Cruise Control']
-  },
-  {
-    id: '2',
-    make: 'Honda',
-    model: 'Accord',
-    year: 2021,
-    licensePlate: 'DEF-456',
-    status: 'rented',
-    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2070&auto=format&fit=crop',
-    location: 'Downtown Branch',
-    fuelLevel: 65,
-    mileage: 28750,
-    vin: '1HGCV1F18MA002352',
-    lastServiced: '2023-09-05',
-    nextServiceDue: '2024-03-05',
-    dailyRate: 70,
-    color: 'Blue',
-    transmission: 'automatic',
-    fuelType: 'gasoline',
-    category: 'midsize',
-    features: ['Apple CarPlay', 'Android Auto', 'Lane Assist']
-  },
-  {
-    id: '3',
-    make: 'Ford',
-    model: 'Escape',
-    year: 2023,
-    licensePlate: 'GHI-789',
-    status: 'available',
-    imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop',
-    location: 'Airport Location',
-    fuelLevel: 92,
-    mileage: 5230,
-    vin: '1FMCU9G60NUA18745',
-    lastServiced: '2023-11-20',
-    nextServiceDue: '2024-05-20',
-    dailyRate: 75,
-    color: 'White',
-    transmission: 'automatic',
-    fuelType: 'hybrid',
-    category: 'suv',
-    features: ['Panoramic Roof', 'Heated Seats', 'Navigation']
-  },
-  {
-    id: '4',
-    make: 'Chevrolet',
-    model: 'Malibu',
-    year: 2022,
-    licensePlate: 'JKL-012',
-    status: 'maintenance',
-    imageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2070&auto=format&fit=crop',
-    location: 'Service Center',
-    fuelLevel: 45,
-    mileage: 18650,
-    vin: '1G1ZD5ST2LF035765',
-    lastServiced: '2023-08-10',
-    nextServiceDue: '2024-02-10',
-    dailyRate: 60,
-    color: 'Red',
-    transmission: 'automatic',
-    fuelType: 'gasoline',
-    category: 'midsize',
-    features: ['Bluetooth', 'Keyless Entry', 'Power Seats']
-  },
-  {
-    id: '5',
-    make: 'Nissan',
-    model: 'Rogue',
-    year: 2021,
-    licensePlate: 'MNO-345',
-    status: 'available',
-    imageUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070&auto=format&fit=crop',
-    location: 'North Branch',
-    fuelLevel: 78,
-    mileage: 31420,
-    vin: 'JN8AT2MV3LW108975',
-    lastServiced: '2023-07-15',
-    nextServiceDue: '2024-01-15',
-    dailyRate: 72,
-    color: 'Black',
-    transmission: 'automatic',
-    fuelType: 'gasoline',
-    category: 'suv',
-    features: ['Third Row Seating', 'Roof Rack', 'AWD']
-  },
-  {
-    id: '6',
-    make: 'BMW',
-    model: 'X3',
-    year: 2023,
-    licensePlate: 'PQR-678',
-    status: 'rented',
-    imageUrl: 'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?q=80&w=1856&auto=format&fit=crop',
-    location: 'City Center',
-    fuelLevel: 55,
-    mileage: 8790,
-    vin: 'WBADW3C50DJ422365',
-    lastServiced: '2023-12-01',
-    nextServiceDue: '2024-06-01',
-    dailyRate: 120,
-    color: 'Gray',
-    transmission: 'automatic',
-    fuelType: 'gasoline',
-    category: 'luxury',
-    features: ['Premium Sound', 'Leather Seats', 'Advanced Safety Package']
-  },
-];
-
-// In a real application, these would be API calls
-const fetchVehicles = async () => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  return sampleVehicles;
-};
-
-const fetchVehicleById = async (id: string) => {
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-  const vehicle = sampleVehicles.find(v => v.id === id);
+// Fetch all vehicles with optional filtering
+const fetchVehicles = async (filters?: VehicleFilterParams) => {
+  let query = supabase.from('vehicles')
+    .select('*, vehicle_types(*)');
   
-  if (!vehicle) {
-    throw new Error(`Vehicle with ID ${id} not found`);
+  // Apply filters if provided
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query = query.eq(key, value);
+      }
+    });
   }
   
-  return vehicle;
+  const { data, error } = await query.order('created_at', { ascending: false });
+  
+  if (error) {
+    throw new Error(`Error fetching vehicles: ${error.message}`);
+  }
+  
+  // Format the response for display
+  return data.map((vehicle: any) => {
+    // Process the vehicle_types join and format for frontend
+    const vehicleWithType = {
+      ...vehicle,
+      vehicleType: vehicle.vehicle_types
+    };
+    delete vehicleWithType.vehicle_types; // Remove the nested join
+    
+    return formatVehicleForDisplay(vehicleWithType);
+  });
+};
+
+// Fetch a single vehicle by ID
+const fetchVehicleById = async (id: string) => {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('*, vehicle_types(*)')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
+  }
+  
+  // Process the vehicle_types join
+  const vehicleWithType = {
+    ...data,
+    vehicleType: data.vehicle_types
+  };
+  delete vehicleWithType.vehicle_types;
+  
+  return formatVehicleForDisplay(vehicleWithType);
+};
+
+// Fetch all vehicle types
+const fetchVehicleTypes = async () => {
+  const { data, error } = await supabase
+    .from('vehicle_types')
+    .select('*')
+    .eq('is_active', true)
+    .order('name');
+  
+  if (error) {
+    throw new Error(`Error fetching vehicle types: ${error.message}`);
+  }
+  
+  return data;
+};
+
+// Upload vehicle image
+const uploadVehicleImage = async (file: File, id: string): Promise<string> => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${id}-${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`;
+  
+  const { error } = await supabase.storage
+    .from('vehicle-images')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+  
+  if (error) {
+    throw new Error(`Error uploading image: ${error.message}`);
+  }
+  
+  return getImagePublicUrl('vehicle-images', filePath);
 };
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
   
   return {
-    // Get all vehicles
-    useList: (filters?: Partial<Vehicle>) => {
+    // Get all vehicles with optional filtering
+    useList: (filters?: VehicleFilterParams) => {
       return useQuery({
         queryKey: ['vehicles', filters],
-        queryFn: async () => {
-          const vehicles = await fetchVehicles();
-          
-          // Apply filters if provided
-          if (filters) {
-            return vehicles.filter(vehicle => {
-              return Object.entries(filters).every(([key, value]) => {
-                // @ts-ignore - Dynamic property access
-                return vehicle[key] === value;
-              });
-            });
-          }
-          
-          return vehicles;
-        },
+        queryFn: () => fetchVehicles(filters),
       });
     },
     
@@ -187,20 +116,74 @@ export const useVehicles = () => {
       });
     },
     
+    // Get all vehicle types
+    useVehicleTypes: () => {
+      return useQuery({
+        queryKey: ['vehicleTypes'],
+        queryFn: fetchVehicleTypes,
+      });
+    },
+    
     // Create a new vehicle
     useCreate: () => {
       return useMutation({
-        mutationFn: async (newVehicle: Omit<Vehicle, 'id'>) => {
-          // Simulate API call delay
-          await new Promise(resolve => setTimeout(resolve, 500));
+        mutationFn: async (formData: VehicleFormData) => {
+          // Handle image upload if provided
+          let imageUrl = null;
+          if (formData.image) {
+            // Generate a temporary ID for the file name
+            const tempId = crypto.randomUUID();
+            imageUrl = await uploadVehicleImage(formData.image, tempId);
+          }
           
-          // In a real app, this would be handled by the API
-          const vehicle: Vehicle = {
-            ...newVehicle,
-            id: Math.random().toString(36).substring(2, 9), // Generate random ID
+          // Prepare the vehicle data
+          const vehicleData = {
+            make: formData.make,
+            model: formData.model,
+            year: formData.year,
+            license_plate: formData.license_plate,
+            vin: formData.vin,
+            color: formData.color,
+            status: formData.status || 'available',
+            mileage: formData.mileage || 0,
+            description: formData.description,
+            location: formData.location,
+            insurance_company: formData.insurance_company,
+            rent_amount: formData.rent_amount,
+            vehicle_type_id: formData.vehicle_type_id,
+            image_url: imageUrl,
           };
           
-          return vehicle;
+          // Insert the vehicle
+          const { data, error } = await supabase
+            .from('vehicles')
+            .insert(vehicleData)
+            .select()
+            .single();
+          
+          if (error) {
+            throw new Error(`Error creating vehicle: ${error.message}`);
+          }
+          
+          // If image was uploaded with a temp ID, update it with the real ID
+          if (imageUrl && formData.image) {
+            try {
+              const newImageUrl = await uploadVehicleImage(formData.image, data.id);
+              
+              // Update the vehicle with the new image URL
+              await supabase
+                .from('vehicles')
+                .update({ image_url: newImageUrl })
+                .eq('id', data.id);
+                
+              data.image_url = newImageUrl;
+            } catch (imageError) {
+              console.error('Error updating image with final ID:', imageError);
+              // Continue with the operation, as the vehicle was created successfully
+            }
+          }
+          
+          return data;
         },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -217,19 +200,53 @@ export const useVehicles = () => {
     // Update a vehicle
     useUpdate: () => {
       return useMutation({
-        mutationFn: async ({ id, data }: { id: string; data: Partial<Vehicle> }) => {
-          // Simulate API call delay
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // In a real app, this would be handled by the API
-          const vehicleIndex = sampleVehicles.findIndex(v => v.id === id);
-          if (vehicleIndex === -1) {
-            throw new Error(`Vehicle with ID ${id} not found`);
+        mutationFn: async ({ id, data }: { id: string; data: VehicleFormData }) => {
+          // Handle image upload if provided
+          let imageUrl = null;
+          if (data.image) {
+            imageUrl = await uploadVehicleImage(data.image, id);
           }
           
+          // Prepare the vehicle data
+          const vehicleData: Record<string, any> = {
+            make: data.make,
+            model: data.model,
+            year: data.year,
+            license_plate: data.license_plate,
+            vin: data.vin,
+            status: data.status,
+            mileage: data.mileage,
+          };
+          
+          // Only include optional fields if they are provided
+          if (data.color !== undefined) vehicleData.color = data.color;
+          if (data.description !== undefined) vehicleData.description = data.description;
+          if (data.location !== undefined) vehicleData.location = data.location;
+          if (data.insurance_company !== undefined) vehicleData.insurance_company = data.insurance_company;
+          if (data.rent_amount !== undefined) vehicleData.rent_amount = data.rent_amount;
+          if (data.vehicle_type_id !== undefined) vehicleData.vehicle_type_id = data.vehicle_type_id;
+          if (imageUrl) vehicleData.image_url = imageUrl;
+          
           // Update the vehicle
-          const updatedVehicle = { ...sampleVehicles[vehicleIndex], ...data };
-          return updatedVehicle;
+          const { data: updatedVehicle, error } = await supabase
+            .from('vehicles')
+            .update(vehicleData)
+            .eq('id', id)
+            .select('*, vehicle_types(*)')
+            .single();
+          
+          if (error) {
+            throw new Error(`Error updating vehicle: ${error.message}`);
+          }
+          
+          // Process the vehicle_types join
+          const vehicleWithType = {
+            ...updatedVehicle,
+            vehicleType: updatedVehicle.vehicle_types
+          };
+          delete vehicleWithType.vehicle_types;
+          
+          return formatVehicleForDisplay(vehicleWithType);
         },
         onSuccess: (_, variables) => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -248,13 +265,38 @@ export const useVehicles = () => {
     useDelete: () => {
       return useMutation({
         mutationFn: async (id: string) => {
-          // Simulate API call delay
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Get the vehicle to check if it has an image
+          const { data: vehicle } = await supabase
+            .from('vehicles')
+            .select('image_url')
+            .eq('id', id)
+            .single();
           
-          // In a real app, this would be handled by the API
-          const vehicleIndex = sampleVehicles.findIndex(v => v.id === id);
-          if (vehicleIndex === -1) {
-            throw new Error(`Vehicle with ID ${id} not found`);
+          // Delete the vehicle
+          const { error } = await supabase
+            .from('vehicles')
+            .delete()
+            .eq('id', id);
+          
+          if (error) {
+            throw new Error(`Error deleting vehicle: ${error.message}`);
+          }
+          
+          // If vehicle had an image, try to delete it from storage
+          // This is a best-effort operation and won't fail the overall deletion
+          if (vehicle?.image_url) {
+            try {
+              // Extract the filename from the URL
+              const urlParts = vehicle.image_url.split('/');
+              const fileName = urlParts[urlParts.length - 1];
+              
+              await supabase.storage
+                .from('vehicle-images')
+                .remove([fileName]);
+            } catch (storageError) {
+              console.error('Failed to delete vehicle image:', storageError);
+              // Continue with the operation, as the vehicle was deleted successfully
+            }
           }
           
           return id;
@@ -270,5 +312,48 @@ export const useVehicles = () => {
         },
       });
     },
+    
+    // Setup real-time subscription for vehicle status updates
+    useRealtimeUpdates: () => {
+      useEffect(() => {
+        // Subscribe to vehicle changes
+        const subscription = supabase
+          .channel('vehicles-changes')
+          .on('postgres_changes', 
+            { 
+              event: '*', 
+              schema: 'public', 
+              table: 'vehicles' 
+            }, 
+            (payload) => {
+              console.log('Real-time update:', payload);
+              // Invalidate queries to refresh data
+              queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+              
+              // If it's an update to a specific vehicle, invalidate that query too
+              if (payload.new && payload.new.id) {
+                queryClient.invalidateQueries({ 
+                  queryKey: ['vehicles', payload.new.id] 
+                });
+              }
+              
+              // Show toast notification for important updates
+              if (payload.eventType === 'UPDATE' && 
+                  payload.old && payload.new && 
+                  payload.old.status !== payload.new.status) {
+                toast.info(`Vehicle status updated`, {
+                  description: `${payload.new.make} ${payload.new.model} is now ${payload.new.status}`,
+                });
+              }
+            }
+          )
+          .subscribe();
+          
+        // Cleanup subscription on unmount
+        return () => {
+          supabase.removeChannel(subscription);
+        };
+      }, [queryClient]);
+    }
   };
 };
