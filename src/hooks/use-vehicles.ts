@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -331,7 +330,7 @@ export const useVehicles = () => {
               queryClient.invalidateQueries({ queryKey: ['vehicles'] });
               
               // If it's an update to a specific vehicle, invalidate that query too
-              if (payload.new && payload.new.id) {
+              if (payload.new && typeof payload.new === 'object' && 'id' in payload.new) {
                 queryClient.invalidateQueries({ 
                   queryKey: ['vehicles', payload.new.id] 
                 });
@@ -340,6 +339,9 @@ export const useVehicles = () => {
               // Show toast notification for important updates
               if (payload.eventType === 'UPDATE' && 
                   payload.old && payload.new && 
+                  typeof payload.old === 'object' && typeof payload.new === 'object' &&
+                  'status' in payload.old && 'status' in payload.new &&
+                  'make' in payload.new && 'model' in payload.new &&
                   payload.old.status !== payload.new.status) {
                 toast.info(`Vehicle status updated`, {
                   description: `${payload.new.make} ${payload.new.model} is now ${payload.new.status}`,

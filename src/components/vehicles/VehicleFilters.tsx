@@ -64,7 +64,8 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     const newFilters = { ...filters };
     
     if (value !== undefined && value !== null && value !== '') {
-      newFilters[key] = value;
+      // Type assertion to handle the type issue
+      newFilters[key] = value as any;
     } else {
       delete newFilters[key];
     }
