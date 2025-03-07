@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CircleUser, Calendar, MapPin, Fuel, Activity } from 'lucide-react';
 import { CustomButton } from './custom-button';
+import { VehicleStatus } from '@/types/vehicle';
 
 interface VehicleCardProps {
   id: string;
@@ -12,7 +13,7 @@ interface VehicleCardProps {
   model: string;
   year: number;
   licensePlate: string;
-  status: 'available' | 'rented' | 'maintenance';
+  status: VehicleStatus;
   imageUrl: string;
   location?: string;
   fuelLevel?: number;
@@ -39,6 +40,7 @@ const VehicleCard = ({
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
     maintenance: 'bg-amber-100 text-amber-800',
+    retired: 'bg-gray-100 text-gray-800'
   };
 
   return (

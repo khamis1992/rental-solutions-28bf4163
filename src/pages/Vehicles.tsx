@@ -7,6 +7,7 @@ import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { Car, Plus } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
+import { Vehicle } from '@/types/vehicle';
 
 const Vehicles = () => {
   const navigate = useNavigate();
@@ -22,6 +23,24 @@ const Vehicles = () => {
 
   const handleFilterChange = (newFilters: VehicleFilterValues) => {
     setFilters(newFilters);
+  };
+  
+  // Convert VehicleFilterValues to Partial<Vehicle> for the Grid component
+  const convertFiltersToVehiclePartial = (filters: VehicleFilterValues): Partial<Vehicle> => {
+    const result: Partial<Vehicle> = {};
+    
+    if (filters.status) result.status = filters.status;
+    if (filters.make) result.make = filters.make;
+    if (filters.location) result.location = filters.location;
+    if (filters.year) result.year = filters.year;
+    
+    // Only add category if it's a valid category from the Vehicle type
+    if (filters.category) {
+      const category = filters.category as Vehicle['category'];
+      if (category) result.category = category;
+    }
+    
+    return result;
   };
   
   return (
@@ -45,7 +64,7 @@ const Vehicles = () => {
       
       <VehicleGrid 
         onSelectVehicle={handleSelectVehicle} 
-        filter={filters}
+        filter={convertFiltersToVehiclePartial(filters)}
       />
     </PageContainer>
   );

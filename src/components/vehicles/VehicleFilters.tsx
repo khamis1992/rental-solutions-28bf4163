@@ -35,7 +35,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   const [filters, setFilters] = useState<VehicleFilterValues>({});
   const [expanded, setExpanded] = useState(false);
   
-  const updateFilters = (key: keyof VehicleFilterValues, value: any) => {
+  const updateFilters = (key: keyof VehicleFilterValues, value: string | number | undefined) => {
     const newFilters = { ...filters };
     
     if (value) {
