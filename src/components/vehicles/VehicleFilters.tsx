@@ -16,6 +16,7 @@ export interface VehicleFilterValues {
   category?: string;
   location?: string;
   year?: number | null;
+  [key: string]: string | number | null | undefined; // Add index signature to allow dynamic property assignment
 }
 
 interface VehicleFiltersProps {
@@ -64,8 +65,8 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     const newFilters = { ...filters };
     
     if (value !== undefined && value !== null && value !== '') {
-      // Type assertion to handle the type issue
-      newFilters[key] = value as any;
+      // With the index signature added above, this assignment is now type-safe
+      newFilters[key] = value;
     } else {
       delete newFilters[key];
     }
