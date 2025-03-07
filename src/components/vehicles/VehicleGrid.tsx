@@ -2,7 +2,7 @@
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
 
-// Sample vehicle data
+// Sample vehicle data with correct status type literals
 const vehicles = [
   {
     id: '1',
@@ -10,7 +10,7 @@ const vehicles = [
     model: 'Camry',
     year: 2022,
     licensePlate: 'ABC-123',
-    status: 'available',
+    status: 'available' as const,
     imageUrl: 'https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2156&auto=format&fit=crop',
     location: 'Main Office',
     fuelLevel: 85,
@@ -22,7 +22,7 @@ const vehicles = [
     model: 'Accord',
     year: 2021,
     licensePlate: 'DEF-456',
-    status: 'rented',
+    status: 'rented' as const,
     imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2070&auto=format&fit=crop',
     location: 'Downtown Branch',
     fuelLevel: 65,
@@ -34,7 +34,7 @@ const vehicles = [
     model: 'Escape',
     year: 2023,
     licensePlate: 'GHI-789',
-    status: 'available',
+    status: 'available' as const,
     imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop',
     location: 'Airport Location',
     fuelLevel: 92,
@@ -46,7 +46,7 @@ const vehicles = [
     model: 'Malibu',
     year: 2022,
     licensePlate: 'JKL-012',
-    status: 'maintenance',
+    status: 'maintenance' as const,
     imageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2070&auto=format&fit=crop',
     location: 'Service Center',
     fuelLevel: 45,
@@ -58,7 +58,7 @@ const vehicles = [
     model: 'Rogue',
     year: 2021,
     licensePlate: 'MNO-345',
-    status: 'available',
+    status: 'available' as const,
     imageUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070&auto=format&fit=crop',
     location: 'North Branch',
     fuelLevel: 78,
@@ -70,7 +70,7 @@ const vehicles = [
     model: 'X3',
     year: 2023,
     licensePlate: 'PQR-678',
-    status: 'rented',
+    status: 'rented' as const,
     imageUrl: 'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?q=80&w=1856&auto=format&fit=crop',
     location: 'City Center',
     fuelLevel: 55,
