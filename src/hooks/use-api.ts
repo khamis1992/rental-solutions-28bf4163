@@ -68,36 +68,52 @@ export function useCrudApi<TItem extends { id: string }>(resourceName: string) {
   
   return {
     // Get list of resources
-    useList: <TFilter = void>(filter?: TFilter) => 
-      useApiQuery(filter ? [...queryKey, 'list', JSON.stringify(filter)] : [...queryKey, 'list'], 
+    useList: <TFilter = void>(filter?: TFilter) => {
+      const query = useApiQuery(
+        filter ? [...queryKey, 'list', JSON.stringify(filter)] : [...queryKey, 'list'], 
         async () => {
           // Replace with actual API call
           return [] as TItem[];
         },
         {
-          onSettled: (data, error) => {
-            if (error) {
-              handleApiError(error);
-            }
+          // Handle errors through the query state instead of callbacks
+          meta: {
+            errorHandler: (error: unknown) => handleApiError(error)
           }
         }
-      ),
+      );
+      
+      // Handle errors manually when the query fails
+      if (query.error) {
+        handleApiError(query.error);
+      }
+      
+      return query;
+    },
       
     // Get single resource
-    useItem: (id: string) => 
-      useApiQuery([...queryKey, id], 
+    useItem: (id: string) => {
+      const query = useApiQuery(
+        [...queryKey, id], 
         async () => {
           // Replace with actual API call
           return {} as TItem;
         },
         {
-          onSettled: (data, error) => {
-            if (error) {
-              handleApiError(error);
-            }
+          // Handle errors through the query state instead of callbacks
+          meta: {
+            errorHandler: (error: unknown) => handleApiError(error)
           }
         }
-      ),
+      );
+      
+      // Handle errors manually when the query fails
+      if (query.error) {
+        handleApiError(query.error);
+      }
+      
+      return query;
+    },
       
     // Create resource
     useCreate: () => 
