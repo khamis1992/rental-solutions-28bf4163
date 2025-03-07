@@ -36,10 +36,6 @@ export function useApiQuery<TData, TError = unknown>(
   return useQuery({
     queryKey,
     queryFn,
-    onError: (error) => {
-      handleApiError(error);
-      options?.onError?.(error);
-    },
     ...options,
   });
 }
@@ -77,6 +73,13 @@ export function useCrudApi<TItem extends { id: string }>(resourceName: string) {
         async () => {
           // Replace with actual API call
           return [] as TItem[];
+        },
+        {
+          onSettled: (data, error) => {
+            if (error) {
+              handleApiError(error);
+            }
+          }
         }
       ),
       
@@ -86,6 +89,13 @@ export function useCrudApi<TItem extends { id: string }>(resourceName: string) {
         async () => {
           // Replace with actual API call
           return {} as TItem;
+        },
+        {
+          onSettled: (data, error) => {
+            if (error) {
+              handleApiError(error);
+            }
+          }
         }
       ),
       
