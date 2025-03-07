@@ -1,88 +1,65 @@
 
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
-
-// Sample vehicle data with correct status type literals
-const vehicles = [
-  {
-    id: '1',
-    make: 'Toyota',
-    model: 'Camry',
-    year: 2022,
-    licensePlate: 'ABC-123',
-    status: 'available' as const,
-    imageUrl: 'https://images.unsplash.com/photo-1550355291-bbee04a92027?q=80&w=2156&auto=format&fit=crop',
-    location: 'Main Office',
-    fuelLevel: 85,
-    mileage: 12450,
-  },
-  {
-    id: '2',
-    make: 'Honda',
-    model: 'Accord',
-    year: 2021,
-    licensePlate: 'DEF-456',
-    status: 'rented' as const,
-    imageUrl: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?q=80&w=2070&auto=format&fit=crop',
-    location: 'Downtown Branch',
-    fuelLevel: 65,
-    mileage: 28750,
-  },
-  {
-    id: '3',
-    make: 'Ford',
-    model: 'Escape',
-    year: 2023,
-    licensePlate: 'GHI-789',
-    status: 'available' as const,
-    imageUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop',
-    location: 'Airport Location',
-    fuelLevel: 92,
-    mileage: 5230,
-  },
-  {
-    id: '4',
-    make: 'Chevrolet',
-    model: 'Malibu',
-    year: 2022,
-    licensePlate: 'JKL-012',
-    status: 'maintenance' as const,
-    imageUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=2070&auto=format&fit=crop',
-    location: 'Service Center',
-    fuelLevel: 45,
-    mileage: 18650,
-  },
-  {
-    id: '5',
-    make: 'Nissan',
-    model: 'Rogue',
-    year: 2021,
-    licensePlate: 'MNO-345',
-    status: 'available' as const,
-    imageUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070&auto=format&fit=crop',
-    location: 'North Branch',
-    fuelLevel: 78,
-    mileage: 31420,
-  },
-  {
-    id: '6',
-    make: 'BMW',
-    model: 'X3',
-    year: 2023,
-    licensePlate: 'PQR-678',
-    status: 'rented' as const,
-    imageUrl: 'https://images.unsplash.com/photo-1543610892-0b1f7e6d8ac1?q=80&w=1856&auto=format&fit=crop',
-    location: 'City Center',
-    fuelLevel: 55,
-    mileage: 8790,
-  },
-];
+import { Vehicle } from '@/types/vehicle';
+import { useVehicles } from '@/hooks/use-vehicles';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
+  filter?: Partial<Vehicle>;
 }
 
-const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle }) => {
+const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter }) => {
+  const { useList } = useVehicles();
+  const { data: vehicles, isLoading, error } = useList(filter);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="overflow-hidden border border-border/60 rounded-lg">
+            <Skeleton className="h-48 w-full" />
+            <div className="p-5">
+              <Skeleton className="h-6 w-2/3 mb-2" />
+              <Skeleton className="h-4 w-1/2 mb-4" />
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </div>
+            <div className="px-5 pb-5 pt-0">
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
+        <h3 className="text-lg font-semibold">Error Loading Vehicles</h3>
+        <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
+      </div>
+    );
+  }
+
+  // No vehicles found
+  if (!vehicles || vehicles.length === 0) {
+    return (
+      <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
+        <h3 className="text-lg font-semibold mb-2">No Vehicles Found</h3>
+        <p>No vehicles match your current criteria.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
       {vehicles.map(vehicle => (

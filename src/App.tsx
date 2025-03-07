@@ -10,6 +10,9 @@ import Sidebar from "./components/layout/Sidebar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Vehicles from "./pages/Vehicles";
+import AddVehicle from "./pages/AddVehicle";
+import VehicleDetailPage from "./pages/VehicleDetailPage";
+import EditVehicle from "./pages/EditVehicle";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,7 +33,11 @@ const App = () => (
                   <Sidebar />
                   <Routes>
                     <Route path="/dashboard" element={<Dashboard />} />
+                    {/* Vehicle Management Routes */}
                     <Route path="/vehicles" element={<Vehicles />} />
+                    <Route path="/vehicles/add" element={<AddVehicle />} />
+                    <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
+                    <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
                     {/* Add other module routes here */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>
