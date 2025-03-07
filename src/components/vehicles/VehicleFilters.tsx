@@ -15,6 +15,7 @@ export interface VehicleFilterValues {
   category?: string;
   location?: string;
   year?: number;
+  [key: string]: string | number | undefined;  // Index signature to allow dynamic property access
 }
 
 interface VehicleFiltersProps {
