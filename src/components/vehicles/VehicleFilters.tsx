@@ -15,7 +15,7 @@ export interface VehicleFilterValues {
   make?: string;
   category?: string;
   location?: string;
-  year?: number;
+  year?: number | null;
 }
 
 interface VehicleFiltersProps {
@@ -60,10 +60,10 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     }
   }, [vehicles]);
   
-  const updateFilters = (key: keyof VehicleFilterValues, value: string | number | undefined) => {
+  const updateFilters = (key: keyof VehicleFilterValues, value: string | number | undefined | null) => {
     const newFilters = { ...filters };
     
-    if (value) {
+    if (value !== undefined && value !== null && value !== '') {
       newFilters[key] = value;
     } else {
       delete newFilters[key];

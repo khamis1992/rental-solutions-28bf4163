@@ -82,9 +82,21 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const handleFormSubmit = (formValues: VehicleFormSchema) => {
-    // Combine form data with selected image
+    // Combine form data with selected image and ensure all required fields are present
     const formData: VehicleFormData = {
-      ...formValues,
+      make: formValues.make,
+      model: formValues.model,
+      year: formValues.year,
+      license_plate: formValues.license_plate,
+      vin: formValues.vin,
+      status: formValues.status,
+      color: formValues.color,
+      mileage: formValues.mileage,
+      location: formValues.location,
+      description: formValues.description,
+      insurance_company: formValues.insurance_company,
+      rent_amount: formValues.rent_amount,
+      vehicle_type_id: formValues.vehicle_type_id,
       image: selectedImage,
     };
     
