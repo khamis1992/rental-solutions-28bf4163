@@ -1,4 +1,5 @@
-import { useApiMutation, useApiQuery } from './use-api';
+
+import { useApiMutation, useApiQuery, useCrudApi } from './use-api';
 import { useState } from 'react';
 import { useToast } from './use-toast';
 
@@ -24,6 +25,9 @@ export function useMaintenance() {
     dateTo: '',
   });
 
+  // Use the CRUD API helper from use-api.ts
+  const crudApi = useCrudApi<any>('maintenance');
+
   // When using filters in a query, map the status to the proper type
   const { data: maintenanceRecords, isLoading, refetch } = useApiQuery(
     ['maintenance', JSON.stringify(filters)],
@@ -38,11 +42,19 @@ export function useMaintenance() {
     }
   );
 
+  // Return both the basic state and the CRUD operations
   return {
+    // Basic state
     maintenanceRecords,
     isLoading,
     filters,
     setFilters,
-    // Other returned values...
+    
+    // CRUD operations
+    useList: crudApi.useList,
+    useOne: crudApi.useItem,
+    useCreate: crudApi.useCreate,
+    useUpdate: crudApi.useUpdate,
+    useDelete: crudApi.useDelete
   };
 }

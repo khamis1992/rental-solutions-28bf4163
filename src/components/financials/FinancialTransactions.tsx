@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -25,15 +24,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  Calendar,
-  CalendarCell, 
-  CalendarGrid, 
-  CalendarHeader,
-  CalendarHeading,
-  CalendarMonthView,
-  Calendar as CalendarComponent
-} from '@/components/ui/calendar';
+import { Calendar } from '@/components/ui/calendar';
 import { 
   Popover, 
   PopoverContent, 
