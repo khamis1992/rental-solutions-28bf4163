@@ -29,6 +29,12 @@ import UserSettings from "./pages/UserSettings";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
+// Customer pages
+import Customers from "./pages/Customers";
+import AddCustomer from "./pages/AddCustomer";
+import CustomerDetailPage from "./pages/CustomerDetailPage";
+import EditCustomer from "./pages/EditCustomer";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -65,6 +71,12 @@ const App = () => (
                         <Route path="/vehicles/add" element={<AddVehicle />} />
                         <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
                         <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
+                        
+                        {/* Customer Management Routes */}
+                        <Route path="/customers" element={<Customers />} />
+                        <Route path="/customers/add" element={<AddCustomer />} />
+                        <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                        <Route path="/customers/edit/:id" element={<EditCustomer />} />
                         
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />
