@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -34,11 +33,10 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { MaintenanceStatus, MaintenanceType, type MaintenanceFilters } from '@/lib/validation-schemas/maintenance';
+import { MaintenanceStatus, MaintenanceType, type MaintenanceFilters, type MaintenanceStatusType } from '@/lib/validation-schemas/maintenance';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
 
-// Format maintenance type for display
 const formatMaintenanceType = (type: string | null | undefined) => {
   if (!type) return "Unknown";
   
@@ -48,9 +46,7 @@ const formatMaintenanceType = (type: string | null | undefined) => {
     .join(' ');
 };
 
-// Format status badges
 const getStatusBadge = (status: string) => {
-  // Convert to lowercase for comparison if needed
   const statusLower = status?.toLowerCase();
   
   switch (statusLower) {
@@ -71,16 +67,14 @@ export const MaintenanceList = () => {
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [statusFilter, setStatusFilter] = useState<MaintenanceStatusType | undefined>(undefined);
   const [vehicleFilter, setVehicleFilter] = useState<string | undefined>(undefined);
   const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState<string | undefined>(undefined);
-  // Fix the DateRange type to match react-day-picker's DateRange
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const itemsPerPage = 10;
 
   const { useList } = useMaintenance();
 
-  // Construct filters object
   const filters: MaintenanceFilters = {
     query: searchQuery,
     status: statusFilter,
@@ -95,17 +89,14 @@ export const MaintenanceList = () => {
   const totalItems = maintenanceRecords?.length || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  // Function to handle navigation to detail page
   const handleRowClick = (id: string) => {
     navigate(`/maintenance/${id}`);
   };
 
-  // Pagination calculation
   const startIndex = (page - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const displayedRecords = maintenanceRecords?.slice(startIndex, endIndex) || [];
 
-  // Date formatting for display
   const formatDate = (date: Date) => {
     return format(date, 'MMM d, yyyy');
   };
@@ -128,7 +119,6 @@ export const MaintenanceList = () => {
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
-          {/* Search */}
           <div className="col-span-1 md:col-span-1">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -151,10 +141,11 @@ export const MaintenanceList = () => {
             </PopoverTrigger>
             <PopoverContent className="w-80">
               <div className="space-y-4">
-                {/* Status Filter */}
                 <div>
                   <h4 className="text-sm font-medium leading-none mb-2">Status</h4>
-                  <Select onValueChange={setStatusFilter} defaultValue={statusFilter}>
+                  <Select 
+                    onValueChange={(value) => setStatusFilter(value as MaintenanceStatusType || undefined)} 
+                    defaultValue={statusFilter}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
@@ -163,12 +154,11 @@ export const MaintenanceList = () => {
                       <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
                       <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
                       <SelectItem value={MaintenanceStatus.CANCELLED}>Cancelled</SelectItem>
-                      <SelectItem value={undefined}>Clear</SelectItem>
+                      <SelectItem value="">Clear</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Maintenance Type Filter */}
                 <div>
                   <h4 className="text-sm font-medium leading-none mb-2">Maintenance Type</h4>
                   <Select onValueChange={setMaintenanceTypeFilter} defaultValue={maintenanceTypeFilter}>
@@ -186,7 +176,6 @@ export const MaintenanceList = () => {
                   </Select>
                 </div>
 
-                {/* Date Range Filter */}
                 <div>
                   <h4 className="text-sm font-medium leading-none mb-2">Date Range</h4>
                   <Popover>
@@ -232,7 +221,6 @@ export const MaintenanceList = () => {
             </PopoverContent>
           </Popover>
 
-          {/* Add Maintenance Record Button */}
           <CustomButton onClick={() => navigate('/maintenance/add')} className="col-span-1 md:col-span-1">
             <Plus className="mr-2 h-4 w-4" />
             Add Record
@@ -241,7 +229,6 @@ export const MaintenanceList = () => {
 
         {isLoading ? (
           <div className="mt-4">
-            {/* Skeleton loading state */}
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="grid grid-cols-6 gap-4 py-2">
                 <Skeleton className="h-4 col-span-1" />
@@ -280,7 +267,7 @@ export const MaintenanceList = () => {
                     <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
                     <TableCell className="text-right">
                       <CustomButton size="sm" onClick={(e) => {
-                        e.stopPropagation(); // Prevent row click
+                        e.stopPropagation();
                         navigate(`/maintenance/edit/${record.id}`);
                       }}>
                         <Wrench className="mr-2 h-4 w-4" />
@@ -294,7 +281,6 @@ export const MaintenanceList = () => {
           </div>
         )}
 
-        {/* Pagination */}
         {totalItems > 0 && (
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
