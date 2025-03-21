@@ -43,6 +43,11 @@ const VehicleCard = ({
     retired: 'bg-gray-100 text-gray-800'
   };
 
+  // Use the MG image for MG cars
+  const displayImageUrl = make.toLowerCase() === 'mg' 
+    ? '/lovable-uploads/8752db90-86d9-44b0-901e-c68e1bd988b5.png' 
+    : imageUrl;
+
   return (
     <Card className={cn(
       "overflow-hidden border border-border/60 transition-all duration-300 hover:shadow-card", 
@@ -52,7 +57,7 @@ const VehicleCard = ({
       <div className="relative h-48 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10" />
         <img 
-          src={imageUrl} 
+          src={displayImageUrl} 
           alt={`${make} ${model}`}
           className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
         />
