@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Home,
@@ -12,7 +13,7 @@ import { NavList } from "@/components/ui/nav-list";
 interface Item {
   title: string;
   href: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   submenu?: { title: string; href: string }[];
 }
 

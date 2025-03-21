@@ -20,6 +20,7 @@ export interface Agreement {
     first_name: string;
     last_name: string;
     email: string;
+    phone?: string; // Added phone property to fix the TypeScript error
   };
   vehicle?: {
     id: string;
