@@ -24,7 +24,7 @@ const EditMaintenance = () => {
     
     updateMaintenance({ 
       id, 
-      data: formData // Ensure we're passing the data in the correct format
+      data: formData 
     }, {
       onSuccess: () => {
         navigate(`/maintenance/${id}`);
@@ -56,7 +56,7 @@ const EditMaintenance = () => {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {fetchError || 'Maintenance record not found'}
+            {fetchError ? String(fetchError) : 'Maintenance record not found'}
           </AlertDescription>
         </Alert>
         <Button className="mt-4" onClick={() => navigate('/maintenance')}>
@@ -77,9 +77,9 @@ const EditMaintenance = () => {
       )}
       
       <MaintenanceForm 
-        initialData={maintenance} 
+        initialData={maintenance}
         onSubmit={handleUpdate}
-        isSubmitting={isUpdating}
+        isLoading={isUpdating}
         submitLabel="Update Maintenance"
       />
     </PageContainer>

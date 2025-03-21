@@ -53,6 +53,9 @@ import TrafficFines from "./pages/TrafficFines";
 // Financials pages
 import Financials from "./pages/Financials";
 
+// Reports pages
+import Reports from "./pages/Reports";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -113,6 +116,9 @@ const App = () => (
                         
                         {/* Financials Management Route */}
                         <Route path="/financials" element={<Financials />} />
+                        
+                        {/* Reports Route */}
+                        <Route path="/reports" element={<Reports />} />
                         
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />
