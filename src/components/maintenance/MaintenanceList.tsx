@@ -93,7 +93,9 @@ export const MaintenanceList: React.FC = () => {
   };
 
   // Format maintenance type for display
-  const formatMaintenanceType = (type: string) => {
+  const formatMaintenanceType = (type: string | null | undefined) => {
+    if (!type) return 'Unknown';
+    
     return type
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
