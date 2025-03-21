@@ -1,5 +1,3 @@
-// Add null check for maintenance type in the formatMaintenanceType function
-// Update any part where MaintenanceStatus is used to ensure proper case handling
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +36,7 @@ import { format } from 'date-fns';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { MaintenanceStatus, MaintenanceType, type MaintenanceFilters } from '@/lib/validation-schemas/maintenance';
 import { Skeleton } from '@/components/ui/skeleton';
+import { DateRange } from 'react-day-picker';
 
 // Format maintenance type for display
 const formatMaintenanceType = (type: string | null | undefined) => {
@@ -64,11 +63,9 @@ const getStatusBadge = (status: string) => {
     case 'cancelled':
       return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">Cancelled</Badge>;
     default:
-      return <Badge>{status}</Badge>;
+      return <Badge>{status || 'Unknown'}</Badge>;
   }
 };
-
-// Continue with the rest of the component...
 
 export const MaintenanceList = () => {
   const navigate = useNavigate();
@@ -77,10 +74,8 @@ export const MaintenanceList = () => {
   const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
   const [vehicleFilter, setVehicleFilter] = useState<string | undefined>(undefined);
   const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<undefined | { from: Date; to: Date; }>({
-    from: undefined,
-    to: undefined,
-  });
+  // Fix the DateRange type to match react-day-picker's DateRange
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const itemsPerPage = 10;
 
   const { useList } = useMaintenance();
@@ -120,7 +115,7 @@ export const MaintenanceList = () => {
     setStatusFilter(undefined);
     setVehicleFilter(undefined);
     setMaintenanceTypeFilter(undefined);
-    setDateRange({ from: undefined, to: undefined });
+    setDateRange(undefined);
   };
 
   return (
@@ -223,6 +218,7 @@ export const MaintenanceList = () => {
                         selected={dateRange}
                         onSelect={setDateRange}
                         numberOfMonths={2}
+                        className="pointer-events-auto"
                       />
                     </PopoverContent>
                   </Popover>
@@ -258,7 +254,7 @@ export const MaintenanceList = () => {
             ))}
           </div>
         ) : error ? (
-          <p className="text-red-500 mt-4">Error: {error.message}</p>
+          <p className="text-red-500 mt-4">Error: {error instanceof Error ? error.message : 'An unknown error occurred'}</p>
         ) : displayedRecords.length === 0 && !isLoading ? (
           <p className="mt-4">No maintenance records found.</p>
         ) : (

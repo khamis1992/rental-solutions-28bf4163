@@ -11,7 +11,7 @@ const transformMaintenanceRecord = (record: any): Maintenance => {
     id: record.id,
     vehicle_id: record.vehicle_id,
     maintenance_type: record.maintenance_type,
-    // Convert status to lowercase to match our frontend enum values
+    // Status is stored as uppercase in DB, but our enum uses lowercase
     status: record.status?.toLowerCase() as keyof typeof MaintenanceStatus,
     description: record.description,
     cost: record.cost || 0,
