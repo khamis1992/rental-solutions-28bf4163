@@ -110,7 +110,7 @@ export const useCompliance = () => {
   // Check for expiring documents
   const useExpiringDocuments = (daysThreshold: number = 30) => {
     return useApiQuery(
-      ['compliance', 'expiring', daysThreshold], 
+      ['compliance', 'expiring', daysThreshold.toString()], // Convert number to string for queryKey
       async () => {
         // This would be an API call in a real implementation
         const today = new Date();
