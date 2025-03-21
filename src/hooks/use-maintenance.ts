@@ -2,8 +2,60 @@
 import { useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useApiQuery, useApiMutation, useCrudApi } from "@/hooks/use-api";
-import { Maintenance, MaintenanceFilters } from "@/lib/validation-schemas/maintenance";
+import { Maintenance, MaintenanceFilters, MaintenanceStatus } from "@/lib/validation-schemas/maintenance";
 import { supabase } from "@/integrations/supabase/client";
+
+// Helper function to transform database records to our frontend model
+const transformMaintenanceRecord = (record: any): Maintenance => {
+  return {
+    id: record.id,
+    vehicle_id: record.vehicle_id,
+    maintenance_type: record.maintenance_type,
+    status: record.status as keyof typeof MaintenanceStatus,
+    description: record.description,
+    cost: record.cost || 0,
+    scheduled_date: record.scheduled_date ? new Date(record.scheduled_date) : new Date(),
+    completion_date: record.completed_date ? new Date(record.completed_date) : undefined,
+    service_provider: record.performed_by || record.service_provider,
+    invoice_number: record.invoice_number,
+    odometer_reading: record.odometer_reading,
+    notes: record.notes,
+    created_at: record.created_at ? new Date(record.created_at) : undefined,
+    updated_at: record.updated_at ? new Date(record.updated_at) : undefined,
+    vehicles: record.vehicles
+  };
+};
+
+// Helper function to transform our frontend model to database record format
+const transformToDbRecord = (maintenance: Omit<Maintenance, 'id'> | Maintenance): any => {
+  // Base fields that map directly
+  const dbRecord: any = {
+    vehicle_id: maintenance.vehicle_id,
+    maintenance_type: maintenance.maintenance_type,
+    status: maintenance.status,
+    description: maintenance.description,
+    cost: maintenance.cost,
+    notes: maintenance.notes,
+    odometer_reading: maintenance.odometer_reading,
+    invoice_number: maintenance.invoice_number,
+    scheduled_date: maintenance.scheduled_date instanceof Date ? maintenance.scheduled_date.toISOString() : maintenance.scheduled_date,
+  };
+
+  // Map service_provider to performed_by (if the DB uses that field)
+  if (maintenance.service_provider) {
+    dbRecord.performed_by = maintenance.service_provider;
+    dbRecord.service_provider = maintenance.service_provider;
+  }
+
+  // Handle completion_date mapping to completed_date
+  if (maintenance.completion_date) {
+    dbRecord.completed_date = maintenance.completion_date instanceof Date 
+      ? maintenance.completion_date.toISOString() 
+      : maintenance.completion_date;
+  }
+
+  return dbRecord;
+};
 
 export const useMaintenance = () => {
   const { toast } = useToast();
@@ -21,7 +73,7 @@ export const useMaintenance = () => {
         // Apply filters if provided
         if (filters) {
           if (filters.query) {
-            query = query.or(`description.ilike.%${filters.query}%,service_provider.ilike.%${filters.query}%,invoice_number.ilike.%${filters.query}%`);
+            query = query.or(`description.ilike.%${filters.query}%,performed_by.ilike.%${filters.query}%,invoice_number.ilike.%${filters.query}%`);
           }
           if (filters.status) {
             query = query.eq('status', filters.status);
@@ -46,7 +98,8 @@ export const useMaintenance = () => {
           throw error;
         }
 
-        return data as Maintenance[];
+        // Transform database records to our frontend model
+        return (data || []).map(record => transformMaintenanceRecord(record));
       }
     );
   };
@@ -68,7 +121,8 @@ export const useMaintenance = () => {
           throw error;
         }
 
-        return data as Maintenance;
+        // Transform database record to our frontend model
+        return transformMaintenanceRecord(data);
       },
       { enabled: !!id }
     );
@@ -78,9 +132,12 @@ export const useMaintenance = () => {
   const useCreate = () => {
     return useApiMutation(
       async (newMaintenance: Omit<Maintenance, 'id'>) => {
+        // Transform to database format before inserting
+        const dbRecord = transformToDbRecord(newMaintenance);
+
         const { data, error } = await supabase
           .from('maintenance')
-          .insert(newMaintenance)
+          .insert(dbRecord)
           .select()
           .single();
 
@@ -88,7 +145,7 @@ export const useMaintenance = () => {
           throw error;
         }
 
-        return data;
+        return transformMaintenanceRecord(data);
       },
       {
         onSuccess: () => {
@@ -98,9 +155,14 @@ export const useMaintenance = () => {
           });
         },
         onError: (error: unknown) => {
+          let errorMessage = "Failed to create maintenance record";
+          if (error instanceof Error) {
+            errorMessage += `: ${error.message}`;
+          }
+          
           toast({
             title: "Error",
-            description: `Failed to create maintenance record: ${error instanceof Error ? error.message : String(error)}`,
+            description: errorMessage,
             variant: "destructive",
           });
         },
@@ -116,14 +178,12 @@ export const useMaintenance = () => {
         
         if (!id) throw new Error("Maintenance ID is required for updates");
         
-        // Remove the vehicles relationship before updating
-        if ('vehicles' in maintenanceData) {
-          delete maintenanceData.vehicles;
-        }
+        // Remove the vehicles relationship and transform to DB format
+        const dbRecord = transformToDbRecord(maintenanceData);
 
         const { data, error } = await supabase
           .from('maintenance')
-          .update(maintenanceData)
+          .update(dbRecord)
           .eq('id', id)
           .select()
           .single();
@@ -132,7 +192,7 @@ export const useMaintenance = () => {
           throw error;
         }
 
-        return data;
+        return transformMaintenanceRecord(data);
       },
       {
         onSuccess: () => {
@@ -142,9 +202,14 @@ export const useMaintenance = () => {
           });
         },
         onError: (error: unknown) => {
+          let errorMessage = "Failed to update maintenance record";
+          if (error instanceof Error) {
+            errorMessage += `: ${error.message}`;
+          }
+          
           toast({
             title: "Error",
-            description: `Failed to update maintenance record: ${error instanceof Error ? error.message : String(error)}`,
+            description: errorMessage,
             variant: "destructive",
           });
         },
@@ -175,9 +240,14 @@ export const useMaintenance = () => {
           });
         },
         onError: (error: unknown) => {
+          let errorMessage = "Failed to delete maintenance record";
+          if (error instanceof Error) {
+            errorMessage += `: ${error.message}`;
+          }
+          
           toast({
             title: "Error",
-            description: `Failed to delete maintenance record: ${error instanceof Error ? error.message : String(error)}`,
+            description: errorMessage,
             variant: "destructive",
           });
         },
