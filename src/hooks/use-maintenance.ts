@@ -1,11 +1,13 @@
+
 import { useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useApiQuery, useApiMutation, useCrudApi } from "@/hooks/use-api";
 import { Maintenance, MaintenanceFilters } from "@/lib/validation-schemas/maintenance";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useMaintenance = () => {
   const { toast } = useToast();
-  const crudApi = useCrudApi<Maintenance>('maintenance');
+  const crudApi = useCrudApi<Maintenance & { id: string }>('maintenance');
 
   // Fetch maintenance records with optional filtering
   const useList = (filters?: MaintenanceFilters) => {
@@ -95,10 +97,10 @@ export const useMaintenance = () => {
             description: "Maintenance record created successfully.",
           });
         },
-        onError: (error) => {
+        onError: (error: unknown) => {
           toast({
             title: "Error",
-            description: `Failed to create maintenance record: ${error.message}`,
+            description: `Failed to create maintenance record: ${error instanceof Error ? error.message : String(error)}`,
             variant: "destructive",
           });
         },
@@ -139,10 +141,10 @@ export const useMaintenance = () => {
             description: "Maintenance record updated successfully.",
           });
         },
-        onError: (error) => {
+        onError: (error: unknown) => {
           toast({
             title: "Error",
-            description: `Failed to update maintenance record: ${error.message}`,
+            description: `Failed to update maintenance record: ${error instanceof Error ? error.message : String(error)}`,
             variant: "destructive",
           });
         },
@@ -172,10 +174,10 @@ export const useMaintenance = () => {
             description: "Maintenance record deleted successfully.",
           });
         },
-        onError: (error) => {
+        onError: (error: unknown) => {
           toast({
             title: "Error",
-            description: `Failed to delete maintenance record: ${error.message}`,
+            description: `Failed to delete maintenance record: ${error instanceof Error ? error.message : String(error)}`,
             variant: "destructive",
           });
         },
