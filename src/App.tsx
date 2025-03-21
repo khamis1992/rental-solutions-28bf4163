@@ -38,6 +38,12 @@ import EditCustomer from "./pages/EditCustomer";
 // Agreement pages
 import Agreements from "./pages/Agreements";
 
+// Maintenance pages
+import Maintenance from "./pages/Maintenance";
+import AddMaintenance from "./pages/AddMaintenance";
+import EditMaintenance from "./pages/EditMaintenance";
+import MaintenanceDetailPage from "./pages/MaintenanceDetailPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -83,6 +89,12 @@ const App = () => (
                         
                         {/* Agreement Management Routes */}
                         <Route path="/agreements" element={<Agreements />} />
+                        
+                        {/* Maintenance Management Routes */}
+                        <Route path="/maintenance" element={<Maintenance />} />
+                        <Route path="/maintenance/add" element={<AddMaintenance />} />
+                        <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
+                        <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
                         
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />
