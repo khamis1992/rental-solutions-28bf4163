@@ -10,6 +10,24 @@ export const AgreementStatus = {
   PENDING: "pending",
 } as const;
 
+// Customer and Vehicle nested objects schema
+export const CustomerSchema = z.object({
+  id: z.string(),
+  full_name: z.string(),
+  email: z.string().optional(),
+  phone: z.string().optional()
+});
+
+export const VehicleSchema = z.object({
+  id: z.string(),
+  make: z.string(),
+  model: z.string(),
+  license_plate: z.string(),
+  image_url: z.string().optional(),
+  year: z.number().optional(),
+  color: z.string().optional()
+});
+
 // Agreement validation schema
 export const agreementSchema = z.object({
   id: z.string().optional(),
@@ -35,6 +53,9 @@ export const agreementSchema = z.object({
   pickup_location: z.string().optional(),
   return_location: z.string().optional(),
   additional_drivers: z.array(z.string()).optional(),
+  // Include the nested objects returned from Supabase
+  customers: CustomerSchema.optional(),
+  vehicles: VehicleSchema.optional(),
 });
 
 // Type for Agreement based on the schema

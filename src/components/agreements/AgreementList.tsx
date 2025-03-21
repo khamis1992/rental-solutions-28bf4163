@@ -88,12 +88,16 @@ export function AgreementList() {
         const customer = row.original.customers;
         return (
           <div>
-            <Link 
-              to={`/customers/${customer?.id}`}
-              className="hover:underline"
-            >
-              {customer?.full_name || 'N/A'}
-            </Link>
+            {customer && customer.id ? (
+              <Link 
+                to={`/customers/${customer.id}`}
+                className="hover:underline"
+              >
+                {customer.full_name || 'N/A'}
+              </Link>
+            ) : (
+              'N/A'
+            )}
           </div>
         );
       },
@@ -105,12 +109,17 @@ export function AgreementList() {
         const vehicle = row.original.vehicles;
         return (
           <div>
-            <Link 
-              to={`/vehicles/${vehicle?.id}`}
-              className="hover:underline"
-            >
-              {vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'N/A'}
-            </Link>
+            {vehicle && vehicle.id ? (
+              <Link 
+                to={`/vehicles/${vehicle.id}`}
+                className="hover:underline"
+              >
+                {vehicle.make && vehicle.model ? 
+                  `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'N/A'}
+              </Link>
+            ) : (
+              'N/A'
+            )}
           </div>
         );
       },
