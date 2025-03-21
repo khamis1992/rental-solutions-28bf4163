@@ -23,6 +23,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   // Default image for cars
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
+  // Updated T77 image path
+  const t77Image = '/lovable-uploads/32900e30-d61f-4057-8601-bc451101312c.png';
+  
   // Custom image logic by make/model
   let displayImageUrl = defaultCarImage;
   
@@ -30,9 +33,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     const makeLower = (vehicle.make || '').toString().toLowerCase();
     const modelLower = (vehicle.model || '').toString().toLowerCase();
 
-    if (makeLower.includes('mg')) {
-      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
-    } else if (modelLower.includes('t77')) {
+    if (modelLower.includes('t77')) {
+      displayImageUrl = t77Image; // Use the new uploaded T77 image
+    } else if (makeLower.includes('mg')) {
       displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
     } else if (vehicle.imageUrl) {
       displayImageUrl = vehicle.imageUrl;

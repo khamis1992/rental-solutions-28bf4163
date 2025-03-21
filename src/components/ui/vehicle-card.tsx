@@ -46,8 +46,10 @@ const VehicleCard = ({
   // Default image for cars
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
+  // Updated T77 image path
+  const t77Image = '/lovable-uploads/32900e30-d61f-4057-8601-bc451101312c.png';
+  
   // Custom image logic by make/model
-  // We're using public folder images to ensure they load properly
   let displayImageUrl = '';
   
   try {
@@ -57,12 +59,12 @@ const VehicleCard = ({
     
     console.log('Vehicle make/model:', makeLower, modelLower);
     
-    if (makeLower.includes('mg')) {
-      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png'; // Use the new uploaded image
+    if (modelLower.includes('t77')) {
+      displayImageUrl = t77Image; // Use the new uploaded T77 image
+      console.log('Using new T77 image');
+    } else if (makeLower.includes('mg')) {
+      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
       console.log('Using custom MG image');
-    } else if (modelLower.includes('t77')) {
-      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png'; // Same image for T77
-      console.log('Using custom T77 image');
     } else if (imageUrl) {
       displayImageUrl = imageUrl;
     } else {
