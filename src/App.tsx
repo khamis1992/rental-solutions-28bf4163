@@ -35,6 +35,9 @@ import AddCustomer from "./pages/AddCustomer";
 import CustomerDetailPage from "./pages/CustomerDetailPage";
 import EditCustomer from "./pages/EditCustomer";
 
+// Agreement pages
+import Agreements from "./pages/Agreements";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -77,6 +80,9 @@ const App = () => (
                         <Route path="/customers/add" element={<AddCustomer />} />
                         <Route path="/customers/:id" element={<CustomerDetailPage />} />
                         <Route path="/customers/edit/:id" element={<EditCustomer />} />
+                        
+                        {/* Agreement Management Routes */}
+                        <Route path="/agreements" element={<Agreements />} />
                         
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />
