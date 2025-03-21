@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,29 +21,13 @@ import ResetPassword from "./pages/auth/ResetPassword";
 // Pages
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-
-// Vehicle Management
 import Vehicles from "./pages/Vehicles";
 import AddVehicle from "./pages/AddVehicle";
 import VehicleDetailPage from "./pages/VehicleDetailPage";
 import EditVehicle from "./pages/EditVehicle";
-
-// Customer Management
-import Customers from "./pages/Customers";
-import AddCustomer from "./pages/AddCustomer";
-import CustomerDetail from "./pages/CustomerDetail";
-import EditCustomer from "./pages/EditCustomer";
-
-// User Management
 import UserSettings from "./pages/UserSettings";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
-
-// Agreement routes
-import Agreements from "./pages/Agreements";
-import AgreementDetail from "./pages/AgreementDetail";
-import AddAgreement from "./pages/AddAgreement";
-import EditAgreement from "./pages/EditAgreement";
 
 const queryClient = new QueryClient();
 
@@ -81,12 +66,6 @@ const App = () => (
                         <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
                         <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
                         
-                        {/* Customer Management Routes */}
-                        <Route path="/customers" element={<Customers />} />
-                        <Route path="/customers/add" element={<AddCustomer />} />
-                        <Route path="/customers/:id" element={<CustomerDetail />} />
-                        <Route path="/customers/edit/:id" element={<EditCustomer />} />
-                        
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />
                         <Route 
@@ -98,11 +77,7 @@ const App = () => (
                           } 
                         />
                         
-                        {/* Agreement routes */}
-                        <Route path="/agreements" element={<Agreements />} />
-                        <Route path="/agreements/:id" element={<AgreementDetail />} />
-                        <Route path="/agreements/add" element={<AddAgreement />} />
-                        <Route path="/agreements/edit/:id" element={<EditAgreement />} />
+                        {/* Add other module routes here */}
                         
                         <Route path="*" element={<NotFound />} />
                       </Routes>

@@ -1896,42 +1896,6 @@ export type Database = {
         }
         Relationships: []
       }
-      customers: {
-        Row: {
-          address: string | null
-          created_at: string
-          driver_license: string | null
-          email: string | null
-          first_name: string
-          id: string
-          last_name: string
-          phone: string | null
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string
-          driver_license?: string | null
-          email?: string | null
-          first_name: string
-          id?: string
-          last_name: string
-          phone?: string | null
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          created_at?: string
-          driver_license?: string | null
-          email?: string | null
-          first_name?: string
-          id?: string
-          last_name?: string
-          phone?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       damages: {
         Row: {
           created_at: string
@@ -6668,63 +6632,6 @@ export type Database = {
             columns: ["lease_id"]
             isOneToOne: false
             referencedRelation: "leases_missing_payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rental_agreements: {
-        Row: {
-          created_at: string
-          customer_id: string
-          deposit_amount: number | null
-          end_date: string
-          id: string
-          notes: string | null
-          start_date: string
-          status: string
-          total_cost: number
-          updated_at: string
-          vehicle_id: string
-        }
-        Insert: {
-          created_at?: string
-          customer_id: string
-          deposit_amount?: number | null
-          end_date: string
-          id?: string
-          notes?: string | null
-          start_date: string
-          status: string
-          total_cost?: number
-          updated_at?: string
-          vehicle_id: string
-        }
-        Update: {
-          created_at?: string
-          customer_id?: string
-          deposit_amount?: number | null
-          end_date?: string
-          id?: string
-          notes?: string | null
-          start_date?: string
-          status?: string
-          total_cost?: number
-          updated_at?: string
-          vehicle_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rental_agreements_customer_id_fkey"
-            columns: ["customer_id"]
-            isOneToOne: false
-            referencedRelation: "customers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_agreements_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
             referencedColumns: ["id"]
           },
         ]

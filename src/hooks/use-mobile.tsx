@@ -1,4 +1,3 @@
-
 import * as React from "react"
 
 const MOBILE_BREAKPOINT = 768
@@ -17,15 +16,4 @@ export function useIsMobile() {
   }, [])
 
   return !!isMobile
-}
-
-export function useMobileDrawer() {
-  const [isOpen, setIsOpen] = React.useState(false)
-  const isMobile = useIsMobile()
-
-  return {
-    isOpen: isOpen && isMobile,
-    setIsOpen,
-    isMobile
-  }
 }

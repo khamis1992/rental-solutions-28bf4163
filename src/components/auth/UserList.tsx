@@ -143,14 +143,9 @@ const UserList = () => {
         return (
           <Badge 
             variant={
-              status === "active" ? "default" : 
-              status === "pending_review" ? "secondary" : 
+              status === "active" ? "success" : 
+              status === "pending_review" ? "warning" : 
               "destructive"
-            }
-            className={
-              status === "active" ? "bg-green-500 hover:bg-green-600" : 
-              status === "pending_review" ? "bg-yellow-500 hover:bg-yellow-600" : 
-              ""
             }
           >
             {status === "active" ? (

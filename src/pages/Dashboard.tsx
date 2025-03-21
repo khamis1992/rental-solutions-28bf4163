@@ -6,8 +6,6 @@ import DashboardStats from '@/components/dashboard/DashboardStats';
 import RevenueChart from '@/components/dashboard/RevenueChart';
 import VehicleStatusChart from '@/components/dashboard/VehicleStatusChart';
 import RecentActivity from '@/components/dashboard/RecentActivity';
-import FinancialSummary from '@/components/dashboard/FinancialSummary';
-import ComplianceOverview from '@/components/dashboard/ComplianceOverview';
 import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 
@@ -29,14 +27,10 @@ const Dashboard = () => {
       <div className="space-y-6">
         <DashboardStats />
         
-        <FinancialSummary />
-        
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 section-transition">
           <RevenueChart />
           <VehicleStatusChart />
         </div>
-        
-        <ComplianceOverview />
         
         <RecentActivity />
       </div>
