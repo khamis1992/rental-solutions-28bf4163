@@ -10,7 +10,6 @@ import {
   Wrench,
   AlertTriangle,
   Gavel,
-  UserCog,
   PieChart,
   ChevronLeft,
   ChevronRight,
@@ -47,7 +46,6 @@ const navItems: NavItem[] = [
   { title: 'Maintenance', path: '/maintenance', icon: Wrench },
   { title: 'Traffic Fines', path: '/fines', icon: AlertTriangle },
   { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin', 'manager'] },
-  { title: 'Chauffeurs', path: '/chauffeurs', icon: UserCog },
   { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin', 'manager'] },
   { title: 'User Management', path: '/users', icon: UserPlus, roles: ['admin'] },
 ];
