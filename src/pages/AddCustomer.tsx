@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageContainer } from '@/components/layout/PageContainer';
+import PageContainer from '@/components/layout/PageContainer';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';

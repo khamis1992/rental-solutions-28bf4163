@@ -1,6 +1,6 @@
 
 import { CustomerList } from '@/components/customers/CustomerList';
-import { PageContainer } from '@/components/layout/PageContainer';
+import PageContainer from '@/components/layout/PageContainer';
 
 const Customers = () => {
   return (

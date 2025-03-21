@@ -1,5 +1,5 @@
 
-import { PageContainer } from '@/components/layout/PageContainer';
+import PageContainer from '@/components/layout/PageContainer';
 import { CustomerDetail } from '@/components/customers/CustomerDetail';
 
 const CustomerDetailPage = () => {
