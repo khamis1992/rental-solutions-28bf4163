@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,6 +37,12 @@ import EditCustomer from "./pages/EditCustomer";
 import UserSettings from "./pages/UserSettings";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
+
+// Agreement routes
+import Agreements from "./pages/Agreements";
+import AgreementDetail from "./pages/AgreementDetail";
+import AddAgreement from "./pages/AddAgreement";
+import EditAgreement from "./pages/EditAgreement";
 
 const queryClient = new QueryClient();
 
@@ -93,7 +98,11 @@ const App = () => (
                           } 
                         />
                         
-                        {/* Add other module routes here */}
+                        {/* Agreement routes */}
+                        <Route path="/agreements" element={<Agreements />} />
+                        <Route path="/agreements/:id" element={<AgreementDetail />} />
+                        <Route path="/agreements/add" element={<AddAgreement />} />
+                        <Route path="/agreements/edit/:id" element={<EditAgreement />} />
                         
                         <Route path="*" element={<NotFound />} />
                       </Routes>
