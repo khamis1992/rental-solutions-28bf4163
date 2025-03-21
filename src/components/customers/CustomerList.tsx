@@ -169,13 +169,15 @@ export function CustomerList() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">
-          <Input
-            placeholder="Search customers..."
-            value={searchParams.query || ''}
-            onChange={(e) => setSearchParams({...searchParams, query: e.target.value})}
-            className="h-9 w-full sm:w-[250px] md:w-[300px]"
-            prefixIcon={<Search className="h-4 w-4 opacity-50" />}
-          />
+          <div className="relative w-full sm:w-[250px] md:w-[300px]">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
+            <Input
+              placeholder="Search customers..."
+              value={searchParams.query || ''}
+              onChange={(e) => setSearchParams({...searchParams, query: e.target.value})}
+              className="h-9 pl-9 w-full"
+            />
+          </div>
           <Select
             value={searchParams.status}
             onValueChange={(value) => setSearchParams({...searchParams, status: value})}
