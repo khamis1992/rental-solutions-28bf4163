@@ -50,6 +50,8 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       // Create preview URL
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
+      
+      // Pass the file back to parent component
       onImageSelected(file);
       setIsLoading(false);
     } else {

@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 // Get the environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 // Check for missing variables, but don't block initialization
 if (!supabaseUrl || !supabaseKey) {
@@ -30,24 +31,49 @@ export const ensureVehicleImagesBucket = async (): Promise<boolean> => {
     const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
     
     if (!bucketExists) {
-      // Use service role key for creating buckets (assumes SUPABASE_SERVICE_ROLE_KEY is set)
-      const adminClient = createClient(
-        supabaseUrl || '',
-        import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
-      );
-      
-      const { error: createError } = await adminClient.storage.createBucket('vehicle-images', {
-        public: true,
-        fileSizeLimit: 10485760, // 10MB
-      });
-      
-      if (createError) {
-        console.error('Error creating bucket with service role:', createError);
-        return false;
+      // First try with current client
+      try {
+        const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
+          public: true,
+          fileSizeLimit: 10485760, // 10MB
+        });
+        
+        if (!createError) {
+          console.log('Vehicle images bucket created successfully with anon key');
+          return true;
+        }
+      } catch (e) {
+        console.error('Error creating bucket with anon key:', e);
       }
       
-      console.log('Vehicle images bucket created successfully');
-      return true;
+      // If the bucket doesn't exist and service key is available, try with that
+      if (supabaseServiceKey) {
+        try {
+          const serviceClient = createClient(
+            supabaseUrl || '',
+            supabaseServiceKey
+          );
+          
+          const { error: serviceError } = await serviceClient.storage.createBucket('vehicle-images', {
+            public: true,
+            fileSizeLimit: 10485760, // 10MB
+          });
+          
+          if (serviceError) {
+            console.error('Error creating bucket with service role:', serviceError);
+            return false;
+          }
+          
+          console.log('Vehicle images bucket created successfully with service role key');
+          return true;
+        } catch (error) {
+          console.error('Error with service role client:', error);
+          return false;
+        }
+      } else {
+        console.error('No service role key available to create bucket');
+        return false;
+      }
     }
     
     return true;
