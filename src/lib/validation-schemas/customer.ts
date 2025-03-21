@@ -4,7 +4,9 @@ import { validationPatterns } from '@/lib/validation';
 
 export const customerSchema = z.object({
   id: z.string().optional(),
-  full_name: z.string().min(2, "Full name must be at least 2 characters"),
+  first_name: z.string().min(2, "First name must be at least 2 characters"),
+  last_name: z.string().min(2, "Last name must be at least 2 characters"),
+  full_name: z.string().optional(),
   email: z.string().email("Please enter a valid email address"),
   phone: z.string().regex(validationPatterns.phone, "Please enter a valid phone number"),
   address: z.string().min(5, "Address must be at least 5 characters").optional(),

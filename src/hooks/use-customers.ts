@@ -18,6 +18,7 @@ export const useCustomers = () => {
   const { data: customers, isLoading, error } = useQuery({
     queryKey: ['customers', searchParams],
     queryFn: async () => {
+      console.log('Fetching customers with params:', searchParams);
       let query = supabase
         .from(CUSTOMERS_TABLE)
         .select('*')
@@ -31,17 +32,30 @@ export const useCustomers = () => {
       // Apply search query if provided
       if (searchParams.query) {
         query = query.or(
-          `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
+          `first_name.ilike.%${searchParams.query}%,last_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
         );
       }
 
       const { data, error } = await query;
       
       if (error) {
+        console.error('Error fetching customers:', error);
         throw new Error(error.message);
       }
       
-      return data as Customer[];
+      // Process customers to add full_name property if it doesn't exist
+      const processedCustomers = data.map(customer => {
+        if (!customer.full_name && (customer.first_name || customer.last_name)) {
+          return {
+            ...customer,
+            full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
+          };
+        }
+        return customer;
+      });
+      
+      console.log('Fetched customers:', processedCustomers);
+      return processedCustomers as Customer[];
     },
   });
 

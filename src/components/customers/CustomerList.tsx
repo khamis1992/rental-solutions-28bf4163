@@ -48,20 +48,30 @@ export function CustomerList() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   
+  console.log("CustomerList received customers:", customers);
+
   const columns: ColumnDef<Customer>[] = [
     {
       accessorKey: "full_name",
       header: "Customer Name",
-      cell: ({ row }) => (
-        <div>
-          <Link 
-            to={`/customers/${row.original.id}`}
-            className="font-medium text-primary hover:underline"
-          >
-            {row.getValue("full_name")}
-          </Link>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const fullName = row.getValue("full_name") as string;
+        const firstName = row.original.first_name || '';
+        const lastName = row.original.last_name || '';
+        // Use full_name if available, otherwise construct from first_name and last_name
+        const displayName = fullName || `${firstName} ${lastName}`.trim();
+        
+        return (
+          <div>
+            <Link 
+              to={`/customers/${row.original.id}`}
+              className="font-medium text-primary hover:underline"
+            >
+              {displayName}
+            </Link>
+          </div>
+        );
+      },
     },
     {
       accessorKey: "email",
@@ -84,7 +94,7 @@ export function CustomerList() {
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => {
-        const status = row.getValue("status") as string;
+        const status = row.getValue("status") as string || 'active';
         return (
           <Badge 
             variant={
@@ -101,7 +111,7 @@ export function CustomerList() {
             ) : (
               <AlertTriangle className="h-3 w-3 mr-1" />
             )}
-            {status}
+            {status || 'active'}
           </Badge>
         );
       },
@@ -136,7 +146,7 @@ export function CustomerList() {
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={() => {
-                  if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
+                  if (window.confirm(`Are you sure you want to delete ${customer.first_name} ${customer.last_name}?`)) {
                     deleteCustomer.mutate(customer.id as string);
                   }
                 }}
