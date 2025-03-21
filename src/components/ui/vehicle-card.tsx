@@ -17,7 +17,7 @@ interface VehicleCardProps {
   imageUrl: string;
   location?: string;
   fuelLevel?: number;
-  mileage?: number;
+  mileage?: number | null;
   className?: string;
   onSelect?: (id: string) => void;
 }
@@ -89,7 +89,7 @@ const VehicleCard = ({
             </div>
           )}
           
-          {mileage !== undefined && (
+          {mileage !== undefined && mileage !== null && (
             <div className="flex items-center text-muted-foreground text-sm">
               <Activity className="h-4 w-4 mr-1.5" />
               <span>{mileage.toLocaleString()} km</span>
