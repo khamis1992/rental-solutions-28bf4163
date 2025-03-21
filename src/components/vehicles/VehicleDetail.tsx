@@ -69,7 +69,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
               <li className="flex items-center text-sm">
                 <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-muted-foreground w-28">Mileage:</span>
-                <span>{vehicle.mileage !== undefined ? `${vehicle.mileage.toLocaleString()} km` : 'N/A'}</span>
+                <span>
+                  {vehicle.mileage !== undefined && vehicle.mileage !== null 
+                    ? `${vehicle.mileage.toLocaleString()} km` 
+                    : 'N/A'}
+                </span>
               </li>
               <li className="flex items-center text-sm">
                 <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -148,3 +152,4 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     </Card>
   );
 };
+
