@@ -2,8 +2,19 @@
 import { useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { useApiQuery, useApiMutation, useCrudApi } from "@/hooks/use-api";
-import { Maintenance, MaintenanceFilters, MaintenanceStatus } from "@/lib/validation-schemas/maintenance";
+import { Maintenance, MaintenanceFilters, MaintenanceStatus, MaintenanceStatusType } from "@/lib/validation-schemas/maintenance";
 import { supabase } from "@/integrations/supabase/client";
+
+// Map frontend status (lowercase) to database status (uppercase)
+const mapStatusToDb = (status: MaintenanceStatusType): string => {
+  const mapping: Record<MaintenanceStatusType, string> = {
+    "scheduled": "SCHEDULED",
+    "in_progress": "IN_PROGRESS",
+    "completed": "COMPLETED",
+    "cancelled": "CANCELLED"
+  };
+  return mapping[status];
+};
 
 // Helper function to transform database records to our frontend model
 const transformMaintenanceRecord = (record: any): Maintenance => {
@@ -11,8 +22,8 @@ const transformMaintenanceRecord = (record: any): Maintenance => {
     id: record.id,
     vehicle_id: record.vehicle_id,
     maintenance_type: record.maintenance_type,
-    // Status is stored as uppercase in DB, convert to lowercase for frontend
-    status: record.status?.toLowerCase() as keyof typeof MaintenanceStatus,
+    // Convert DB uppercase status to frontend lowercase format
+    status: (record.status?.toLowerCase() || "scheduled") as MaintenanceStatusType,
     description: record.description,
     cost: record.cost || 0,
     scheduled_date: record.scheduled_date ? new Date(record.scheduled_date) : new Date(),
@@ -34,7 +45,7 @@ const transformToDbRecord = (maintenance: Omit<Maintenance, 'id'> | Maintenance)
     vehicle_id: maintenance.vehicle_id,
     maintenance_type: maintenance.maintenance_type,
     // Convert status to uppercase for the database
-    status: maintenance.status?.toUpperCase(),
+    status: mapStatusToDb(maintenance.status),
     description: maintenance.description,
     cost: maintenance.cost,
     notes: maintenance.notes,
@@ -79,7 +90,7 @@ export const useMaintenance = () => {
           }
           if (filters.status) {
             // Convert status to uppercase for database query
-            query = query.eq('status', filters.status.toUpperCase());
+            query = query.eq('status', mapStatusToDb(filters.status));
           }
           if (filters.vehicle_id) {
             query = query.eq('vehicle_id', filters.vehicle_id);

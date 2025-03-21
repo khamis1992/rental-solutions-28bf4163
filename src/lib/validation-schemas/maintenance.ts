@@ -15,13 +15,17 @@ export const MaintenanceType = {
   OTHER: "other"
 } as const;
 
-// Define maintenance statuses - use lowercase values for frontend, DB uses uppercase
+// Define maintenance statuses - lowercase values for frontend schema
+// but DB uses uppercase values
 export const MaintenanceStatus = {
   SCHEDULED: "scheduled",
   IN_PROGRESS: "in_progress",
   COMPLETED: "completed",
   CANCELLED: "cancelled"
 } as const;
+
+// Define type for frontend status values
+export type MaintenanceStatusType = typeof MaintenanceStatus[keyof typeof MaintenanceStatus];
 
 // Vehicle reference schema (simplified)
 export const VehicleRefSchema = z.object({
@@ -74,7 +78,7 @@ export type Maintenance = z.infer<typeof maintenanceSchema>;
 // Type for Maintenance filters
 export type MaintenanceFilters = Partial<{
   query: string;
-  status: string;
+  status: MaintenanceStatusType;
   vehicle_id: string;
   maintenance_type: string;
   date_from: Date;
