@@ -51,8 +51,8 @@ const VehicleCard = ({
     displayImageUrl = '/lovable-uploads/8752db90-86d9-44b0-901e-c68e1bd988b5.png';
   }
   
-  // Use the T77 image for T77 model cars
-  if (model.toLowerCase() === 't77') {
+  // Use the T77 image for T77 model cars - check for various ways the model might be stored
+  if (model.toLowerCase().includes('t77')) {
     displayImageUrl = '/lovable-uploads/01f00263-e435-4f01-9967-08bbd64ff383.png';
   }
 
