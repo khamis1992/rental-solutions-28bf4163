@@ -1,7 +1,8 @@
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, Image } from 'lucide-react';
+import { Upload, X, Image, AlertCircle } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
+import { toast } from 'sonner';
 
 interface VehicleImageUploadProps {
   onImageSelected: (file: File | null) => void;
@@ -16,6 +17,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
   const [isDragging, setIsDragging] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,16 +26,20 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   };
 
   const handleFile = (file: File | null) => {
+    setErrorMessage(null);
+    
     if (file) {
       // Check file type
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        setErrorMessage('Please select an image file');
+        toast.error('Invalid file type', { description: 'Please select an image file' });
         return;
       }
       
       // Check file size (limit to 5MB)
       if (file.size > 5 * 1024 * 1024) {
-        alert('File size should be less than 5MB');
+        setErrorMessage('File size should be less than 5MB');
+        toast.error('File too large', { description: 'File size should be less than 5MB' });
         return;
       }
       
@@ -67,6 +73,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       URL.revokeObjectURL(previewUrl);
     }
     setPreviewUrl(null);
+    setErrorMessage(null);
     onImageSelected(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -82,6 +89,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       className={`
         relative border-2 border-dashed rounded-md p-4 text-center
         ${isDragging ? 'border-primary bg-primary/5' : 'border-border'}
+        ${errorMessage ? 'border-red-400' : ''}
         ${className}
       `}
       onDragOver={handleDragOver}
@@ -132,6 +140,13 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
           <p className="text-xs text-muted-foreground mt-3">
             JPG, PNG or WEBP (max. 5MB)
           </p>
+          
+          {errorMessage && (
+            <div className="mt-3 flex items-center text-red-500 text-sm">
+              <AlertCircle className="h-4 w-4 mr-1" />
+              {errorMessage}
+            </div>
+          )}
         </div>
       )}
     </div>

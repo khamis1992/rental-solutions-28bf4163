@@ -18,8 +18,13 @@ export const supabase = createClient(
 
 // Helper function to get image URL with public URL transformation
 export const getImagePublicUrl = (bucket: string, path: string): string => {
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  return data.publicUrl;
+  try {
+    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+    return data.publicUrl;
+  } catch (error) {
+    console.error('Error getting public URL:', error);
+    return '';
+  }
 };
 
 // Helper to format data for display with camelCase keys for legacy UI compatibility
