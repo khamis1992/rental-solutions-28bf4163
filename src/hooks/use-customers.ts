@@ -25,7 +25,7 @@ export const useCustomers = () => {
         .order('created_at', { ascending: false });
 
       // Apply status filter if not 'all'
-      if (searchParams.status !== 'all') {
+      if (searchParams.status !== 'all' && searchParams.status) {
         query = query.eq('status', searchParams.status);
       }
 
@@ -43,15 +43,13 @@ export const useCustomers = () => {
         throw new Error(error.message);
       }
       
-      // Process customers to add full_name property if it doesn't exist
+      // Process customers to add full_name property
       const processedCustomers = data.map(customer => {
-        if (!customer.full_name && (customer.first_name || customer.last_name)) {
-          return {
-            ...customer,
-            full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim()
-          };
-        }
-        return customer;
+        return {
+          ...customer,
+          full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim(),
+          status: customer.status || 'active' // Default status to active if not present
+        };
       });
       
       console.log('Fetched customers:', processedCustomers);
@@ -135,7 +133,11 @@ export const useCustomers = () => {
       return null;
     }
 
-    return data as Customer;
+    return {
+      ...data,
+      full_name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
+      status: data.status || 'active'
+    } as Customer;
   };
 
   return {
