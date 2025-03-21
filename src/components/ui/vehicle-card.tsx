@@ -46,13 +46,18 @@ const VehicleCard = ({
   // Determine which image to display based on make and model
   let displayImageUrl = imageUrl;
   
+  // Debug the make and model values to verify what we're receiving
+  console.log('Vehicle make:', make, 'model:', model);
+  
   // Use the MG image for all MG cars - check for various ways the make might be stored
-  if (make.toLowerCase().includes('mg')) {
+  if (make && make.toString().toLowerCase().includes('mg')) {
+    console.log('Using MG image for vehicle:', make, model);
     displayImageUrl = '/lovable-uploads/8752db90-86d9-44b0-901e-c68e1bd988b5.png';
   }
   
   // Use the T77 image for T77 model cars - check for various ways the model might be stored
-  if (model.toLowerCase().includes('t77')) {
+  if (model && model.toString().toLowerCase().includes('t77')) {
+    console.log('Using T77 image for vehicle:', make, model);
     displayImageUrl = '/lovable-uploads/01f00263-e435-4f01-9967-08bbd64ff383.png';
   }
 
@@ -68,6 +73,11 @@ const VehicleCard = ({
           src={displayImageUrl} 
           alt={`${make} ${model}`}
           className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
+          onError={(e) => {
+            console.error('Failed to load image:', displayImageUrl);
+            // Fallback to default image if loading fails
+            e.currentTarget.src = '/placeholder.svg';
+          }}
         />
         <Badge className={cn("absolute top-3 right-3 z-20", statusColors[status])}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
