@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -12,7 +13,8 @@ const fetchVehicles = async (filters?: VehicleFilterParams) => {
   // Apply filters if provided
   if (filters) {
     Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
+      // Skip "any" values as they mean no filter
+      if (value !== undefined && value !== null && value !== '' && value !== 'any') {
         query = query.eq(key, value);
       }
     });
@@ -149,7 +151,7 @@ export const useVehicles = () => {
             location: formData.location,
             insurance_company: formData.insurance_company,
             rent_amount: formData.rent_amount,
-            vehicle_type_id: formData.vehicle_type_id,
+            vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
             image_url: imageUrl,
           };
           
@@ -223,7 +225,12 @@ export const useVehicles = () => {
           if (data.location !== undefined) vehicleData.location = data.location;
           if (data.insurance_company !== undefined) vehicleData.insurance_company = data.insurance_company;
           if (data.rent_amount !== undefined) vehicleData.rent_amount = data.rent_amount;
-          if (data.vehicle_type_id !== undefined) vehicleData.vehicle_type_id = data.vehicle_type_id;
+          
+          // Handle vehicle_type_id specially - set to null if 'none'
+          if (data.vehicle_type_id !== undefined) {
+            vehicleData.vehicle_type_id = data.vehicle_type_id === 'none' ? null : data.vehicle_type_id;
+          }
+          
           if (imageUrl) vehicleData.image_url = imageUrl;
           
           // Update the vehicle

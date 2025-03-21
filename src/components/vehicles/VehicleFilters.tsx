@@ -125,7 +125,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                     <SelectValue placeholder="Any status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any status</SelectItem>
+                    <SelectItem value="any">Any status</SelectItem>
                     <SelectItem value="available">Available</SelectItem>
                     <SelectItem value="rented">Rented</SelectItem>
                     <SelectItem value="maintenance">Maintenance</SelectItem>
@@ -144,7 +144,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                     <SelectValue placeholder="Any make" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any make</SelectItem>
+                    <SelectItem value="any">Any make</SelectItem>
                     {uniqueMakes.map((make) => (
                       <SelectItem key={make} value={make}>{make}</SelectItem>
                     ))}
@@ -162,7 +162,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                     <SelectValue placeholder="Any type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any type</SelectItem>
+                    <SelectItem value="any">Any type</SelectItem>
                     {vehicleTypes && vehicleTypes.map((type: VehicleType) => (
                       <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
                     ))}
@@ -180,7 +180,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
                     <SelectValue placeholder="Any location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any location</SelectItem>
+                    <SelectItem value="any">Any location</SelectItem>
                     {uniqueLocations.map((location) => (
                       <SelectItem key={location} value={location}>{location}</SelectItem>
                     ))}
