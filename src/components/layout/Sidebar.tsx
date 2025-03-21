@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -14,32 +13,68 @@ import {
   UserCog,
   PieChart,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  LogOut,
+  Settings,
+  UserPlus
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/contexts/ProfileContext';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
 
 type NavItem = {
   title: string;
   path: string;
   icon: React.ElementType;
+  roles?: string[];
 };
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { title: 'Vehicles', path: '/vehicles', icon: Car },
-  { title: 'Customers', path: '/customers', icon: Users },
+  { title: 'Customers', path: '/customers', icon: Users, roles: ['admin', 'manager'] },
   { title: 'Agreements', path: '/agreements', icon: FileText },
-  { title: 'Financials', path: '/financials', icon: BarChart4 },
+  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin', 'manager'] },
   { title: 'Maintenance', path: '/maintenance', icon: Wrench },
   { title: 'Traffic Fines', path: '/fines', icon: AlertTriangle },
-  { title: 'Legal', path: '/legal', icon: Gavel },
+  { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin', 'manager'] },
   { title: 'Chauffeurs', path: '/chauffeurs', icon: UserCog },
-  { title: 'Reports', path: '/reports', icon: PieChart },
+  { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin', 'manager'] },
+  { title: 'User Management', path: '/users', icon: UserPlus, roles: ['admin'] },
 ];
 
 const Sidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const { user, signOut } = useAuth();
+  const { profile } = useProfile();
 
+  const userRole = profile?.role || 'user';
+  
+  const filteredNavItems = navItems.filter(item => 
+    !item.roles || item.roles.includes(userRole)
+  );
+
+  const getUserInitials = () => {
+    if (!profile?.full_name) return 'U';
+    return profile.full_name
+      .split(' ')
+      .map(name => name[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+  
   return (
     <div 
       className={cn(
@@ -64,7 +99,7 @@ const Sidebar = () => {
       
       <nav className="flex-1 py-6 px-3 overflow-y-auto">
         <ul className="space-y-2">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             
@@ -95,16 +130,59 @@ const Sidebar = () => {
       </nav>
       
       <div className={cn(
-        "p-4 border-t border-sidebar-border/50 text-sidebar-foreground/80",
+        "p-4 border-t border-sidebar-border/50",
         collapsed ? "text-center" : ""
       )}>
         {!collapsed ? (
-          <div className="text-xs">
-            <p>Auto Rent Manager</p>
-            <p>v1.0.0</p>
+          <div className="flex items-center justify-between">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="p-0 h-auto flex items-center space-x-2 hover:bg-transparent">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col items-start text-xs">
+                    <span className="font-medium">{profile?.full_name || 'User'}</span>
+                    <span className="text-muted-foreground capitalize">{profile?.role || 'User'}</span>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ) : (
-          <div className="text-xs">v1.0</div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => signOut()}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
     </div>
