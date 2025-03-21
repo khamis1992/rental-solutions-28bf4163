@@ -110,7 +110,18 @@ const CustomerDetail = () => {
         .eq("customer_id", customerId);
 
       if (error) throw error;
-      setAgreements(data || []);
+      
+      // Transform the data to match the AgreementData interface
+      const transformedData = data?.map(agreement => ({
+        ...agreement,
+        vehicles: agreement.vehicles as unknown as {
+          make: string;
+          model: string;
+          license_plate: string;
+        }
+      })) || [];
+      
+      setAgreements(transformedData);
     } catch (error: any) {
       console.error("Error fetching agreements:", error.message);
       toast.error("Failed to load rental agreements");
