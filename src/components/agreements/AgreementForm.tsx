@@ -134,11 +134,16 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
   
   const onSubmit = async (data: AgreementFormSchema) => {
     try {
-      // Prepare data for API
+      // Prepare data for API - ensure all required fields are present
       const formData: AgreementFormData = {
-        ...data,
+        customer_id: data.customer_id,
+        vehicle_id: data.vehicle_id,
         start_date: format(data.start_date, 'yyyy-MM-dd'),
         end_date: format(data.end_date, 'yyyy-MM-dd'),
+        status: data.status,
+        total_cost: data.total_cost,
+        deposit_amount: data.deposit_amount,
+        notes: data.notes,
       };
       
       if (isEditMode && initialData?.id) {
