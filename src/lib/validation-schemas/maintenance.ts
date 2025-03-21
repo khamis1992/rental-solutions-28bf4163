@@ -15,7 +15,7 @@ export const MaintenanceType = {
   OTHER: "other"
 } as const;
 
-// Define maintenance statuses - use lowercase values to match the database expectations
+// Define maintenance statuses - use lowercase values for frontend, DB uses uppercase
 export const MaintenanceStatus = {
   SCHEDULED: "scheduled",
   IN_PROGRESS: "in_progress",
