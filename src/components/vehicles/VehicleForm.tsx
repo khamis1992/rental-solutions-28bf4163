@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +27,7 @@ const vehicleSchema = z.object({
   year: z.coerce.number().min(1900).max(new Date().getFullYear() + 1),
   license_plate: z.string().min(1, 'License plate is required'),
   vin: z.string().min(1, 'VIN is required'),
-  status: z.enum(['available', 'rented', 'maintenance', 'retired'] as const),
+  status: z.enum(['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'] as const),
   color: z.string().optional(),
   mileage: z.coerce.number().min(0).optional(),
   location: z.string().optional(),
@@ -210,7 +209,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       <SelectContent>
                         <SelectItem value="available">Available</SelectItem>
                         <SelectItem value="rented">Rented</SelectItem>
+                        <SelectItem value="reserved">Reserved</SelectItem>
                         <SelectItem value="maintenance">Maintenance</SelectItem>
+                        <SelectItem value="police_station">Police Station</SelectItem>
+                        <SelectItem value="accident">Accident</SelectItem>
+                        <SelectItem value="stolen">Stolen</SelectItem>
                         <SelectItem value="retired">Retired</SelectItem>
                       </SelectContent>
                     </Select>

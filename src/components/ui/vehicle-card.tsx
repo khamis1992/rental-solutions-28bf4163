@@ -39,7 +39,11 @@ const VehicleCard = ({
   const statusColors = {
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
+    reserved: 'bg-purple-100 text-purple-800',
     maintenance: 'bg-amber-100 text-amber-800',
+    police_station: 'bg-sky-100 text-sky-800',
+    accident: 'bg-red-100 text-red-800',
+    stolen: 'bg-rose-100 text-rose-800',
     retired: 'bg-gray-100 text-gray-800'
   };
 

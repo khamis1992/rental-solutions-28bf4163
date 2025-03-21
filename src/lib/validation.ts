@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 // Common validation patterns
@@ -25,7 +24,7 @@ export const vehicleSchemas = {
   model: z.string().min(1),
   year: z.number().int().min(1900).max(new Date().getFullYear() + 1),
   licensePlate: z.string().regex(validationPatterns.licensePlate, 'Invalid license plate format'),
-  status: z.enum(['available', 'rented', 'maintenance']),
+  status: z.enum(['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired']),
   fuelLevel: z.number().min(0).max(100),
   mileage: z.number().nonnegative(),
   vin: z.string().regex(validationPatterns.vinNumber, 'Invalid VIN number').optional(),

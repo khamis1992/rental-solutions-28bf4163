@@ -1,6 +1,5 @@
-
 // Vehicle status enum from Supabase
-export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'retired';
+export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
 // Vehicle size enum for vehicle types
 export type VehicleSize = 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | 'truck' | 'van' | 'economy';
