@@ -30,7 +30,7 @@ export function useTrafficFines() {
 
   // These would be API calls in production
   const { data: trafficFines, isLoading, refetch } = useApiQuery<TrafficFine[]>(
-    ['trafficFines', filters], 
+    ['trafficFines', JSON.stringify(filters)], 
     async () => {
       // In a real implementation, this would be an API call
       return [];

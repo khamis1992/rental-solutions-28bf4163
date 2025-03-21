@@ -26,7 +26,7 @@ export function useMaintenance() {
 
   // When using filters in a query, map the status to the proper type
   const { data: maintenanceRecords, isLoading, refetch } = useApiQuery(
-    ['maintenance', filters],
+    ['maintenance', JSON.stringify(filters)],
     async () => {
       // When using the status filter, ensure it's properly typed
       const dbStatus = mapStatusToDb(filters.status);
@@ -38,8 +38,6 @@ export function useMaintenance() {
     }
   );
 
-  // Rest of the hook implementation...
-  
   return {
     maintenanceRecords,
     isLoading,

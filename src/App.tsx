@@ -50,6 +50,9 @@ import Legal from "./pages/Legal";
 // Traffic Fines pages
 import TrafficFines from "./pages/TrafficFines";
 
+// Financials pages
+import Financials from "./pages/Financials";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -107,6 +110,9 @@ const App = () => (
                         
                         {/* Traffic Fines Management Route */}
                         <Route path="/fines" element={<TrafficFines />} />
+                        
+                        {/* Financials Management Route */}
+                        <Route path="/financials" element={<Financials />} />
                         
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />
