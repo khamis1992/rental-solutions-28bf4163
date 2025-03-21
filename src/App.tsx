@@ -44,6 +44,9 @@ import AddMaintenance from "./pages/AddMaintenance";
 import EditMaintenance from "./pages/EditMaintenance";
 import MaintenanceDetailPage from "./pages/MaintenanceDetailPage";
 
+// Legal pages
+import Legal from "./pages/Legal";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -95,6 +98,9 @@ const App = () => (
                         <Route path="/maintenance/add" element={<AddMaintenance />} />
                         <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
                         <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
+                        
+                        {/* Legal Management Route */}
+                        <Route path="/legal" element={<Legal />} />
                         
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />
