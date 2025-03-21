@@ -46,8 +46,8 @@ const VehicleCard = ({
   // Determine which image to display based on make and model
   let displayImageUrl = imageUrl;
   
-  // Use the MG image for MG cars
-  if (make.toLowerCase() === 'mg') {
+  // Use the MG image for all MG cars - check for various ways the make might be stored
+  if (make.toLowerCase().includes('mg')) {
     displayImageUrl = '/lovable-uploads/8752db90-86d9-44b0-901e-c68e1bd988b5.png';
   }
   
