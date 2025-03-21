@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -193,7 +194,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                   <SelectValue placeholder="Transaction Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all_types">All Types</SelectItem>
                   <SelectItem value="income">Income</SelectItem>
                   <SelectItem value="expense">Expense</SelectItem>
                 </SelectContent>
@@ -206,7 +207,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
+                  <SelectItem value="all_categories">All Categories</SelectItem>
                   <SelectItem value="Rental">Rental</SelectItem>
                   <SelectItem value="Maintenance">Maintenance</SelectItem>
                   <SelectItem value="Insurance">Insurance</SelectItem>

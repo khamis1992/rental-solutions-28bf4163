@@ -77,6 +77,40 @@ const Financials = () => {
     });
   };
 
+  // Handle filtering with the new filter values
+  const getFilteredTransactions = () => {
+    let filtered = [...transactions];
+    
+    if (filters.transactionType && filters.transactionType !== 'all_types') {
+      filtered = filtered.filter(t => t.type === filters.transactionType);
+    }
+    
+    if (filters.category && filters.category !== 'all_categories') {
+      filtered = filtered.filter(t => t.category === filters.category);
+    }
+    
+    if (filters.dateFrom) {
+      filtered = filtered.filter(t => new Date(t.date) >= new Date(filters.dateFrom));
+    }
+    
+    if (filters.dateTo) {
+      filtered = filtered.filter(t => new Date(t.date) <= new Date(filters.dateTo));
+    }
+    
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      filtered = filtered.filter(t => 
+        t.description.toLowerCase().includes(query) ||
+        t.category.toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  };
+
+  // Get filtered transactions
+  const filteredTransactions = getFilteredTransactions();
+
   return (
     <PageContainer
       title="Financial Management"
@@ -117,7 +151,7 @@ const Financials = () => {
           </TabsList>
           <TabsContent value="transactions" className="space-y-6">
             <FinancialTransactions
-              transactions={transactions}
+              transactions={filteredTransactions}
               isLoading={isLoadingTransactions}
               onAddTransaction={handleAddTransaction}
               onEditTransaction={handleEditTransaction}
@@ -127,7 +161,7 @@ const Financials = () => {
             />
           </TabsContent>
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <FinancialRevenueChart />
               <FinancialMetricsChart />
             </div>
