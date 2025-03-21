@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Upload, X, Image, AlertCircle } from 'lucide-react';
+import { Upload, X, Image, AlertCircle, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
 
@@ -18,6 +18,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
   const [isDragging, setIsDragging] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -27,12 +28,14 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
 
   const handleFile = (file: File | null) => {
     setErrorMessage(null);
+    setIsLoading(true);
     
     if (file) {
       // Check file type
       if (!file.type.startsWith('image/')) {
         setErrorMessage('Please select an image file');
         toast.error('Invalid file type', { description: 'Please select an image file' });
+        setIsLoading(false);
         return;
       }
       
@@ -40,6 +43,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       if (file.size > 5 * 1024 * 1024) {
         setErrorMessage('File size should be less than 5MB');
         toast.error('File too large', { description: 'File size should be less than 5MB' });
+        setIsLoading(false);
         return;
       }
       
@@ -47,6 +51,9 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
       onImageSelected(file);
+      setIsLoading(false);
+    } else {
+      setIsLoading(false);
     }
   };
 
@@ -104,7 +111,12 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         className="hidden"
       />
       
-      {previewUrl ? (
+      {isLoading ? (
+        <div className="py-12 flex flex-col items-center">
+          <Loader2 className="h-12 w-12 text-primary animate-spin mb-3" />
+          <p className="text-sm text-muted-foreground">Processing image...</p>
+        </div>
+      ) : previewUrl ? (
         <div className="relative">
           <img 
             src={previewUrl} 

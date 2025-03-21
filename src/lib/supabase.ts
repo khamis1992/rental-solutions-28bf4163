@@ -16,6 +16,47 @@ export const supabase = createClient(
   supabaseKey || ''
 );
 
+// Helper function to ensure vehicle-images bucket exists
+export const ensureVehicleImagesBucket = async (): Promise<boolean> => {
+  try {
+    // Check if bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      return false;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
+    
+    if (!bucketExists) {
+      // Use service role key for creating buckets (assumes SUPABASE_SERVICE_ROLE_KEY is set)
+      const adminClient = createClient(
+        supabaseUrl || '',
+        import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || ''
+      );
+      
+      const { error: createError } = await adminClient.storage.createBucket('vehicle-images', {
+        public: true,
+        fileSizeLimit: 10485760, // 10MB
+      });
+      
+      if (createError) {
+        console.error('Error creating bucket with service role:', createError);
+        return false;
+      }
+      
+      console.log('Vehicle images bucket created successfully');
+      return true;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error ensuring vehicle images bucket exists:', error);
+    return false;
+  }
+};
+
 // Helper function to get image URL with public URL transformation
 export const getImagePublicUrl = (bucket: string, path: string): string => {
   try {

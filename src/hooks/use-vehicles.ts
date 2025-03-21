@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { supabase, formatVehicleForDisplay, getImagePublicUrl } from '@/lib/supabase';
+import { supabase, formatVehicleForDisplay, getImagePublicUrl, ensureVehicleImagesBucket } from '@/lib/supabase';
 import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams } from '@/types/vehicle';
 
 const fetchVehicles = async (filters?: VehicleFilterParams) => {
@@ -68,22 +68,15 @@ const fetchVehicleTypes = async () => {
 };
 
 const uploadVehicleImage = async (file: File, id: string): Promise<string> => {
+  const bucketReady = await ensureVehicleImagesBucket();
+  
+  if (!bucketReady) {
+    throw new Error('Failed to ensure vehicle-images bucket exists. Please contact an administrator.');
+  }
+  
   const fileExt = file.name.split('.').pop();
   const fileName = `${id}-${Date.now()}.${fileExt}`;
   const filePath = `${fileName}`;
-  
-  const { data: buckets } = await supabase.storage.listBuckets();
-  const vehicleImagesBucket = buckets?.find(bucket => bucket.name === 'vehicle-images');
-  
-  if (!vehicleImagesBucket) {
-    const { error: createBucketError } = await supabase.storage.createBucket('vehicle-images', {
-      public: true,
-    });
-    
-    if (createBucketError) {
-      throw new Error(`Error creating bucket: ${createBucketError.message}`);
-    }
-  }
   
   const { error } = await supabase.storage
     .from('vehicle-images')
@@ -93,6 +86,7 @@ const uploadVehicleImage = async (file: File, id: string): Promise<string> => {
     });
   
   if (error) {
+    console.error('Upload error details:', error);
     throw new Error(`Error uploading image: ${error.message}`);
   }
   
