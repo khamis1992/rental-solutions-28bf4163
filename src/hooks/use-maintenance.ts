@@ -90,7 +90,9 @@ export const useMaintenance = () => {
           }
           if (filters.status) {
             // Convert status to uppercase for database query
-            query = query.eq('status', mapStatusToDb(filters.status));
+            // Ensure we're using a valid status value
+            const dbStatus = mapStatusToDb(filters.status);
+            query = query.eq('status', dbStatus);
           }
           if (filters.vehicle_id) {
             query = query.eq('vehicle_id', filters.vehicle_id);

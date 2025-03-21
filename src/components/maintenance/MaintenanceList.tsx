@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -144,8 +145,16 @@ export const MaintenanceList = () => {
                 <div>
                   <h4 className="text-sm font-medium leading-none mb-2">Status</h4>
                   <Select 
-                    onValueChange={(value) => setStatusFilter(value as MaintenanceStatusType || undefined)} 
-                    defaultValue={statusFilter}>
+                    onValueChange={(value) => {
+                      // Handle the empty string case which means "clear filter"
+                      if (value === "") {
+                        setStatusFilter(undefined);
+                      } else {
+                        // Cast the value to MaintenanceStatusType
+                        setStatusFilter(value as MaintenanceStatusType);
+                      }
+                    }} 
+                    value={statusFilter || ""}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
