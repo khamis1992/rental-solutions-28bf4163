@@ -21,10 +21,20 @@ import ResetPassword from "./pages/auth/ResetPassword";
 // Pages
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+
+// Vehicle Management
 import Vehicles from "./pages/Vehicles";
 import AddVehicle from "./pages/AddVehicle";
 import VehicleDetailPage from "./pages/VehicleDetailPage";
 import EditVehicle from "./pages/EditVehicle";
+
+// Customer Management
+import Customers from "./pages/Customers";
+import AddCustomer from "./pages/AddCustomer";
+import CustomerDetail from "./pages/CustomerDetail";
+import EditCustomer from "./pages/EditCustomer";
+
+// User Management
 import UserSettings from "./pages/UserSettings";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
@@ -65,6 +75,12 @@ const App = () => (
                         <Route path="/vehicles/add" element={<AddVehicle />} />
                         <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
                         <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
+                        
+                        {/* Customer Management Routes */}
+                        <Route path="/customers" element={<Customers />} />
+                        <Route path="/customers/add" element={<AddCustomer />} />
+                        <Route path="/customers/:id" element={<CustomerDetail />} />
+                        <Route path="/customers/edit/:id" element={<EditCustomer />} />
                         
                         {/* User Management Routes */}
                         <Route path="/settings" element={<UserSettings />} />

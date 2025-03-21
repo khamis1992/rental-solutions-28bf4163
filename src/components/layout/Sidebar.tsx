@@ -1,189 +1,136 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import {
-  LayoutDashboard,
-  Car,
-  Users,
-  FileText,
-  BarChart4,
-  Wrench,
-  AlertTriangle,
-  Gavel,
+
+import { Link, useLocation } from "react-router-dom";
+import { 
+  BarChart3, 
+  Car, 
+  Settings, 
+  Users, 
+  FileText, 
+  CreditCard, 
+  AlertTriangle, 
   UserCog,
-  PieChart,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
-  Settings,
-  UserPlus
-} from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/contexts/ProfileContext';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-
-type NavItem = {
-  title: string;
-  path: string;
-  icon: React.ElementType;
-  roles?: string[];
-};
-
-const navItems: NavItem[] = [
-  { title: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { title: 'Vehicles', path: '/vehicles', icon: Car },
-  { title: 'Customers', path: '/customers', icon: Users, roles: ['admin', 'manager'] },
-  { title: 'Agreements', path: '/agreements', icon: FileText },
-  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin', 'manager'] },
-  { title: 'Maintenance', path: '/maintenance', icon: Wrench },
-  { title: 'Traffic Fines', path: '/fines', icon: AlertTriangle },
-  { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin', 'manager'] },
-  { title: 'Chauffeurs', path: '/chauffeurs', icon: UserCog },
-  { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin', 'manager'] },
-  { title: 'User Management', path: '/users', icon: UserPlus, roles: ['admin'] },
-];
+  Home
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useProfile } from "@/contexts/ProfileContext";
+import { useMobileDrawer } from "@/hooks/use-mobile";
 
 const Sidebar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(false);
-  const { user, signOut } = useAuth();
   const { profile } = useProfile();
+  const location = useLocation();
+  const { isOpen, setIsOpen } = useMobileDrawer();
 
-  const userRole = profile?.role || 'user';
-  
-  const filteredNavItems = navItems.filter(item => 
-    !item.roles || item.roles.includes(userRole)
-  );
-
-  const getUserInitials = () => {
-    if (!profile?.full_name) return 'U';
-    return profile.full_name
-      .split(' ')
-      .map(name => name[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+  const closeMobileMenu = () => {
+    if (setIsOpen) {
+      setIsOpen(false);
+    }
   };
-  
-  return (
-    <div 
-      className={cn(
-        "h-screen fixed left-0 top-0 z-40 flex flex-col transition-all duration-300 ease-in-out bg-sidebar text-sidebar-foreground border-r border-sidebar-border shadow-sidebar",
-        collapsed ? "w-20" : "w-64"
-      )}
-    >
-      <div className="h-16 flex items-center px-4 justify-between border-b border-sidebar-border/50">
-        {!collapsed && (
-          <div className="font-bold text-lg">Auto Rent Pro</div>
-        )}
-        <button 
-          onClick={() => setCollapsed(!collapsed)}
+
+  const isActive = (path: string) => {
+    return location.pathname.startsWith(path);
+  };
+
+  const SidebarLink = ({ to, icon: Icon, children }: { to: string; icon: any; children: React.ReactNode }) => {
+    const active = isActive(to);
+    
+    return (
+      <Link to={to} onClick={closeMobileMenu}>
+        <Button
+          variant="ghost"
           className={cn(
-            "p-2 rounded-full bg-sidebar-accent hover:bg-sidebar-accent/80 transition-colors",
-            collapsed && "mx-auto"
+            "w-full justify-start gap-2 mb-1",
+            active && "bg-muted font-medium"
           )}
         >
-          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
-        </button>
+          <Icon className={cn("h-4 w-4", active && "text-primary")} />
+          {children}
+        </Button>
+      </Link>
+    );
+  };
+
+  return (
+    <div
+      className={cn(
+        "fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r bg-background transition-transform duration-300 md:translate-x-0",
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      )}
+    >
+      <div className="p-6 border-b">
+        <Link to="/" className="flex items-center gap-2" onClick={closeMobileMenu}>
+          <Car className="h-6 w-6 text-primary" />
+          <span className="text-xl font-bold">Fleet Manager</span>
+        </Link>
       </div>
-      
-      <nav className="flex-1 py-6 px-3 overflow-y-auto">
-        <ul className="space-y-2">
-          {filteredNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            
-            return (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={cn(
-                    "flex items-center px-3 py-3 rounded-md transition-all duration-200 group",
-                    isActive 
-                      ? "bg-sidebar-primary text-sidebar-primary-foreground" 
-                      : "hover:bg-sidebar-accent text-sidebar-foreground/80 hover:text-sidebar-foreground"
-                  )}
-                >
-                  <Icon className={cn("h-5 w-5", collapsed ? "mx-auto" : "mr-3")} />
-                  {!collapsed && <span>{item.title}</span>}
-                  
-                  {collapsed && (
-                    <div className="absolute left-20 ml-1 p-2 px-3 rounded-md bg-sidebar-background text-sidebar-foreground shadow-lg text-sm whitespace-nowrap opacity-0 scale-95 translate-x-2 pointer-events-none transition-all group-hover:opacity-100 group-hover:scale-100 group-hover:translate-x-0">
-                      {item.title}
-                    </div>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-      
-      <div className={cn(
-        "p-4 border-t border-sidebar-border/50",
-        collapsed ? "text-center" : ""
-      )}>
-        {!collapsed ? (
-          <div className="flex items-center justify-between">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="p-0 h-auto flex items-center space-x-2 hover:bg-transparent">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col items-start text-xs">
-                    <span className="font-medium">{profile?.full_name || 'User'}</span>
-                    <span className="text-muted-foreground capitalize">{profile?.role || 'User'}</span>
-                  </div>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/settings')}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => signOut()}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+      <ScrollArea className="flex-1 px-3 py-4">
+        <nav className="flex flex-col gap-1">
+          <SidebarLink to="/dashboard" icon={Home}>
+            Dashboard
+          </SidebarLink>
+          
+          <div className="mt-6 mb-2 px-4">
+            <h3 className="text-xs font-medium text-muted-foreground">MANAGEMENT</h3>
           </div>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="p-0 h-auto hover:bg-transparent">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => navigate('/settings')}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => signOut()}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+          
+          <SidebarLink to="/vehicles" icon={Car}>
+            Vehicles
+          </SidebarLink>
+          
+          <SidebarLink to="/customers" icon={Users}>
+            Customers
+          </SidebarLink>
+          
+          <SidebarLink to="/agreements" icon={FileText}>
+            Agreements
+          </SidebarLink>
+          
+          <div className="mt-6 mb-2 px-4">
+            <h3 className="text-xs font-medium text-muted-foreground">FINANCE</h3>
+          </div>
+          
+          <SidebarLink to="/payments" icon={CreditCard}>
+            Payments
+          </SidebarLink>
+          
+          <SidebarLink to="/reports" icon={BarChart3}>
+            Reports
+          </SidebarLink>
+          
+          <SidebarLink to="/fines" icon={AlertTriangle}>
+            Traffic Fines
+          </SidebarLink>
+          
+          <div className="mt-6 mb-2 px-4">
+            <h3 className="text-xs font-medium text-muted-foreground">SETTINGS</h3>
+          </div>
+          
+          <SidebarLink to="/settings" icon={Settings}>
+            My Settings
+          </SidebarLink>
+          
+          {profile?.role === "admin" && (
+            <SidebarLink to="/users" icon={UserCog}>
+              User Management
+            </SidebarLink>
+          )}
+        </nav>
+      </ScrollArea>
+      
+      <div className="border-t p-4">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+            <span className="text-sm font-medium text-primary">
+              {profile?.full_name?.charAt(0) || "U"}
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{profile?.full_name || "User"}</span>
+            <span className="text-xs text-muted-foreground capitalize">{profile?.role || "user"}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
