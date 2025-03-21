@@ -11,7 +11,8 @@ const transformMaintenanceRecord = (record: any): Maintenance => {
     id: record.id,
     vehicle_id: record.vehicle_id,
     maintenance_type: record.maintenance_type,
-    status: record.status as keyof typeof MaintenanceStatus,
+    // Convert status to lowercase to match our frontend enum values
+    status: record.status?.toLowerCase() as keyof typeof MaintenanceStatus,
     description: record.description,
     cost: record.cost || 0,
     scheduled_date: record.scheduled_date ? new Date(record.scheduled_date) : new Date(),
@@ -32,7 +33,8 @@ const transformToDbRecord = (maintenance: Omit<Maintenance, 'id'> | Maintenance)
   const dbRecord: any = {
     vehicle_id: maintenance.vehicle_id,
     maintenance_type: maintenance.maintenance_type,
-    status: maintenance.status,
+    // Convert status to uppercase for the database
+    status: maintenance.status?.toUpperCase(),
     description: maintenance.description,
     cost: maintenance.cost,
     notes: maintenance.notes,
@@ -76,7 +78,8 @@ export const useMaintenance = () => {
             query = query.or(`description.ilike.%${filters.query}%,performed_by.ilike.%${filters.query}%,invoice_number.ilike.%${filters.query}%`);
           }
           if (filters.status) {
-            query = query.eq('status', filters.status);
+            // Convert status to uppercase for database query
+            query = query.eq('status', filters.status.toUpperCase());
           }
           if (filters.vehicle_id) {
             query = query.eq('vehicle_id', filters.vehicle_id);

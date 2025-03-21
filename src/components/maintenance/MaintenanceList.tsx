@@ -1,398 +1,332 @@
+// Add null check for maintenance type in the formatMaintenanceType function
+// Update any part where MaintenanceStatus is used to ensure proper case handling
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useMaintenance } from '@/hooks/use-maintenance';
+import { useNavigate } from 'react-router-dom';
 import { 
-  Maintenance, 
-  MaintenanceStatus, 
-  MaintenanceType,
-  MaintenanceFilters
-} from '@/lib/validation-schemas/maintenance';
-import { SectionHeader } from '@/components/ui/section-header';
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from '@/components/ui/card';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
 import { 
-  PlusCircle, 
+  ChevronLeft, 
+  ChevronRight, 
   Search, 
-  Filter, 
-  MoreVertical, 
-  Edit, 
-  Trash2, 
+  Plus, 
+  Calendar, 
   Wrench,
-  RefreshCw,
-  CheckCircle,
-  XCircle, 
-  Calendar
+  Filter,
+  X
 } from 'lucide-react';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { useMaintenance } from '@/hooks/use-maintenance';
+import { MaintenanceStatus, MaintenanceType, type MaintenanceFilters } from '@/lib/validation-schemas/maintenance';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export const MaintenanceList: React.FC = () => {
-  const navigate = useNavigate();
-  const [filters, setFilters] = useState<MaintenanceFilters>({});
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
+// Format maintenance type for display
+const formatMaintenanceType = (type: string | null | undefined) => {
+  if (!type) return "Unknown";
   
-  // Get maintenance records
-  const { useList, useDelete } = useMaintenance();
+  return type
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Format status badges
+const getStatusBadge = (status: string) => {
+  // Convert to lowercase for comparison if needed
+  const statusLower = status?.toLowerCase();
+  
+  switch (statusLower) {
+    case 'scheduled':
+      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-300">Scheduled</Badge>;
+    case 'in_progress':
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300">In Progress</Badge>;
+    case 'completed':
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-300">Completed</Badge>;
+    case 'cancelled':
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">Cancelled</Badge>;
+    default:
+      return <Badge>{status}</Badge>;
+  }
+};
+
+// Continue with the rest of the component...
+
+export const MaintenanceList = () => {
+  const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined);
+  const [vehicleFilter, setVehicleFilter] = useState<string | undefined>(undefined);
+  const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState<string | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<undefined | { from: Date; to: Date; }>({
+    from: undefined,
+    to: undefined,
+  });
+  const itemsPerPage = 10;
+
+  const { useList } = useMaintenance();
+
+  // Construct filters object
+  const filters: MaintenanceFilters = {
+    query: searchQuery,
+    status: statusFilter,
+    vehicle_id: vehicleFilter,
+    maintenance_type: maintenanceTypeFilter,
+    date_from: dateRange?.from,
+    date_to: dateRange?.to,
+  };
+
   const { data: maintenanceRecords, isLoading, error } = useList(filters);
-  const { mutate: deleteMaintenance, isPending: isDeleting } = useDelete();
 
-  // Handle search
-  const handleSearch = () => {
-    setFilters(prev => ({ ...prev, query: searchQuery }));
+  const totalItems = maintenanceRecords?.length || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  // Function to handle navigation to detail page
+  const handleRowClick = (id: string) => {
+    navigate(`/maintenance/${id}`);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
-    }
+  // Pagination calculation
+  const startIndex = (page - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const displayedRecords = maintenanceRecords?.slice(startIndex, endIndex) || [];
+
+  // Date formatting for display
+  const formatDate = (date: Date) => {
+    return format(date, 'MMM d, yyyy');
   };
 
-  // Update filters
-  const handleFilterChange = (key: keyof MaintenanceFilters, value: any) => {
-    setFilters(prev => {
-      if (value === 'all') {
-        const newFilters = { ...prev };
-        delete newFilters[key];
-        return newFilters;
-      }
-      return { ...prev, [key]: value };
-    });
-  };
-
-  // Reset filters
-  const resetFilters = () => {
-    setFilters({});
+  const clearFilters = () => {
     setSearchQuery('');
+    setStatusFilter(undefined);
+    setVehicleFilter(undefined);
+    setMaintenanceTypeFilter(undefined);
+    setDateRange({ from: undefined, to: undefined });
   };
-
-  // Format maintenance type for display
-  const formatMaintenanceType = (type: string | null | undefined) => {
-    if (!type) return 'Unknown';
-    
-    return type
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
-
-  // Get status badge color
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case MaintenanceStatus.SCHEDULED:
-        return <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">Scheduled</Badge>;
-      case MaintenanceStatus.IN_PROGRESS:
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 border-yellow-200">In Progress</Badge>;
-      case MaintenanceStatus.COMPLETED:
-        return <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">Completed</Badge>;
-      case MaintenanceStatus.CANCELLED:
-        return <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">Cancelled</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        <SectionHeader 
-          title="Vehicle Maintenance" 
-          description="Track and manage vehicle maintenance records" 
-          icon={Wrench}
-          actions={
-            <CustomButton disabled>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Record
-            </CustomButton>
-          }
-        />
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-8 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-                <Skeleton className="h-20 w-full" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="space-y-4">
-        <SectionHeader 
-          title="Vehicle Maintenance" 
-          description="Track and manage vehicle maintenance records" 
-          icon={Wrench}
-        />
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="bg-destructive/10 p-4 rounded-md text-destructive">
-              <h3 className="text-lg font-medium">Error Loading Maintenance Records</h3>
-              <p>
-                {error instanceof Error ? error.message : 'An unknown error occurred'}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="space-y-4">
-      <SectionHeader 
-        title="Vehicle Maintenance" 
-        description="Track and manage vehicle maintenance records" 
-        icon={Wrench}
-        actions={
-          <CustomButton onClick={() => navigate('/maintenance/add')}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Record
-          </CustomButton>
-        }
-      />
-      
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between">
-              {/* Search */}
-              <div className="relative w-full sm:w-72">
-                <Input
-                  placeholder="Search maintenance records..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={handleKeyPress}
-                  className="pl-9"
-                />
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              </div>
-              
-              {/* Filter button */}
-              <div className="flex items-center gap-2">
-                <CustomButton 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowFilters(!showFilters)}
-                >
-                  <Filter className="mr-2 h-4 w-4" />
-                  Filters
-                  {Object.keys(filters).length > 0 && (
-                    <Badge className="ml-2" variant="secondary">
-                      {Object.keys(filters).length}
-                    </Badge>
-                  )}
-                </CustomButton>
-                
-                {Object.keys(filters).length > 0 && (
-                  <CustomButton 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={resetFilters}
-                  >
-                    Clear
-                  </CustomButton>
-                )}
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Maintenance Records</CardTitle>
+        <CardDescription>
+          View and manage vehicle maintenance records.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
+          {/* Search */}
+          <div className="col-span-1 md:col-span-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="search"
+                placeholder="Search records..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
-            
-            {/* Filter options */}
-            {showFilters && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/40 rounded-md">
+          </div>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <CustomButton variant="outline" className="h-9 ml-auto">
+                <Filter className="mr-2 h-4 w-4" />
+                <span>Filters</span>
+              </CustomButton>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                {/* Status Filter */}
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Status
-                  </label>
-                  <Select
-                    value={filters.status || 'all'}
-                    onValueChange={(value) => handleFilterChange('status', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Statuses" />
+                  <h4 className="text-sm font-medium leading-none mb-2">Status</h4>
+                  <Select onValueChange={setStatusFilter} defaultValue={statusFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Statuses</SelectItem>
                       <SelectItem value={MaintenanceStatus.SCHEDULED}>Scheduled</SelectItem>
                       <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
                       <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
                       <SelectItem value={MaintenanceStatus.CANCELLED}>Cancelled</SelectItem>
+                      <SelectItem value={undefined}>Clear</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
+
+                {/* Maintenance Type Filter */}
                 <div>
-                  <label className="text-sm font-medium mb-1 block">
-                    Maintenance Type
-                  </label>
-                  <Select
-                    value={filters.maintenance_type || 'all'}
-                    onValueChange={(value) => handleFilterChange('maintenance_type', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="All Types" />
+                  <h4 className="text-sm font-medium leading-none mb-2">Maintenance Type</h4>
+                  <Select onValueChange={setMaintenanceTypeFilter} defaultValue={maintenanceTypeFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value={MaintenanceType.OIL_CHANGE}>Oil Change</SelectItem>
-                      <SelectItem value={MaintenanceType.TIRE_REPLACEMENT}>Tire Replacement</SelectItem>
-                      <SelectItem value={MaintenanceType.BRAKE_SERVICE}>Brake Service</SelectItem>
-                      <SelectItem value={MaintenanceType.REGULAR_INSPECTION}>Regular Inspection</SelectItem>
-                      <SelectItem value={MaintenanceType.ENGINE_REPAIR}>Engine Repair</SelectItem>
-                      <SelectItem value={MaintenanceType.TRANSMISSION_SERVICE}>Transmission Service</SelectItem>
-                      <SelectItem value={MaintenanceType.ELECTRICAL_REPAIR}>Electrical Repair</SelectItem>
-                      <SelectItem value={MaintenanceType.AIR_CONDITIONING}>Air Conditioning</SelectItem>
-                      <SelectItem value={MaintenanceType.OTHER}>Other</SelectItem>
+                      {Object.values(MaintenanceType).map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {formatMaintenanceType(type)}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value={undefined}>Clear</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Date Range Filter */}
+                <div>
+                  <h4 className="text-sm font-medium leading-none mb-2">Date Range</h4>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <CustomButton
+                        variant={"outline"}
+                        className={
+                          "w-full justify-start text-left font-normal" +
+                          (dateRange?.from
+                            ? "pl-3"
+                            : "text-muted-foreground")
+                        }
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {dateRange?.from ? (
+                          format(dateRange.from, "yyyy-MM-dd") +
+                          " - " +
+                          format(dateRange.to || dateRange.from, "yyyy-MM-dd")
+                        ) : (
+                          <span>Pick a date range</span>
+                        )}
+                      </CustomButton>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <CustomButton variant="secondary" className="w-full" onClick={clearFilters}>
+                  Clear All Filters
+                  <X className="ml-2 h-4 w-4" />
+                </CustomButton>
               </div>
-            )}
-            
-            {/* Maintenance Records Table */}
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Vehicle</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Scheduled Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Service Provider</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
+            </PopoverContent>
+          </Popover>
+
+          {/* Add Maintenance Record Button */}
+          <CustomButton onClick={() => navigate('/maintenance/add')} className="col-span-1 md:col-span-1">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Record
+          </CustomButton>
+        </div>
+
+        {isLoading ? (
+          <div className="mt-4">
+            {/* Skeleton loading state */}
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="grid grid-cols-6 gap-4 py-2">
+                <Skeleton className="h-4 col-span-1" />
+                <Skeleton className="h-4 col-span-1" />
+                <Skeleton className="h-4 col-span-1" />
+                <Skeleton className="h-4 col-span-1" />
+                <Skeleton className="h-4 col-span-1" />
+                <Skeleton className="h-4 col-span-1" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <p className="text-red-500 mt-4">Error: {error.message}</p>
+        ) : displayedRecords.length === 0 && !isLoading ? (
+          <p className="mt-4">No maintenance records found.</p>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Scheduled Date</TableHead>
+                  <TableHead>Service Provider</TableHead>
+                  <TableHead>Cost</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayedRecords.map((record) => (
+                  <TableRow key={record.id} onClick={() => handleRowClick(record.id)} className="cursor-pointer hover:bg-muted">
+                    <TableCell>{formatMaintenanceType(record.maintenance_type)}</TableCell>
+                    <TableCell>{getStatusBadge(record.status)}</TableCell>
+                    <TableCell>{formatDate(new Date(record.scheduled_date))}</TableCell>
+                    <TableCell>{record.service_provider || 'N/A'}</TableCell>
+                    <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell className="text-right">
+                      <CustomButton size="sm" onClick={(e) => {
+                        e.stopPropagation(); // Prevent row click
+                        navigate(`/maintenance/edit/${record.id}`);
+                      }}>
+                        <Wrench className="mr-2 h-4 w-4" />
+                        Edit
+                      </CustomButton>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {maintenanceRecords && maintenanceRecords.length > 0 ? (
-                    maintenanceRecords.map((record: Maintenance) => (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          {record.vehicles ? (
-                            <Link to={`/vehicles/${record.vehicle_id}`} className="hover:underline">
-                              {`${record.vehicles.make} ${record.vehicles.model} (${record.vehicles.license_plate})`}
-                            </Link>
-                          ) : (
-                            <span className="text-muted-foreground">Unknown Vehicle</span>
-                          )}
-                        </TableCell>
-                        <TableCell>{formatMaintenanceType(record.maintenance_type)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            {format(new Date(record.scheduled_date), 'MMM d, yyyy')}
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(record.status)}</TableCell>
-                        <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
-                        <TableCell>{record.service_provider || '-'}</TableCell>
-                        <TableCell>
-                          <TooltipProvider>
-                            <DropdownMenu>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <DropdownMenuTrigger asChild>
-                                    <CustomButton 
-                                      variant="ghost" 
-                                      size="icon" 
-                                      className="h-8 w-8"
-                                      disabled={isDeleting}
-                                    >
-                                      <MoreVertical className="h-4 w-4" />
-                                      <span className="sr-only">Actions</span>
-                                    </CustomButton>
-                                  </DropdownMenuTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Actions</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => navigate(`/maintenance/${record.id}`)}>
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate(`/maintenance/edit/${record.id}`)}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit Record
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={() => {
-                                    if (window.confirm('Are you sure you want to delete this maintenance record?')) {
-                                      deleteMaintenance(record.id as string);
-                                    }
-                                  }}
-                                  disabled={isDeleting}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete Record
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TooltipProvider>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={7} className="h-24 text-center">
-                        <div className="flex flex-col items-center justify-center text-muted-foreground">
-                          <Wrench className="h-8 w-8 mb-2" />
-                          <p className="mb-2 font-medium">No maintenance records found</p>
-                          <p className="text-sm">
-                            {Object.keys(filters).length > 0 
-                              ? 'Try changing your filters or add a new maintenance record'
-                              : 'Add your first maintenance record to get started'}
-                          </p>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalItems > 0 && (
+          <div className="flex items-center justify-between mt-4">
+            <p className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} records
+            </p>
+            <div className="flex items-center space-x-2">
+              <CustomButton
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="mr-2 h-4 w-4" />
+                Previous
+              </CustomButton>
+              <CustomButton
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(page + 1)}
+                disabled={page === totalPages}
+              >
+                Next
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </CustomButton>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
