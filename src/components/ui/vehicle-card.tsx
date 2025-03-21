@@ -43,22 +43,34 @@ const VehicleCard = ({
     retired: 'bg-gray-100 text-gray-800'
   };
 
-  // Determine which image to display based on make and model
-  let displayImageUrl = imageUrl;
+  // Default image for cars
+  const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
-  // Debug the make and model values to verify what we're receiving
-  console.log('Vehicle make:', make, 'model:', model);
+  // Custom image logic by make/model
+  // We're using public folder images to ensure they load properly
+  let displayImageUrl = '';
   
-  // Use the MG image for all MG cars - check for various ways the make might be stored
-  if (make && make.toString().toLowerCase().includes('mg')) {
-    console.log('Using MG image for vehicle:', make, model);
-    displayImageUrl = '/lovable-uploads/8752db90-86d9-44b0-901e-c68e1bd988b5.png';
-  }
-  
-  // Use the T77 image for T77 model cars - check for various ways the model might be stored
-  if (model && model.toString().toLowerCase().includes('t77')) {
-    console.log('Using T77 image for vehicle:', make, model);
-    displayImageUrl = '/lovable-uploads/01f00263-e435-4f01-9967-08bbd64ff383.png';
+  try {
+    // Try to determine vehicle type for custom image
+    const makeLower = (make || '').toString().toLowerCase();
+    const modelLower = (model || '').toString().toLowerCase();
+    
+    console.log('Vehicle make/model:', makeLower, modelLower);
+    
+    if (makeLower.includes('mg')) {
+      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png'; // Use the new uploaded image
+      console.log('Using custom MG image');
+    } else if (modelLower.includes('t77')) {
+      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png'; // Same image for T77
+      console.log('Using custom T77 image');
+    } else if (imageUrl) {
+      displayImageUrl = imageUrl;
+    } else {
+      displayImageUrl = defaultCarImage;
+    }
+  } catch (error) {
+    console.error('Error setting vehicle image:', error);
+    displayImageUrl = defaultCarImage;
   }
 
   return (
@@ -74,9 +86,9 @@ const VehicleCard = ({
           alt={`${make} ${model}`}
           className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
           onError={(e) => {
-            console.error('Failed to load image:', displayImageUrl);
+            console.log('Image failed to load, using fallback:', e.currentTarget.src);
             // Fallback to default image if loading fails
-            e.currentTarget.src = '/placeholder.svg';
+            e.currentTarget.src = defaultCarImage;
           }}
         />
         <Badge className={cn("absolute top-3 right-3 z-20", statusColors[status])}>

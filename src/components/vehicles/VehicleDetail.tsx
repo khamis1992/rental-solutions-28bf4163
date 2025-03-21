@@ -20,14 +20,39 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     retired: 'bg-red-100 text-red-800',
   };
 
+  // Default image for cars
+  const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
+  
+  // Custom image logic by make/model
+  let displayImageUrl = defaultCarImage;
+  
+  try {
+    const makeLower = (vehicle.make || '').toString().toLowerCase();
+    const modelLower = (vehicle.model || '').toString().toLowerCase();
+
+    if (makeLower.includes('mg')) {
+      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
+    } else if (modelLower.includes('t77')) {
+      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
+    } else if (vehicle.imageUrl) {
+      displayImageUrl = vehicle.imageUrl;
+    }
+  } catch (error) {
+    console.error('Error setting vehicle detail image:', error);
+  }
+
   return (
     <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
         <img 
-          src={vehicle.imageUrl || 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop'} 
+          src={displayImageUrl}
           alt={`${vehicle.make} ${vehicle.model}`}
           className="w-full h-full object-cover"
+          onError={(e) => {
+            console.log('Detail image failed to load, using fallback');
+            e.currentTarget.src = defaultCarImage;
+          }}
         />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-20">
@@ -152,4 +177,3 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     </Card>
   );
 };
-
