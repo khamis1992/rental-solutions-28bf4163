@@ -80,6 +80,7 @@ const EditMaintenance = () => {
         initialData={maintenance}
         onSubmit={handleUpdate}
         isLoading={isUpdating}
+        isEditMode={true}
         submitLabel="Update Maintenance"
       />
     </PageContainer>

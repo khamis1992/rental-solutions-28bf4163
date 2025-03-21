@@ -36,6 +36,7 @@ interface MaintenanceFormProps {
   onSubmit: (data: MaintenanceFormSchema) => void;
   isLoading?: boolean;
   isEditMode?: boolean;
+  submitLabel?: string; // Add the submitLabel prop
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
@@ -43,6 +44,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   onSubmit,
   isLoading = false,
   isEditMode = false,
+  submitLabel, // Add it to the destructured props
 }) => {
   // Setup form with validation
   const form = useForm<MaintenanceFormSchema>({
@@ -370,7 +372,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             
             <CustomButton type="submit" disabled={isLoading}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? 'Update Record' : 'Create Record'}
+              {submitLabel || (isEditMode ? 'Update Record' : 'Create Record')}
             </CustomButton>
           </CardFooter>
         </form>
