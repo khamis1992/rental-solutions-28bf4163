@@ -43,10 +43,18 @@ const VehicleCard = ({
     retired: 'bg-gray-100 text-gray-800'
   };
 
+  // Determine which image to display based on make and model
+  let displayImageUrl = imageUrl;
+  
   // Use the MG image for MG cars
-  const displayImageUrl = make.toLowerCase() === 'mg' 
-    ? '/lovable-uploads/8752db90-86d9-44b0-901e-c68e1bd988b5.png' 
-    : imageUrl;
+  if (make.toLowerCase() === 'mg') {
+    displayImageUrl = '/lovable-uploads/8752db90-86d9-44b0-901e-c68e1bd988b5.png';
+  }
+  
+  // Use the T77 image for T77 model cars
+  if (model.toLowerCase() === 't77') {
+    displayImageUrl = '/lovable-uploads/01f00263-e435-4f01-9967-08bbd64ff383.png';
+  }
 
   return (
     <Card className={cn(
