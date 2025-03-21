@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -15,46 +14,59 @@ export const useCustomers = () => {
   });
 
   // Fetch all customers with optional filtering
-  const { data: customers, isLoading, error } = useQuery({
+  const { 
+    data: customers, 
+    isLoading, 
+    error 
+  } = useQuery({
     queryKey: ['customers', searchParams],
     queryFn: async () => {
       console.log('Fetching customers with params:', searchParams);
-      let query = supabase
-        .from(CUSTOMERS_TABLE)
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      // Apply status filter if not 'all'
-      if (searchParams.status !== 'all' && searchParams.status) {
-        query = query.eq('status', searchParams.status);
-      }
-
-      // Apply search query if provided
-      if (searchParams.query) {
-        query = query.or(
-          `first_name.ilike.%${searchParams.query}%,last_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
-        );
-      }
-
-      const { data, error } = await query;
       
-      if (error) {
-        console.error('Error fetching customers:', error);
-        throw new Error(error.message);
-      }
-      
-      // Process customers to add full_name property
-      const processedCustomers = data.map(customer => {
-        return {
+      try {
+        let query = supabase
+          .from(CUSTOMERS_TABLE)
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        // Apply status filter if not 'all'
+        if (searchParams.status !== 'all' && searchParams.status) {
+          query = query.eq('status', searchParams.status);
+        }
+
+        // Apply search query if provided
+        if (searchParams.query) {
+          query = query.or(
+            `first_name.ilike.%${searchParams.query}%,last_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
+          );
+        }
+
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error('Supabase query error:', error);
+          throw new Error(error.message);
+        }
+        
+        // Log raw data for debugging
+        console.log('Raw customer data:', data);
+        
+        // Process customers to add full_name property
+        const processedCustomers = (data || []).map(customer => ({
           ...customer,
           full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim(),
-          status: customer.status || 'active' // Default status to active if not present
-        };
-      });
-      
-      console.log('Fetched customers:', processedCustomers);
-      return processedCustomers as Customer[];
+          status: customer.status || 'active'
+        }));
+        
+        console.log('Processed customers:', processedCustomers);
+        return processedCustomers as Customer[];
+      } catch (catchError) {
+        console.error('Unexpected error in customer fetch:', catchError);
+        return [];
+      }
     },
+    // Ensure data is always an array, even if null/undefined
+    initialData: []
   });
 
   // Create a new customer
