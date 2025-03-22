@@ -145,9 +145,9 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
         throw unifiedError;
       }
       
-      if (data) {
-        setPendingPaymentsCount(data.length);
-        const total = data.reduce((sum, payment) => sum + payment.amount, 0);
+      if (unifiedPayments) {
+        setPendingPaymentsCount(unifiedPayments.length);
+        const total = unifiedPayments.reduce((sum, payment) => sum + payment.amount, 0);
         setTotalPendingAmount(total);
         
         // After setting pending payments, calculate missing payments too
