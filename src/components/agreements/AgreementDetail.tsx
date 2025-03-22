@@ -6,7 +6,7 @@ import { formatCurrency } from "@/lib/utils"
 import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { Trash2, Edit, FileText, RefreshCw } from "lucide-react"
+import { Trash2, Edit, FileText } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -65,9 +65,9 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     setIsLoadingPayments(true)
     try {
       const { data, error } = await supabase
-        .from('payments')
+        .from('unified_payments')
         .select('*')
-        .eq('agreement_id', agreement.id)
+        .eq('lease_id', agreement.id)
         .order('payment_date', { ascending: false })
       
       if (error) {
