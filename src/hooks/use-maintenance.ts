@@ -1,4 +1,3 @@
-
 import { useApiMutation, useApiQuery, useCrudApi } from './use-api';
 import { useState } from 'react';
 import { useToast } from './use-toast';
@@ -205,6 +204,37 @@ export function useMaintenance() {
     return result;
   };
 
+  // New function to delete all maintenance records
+  const deleteAllRecords = async () => {
+    try {
+      const { error } = await supabase
+        .from('maintenance')
+        .delete()
+        .neq('id', '0'); // This will delete all records
+      
+      if (error) {
+        console.error('Error deleting all maintenance records:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete maintenance records",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      toast({
+        title: "Success",
+        description: "All maintenance records have been deleted",
+        variant: "default"
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error in deleteAllRecords:', error);
+      return false;
+    }
+  };
+
   // Return both the basic state and the CRUD operations
   return {
     // Basic state
@@ -216,6 +246,7 @@ export function useMaintenance() {
     
     // Direct methods
     getMaintenanceByVehicleId,
+    deleteAllRecords,
     
     // CRUD operations
     useList: useCustomList,
