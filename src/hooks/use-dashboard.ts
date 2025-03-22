@@ -168,7 +168,14 @@ export function useDashboardData() {
         // Get recent leases (rentals)
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
-          .select('id, created_at, customer_id, vehicle_id, customers(full_name), vehicles(make, model, license_plate)')
+          .select(`
+            id, 
+            created_at, 
+            customer_id, 
+            vehicle_id, 
+            customers:customer_id(full_name), 
+            vehicles:vehicle_id(make, model, license_plate)
+          `)
           .order('created_at', { ascending: false })
           .limit(2);
           
@@ -186,7 +193,13 @@ export function useDashboardData() {
         // Get recent maintenance
         const { data: maintenance, error: maintenanceError } = await supabase
           .from('maintenance')
-          .select('id, created_at, vehicle_id, type, vehicles(make, model, license_plate)')
+          .select(`
+            id, 
+            created_at, 
+            vehicle_id, 
+            type, 
+            vehicles:vehicle_id(make, model, license_plate)
+          `)
           .order('created_at', { ascending: false })
           .limit(1);
           
@@ -197,11 +210,17 @@ export function useDashboardData() {
         
         // Add lease activities
         leases.forEach(lease => {
+          // Safely access nested properties
+          const customerName = lease.customers ? lease.customers.full_name || 'Customer' : 'Customer';
+          const vehicleMake = lease.vehicles ? lease.vehicles.make || '' : '';
+          const vehicleModel = lease.vehicles ? lease.vehicles.model || '' : '';
+          const licensePlate = lease.vehicles ? lease.vehicles.license_plate || '' : '';
+          
           activities.push({
             id: lease.id,
             type: 'rental',
             title: 'New Rental',
-            description: `${lease.customers ? lease.customers.full_name || 'Customer' : 'Customer'} rented ${lease.vehicles ? lease.vehicles.make || '' : ''} ${lease.vehicles ? lease.vehicles.model || '' : ''} (${lease.vehicles ? lease.vehicles.license_plate || '' : ''})`,
+            description: `${customerName} rented ${vehicleMake} ${vehicleModel} (${licensePlate})`,
             time: getTimeAgo(new Date(lease.created_at))
           });
         });
@@ -219,11 +238,16 @@ export function useDashboardData() {
         
         // Add maintenance activities
         maintenance.forEach(item => {
+          // Safely access nested properties
+          const vehicleMake = item.vehicles ? item.vehicles.make || '' : '';
+          const vehicleModel = item.vehicles ? item.vehicles.model || '' : '';
+          const licensePlate = item.vehicles ? item.vehicles.license_plate || '' : '';
+          
           activities.push({
             id: item.id,
             type: 'maintenance',
             title: 'Maintenance Scheduled',
-            description: `${item.vehicles ? item.vehicles.make || '' : ''} ${item.vehicles ? item.vehicles.model || '' : ''} (${item.vehicles ? item.vehicles.license_plate || '' : ''}) scheduled for ${item.type}`,
+            description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${item.type}`,
             time: getTimeAgo(new Date(item.created_at))
           });
         });
