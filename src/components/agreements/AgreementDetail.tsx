@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -170,10 +171,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                   <p>
                     {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
                   </p>
-                </div>
-                <div>
-                  <p className="font-medium">Pickup Location</p>
-                  <p>{agreement.pickup_location || "Not specified"}</p>
                 </div>
                 <div>
                   <p className="font-medium">Return Location</p>
