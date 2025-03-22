@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
+import { toast } from 'sonner';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -33,6 +34,7 @@ export function CustomerDetail() {
   const { getCustomer, deleteCustomer } = useCustomers();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const fetchCustomer = async () => {
@@ -40,10 +42,10 @@ export function CustomerDetail() {
       setLoading(true);
       try {
         const data = await getCustomer(id);
-        console.log("Fetched customer data:", data);
         setCustomer(data);
       } catch (error) {
         console.error("Error fetching customer:", error);
+        toast("Error loading customer details");
       } finally {
         setLoading(false);
       }
@@ -52,11 +54,22 @@ export function CustomerDetail() {
     fetchCustomer();
   }, [id, getCustomer]);
 
-  const handleDelete = () => {
-    if (!customer?.id) return;
-    deleteCustomer.mutate(customer.id, {
-      onSuccess: () => navigate('/customers'),
-    });
+  const handleDelete = async () => {
+    if (!customer?.id || isDeleting) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteCustomer.mutateAsync(customer.id, {
+        onSuccess: () => navigate('/customers'),
+        onError: (error) => {
+          console.error("Delete error:", error);
+          toast("Failed to delete customer");
+          setIsDeleting(false);
+        }
+      });
+    } catch (error) {
+      setIsDeleting(false);
+    }
   };
 
   if (loading) {
@@ -99,9 +112,9 @@ export function CustomerDetail() {
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="destructive">
+              <Button variant="destructive" disabled={isDeleting}>
                 <Trash2 className="mr-2 h-4 w-4" />
-                Delete
+                {isDeleting ? "Deleting..." : "Delete"}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
