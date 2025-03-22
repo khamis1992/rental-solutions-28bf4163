@@ -164,6 +164,7 @@ export function CustomerDetail() {
                   customer.status === "active" ? "success" : 
                   customer.status === "inactive" ? "outline" : 
                   customer.status === "blacklisted" ? "destructive" :
+                  customer.status === "pending_review" ? "warning" :
                   "secondary"
                 }
                 className="capitalize"
