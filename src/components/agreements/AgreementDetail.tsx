@@ -1,0 +1,222 @@
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useNavigate } from "react-router-dom"
+import { formatCurrency } from "@/lib/utils"
+import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
+import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
+import { Trash2, Edit, FileText } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
+
+interface AgreementDetailProps {
+  agreement: Agreement
+  onDelete?: (id: string) => void
+}
+
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case AgreementStatus.ACTIVE:
+      return "bg-green-500"
+    case AgreementStatus.EXPIRED:
+      return "bg-gray-500"
+    case AgreementStatus.CANCELLED:
+      return "bg-red-500"
+    case AgreementStatus.DRAFT:
+      return "bg-yellow-500"
+    case AgreementStatus.PENDING:
+      return "bg-blue-500"
+    default:
+      return "bg-gray-500"
+  }
+}
+
+export const AgreementDetail: React.FC<AgreementDetailProps> = ({ 
+  agreement, 
+  onDelete 
+}) => {
+  const navigate = useNavigate()
+
+  const handleEdit = () => {
+    navigate(`/agreements/edit/${agreement.id}`)
+  }
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(agreement.id)
+    }
+  }
+
+  const handlePrintAgreement = () => {
+    // This would typically generate a PDF or printable version
+    toast.info("Print functionality will be implemented in a future update")
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Agreement {agreement.agreement_number}</h2>
+          <p className="text-muted-foreground">
+            Created on {format(new Date(agreement.created_at || new Date()), "PPP")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge className={getStatusColor(agreement.status)}>
+            {agreement.status.toUpperCase()}
+          </Badge>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Customer Information</CardTitle>
+            <CardDescription>Details about the customer</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {agreement.customers ? (
+              <div className="space-y-2">
+                <div>
+                  <p className="font-medium">Name</p>
+                  <p>{agreement.customers.full_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Email</p>
+                  <p>{agreement.customers.email || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Phone</p>
+                  <p>{agreement.customers.phone || "N/A"}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No customer information available</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Vehicle Information</CardTitle>
+            <CardDescription>Details about the rented vehicle</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {agreement.vehicles ? (
+              <div className="space-y-2">
+                <div>
+                  <p className="font-medium">Vehicle</p>
+                  <p>{agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.year})</p>
+                </div>
+                <div>
+                  <p className="font-medium">License Plate</p>
+                  <p>{agreement.vehicles.license_plate || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Color</p>
+                  <p>{agreement.vehicles.color || "N/A"}</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No vehicle information available</p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Agreement Details</CardTitle>
+            <CardDescription>Rental terms and payment information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium">Rental Period</p>
+                  <p>
+                    {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Pickup Location</p>
+                  <p>{agreement.pickup_location || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Return Location</p>
+                  <p>{agreement.return_location || "Not specified"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Additional Drivers</p>
+                  <p>
+                    {agreement.additional_drivers && agreement.additional_drivers.length > 0
+                      ? agreement.additional_drivers.join(", ")
+                      : "None"}
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium">Total Amount</p>
+                  <p className="text-lg font-bold">{formatCurrency(agreement.total_amount)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Deposit Amount</p>
+                  <p>{formatCurrency(agreement.deposit_amount || 0)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Terms Accepted</p>
+                  <p>{agreement.terms_accepted ? "Yes" : "No"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Signature</p>
+                  <p>{agreement.signature_url ? "Signed" : "Not signed"}</p>
+                </div>
+              </div>
+            </div>
+            
+            {agreement.notes && (
+              <div className="mt-6">
+                <p className="font-medium">Notes</p>
+                <p className="whitespace-pre-line">{agreement.notes}</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter className="flex justify-between">
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="outline" onClick={handlePrintAgreement}>
+                <FileText className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the
+                    agreement and remove the data from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardFooter>
+        </Card>
+      </div>
+    </div>
+  )
+}
