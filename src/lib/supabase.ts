@@ -122,10 +122,10 @@ export const checkAndGenerateMonthlyPayments = async () => {
     if (today.getDate() === 1) {
       console.log('Running monthly payment generation for active agreements');
       
-      // Get all active agreements
-      const { data: agreements, error } = await supabase
-        .from('agreements')
-        .select('id, total_amount, start_date, end_date, agreement_number')
+      // Get all active agreements with rent_amount
+      const { data: leases, error } = await supabase
+        .from('leases')
+        .select('id, rent_amount, agreement_number, start_date, end_date')
         .eq('status', 'active')
         .lt('start_date', today.toISOString()) // Agreement has started
         .gt('end_date', today.toISOString());   // Agreement has not ended yet
@@ -134,34 +134,42 @@ export const checkAndGenerateMonthlyPayments = async () => {
         throw error;
       }
       
-      if (agreements && agreements.length > 0) {
-        console.log(`Found ${agreements.length} active agreements for payment generation`);
+      if (leases && leases.length > 0) {
+        console.log(`Found ${leases.length} active leases for payment generation`);
         
         // Generate a pending payment for each active agreement
-        for (const agreement of agreements) {
+        for (const lease of leases) {
           const currentMonth = today.getMonth();
           const currentYear = today.getFullYear();
           
-          console.log(`Processing agreement ${agreement.agreement_number}`);
+          console.log(`Processing lease ${lease.agreement_number}`);
+          
+          // Use the rent_amount if available, otherwise fallback to total_amount
+          const amount = lease.rent_amount || 0;
+          
+          if (!amount) {
+            console.log(`No rent_amount found for lease ${lease.agreement_number}, skipping payment generation`);
+            continue;
+          }
           
           const result = await generateMonthlyPayment(
             supabase,
-            agreement.id,
-            agreement.total_amount,
+            lease.id,
+            amount,
             currentMonth,
             currentYear
           );
           
           if (result.success) {
-            console.log(`Generated payment for agreement ${agreement.agreement_number}`);
+            console.log(`Generated payment for lease ${lease.agreement_number}`);
           } else {
-            console.log(`Payment already exists or failed for agreement ${agreement.agreement_number}: ${result.message || 'Unknown error'}`);
+            console.log(`Payment already exists or failed for lease ${lease.agreement_number}: ${result.message || 'Unknown error'}`);
           }
         }
         
         return true;
       } else {
-        console.log('No active agreements found for payment generation');
+        console.log('No active leases found for payment generation');
       }
     } else {
       console.log(`Today is not the 1st of the month (using system date: ${today.toDateString()}), skipping automatic payment generation`);
@@ -202,48 +210,56 @@ export const forceCheckAllAgreementsForPayments = async () => {
     
     console.log(`Force checking all active agreements for payment generation (system date: ${today.toDateString()})`);
     
-    // Get all active agreements
-    const { data: agreements, error } = await supabase
-      .from('agreements')
-      .select('id, total_amount, agreement_number, status')
+    // Get all active agreements with rent_amount
+    const { data: leases, error } = await supabase
+      .from('leases')
+      .select('id, rent_amount, agreement_number, status')
       .eq('status', 'active');
     
     if (error) {
       throw error;
     }
     
-    if (agreements && agreements.length > 0) {
-      console.log(`Found ${agreements.length} active agreements to check`);
+    if (leases && leases.length > 0) {
+      console.log(`Found ${leases.length} active leases to check`);
       let generatedCount = 0;
       
       // Generate a pending payment for each active agreement
-      for (const agreement of agreements) {
-        console.log(`Checking current month payment for agreement ${agreement.agreement_number} (status: ${agreement.status})`);
+      for (const lease of leases) {
+        console.log(`Checking current month payment for lease ${lease.agreement_number} (status: ${lease.status})`);
         
-        if (agreement.status !== 'active') {
-          console.log(`Skipping agreement ${agreement.agreement_number} - not active (status: ${agreement.status})`);
+        if (lease.status !== 'active') {
+          console.log(`Skipping lease ${lease.agreement_number} - not active (status: ${lease.status})`);
+          continue;
+        }
+        
+        // Use the rent_amount if available
+        const amount = lease.rent_amount || 0;
+        
+        if (!amount) {
+          console.log(`No rent_amount found for lease ${lease.agreement_number}, skipping payment generation`);
           continue;
         }
         
         const result = await generateMonthlyPayment(
           supabase,
-          agreement.id,
-          agreement.total_amount,
+          lease.id,
+          amount,
           currentMonth,
           currentYear
         );
         
         if (result.success) {
-          console.log(`Generated payment for agreement ${agreement.agreement_number}`);
+          console.log(`Generated payment for lease ${lease.agreement_number}`);
           generatedCount++;
         } else {
-          console.log(`No payment needed for agreement ${agreement.agreement_number}: ${result.message || 'Unknown error'}`);
+          console.log(`No payment needed for lease ${lease.agreement_number}: ${result.message || 'Unknown error'}`);
         }
       }
       
-      return { success: true, generated: generatedCount, checked: agreements.length };
+      return { success: true, generated: generatedCount, checked: leases.length };
     } else {
-      console.log('No active agreements found');
+      console.log('No active leases found');
       return { success: true, generated: 0, checked: 0 };
     }
   } catch (error) {
@@ -262,10 +278,10 @@ export const forceGeneratePaymentsForMissingMonths = async (
   try {
     console.log(`Checking for missing payments between ${lastPaymentDate.toISOString()} and ${currentDate.toISOString()}`);
     
-    // First check if the agreement is still active
+    // First check if the agreement is still active and get the correct rent_amount
     const { data: lease, error: leaseError } = await supabase
       .from("leases")
-      .select("status, agreement_number")
+      .select("status, agreement_number, rent_amount")
       .eq("id", agreementId)
       .single();
     
@@ -278,6 +294,14 @@ export const forceGeneratePaymentsForMissingMonths = async (
     if (lease && lease.status !== 'active') {
       console.log(`Skipping missing payment generation for ${lease.agreement_number} - status is ${lease.status}`);
       return { success: false, message: `Lease is not active (status: ${lease.status})`, generated: 0 };
+    }
+    
+    // Use the rent_amount from the lease if available, otherwise use the provided amount
+    const paymentAmount = lease.rent_amount || amount;
+    
+    if (!paymentAmount) {
+      console.log(`No rent_amount found for lease ${lease.agreement_number}, cannot generate payments`);
+      return { success: false, message: "No rent amount available for this lease", generated: 0 };
     }
     
     // Get all existing payments for this agreement to avoid duplication
@@ -304,6 +328,7 @@ export const forceGeneratePaymentsForMissingMonths = async (
     endMonth.setDate(1); // First day of the current month
     
     console.log(`Checking for missing payments from ${startMonth.toLocaleDateString()} to ${endMonth.toLocaleDateString()}`);
+    console.log(`Using payment amount: ${paymentAmount}`);
     
     let generatedCount = 0;
     // Start with the month of lastPaymentDate and loop month by month
@@ -340,13 +365,13 @@ export const forceGeneratePaymentsForMissingMonths = async (
           continue;
         }
         
-        // Create pending payment record for the 1st of the month
-        console.log(`Generating payment for ${paymentDate.toLocaleDateString()}`);
+        // Create pending payment record for the 1st of the month using the correct rent_amount
+        console.log(`Generating payment for ${paymentDate.toLocaleDateString()} with amount ${paymentAmount}`);
         const { data, error } = await supabase.from("unified_payments").insert({
           lease_id: agreementId,
-          amount: amount,
+          amount: paymentAmount,
           amount_paid: 0,
-          balance: amount,
+          balance: paymentAmount,
           payment_date: paymentDate.toISOString(),
           status: "pending",
           type: "Income",

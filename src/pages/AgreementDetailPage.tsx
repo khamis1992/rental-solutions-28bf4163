@@ -19,6 +19,7 @@ const AgreementDetailPage = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [paymentGenerationAttempted, setPaymentGenerationAttempted] = useState(false);
   const [contractAmount, setContractAmount] = useState<number | null>(null);
+  const [rentAmount, setRentAmount] = useState<number | null>(null);
 
   useEffect(() => {
     // Initialize the system to check for payment generation
@@ -46,6 +47,7 @@ const AgreementDetailPage = () => {
             if (!leaseError && leaseData && leaseData.rent_amount) {
               // If we have a rent_amount from leases table, update the agreement object
               data.total_amount = leaseData.rent_amount;
+              setRentAmount(leaseData.rent_amount);
               console.log("Updated agreement total_amount with rent_amount:", leaseData.rent_amount);
               
               // Calculate contract amount = rent_amount * duration in months
@@ -98,6 +100,7 @@ const AgreementDetailPage = () => {
                 
                 if (leaseData && leaseData.rent_amount) {
                   rentAmount = leaseData.rent_amount;
+                  setRentAmount(leaseData.rent_amount);
                   console.log(`Using rent_amount from leases table: ${rentAmount}`);
                 }
               } catch (err) {
@@ -187,6 +190,7 @@ const AgreementDetailPage = () => {
           agreement={agreement} 
           onDelete={handleDelete}
           contractAmount={contractAmount}
+          rentAmount={rentAmount}
         />
       ) : (
         <div className="text-center py-12">

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,9 +29,10 @@ export interface Payment {
 interface PaymentHistoryProps {
   payments: Payment[];
   isLoading: boolean;
+  rentAmount?: number; // Add rentAmount prop to ensure correct calculations
 }
 
-export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
+export function PaymentHistory({ payments, isLoading, rentAmount }: PaymentHistoryProps) {
   const formatPaymentMethod = (method: string) => {
     return method
       ? method.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
@@ -46,6 +48,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const [totalMissingAmount, setTotalMissingAmount] = useState(0);
   const [lastPaidDate, setLastPaidDate] = useState<Date | null>(null);
   const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
+  const [actualRentAmount, setActualRentAmount] = useState<number | undefined>(rentAmount);
   
   // New state for payment editing
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -58,6 +61,9 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
     // Only fetch pending payments if we have an agreement ID
     if (agreementId) {
       fetchPendingPayments(agreementId);
+      if (!actualRentAmount) {
+        fetchRentAmount(agreementId);
+      }
       calculateMissingPayments();
     } else if (payments.length > 0) {
       // Try to extract agreement ID from payment notes if lease_id is not directly available
@@ -70,7 +76,27 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
         }
       }
     }
-  }, [agreementId, payments]);
+  }, [agreementId, payments, actualRentAmount]);
+
+  // Function to fetch the actual rent amount from the leases table
+  const fetchRentAmount = async (leaseId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select('rent_amount')
+        .eq('id', leaseId)
+        .single();
+        
+      if (error) throw error;
+      
+      if (data && data.rent_amount) {
+        console.log("Fetched rent_amount from leases table:", data.rent_amount);
+        setActualRentAmount(data.rent_amount);
+      }
+    } catch (error) {
+      console.error("Error fetching rent amount:", error);
+    }
+  };
 
   // Find the last paid payment date
   const calculateMissingPayments = () => {
@@ -98,7 +124,8 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
     let tempDate = new Date(startMonth);
     tempDate.setMonth(tempDate.getMonth() + 1); // Start from the month after the last payment
     
-    const monthlyAmount = payments.length > 0 ? payments[0].amount : 0;
+    // Use the correct monthly amount - either from rentAmount prop or first payment
+    const monthlyAmount = actualRentAmount || (payments.length > 0 ? payments[0].amount : 0);
     
     while (tempDate <= currentMonth) {
       monthsCounter++;
@@ -118,14 +145,19 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
     try {
       const { data, error } = await supabase
         .from('leases')
-        .select('id')
+        .select('id, rent_amount')
         .eq('agreement_number', agreementNumber)
         .single();
       
       if (error) throw error;
       
-      if (data && data.id) {
-        fetchPendingPayments(data.id);
+      if (data) {
+        if (data.id) {
+          fetchPendingPayments(data.id);
+        }
+        if (data.rent_amount) {
+          setActualRentAmount(data.rent_amount);
+        }
       }
     } catch (error) {
       console.error("Error fetching agreement ID:", error);
@@ -138,9 +170,14 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
     try {
       console.log("Fetching payments for agreement:", agreementId);
       
+      // First fetch the rent_amount if we don't have it
+      if (!actualRentAmount) {
+        await fetchRentAmount(agreementId);
+      }
+      
       const { data: unifiedPayments, error: unifiedError } = await supabase
         .from('unified_payments')
-        .select('amount')
+        .select('amount, status')
         .eq('lease_id', agreementId)
         .eq('status', 'pending');
       
@@ -151,8 +188,19 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
       
       if (unifiedPayments) {
         setPendingPaymentsCount(unifiedPayments.length);
-        const total = unifiedPayments.reduce((sum, payment) => sum + payment.amount, 0);
-        setTotalPendingAmount(total);
+        
+        // Use the actual rent amount to calculate the total, not the amounts in the database
+        // This ensures we show the correct total expected payments
+        if (actualRentAmount) {
+          const correctedTotal = unifiedPayments.length * actualRentAmount;
+          setTotalPendingAmount(correctedTotal);
+          console.log(`Using corrected rent amount (${actualRentAmount}) for ${unifiedPayments.length} pending payments. Total: ${correctedTotal}`);
+        } else {
+          // Fallback to using the existing amounts if rent_amount isn't available
+          const total = unifiedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+          setTotalPendingAmount(total);
+          console.log(`Using existing payment amounts for ${unifiedPayments.length} pending payments. Total: ${total}`);
+        }
         
         // After setting pending payments, calculate missing payments too
         calculateMissingPayments();
@@ -253,6 +301,11 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
               <span>
                 There {pendingPaymentsCount === 1 ? 'is' : 'are'} <strong>{pendingPaymentsCount}</strong> pending {pendingPaymentsCount === 1 ? 'payment' : 'payments'} 
                 {' '} totaling <strong>{formatCurrency(totalPendingAmount)}</strong>
+                {actualRentAmount && pendingPaymentsCount > 0 && (
+                  <span className="text-xs text-gray-600 block">
+                    (Calculated as: {pendingPaymentsCount} × {formatCurrency(actualRentAmount)} per month)
+                  </span>
+                )}
               </span>
             </AlertDescription>
           </Alert>
@@ -265,6 +318,11 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
               <span>
                 <strong>Warning:</strong> Last payment was made on {format(lastPaidDate, "PPP")}. There {missingPaymentsCount === 1 ? 'is' : 'are'} <strong>{missingPaymentsCount}</strong> additional {missingPaymentsCount === 1 ? 'month' : 'months'} 
                 {' '} missing from the system, totaling <strong>{formatCurrency(totalMissingAmount)}</strong>
+                {actualRentAmount && missingPaymentsCount > 0 && (
+                  <span className="text-xs text-gray-600 block">
+                    (Calculated as: {missingPaymentsCount} × {formatCurrency(actualRentAmount)} per month)
+                  </span>
+                )}
               </span>
               <Button 
                 size="sm" 
