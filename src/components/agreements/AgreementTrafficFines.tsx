@@ -83,12 +83,13 @@ export const AgreementTrafficFines = ({
         }
 
         // Fetch traffic fines for the vehicle during the rental period
+        // Use snake_case field names to match the database
         const { data: dateRangeFines, error: dateRangeError } = await supabase
           .from('traffic_fines')
           .select('*')
           .eq('vehicle_id', leaseData.vehicle_id)
-          .gte('violationDate', startDate.toISOString())
-          .lte('violationDate', endDate.toISOString());
+          .gte('violation_date', startDate.toISOString())
+          .lte('violation_date', endDate.toISOString());
 
         if (dateRangeError) {
           console.error("Error fetching date range traffic fines:", dateRangeError);
@@ -101,11 +102,37 @@ export const AgreementTrafficFines = ({
         let allFines: TrafficFine[] = [];
         
         if (directFines && directFines.length > 0) {
-          allFines = [...directFines];
+          // Transform data from snake_case to camelCase
+          allFines = directFines.map(fine => ({
+            id: fine.id,
+            violationNumber: fine.violation_number,
+            licensePlate: fine.license_plate,
+            violationDate: fine.violation_date,
+            fineAmount: fine.fine_amount,
+            violationCharge: fine.violation_charge,
+            paymentStatus: fine.payment_status,
+            location: fine.fine_location,
+            lease_id: fine.lease_id,
+            vehicle_id: fine.vehicle_id
+          }));
         }
         
         if (dateRangeFines && dateRangeFines.length > 0) {
-          dateRangeFines.forEach(fine => {
+          // Transform data from snake_case to camelCase
+          const transformedDateRangeFines = dateRangeFines.map(fine => ({
+            id: fine.id,
+            violationNumber: fine.violation_number,
+            licensePlate: fine.license_plate,
+            violationDate: fine.violation_date,
+            fineAmount: fine.fine_amount,
+            violationCharge: fine.violation_charge,
+            paymentStatus: fine.payment_status,
+            location: fine.fine_location,
+            lease_id: fine.lease_id,
+            vehicle_id: fine.vehicle_id
+          }));
+          
+          transformedDateRangeFines.forEach(fine => {
             if (!allFines.some(f => f.id === fine.id)) {
               allFines.push(fine);
             }
