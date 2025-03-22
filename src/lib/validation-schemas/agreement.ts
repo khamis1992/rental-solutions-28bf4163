@@ -50,7 +50,6 @@ export const agreementSchema = z.object({
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false),
   signature_url: z.string().optional(),
-  return_location: z.string().optional(),
   additional_drivers: z.array(z.string()).optional(),
   // Include the nested objects returned from Supabase
   customers: CustomerSchema.optional(),
@@ -82,6 +81,5 @@ export const createEmptyAgreement = (): Omit<Agreement, "id"> => ({
   agreement_number: `AGR-${Date.now().toString().substring(7)}`,
   notes: "",
   terms_accepted: false,
-  return_location: "",
   additional_drivers: [],
 });

@@ -37,8 +37,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           total_amount, 
           down_payment, 
           agreement_number, 
-          notes, 
-          return_location
+          notes
         `);
         
         // Apply filters with more specific and optimized conditions
@@ -133,7 +132,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           agreement_number: lease.agreement_number || '',
           notes: lease.notes || '',
           terms_accepted: true,
-          return_location: lease.return_location || "",
           additional_drivers: [],
           customers: customerData[lease.customer_id] || null,
           vehicles: vehicleData[lease.vehicle_id] || null
@@ -298,7 +296,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           agreement_number: data.agreement_number || '',
           notes: data.notes || '',
           terms_accepted: true,
-          return_location: data.return_location || "",
           additional_drivers: [],
           customers: customerData,
           vehicles: vehicleData

@@ -173,10 +173,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                   </p>
                 </div>
                 <div>
-                  <p className="font-medium">Return Location</p>
-                  <p>{agreement.return_location || "Not specified"}</p>
-                </div>
-                <div>
                   <p className="font-medium">Additional Drivers</p>
                   <p>
                     {agreement.additional_drivers && agreement.additional_drivers.length > 0
