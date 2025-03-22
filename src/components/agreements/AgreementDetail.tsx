@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -19,6 +20,7 @@ interface AgreementDetailProps {
   agreement: Agreement
   onDelete?: (id: string) => void
   contractAmount?: number | null
+  rentAmount?: number | null
 }
 
 const getStatusColor = (status: string) => {
@@ -43,13 +45,14 @@ const getStatusColor = (status: string) => {
 export const AgreementDetail: React.FC<AgreementDetailProps> = ({ 
   agreement, 
   onDelete,
-  contractAmount
+  contractAmount,
+  rentAmount
 }) => {
   const navigate = useNavigate()
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
   const [payments, setPayments] = useState<Payment[]>([])
   const [isLoadingPayments, setIsLoadingPayments] = useState(true)
-  const [rentAmount, setRentAmount] = useState<number | null>(null)
+  const [localRentAmount, setLocalRentAmount] = useState<number | null>(rentAmount)
   const [durationMonths, setDurationMonths] = useState<number>(0)
 
   useEffect(() => {
@@ -90,7 +93,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       }
       
       if (data && data.rent_amount) {
-        setRentAmount(data.rent_amount);
+        setLocalRentAmount(data.rent_amount);
         console.log("Fetched rent amount:", data.rent_amount);
       }
     } catch (error) {
@@ -133,9 +136,9 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       setPayments(formattedPayments);
       console.log("Formatted payments set:", formattedPayments);
       
-      if (formattedPayments.length > 0 && rentAmount) {
+      if (formattedPayments.length > 0 && localRentAmount) {
         const incorrectPayments = formattedPayments.filter(p => 
-          p.amount > rentAmount * 5 && 
+          p.amount > localRentAmount * 5 && 
           p.notes && 
           p.notes.includes("Monthly rent payment")
         );
@@ -152,17 +155,22 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     } finally {
       setIsLoadingPayments(false);
     }
-  }, [agreement.id, rentAmount]);
+  }, [agreement.id, localRentAmount]);
 
   useEffect(() => {
     const initializeAndFetch = async () => {
       await initializeSystem();
-      await fetchRentAmount();
+      
+      // If rentAmount wasn't provided, fetch it from the database
+      if (rentAmount === null || rentAmount === undefined) {
+        await fetchRentAmount();
+      }
+      
       await fetchPayments();
     };
     
     initializeAndFetch();
-  }, [agreement.id, fetchPayments, fetchRentAmount]);
+  }, [agreement.id, fetchPayments, fetchRentAmount, rentAmount]);
 
   return (
     <div className="space-y-8">
@@ -264,12 +272,12 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               <div className="space-y-4">
                 <div>
                   <p className="font-medium">Monthly Rent Amount</p>
-                  <p className="text-lg font-bold">{formatCurrency(rentAmount || agreement.total_amount)}</p>
+                  <p className="text-lg font-bold">{formatCurrency(localRentAmount || agreement.total_amount)}</p>
                 </div>
                 <div>
                   <p className="font-medium">Total Contract Amount</p>
                   <p className="text-lg font-bold">
-                    {formatCurrency(contractAmount || (rentAmount ? rentAmount * durationMonths : agreement.total_amount * durationMonths))}
+                    {formatCurrency(contractAmount || (localRentAmount ? localRentAmount * durationMonths : agreement.total_amount * durationMonths))}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     (Monthly rent × {durationMonths} {durationMonths === 1 ? 'month' : 'months'})
@@ -326,7 +334,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                       setIsPaymentDialogOpen(false);
                       fetchPayments();
                     }} 
-                    defaultAmount={rentAmount}
+                    defaultAmount={localRentAmount}
                   />
                 </DialogContent>
               </Dialog>
@@ -359,6 +367,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
           <PaymentHistory 
             payments={payments} 
             isLoading={isLoadingPayments} 
+            rentAmount={localRentAmount}
           />
         </div>
 
