@@ -45,16 +45,18 @@ const AgreementDetailPage = () => {
               }
             }
             
-            // Special handling for MR202462
+            // Special handling for agreement with MR202462 number
             if (data.agreement_number === 'MR202462') {
               console.log(`Special check for agreement ${data.agreement_number} to catch up missing payments`);
               
-              // Generate payments for all missing months from August 2024 to March 2025
-              const lastKnownPaymentDate = new Date(2024, 7, 3); // August 3, 2024
-              const currentSystemDate = new Date(2025, 2, 22); // March 22, 2025
+              // Create explicit date objects for the date range
+              // August 3, 2024 to March 22, 2025
+              const lastKnownPaymentDate = new Date(2024, 7, 3); // Month is 0-indexed (7 = August)
+              const currentSystemDate = new Date(2025, 2, 22); // 2 = March, 22 = day
               
-              console.log(`Looking for missing payments between ${lastKnownPaymentDate.toDateString()} and ${currentSystemDate.toDateString()}`);
+              console.log(`Looking for missing payments between ${lastKnownPaymentDate.toISOString()} and ${currentSystemDate.toISOString()}`);
               
+              // Generate payments for each month in the date range
               const missingResult = await forceGeneratePaymentsForMissingMonths(
                 data.id,
                 data.total_amount,

@@ -260,7 +260,7 @@ export const forceGeneratePaymentsForMissingMonths = async (
   currentDate: Date = SYSTEM_DATE
 ) => {
   try {
-    console.log(`Checking for missing payments between ${lastPaymentDate.toDateString()} and ${currentDate.toDateString()}`);
+    console.log(`Checking for missing payments between ${lastPaymentDate.toISOString()} and ${currentDate.toISOString()}`);
     
     // First check if the agreement is still active
     const { data: agreement, error: agreementError } = await supabase
@@ -282,14 +282,13 @@ export const forceGeneratePaymentsForMissingMonths = async (
     
     // Start from the month after the last payment
     const startMonth = new Date(lastPaymentDate);
-    startMonth.setMonth(startMonth.getMonth() + 1);
     startMonth.setDate(1); // First day of the month
     
     // End with the current month
     const endMonth = new Date(currentDate);
     endMonth.setDate(1); // First day of the current month
     
-    console.log(`Checking for missing payments from ${startMonth.toDateString()} to ${endMonth.toDateString()}`);
+    console.log(`Checking for missing payments from ${startMonth.toISOString()} to ${endMonth.toISOString()}`);
     
     let generatedCount = 0;
     let currentCheckMonth = new Date(startMonth);
