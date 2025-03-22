@@ -3,7 +3,7 @@ import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { format, addMonths, isBefore, isAfter, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
+import { format, addMonths, isBefore, isAfter, startOfMonth, endOfMonth, eachMonthOfInterval, differenceInDays } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -86,14 +86,26 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       }
     });
     
-    // Find missing months
+    // Calculate daily late fee (if available)
+    const dailyLateFee = 120.0; // Default value from schema
+    
+    // Find missing months and calculate late fees
     return allMonths.filter(month => {
       const monthKey = `${month.getMonth()}-${month.getFullYear()}`;
       return !paidMonths.has(monthKey);
-    }).map(month => ({
-      month,
-      formattedDate: format(month, "MMMM yyyy")
-    }));
+    }).map(month => {
+      // Calculate days overdue (from the 1st of the month until current date)
+      const dueDate = new Date(month);
+      const daysOverdue = differenceInDays(currentDate, dueDate);
+      const lateFineAmount = daysOverdue > 0 ? daysOverdue * dailyLateFee : 0;
+      
+      return {
+        month,
+        formattedDate: format(month, "MMMM yyyy"),
+        daysOverdue: daysOverdue > 0 ? daysOverdue : 0,
+        lateFineAmount: lateFineAmount
+      };
+    });
   }, [payments, leaseStartDate, leaseEndDate, rentAmount]);
 
   const handleEditPayment = (payment: Payment) => {
@@ -225,8 +237,23 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                   {missingPayments.map((item, index) => (
                     <div key={index} className="bg-white text-red-700 border border-red-200 px-3 py-2 rounded text-sm">
-                      {item.formattedDate}
-                      {rentAmount && <div className="font-semibold">{formatCurrency(rentAmount)}</div>}
+                      <div className="font-medium">{item.formattedDate}</div>
+                      {rentAmount && (
+                        <div className="font-semibold">{formatCurrency(rentAmount)}</div>
+                      )}
+                      {item.daysOverdue > 0 && (
+                        <div className="mt-1 text-xs">
+                          <div className="text-amber-700">
+                            {item.daysOverdue} {item.daysOverdue === 1 ? 'day' : 'days'} overdue
+                          </div>
+                          <div className="text-red-600 font-medium">
+                            + {formatCurrency(item.lateFineAmount)} fine
+                          </div>
+                          <div className="mt-1 font-bold text-red-700">
+                            Total: {formatCurrency(rentAmount + item.lateFineAmount)}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
