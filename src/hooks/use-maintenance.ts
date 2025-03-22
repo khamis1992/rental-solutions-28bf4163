@@ -1,3 +1,4 @@
+
 import { useApiMutation, useApiQuery, useCrudApi } from './use-api';
 import { useState } from 'react';
 import { useToast } from './use-toast';
@@ -207,10 +208,12 @@ export function useMaintenance() {
   // New function to delete all maintenance records
   const deleteAllRecords = async () => {
     try {
+      // Fix the DELETE query - we need to remove the .neq('id', '0') condition
+      // which was causing the "invalid input syntax for type uuid" error
       const { error } = await supabase
         .from('maintenance')
         .delete()
-        .neq('id', '0'); // This will delete all records
+        .is('id', 'not.null'); // This ensures we delete all records without the invalid condition
       
       if (error) {
         console.error('Error deleting all maintenance records:', error);
