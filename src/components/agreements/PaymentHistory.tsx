@@ -7,6 +7,8 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export interface Payment {
   id: string;
@@ -19,6 +21,7 @@ export interface Payment {
   status?: string;
   late_fine_amount?: number;
   days_overdue?: number;
+  lease_id?: string;
 }
 
 interface PaymentHistoryProps {
@@ -33,6 +36,72 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
       : 'N/A';
   };
 
+  // Get agreement ID from the first payment
+  const agreementId = payments.length > 0 ? payments[0].lease_id : null;
+  const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
+  const [totalPendingAmount, setTotalPendingAmount] = useState(0);
+  const [isPendingLoading, setIsPendingLoading] = useState(false);
+
+  useEffect(() => {
+    // Only fetch pending payments if we have an agreement ID
+    if (agreementId) {
+      fetchPendingPayments(agreementId);
+    } else if (payments.length > 0) {
+      // Try to extract agreement ID from payment notes if lease_id is not directly available
+      const firstPayment = payments[0];
+      if (firstPayment.notes && firstPayment.notes.includes("for agreement")) {
+        const match = firstPayment.notes.match(/for agreement ([A-Z0-9]+)/);
+        if (match && match[1]) {
+          // Now fetch the agreement ID using the agreement number
+          fetchAgreementIdByNumber(match[1]);
+        }
+      }
+    }
+  }, [agreementId, payments]);
+
+  // Function to fetch agreement ID by agreement number
+  const fetchAgreementIdByNumber = async (agreementNumber: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('agreements')
+        .select('id')
+        .eq('agreement_number', agreementNumber)
+        .single();
+      
+      if (error) throw error;
+      
+      if (data && data.id) {
+        fetchPendingPayments(data.id);
+      }
+    } catch (error) {
+      console.error("Error fetching agreement ID:", error);
+    }
+  };
+
+  // Function to fetch pending payments
+  const fetchPendingPayments = async (agreementId: string) => {
+    setIsPendingLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('amount')
+        .eq('lease_id', agreementId)
+        .eq('status', 'pending');
+      
+      if (error) throw error;
+      
+      if (data) {
+        setPendingPaymentsCount(data.length);
+        const total = data.reduce((sum, payment) => sum + payment.amount, 0);
+        setTotalPendingAmount(total);
+      }
+    } catch (error) {
+      console.error("Error fetching pending payments:", error);
+    } finally {
+      setIsPendingLoading(false);
+    }
+  };
+
   // Add debug log to see if payments are being passed
   console.log("Payment history rendered with payments:", payments);
 
@@ -43,6 +112,18 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
         <CardDescription>View all payments for this agreement</CardDescription>
       </CardHeader>
       <CardContent>
+        {pendingPaymentsCount > 0 && (
+          <Alert className="mb-4 bg-amber-50 border-amber-200">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                There {pendingPaymentsCount === 1 ? 'is' : 'are'} <strong>{pendingPaymentsCount}</strong> pending {pendingPaymentsCount === 1 ? 'payment' : 'payments'} 
+                {' '} totaling <strong>{formatCurrency(totalPendingAmount)}</strong>
+              </span>
+            </AlertDescription>
+          </Alert>
+        )}
+
         {isLoading ? (
           <div className="flex justify-center py-6">
             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>

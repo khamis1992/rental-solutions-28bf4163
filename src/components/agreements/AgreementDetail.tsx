@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -68,7 +67,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     try {
       console.log("Fetching payments for agreement:", agreement.id);
       
-      // Use a more detailed query to ensure we get all payment records
       const { data: unifiedPayments, error: unifiedError } = await supabase
         .from('unified_payments')
         .select('*')
@@ -92,7 +90,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         type: payment.type,
         status: payment.status,
         late_fine_amount: payment.late_fine_amount,
-        days_overdue: payment.days_overdue
+        days_overdue: payment.days_overdue,
+        lease_id: payment.lease_id
       }));
       
       setPayments(formattedPayments);
@@ -106,7 +105,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   }
 
   useEffect(() => {
-    // Initialize the system and fetch payments when component mounts
     const initializeAndFetch = async () => {
       await initializeSystem();
       await fetchPayments();
