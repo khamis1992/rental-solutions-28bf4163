@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -20,6 +19,12 @@ const AgreementDetailPage = () => {
   const [paymentGenerationAttempted, setPaymentGenerationAttempted] = useState(false);
   const [contractAmount, setContractAmount] = useState<number | null>(null);
   const [rentAmount, setRentAmount] = useState<number | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  const refreshAgreementData = () => {
+    // Increment refresh trigger to force a refresh
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   useEffect(() => {
     // Initialize the system to check for payment generation
@@ -154,10 +159,10 @@ const AgreementDetailPage = () => {
       return false;
     };
 
-    if (!isInitialized) {
+    if (!isInitialized || refreshTrigger > 0) {
       fetchAgreement();
     }
-  }, [id, getAgreement, navigate, isInitialized, paymentGenerationAttempted]);
+  }, [id, getAgreement, navigate, isInitialized, paymentGenerationAttempted, refreshTrigger]);
 
   const handleDelete = async (agreementId: string) => {
     try {
@@ -191,6 +196,7 @@ const AgreementDetailPage = () => {
           onDelete={handleDelete}
           contractAmount={contractAmount}
           rentAmount={rentAmount}
+          onPaymentDeleted={refreshAgreementData}
         />
       ) : (
         <div className="text-center py-12">

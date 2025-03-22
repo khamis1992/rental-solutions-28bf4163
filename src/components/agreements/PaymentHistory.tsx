@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,8 +9,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { PaymentEditDialog } from "./PaymentEditDialog";
-import { Edit, AlertCircle } from "lucide-react";
+import { Edit, AlertCircle, Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export interface Payment {
   id: string;
@@ -29,15 +42,57 @@ export interface PaymentHistoryProps {
   payments: Payment[];
   isLoading: boolean;
   rentAmount?: number | null;
+  onPaymentDeleted?: () => void;
 }
 
-export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ payments, isLoading, rentAmount }) => {
+export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ 
+  payments, 
+  isLoading, 
+  rentAmount,
+  onPaymentDeleted 
+}) => {
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleEditPayment = (payment: Payment) => {
     setEditingPayment(payment);
     setIsEditDialogOpen(true);
+  };
+
+  const handleDeletePayment = (payment: Payment) => {
+    setPaymentToDelete(payment);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeletePayment = async () => {
+    if (!paymentToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from("unified_payments")
+        .delete()
+        .eq("id", paymentToDelete.id);
+      
+      if (error) throw error;
+      
+      toast.success("Payment deleted successfully");
+      setIsDeleteDialogOpen(false);
+      
+      // Call the callback to refresh payment data
+      if (onPaymentDeleted) {
+        onPaymentDeleted();
+      }
+    } catch (error) {
+      console.error("Error deleting payment:", error);
+      toast.error("Failed to delete payment");
+    } finally {
+      setIsDeleting(false);
+      setPaymentToDelete(null);
+    }
   };
 
   const calculatePendingPayments = () => {
@@ -175,17 +230,30 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ payments, isLoad
                       </TooltipProvider>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Dialog>
-                        <DialogTrigger asChild>
+                      <div className="flex justify-end space-x-1">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleEditPayment(payment)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                        </Dialog>
+                        
+                        {payment.status === "pending" && (
                           <Button 
                             variant="ghost" 
                             size="icon"
-                            onClick={() => handleEditPayment(payment)}
+                            onClick={() => handleDeletePayment(payment)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
-                            <Edit className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                        </DialogTrigger>
-                      </Dialog>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -208,6 +276,28 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ payments, isLoad
           // We would normally refresh payments here, but that's handled by the parent component
         }}
       />
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this {paymentToDelete?.status} payment of {paymentToDelete ? formatCurrency(paymentToDelete.amount) : ''}?
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeletePayment}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };
