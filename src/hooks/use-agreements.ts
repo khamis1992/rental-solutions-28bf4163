@@ -76,7 +76,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           return [];
         }
         
-        // Fix: Changed from trying to reassign to constant to using a new variable
+        // Use a new variable instead of trying to reassign the constant
         let dataToProcess = leaseData;
         
         if (!dataToProcess || dataToProcess.length === 0) {
@@ -150,7 +150,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         if (vehicleIds.length > 0) {
           const { data: vehicles, error: vehiclesError } = await supabase
             .from('vehicles')
-            .select('id, make, model, license_plate, image_url, year, color')
+            .select('id, make, model, license_plate, image_url, year, color, vin_number, registration_number')
             .in('id', vehicleIds);
             
           if (vehiclesError) {
@@ -202,21 +202,35 @@ export const useAgreements = (initialFilters: AgreementFilters = {
               return true;
             }
             
-            // Check vehicle make/model/license plate/year
+            // Check vehicle fields
             if (agreement.vehicles) {
               const vehicle = agreement.vehicles;
               
-              // Check each vehicle field individually for more precise logging
+              // Check if the search term is a part of the license plate
               if (vehicle.license_plate?.toLowerCase().includes(searchTerm)) {
                 console.log(`Match found in license plate: ${vehicle.license_plate}`);
                 return true;
               }
               
+              // Check registration number - for vehicle numbers like 7042
+              if (vehicle.registration_number?.toLowerCase().includes(searchTerm)) {
+                console.log(`Match found in registration number: ${vehicle.registration_number}`);
+                return true;
+              }
+              
+              // Check VIN number
+              if (vehicle.vin_number?.toLowerCase().includes(searchTerm)) {
+                console.log(`Match found in VIN number: ${vehicle.vin_number}`);
+                return true;
+              }
+              
+              // Check make
               if (vehicle.make?.toLowerCase().includes(searchTerm)) {
                 console.log(`Match found in vehicle make: ${vehicle.make}`);
                 return true;
               }
               
+              // Check model
               if (vehicle.model?.toLowerCase().includes(searchTerm)) {
                 console.log(`Match found in vehicle model: ${vehicle.model}`);
                 return true;
@@ -228,8 +242,29 @@ export const useAgreements = (initialFilters: AgreementFilters = {
                 return true;
               }
               
+              // Check if the search term is a number that appears in any numeric field
+              if (searchTerm.match(/^\d+$/)) {
+                // Check if this number appears in any part of the license plate
+                if (vehicle.license_plate && vehicle.license_plate.replace(/\D/g, '').includes(searchTerm)) {
+                  console.log(`Match found in license plate numbers: ${vehicle.license_plate}`);
+                  return true;
+                }
+                
+                // Check if it appears in the registration number
+                if (vehicle.registration_number && vehicle.registration_number.replace(/\D/g, '').includes(searchTerm)) {
+                  console.log(`Match found in registration number digits: ${vehicle.registration_number}`);
+                  return true;
+                }
+                
+                // Check if it appears in the VIN
+                if (vehicle.vin_number && vehicle.vin_number.replace(/\D/g, '').includes(searchTerm)) {
+                  console.log(`Match found in VIN digits: ${vehicle.vin_number}`);
+                  return true;
+                }
+              }
+              
               // Also check the combined string just to be sure
-              const vehicleText = `${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.license_plate || ''} ${vehicle.year || ''}`.toLowerCase();
+              const vehicleText = `${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.license_plate || ''} ${vehicle.year || ''} ${vehicle.vin_number || ''} ${vehicle.registration_number || ''}`.toLowerCase();
               if (vehicleText.includes(searchTerm)) {
                 console.log(`Match found in combined vehicle info: ${vehicleText}`);
                 return true;
