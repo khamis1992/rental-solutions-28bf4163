@@ -280,7 +280,22 @@ export const forceGeneratePaymentsForMissingMonths = async (
       return { success: false, message: `Agreement is not active (status: ${agreement.status})`, generated: 0 };
     }
     
-    // Start from the month after the last payment
+    // Get all existing payments for this agreement to avoid duplication
+    const { data: existingPayments, error: paymentsError } = await supabase
+      .from("unified_payments")
+      .select("payment_date")
+      .eq("lease_id", agreementId)
+      .order("payment_date", { ascending: true });
+      
+    if (paymentsError) {
+      console.error("Error fetching existing payments:", paymentsError);
+      throw paymentsError;
+    }
+    
+    console.log(`Found ${existingPayments ? existingPayments.length : 0} existing payments`);
+    
+    // Start with the month of the last payment (to ensure we don't miss the month right after the lastPaymentDate)
+    // This helps ensure all months including the one right after lastPaymentDate are checked
     const startMonth = new Date(lastPaymentDate);
     startMonth.setDate(1); // First day of the month
     
@@ -288,39 +303,45 @@ export const forceGeneratePaymentsForMissingMonths = async (
     const endMonth = new Date(currentDate);
     endMonth.setDate(1); // First day of the current month
     
-    console.log(`Checking for missing payments from ${startMonth.toISOString()} to ${endMonth.toISOString()}`);
+    console.log(`Checking for missing payments from ${startMonth.toLocaleDateString()} to ${endMonth.toLocaleDateString()}`);
     
     let generatedCount = 0;
-    let currentCheckMonth = new Date(startMonth);
-    
-    // Loop through each month and generate missing payments
-    while (currentCheckMonth <= endMonth) {
-      const year = currentCheckMonth.getFullYear();
-      const month = currentCheckMonth.getMonth();
+    // Start with the month of lastPaymentDate and loop month by month
+    for (let year = startMonth.getFullYear(); year <= endMonth.getFullYear(); year++) {
+      // Determine start and end months for this year
+      const startMonthInYear = (year === startMonth.getFullYear()) ? startMonth.getMonth() : 0;
+      const endMonthInYear = (year === endMonth.getFullYear()) ? endMonth.getMonth() : 11;
       
-      console.log(`Checking for payment in ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
-      
-      // Check if payment for this month already exists
-      const { data: existingPayments, error: checkError } = await supabase
-        .from("unified_payments")
-        .select("id")
-        .eq("lease_id", agreementId)
-        .gte("payment_date", new Date(year, month, 1).toISOString())
-        .lt("payment_date", new Date(year, month + 1, 1).toISOString());
-      
-      if (checkError) {
-        console.error("Error checking existing payments:", checkError);
-        throw checkError;
-      }
-      
-      // If no payment exists for this month, generate one
-      if (!existingPayments || existingPayments.length === 0) {
-        console.log(`Generating missing payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+      for (let month = startMonthInYear; month <= endMonthInYear; month++) {
+        // Skip the exact month where the last payment was made only if we're in the starting month AND year
+        if (year === lastPaymentDate.getFullYear() && month === lastPaymentDate.getMonth()) {
+          const dayOfMonth = lastPaymentDate.getDate();
+          // If the last payment was made on the 1st, then skip this month entirely
+          if (dayOfMonth === 1) {
+            console.log(`Skipping exact month of last payment: ${new Date(year, month, 1).toLocaleDateString()}`);
+            continue;
+          }
+          // Otherwise proceed to check if we have a payment for this month's 1st day
+        }
         
-        // Create payment date for the 1st of the specified month
         const paymentDate = new Date(year, month, 1);
+        console.log(`Checking for payment on ${paymentDate.toLocaleDateString()}`);
         
-        // Create pending payment record directly
+        // Check if a payment already exists for this month's 1st day
+        const paymentExists = existingPayments?.some(payment => {
+          const existingDate = new Date(payment.payment_date);
+          return existingDate.getFullYear() === year && 
+                 existingDate.getMonth() === month &&
+                 existingDate.getDate() === 1;
+        });
+        
+        if (paymentExists) {
+          console.log(`Payment already exists for ${paymentDate.toLocaleDateString()}`);
+          continue;
+        }
+        
+        // Create pending payment record for the 1st of the month
+        console.log(`Generating payment for ${paymentDate.toLocaleDateString()}`);
         const { data, error } = await supabase.from("unified_payments").insert({
           lease_id: agreementId,
           amount: amount,
@@ -334,18 +355,13 @@ export const forceGeneratePaymentsForMissingMonths = async (
         }).select();
         
         if (error) {
-          console.error(`Error creating payment for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}:`, error);
+          console.error(`Error creating payment for ${paymentDate.toLocaleDateString()}:`, error);
           throw error;
         }
         
         generatedCount++;
-        console.log(`Successfully generated missing payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
-      } else {
-        console.log(`Payment already exists for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+        console.log(`Successfully generated payment for ${paymentDate.toLocaleDateString()}`);
       }
-      
-      // Move to next month
-      currentCheckMonth.setMonth(currentCheckMonth.getMonth() + 1);
     }
     
     return { 

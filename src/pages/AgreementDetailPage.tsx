@@ -16,6 +16,7 @@ const AgreementDetailPage = () => {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [paymentGenerationAttempted, setPaymentGenerationAttempted] = useState(false);
 
   useEffect(() => {
     // Initialize the system to check for payment generation
@@ -33,8 +34,9 @@ const AgreementDetailPage = () => {
           setAgreement(data);
           
           // For any agreement, check for missing monthly payments
-          if (data.status === 'active') {
+          if (data.status === 'active' && !paymentGenerationAttempted) {
             console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
+            setPaymentGenerationAttempted(true);
             
             // Force check all agreements for current month payments
             const allResult = await forceCheckAllAgreementsForPayments();
@@ -106,7 +108,7 @@ const AgreementDetailPage = () => {
     if (!isInitialized) {
       fetchAgreement();
     }
-  }, [id, getAgreement, navigate, isInitialized]);
+  }, [id, getAgreement, navigate, isInitialized, paymentGenerationAttempted]);
 
   const handleDelete = async (agreementId: string) => {
     try {
