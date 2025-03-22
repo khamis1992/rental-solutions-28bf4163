@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
-import { supabase, checkAndGenerateMonthlyPayments, forceCheckAllAgreementsForPayments } from '@/lib/supabase';
+import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
 export type TransactionType = 'income' | 'expense';
 export type TransactionStatusType = 'completed' | 'pending' | 'failed';
@@ -42,14 +41,21 @@ export function useFinancials() {
 
   // Initialize system checks on mount
   useEffect(() => {
-    // Check for monthly payments once a day
-    const checkDate = localStorage.getItem('lastPaymentCheck');
-    const today = new Date().toDateString();
+    // Check for monthly payments on each hook instantiation
+    checkAndGenerateMonthlyPayments().then((result) => {
+      console.log("Monthly payment check completed:", result);
+    });
     
-    if (!checkDate || checkDate !== today) {
+    // Set up a check that runs once per day
+    const today = new Date().toDateString();
+    const lastCheck = localStorage.getItem('lastPaymentCheck');
+    
+    if (!lastCheck || lastCheck !== today) {
+      localStorage.setItem('lastPaymentCheck', today);
+      
+      // Check again just to be sure
       checkAndGenerateMonthlyPayments().then((result) => {
-        localStorage.setItem('lastPaymentCheck', today);
-        console.log("Monthly payment check completed:", result);
+        console.log("Daily payment check completed:", result);
       });
     }
   }, []);
@@ -183,40 +189,6 @@ export function useFinancials() {
     }
   );
 
-  // Generate monthly payments function
-  const generateMonthlyPayments = async () => {
-    try {
-      toast({
-        title: 'Generating monthly payments',
-        description: 'Please wait while we generate pending payments for active agreements.'
-      });
-      
-      const result = await forceCheckAllAgreementsForPayments();
-      
-      if (result.success) {
-        toast({
-          title: 'Monthly payments generated',
-          description: `System has generated ${result.generated} pending payments for ${result.checked} active agreements.`
-        });
-      } else {
-        toast({
-          title: 'Payment generation complete',
-          description: 'No new payments needed to be generated at this time.'
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      console.error("Error generating payments:", error);
-      toast({
-        title: 'Payment generation failed',
-        description: 'There was an error generating monthly payments.',
-        variant: 'destructive'
-      });
-      return { success: false, error };
-    }
-  };
-
   return {
     transactions,
     isLoadingTransactions,
@@ -226,7 +198,6 @@ export function useFinancials() {
     setFilters,
     addTransaction: addTransactionMutation.mutate,
     updateTransaction: updateTransactionMutation.mutate,
-    deleteTransaction: deleteTransactionMutation.mutate,
-    generateMonthlyPayments
+    deleteTransaction: deleteTransactionMutation.mutate
   };
 }

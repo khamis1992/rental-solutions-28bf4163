@@ -20,7 +20,7 @@ const AgreementDetailPage = () => {
   useEffect(() => {
     // Initialize the system to check for payment generation
     initializeSystem().then(() => {
-      console.log("System initialized, checking for payments");
+      console.log("System initialized, checking for all payments");
     });
 
     const fetchAgreement = async () => {
@@ -32,14 +32,17 @@ const AgreementDetailPage = () => {
         if (data) {
           setAgreement(data);
           
-          // Check agreement number for specific case
-          if (data.agreement_number === 'MR202462') {
-            console.log("Found agreement MR202462, checking payments...");
+          // Check agreement number for specific case or if it's a new month
+          if (data.agreement_number === 'MR202462' || isNewMonth()) {
+            console.log(`Found agreement ${data.agreement_number}, checking payments...`);
             
-            // Force check for payments for this specific agreement
+            // Force check for payments for all agreements
             const result = await forceCheckAllAgreementsForPayments();
             if (result.success) {
-              console.log("Payment check completed for MR202462:", result);
+              console.log("Payment check completed:", result);
+              if (result.generated > 0) {
+                toast.success(`Generated ${result.generated} new payments for active agreements`);
+              }
             }
           }
         } else {
@@ -53,6 +56,20 @@ const AgreementDetailPage = () => {
         setIsLoading(false);
         setIsInitialized(true);
       }
+    };
+
+    // Helper function to determine if this is the first time we're viewing an agreement this month
+    const isNewMonth = () => {
+      const lastCheck = localStorage.getItem('lastMonthlyPaymentCheck');
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      const monthYearString = `${currentMonth}-${currentYear}`;
+      
+      if (lastCheck !== monthYearString) {
+        localStorage.setItem('lastMonthlyPaymentCheck', monthYearString);
+        return true;
+      }
+      return false;
     };
 
     if (!isInitialized) {

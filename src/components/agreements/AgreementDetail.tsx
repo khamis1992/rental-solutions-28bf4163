@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -6,14 +5,14 @@ import { formatCurrency } from "@/lib/utils"
 import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { Trash2, Edit, FileText, CreditCard } from "lucide-react"
+import { Trash2, Edit, FileText } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useState, useEffect } from "react"
 import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
-import { supabase, initializeSystem, generatePaymentForAgreement } from "@/lib/supabase"
+import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
 
 interface AgreementDetailProps {
@@ -48,7 +47,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
   const [payments, setPayments] = useState<Payment[]>([])
   const [isLoadingPayments, setIsLoadingPayments] = useState(true)
-  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false)
 
   const handleEdit = () => {
     navigate(`/agreements/edit/${agreement.id}`)
@@ -83,30 +81,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       toast.error("Failed to load payment history")
     } finally {
       setIsLoadingPayments(false)
-    }
-  }
-
-  const handleGeneratePayment = async () => {
-    if (agreement.status !== AgreementStatus.ACTIVE) {
-      toast.error(`Cannot generate payment for agreement with status: ${agreement.status}`)
-      return
-    }
-    
-    setIsGeneratingPayment(true)
-    try {
-      const result = await generatePaymentForAgreement(agreement.id)
-      
-      if (result.success) {
-        toast.success("Payment generated successfully")
-        fetchPayments()
-      } else {
-        toast.error(result.message || "Failed to generate payment")
-      }
-    } catch (error) {
-      console.error("Error generating payment:", error)
-      toast.error("Failed to generate payment")
-    } finally {
-      setIsGeneratingPayment(false)
     }
   }
 
@@ -248,14 +222,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               <Button variant="outline" onClick={handlePrintAgreement}>
                 <FileText className="mr-2 h-4 w-4" />
                 Print
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleGeneratePayment}
-                disabled={isGeneratingPayment || agreement.status !== AgreementStatus.ACTIVE}
-              >
-                <CreditCard className={`mr-2 h-4 w-4 ${isGeneratingPayment ? 'animate-pulse' : ''}`} />
-                Generate Payment
               </Button>
               <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                 <DialogTrigger asChild>
