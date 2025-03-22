@@ -409,7 +409,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         if (data.vehicle_id) {
           const { data: vehicle, error: vehicleError } = await supabase
             .from('vehicles')
-            .select('id, make, model, license_plate, image_url, year, color')
+            .select('id, make, model, license_plate, image_url, year, color, vin, registration_number')
             .eq('id', data.vehicle_id)
             .single();
             

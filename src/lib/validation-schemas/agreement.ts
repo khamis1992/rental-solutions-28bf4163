@@ -25,7 +25,9 @@ export const VehicleSchema = z.object({
   license_plate: z.string().optional(),
   image_url: z.string().optional(),
   year: z.number().optional(),
-  color: z.string().optional()
+  color: z.string().optional(),
+  vin: z.string().optional(),
+  registration_number: z.string().optional()
 });
 
 // Agreement validation schema

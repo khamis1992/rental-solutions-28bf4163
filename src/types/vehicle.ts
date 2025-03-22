@@ -44,6 +44,7 @@ export interface Vehicle {
   device_type?: string;
   rent_amount?: number;
   vehicle_type_id?: string;
+  registration_number?: string;
   
   // Client-side computed fields (not in DB)
   vehicleType?: VehicleType;
@@ -79,6 +80,7 @@ export interface VehicleFormData {
   rent_amount?: number;
   vehicle_type_id?: string;
   image?: File | null;
+  registration_number?: string;
 }
 
 // Interface for filtering vehicles in the UI
