@@ -29,12 +29,12 @@ interface AgreementTrafficFinesProps {
 const getStatusColor = (status: string) => {
   switch (status) {
     case "paid":
-      return "bg-green-500";
+      return "bg-green-500 text-white border-green-600";
     case "disputed":
-      return "bg-amber-500";
+      return "bg-amber-500 text-white border-amber-600";
     case "pending":
     default:
-      return "bg-red-500";
+      return "bg-red-500 text-white border-red-600";
   }
 };
 

@@ -60,12 +60,12 @@ const TrafficFinesList = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge variant="success">Paid</Badge>;
+        return <Badge className="bg-green-500 text-white border-green-600"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
       case 'disputed':
-        return <Badge variant="outline">Disputed</Badge>;
+        return <Badge className="bg-amber-500 text-white border-amber-600"><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
       case 'pending':
       default:
-        return <Badge variant="destructive">Pending</Badge>;
+        return <Badge className="bg-red-500 text-white border-red-600"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
     }
   };
 
