@@ -7,6 +7,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { initializeSystem } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,11 @@ const AgreementDetailPage = () => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
+    // Initialize the system to check for payment generation
+    initializeSystem().then(() => {
+      console.log("System initialized, checking for payments");
+    });
+
     const fetchAgreement = async () => {
       if (!id) return;
       

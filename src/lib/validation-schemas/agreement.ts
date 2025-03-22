@@ -8,6 +8,7 @@ export const AgreementStatus = {
   EXPIRED: "expired",
   CANCELLED: "cancelled",
   PENDING: "pending",
+  CLOSED: "closed",
 } as const;
 
 // Customer and Vehicle nested objects schema
@@ -42,7 +43,8 @@ export const agreementSchema = z.object({
     AgreementStatus.ACTIVE, 
     AgreementStatus.EXPIRED,
     AgreementStatus.CANCELLED,
-    AgreementStatus.PENDING
+    AgreementStatus.PENDING,
+    AgreementStatus.CLOSED
   ]),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
@@ -95,6 +97,20 @@ export const generateMonthlyPayment = async (
   year: number
 ) => {
   try {
+    // First check if the agreement is still active
+    const { data: agreement, error: agreementError } = await supabase
+      .from("agreements")
+      .select("status")
+      .eq("id", agreementId)
+      .single();
+    
+    if (agreementError) throw agreementError;
+    
+    // If agreement is not active (closed, cancelled, etc.), don't generate payment
+    if (agreement && agreement.status !== 'active') {
+      return { success: false, message: `Agreement is no longer active (status: ${agreement.status})` };
+    }
+    
     // Create payment date - 1st of the specified month
     const paymentDate = new Date(year, month, 1);
     

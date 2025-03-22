@@ -152,10 +152,12 @@ export const checkAndGenerateMonthlyPayments = async () => {
             console.log(`Payment already exists or failed for agreement ${agreement.id}`);
           }
         }
+        
+        return true;
       }
     }
     
-    return true;
+    return false;
   } catch (error) {
     console.error('Error generating monthly payments:', error);
     return false;
