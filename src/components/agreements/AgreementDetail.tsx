@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -21,6 +20,7 @@ interface AgreementDetailProps {
   onDelete?: (id: string) => void
   contractAmount?: number | null
   rentAmount?: number | null
+  onPaymentDeleted?: () => void
 }
 
 const getStatusColor = (status: string) => {
@@ -46,7 +46,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   agreement, 
   onDelete,
   contractAmount,
-  rentAmount
+  rentAmount,
+  onPaymentDeleted
 }) => {
   const navigate = useNavigate()
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
@@ -161,7 +162,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     const initializeAndFetch = async () => {
       await initializeSystem();
       
-      // If rentAmount wasn't provided, fetch it from the database
       if (rentAmount === null || rentAmount === undefined) {
         await fetchRentAmount();
       }
