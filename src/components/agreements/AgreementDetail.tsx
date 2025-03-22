@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -14,6 +13,7 @@ import { useState, useEffect } from "react"
 import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase } from "@/lib/supabase"
+import { AgreementTrafficFines } from "./AgreementTrafficFines"
 
 interface AgreementDetailProps {
   agreement: Agreement
@@ -57,7 +57,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   }
 
   const handlePrintAgreement = () => {
-    // This would typically generate a PDF or printable version
     toast.info("Print functionality will be implemented in a future update")
   }
 
@@ -277,6 +276,14 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
           <PaymentHistory 
             payments={payments} 
             isLoading={isLoadingPayments} 
+          />
+        </div>
+
+        <div className="md:col-span-2">
+          <AgreementTrafficFines 
+            agreementId={agreement.id}
+            startDate={agreement.start_date}
+            endDate={agreement.end_date}
           />
         </div>
       </div>
