@@ -368,6 +368,9 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
             payments={payments} 
             isLoading={isLoadingPayments} 
             rentAmount={localRentAmount}
+            onPaymentDeleted={onPaymentDeleted}
+            leaseStartDate={agreement.start_date}
+            leaseEndDate={agreement.end_date}
           />
         </div>
 
