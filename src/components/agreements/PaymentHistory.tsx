@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -123,7 +122,6 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ payments, isLoad
                   <TableHead>Type</TableHead>
                   <TableHead>Method</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Reference</TableHead>
                   <TableHead>Notes</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -162,7 +160,6 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({ payments, isLoad
                     </TableCell>
                     <TableCell>{getPaymentMethodBadge(payment.payment_method)}</TableCell>
                     <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                    <TableCell>{payment.reference_number || "-"}</TableCell>
                     <TableCell className="max-w-[200px] truncate">
                       <TooltipProvider>
                         <Tooltip>
