@@ -1,7 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
+import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
 export type TransactionType = 'income' | 'expense';
 export type TransactionStatusType = 'completed' | 'pending' | 'failed';
@@ -38,6 +39,19 @@ export function useFinancials() {
     dateTo: '',
     searchQuery: '',
   });
+
+  // Initialize system checks on mount
+  useEffect(() => {
+    // Check for monthly payments once a day
+    const checkDate = localStorage.getItem('lastPaymentCheck');
+    const today = new Date().toDateString();
+    
+    if (!checkDate || checkDate !== today) {
+      checkAndGenerateMonthlyPayments().then(() => {
+        localStorage.setItem('lastPaymentCheck', today);
+      });
+    }
+  }, []);
 
   // Financial transactions query
   const { 
@@ -168,6 +182,23 @@ export function useFinancials() {
     }
   );
 
+  // Generate monthly payments function
+  const generateMonthlyPayments = async () => {
+    const result = await checkAndGenerateMonthlyPayments();
+    if (result) {
+      toast({
+        title: 'Monthly payments generated',
+        description: 'System has generated pending payments for active agreements.'
+      });
+    } else {
+      toast({
+        title: 'Payment generation failed',
+        description: 'There was an error generating monthly payments.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return {
     transactions,
     isLoadingTransactions,
@@ -177,6 +208,7 @@ export function useFinancials() {
     setFilters,
     addTransaction: addTransactionMutation.mutate,
     updateTransaction: updateTransactionMutation.mutate,
-    deleteTransaction: deleteTransactionMutation.mutate
+    deleteTransaction: deleteTransactionMutation.mutate,
+    generateMonthlyPayments
   };
 }

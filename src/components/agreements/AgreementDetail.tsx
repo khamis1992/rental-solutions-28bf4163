@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -13,7 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useState, useEffect } from "react"
 import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
-import { supabase } from "@/lib/supabase"
+import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
 
 interface AgreementDetailProps {
@@ -84,6 +83,10 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   }
 
   useEffect(() => {
+    initializeSystem().then(() => {
+      console.log("System initialized, checking for payments")
+    });
+    
     fetchPayments()
   }, [agreement.id])
 

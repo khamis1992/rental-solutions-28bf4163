@@ -85,3 +85,52 @@ export const createEmptyAgreement = (): Omit<Agreement, "id"> => ({
   terms_accepted: false,
   additional_drivers: [],
 });
+
+// Function to generate monthly payment records
+export const generateMonthlyPayment = async (
+  supabase: any,
+  agreementId: string,
+  amount: number,
+  month: number,
+  year: number
+) => {
+  try {
+    // Create payment date - 1st of the specified month
+    const paymentDate = new Date(year, month, 1);
+    
+    // Check if there's already a payment for this month
+    const { data: existingPayments, error: checkError } = await supabase
+      .from("unified_payments")
+      .select("id")
+      .eq("lease_id", agreementId)
+      .gte("payment_date", new Date(year, month, 1).toISOString())
+      .lt("payment_date", new Date(year, month + 1, 1).toISOString());
+    
+    if (checkError) throw checkError;
+    
+    // If payment already exists for this month, don't create another one
+    if (existingPayments && existingPayments.length > 0) {
+      return { success: false, message: "Payment already exists for this month" };
+    }
+    
+    // Create pending payment record for the 1st of the month
+    const { data, error } = await supabase.from("unified_payments").insert({
+      lease_id: agreementId,
+      amount: amount,
+      amount_paid: 0,
+      balance: amount,
+      payment_date: paymentDate.toISOString(),
+      status: "pending",
+      type: "Income",
+      description: `Monthly rent payment for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+      original_due_date: paymentDate.toISOString(),
+    }).select();
+    
+    if (error) throw error;
+    
+    return { success: true, data };
+  } catch (error) {
+    console.error("Error generating monthly payment:", error);
+    return { success: false, error };
+  }
+};

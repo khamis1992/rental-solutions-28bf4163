@@ -1,5 +1,5 @@
-
 import { createClient } from '@supabase/supabase-js';
+import { generateMonthlyPayment } from './validation-schemas/agreement';
 
 // Get the environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -107,4 +107,68 @@ export const formatVehicleForDisplay = (vehicle: any): any => {
     features: vehicle.vehicleType?.features || [],
     notes: vehicle.description
   };
+};
+
+// Check if automatic payment generation is needed (run once daily)
+export const checkAndGenerateMonthlyPayments = async () => {
+  try {
+    const today = new Date();
+    
+    // Only run this on the 1st day of the month to generate payments for active agreements
+    if (today.getDate() === 1) {
+      console.log('Running monthly payment generation for active agreements');
+      
+      // Get all active agreements
+      const { data: agreements, error } = await supabase
+        .from('agreements')
+        .select('id, total_amount, start_date, end_date')
+        .eq('status', 'active')
+        .lt('start_date', today.toISOString()) // Agreement has started
+        .gt('end_date', today.toISOString());   // Agreement has not ended yet
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (agreements && agreements.length > 0) {
+        console.log(`Found ${agreements.length} active agreements for payment generation`);
+        
+        // Generate a pending payment for each active agreement
+        for (const agreement of agreements) {
+          const currentMonth = today.getMonth();
+          const currentYear = today.getFullYear();
+          
+          const result = await generateMonthlyPayment(
+            supabase,
+            agreement.id,
+            agreement.total_amount,
+            currentMonth,
+            currentYear
+          );
+          
+          if (result.success) {
+            console.log(`Generated payment for agreement ${agreement.id}`);
+          } else {
+            console.log(`Payment already exists or failed for agreement ${agreement.id}`);
+          }
+        }
+      }
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error generating monthly payments:', error);
+    return false;
+  }
+};
+
+// Add a function to initialize the system with a check for payment generation
+export const initializeSystem = async () => {
+  // Check for bucket
+  await ensureVehicleImagesBucket();
+  
+  // Check for payments that need to be generated
+  await checkAndGenerateMonthlyPayments();
+  
+  return true;
 };

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -18,6 +18,7 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { isFirstDayOfMonth } from "date-fns";
 
 const paymentFormSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be greater than 0" }),
@@ -26,6 +27,7 @@ const paymentFormSchema = z.object({
   notes: z.string().optional(),
   paymentDate: z.date(),
   includeLatePaymentFee: z.boolean().default(false),
+  pendingPaymentId: z.string().optional(),
 });
 
 type PaymentFormData = z.infer<typeof paymentFormSchema>;
@@ -40,6 +42,8 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
     amount: number;
     daysLate: number;
   } | null>(null);
+  const [pendingPayments, setPendingPayments] = useState<{id: string, date: string, amount: number}[]>([]);
+  const [selectedPendingPayment, setSelectedPendingPayment] = useState<string | null>(null);
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentFormSchema),
@@ -50,14 +54,49 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
       notes: "",
       paymentDate: new Date(),
       includeLatePaymentFee: false,
+      pendingPaymentId: undefined,
     },
   });
 
   const paymentDate = form.watch("paymentDate");
   const includeLatePaymentFee = form.watch("includeLatePaymentFee");
 
-  React.useEffect(() => {
-    // Calculate late fee when payment date changes
+  // Fetch pending payments when component mounts
+  useEffect(() => {
+    fetchPendingPayments();
+  }, [agreementId]);
+
+  // Fetch any pending payments for this agreement
+  const fetchPendingPayments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("unified_payments")
+        .select("id, payment_date, amount")
+        .eq("lease_id", agreementId)
+        .eq("status", "pending")
+        .order("payment_date", { ascending: true });
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setPendingPayments(data);
+        // Auto-select the first pending payment
+        const firstPending = data[0];
+        setSelectedPendingPayment(firstPending.id);
+        form.setValue("pendingPaymentId", firstPending.id);
+        form.setValue("amount", firstPending.amount);
+        
+        // Calculate late fee based on the pending payment date
+        const pendingDate = new Date(firstPending.payment_date);
+        calculateLateFee(pendingDate);
+      }
+    } catch (error) {
+      console.error("Error fetching pending payments:", error);
+    }
+  };
+
+  // Calculate late fee when payment date changes
+  useEffect(() => {
     if (paymentDate) {
       calculateLateFee(paymentDate);
     }
@@ -84,26 +123,58 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
     }
   };
 
+  const handlePendingPaymentSelect = (paymentId: string) => {
+    setSelectedPendingPayment(paymentId);
+    form.setValue("pendingPaymentId", paymentId);
+    
+    // Find the corresponding payment and set its amount
+    const payment = pendingPayments.find(p => p.id === paymentId);
+    if (payment) {
+      form.setValue("amount", payment.amount);
+      
+      // Recalculate late fee based on the pending payment date
+      const pendingDate = new Date(payment.payment_date);
+      calculateLateFee(pendingDate);
+    }
+  };
+
   const onSubmit = async (data: PaymentFormData) => {
     try {
-      // Record the main payment
-      const { data: paymentData, error: paymentError } = await supabase.from("unified_payments").insert({
-        lease_id: agreementId,
-        amount: data.amount,
-        amount_paid: data.amount,
-        balance: 0, // Fully paid
-        payment_date: data.paymentDate.toISOString(),
-        payment_method: data.paymentMethod,
-        status: "completed",
-        type: "Income",
-        reference_number: data.referenceNumber || null,
-        notes: data.notes || null,
-        days_overdue: lateFeeDetails?.daysLate || 0,
-        original_due_date: new Date(data.paymentDate.getFullYear(), data.paymentDate.getMonth(), 1).toISOString(),
-      });
+      if (data.pendingPaymentId) {
+        // Update the pending payment to paid status
+        const { error: updateError } = await supabase
+          .from("unified_payments")
+          .update({
+            status: "completed",
+            payment_method: data.paymentMethod,
+            reference_number: data.referenceNumber || null,
+            notes: data.notes || null,
+            payment_date: data.paymentDate.toISOString(), // Use the actual payment date
+            days_overdue: lateFeeDetails?.daysLate || 0,
+          })
+          .eq("id", data.pendingPaymentId);
 
-      if (paymentError) {
-        throw paymentError;
+        if (updateError) throw updateError;
+      } else {
+        // Record a new payment if not updating a pending one
+        const { data: paymentData, error: paymentError } = await supabase.from("unified_payments").insert({
+          lease_id: agreementId,
+          amount: data.amount,
+          amount_paid: data.amount,
+          balance: 0, // Fully paid
+          payment_date: data.paymentDate.toISOString(),
+          payment_method: data.paymentMethod,
+          status: "completed",
+          type: "Income",
+          reference_number: data.referenceNumber || null,
+          notes: data.notes || null,
+          days_overdue: lateFeeDetails?.daysLate || 0,
+          original_due_date: new Date(data.paymentDate.getFullYear(), data.paymentDate.getMonth(), 1).toISOString(),
+        });
+
+        if (paymentError) {
+          throw paymentError;
+        }
       }
 
       // If late fee is applicable and user opted to include it
@@ -150,6 +221,34 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {pendingPayments.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3 my-2">
+                <p className="text-blue-800 font-medium">Pending Payments Available</p>
+                <p className="text-sm text-blue-700 mb-2">
+                  There are pending payments that need to be cleared.
+                </p>
+                
+                <div className="grid gap-2">
+                  {pendingPayments.map(payment => (
+                    <div 
+                      key={payment.id}
+                      className={`p-2 border rounded-md cursor-pointer ${
+                        selectedPendingPayment === payment.id 
+                          ? "border-blue-500 bg-blue-100" 
+                          : "border-gray-200"
+                      }`}
+                      onClick={() => handlePendingPaymentSelect(payment.id)}
+                    >
+                      <div className="flex justify-between">
+                        <span>{format(new Date(payment.date), "MMMM d, yyyy")}</span>
+                        <span className="font-medium">{formatCurrency(payment.amount)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <FormField
               control={form.control}
               name="amount"
@@ -162,6 +261,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
                       placeholder="0.00" 
                       {...field} 
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      disabled={!!selectedPendingPayment}
                     />
                   </FormControl>
                   <FormDescription>

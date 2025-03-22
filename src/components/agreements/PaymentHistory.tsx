@@ -14,6 +14,7 @@ export interface Payment {
   reference_number?: string;
   notes?: string;
   type?: string;
+  status?: string;
   late_fine_amount?: number;
   days_overdue?: number;
 }
@@ -52,7 +53,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
                   <TableHead>Reference</TableHead>
@@ -70,9 +71,13 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
                         <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
                           Late Fee
                         </Badge>
+                      ) : payment.status === 'pending' ? (
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">
+                          Pending
+                        </Badge>
                       ) : (
                         <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
-                          Payment
+                          Paid
                         </Badge>
                       )}
                     </TableCell>
@@ -85,7 +90,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
                       )}
                     </TableCell>
                     <TableCell>
-                      {formatPaymentMethod(payment.payment_method)}
+                      {payment.payment_method ? formatPaymentMethod(payment.payment_method) : '-'}
                     </TableCell>
                     <TableCell>
                       {payment.reference_number || "-"}

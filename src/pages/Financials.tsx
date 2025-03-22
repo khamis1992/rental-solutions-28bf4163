@@ -1,8 +1,8 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { BarChart4, Plus, FileText, Download } from 'lucide-react';
+import { BarChart4, Plus, FileText, Download, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FinancialSummary from '@/components/financials/FinancialSummary';
@@ -12,6 +12,7 @@ import FinancialMetricsChart from '@/components/financials/FinancialMetricsChart
 import TransactionDialog from '@/components/financials/TransactionDialog';
 import { useFinancials, FinancialTransaction } from '@/hooks/use-financials';
 import { useToast } from '@/hooks/use-toast';
+import { checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
 const Financials = () => {
   const { toast } = useToast();
@@ -24,12 +25,26 @@ const Financials = () => {
     setFilters,
     addTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    generateMonthlyPayments
   } = useFinancials();
 
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<FinancialTransaction | undefined>(undefined);
   const [dialogTitle, setDialogTitle] = useState('Add Transaction');
+  const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
+
+  // Check for monthly payments on page load
+  useEffect(() => {
+    const checkDate = localStorage.getItem('lastPaymentCheck');
+    const today = new Date().toDateString();
+    
+    if (!checkDate || checkDate !== today) {
+      checkAndGenerateMonthlyPayments().then(() => {
+        localStorage.setItem('lastPaymentCheck', today);
+      });
+    }
+  }, []);
 
   const handleAddTransaction = () => {
     setCurrentTransaction(undefined);
@@ -77,6 +92,24 @@ const Financials = () => {
     });
   };
 
+  const handleGenerateMonthlyPayments = async () => {
+    setIsGeneratingPayments(true);
+    try {
+      await generateMonthlyPayments();
+      toast({
+        title: 'Monthly payments generated',
+        description: 'System has generated pending payments for active agreements.'
+      });
+    } catch (error) {
+      toast({
+        title: 'Payment generation failed',
+        description: 'There was an error generating monthly payments.'
+      });
+    } finally {
+      setIsGeneratingPayments(false);
+    }
+  };
+
   // Handle filtering with the new filter values
   const getFilteredTransactions = () => {
     let filtered = [...transactions];
@@ -122,6 +155,10 @@ const Financials = () => {
         icon={BarChart4}
         actions={
           <>
+            <Button variant="outline" onClick={handleGenerateMonthlyPayments} disabled={isGeneratingPayments}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isGeneratingPayments ? 'animate-spin' : ''}`} />
+              Generate Monthly Payments
+            </Button>
             <Button variant="outline" onClick={handleGenerateReport}>
               <FileText className="h-4 w-4 mr-2" />
               Generate Report
