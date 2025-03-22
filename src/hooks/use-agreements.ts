@@ -11,24 +11,20 @@ export const useAgreements = (initialFilters: AgreementFilters = {
   const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   const [error, setError] = useState<string | null>(null);
   
-  // Clear error when search params change
   useEffect(() => {
     setError(null);
   }, [searchParams]);
 
-  // Optimized fetch agreements with better error handling and vehicle search capabilities
   const { data: agreements, isLoading, refetch } = useApiQuery(
     ['agreements', JSON.stringify(searchParams)],
     async () => {
       try {
         console.log('Fetching agreements with params:', searchParams);
         
-        // Search term handling (early preparation)
         const searchTerm = searchParams.query?.trim().toLowerCase() || '';
         const hasSearchTerm = searchTerm !== '';
         console.log(`Search term: "${searchTerm}", hasSearchTerm: ${hasSearchTerm}`);
         
-        // First, build a more comprehensive query that includes vehicle data for searching
         let query = supabase.from('leases')
           .select(`
             id, 
@@ -60,7 +56,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {
             )
           `);
         
-        // Apply filters for status, customer_id, and vehicle_id
         if (searchParams.status && searchParams.status !== 'all') {
           query = query.eq('status', searchParams.status);
         }
@@ -73,10 +68,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           query = query.eq('vehicle_id', searchParams.vehicle_id);
         }
         
-        // Handle text search more comprehensively
         if (hasSearchTerm) {
-          // First, check if search term is a license plate or part of one
-          // This gives us a direct SQL search that's more efficient
           query = query.or(
             `agreement_number.ilike.%${searchTerm}%,
              notes.ilike.%${searchTerm}%,
@@ -88,10 +80,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           );
         }
         
-        // Order and limit results for better performance
         query = query.order('created_at', { ascending: false }).limit(100);
         
-        // Execute the query
         const { data: leaseData, error: leaseError } = await query;
         
         if (leaseError) {
@@ -104,11 +94,9 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         if (!leaseData || leaseData.length === 0) {
           console.log('No agreements found in initial query');
           
-          // If we have a number-only search term, try a more specific license plate search
           if (hasSearchTerm && /^\d+$/.test(searchTerm)) {
             console.log('Attempting numeric-only search for license plate or vehicle numbers...');
             
-            // Build a query specifically for numeric searches
             const numericQuery = supabase.from('leases')
               .select(`
                 id, 
@@ -128,9 +116,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {
                   make, 
                   model, 
                   license_plate, 
-                  year,
-                  vin,
-                  color
+                  image_url, 
+                  year, 
+                  color, 
+                  vin
                 ),
                 profiles!leases_customer_id_fkey (
                   id,
@@ -141,12 +130,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {
               `)
               .or(`vehicles.license_plate.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm.replace(/\D/g, '')}%`);
               
-            // Apply the same filters as before
             if (searchParams.status && searchParams.status !== 'all') {
               numericQuery.eq('status', searchParams.status);
             }
             
-            // Execute the numeric-focused query
             const { data: numericResults, error: numericError } = await numericQuery
               .order('created_at', { ascending: false })
               .limit(100);
@@ -173,11 +160,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     {
       staleTime: 60000,
       refetchOnWindowFocus: false,
-      retry: 1, // Limit retries to prevent excessive requests
+      retry: 1,
     }
   );
-  
-  // Helper function to transform lease data with nested relations into flat Agreement objects
+
   const transformLeaseData = (leaseData: any[]): Agreement[] => {
     return leaseData.map((lease): Agreement => ({
       id: lease.id,
@@ -212,8 +198,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       } : null
     }));
   };
-  
-  // Create agreement
+
   const createAgreement = useApiMutation(
     async (agreement: Omit<Agreement, 'id'>) => {
       const { data, error } = await supabase
@@ -236,8 +221,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       }
     }
   );
-  
-  // Update agreement
+
   const updateAgreement = useApiMutation(
     async ({ id, data }: { id: string, data: Partial<Agreement> }) => {
       const { data: updatedData, error } = await supabase
@@ -261,8 +245,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       }
     }
   );
-  
-  // Delete agreement
+
   const deleteAgreement = useApiMutation(
     async (id: string) => {
       const { error } = await supabase
@@ -284,13 +267,11 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       }
     }
   );
-  
-  // Get agreement by ID
+
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
       
-      // Use join query to get related data in a single request
       const { data, error } = await supabase
         .from('leases')
         .select(`
@@ -333,7 +314,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       }
       
       if (data) {
-        // Transform to Agreement type - Fixing the access to nested objects
         return {
           id: data.id,
           customer_id: data.customer_id,
@@ -375,7 +355,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       return null;
     }
   };
-  
+
   return {
     agreements,
     isLoading,
