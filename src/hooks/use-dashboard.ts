@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -88,9 +89,16 @@ export function useDashboardData() {
         
         const { data: agreements, error: agreementsError } = await supabase
           .from('leases')
-          .select('id, status');
+          .select('id, status, customer_id');
           
         if (agreementsError) throw agreementsError;
+        
+        // Count unique customers with active agreements
+        const activeCustomerIds = new Set(
+          agreements
+            .filter(a => a.status === 'active')
+            .map(a => a.customer_id)
+        );
         
         const vehicleStats = {
           total: vehicles.length,
@@ -114,7 +122,7 @@ export function useDashboardData() {
           financialStats,
           customerStats: {
             total: customers.length,
-            active: agreements.filter(a => a.status === 'active').length,
+            active: activeCustomerIds.size,
             growth: 3.7
           },
           agreementStats: {

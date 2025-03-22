@@ -36,8 +36,8 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       
       <StatCard
         title="Active Customers"
-        value={stats.customerStats.total.toString()}
-        description={`Current rentals: ${stats.customerStats.active}`}
+        value={stats.customerStats.active.toString()}
+        description="With active rentals"
         icon={Users}
         iconColor="text-violet-500"
         trend={stats.customerStats.growth}
