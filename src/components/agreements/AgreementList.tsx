@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -45,6 +44,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
+import { formatCurrency } from '@/lib/utils';
 
 export function AgreementList() {
   const { 
@@ -57,14 +57,6 @@ export function AgreementList() {
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  
-  // Format currency
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
   
   const columns: ColumnDef<Agreement>[] = [
     {
