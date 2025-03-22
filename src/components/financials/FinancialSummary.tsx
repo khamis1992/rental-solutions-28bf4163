@@ -10,6 +10,7 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 import { FinancialSummary as FinancialSummaryType } from '@/hooks/use-financials';
+import { formatCurrency } from '@/lib/utils';
 
 interface FinancialSummaryProps {
   summary?: FinancialSummaryType;
@@ -41,7 +42,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
       <StatCard
         title="Total Income"
-        value={`$${summary.totalIncome.toLocaleString()}`}
+        value={formatCurrency(summary.totalIncome)}
         description="All time revenue"
         icon={TrendingUp}
         iconColor="text-green-500"
@@ -49,7 +50,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Total Expenses"
-        value={`$${summary.totalExpenses.toLocaleString()}`}
+        value={formatCurrency(summary.totalExpenses)}
         description="All time expenses"
         icon={TrendingDown}
         iconColor="text-red-500"
@@ -57,7 +58,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Net Revenue"
-        value={`$${summary.netRevenue.toLocaleString()}`}
+        value={formatCurrency(summary.netRevenue)}
         description="Total profit"
         icon={DollarSign}
         iconColor="text-blue-500"
@@ -67,7 +68,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Pending Payments"
-        value={`$${summary.pendingPayments.toLocaleString()}`}
+        value={formatCurrency(summary.pendingPayments)}
         description="Awaiting processing"
         icon={Clock}
         iconColor="text-amber-500"
@@ -75,7 +76,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Unpaid Invoices"
-        value={`$${summary.unpaidInvoices.toLocaleString()}`}
+        value={formatCurrency(summary.unpaidInvoices)}
         description="Outstanding balance"
         icon={AlertTriangle}
         iconColor="text-red-500"

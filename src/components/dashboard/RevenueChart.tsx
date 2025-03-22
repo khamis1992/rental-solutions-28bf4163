@@ -2,6 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { formatCurrency } from '@/lib/utils';
 
 interface RevenueChartProps {
   data: { name: string; revenue: number }[];
@@ -42,10 +43,10 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#64748b', fontSize: 12 }}
-                tickFormatter={(value) => `$${value.toLocaleString()}`}
+                tickFormatter={(value) => formatCurrency(value).split('.')[0]} // Remove decimals for Y-axis labels
               />
               <Tooltip 
-                formatter={(value: number) => [`$${value.toLocaleString()}`, 'Revenue']}
+                formatter={(value: number) => [formatCurrency(value), 'Revenue']}
                 contentStyle={{
                   backgroundColor: '#ffffff',
                   border: '1px solid #e2e8f0',

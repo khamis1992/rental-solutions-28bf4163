@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -34,20 +33,34 @@ export interface RecentActivity {
   time: string;
 }
 
+interface LeaseWithRelations {
+  id: string;
+  created_at: string;
+  customer_id: string;
+  vehicle_id: string;
+  customers: { full_name: string } | null;
+  vehicles: { make: string; model: string; license_plate: string } | null;
+}
+
+interface MaintenanceWithRelations {
+  id: string;
+  created_at: string;
+  vehicle_id: string;
+  type: string;
+  vehicles: { make: string; model: string; license_plate: string } | null;
+}
+
 export function useDashboardData() {
-  // Fetch dashboard statistics
   const statsQuery = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: async (): Promise<DashboardStats> => {
       try {
-        // Get vehicle statistics
         const { data: vehicles, error: vehiclesError } = await supabase
           .from('vehicles')
           .select('id, status');
 
         if (vehiclesError) throw vehiclesError;
 
-        // Get financial data
         const currentDate = new Date();
         const firstDayCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const firstDayLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
@@ -67,21 +80,18 @@ export function useDashboardData() {
           
         if (lastMonthError) throw lastMonthError;
         
-        // Get customer statistics
         const { data: customers, error: customersError } = await supabase
           .from('customers')
           .select('id');
           
         if (customersError) throw customersError;
         
-        // Get agreement statistics
         const { data: agreements, error: agreementsError } = await supabase
           .from('leases')
           .select('id, status');
           
         if (agreementsError) throw agreementsError;
         
-        // Calculate statistics
         const vehicleStats = {
           total: vehicles.length,
           available: vehicles.filter(v => v.status === 'available').length,
@@ -105,11 +115,11 @@ export function useDashboardData() {
           customerStats: {
             total: customers.length,
             active: agreements.filter(a => a.status === 'active').length,
-            growth: 3.7 // Placeholder for now, would require historical data
+            growth: 3.7
           },
           agreementStats: {
             active: agreements.filter(a => a.status === 'active').length,
-            growth: -2.5 // Placeholder for now, would require historical data
+            growth: -2.5
           }
         };
       } catch (error) {
@@ -119,7 +129,6 @@ export function useDashboardData() {
     }
   });
 
-  // Fetch revenue data for chart
   const revenueQuery = useQuery({
     queryKey: ['dashboard', 'revenue'],
     queryFn: async () => {
@@ -135,7 +144,6 @@ export function useDashboardData() {
           
         if (error) throw error;
         
-        // Aggregate payments by month
         const monthlyData = data.reduce((acc: Record<string, number>, payment) => {
           const date = new Date(payment.payment_date);
           const monthKey = date.toLocaleString('default', { month: 'short' });
@@ -148,7 +156,6 @@ export function useDashboardData() {
           return acc;
         }, {});
         
-        // Convert to array format for chart
         return Object.entries(monthlyData).map(([name, revenue]) => ({
           name,
           revenue
@@ -160,12 +167,10 @@ export function useDashboardData() {
     }
   });
 
-  // Get recent activity
   const activityQuery = useQuery({
     queryKey: ['dashboard', 'activity'],
     queryFn: async (): Promise<RecentActivity[]> => {
       try {
-        // Get recent leases (rentals)
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select(`
@@ -181,7 +186,6 @@ export function useDashboardData() {
           
         if (leasesError) throw leasesError;
         
-        // Get recent payments
         const { data: payments, error: paymentsError } = await supabase
           .from('payments')
           .select('id, amount, payment_date, lease_id')
@@ -190,7 +194,6 @@ export function useDashboardData() {
           
         if (paymentsError) throw paymentsError;
         
-        // Get recent maintenance
         const { data: maintenance, error: maintenanceError } = await supabase
           .from('maintenance')
           .select(`
@@ -205,24 +208,11 @@ export function useDashboardData() {
           
         if (maintenanceError) throw maintenanceError;
         
-        // Combine and format activities
         const activities: RecentActivity[] = [];
         
-        // Add lease activities
         leases.forEach(lease => {
-          // Typescript needs interface definition for the returned data structure
-          type LeaseWithRelations = {
-            id: string;
-            created_at: string;
-            customer_id: string;
-            vehicle_id: string;
-            customers: { full_name: string } | null;
-            vehicles: { make: string; model: string; license_plate: string } | null;
-          };
-          
           const typedLease = lease as unknown as LeaseWithRelations;
           
-          // Safely access nested properties
           const customerName = typedLease.customers?.full_name || 'Customer';
           const vehicleMake = typedLease.vehicles?.make || '';
           const vehicleModel = typedLease.vehicles?.model || '';
@@ -237,31 +227,19 @@ export function useDashboardData() {
           });
         });
         
-        // Add payment activities
         payments.forEach(payment => {
           activities.push({
             id: payment.id,
             type: 'payment',
             title: 'Payment Received',
-            description: `$${payment.amount.toFixed(2)} received for Invoice #${payment.lease_id}`,
+            description: `QAR ${payment.amount.toFixed(2)} received for Invoice #${payment.lease_id}`,
             time: getTimeAgo(new Date(payment.payment_date))
           });
         });
         
-        // Add maintenance activities
         maintenance.forEach(item => {
-          // Typescript needs interface definition for the returned data structure
-          type MaintenanceWithRelations = {
-            id: string;
-            created_at: string;
-            vehicle_id: string;
-            type: string;
-            vehicles: { make: string; model: string; license_plate: string } | null;
-          };
-          
           const typedItem = item as unknown as MaintenanceWithRelations;
           
-          // Safely access nested properties
           const vehicleMake = typedItem.vehicles?.make || '';
           const vehicleModel = typedItem.vehicles?.model || '';
           const licensePlate = typedItem.vehicles?.license_plate || '';
@@ -275,12 +253,11 @@ export function useDashboardData() {
           });
         });
         
-        // Sort by time (most recent first)
         return activities.sort((a, b) => {
           const timeA = parseTimeAgo(a.time);
           const timeB = parseTimeAgo(b.time);
           return timeA - timeB;
-        }).slice(0, 5); // Return top 5
+        }).slice(0, 5);
       } catch (error) {
         handleApiError(error);
         return [];
@@ -298,7 +275,6 @@ export function useDashboardData() {
   };
 }
 
-// Helper function to format time ago
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
@@ -315,7 +291,6 @@ function getTimeAgo(date: Date): string {
   }
 }
 
-// Helper to parse time ago string to minutes for sorting
 function parseTimeAgo(timeAgo: string): number {
   const match = timeAgo.match(/(\d+)\s+(\w+)/);
   if (!match) return 9999;

@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
+import { formatCurrency } from '@/lib/utils';
 
 const monthlyData = [
   { name: 'Jan', income: 12000, expenses: 8000 },
@@ -52,7 +53,7 @@ const FinancialRevenueChart = () => {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: '#64748b', fontSize: 12 }}
-                  tickFormatter={(value) => `$${value / 1000}k`}
+                  tickFormatter={(value) => `${formatCurrency(value / 1000).split('.')[0]}k`}
                 />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />

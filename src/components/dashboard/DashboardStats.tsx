@@ -3,6 +3,7 @@ import React from 'react';
 import { Car, DollarSign, Users, FileText } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
+import { formatCurrency } from '@/lib/utils';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
@@ -25,7 +26,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       
       <StatCard
         title="Revenue"
-        value={`$${stats.financialStats.currentMonthRevenue.toLocaleString()}`}
+        value={formatCurrency(stats.financialStats.currentMonthRevenue)}
         description="This month"
         icon={DollarSign}
         iconColor="text-green-500"

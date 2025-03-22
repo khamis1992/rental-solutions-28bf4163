@@ -5,6 +5,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { CircleDollarSign, TrendingUp, ArrowDownRight, CreditCard } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatCurrency } from '@/lib/utils';
 
 const FinancialReport = () => {
   return (
@@ -12,7 +13,7 @@ const FinancialReport = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Revenue" 
-          value="$286,500" 
+          value={formatCurrency(286500)} 
           trend={8}
           trendLabel="vs last month"
           icon={CircleDollarSign}
@@ -20,7 +21,7 @@ const FinancialReport = () => {
         />
         <StatCard 
           title="Average Daily Revenue" 
-          value="$9,550" 
+          value={formatCurrency(9550)} 
           trend={5}
           trendLabel="vs last month"
           icon={TrendingUp}
@@ -28,7 +29,7 @@ const FinancialReport = () => {
         />
         <StatCard 
           title="Operational Expenses" 
-          value="$67,840" 
+          value={formatCurrency(67840)} 
           trend={3}
           trendLabel="vs last month"
           icon={ArrowDownRight}
@@ -36,7 +37,7 @@ const FinancialReport = () => {
         />
         <StatCard 
           title="Pending Payments" 
-          value="$14,350" 
+          value={formatCurrency(14350)} 
           trend={-12}
           trendLabel="vs last month"
           icon={CreditCard}
@@ -65,9 +66,9 @@ const FinancialReport = () => {
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `$${value/1000}k`}
+                    tickFormatter={(value) => `${formatCurrency(value/1000).split('.')[0]}k`}
                   />
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']} />
+                  <Tooltip formatter={(value) => [formatCurrency(value), 'Revenue']} />
                   <Line 
                     type="monotone" 
                     dataKey="revenue" 
@@ -102,9 +103,9 @@ const FinancialReport = () => {
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `$${value/1000}k`}
+                    tickFormatter={(value) => `${formatCurrency(value/1000).split('.')[0]}k`}
                   />
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Revenue']} />
+                  <Tooltip formatter={(value) => [formatCurrency(value), 'Revenue']} />
                   <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -136,7 +137,7 @@ const FinancialReport = () => {
                   <TableCell>{transaction.type}</TableCell>
                   <TableCell>{transaction.description}</TableCell>
                   <TableCell className={`text-right ${transaction.type === 'Income' ? 'text-green-600' : 'text-red-600'}`}>
-                    {transaction.type === 'Income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                    {transaction.type === 'Income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                   </TableCell>
                 </TableRow>
               ))}
