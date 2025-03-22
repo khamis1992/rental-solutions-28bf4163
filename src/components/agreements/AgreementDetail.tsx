@@ -14,7 +14,6 @@ import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
-import { InvoiceGenerator } from "./InvoiceGenerator"
 
 interface AgreementDetailProps {
   agreement: Agreement
@@ -226,7 +225,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 <FileText className="mr-2 h-4 w-4" />
                 Print
               </Button>
-              <InvoiceGenerator agreement={agreement} />
               <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                 <DialogTrigger asChild>
                   <Button variant="default">
