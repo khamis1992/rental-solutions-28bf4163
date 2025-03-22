@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useNavigate } from "react-router-dom";
@@ -22,28 +22,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const isInitialMount = useRef(true);
+  const hasToasted = useRef(false);
 
   useEffect(() => {
     // Set up the auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
         setLoading(false);
 
-        if (event === 'SIGNED_IN') {
-          toast.success('Signed in successfully');
-        } else if (event === 'SIGNED_OUT') {
-          toast.info('Signed out');
+        // Only show toast notifications for actual auth state changes, not initial load
+        if (!isInitialMount.current) {
+          if (event === 'SIGNED_IN' && !hasToasted.current) {
+            toast.success('Signed in successfully');
+            hasToasted.current = true; // Prevent duplicate toasts
+          } else if (event === 'SIGNED_OUT') {
+            toast.info('Signed out');
+            hasToasted.current = false; // Reset for next sign in
+          }
         }
       }
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
       setLoading(false);
+      isInitialMount.current = false;
+      
+      // If there is a session on initial load, set hasToasted to true to prevent duplicate toasts
+      if (existingSession) {
+        hasToasted.current = true;
+      }
     });
 
     return () => subscription.unsubscribe();
