@@ -20,13 +20,13 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           .from('leases')
           .select(`
             *,
-            profiles(id, full_name, email, phone_number),
-            vehicles(id, make, model, license_plate, image_url)
+            customer_id(id, full_name, email, phone_number),
+            vehicle_id(id, make, model, license_plate, image_url)
           `);
         
         // Apply filters
         if (searchParams.query) {
-          query = query.or(`agreement_number.ilike.%${searchParams.query}%,profiles.full_name.ilike.%${searchParams.query}%`);
+          query = query.or(`agreement_number.ilike.%${searchParams.query}%,customer_id.full_name.ilike.%${searchParams.query}%`);
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
@@ -75,8 +75,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           pickup_location: lease.pickup_location || "",
           return_location: lease.return_location || "",
           additional_drivers: [],
-          customers: lease.profiles, // Changed from 'customers' to 'profiles'
-          vehicles: lease.vehicles
+          customers: lease.customer_id, // Use customer_id for joined customer data
+          vehicles: lease.vehicle_id // Use vehicle_id for joined vehicle data
         }));
         
         console.log('Transformed agreements:', transformedData);
@@ -174,8 +174,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         .from('leases')
         .select(`
           *,
-          profiles(id, full_name, email, phone_number),
-          vehicles(id, make, model, license_plate, image_url, year, color)
+          customer_id(id, full_name, email, phone_number),
+          vehicle_id(id, make, model, license_plate, image_url, year, color)
         `)
         .eq('id', id)
         .single();
@@ -207,8 +207,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           pickup_location: data.pickup_location || "",
           return_location: data.return_location || "",
           additional_drivers: [],
-          customers: data.profiles, // Changed from 'customers' to 'profiles'
-          vehicles: data.vehicles
+          customers: data.customer_id, // Use customer_id for joined customer data
+          vehicles: data.vehicle_id // Use vehicle_id for joined vehicle data
         };
       }
       
