@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -61,23 +60,19 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Calculate missing payments
   const missingPayments = useMemo(() => {
     if (!leaseStartDate || !leaseEndDate || !rentAmount) return [];
     
     const startDate = new Date(leaseStartDate);
     const endDate = new Date(leaseEndDate);
-    // Use current date or lease end date, whichever is earlier
-    const currentDate = new Date(2025, 2, 22); // System date: March 22, 2025
+    const currentDate = new Date(2025, 2, 22);
     const effectiveEndDate = isBefore(endDate, currentDate) ? endDate : currentDate;
     
-    // Get all months between start date and effective end date
     const allMonths = eachMonthOfInterval({ 
       start: startOfMonth(startDate), 
       end: endOfMonth(effectiveEndDate) 
     });
     
-    // Filter out months that have payments
     const paidMonths = new Set<string>();
     payments.forEach(payment => {
       if (payment.type === 'rent' && payment.status !== 'cancelled') {
@@ -86,18 +81,16 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       }
     });
     
-    // Calculate daily late fee (if available)
-    const dailyLateFee = 120.0; // Default value from schema
+    const dailyLateFee = 120.0;
+    const maxLateFee = 3000.0;
     
-    // Find missing months and calculate late fees
     return allMonths.filter(month => {
       const monthKey = `${month.getMonth()}-${month.getFullYear()}`;
       return !paidMonths.has(monthKey);
     }).map(month => {
-      // Calculate days overdue (from the 1st of the month until current date)
       const dueDate = new Date(month);
       const daysOverdue = differenceInDays(currentDate, dueDate);
-      const lateFineAmount = daysOverdue > 0 ? daysOverdue * dailyLateFee : 0;
+      const lateFineAmount = daysOverdue > 0 ? Math.min(daysOverdue * dailyLateFee, maxLateFee) : 0;
       
       return {
         month,
@@ -133,7 +126,6 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
       toast.success("Payment deleted successfully");
       setIsDeleteDialogOpen(false);
       
-      // Call the callback to refresh payment data
       if (onPaymentDeleted) {
         onPaymentDeleted();
       }
@@ -368,7 +360,6 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
         onClose={() => setIsEditDialogOpen(false)}
         onSave={() => {
           setIsEditDialogOpen(false);
-          // We would normally refresh payments here, but that's handled by the parent component
         }}
       />
       
