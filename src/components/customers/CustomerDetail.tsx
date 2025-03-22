@@ -38,9 +38,15 @@ export function CustomerDetail() {
     const fetchCustomer = async () => {
       if (!id) return;
       setLoading(true);
-      const data = await getCustomer(id);
-      setCustomer(data);
-      setLoading(false);
+      try {
+        const data = await getCustomer(id);
+        console.log("Fetched customer data:", data);
+        setCustomer(data);
+      } catch (error) {
+        console.error("Error fetching customer:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchCustomer();
@@ -157,7 +163,8 @@ export function CustomerDetail() {
                 variant={
                   customer.status === "active" ? "success" : 
                   customer.status === "inactive" ? "outline" : 
-                  "destructive"
+                  customer.status === "blacklisted" ? "destructive" :
+                  "secondary"
                 }
                 className="capitalize"
               >
@@ -197,8 +204,6 @@ export function CustomerDetail() {
           </div>
         </CardContent>
       </Card>
-      
-      {/* Future rental history could be added here */}
     </div>
   );
 }

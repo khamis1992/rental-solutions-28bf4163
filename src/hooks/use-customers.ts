@@ -131,11 +131,10 @@ export const useCustomers = () => {
           updated_at: new Date().toISOString() 
         })
         .eq('id', customer.id)
-        .select()
-        .single();
+        .select();
 
       if (error) throw new Error(error.message);
-      return data as Customer;
+      return data[0] as Customer;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -168,31 +167,44 @@ export const useCustomers = () => {
 
   // Get a single customer by ID
   const getCustomer = async (id: string): Promise<Customer | null> => {
-    const { data, error } = await supabase
-      .from(PROFILES_TABLE)
-      .select('*')
-      .eq('id', id)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from(PROFILES_TABLE)
+        .select('*')
+        .eq('id', id)
+        .maybeSingle(); // Using maybeSingle instead of single to handle not found case
 
-    if (error) {
-      toast.error('Failed to fetch customer', { description: error.message });
+      if (error) {
+        console.error('Error fetching customer by ID:', error);
+        toast.error('Failed to fetch customer', { description: error.message });
+        return null;
+      }
+
+      if (!data) {
+        console.log('No customer found with ID:', id);
+        return null;
+      }
+
+      console.log('Raw customer data from profiles:', data);
+
+      return {
+        id: data.id,
+        full_name: data.full_name || '',
+        first_name: data.first_name || data.full_name?.split(' ')[0] || '',
+        last_name: data.last_name || data.full_name?.split(' ').slice(1).join(' ') || '',
+        email: data.email || '',
+        phone: data.phone_number || '',
+        driver_license: data.driver_license || '',
+        address: data.address || '',
+        notes: data.notes || '',
+        status: data.status || 'active',
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+      } as Customer;
+    } catch (error) {
+      console.error('Unexpected error fetching customer:', error);
       return null;
     }
-
-    return {
-      id: data.id,
-      full_name: data.full_name || '',
-      first_name: data.first_name || data.full_name?.split(' ')[0] || '',
-      last_name: data.last_name || data.full_name?.split(' ').slice(1).join(' ') || '',
-      email: data.email || '',
-      phone: data.phone_number || '',
-      driver_license: data.driver_license || '',
-      address: data.address || '',
-      notes: data.notes || '',
-      status: data.status || 'active',
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    } as Customer;
   };
 
   return {
