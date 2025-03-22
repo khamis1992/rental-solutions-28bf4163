@@ -24,7 +24,8 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,7 +75,7 @@ export function AgreementList() {
   useVehicleRealtimeUpdates();
   
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
   const [searchTip, setSearchTip] = useState<boolean>(false);
   
@@ -90,6 +91,15 @@ export function AgreementList() {
     setSearchTip(/^\d{3,}$/.test(searchQuery) && agreements?.length === 0);
   }, [searchQuery, agreements]);
   
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    if (/^\d{3,6}$/.test(value)) {
+      console.log(`Numeric search detected: ${value} - applying special search handling`);
+    }
+  };
+
   const columns: ColumnDef<Agreement>[] = [
     {
       accessorKey: "agreement_number",
@@ -139,7 +149,8 @@ export function AgreementList() {
                 className="hover:underline"
               >
                 {vehicle.make && vehicle.model ? 
-                  `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'N/A'}
+                  `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 
+                  vehicle.license_plate ? `Vehicle: ${vehicle.license_plate}` : 'N/A'}
               </Link>
             ) : row.original.vehicle_id ? (
               <Link 
@@ -263,7 +274,7 @@ export function AgreementList() {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: setColumnFiltersState,
     state: {
       sorting,
       columnFilters,
@@ -288,12 +299,17 @@ export function AgreementList() {
                   <Input
                     placeholder="Search by agreement #, customer, or vehicle..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchInputChange}
                     className="h-9 pl-9 w-full"
                   />
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
-                  <p>Search by agreement number, customer name, or vehicle details (make, model, license plate, etc.)</p>
+                  <p><strong>Search Tips:</strong></p>
+                  <ul className="list-disc pl-4 mt-1 space-y-1">
+                    <li>Agreement numbers: e.g., "MR202462"</li>
+                    <li>Vehicle numbers: e.g., "7042" (partial matches work)</li>
+                    <li>Customer names, vehicle make/model, license plates</li>
+                  </ul>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -336,9 +352,12 @@ export function AgreementList() {
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertTitle className="text-amber-800">Search Tip</AlertTitle>
           <AlertDescription className="text-amber-700">
-            When searching for a vehicle number like "{searchQuery}", try adding more details 
-            such as license plate prefix or model information. Vehicle numbers might be 
-            partially encrypted in the database.
+            When searching for a vehicle number like "{searchQuery}", try these formats:
+            <ul className="list-disc pl-5 mt-2">
+              <li>Full agreement number (e.g., "MR202462")</li>
+              <li>Different variations of the number (e.g., try without leading zeros)</li>
+              <li>Only the significant digits (e.g., "7042" instead of "007042")</li>
+            </ul>
           </AlertDescription>
         </Alert>
       )}
@@ -388,9 +407,21 @@ export function AgreementList() {
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
-                  No agreements found. {searchQuery || searchParams.status !== 'all' ? 
-                    'Try adjusting your filters.' : 
-                    'Add your first agreement using the button above.'}
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Info className="h-5 w-5 text-muted-foreground" />
+                    <p>No agreements found. {searchQuery || searchParams.status !== 'all' ? 
+                      'Try adjusting your filters or search terms.' : 
+                      'Add your first agreement using the button above.'}</p>
+                    {searchQuery && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSearchQuery('')}
+                      >
+                        Clear Search
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             )}

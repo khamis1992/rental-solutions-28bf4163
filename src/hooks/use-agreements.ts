@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -54,8 +53,18 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           query = query.eq('vehicle_id', searchParams.vehicle_id);
         }
         
+        // Check if search term is a potential vehicle number (numeric only)
+        const isNumericSearch = searchParams.query && /^\d{3,6}$/.test(searchParams.query.trim());
+        
+        // Special handling for numeric searches that might be vehicle numbers or agreement numbers
+        if (isNumericSearch) {
+          console.log(`Numeric search detected: ${searchParams.query.trim()} - checking agreement numbers and vehicle references`);
+          
+          // For numeric searches, also check if it could be part of an agreement number
+          query = query.or(`agreement_number.ilike.%${searchParams.query.trim()}%`);
+        } 
         // Basic text search for agreement number and notes only
-        if (searchParams.query && searchParams.query.trim() !== '') {
+        else if (searchParams.query && searchParams.query.trim() !== '') {
           const searchTerm = searchParams.query.trim().toLowerCase();
           
           query = query.or(
@@ -143,7 +152,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           }
         }
         
-        // Fetch related vehicle data in a separate, optimized query - note we're checking for the registration_number error
+        // Fetch related vehicle data in a separate, optimized query with improved error handling
         const vehicleIds = dataToProcess.map(lease => lease.vehicle_id).filter(Boolean);
         let vehicleData = {};
         
@@ -193,12 +202,22 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           
           console.log(`Filtering results for search term: "${searchTerm}"`);
           
+          // Check if the search is for a specific agreement like MR202462
+          const agreementNumberRegex = /^[a-z]{2,3}20\d{2}\d+$/i;
+          const isMRNumberSearch = agreementNumberRegex.test(searchTerm);
+          
           // Add a special case for vehicle numbers (like "7042")
           // This will check if the search term is a number that might be a vehicle identifier
           const isNumericSearch = /^\d+$/.test(searchTerm);
           
           transformedData = transformedData.filter(agreement => {
-            // Check agreement number
+            // For MR format searches, prioritize exact matches
+            if (isMRNumberSearch && agreement.agreement_number?.toLowerCase() === searchTerm) {
+              console.log(`Exact match found for agreement number: ${agreement.agreement_number}`);
+              return true;
+            }
+            
+            // Check agreement number (partial match)
             if (agreement.agreement_number?.toLowerCase().includes(searchTerm)) {
               console.log(`Match found in agreement number: ${agreement.agreement_number}`);
               return true;
@@ -207,18 +226,24 @@ export const useAgreements = (initialFilters: AgreementFilters = {
             // Special case for numeric searches - check against vehicle numbers even if encrypted
             if (isNumericSearch) {
               if (agreement.vehicles) {
-                // Check license plate for numeric matches
-                if (agreement.vehicles.license_plate && 
-                    agreement.vehicles.license_plate.replace(/\D/g, '').includes(searchTerm)) {
-                  console.log(`Match found in license plate numbers: ${agreement.vehicles.license_plate}`);
-                  return true;
+                // Check if the entire number appears in the license plate (with more logging)
+                if (agreement.vehicles.license_plate) {
+                  // Remove all non-digit characters for pure number comparison
+                  const digitsOnly = agreement.vehicles.license_plate.replace(/\D/g, '');
+                  if (digitsOnly.includes(searchTerm)) {
+                    console.log(`Match found in license plate numbers: ${agreement.vehicles.license_plate} (digits: ${digitsOnly})`);
+                    return true;
+                  }
                 }
                 
-                // Check VIN for numeric matches
-                if (agreement.vehicles.vin && 
-                    agreement.vehicles.vin.replace(/\D/g, '').includes(searchTerm)) {
-                  console.log(`Match found in VIN digits: ${agreement.vehicles.vin}`);
-                  return true;
+                // Check for partial VIN matches
+                if (agreement.vehicles.vin) {
+                  // For numeric searches, extract just the digits from the VIN
+                  const vinDigits = agreement.vehicles.vin.replace(/\D/g, '');
+                  if (vinDigits.includes(searchTerm)) {
+                    console.log(`Match found in VIN digits: ${agreement.vehicles.vin} (digits: ${vinDigits})`);
+                    return true;
+                  }
                 }
                 
                 // Check year if it matches the numeric search
@@ -231,7 +256,14 @@ export const useAgreements = (initialFilters: AgreementFilters = {
               
               // Check if the numeric search term appears in the notes
               if (agreement.notes && agreement.notes.includes(searchTerm)) {
-                console.log(`Match found in notes for numeric search: ${agreement.notes}`);
+                console.log(`Match found in notes for numeric search: ${searchTerm}`);
+                return true;
+              }
+              
+              // Check if it matches parts of the agreement number (for numeric pieces like "462" in "MR202462")
+              const agreementDigits = agreement.agreement_number?.replace(/\D/g, '');
+              if (agreementDigits && agreementDigits.includes(searchTerm)) {
+                console.log(`Match found in agreement number digits: ${agreement.agreement_number} (digits: ${agreementDigits})`);
                 return true;
               }
             }
