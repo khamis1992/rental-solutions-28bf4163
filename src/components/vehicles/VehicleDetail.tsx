@@ -1,23 +1,68 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
-import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield } from 'lucide-react';
+import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Tool } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isAfter, parseISO } from 'date-fns';
+import { useMaintenance } from '@/hooks/use-maintenance';
+import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { CustomButton } from '@/components/ui/custom-button';
+import { useNavigate } from 'react-router-dom';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
 }
 
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
+  const navigate = useNavigate();
+  const { useList } = useMaintenance();
+  const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
+  
   // Status colors mapping
   const statusColors = {
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
     maintenance: 'bg-amber-100 text-amber-800',
     retired: 'bg-red-100 text-red-800',
+  };
+
+  // Fetch maintenance records for this vehicle
+  const { data: allMaintenance, isLoading: isLoadingMaintenance } = useList({
+    vehicle_id: vehicle.id
+  });
+  
+  // Update maintenance records when data is loaded
+  useEffect(() => {
+    if (allMaintenance) {
+      setMaintenanceRecords(allMaintenance);
+    }
+  }, [allMaintenance]);
+
+  // Format maintenance type for display
+  const formatMaintenanceType = (type: string) => {
+    return type
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+  
+  // Get status badge color for maintenance records
+  const getMaintenanceStatusColor = (status: string) => {
+    switch(status) {
+      case MaintenanceStatus.COMPLETED:
+        return 'bg-green-100 text-green-800';
+      case MaintenanceStatus.IN_PROGRESS:
+        return 'bg-blue-100 text-blue-800';
+      case MaintenanceStatus.SCHEDULED:
+        return 'bg-amber-100 text-amber-800';
+      case MaintenanceStatus.CANCELLED:
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   // Default image for cars
@@ -59,6 +104,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const getInsuranceStatusText = () => {
     if (!hasInsurance) return 'No Insurance';
     return isInsuranceValid ? 'Valid' : 'Expired';
+  };
+
+  // Function to navigate to maintenance detail
+  const handleViewMaintenance = (id: string) => {
+    navigate(`/maintenance/${id}`);
+  };
+  
+  // Function to add new maintenance record
+  const handleAddMaintenance = () => {
+    navigate(`/maintenance/add?vehicleId=${vehicle.id}`);
   };
 
   return (
@@ -212,6 +267,77 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
             </div>
           </div>
         )}
+        
+        {/* Maintenance History Section */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle className="text-lg">Maintenance History</CardTitle>
+            <CustomButton 
+              size="sm" 
+              variant="outline" 
+              onClick={handleAddMaintenance}
+            >
+              <Tool className="h-4 w-4 mr-2" />
+              Add Maintenance
+            </CustomButton>
+          </div>
+          
+          {isLoadingMaintenance ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Loading maintenance records...
+            </div>
+          ) : maintenanceRecords && maintenanceRecords.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Provider</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {maintenanceRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell className="font-medium">
+                        {formatMaintenanceType(record.maintenance_type)}
+                      </TableCell>
+                      <TableCell>
+                        {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getMaintenanceStatusColor(record.status)}>
+                          {record.status
+                            .split('_')
+                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>{record.service_provider || 'N/A'}</TableCell>
+                      <TableCell className="text-right">
+                        <CustomButton
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleViewMaintenance(record.id)}
+                        >
+                          View
+                        </CustomButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 border rounded-md text-muted-foreground">
+              No maintenance records found for this vehicle.
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
