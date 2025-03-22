@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
-import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Wrench } from 'lucide-react';
+import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Wrench, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isAfter, parseISO } from 'date-fns';
 import { useMaintenance } from '@/hooks/use-maintenance';
@@ -10,6 +11,8 @@ import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/mai
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CustomButton } from '@/components/ui/custom-button';
 import { useNavigate } from 'react-router-dom';
+import { useAgreements } from '@/hooks/use-agreements';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -17,7 +20,8 @@ interface VehicleDetailProps {
 
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const navigate = useNavigate();
-  const { useList } = useMaintenance();
+  const { useList: useMaintenanceList } = useMaintenance();
+  const { agreements: vehicleAgreements, isLoading: isLoadingAgreements, setSearchParams } = useAgreements();
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   
   const statusColors = {
@@ -27,7 +31,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     retired: 'bg-red-100 text-red-800',
   };
 
-  const { data: allMaintenance, isLoading: isLoadingMaintenance } = useList({
+  const { data: allMaintenance, isLoading: isLoadingMaintenance } = useMaintenanceList({
     vehicle_id: vehicle.id
   });
   
@@ -37,6 +41,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     }
   }, [allMaintenance]);
 
+  // Fetch agreements for this vehicle
+  useEffect(() => {
+    setSearchParams({ vehicle_id: vehicle.id });
+  }, [vehicle.id, setSearchParams]);
+  
   const formatMaintenanceType = (type: string) => {
     return type
       .split('_')
@@ -57,6 +66,28 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Get agreement status color
+  const getAgreementStatusColor = (status: string) => {
+    switch(status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-amber-100 text-amber-800';
+      case 'expired':
+        return 'bg-red-100 text-red-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'draft':
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Format agreement status for display
+  const formatAgreementStatus = (status: string) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
@@ -100,6 +131,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   
   const handleAddMaintenance = () => {
     navigate(`/maintenance/add?vehicleId=${vehicle.id}`);
+  };
+
+  const handleViewAgreement = (id: string) => {
+    navigate(`/agreements/${id}`);
+  };
+
+  const handleCreateAgreement = () => {
+    navigate(`/agreements/add?vehicleId=${vehicle.id}`);
   };
 
   return (
@@ -253,6 +292,80 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
             </div>
           </div>
         )}
+        
+        {/* Rental Agreements Section */}
+        <div className="mt-6">
+          <div className="flex items-center justify-between mb-4">
+            <CardTitle className="text-lg">Rental Agreements</CardTitle>
+            <CustomButton 
+              size="sm" 
+              variant="outline" 
+              onClick={handleCreateAgreement}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Create Agreement
+            </CustomButton>
+          </div>
+          
+          {isLoadingAgreements ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Loading agreements...
+            </div>
+          ) : vehicleAgreements && vehicleAgreements.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Agreement #</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vehicleAgreements.map((agreement: Agreement) => (
+                    <TableRow key={agreement.id}>
+                      <TableCell className="font-medium">
+                        {agreement.agreement_number}
+                      </TableCell>
+                      <TableCell>
+                        {agreement.customers?.full_name || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {agreement.start_date ? format(new Date(agreement.start_date), 'MMM d, yyyy') : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {agreement.end_date ? format(new Date(agreement.end_date), 'MMM d, yyyy') : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getAgreementStatusColor(agreement.status)}>
+                          {formatAgreementStatus(agreement.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>${agreement.total_amount?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell className="text-right">
+                        <CustomButton
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleViewAgreement(agreement.id)}
+                        >
+                          View
+                        </CustomButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-8 border rounded-md text-muted-foreground">
+              No rental agreements found for this vehicle.
+            </div>
+          )}
+        </div>
         
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
