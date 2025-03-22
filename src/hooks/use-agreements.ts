@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -334,7 +333,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       }
       
       if (data) {
-        // Transform to Agreement type - careful with the object structure
+        // Transform to Agreement type - Fixing the access to nested objects
         return {
           id: data.id,
           customer_id: data.customer_id,
