@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -37,7 +38,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           down_payment, 
           agreement_number, 
           notes, 
-          pickup_location, 
           return_location
         `);
         
@@ -133,7 +133,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           agreement_number: lease.agreement_number || '',
           notes: lease.notes || '',
           terms_accepted: true,
-          pickup_location: lease.pickup_location || "",
           return_location: lease.return_location || "",
           additional_drivers: [],
           customers: customerData[lease.customer_id] || null,
@@ -299,7 +298,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           agreement_number: data.agreement_number || '',
           notes: data.notes || '',
           terms_accepted: true,
-          pickup_location: data.pickup_location || "",
           return_location: data.return_location || "",
           additional_drivers: [],
           customers: customerData,
