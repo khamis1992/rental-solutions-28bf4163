@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export interface Payment {
   id: string;
@@ -12,6 +13,9 @@ export interface Payment {
   payment_method: string;
   reference_number?: string;
   notes?: string;
+  type?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
 }
 
 interface PaymentHistoryProps {
@@ -48,6 +52,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Method</TableHead>
                   <TableHead>Reference</TableHead>
@@ -56,12 +61,28 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
               </TableHeader>
               <TableBody>
                 {payments.map((payment) => (
-                  <TableRow key={payment.id}>
+                  <TableRow key={payment.id} className={payment.type === 'LATE_PAYMENT_FEE' ? 'bg-amber-50' : ''}>
                     <TableCell>
                       {format(new Date(payment.payment_date), "PPP")}
                     </TableCell>
+                    <TableCell>
+                      {payment.type === 'LATE_PAYMENT_FEE' ? (
+                        <Badge variant="outline" className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                          Late Fee
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-100">
+                          Payment
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {formatCurrency(payment.amount)}
+                      {payment.days_overdue && payment.days_overdue > 0 && payment.type !== 'LATE_PAYMENT_FEE' && (
+                        <div className="text-xs text-amber-600 mt-1">
+                          +{payment.days_overdue} days late
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {formatPaymentMethod(payment.payment_method)}
