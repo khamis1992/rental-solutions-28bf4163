@@ -20,7 +20,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         
         // Apply filters
         if (searchParams.query && searchParams.query.trim() !== '') {
-          const searchTerm = searchParams.query.trim();
+          const searchTerm = searchParams.query.trim().toLowerCase();
           query = query.or(`agreement_number.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
         }
         
@@ -36,8 +36,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           query = query.eq('vehicle_id', searchParams.vehicle_id);
         }
         
-        // Get the data
-        console.log('Executing query with params:', query);
+        // Execute the query
         const { data: leaseData, error: leaseError } = await query.order('created_at', { ascending: false });
         
         if (leaseError) {
@@ -92,10 +91,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           }
         }
         
-        console.log('Query results:', leaseData);
-        console.log('Customer data:', customerData);
-        console.log('Vehicle data:', vehicleData);
-        
         // Transform the data to match the Agreement schema
         const transformedData = leaseData.map((lease: any): Agreement => ({
           id: lease.id,
@@ -118,7 +113,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           vehicles: vehicleData[lease.vehicle_id] || null
         }));
         
-        console.log('Transformed agreements:', transformedData);
         return transformedData || [];
       } catch (err) {
         console.error("Unexpected error in useAgreements:", err);
@@ -220,8 +214,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         toast.error(`Failed to load agreement details: ${error.message}`);
         return null;
       }
-      
-      console.log('Agreement details:', data);
       
       // If we have the lease data, get the related customer and vehicle data
       if (data) {

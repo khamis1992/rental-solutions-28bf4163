@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ColumnDef, 
@@ -20,7 +20,8 @@ import {
   FileClock, 
   FileEdit,
   FilePlus,
-  AlertTriangle 
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,10 +62,19 @@ export function AgreementList() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   
-  const [searchTerm, setSearchTerm] = useState(searchParams.query || '');
-  
+  const [searchTerm, setSearchTerm] = useState<string>('');
+
+  useEffect(() => {
+    if (searchParams.query) {
+      setSearchTerm(searchParams.query);
+    }
+  }, []);
+
   const handleSearch = () => {
-    setSearchParams({...searchParams, query: searchTerm});
+    setSearchParams({
+      ...searchParams,
+      query: searchTerm || ''
+    });
   };
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -74,7 +84,12 @@ export function AgreementList() {
   };
   
   const handleStatusChange = (value: string) => {
-    setSearchParams({...searchParams, status: value});
+    if (value) {
+      setSearchParams({
+        ...searchParams,
+        status: value
+      });
+    }
   };
   
   const clearFilters = () => {
@@ -85,6 +100,16 @@ export function AgreementList() {
     });
   };
   
+  const clearSearchTerm = () => {
+    setSearchTerm('');
+    if (searchParams.query) {
+      setSearchParams({
+        ...searchParams,
+        query: ''
+      });
+    }
+  };
+
   const columns: ColumnDef<Agreement>[] = [
     {
       accessorKey: "agreement_number",
@@ -269,19 +294,29 @@ export function AgreementList() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="h-9 pl-9 w-full"
+              className="h-9 pl-9 w-full pr-8"
             />
+            {searchTerm && (
+              <button 
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={clearSearchTerm}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
           <Button
             variant="secondary"
             size="sm"
             onClick={handleSearch}
+            disabled={isLoading}
           >
             Search
           </Button>
           <Select
             value={searchParams.status || 'all'}
             onValueChange={handleStatusChange}
+            disabled={isLoading}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select status" />
@@ -300,6 +335,7 @@ export function AgreementList() {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
+              disabled={isLoading}
             >
               Clear
             </Button>
@@ -385,7 +421,7 @@ export function AgreementList() {
           variant="outline"
           size="sm"
           onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          disabled={!table.getCanPreviousPage() || isLoading}
         >
           Previous
         </Button>
@@ -393,7 +429,7 @@ export function AgreementList() {
           variant="outline"
           size="sm"
           onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
+          disabled={!table.getCanNextPage() || isLoading}
         >
           Next
         </Button>
