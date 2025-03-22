@@ -1,7 +1,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Edit, Trash2, UserCog, CalendarClock, Clock } from 'lucide-react';
+import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,8 @@ import {
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { CustomerTrafficFines } from './CustomerTrafficFines';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -220,6 +222,21 @@ export function CustomerDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <AlertTriangle className="mr-2 h-5 w-5" />
+            Traffic Fines
+          </CardTitle>
+          <CardDescription>
+            Traffic violations associated with this customer
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {customer.id && <CustomerTrafficFines customerId={customer.id} />}
+        </CardContent>
+      </Card>
       
       <Card>
         <CardHeader>
