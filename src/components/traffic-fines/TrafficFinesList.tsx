@@ -36,66 +36,25 @@ import {
   X
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { formatCurrency } from '@/lib/utils';
 
 const TrafficFinesList = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine } = useTrafficFines();
   
-  // Mock data - would be replaced with API data
-  const trafficFines = [
-    {
-      id: '1',
-      violationNumber: 'TF-2023-001',
-      licensePlate: 'ABC-123',
-      vehicleModel: 'Toyota Camry',
-      violationDate: new Date('2023-09-15'),
-      fineAmount: 150,
-      violationCharge: 'Speeding (20km over limit)',
-      paymentStatus: 'pending',
-      location: 'Highway 101, Exit 23'
-    },
-    {
-      id: '2',
-      violationNumber: 'TF-2023-002',
-      licensePlate: 'XYZ-456',
-      vehicleModel: 'Honda Accord',
-      violationDate: new Date('2023-10-02'),
-      fineAmount: 75,
-      violationCharge: 'Illegal Parking',
-      paymentStatus: 'paid',
-      location: 'Downtown, Main St.'
-    },
-    {
-      id: '3',
-      violationNumber: 'TF-2023-003',
-      licensePlate: 'DEF-789',
-      vehicleModel: 'Ford Explorer',
-      violationDate: new Date('2023-10-10'),
-      fineAmount: 200,
-      violationCharge: 'Red Light Violation',
-      paymentStatus: 'disputed',
-      location: 'Junction Ave & 5th St'
-    },
-  ];
-
-  const filteredFines = trafficFines.filter(fine => 
+  const filteredFines = trafficFines ? trafficFines.filter(fine => 
     fine.violationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
     fine.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
     fine.violationCharge.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ) : [];
 
   const handlePayFine = (id: string) => {
-    toast({
-      title: "Processing payment",
-      description: `Payment for fine #${id} has been processed.`,
-    });
+    payTrafficFine({ id });
   };
 
   const handleDisputeFine = (id: string) => {
-    toast({
-      title: "Dispute submitted",
-      description: `Dispute for fine #${id} has been submitted.`,
-    });
+    disputeTrafficFine({ id });
   };
 
   const getStatusBadge = (status: string) => {
@@ -152,7 +111,13 @@ const TrafficFinesList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredFines.length > 0 ? (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center">
+                    Loading traffic fines...
+                  </TableCell>
+                </TableRow>
+              ) : filteredFines.length > 0 ? (
                 filteredFines.map((fine) => (
                   <TableRow key={fine.id}>
                     <TableCell className="font-medium">
@@ -165,8 +130,8 @@ const TrafficFinesList = () => {
                     <TableCell className="hidden md:table-cell">
                       {format(fine.violationDate, 'MMM d, yyyy')}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{fine.location}</TableCell>
-                    <TableCell>${fine.fineAmount.toFixed(2)}</TableCell>
+                    <TableCell className="hidden md:table-cell">{fine.location || 'N/A'}</TableCell>
+                    <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
                     <TableCell>
                       {getStatusBadge(fine.paymentStatus)}
                     </TableCell>
@@ -198,7 +163,7 @@ const TrafficFinesList = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={7} className="h-24 text-center">
-                    No traffic fines found.
+                    {searchQuery ? "No matching traffic fines found." : "No traffic fines found."}
                   </TableCell>
                 </TableRow>
               )}
