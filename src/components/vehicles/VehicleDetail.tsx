@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +12,7 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -23,7 +23,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const { useList: useMaintenanceList } = useMaintenance();
   const { agreements: vehicleAgreements, isLoading: isLoadingAgreements, setSearchParams } = useAgreements();
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
-  
+  const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
+  const { getMaintenanceByVehicleId } = useMaintenance();
+
   const statusColors = {
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
@@ -31,21 +33,24 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     retired: 'bg-red-100 text-red-800',
   };
 
-  const { data: allMaintenance, isLoading: isLoadingMaintenance } = useMaintenanceList({
-    vehicle_id: vehicle.id
-  });
-  
   useEffect(() => {
-    if (allMaintenance) {
-      setMaintenanceRecords(allMaintenance);
+    const fetchMaintenance = async () => {
+      setIsLoadingMaintenance(true);
+      try {
+        const records = await getMaintenanceByVehicleId(vehicle.id);
+        setMaintenanceRecords(records);
+      } catch (error) {
+        console.error("Error fetching maintenance records:", error);
+      } finally {
+        setIsLoadingMaintenance(false);
+      }
+    };
+    
+    if (vehicle.id) {
+      fetchMaintenance();
     }
-  }, [allMaintenance]);
+  }, [vehicle.id, getMaintenanceByVehicleId]);
 
-  // Fetch agreements for this vehicle
-  useEffect(() => {
-    setSearchParams({ vehicle_id: vehicle.id });
-  }, [vehicle.id, setSearchParams]);
-  
   const formatMaintenanceType = (type: string) => {
     return type
       .split('_')
@@ -68,7 +73,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     }
   };
 
-  // Get agreement status color
   const getAgreementStatusColor = (status: string) => {
     switch(status) {
       case 'active':
@@ -85,7 +89,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     }
   };
 
-  // Format agreement status for display
   const formatAgreementStatus = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
@@ -293,7 +296,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           </div>
         )}
         
-        {/* Rental Agreements Section */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Rental Agreements</CardTitle>
