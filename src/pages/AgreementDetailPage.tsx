@@ -20,7 +20,7 @@ const AgreementDetailPage = () => {
   useEffect(() => {
     // Initialize the system to check for payment generation
     initializeSystem().then(() => {
-      console.log("System initialized, checking for all payments");
+      console.log("System initialized, checking for payments");
     });
 
     const fetchAgreement = async () => {
@@ -36,48 +36,41 @@ const AgreementDetailPage = () => {
           if (data.status === 'active') {
             console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
             
-            // Check if MR202462 specifically or if it's a new month
-            const shouldForceCheck = data.agreement_number === 'MR202462' || isNewMonth();
-            
-            if (shouldForceCheck) {
-              console.log("Force checking payments due to special agreement or new month");
-              
-              // Force check all agreements for current month payments
-              const allResult = await forceCheckAllAgreementsForPayments();
-              if (allResult.success) {
-                console.log("Payment check completed:", allResult);
-                if (allResult.generated > 0) {
-                  toast.success(`Generated ${allResult.generated} new payments for active agreements`);
-                }
+            // Force check all agreements for current month payments
+            const allResult = await forceCheckAllAgreementsForPayments();
+            if (allResult.success) {
+              console.log("Payment check completed:", allResult);
+              if (allResult.generated > 0) {
+                toast.success(`Generated ${allResult.generated} new payments for active agreements`);
               }
+            }
+            
+            // Special handling for MR202462
+            if (data.agreement_number === 'MR202462') {
+              console.log(`Special check for agreement ${data.agreement_number} to catch up missing payments`);
               
-              // Special handling for MR202462
-              if (data.agreement_number === 'MR202462') {
-                console.log(`Special check for agreement ${data.agreement_number} to catch up missing payments`);
-                
-                // Generate payments for all missing months from August 2024 to March 2025
-                const lastKnownPaymentDate = new Date(2024, 7, 3); // August 3, 2024
-                const currentSystemDate = new Date(2025, 2, 22); // March 22, 2025
-                
-                console.log(`Looking for missing payments between ${lastKnownPaymentDate.toDateString()} and ${currentSystemDate.toDateString()}`);
-                
-                const missingResult = await forceGeneratePaymentsForMissingMonths(
-                  data.id,
-                  data.total_amount,
-                  lastKnownPaymentDate,
-                  currentSystemDate
-                );
-                
-                if (missingResult.success) {
-                  console.log("Missing payments check completed:", missingResult);
-                  if (missingResult.generated > 0) {
-                    toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
-                  } else {
-                    console.log("No missing payments were generated, all months might be covered already");
-                  }
+              // Generate payments for all missing months from August 2024 to March 2025
+              const lastKnownPaymentDate = new Date(2024, 7, 3); // August 3, 2024
+              const currentSystemDate = new Date(2025, 2, 22); // March 22, 2025
+              
+              console.log(`Looking for missing payments between ${lastKnownPaymentDate.toDateString()} and ${currentSystemDate.toDateString()}`);
+              
+              const missingResult = await forceGeneratePaymentsForMissingMonths(
+                data.id,
+                data.total_amount,
+                lastKnownPaymentDate,
+                currentSystemDate
+              );
+              
+              if (missingResult.success) {
+                console.log("Missing payments check completed:", missingResult);
+                if (missingResult.generated > 0) {
+                  toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
                 } else {
-                  console.error("Failed to generate missing payments:", missingResult);
+                  console.log("No missing payments were generated, all months might be covered already");
                 }
+              } else {
+                console.error("Failed to generate missing payments:", missingResult);
               }
             }
           }

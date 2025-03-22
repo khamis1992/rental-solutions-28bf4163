@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -67,6 +68,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     try {
       console.log("Fetching payments for agreement:", agreement.id);
       
+      // Use a more detailed query to ensure we get all payment records
       const { data: unifiedPayments, error: unifiedError } = await supabase
         .from('unified_payments')
         .select('*')
@@ -77,6 +79,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         console.error("Error fetching unified payments:", unifiedError);
         throw unifiedError;
       }
+      
+      console.log("Raw payments data:", unifiedPayments);
       
       const formattedPayments = (unifiedPayments || []).map(payment => ({
         id: payment.id,
@@ -92,7 +96,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       }));
       
       setPayments(formattedPayments);
-      console.log("Payments set:", formattedPayments.length);
+      console.log("Formatted payments set:", formattedPayments);
     } catch (error) {
       console.error("Error fetching payments:", error);
       toast.error("Failed to load payment history");
@@ -102,11 +106,13 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   }
 
   useEffect(() => {
-    initializeSystem().then(() => {
-      console.log("System initialized, checking for payments");
-    });
+    // Initialize the system and fetch payments when component mounts
+    const initializeAndFetch = async () => {
+      await initializeSystem();
+      await fetchPayments();
+    };
     
-    fetchPayments();
+    initializeAndFetch();
   }, [agreement.id]);
 
   return (

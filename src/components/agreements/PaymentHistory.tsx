@@ -29,9 +29,8 @@ interface PaymentHistoryProps {
 export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const formatPaymentMethod = (method: string) => {
     return method
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+      ? method.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+      : 'N/A';
   };
 
   // Add debug log to see if payments are being passed

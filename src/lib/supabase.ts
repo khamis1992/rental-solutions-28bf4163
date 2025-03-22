@@ -269,7 +269,10 @@ export const forceGeneratePaymentsForMissingMonths = async (
       .eq("id", agreementId)
       .single();
     
-    if (agreementError) throw agreementError;
+    if (agreementError) {
+      console.error("Error fetching agreement:", agreementError);
+      throw agreementError;
+    }
     
     // If agreement is not active, don't generate payments
     if (agreement && agreement.status !== 'active') {
@@ -306,26 +309,38 @@ export const forceGeneratePaymentsForMissingMonths = async (
         .gte("payment_date", new Date(year, month, 1).toISOString())
         .lt("payment_date", new Date(year, month + 1, 1).toISOString());
       
-      if (checkError) throw checkError;
+      if (checkError) {
+        console.error("Error checking existing payments:", checkError);
+        throw checkError;
+      }
       
       // If no payment exists for this month, generate one
       if (!existingPayments || existingPayments.length === 0) {
         console.log(`Generating missing payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
         
-        const result = await generateMonthlyPayment(
-          supabase,
-          agreementId,
-          amount,
-          month,
-          year
-        );
+        // Create payment date for the 1st of the specified month
+        const paymentDate = new Date(year, month, 1);
         
-        if (result.success) {
-          generatedCount++;
-          console.log(`Successfully generated missing payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
-        } else {
-          console.log(`Failed to generate payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}: ${result.message || 'Unknown error'}`);
+        // Create pending payment record directly
+        const { data, error } = await supabase.from("unified_payments").insert({
+          lease_id: agreementId,
+          amount: amount,
+          amount_paid: 0,
+          balance: amount,
+          payment_date: paymentDate.toISOString(),
+          status: "pending",
+          type: "Income",
+          description: `Monthly rent payment for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+          original_due_date: paymentDate.toISOString(),
+        }).select();
+        
+        if (error) {
+          console.error(`Error creating payment for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}:`, error);
+          throw error;
         }
+        
+        generatedCount++;
+        console.log(`Successfully generated missing payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
       } else {
         console.log(`Payment already exists for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
       }
