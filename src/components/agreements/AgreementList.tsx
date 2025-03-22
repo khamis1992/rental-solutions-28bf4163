@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -158,10 +157,10 @@ export function AgreementList() {
               >
                 {vehicle.make && vehicle.model ? (
                   <span>
-                    {vehicle.make} {vehicle.model} <span className="font-medium text-primary">({vehicle.license_plate})</span>
+                    {vehicle.make} {vehicle.model} <span className="font-semibold text-primary">({vehicle.license_plate})</span>
                   </span>
                 ) : vehicle.license_plate ? (
-                  <span>Vehicle: <span className="font-medium text-primary">{vehicle.license_plate}</span></span>
+                  <span>Vehicle: <span className="font-semibold text-primary">{vehicle.license_plate}</span></span>
                 ) : 'N/A'}
               </Link>
             ) : row.original.vehicle_id ? (
@@ -326,14 +325,15 @@ export function AgreementList() {
                     )}
                   </div>
                 </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs">
-                  <p><strong>Search Tips:</strong></p>
-                  <ul className="list-disc pl-4 mt-1 space-y-1">
-                    <li>Agreement numbers: e.g., "MR202462"</li>
-                    <li>Vehicle numbers: e.g., "7042" (searches license plates directly)</li>
-                    <li>License plates: with or without formatting</li>
-                    <li>Customer names, vehicle make/model</li>
+                <TooltipContent side="bottom" className="max-w-xs p-4">
+                  <p className="font-semibold">Search Examples:</p>
+                  <ul className="list-disc pl-4 mt-2 space-y-1.5">
+                    <li><strong>Agreement numbers:</strong> "MR202462", "AGR-202502"</li>
+                    <li><strong>Vehicle numbers:</strong> "7042" (searches license plates directly)</li>
+                    <li><strong>License plates:</strong> With or without formatting</li>
+                    <li><strong>Customer names, vehicle make/model</strong></li>
                   </ul>
+                  <p className="mt-2 text-sm text-muted-foreground">Tip: For vehicle numbers, try entering just the digits (e.g., "7042" instead of "ABC-7042")</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -376,12 +376,21 @@ export function AgreementList() {
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertTitle className="text-amber-800">Search Tip</AlertTitle>
           <AlertDescription className="text-amber-700">
-            When searching for a vehicle number like "{searchQuery}", try these formats:
+            When searching for vehicle number "{searchQuery}", try these formats:
             <ul className="list-disc pl-5 mt-2">
-              <li>Just the vehicle number as is (e.g., "7042")</li>
+              <li>Only the number digits (e.g., "7042")</li>
               <li>Complete license plate if you know it (e.g., "ABC7042")</li>
-              <li>Agreement number if available (e.g., "MR202462")</li>
             </ul>
+            <div className="mt-2 text-sm">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleClearSearch}
+                className="bg-white hover:bg-white/90"
+              >
+                <X className="h-3.5 w-3.5 mr-1.5" /> Clear Search
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
