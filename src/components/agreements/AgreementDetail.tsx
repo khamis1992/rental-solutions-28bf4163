@@ -6,9 +6,14 @@ import { formatCurrency } from "@/lib/utils"
 import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { Trash2, Edit, FileText } from "lucide-react"
+import { Trash2, Edit, FileText, RefreshCw } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useState, useEffect } from "react"
+import { PaymentEntryForm } from "./PaymentEntryForm"
+import { Payment, PaymentHistory } from "./PaymentHistory"
+import { supabase } from "@/lib/supabase"
 
 interface AgreementDetailProps {
   agreement: Agreement
@@ -37,6 +42,9 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   onDelete 
 }) => {
   const navigate = useNavigate()
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true)
 
   const handleEdit = () => {
     navigate(`/agreements/edit/${agreement.id}`)
@@ -52,6 +60,32 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     // This would typically generate a PDF or printable version
     toast.info("Print functionality will be implemented in a future update")
   }
+
+  const fetchPayments = async () => {
+    setIsLoadingPayments(true)
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('agreement_id', agreement.id)
+        .order('payment_date', { ascending: false })
+      
+      if (error) {
+        throw error
+      }
+      
+      setPayments(data || [])
+    } catch (error) {
+      console.error("Error fetching payments:", error)
+      toast.error("Failed to load payment history")
+    } finally {
+      setIsLoadingPayments(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPayments()
+  }, [agreement.id])
 
   return (
     <div className="space-y-8">
@@ -192,6 +226,28 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 <FileText className="mr-2 h-4 w-4" />
                 Print
               </Button>
+              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default">
+                    Record Payment
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Record New Payment</DialogTitle>
+                    <DialogDescription>
+                      Enter the payment details for agreement {agreement.agreement_number}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <PaymentEntryForm 
+                    agreementId={agreement.id} 
+                    onPaymentComplete={() => {
+                      setIsPaymentDialogOpen(false);
+                      fetchPayments();
+                    }} 
+                  />
+                </DialogContent>
+              </Dialog>
             </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -216,6 +272,13 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
             </AlertDialog>
           </CardFooter>
         </Card>
+
+        <div className="md:col-span-2">
+          <PaymentHistory 
+            payments={payments} 
+            isLoading={isLoadingPayments} 
+          />
+        </div>
       </div>
     </div>
   )
