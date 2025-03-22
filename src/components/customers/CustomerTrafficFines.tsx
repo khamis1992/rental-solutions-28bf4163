@@ -17,11 +17,11 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchCustomerFines = async () => {
+    const fetchTrafficFines = async () => {
       try {
         setLoading(true);
         
-        // First fetch agreements associated with this customer
+        // Get leases directly from the leases table for this customer
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
@@ -73,7 +73,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       }
     };
 
-    fetchCustomerFines();
+    fetchTrafficFines();
   }, [customerId]);
 
   if (loading) {
