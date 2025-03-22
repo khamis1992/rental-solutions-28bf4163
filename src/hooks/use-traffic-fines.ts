@@ -18,7 +18,6 @@ export interface TrafficFine {
   location?: string;
   vehicleId?: string;
   paymentDate?: Date;
-  leaseId?: string; // Add leaseId property to link to agreements
 }
 
 export function useTrafficFines() {
@@ -28,7 +27,6 @@ export function useTrafficFines() {
     status: '',
     dateFrom: '',
     dateTo: '',
-    leaseId: '', // Add leaseId to filters
   });
 
   const { data: trafficFines, isLoading, refetch } = useApiQuery<TrafficFine[]>(
@@ -55,11 +53,6 @@ export function useTrafficFines() {
           query = query.lte('violation_date', filters.dateTo);
         }
 
-        // Filter by lease/agreement id if provided
-        if (filters.leaseId) {
-          query = query.eq('lease_id', filters.leaseId);
-        }
-
         const { data, error } = await query.order('violation_date', { ascending: false });
 
         if (error) throw error;
@@ -68,16 +61,14 @@ export function useTrafficFines() {
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          // The actual vehicle model might be stored in a different field or relation
-          vehicleModel: undefined, // We'll need to update this based on the actual data structure
+          vehicleModel: fine.model || undefined, // Use model field from database
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
           paymentStatus: (fine.payment_status || 'pending') as TrafficFineStatusType,
           location: fine.fine_location, // Use fine_location field
           vehicleId: fine.vehicle_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-          leaseId: fine.lease_id // Map lease_id from database
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
       } catch (error) {
         console.error('Error fetching traffic fines:', error);
@@ -93,14 +84,13 @@ export function useTrafficFines() {
         .insert({
           violation_number: fineData.violationNumber,
           license_plate: fineData.licensePlate,
-          // Don't try to map to model as it doesn't exist in the database
+          model: fineData.vehicleModel, // Map to model field
           violation_date: fineData.violationDate.toISOString(),
           fine_amount: fineData.fineAmount,
           violation_charge: fineData.violationCharge,
           payment_status: fineData.paymentStatus,
           fine_location: fineData.location, // Map to fine_location
-          vehicle_id: fineData.vehicleId,
-          lease_id: fineData.leaseId // Save the lease/agreement id
+          vehicle_id: fineData.vehicleId
         })
         .select()
         .single();
@@ -111,15 +101,14 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: undefined, // No corresponding field in database
+        vehicleModel: data.model, // Map from model field
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
         paymentStatus: data.payment_status as TrafficFineStatusType,
         location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id // Include lease_id in return
+        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
     },
     {
@@ -142,7 +131,7 @@ export function useTrafficFines() {
       const updateData: any = {};
       if (data.violationNumber) updateData.violation_number = data.violationNumber;
       if (data.licensePlate) updateData.license_plate = data.licensePlate;
-      // Don't try to map vehicleModel as there's no model field
+      if (data.vehicleModel) updateData.model = data.vehicleModel;
       if (data.violationDate) updateData.violation_date = data.violationDate.toISOString();
       if (data.fineAmount) updateData.fine_amount = data.fineAmount;
       if (data.violationCharge) updateData.violation_charge = data.violationCharge;
@@ -150,7 +139,6 @@ export function useTrafficFines() {
       if (data.location) updateData.fine_location = data.location;
       if (data.vehicleId) updateData.vehicle_id = data.vehicleId;
       if (data.paymentDate) updateData.payment_date = data.paymentDate.toISOString();
-      if (data.leaseId) updateData.lease_id = data.leaseId; // Update lease_id if provided
 
       const { data: responseData, error } = await supabase
         .from('traffic_fines')
@@ -165,15 +153,14 @@ export function useTrafficFines() {
         id: responseData.id,
         violationNumber: responseData.violation_number,
         licensePlate: responseData.license_plate,
-        vehicleModel: undefined, // No corresponding field in database
+        vehicleModel: responseData.model, // Map from model field
         violationDate: new Date(responseData.violation_date),
         fineAmount: responseData.fine_amount,
         violationCharge: responseData.violation_charge,
         paymentStatus: responseData.payment_status as TrafficFineStatusType,
         location: responseData.fine_location, // Map from fine_location field
         vehicleId: responseData.vehicle_id,
-        paymentDate: responseData.payment_date ? new Date(responseData.payment_date) : undefined,
-        leaseId: responseData.lease_id // Include lease_id in return
+        paymentDate: responseData.payment_date ? new Date(responseData.payment_date) : undefined
       };
     },
     {
@@ -230,15 +217,14 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: undefined, // No corresponding field in database
+        vehicleModel: data.model, // Map from model field
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
         paymentStatus: data.payment_status as TrafficFineStatusType,
         location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id // Include lease_id in return
+        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
     },
     {
@@ -273,15 +259,14 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: undefined, // No corresponding field in database
+        vehicleModel: data.model, // Map from model field
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
         paymentStatus: data.payment_status as TrafficFineStatusType,
         location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id // Include lease_id in return
+        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
     },
     {
@@ -289,51 +274,6 @@ export function useTrafficFines() {
         toast({
           title: 'Dispute submitted',
           description: 'Traffic fine dispute has been submitted successfully.',
-        });
-        refetch();
-      }
-    }
-  );
-
-  // New function to assign a traffic fine to an agreement
-  const assignToAgreementMutation = useApiMutation<
-    TrafficFine,
-    unknown,
-    { id: string; leaseId: string }
-  >(
-    async ({ id, leaseId }) => {
-      const { data, error } = await supabase
-        .from('traffic_fines')
-        .update({
-          lease_id: leaseId,
-          assignment_status: 'assigned'
-        })
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      return {
-        id: data.id,
-        violationNumber: data.violation_number,
-        licensePlate: data.license_plate,
-        vehicleModel: undefined,
-        violationDate: new Date(data.violation_date),
-        fineAmount: data.fine_amount,
-        violationCharge: data.violation_charge,
-        paymentStatus: data.payment_status as TrafficFineStatusType,
-        location: data.fine_location,
-        vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id
-      };
-    },
-    {
-      onSuccess: () => {
-        toast({
-          title: 'Traffic fine assigned',
-          description: 'Traffic fine has been assigned to the agreement successfully.',
         });
         refetch();
       }
@@ -350,6 +290,5 @@ export function useTrafficFines() {
     deleteTrafficFine: deleteTrafficFineMutation.mutate,
     payTrafficFine: payTrafficFineMutation.mutate,
     disputeTrafficFine: disputeTrafficFineMutation.mutate,
-    assignToAgreement: assignToAgreementMutation.mutate, // Export the new assignment function
   };
 }
