@@ -113,7 +113,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const fetchAgreementIdByNumber = async (agreementNumber: string) => {
     try {
       const { data, error } = await supabase
-        .from('agreements')
+        .from('leases')
         .select('id')
         .eq('agreement_number', agreementNumber)
         .single();
@@ -132,13 +132,18 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const fetchPendingPayments = async (agreementId: string) => {
     setIsPendingLoading(true);
     try {
-      const { data, error } = await supabase
+      console.log("Fetching payments for agreement:", agreementId);
+      
+      const { data: unifiedPayments, error: unifiedError } = await supabase
         .from('unified_payments')
         .select('amount')
         .eq('lease_id', agreementId)
         .eq('status', 'pending');
       
-      if (error) throw error;
+      if (unifiedError) {
+        console.error("Error fetching unified payments:", unifiedError);
+        throw unifiedError;
+      }
       
       if (data) {
         setPendingPaymentsCount(data.length);
@@ -167,25 +172,25 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
     try {
       console.log("Starting to generate missing payments for agreement:", agreementId);
       
-      // Get agreement details to find the monthly amount
-      const { data: agreement, error: agreementError } = await supabase
-        .from('agreements')
-        .select('total_amount, agreement_number')
+      // Get lease details to find the monthly amount
+      const { data: lease, error: leaseError } = await supabase
+        .from('leases')
+        .select('rent_amount, agreement_number')
         .eq('id', agreementId)
         .single();
       
-      if (agreementError) {
-        console.error("Error fetching agreement details:", agreementError);
-        throw agreementError;
+      if (leaseError) {
+        console.error("Error fetching lease details:", leaseError);
+        throw leaseError;
       }
       
-      if (!agreement) {
-        console.error("Could not find agreement details");
-        toast.error("Could not find agreement details");
+      if (!lease) {
+        console.error("Could not find lease details");
+        toast.error("Could not find lease details");
         return;
       }
       
-      console.log("Found agreement:", agreement);
+      console.log("Found lease:", lease);
       
       // Use the forceGeneratePaymentsForMissingMonths function directly
       const startDate = new Date(lastPaidDate || new Date(2024, 7, 3)); // Default to Aug 3, 2024 if no last payment
@@ -194,7 +199,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
       
       const result = await forceGeneratePaymentsForMissingMonths(
         agreementId,
-        agreement.total_amount,
+        lease.rent_amount,
         startDate,
         systemDate
       );

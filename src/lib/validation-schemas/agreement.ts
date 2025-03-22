@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 // Define agreement statuses
@@ -98,18 +97,18 @@ export const generateMonthlyPayment = async (
 ) => {
   try {
     // First check if the agreement is still active
-    const { data: agreement, error: agreementError } = await supabase
-      .from("agreements")
+    const { data: lease, error: leaseError } = await supabase
+      .from("leases")
       .select("status, agreement_number")
       .eq("id", agreementId)
       .single();
     
-    if (agreementError) throw agreementError;
+    if (leaseError) throw leaseError;
     
-    // If agreement is not active (closed, cancelled, etc.), don't generate payment
-    if (agreement && agreement.status !== 'active') {
-      console.log(`Skipping payment generation for ${agreement.agreement_number} - status is ${agreement.status}`);
-      return { success: false, message: `Agreement is no longer active (status: ${agreement.status})` };
+    // If lease is not active (closed, cancelled, etc.), don't generate payment
+    if (lease && lease.status !== 'active') {
+      console.log(`Skipping payment generation for ${lease.agreement_number} - status is ${lease.status}`);
+      return { success: false, message: `Lease is no longer active (status: ${lease.status})` };
     }
     
     // Create payment date - 1st of the specified month
@@ -127,11 +126,11 @@ export const generateMonthlyPayment = async (
     
     // If payment already exists for this month, don't create another one
     if (existingPayments && existingPayments.length > 0) {
-      console.log(`Payment already exists for agreement ${agreement.agreement_number} for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+      console.log(`Payment already exists for agreement ${lease.agreement_number} for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
       return { success: false, message: "Payment already exists for this month" };
     }
     
-    console.log(`Generating payment for agreement ${agreement.agreement_number} for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+    console.log(`Generating payment for agreement ${lease.agreement_number} for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
     
     // Create pending payment record for the 1st of the month
     const { data, error } = await supabase.from("unified_payments").insert({
@@ -148,7 +147,7 @@ export const generateMonthlyPayment = async (
     
     if (error) throw error;
     
-    console.log(`Successfully generated payment for agreement ${agreement.agreement_number}`);
+    console.log(`Successfully generated payment for agreement ${lease.agreement_number}`);
     return { success: true, data };
   } catch (error) {
     console.error("Error generating monthly payment:", error);
@@ -163,20 +162,20 @@ export const forceGeneratePaymentForAgreement = async (
 ) => {
   try {
     // Get the agreement details
-    const { data: agreement, error: agreementError } = await supabase
-      .from("agreements")
-      .select("id, total_amount, agreement_number, status")
+    const { data: lease, error: leaseError } = await supabase
+      .from("leases")
+      .select("id, rent_amount, agreement_number, status")
       .eq("id", agreementId)
       .single();
     
-    if (agreementError) throw agreementError;
+    if (leaseError) throw leaseError;
     
-    if (!agreement) {
-      return { success: false, message: "Agreement not found" };
+    if (!lease) {
+      return { success: false, message: "Lease not found" };
     }
     
-    if (agreement.status !== 'active') {
-      return { success: false, message: `Agreement is not active (current status: ${agreement.status})` };
+    if (lease.status !== 'active') {
+      return { success: false, message: `Lease is not active (current status: ${lease.status})` };
     }
     
     // Get current month and year
@@ -187,8 +186,8 @@ export const forceGeneratePaymentForAgreement = async (
     // Generate a payment for the current month if it doesn't exist
     const result = await generateMonthlyPayment(
       supabase,
-      agreement.id,
-      agreement.total_amount,
+      lease.id,
+      lease.rent_amount,
       currentMonth,
       currentYear
     );

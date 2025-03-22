@@ -263,21 +263,21 @@ export const forceGeneratePaymentsForMissingMonths = async (
     console.log(`Checking for missing payments between ${lastPaymentDate.toISOString()} and ${currentDate.toISOString()}`);
     
     // First check if the agreement is still active
-    const { data: agreement, error: agreementError } = await supabase
-      .from("agreements")
+    const { data: lease, error: leaseError } = await supabase
+      .from("leases")
       .select("status, agreement_number")
       .eq("id", agreementId)
       .single();
     
-    if (agreementError) {
-      console.error("Error fetching agreement:", agreementError);
-      throw agreementError;
+    if (leaseError) {
+      console.error("Error fetching lease:", leaseError);
+      throw leaseError;
     }
     
-    // If agreement is not active, don't generate payments
-    if (agreement && agreement.status !== 'active') {
-      console.log(`Skipping missing payment generation for ${agreement.agreement_number} - status is ${agreement.status}`);
-      return { success: false, message: `Agreement is not active (status: ${agreement.status})`, generated: 0 };
+    // If lease is not active, don't generate payments
+    if (lease && lease.status !== 'active') {
+      console.log(`Skipping missing payment generation for ${lease.agreement_number} - status is ${lease.status}`);
+      return { success: false, message: `Lease is not active (status: ${lease.status})`, generated: 0 };
     }
     
     // Get all existing payments for this agreement to avoid duplication
