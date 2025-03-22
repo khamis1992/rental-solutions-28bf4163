@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { generateMonthlyPayment, forceGeneratePaymentForAgreement } from './validation-schemas/agreement';
 
@@ -110,10 +109,14 @@ export const formatVehicleForDisplay = (vehicle: any): any => {
   };
 };
 
+// Use the updated system date (March 22, 2025) for all date-related operations
+const SYSTEM_DATE = new Date(2025, 2, 22); // March 22, 2025
+
 // Check if automatic payment generation is needed (run once daily)
 export const checkAndGenerateMonthlyPayments = async () => {
   try {
-    const today = new Date();
+    // Use the system date instead of actual date
+    const today = SYSTEM_DATE;
     
     // Only run this on the 1st day of the month to generate payments for active agreements
     if (today.getDate() === 1) {
@@ -161,7 +164,7 @@ export const checkAndGenerateMonthlyPayments = async () => {
         console.log('No active agreements found for payment generation');
       }
     } else {
-      console.log(`Today is not the 1st of the month (it's the ${today.getDate()}), skipping automatic payment generation`);
+      console.log(`Today is not the 1st of the month (using system date: ${today.toDateString()}), skipping automatic payment generation`);
     }
     
     return false;
@@ -192,16 +195,17 @@ export const generatePaymentForAgreement = async (agreementId: string) => {
 // Function to force check all agreements regardless of date
 export const forceCheckAllAgreementsForPayments = async () => {
   try {
-    const today = new Date();
+    // Use the system date instead of actual date
+    const today = SYSTEM_DATE;
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     
-    console.log('Force checking all active agreements for payment generation');
+    console.log(`Force checking all active agreements for payment generation (system date: ${today.toDateString()})`);
     
     // Get all active agreements
     const { data: agreements, error } = await supabase
       .from('agreements')
-      .select('id, total_amount, agreement_number')
+      .select('id, total_amount, agreement_number, status')
       .eq('status', 'active');
     
     if (error) {
@@ -214,6 +218,13 @@ export const forceCheckAllAgreementsForPayments = async () => {
       
       // Generate a pending payment for each active agreement
       for (const agreement of agreements) {
+        console.log(`Checking current month payment for agreement ${agreement.agreement_number} (status: ${agreement.status})`);
+        
+        if (agreement.status !== 'active') {
+          console.log(`Skipping agreement ${agreement.agreement_number} - not active (status: ${agreement.status})`);
+          continue;
+        }
+        
         const result = await generateMonthlyPayment(
           supabase,
           agreement.id,
@@ -238,6 +249,99 @@ export const forceCheckAllAgreementsForPayments = async () => {
   } catch (error) {
     console.error('Error force checking agreements for payments:', error);
     return { success: false, error };
+  }
+};
+
+// New function to generate missing monthly payments for an agreement
+export const forceGeneratePaymentsForMissingMonths = async (
+  agreementId: string,
+  amount: number,
+  lastPaymentDate: Date,
+  currentDate: Date = SYSTEM_DATE
+) => {
+  try {
+    console.log(`Checking for missing payments between ${lastPaymentDate.toDateString()} and ${currentDate.toDateString()}`);
+    
+    // First check if the agreement is still active
+    const { data: agreement, error: agreementError } = await supabase
+      .from("agreements")
+      .select("status, agreement_number")
+      .eq("id", agreementId)
+      .single();
+    
+    if (agreementError) throw agreementError;
+    
+    // If agreement is not active, don't generate payments
+    if (agreement && agreement.status !== 'active') {
+      console.log(`Skipping missing payment generation for ${agreement.agreement_number} - status is ${agreement.status}`);
+      return { success: false, message: `Agreement is not active (status: ${agreement.status})`, generated: 0 };
+    }
+    
+    // Start from the month after the last payment
+    const startMonth = new Date(lastPaymentDate);
+    startMonth.setMonth(startMonth.getMonth() + 1);
+    startMonth.setDate(1); // First day of the month
+    
+    // End with the current month
+    const endMonth = new Date(currentDate);
+    endMonth.setDate(1); // First day of the current month
+    
+    console.log(`Checking for missing payments from ${startMonth.toDateString()} to ${endMonth.toDateString()}`);
+    
+    let generatedCount = 0;
+    let currentCheckMonth = new Date(startMonth);
+    
+    // Loop through each month and generate missing payments
+    while (currentCheckMonth <= endMonth) {
+      const year = currentCheckMonth.getFullYear();
+      const month = currentCheckMonth.getMonth();
+      
+      console.log(`Checking for payment in ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+      
+      // Check if payment for this month already exists
+      const { data: existingPayments, error: checkError } = await supabase
+        .from("unified_payments")
+        .select("id")
+        .eq("lease_id", agreementId)
+        .gte("payment_date", new Date(year, month, 1).toISOString())
+        .lt("payment_date", new Date(year, month + 1, 1).toISOString());
+      
+      if (checkError) throw checkError;
+      
+      // If no payment exists for this month, generate one
+      if (!existingPayments || existingPayments.length === 0) {
+        console.log(`Generating missing payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+        
+        const result = await generateMonthlyPayment(
+          supabase,
+          agreementId,
+          amount,
+          month,
+          year
+        );
+        
+        if (result.success) {
+          generatedCount++;
+          console.log(`Successfully generated missing payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+        } else {
+          console.log(`Failed to generate payment for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}: ${result.message || 'Unknown error'}`);
+        }
+      } else {
+        console.log(`Payment already exists for ${currentCheckMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
+      }
+      
+      // Move to next month
+      currentCheckMonth.setMonth(currentCheckMonth.getMonth() + 1);
+    }
+    
+    return { 
+      success: true, 
+      generated: generatedCount, 
+      message: `Generated ${generatedCount} missing payments between ${startMonth.toLocaleString('default', { month: 'long', year: 'numeric' })} and ${endMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}` 
+    };
+  } catch (error) {
+    console.error("Error generating missing monthly payments:", error);
+    return { success: false, error, generated: 0 };
   }
 };
 

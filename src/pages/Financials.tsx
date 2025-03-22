@@ -11,7 +11,7 @@ import FinancialMetricsChart from '@/components/financials/FinancialMetricsChart
 import TransactionDialog from '@/components/financials/TransactionDialog';
 import { useFinancials, FinancialTransaction } from '@/hooks/use-financials';
 import { useToast } from '@/hooks/use-toast';
-import { checkAndGenerateMonthlyPayments } from '@/lib/supabase';
+import { checkAndGenerateMonthlyPayments, forceCheckAllAgreementsForPayments } from '@/lib/supabase';
 
 const Financials = () => {
   const { toast } = useToast();
@@ -24,7 +24,8 @@ const Financials = () => {
     setFilters,
     addTransaction,
     updateTransaction,
-    deleteTransaction
+    deleteTransaction,
+    systemDate
   } = useFinancials();
 
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
@@ -33,17 +34,22 @@ const Financials = () => {
 
   // Check for monthly payments on page load
   useEffect(() => {
-    // Run the payment check on every page load
+    // Run the payment check on every page load and use system date
     checkAndGenerateMonthlyPayments().then((result) => {
-      console.log("Automatic payment check completed:", result);
-      if (result) {
-        toast({
-          title: 'Monthly payments processed',
-          description: 'System has checked and generated any necessary payments.'
-        });
-      }
+      console.log(`Automatic payment check completed for system date ${systemDate.toDateString()}:`, result);
+      
+      // Force check for payments for all agreements every time the financial page is loaded
+      forceCheckAllAgreementsForPayments().then((forceResult) => {
+        console.log("Force check for all agreements completed:", forceResult);
+        if (forceResult.success && forceResult.generated > 0) {
+          toast({
+            title: 'Monthly payments processed',
+            description: `System has generated ${forceResult.generated} new payments for active agreements.`
+          });
+        }
+      });
     });
-  }, [toast]);
+  }, [toast, systemDate]);
 
   const handleAddTransaction = () => {
     setCurrentTransaction(undefined);
@@ -132,7 +138,7 @@ const Financials = () => {
     >
       <SectionHeader
         title="Financials"
-        description="Track your income, expenses, and financial performance"
+        description={`Track your income, expenses, and financial performance (System Date: ${systemDate.toLocaleDateString()})`}
         icon={BarChart4}
         actions={
           <>

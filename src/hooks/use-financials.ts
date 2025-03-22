@@ -3,6 +3,9 @@ import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
+// Define the current system date as March 22, 2025
+const SYSTEM_DATE = new Date(2025, 2, 22);
+
 export type TransactionType = 'income' | 'expense';
 export type TransactionStatusType = 'completed' | 'pending' | 'failed';
 
@@ -47,7 +50,7 @@ export function useFinancials() {
     });
     
     // Set up a check that runs once per day
-    const today = new Date().toDateString();
+    const today = SYSTEM_DATE.toDateString();
     const lastCheck = localStorage.getItem('lastPaymentCheck');
     
     if (!lastCheck || lastCheck !== today) {
@@ -198,6 +201,7 @@ export function useFinancials() {
     setFilters,
     addTransaction: addTransactionMutation.mutate,
     updateTransaction: updateTransactionMutation.mutate,
-    deleteTransaction: deleteTransactionMutation.mutate
+    deleteTransaction: deleteTransactionMutation.mutate,
+    systemDate: SYSTEM_DATE
   };
 }

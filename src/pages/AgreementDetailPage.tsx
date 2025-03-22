@@ -7,7 +7,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { initializeSystem, forceCheckAllAgreementsForPayments } from '@/lib/supabase';
+import { initializeSystem, forceCheckAllAgreementsForPayments, forceGeneratePaymentsForMissingMonths } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,16 +32,44 @@ const AgreementDetailPage = () => {
         if (data) {
           setAgreement(data);
           
-          // Check agreement number for specific case or if it's a new month
-          if (data.agreement_number === 'MR202462' || isNewMonth()) {
-            console.log(`Found agreement ${data.agreement_number}, checking payments...`);
+          // For any agreement, check for missing monthly payments
+          if (data.status === 'active') {
+            console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
             
-            // Force check for payments for all agreements
-            const result = await forceCheckAllAgreementsForPayments();
-            if (result.success) {
-              console.log("Payment check completed:", result);
-              if (result.generated > 0) {
-                toast.success(`Generated ${result.generated} new payments for active agreements`);
+            // Check if MR202462 specifically or if it's a new month
+            const shouldForceCheck = data.agreement_number === 'MR202462' || isNewMonth();
+            
+            if (shouldForceCheck) {
+              // Force check all agreements for current month payments
+              const allResult = await forceCheckAllAgreementsForPayments();
+              if (allResult.success) {
+                console.log("Payment check completed:", allResult);
+                if (allResult.generated > 0) {
+                  toast.success(`Generated ${allResult.generated} new payments for active agreements`);
+                }
+              }
+              
+              // For agreement MR202462, check for all missing months including August 2024
+              if (data.agreement_number === 'MR202462') {
+                console.log(`Special check for agreement ${data.agreement_number} to catch up missing payments`);
+                
+                // Generate payments for all missing months from August 2024 to March 2025
+                const lastKnownPaymentDate = new Date(2024, 7, 3); // August 3, 2024
+                const currentSystemDate = new Date(2025, 2, 22); // March 22, 2025
+                
+                const missingResult = await forceGeneratePaymentsForMissingMonths(
+                  data.id,
+                  data.total_amount,
+                  lastKnownPaymentDate,
+                  currentSystemDate
+                );
+                
+                if (missingResult.success) {
+                  console.log("Missing payments check completed:", missingResult);
+                  if (missingResult.generated > 0) {
+                    toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
+                  }
+                }
               }
             }
           }
@@ -61,8 +89,8 @@ const AgreementDetailPage = () => {
     // Helper function to determine if this is the first time we're viewing an agreement this month
     const isNewMonth = () => {
       const lastCheck = localStorage.getItem('lastMonthlyPaymentCheck');
-      const currentMonth = new Date().getMonth();
-      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date(2025, 2, 22).getMonth(); // Use March 2025
+      const currentYear = new Date(2025, 2, 22).getFullYear(); // Use 2025
       const monthYearString = `${currentMonth}-${currentYear}`;
       
       if (lastCheck !== monthYearString) {
