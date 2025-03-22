@@ -30,6 +30,7 @@ const AddMaintenance = () => {
   }, [location.search]);
 
   const handleSubmit = (data: Omit<Maintenance, 'id'>) => {
+    console.log("Submitting maintenance record:", data);
     createMaintenance(data, {
       onSuccess: () => {
         toast({

@@ -140,7 +140,7 @@ export function useMaintenance() {
             // Handle text search across multiple fields
             if (customFilters.query) {
               const searchTerm = `%${customFilters.query}%`;
-              query = query.or(`description.ilike.${searchTerm},service_provider.ilike.${searchTerm},invoice_number.ilike.${searchTerm}`);
+              query = query.or(`description.ilike.${searchTerm}`);
             }
           }
           
@@ -157,7 +157,14 @@ export function useMaintenance() {
             return [];
           }
           
-          return data || [];
+          // Transform the data to ensure we have consistent field names
+          // This ensures all expected fields are present, even if null
+          const transformedData = data?.map(record => ({
+            ...record,
+            service_provider: record.service_provider || null
+          })) || [];
+          
+          return transformedData;
         } catch (error) {
           console.error('Error in useCustomList query:', error);
           return [];
