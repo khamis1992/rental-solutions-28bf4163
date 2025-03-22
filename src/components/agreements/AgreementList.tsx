@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -90,16 +91,17 @@ export function AgreementList() {
   
   useEffect(() => {
     const isNumericSearch = /^\d{3,}$/.test(searchQuery);
-    setSearchTip(isNumericSearch && agreements?.length === 0);
+    const shouldShowTip = isNumericSearch && (!agreements || agreements.length === 0);
+    setSearchTip(shouldShowTip);
+    
+    if (shouldShowTip) {
+      console.log(`Showing search tip for numeric search: ${searchQuery}`);
+    }
   }, [searchQuery, agreements]);
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
-    
-    if (/^\d{3,6}$/.test(value)) {
-      console.log(`Numeric search detected: ${value} - applying special vehicle number search handling`);
-    }
   };
   
   const handleClearSearch = () => {
