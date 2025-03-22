@@ -66,9 +66,14 @@ const FinancialReport = () => {
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `${formatCurrency(value/1000).split('.')[0]}k`}
+                    tickFormatter={(value) => `${formatCurrency(Number(value)/1000).split('.')[0]}k`}
                   />
-                  <Tooltip formatter={(value) => [formatCurrency(value), 'Revenue']} />
+                  <Tooltip 
+                    formatter={(value) => {
+                      // Ensure value is treated as a number
+                      return [formatCurrency(Number(value)), 'Revenue'];
+                    }} 
+                  />
                   <Line 
                     type="monotone" 
                     dataKey="revenue" 
@@ -103,9 +108,14 @@ const FinancialReport = () => {
                   <YAxis 
                     axisLine={false}
                     tickLine={false}
-                    tickFormatter={(value) => `${formatCurrency(value/1000).split('.')[0]}k`}
+                    tickFormatter={(value) => `${formatCurrency(Number(value)/1000).split('.')[0]}k`}
                   />
-                  <Tooltip formatter={(value) => [formatCurrency(value), 'Revenue']} />
+                  <Tooltip 
+                    formatter={(value) => {
+                      // Ensure value is treated as a number
+                      return [formatCurrency(Number(value)), 'Revenue'];
+                    }}
+                  />
                   <Bar dataKey="revenue" fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
