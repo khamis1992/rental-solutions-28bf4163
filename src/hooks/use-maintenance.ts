@@ -1,4 +1,3 @@
-
 import { useApiMutation, useApiQuery, useCrudApi } from './use-api';
 import { useState } from 'react';
 import { useToast } from './use-toast';
@@ -205,15 +204,49 @@ export function useMaintenance() {
     return result;
   };
 
-  // New function to delete all maintenance records
+  // Function to delete all maintenance records, handling foreign key constraints
   const deleteAllRecords = async () => {
     try {
-      // Fix the TypeScript error - use a different approach to delete all records
-      // The .is() method expects a boolean for the second parameter
+      // First, check if there are any vehicle inspections referencing maintenance records
+      const { data: inspections, error: inspectionError } = await supabase
+        .from('vehicle_inspections')
+        .select('maintenance_id')
+        .not('maintenance_id', 'is', null);
+      
+      if (inspectionError) {
+        console.error('Error checking vehicle inspections:', inspectionError);
+        toast({
+          title: "Error",
+          description: "Failed to check related inspection records",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      // If there are related inspections, we need to handle them first
+      if (inspections && inspections.length > 0) {
+        // First, update the vehicle_inspections to remove the maintenance_id references
+        const { error: updateError } = await supabase
+          .from('vehicle_inspections')
+          .update({ maintenance_id: null })
+          .not('maintenance_id', 'is', null);
+        
+        if (updateError) {
+          console.error('Error updating vehicle inspections:', updateError);
+          toast({
+            title: "Error",
+            description: "Failed to update related inspection records",
+            variant: "destructive"
+          });
+          return false;
+        }
+      }
+      
+      // Now we can safely delete all maintenance records
       const { error } = await supabase
         .from('maintenance')
         .delete()
-        .filter('id', 'not.is', null); // This is the correct syntax for deleting all records
+        .filter('id', 'not.is', null);
       
       if (error) {
         console.error('Error deleting all maintenance records:', error);
@@ -234,6 +267,11 @@ export function useMaintenance() {
       return true;
     } catch (error) {
       console.error('Error in deleteAllRecords:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive"
+      });
       return false;
     }
   };
