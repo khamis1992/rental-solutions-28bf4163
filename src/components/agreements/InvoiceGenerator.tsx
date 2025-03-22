@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FileText, Download, Printer } from "lucide-react";
@@ -7,14 +7,29 @@ import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface InvoiceGeneratorProps {
   agreement: Agreement;
 }
 
+interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  reference_number?: string;
+  notes?: string;
+  type?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+}
+
 export const InvoiceGenerator = ({ agreement }: InvoiceGeneratorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
 
   const handlePrint = () => {
     setIsGenerating(true);
@@ -36,10 +51,51 @@ export const InvoiceGenerator = ({ agreement }: InvoiceGeneratorProps) => {
     }, 1000);
   };
 
+  const fetchPayments = async () => {
+    if (!agreement.id) return;
+    
+    setIsLoadingPayments(true);
+    try {
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreement.id)
+        .order('payment_date', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setPayments(data || []);
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch payments when the dialog opens
+    if (isOpen) {
+      fetchPayments();
+    }
+  }, [isOpen, agreement.id]);
+
   // Calculate the invoice details
   const invoiceNumber = `INV-${agreement.agreement_number.replace('AGR-', '')}`;
   const invoiceDate = format(new Date(), "PPP");
   const dueDate = format(new Date(new Date().setDate(new Date().getDate() + 14)), "PPP");
+
+  // Format payment method for display
+  const formatPaymentMethod = (method: string) => {
+    return method
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Calculate total payments
+  const totalPayments = payments.reduce((sum, payment) => sum + payment.amount, 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -151,6 +207,73 @@ export const InvoiceGenerator = ({ agreement }: InvoiceGeneratorProps) => {
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          </div>
+          
+          {/* Payment History */}
+          <div>
+            <h3 className="font-semibold mb-2">Payment History</h3>
+            <div className="border rounded-md">
+              {isLoadingPayments ? (
+                <div className="flex justify-center py-6">
+                  <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
+                </div>
+              ) : payments.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  No payments recorded yet
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-border">
+                  <thead>
+                    <tr className="bg-muted/50">
+                      <th className="px-4 py-3 text-left text-sm font-semibold">Date</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold">Type</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold">Method</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold">Reference</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {payments.map((payment) => (
+                      <tr key={payment.id} className={payment.type === 'LATE_PAYMENT_FEE' ? 'bg-amber-50' : ''}>
+                        <td className="px-4 py-3 text-sm">
+                          {format(new Date(payment.payment_date), "MMM d, yyyy")}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {payment.type === 'LATE_PAYMENT_FEE' ? 'Late Fee' : 'Payment'}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {formatPaymentMethod(payment.payment_method)}
+                        </td>
+                        <td className="px-4 py-3 text-sm">
+                          {payment.reference_number || "-"}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-right font-medium">
+                          {formatCurrency(payment.amount)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr className="bg-muted/50">
+                      <th className="px-4 py-3 text-left text-sm font-semibold" colSpan={4}>Total Payments</th>
+                      <th className="px-4 py-3 text-right text-sm font-semibold">
+                        {formatCurrency(totalPayments)}
+                      </th>
+                    </tr>
+                  </tfoot>
+                </table>
+              )}
+            </div>
+          </div>
+          
+          {/* Balance */}
+          <div className="border rounded-md p-4 bg-muted/20">
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-bold">Balance Due</span>
+              <span className="text-lg font-bold">
+                {formatCurrency(Math.max(0, (agreement.total_amount + (agreement.deposit_amount || 0)) - totalPayments))}
+              </span>
             </div>
           </div>
           

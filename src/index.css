@@ -105,4 +105,21 @@
     box-shadow: none;
     background: white;
   }
+
+  /* Ensure tables display properly when printing */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    page-break-inside: auto;
+  }
+  
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  /* Hide UI controls when printing */
+  button {
+    display: none !important;
+  }
 }
