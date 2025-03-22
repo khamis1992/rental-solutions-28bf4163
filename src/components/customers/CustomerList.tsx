@@ -98,24 +98,37 @@ export function CustomerList() {
       header: "Status",
       cell: ({ row }) => {
         const status = row.getValue("status") as string || 'active';
+        
+        // Define badge styles based on status
+        let badgeClass = "";
+        let Icon = CheckCircle;
+        
+        switch(status) {
+          case "active":
+            badgeClass = "bg-green-500 text-white border-green-600";
+            Icon = CheckCircle;
+            break;
+          case "inactive":
+            badgeClass = "bg-gray-400 text-white border-gray-500";
+            Icon = XCircle;
+            break;
+          case "blacklisted":
+            badgeClass = "bg-red-500 text-white border-red-600";
+            Icon = XCircle;
+            break;
+          case "pending_review":
+            badgeClass = "bg-amber-500 text-white border-amber-600";
+            Icon = AlertTriangle;
+            break;
+          default:
+            badgeClass = "bg-green-500 text-white border-green-600";
+            Icon = CheckCircle;
+        }
+        
         return (
-          <Badge 
-            variant={
-              status === "active" ? "success" : 
-              status === "inactive" ? "outline" : 
-              status === "pending_review" ? "secondary" :
-              "destructive"
-            }
-            className="capitalize"
-          >
-            {status === "active" ? (
-              <CheckCircle className="h-3 w-3 mr-1" />
-            ) : status === "inactive" ? (
-              <XCircle className="h-3 w-3 mr-1" />
-            ) : (
-              <AlertTriangle className="h-3 w-3 mr-1" />
-            )}
-            {status || 'active'}
+          <Badge className={`capitalize ${badgeClass}`}>
+            <Icon className="h-3 w-3 mr-1" />
+            {status.replace('_', ' ')}
           </Badge>
         );
       },
