@@ -18,7 +18,6 @@ export interface TrafficFine {
   location?: string;
   vehicleId?: string;
   paymentDate?: Date;
-  leaseId?: string; // Add leaseId property to link to agreements
 }
 
 export function useTrafficFines() {
@@ -28,7 +27,6 @@ export function useTrafficFines() {
     status: '',
     dateFrom: '',
     dateTo: '',
-    leaseId: '', // Add leaseId to filters
   });
 
   const { data: trafficFines, isLoading, refetch } = useApiQuery<TrafficFine[]>(
@@ -55,11 +53,6 @@ export function useTrafficFines() {
           query = query.lte('violation_date', filters.dateTo);
         }
 
-        // Filter by lease/agreement id if provided
-        if (filters.leaseId) {
-          query = query.eq('lease_id', filters.leaseId);
-        }
-
         const { data, error } = await query.order('violation_date', { ascending: false });
 
         if (error) throw error;
@@ -76,8 +69,7 @@ export function useTrafficFines() {
           paymentStatus: (fine.payment_status || 'pending') as TrafficFineStatusType,
           location: fine.fine_location, // Use fine_location field
           vehicleId: fine.vehicle_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-          leaseId: fine.lease_id // Map lease_id from database
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
       } catch (error) {
         console.error('Error fetching traffic fines:', error);
@@ -99,8 +91,7 @@ export function useTrafficFines() {
           violation_charge: fineData.violationCharge,
           payment_status: fineData.paymentStatus,
           fine_location: fineData.location, // Map to fine_location
-          vehicle_id: fineData.vehicleId,
-          lease_id: fineData.leaseId // Save the lease/agreement id
+          vehicle_id: fineData.vehicleId
         })
         .select()
         .single();
@@ -118,8 +109,7 @@ export function useTrafficFines() {
         paymentStatus: data.payment_status as TrafficFineStatusType,
         location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id // Include lease_id in return
+        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
     },
     {
@@ -150,7 +140,6 @@ export function useTrafficFines() {
       if (data.location) updateData.fine_location = data.location;
       if (data.vehicleId) updateData.vehicle_id = data.vehicleId;
       if (data.paymentDate) updateData.payment_date = data.paymentDate.toISOString();
-      if (data.leaseId) updateData.lease_id = data.leaseId; // Update lease_id if provided
 
       const { data: responseData, error } = await supabase
         .from('traffic_fines')
@@ -172,8 +161,7 @@ export function useTrafficFines() {
         paymentStatus: responseData.payment_status as TrafficFineStatusType,
         location: responseData.fine_location, // Map from fine_location field
         vehicleId: responseData.vehicle_id,
-        paymentDate: responseData.payment_date ? new Date(responseData.payment_date) : undefined,
-        leaseId: responseData.lease_id // Include lease_id in return
+        paymentDate: responseData.payment_date ? new Date(responseData.payment_date) : undefined
       };
     },
     {
@@ -237,8 +225,7 @@ export function useTrafficFines() {
         paymentStatus: data.payment_status as TrafficFineStatusType,
         location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id // Include lease_id in return
+        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
     },
     {
@@ -280,8 +267,7 @@ export function useTrafficFines() {
         paymentStatus: data.payment_status as TrafficFineStatusType,
         location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id // Include lease_id in return
+        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
     },
     {
@@ -289,51 +275,6 @@ export function useTrafficFines() {
         toast({
           title: 'Dispute submitted',
           description: 'Traffic fine dispute has been submitted successfully.',
-        });
-        refetch();
-      }
-    }
-  );
-
-  // New function to assign a traffic fine to an agreement
-  const assignToAgreementMutation = useApiMutation<
-    TrafficFine,
-    unknown,
-    { id: string; leaseId: string }
-  >(
-    async ({ id, leaseId }) => {
-      const { data, error } = await supabase
-        .from('traffic_fines')
-        .update({
-          lease_id: leaseId,
-          assignment_status: 'assigned'
-        })
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      return {
-        id: data.id,
-        violationNumber: data.violation_number,
-        licensePlate: data.license_plate,
-        vehicleModel: undefined,
-        violationDate: new Date(data.violation_date),
-        fineAmount: data.fine_amount,
-        violationCharge: data.violation_charge,
-        paymentStatus: data.payment_status as TrafficFineStatusType,
-        location: data.fine_location,
-        vehicleId: data.vehicle_id,
-        paymentDate: data.payment_date ? new Date(data.payment_date) : undefined,
-        leaseId: data.lease_id
-      };
-    },
-    {
-      onSuccess: () => {
-        toast({
-          title: 'Traffic fine assigned',
-          description: 'Traffic fine has been assigned to the agreement successfully.',
         });
         refetch();
       }
@@ -350,6 +291,5 @@ export function useTrafficFines() {
     deleteTrafficFine: deleteTrafficFineMutation.mutate,
     payTrafficFine: payTrafficFineMutation.mutate,
     disputeTrafficFine: disputeTrafficFineMutation.mutate,
-    assignToAgreement: assignToAgreementMutation.mutate, // Export the new assignment function
   };
 }
