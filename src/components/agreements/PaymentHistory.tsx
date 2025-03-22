@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 export interface Payment {
   id: string;
@@ -41,11 +42,18 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const [pendingPaymentsCount, setPendingPaymentsCount] = useState(0);
   const [totalPendingAmount, setTotalPendingAmount] = useState(0);
   const [isPendingLoading, setIsPendingLoading] = useState(false);
+  const [missingPaymentsCount, setMissingPaymentsCount] = useState(0);
+  const [totalMissingAmount, setTotalMissingAmount] = useState(0);
+  const [lastPaidDate, setLastPaidDate] = useState<Date | null>(null);
+  
+  // System date is March 22, 2025
+  const systemDate = new Date(2025, 2, 22);
 
   useEffect(() => {
     // Only fetch pending payments if we have an agreement ID
     if (agreementId) {
       fetchPendingPayments(agreementId);
+      calculateMissingPayments();
     } else if (payments.length > 0) {
       // Try to extract agreement ID from payment notes if lease_id is not directly available
       const firstPayment = payments[0];
@@ -58,6 +66,47 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
       }
     }
   }, [agreementId, payments]);
+
+  // Find the last paid payment date
+  const calculateMissingPayments = () => {
+    if (payments.length === 0) return;
+    
+    // Filter for only paid payments (not pending)
+    const paidPayments = payments.filter(p => p.status === 'paid' || p.status === 'completed');
+    
+    if (paidPayments.length === 0) return;
+    
+    // Sort payments by date (newest first is already done, so take the first one)
+    const lastPaidPayment = paidPayments[0];
+    const lastPaidDateObj = new Date(lastPaidPayment.payment_date);
+    setLastPaidDate(lastPaidDateObj);
+    
+    // Calculate missing months between last paid date and current system date
+    const startMonth = new Date(lastPaidDateObj);
+    startMonth.setDate(1); // First day of the month
+    const currentMonth = new Date(systemDate);
+    currentMonth.setDate(1); // First day of current month
+    
+    // Count how many months have passed since the last payment (not including current month's payment if it exists)
+    let monthsCounter = 0;
+    let totalExpectedPayments = 0;
+    let tempDate = new Date(startMonth);
+    tempDate.setMonth(tempDate.getMonth() + 1); // Start from the month after the last payment
+    
+    const monthlyAmount = payments.length > 0 ? payments[0].amount : 0;
+    
+    while (tempDate <= currentMonth) {
+      monthsCounter++;
+      totalExpectedPayments += monthlyAmount;
+      tempDate.setMonth(tempDate.getMonth() + 1);
+    }
+    
+    // Subtract the number of existing pending payments to get truly "missing" payments
+    // that aren't even in the system yet
+    const missingMonths = Math.max(0, monthsCounter - pendingPaymentsCount);
+    setMissingPaymentsCount(missingMonths);
+    setTotalMissingAmount(missingMonths * monthlyAmount);
+  };
 
   // Function to fetch agreement ID by agreement number
   const fetchAgreementIdByNumber = async (agreementNumber: string) => {
@@ -94,6 +143,9 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
         setPendingPaymentsCount(data.length);
         const total = data.reduce((sum, payment) => sum + payment.amount, 0);
         setTotalPendingAmount(total);
+        
+        // After setting pending payments, calculate missing payments too
+        calculateMissingPayments();
       }
     } catch (error) {
       console.error("Error fetching pending payments:", error);
@@ -104,6 +156,62 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
 
   // Add debug log to see if payments are being passed
   console.log("Payment history rendered with payments:", payments);
+
+  // Function to generate missing payments if needed
+  const handleGenerateMissingPayments = async () => {
+    if (!agreementId || missingPaymentsCount === 0) return;
+    
+    try {
+      // Get agreement details to find the monthly amount
+      const { data: agreement, error: agreementError } = await supabase
+        .from('agreements')
+        .select('total_amount, agreement_number')
+        .eq('id', agreementId)
+        .single();
+      
+      if (agreementError) throw agreementError;
+      
+      if (!agreement) {
+        toast.error("Could not find agreement details");
+        return;
+      }
+      
+      // Call the API to generate missing payments
+      // We need lastPaidDate plus one month as the start date
+      const startDate = new Date(lastPaidDate || new Date(2024, 7, 3)); // Default to Aug 3, 2024 if no last payment
+      startDate.setMonth(startDate.getMonth() + 1); // Start from the month after the last payment
+      
+      const response = await fetch('/api/generate-missing-payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          agreementId,
+          amount: agreement.total_amount,
+          startDate: startDate.toISOString(),
+          endDate: systemDate.toISOString(),
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate missing payments');
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        toast.success(`Generated ${result.generated} missing payments`);
+        // Refresh the payment list
+        fetchPendingPayments(agreementId);
+      } else {
+        throw new Error(result.message || 'Unknown error');
+      }
+    } catch (error) {
+      console.error("Error generating missing payments:", error);
+      toast.error("Failed to generate missing payments");
+    }
+  };
 
   return (
     <Card>
@@ -120,6 +228,26 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
                 There {pendingPaymentsCount === 1 ? 'is' : 'are'} <strong>{pendingPaymentsCount}</strong> pending {pendingPaymentsCount === 1 ? 'payment' : 'payments'} 
                 {' '} totaling <strong>{formatCurrency(totalPendingAmount)}</strong>
               </span>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {lastPaidDate && missingPaymentsCount > 0 && (
+          <Alert className="mb-4 bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                <strong>Warning:</strong> Last payment was made on {format(lastPaidDate, "PPP")}. There {missingPaymentsCount === 1 ? 'is' : 'are'} <strong>{missingPaymentsCount}</strong> additional {missingPaymentsCount === 1 ? 'month' : 'months'} 
+                {' '} missing from the system, totaling <strong>{formatCurrency(totalMissingAmount)}</strong>
+              </span>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="ml-2 bg-white"
+                onClick={handleGenerateMissingPayments}
+              >
+                Generate Missing Payments
+              </Button>
             </AlertDescription>
           </Alert>
         )}
