@@ -76,7 +76,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           return [];
         }
         
-        if (!leaseData || leaseData.length === 0) {
+        // Fix: Changed from trying to reassign to constant to using a new variable
+        let dataToProcess = leaseData;
+        
+        if (!dataToProcess || dataToProcess.length === 0) {
           console.log('No agreements found in base database query');
           
           // If we're searching and found nothing with the basic search, we need to 
@@ -114,14 +117,14 @@ export const useAgreements = (initialFilters: AgreementFilters = {
             
             // Use this data instead
             console.log('Using all leases for advanced search');
-            leaseData = allLeases;
+            dataToProcess = allLeases;
           } else {
             return [];
           }
         }
         
         // Fetch related customer data in a separate, optimized query
-        const customerIds = leaseData.map(lease => lease.customer_id).filter(Boolean);
+        const customerIds = dataToProcess.map(lease => lease.customer_id).filter(Boolean);
         let customerData = {};
         
         if (customerIds.length > 0) {
@@ -141,7 +144,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         }
         
         // Fetch related vehicle data in a separate, optimized query
-        const vehicleIds = leaseData.map(lease => lease.vehicle_id).filter(Boolean);
+        const vehicleIds = dataToProcess.map(lease => lease.vehicle_id).filter(Boolean);
         let vehicleData = {};
         
         if (vehicleIds.length > 0) {
@@ -161,7 +164,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         }
         
         // Transform the data first
-        let transformedData = leaseData.map((lease: any): Agreement => ({
+        let transformedData = dataToProcess.map((lease: any): Agreement => ({
           id: lease.id,
           customer_id: lease.customer_id,
           vehicle_id: lease.vehicle_id,
