@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -16,31 +17,51 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     setError(null);
   }, [searchParams]);
 
-  // Optimized fetch agreements with better error handling
+  // Optimized fetch agreements with better error handling and vehicle search capabilities
   const { data: agreements, isLoading, refetch } = useApiQuery(
     ['agreements', JSON.stringify(searchParams)],
     async () => {
       try {
         console.log('Fetching agreements with params:', searchParams);
         
-        // First, let's get the basic lease data with optimized query
-        let query = supabase.from('leases').select(`
-          id, 
-          customer_id, 
-          vehicle_id, 
-          start_date, 
-          end_date, 
-          status, 
-          created_at, 
-          updated_at, 
-          total_amount, 
-          down_payment, 
-          agreement_number, 
-          notes
-        `);
+        // Search term handling (early preparation)
+        const searchTerm = searchParams.query?.trim().toLowerCase() || '';
+        const hasSearchTerm = searchTerm !== '';
+        console.log(`Search term: "${searchTerm}", hasSearchTerm: ${hasSearchTerm}`);
         
-        // Apply filters for status, customer_id, and vehicle_id first
-        // as these are exact matches and can be done at DB level
+        // First, build a more comprehensive query that includes vehicle data for searching
+        let query = supabase.from('leases')
+          .select(`
+            id, 
+            customer_id, 
+            vehicle_id, 
+            start_date, 
+            end_date, 
+            status, 
+            created_at, 
+            updated_at, 
+            total_amount, 
+            down_payment, 
+            agreement_number, 
+            notes,
+            vehicles!leases_vehicle_id_fkey (
+              id, 
+              make, 
+              model, 
+              license_plate, 
+              year,
+              vin,
+              color
+            ),
+            profiles!leases_customer_id_fkey (
+              id,
+              full_name,
+              email,
+              phone_number
+            )
+          `);
+        
+        // Apply filters for status, customer_id, and vehicle_id
         if (searchParams.status && searchParams.status !== 'all') {
           query = query.eq('status', searchParams.status);
         }
@@ -53,16 +74,22 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           query = query.eq('vehicle_id', searchParams.vehicle_id);
         }
         
-        // Basic text search for agreement number and notes only
-        if (searchParams.query && searchParams.query.trim() !== '') {
-          const searchTerm = searchParams.query.trim().toLowerCase();
-          
+        // Handle text search more comprehensively
+        if (hasSearchTerm) {
+          // First, check if search term is a license plate or part of one
+          // This gives us a direct SQL search that's more efficient
           query = query.or(
-            `agreement_number.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`
+            `agreement_number.ilike.%${searchTerm}%,
+             notes.ilike.%${searchTerm}%,
+             vehicles.license_plate.ilike.%${searchTerm}%,
+             vehicles.vin.ilike.%${searchTerm}%,
+             vehicles.make.ilike.%${searchTerm}%,
+             vehicles.model.ilike.%${searchTerm}%,
+             profiles.full_name.ilike.%${searchTerm}%`
           );
         }
         
-        // Limit results and add pagination for better performance
+        // Order and limit results for better performance
         query = query.order('created_at', { ascending: false }).limit(100);
         
         // Execute the query
@@ -75,18 +102,15 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           return [];
         }
         
-        // Use a new variable instead of trying to reassign the constant
-        let dataToProcess = leaseData;
-        
-        if (!dataToProcess || dataToProcess.length === 0) {
-          console.log('No agreements found in base database query');
+        if (!leaseData || leaseData.length === 0) {
+          console.log('No agreements found in initial query');
           
-          // If we're searching and found nothing with the basic search, we need to 
-          // fetch all agreements and filter by vehicle/customer details
-          if (searchParams.query && searchParams.query.trim() !== '') {
-            // Get all agreements (limited to reasonable number) to search through
-            const { data: allLeases, error: allLeasesError } = await supabase
-              .from('leases')
+          // If we have a number-only search term, try a more specific license plate search
+          if (hasSearchTerm && /^\d+$/.test(searchTerm)) {
+            console.log('Attempting numeric-only search for license plate or vehicle numbers...');
+            
+            // Build a query specifically for numeric searches
+            const numericQuery = supabase.from('leases')
               .select(`
                 id, 
                 customer_id, 
@@ -99,182 +123,47 @@ export const useAgreements = (initialFilters: AgreementFilters = {
                 total_amount, 
                 down_payment, 
                 agreement_number, 
-                notes
+                notes,
+                vehicles!leases_vehicle_id_fkey (
+                  id, 
+                  make, 
+                  model, 
+                  license_plate, 
+                  year,
+                  vin,
+                  color
+                ),
+                profiles!leases_customer_id_fkey (
+                  id,
+                  full_name,
+                  email,
+                  phone_number
+                )
               `)
+              .or(`vehicles.license_plate.ilike.%${searchTerm}%,vehicles.license_plate.ilike.%${searchTerm.replace(/\D/g, '')}%`);
+              
+            // Apply the same filters as before
+            if (searchParams.status && searchParams.status !== 'all') {
+              numericQuery.eq('status', searchParams.status);
+            }
+            
+            // Execute the numeric-focused query
+            const { data: numericResults, error: numericError } = await numericQuery
               .order('created_at', { ascending: false })
               .limit(100);
               
-            if (allLeasesError) {
-              console.error("Error fetching all agreements:", allLeasesError);
-              return [];
+            if (numericError) {
+              console.error("Error in numeric search:", numericError);
+            } else if (numericResults && numericResults.length > 0) {
+              console.log(`Found ${numericResults.length} agreements in numeric license plate search`);
+              return transformLeaseData(numericResults);
             }
-            
-            if (!allLeases || allLeases.length === 0) {
-              console.log('No agreements found at all');
-              return [];
-            }
-            
-            // Use this data instead
-            console.log('Using all leases for advanced search');
-            dataToProcess = allLeases;
-          } else {
-            return [];
           }
-        }
-        
-        // Fetch related customer data in a separate, optimized query
-        const customerIds = dataToProcess.map(lease => lease.customer_id).filter(Boolean);
-        let customerData = {};
-        
-        if (customerIds.length > 0) {
-          const { data: customers, error: customersError } = await supabase
-            .from('profiles')
-            .select('id, full_name, email, phone_number')
-            .in('id', customerIds);
-            
-          if (customersError) {
-            console.error("Error fetching customers:", customersError);
-          } else if (customers) {
-            customerData = customers.reduce((acc, customer) => {
-              acc[customer.id] = customer;
-              return acc;
-            }, {});
-          }
-        }
-        
-        // Fetch related vehicle data in a separate, optimized query - note we're checking for the registration_number error
-        const vehicleIds = dataToProcess.map(lease => lease.vehicle_id).filter(Boolean);
-        let vehicleData = {};
-        
-        if (vehicleIds.length > 0) {
-          try {
-            const { data: vehicles, error: vehiclesError } = await supabase
-              .from('vehicles')
-              .select('id, make, model, license_plate, image_url, year, color, vin')
-              .in('id', vehicleIds);
-              
-            if (vehiclesError) {
-              console.error("Error fetching vehicles:", vehiclesError);
-            } else if (vehicles) {
-              vehicleData = vehicles.reduce((acc, vehicle) => {
-                acc[vehicle.id] = vehicle;
-                return acc;
-              }, {});
-            }
-          } catch (error) {
-            console.error("Error processing vehicles:", error);
-          }
-        }
-        
-        // Transform the data first
-        let transformedData = dataToProcess.map((lease: any): Agreement => ({
-          id: lease.id,
-          customer_id: lease.customer_id,
-          vehicle_id: lease.vehicle_id,
-          start_date: new Date(lease.start_date),
-          end_date: new Date(lease.end_date),
-          status: lease.status,
-          created_at: lease.created_at ? new Date(lease.created_at) : undefined,
-          updated_at: lease.updated_at ? new Date(lease.updated_at) : undefined,
-          total_amount: lease.total_amount || 0,
-          deposit_amount: lease.down_payment || 0,
-          agreement_number: lease.agreement_number || '',
-          notes: lease.notes || '',
-          terms_accepted: true,
-          additional_drivers: [],
-          customers: customerData[lease.customer_id] || null,
-          vehicles: vehicleData[lease.vehicle_id] || null
-        }));
-        
-        // If there's a search term, filter the results to include vehicle and customer searches
-        if (searchParams.query && searchParams.query.trim() !== '') {
-          const searchTerm = searchParams.query.trim().toLowerCase();
           
-          console.log(`Filtering results for search term: "${searchTerm}"`);
-          
-          transformedData = transformedData.filter(agreement => {
-            // Check agreement number
-            if (agreement.agreement_number?.toLowerCase().includes(searchTerm)) {
-              console.log(`Match found in agreement number: ${agreement.agreement_number}`);
-              return true;
-            }
-            
-            // Check customer name
-            if (agreement.customers?.full_name?.toLowerCase().includes(searchTerm)) {
-              console.log(`Match found in customer name: ${agreement.customers.full_name}`);
-              return true;
-            }
-            
-            // Check vehicle fields
-            if (agreement.vehicles) {
-              const vehicle = agreement.vehicles;
-              
-              // Check if the search term is a part of the license plate
-              if (vehicle.license_plate?.toLowerCase().includes(searchTerm)) {
-                console.log(`Match found in license plate: ${vehicle.license_plate}`);
-                return true;
-              }
-              
-              // Check VIN number
-              if (vehicle.vin?.toLowerCase().includes(searchTerm)) {
-                console.log(`Match found in VIN number: ${vehicle.vin}`);
-                return true;
-              }
-              
-              // Check make
-              if (vehicle.make?.toLowerCase().includes(searchTerm)) {
-                console.log(`Match found in vehicle make: ${vehicle.make}`);
-                return true;
-              }
-              
-              // Check model
-              if (vehicle.model?.toLowerCase().includes(searchTerm)) {
-                console.log(`Match found in vehicle model: ${vehicle.model}`);
-                return true;
-              }
-              
-              // Check if the search term is a year that matches the vehicle year
-              if (vehicle.year && searchTerm.match(/^\d+$/) && vehicle.year.toString().includes(searchTerm)) {
-                console.log(`Match found in vehicle year: ${vehicle.year}`);
-                return true;
-              }
-              
-              // Check if the search term is a number that appears in any numeric field
-              if (searchTerm.match(/^\d+$/)) {
-                // Check if this number appears in any part of the license plate
-                if (vehicle.license_plate && vehicle.license_plate.replace(/\D/g, '').includes(searchTerm)) {
-                  console.log(`Match found in license plate numbers: ${vehicle.license_plate}`);
-                  return true;
-                }
-                
-                // Check if it appears in the VIN
-                if (vehicle.vin && vehicle.vin.replace(/\D/g, '').includes(searchTerm)) {
-                  console.log(`Match found in VIN digits: ${vehicle.vin}`);
-                  return true;
-                }
-              }
-              
-              // Also check the combined string just to be sure
-              const vehicleText = `${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.license_plate || ''} ${vehicle.year || ''} ${vehicle.vin || ''}`.toLowerCase();
-              if (vehicleText.includes(searchTerm)) {
-                console.log(`Match found in combined vehicle info: ${vehicleText}`);
-                return true;
-              }
-            }
-            
-            // Check notes
-            if (agreement.notes?.toLowerCase().includes(searchTerm)) {
-              console.log(`Match found in notes: ${agreement.notes}`);
-              return true;
-            }
-            
-            return false;
-          });
-          
-          console.log(`After filtering: ${transformedData.length} agreements match the search`);
+          return [];
         }
         
-        return transformedData || [];
+        return transformLeaseData(leaseData);
       } catch (err) {
         console.error("Unexpected error in useAgreements:", err);
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
@@ -288,6 +177,28 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       retry: 1, // Limit retries to prevent excessive requests
     }
   );
+  
+  // Helper function to transform lease data with nested relations into flat Agreement objects
+  const transformLeaseData = (leaseData: any[]): Agreement[] => {
+    return leaseData.map((lease): Agreement => ({
+      id: lease.id,
+      customer_id: lease.customer_id,
+      vehicle_id: lease.vehicle_id,
+      start_date: new Date(lease.start_date),
+      end_date: new Date(lease.end_date),
+      status: lease.status,
+      created_at: lease.created_at ? new Date(lease.created_at) : undefined,
+      updated_at: lease.updated_at ? new Date(lease.updated_at) : undefined,
+      total_amount: lease.total_amount || 0,
+      deposit_amount: lease.down_payment || 0,
+      agreement_number: lease.agreement_number || '',
+      notes: lease.notes || '',
+      terms_accepted: true,
+      additional_drivers: [],
+      customers: lease.profiles || null,
+      vehicles: lease.vehicles || null
+    }));
+  };
   
   // Create agreement
   const createAgreement = useApiMutation(
@@ -365,9 +276,40 @@ export const useAgreements = (initialFilters: AgreementFilters = {
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
+      
+      // Use join query to get related data in a single request
       const { data, error } = await supabase
         .from('leases')
-        .select('*')
+        .select(`
+          id, 
+          customer_id, 
+          vehicle_id, 
+          start_date, 
+          end_date, 
+          status, 
+          created_at, 
+          updated_at, 
+          total_amount, 
+          down_payment, 
+          agreement_number, 
+          notes,
+          vehicles!leases_vehicle_id_fkey (
+            id, 
+            make, 
+            model, 
+            license_plate, 
+            image_url, 
+            year, 
+            color, 
+            vin
+          ),
+          profiles!leases_customer_id_fkey (
+            id, 
+            full_name, 
+            email, 
+            phone_number
+          )
+        `)
         .eq('id', id)
         .single();
         
@@ -377,44 +319,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         return null;
       }
       
-      // If we have the lease data, get the related customer and vehicle data
       if (data) {
-        // Get customer data
-        let customerData = null;
-        if (data.customer_id) {
-          const { data: customer, error: customerError } = await supabase
-            .from('profiles')
-            .select('id, full_name, email, phone_number')
-            .eq('id', data.customer_id)
-            .single();
-            
-          if (customerError) {
-            console.error("Error fetching customer:", customerError);
-          } else {
-            customerData = customer;
-          }
-        }
-        
-        // Get vehicle data - optimized with error handling
-        let vehicleData = null;
-        if (data.vehicle_id) {
-          try {
-            const { data: vehicle, error: vehicleError } = await supabase
-              .from('vehicles')
-              .select('id, make, model, license_plate, image_url, year, color, vin')
-              .eq('id', data.vehicle_id)
-              .single();
-              
-            if (vehicleError) {
-              console.error("Error fetching vehicle:", vehicleError);
-            } else {
-              vehicleData = vehicle;
-            }
-          } catch (error) {
-            console.error("Error processing vehicle data:", error);
-          }
-        }
-        
         // Transform to Agreement type
         return {
           id: data.id,
@@ -431,8 +336,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           notes: data.notes || '',
           terms_accepted: true,
           additional_drivers: [],
-          customers: customerData,
-          vehicles: vehicleData
+          customers: data.profiles,
+          vehicles: data.vehicles
         };
       }
       
