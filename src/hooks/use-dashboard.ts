@@ -201,7 +201,7 @@ export function useDashboardData() {
             id: lease.id,
             type: 'rental',
             title: 'New Rental',
-            description: `${lease.customers?.full_name || 'Customer'} rented ${lease.vehicles?.make || ''} ${lease.vehicles?.model || ''} (${lease.vehicles?.license_plate || ''})`,
+            description: `${lease.customers ? lease.customers.full_name || 'Customer' : 'Customer'} rented ${lease.vehicles ? lease.vehicles.make || '' : ''} ${lease.vehicles ? lease.vehicles.model || '' : ''} (${lease.vehicles ? lease.vehicles.license_plate || '' : ''})`,
             time: getTimeAgo(new Date(lease.created_at))
           });
         });
@@ -223,7 +223,7 @@ export function useDashboardData() {
             id: item.id,
             type: 'maintenance',
             title: 'Maintenance Scheduled',
-            description: `${item.vehicles?.make || ''} ${item.vehicles?.model || ''} (${item.vehicles?.license_plate || ''}) scheduled for ${item.type}`,
+            description: `${item.vehicles ? item.vehicles.make || '' : ''} ${item.vehicles ? item.vehicles.model || '' : ''} (${item.vehicles ? item.vehicles.license_plate || '' : ''}) scheduled for ${item.type}`,
             time: getTimeAgo(new Date(item.created_at))
           });
         });
