@@ -42,8 +42,11 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         // Apply filters with more specific and optimized conditions
         if (searchParams.query && searchParams.query.trim() !== '') {
           const searchTerm = searchParams.query.trim().toLowerCase();
-          // Use specific column filtering instead of OR for better performance
-          query = query.or(`agreement_number.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
+          
+          // Fetch agreements along with related profiles and vehicles to search across them
+          query = query.or(
+            `agreement_number.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`
+          );
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
@@ -117,7 +120,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         }
         
         // Transform the data in an optimized way
-        const transformedData = leaseData.map((lease: any): Agreement => ({
+        let transformedData = leaseData.map((lease: any): Agreement => ({
           id: lease.id,
           customer_id: lease.customer_id,
           vehicle_id: lease.vehicle_id,
@@ -135,6 +138,39 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           customers: customerData[lease.customer_id] || null,
           vehicles: vehicleData[lease.vehicle_id] || null
         }));
+        
+        // If there's a search term, filter the results client-side to include vehicle and customer searches
+        if (searchParams.query && searchParams.query.trim() !== '') {
+          const searchTerm = searchParams.query.trim().toLowerCase();
+          
+          transformedData = transformedData.filter(agreement => {
+            // Check agreement number (already done in SQL but keeping it here for completeness)
+            if (agreement.agreement_number?.toLowerCase().includes(searchTerm)) {
+              return true;
+            }
+            
+            // Check customer name
+            if (agreement.customers?.full_name?.toLowerCase().includes(searchTerm)) {
+              return true;
+            }
+            
+            // Check vehicle make/model/license plate
+            if (agreement.vehicles) {
+              const vehicle = agreement.vehicles;
+              const vehicleText = `${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.license_plate || ''}`.toLowerCase();
+              if (vehicleText.includes(searchTerm)) {
+                return true;
+              }
+            }
+            
+            // Check notes (already done in SQL but keeping it here for completeness)
+            if (agreement.notes?.toLowerCase().includes(searchTerm)) {
+              return true;
+            }
+            
+            return false;
+          });
+        }
         
         return transformedData || [];
       } catch (err) {

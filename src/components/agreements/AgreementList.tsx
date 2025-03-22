@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -69,6 +70,16 @@ export function AgreementList() {
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
+  
+  // Handle search with debounce
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setSearchParams({...searchParams, query: searchQuery});
+    }, 300);
+    
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
   
   const columns: ColumnDef<Agreement>[] = [
     {
@@ -256,9 +267,9 @@ export function AgreementList() {
           <div className="relative w-full sm:w-[250px] md:w-[300px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
             <Input
-              placeholder="Search agreements..."
-              value={searchParams.query || ''}
-              onChange={(e) => setSearchParams({...searchParams, query: e.target.value})}
+              placeholder="Search by agreement #, customer, or vehicle..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="h-9 pl-9 w-full"
             />
           </div>
@@ -341,7 +352,7 @@ export function AgreementList() {
             ) : (
               <TableRow>
                 <TableCell colSpan={7} className="h-24 text-center">
-                  No agreements found. {searchParams.query || searchParams.status !== 'all' ? 
+                  No agreements found. {searchQuery || searchParams.status !== 'all' ? 
                     'Try adjusting your filters.' : 
                     'Add your first agreement using the button above.'}
                 </TableCell>
