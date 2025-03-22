@@ -61,7 +61,7 @@ export function useTrafficFines() {
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          vehicleModel: fine.vehicleModel, // Use vehicleModel field or undefined
+          vehicleModel: fine.model || undefined, // Use model field from database
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
@@ -84,7 +84,7 @@ export function useTrafficFines() {
         .insert({
           violation_number: fineData.violationNumber,
           license_plate: fineData.licensePlate,
-          vehicleModel: fineData.vehicleModel, // Keep as is, will be mapped to vehicleModel
+          model: fineData.vehicleModel, // Map to model field
           violation_date: fineData.violationDate.toISOString(),
           fine_amount: fineData.fineAmount,
           violation_charge: fineData.violationCharge,
@@ -101,12 +101,12 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.vehicleModel, // Map vehicleModel field
+        vehicleModel: data.model, // Map from model field
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
         paymentStatus: data.payment_status as TrafficFineStatusType,
-        location: data.fine_location, // Map fine_location field
+        location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
         paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
@@ -131,7 +131,7 @@ export function useTrafficFines() {
       const updateData: any = {};
       if (data.violationNumber) updateData.violation_number = data.violationNumber;
       if (data.licensePlate) updateData.license_plate = data.licensePlate;
-      if (data.vehicleModel) updateData.vehicleModel = data.vehicleModel;
+      if (data.vehicleModel) updateData.model = data.vehicleModel;
       if (data.violationDate) updateData.violation_date = data.violationDate.toISOString();
       if (data.fineAmount) updateData.fine_amount = data.fineAmount;
       if (data.violationCharge) updateData.violation_charge = data.violationCharge;
@@ -153,12 +153,12 @@ export function useTrafficFines() {
         id: responseData.id,
         violationNumber: responseData.violation_number,
         licensePlate: responseData.license_plate,
-        vehicleModel: responseData.vehicleModel,
+        vehicleModel: responseData.model, // Map from model field
         violationDate: new Date(responseData.violation_date),
         fineAmount: responseData.fine_amount,
         violationCharge: responseData.violation_charge,
         paymentStatus: responseData.payment_status as TrafficFineStatusType,
-        location: responseData.fine_location,
+        location: responseData.fine_location, // Map from fine_location field
         vehicleId: responseData.vehicle_id,
         paymentDate: responseData.payment_date ? new Date(responseData.payment_date) : undefined
       };
@@ -217,12 +217,12 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.vehicleModel,
+        vehicleModel: data.model, // Map from model field
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
         paymentStatus: data.payment_status as TrafficFineStatusType,
-        location: data.fine_location,
+        location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
         paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
@@ -259,12 +259,12 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.vehicleModel,
+        vehicleModel: data.model, // Map from model field
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
         paymentStatus: data.payment_status as TrafficFineStatusType,
-        location: data.fine_location,
+        location: data.fine_location, // Map from fine_location field
         vehicleId: data.vehicle_id,
         paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
