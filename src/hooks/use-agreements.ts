@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -287,7 +288,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           down_payment, 
           agreement_number, 
           notes,
-          vehicles!leases_vehicle_id_fkey (
+          vehicles:leases_vehicle_id_fkey (
             id, 
             make, 
             model, 
@@ -297,7 +298,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
             color, 
             vin
           ),
-          profiles!leases_customer_id_fkey (
+          profiles:leases_customer_id_fkey (
             id, 
             full_name, 
             email, 
