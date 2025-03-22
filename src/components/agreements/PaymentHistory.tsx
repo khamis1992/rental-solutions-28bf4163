@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { AlertCircle } from "lucide-react";
 
 export interface Payment {
   id: string;
@@ -27,6 +28,47 @@ interface PaymentHistoryProps {
 }
 
 export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
+  const [pendingAmount, setPendingAmount] = useState<number | null>(null);
+  const [isPendingLoading, setIsPendingLoading] = useState(true);
+  
+  useEffect(() => {
+    // Only fetch if we have payments (which means we have an agreement ID)
+    if (payments.length > 0) {
+      fetchPendingAmount();
+    } else {
+      setIsPendingLoading(false);
+    }
+  }, [payments]);
+  
+  const fetchPendingAmount = async () => {
+    setIsPendingLoading(true);
+    try {
+      // Extract the agreement ID from the first payment's notes
+      // This is a workaround as we don't directly have the agreement ID in the props
+      const agreementId = payments.length > 0 && payments[0].notes?.match(/agreement_id:([a-zA-Z0-9-]+)/)?.[1];
+      
+      if (!agreementId) {
+        setIsPendingLoading(false);
+        return;
+      }
+      
+      const { data, error } = await supabase.rpc('get_pending_payments_available', {
+        agreement_id: agreementId
+      });
+      
+      if (error) {
+        console.error("Error fetching pending payments:", error);
+        throw error;
+      }
+      
+      setPendingAmount(data);
+    } catch (error) {
+      console.error("Failed to fetch pending payment amount:", error);
+    } finally {
+      setIsPendingLoading(false);
+    }
+  };
+  
   const formatPaymentMethod = (method: string) => {
     return method
       ? method.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
@@ -38,12 +80,25 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Payment History</CardTitle>
-        <CardDescription>View all payments for this agreement</CardDescription>
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+        <div>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>View all payments for this agreement</CardDescription>
+        </div>
+        
+        {pendingAmount !== null && !isPendingLoading && (
+          <div className="mt-2 sm:mt-0 bg-amber-50 border border-amber-200 rounded-md p-3 flex items-center">
+            <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">
+                Pending Payments Available: {formatCurrency(pendingAmount)}
+              </p>
+            </div>
+          </div>
+        )}
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {isLoading || isPendingLoading ? (
           <div className="flex justify-center py-6">
             <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full"></div>
           </div>

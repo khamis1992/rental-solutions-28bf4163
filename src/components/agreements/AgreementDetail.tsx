@@ -88,7 +88,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         payment_date: payment.payment_date,
         payment_method: payment.payment_method || 'cash',
         reference_number: payment.transaction_id,
-        notes: payment.description,
+        notes: `${payment.description || ''} agreement_id:${agreement.id}`, // Add agreement_id to notes for reference
         type: payment.type,
         status: payment.status,
         late_fine_amount: payment.late_fine_amount,
