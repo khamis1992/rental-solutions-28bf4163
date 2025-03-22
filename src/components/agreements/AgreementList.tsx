@@ -21,7 +21,8 @@ import {
   FileEdit,
   FilePlus,
   AlertTriangle,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,14 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export function AgreementList() {
   const { 
@@ -55,14 +64,16 @@ export function AgreementList() {
     isLoading, 
     error,
     searchParams, 
-    setSearchParams, 
+    setSearchParams,
+    debouncedSetSearchParams,
     deleteAgreement 
   } = useAgreements();
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     if (searchParams.query) {
@@ -71,6 +82,7 @@ export function AgreementList() {
   }, []);
 
   const handleSearch = () => {
+    setCurrentPage(1);
     setSearchParams({
       ...searchParams,
       query: searchTerm || ''
@@ -79,11 +91,25 @@ export function AgreementList() {
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleSearch();
     }
   };
   
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    
+    if (value === '') {
+      debouncedSetSearchParams({
+        ...searchParams,
+        query: ''
+      });
+    }
+  };
+  
   const handleStatusChange = (value: string) => {
+    setCurrentPage(1);
     if (value) {
       setSearchParams({
         ...searchParams,
@@ -94,6 +120,7 @@ export function AgreementList() {
   
   const clearFilters = () => {
     setSearchTerm('');
+    setCurrentPage(1);
     setSearchParams({
       query: '',
       status: 'all'
@@ -102,12 +129,11 @@ export function AgreementList() {
   
   const clearSearchTerm = () => {
     setSearchTerm('');
-    if (searchParams.query) {
-      setSearchParams({
-        ...searchParams,
-        query: ''
-      });
-    }
+    setCurrentPage(1);
+    setSearchParams({
+      ...searchParams,
+      query: ''
+    });
   };
 
   const columns: ColumnDef<Agreement>[] = [
@@ -280,7 +306,13 @@ export function AgreementList() {
     state: {
       sorting,
       columnFilters,
+      pagination: {
+        pageIndex: currentPage - 1,
+        pageSize: itemsPerPage,
+      },
     },
+    manualPagination: false,
+    pageCount: Math.ceil((agreements?.length || 0) / itemsPerPage),
   });
 
   return (
@@ -292,14 +324,18 @@ export function AgreementList() {
             <Input
               placeholder="Search agreements..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchInputChange}
               onKeyDown={handleKeyDown}
               className="h-9 pl-9 w-full pr-8"
+              disabled={isLoading}
+              aria-label="Search agreements"
             />
             {searchTerm && (
               <button 
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 onClick={clearSearchTerm}
+                aria-label="Clear search"
+                disabled={isLoading}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -311,7 +347,14 @@ export function AgreementList() {
             onClick={handleSearch}
             disabled={isLoading}
           >
-            Search
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Searching...
+              </>
+            ) : (
+              'Search'
+            )}
           </Button>
           <Select
             value={searchParams.status || 'all'}
@@ -358,8 +401,9 @@ export function AgreementList() {
       )}
       
       {isLoading && (
-        <div className="py-2 text-center text-muted-foreground">
-          Loading agreements...
+        <div className="py-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+          <p className="text-muted-foreground">Loading agreements...</p>
         </div>
       )}
       
@@ -399,7 +443,10 @@ export function AgreementList() {
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   {isLoading ? (
-                    "Loading..."
+                    <div className="flex flex-col items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
+                      <span>Loading agreements...</span>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-2">
                       <FileText className="h-8 w-8 text-muted-foreground" />
@@ -416,24 +463,41 @@ export function AgreementList() {
         </Table>
       </div>
       
-      <div className="flex items-center justify-end space-x-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage() || isLoading}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage() || isLoading}
-        >
-          Next
-        </Button>
-      </div>
+      {agreements && agreements.length > 0 && (
+        <Pagination>
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={() => table.previousPage()} 
+                disabled={!table.getCanPreviousPage()}
+                className={!table.getCanPreviousPage() ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+            
+            {Array.from({ length: table.getPageCount() }).map((_, index) => (
+              <PaginationItem key={index}>
+                <PaginationLink
+                  isActive={table.getState().pagination.pageIndex === index}
+                  onClick={() => table.setPageIndex(index)}
+                >
+                  {index + 1}
+                </PaginationLink>
+              </PaginationItem>
+            )).slice(
+              Math.max(0, table.getState().pagination.pageIndex - 1),
+              Math.min(table.getPageCount(), table.getState().pagination.pageIndex + 3)
+            )}
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={() => table.nextPage()} 
+                disabled={!table.getCanNextPage()}
+                className={!table.getCanNextPage() ? "pointer-events-none opacity-50" : ""}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      )}
     </div>
   );
 }

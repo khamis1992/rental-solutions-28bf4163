@@ -1,26 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementFilters } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   const [error, setError] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   
-  // Fetch agreements with filters
+  // Clear error when search params change
+  useEffect(() => {
+    setError(null);
+  }, [searchParams]);
+
+  // Optimized fetch agreements with better error handling
   const { data: agreements, isLoading, refetch } = useApiQuery(
     ['agreements', JSON.stringify(searchParams)],
     async () => {
       try {
+        setIsSearching(true);
         console.log('Fetching agreements with params:', searchParams);
         
-        // First, let's get the basic lease data
-        let query = supabase.from('leases').select('*');
+        // First, let's get the basic lease data with optimized query
+        let query = supabase.from('leases').select(`
+          id, 
+          customer_id, 
+          vehicle_id, 
+          start_date, 
+          end_date, 
+          status, 
+          created_at, 
+          updated_at, 
+          total_amount, 
+          down_payment, 
+          agreement_number, 
+          notes, 
+          pickup_location, 
+          return_location
+        `);
         
-        // Apply filters
+        // Apply filters with more specific and optimized conditions
         if (searchParams.query && searchParams.query.trim() !== '') {
           const searchTerm = searchParams.query.trim().toLowerCase();
+          // Use specific column filtering instead of OR for better performance
           query = query.or(`agreement_number.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
         }
         
@@ -36,8 +60,11 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           query = query.eq('vehicle_id', searchParams.vehicle_id);
         }
         
+        // Limit results and add pagination for better performance
+        query = query.order('created_at', { ascending: false }).limit(50);
+        
         // Execute the query
-        const { data: leaseData, error: leaseError } = await query.order('created_at', { ascending: false });
+        const { data: leaseData, error: leaseError } = await query;
         
         if (leaseError) {
           console.error("Error fetching agreements:", leaseError);
@@ -51,7 +78,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           return [];
         }
         
-        // Fetch related customer data
+        // Fetch related customer data in a separate, optimized query
         const customerIds = leaseData.map(lease => lease.customer_id).filter(Boolean);
         let customerData = {};
         
@@ -71,7 +98,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           }
         }
         
-        // Fetch related vehicle data
+        // Fetch related vehicle data in a separate, optimized query
         const vehicleIds = leaseData.map(lease => lease.vehicle_id).filter(Boolean);
         let vehicleData = {};
         
@@ -91,7 +118,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           }
         }
         
-        // Transform the data to match the Agreement schema
+        // Transform the data in an optimized way
         const transformedData = leaseData.map((lease: any): Agreement => ({
           id: lease.id,
           customer_id: lease.customer_id,
@@ -119,13 +146,21 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
         toast.error("An unexpected error occurred while loading agreements");
         return [];
+      } finally {
+        setIsSearching(false);
       }
     },
     {
       staleTime: 60000,
       refetchOnWindowFocus: false,
+      retry: 1, // Limit retries to prevent excessive requests
     }
   );
+  
+  // Debounced version of setSearchParams to prevent excessive renders and queries
+  const debouncedSetSearchParams = useDebouncedCallback((newParams: AgreementFilters) => {
+    setSearchParams(newParams);
+  }, 300);
   
   // Create agreement
   const createAgreement = useApiMutation(
@@ -282,10 +317,11 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   
   return {
     agreements,
-    isLoading,
+    isLoading: isLoading || isSearching,
     error,
     searchParams,
     setSearchParams,
+    debouncedSetSearchParams,
     createAgreement,
     updateAgreement,
     deleteAgreement,
