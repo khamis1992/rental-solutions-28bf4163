@@ -8,8 +8,16 @@ import VehicleStatusChart from '@/components/dashboard/VehicleStatusChart';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
+import { useDashboardData } from '@/hooks/use-dashboard';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard = () => {
+  const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
+  
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <PageContainer>
       <SectionHeader
@@ -17,7 +25,7 @@ const Dashboard = () => {
         description="Overview of your rental operations"
         icon={LayoutDashboard}
         actions={
-          <CustomButton size="sm" variant="outline">
+          <CustomButton size="sm" variant="outline" onClick={handleRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </CustomButton>
@@ -25,14 +33,39 @@ const Dashboard = () => {
       />
       
       <div className="space-y-6">
-        <DashboardStats />
-        
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 section-transition">
-          <RevenueChart />
-          <VehicleStatusChart />
-        </div>
-        
-        <RecentActivity />
+        {isLoading ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+              <Skeleton className="h-32" />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <Skeleton className="h-80 lg:col-span-3" />
+              <Skeleton className="h-80" />
+            </div>
+            
+            <Skeleton className="h-96" />
+          </>
+        ) : isError ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+            Failed to load dashboard data. Please try again later.
+            {error && <p className="text-sm mt-1">{error.toString()}</p>}
+          </div>
+        ) : (
+          <>
+            <DashboardStats stats={stats} />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 section-transition">
+              <RevenueChart data={revenue} />
+              <VehicleStatusChart data={stats?.vehicleStats} />
+            </div>
+            
+            <RecentActivity activities={activity} />
+          </>
+        )}
       </div>
     </PageContainer>
   );

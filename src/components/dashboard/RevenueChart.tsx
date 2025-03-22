@@ -3,18 +3,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const data = [
-  { name: 'Jan', revenue: 28000 },
-  { name: 'Feb', revenue: 32000 },
-  { name: 'Mar', revenue: 30000 },
-  { name: 'Apr', revenue: 35000 },
-  { name: 'May', revenue: 42000 },
-  { name: 'Jun', revenue: 48000 },
-  { name: 'Jul', revenue: 52000 },
-  { name: 'Aug', revenue: 48265 },
-];
+interface RevenueChartProps {
+  data: { name: string; revenue: number }[];
+}
 
-const RevenueChart = () => {
+const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
   return (
     <Card className="col-span-3 card-transition">
       <CardHeader className="pb-0">

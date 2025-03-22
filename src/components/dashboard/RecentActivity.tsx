@@ -1,58 +1,48 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Car, User, CreditCard, Wrench, AlertTriangle } from 'lucide-react';
+import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 
-type ActivityType = 'rental' | 'return' | 'payment' | 'maintenance' | 'fine';
-
-interface Activity {
-  id: string;
-  type: ActivityType;
-  title: string;
-  description: string;
-  time: string;
+interface RecentActivityProps {
+  activities: RecentActivityType[];
 }
 
-const activities: Activity[] = [
-  {
-    id: '1',
-    type: 'rental',
-    title: 'New Rental',
-    description: 'John Doe rented Toyota Camry (ABC-123)',
-    time: '12 minutes ago',
-  },
-  {
-    id: '2',
-    type: 'return',
-    title: 'Vehicle Return',
-    description: 'BMW X5 (XYZ-789) returned by Sarah Johnson',
-    time: '45 minutes ago',
-  },
-  {
-    id: '3',
-    type: 'payment',
-    title: 'Payment Received',
-    description: '$650.00 received for Invoice #INV-2023-089',
-    time: '1 hour ago',
-  },
-  {
-    id: '4',
-    type: 'maintenance',
-    title: 'Maintenance Scheduled',
-    description: 'Honda Civic (DEF-456) scheduled for oil change',
-    time: '2 hours ago',
-  },
-  {
-    id: '5',
-    type: 'fine',
-    title: 'Traffic Fine Recorded',
-    description: 'Speeding ticket for Audi A4 (GHI-789)',
-    time: '3 hours ago',
-  },
-];
+const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
+  return (
+    <Card className="col-span-4 card-transition">
+      <CardHeader>
+        <CardTitle>Recent Activity</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {activities.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            No recent activity to display
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {activities.map((activity) => (
+              <div key={activity.id} className="flex items-start">
+                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} mr-4`}>
+                  {getActivityIcon(activity.type)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">{activity.title}</h4>
+                    <span className="text-xs text-muted-foreground">{activity.time}</span>
+                  </div>
+                  <p className="text-muted-foreground mt-1">{activity.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
-const getActivityIcon = (type: ActivityType) => {
+const getActivityIcon = (type: string) => {
   switch (type) {
     case 'rental':
     case 'return':
@@ -68,7 +58,7 @@ const getActivityIcon = (type: ActivityType) => {
   }
 };
 
-const getActivityColor = (type: ActivityType) => {
+const getActivityColor = (type: string) => {
   switch (type) {
     case 'rental':
       return 'bg-blue-100 text-blue-700';
@@ -83,34 +73,6 @@ const getActivityColor = (type: ActivityType) => {
     default:
       return 'bg-gray-100 text-gray-700';
   }
-};
-
-const RecentActivity = () => {
-  return (
-    <Card className="col-span-4 card-transition">
-      <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-5">
-          {activities.map((activity) => (
-            <div key={activity.id} className="flex items-start">
-              <div className={`p-2 rounded-full ${getActivityColor(activity.type)} mr-4`}>
-                {getActivityIcon(activity.type)}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-medium">{activity.title}</h4>
-                  <span className="text-xs text-muted-foreground">{activity.time}</span>
-                </div>
-                <p className="text-muted-foreground mt-1">{activity.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
 };
 
 export default RecentActivity;

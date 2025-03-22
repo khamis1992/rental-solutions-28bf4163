@@ -3,13 +3,24 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
-const data = [
-  { name: 'Available', value: 78, color: '#22c55e' },
-  { name: 'Rented', value: 32, color: '#3b82f6' },
-  { name: 'Maintenance', value: 14, color: '#f59e0b' },
-];
+interface VehicleStatusChartProps {
+  data?: {
+    total: number;
+    available: number;
+    rented: number;
+    maintenance: number;
+  };
+}
 
-const VehicleStatusChart = () => {
+const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
+  if (!data) return null;
+  
+  const chartData = [
+    { name: 'Available', value: data.available, color: '#22c55e' },
+    { name: 'Rented', value: data.rented, color: '#3b82f6' },
+    { name: 'Maintenance', value: data.maintenance, color: '#f59e0b' },
+  ];
+
   return (
     <Card className="col-span-1 card-transition">
       <CardHeader className="pb-0">
@@ -20,7 +31,7 @@ const VehicleStatusChart = () => {
           <ResponsiveContainer width="100%" height="80%">
             <PieChart>
               <Pie
-                data={data}
+                data={chartData}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -28,7 +39,7 @@ const VehicleStatusChart = () => {
                 paddingAngle={5}
                 dataKey="value"
               >
-                {data.map((entry, index) => (
+                {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>
@@ -55,7 +66,7 @@ const VehicleStatusChart = () => {
             </PieChart>
           </ResponsiveContainer>
           <div className="text-sm text-center text-muted-foreground mt-2">
-            Total Fleet: 124 vehicles
+            Total Fleet: {data.total} vehicles
           </div>
         </div>
       </CardContent>
