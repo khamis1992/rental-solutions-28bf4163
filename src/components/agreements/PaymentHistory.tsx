@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
+import { supabase, forceGeneratePaymentsForMissingMonths } from "@/lib/supabase";
 import { toast } from "sonner";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -45,6 +45,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const [missingPaymentsCount, setMissingPaymentsCount] = useState(0);
   const [totalMissingAmount, setTotalMissingAmount] = useState(0);
   const [lastPaidDate, setLastPaidDate] = useState<Date | null>(null);
+  const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
   
   // System date is March 22, 2025
   const systemDate = new Date(2025, 2, 22);
@@ -161,7 +162,11 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const handleGenerateMissingPayments = async () => {
     if (!agreementId || missingPaymentsCount === 0) return;
     
+    setIsGeneratingPayments(true);
+    
     try {
+      console.log("Starting to generate missing payments for agreement:", agreementId);
+      
       // Get agreement details to find the monthly amount
       const { data: agreement, error: agreementError } = await supabase
         .from('agreements')
@@ -169,36 +174,32 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
         .eq('id', agreementId)
         .single();
       
-      if (agreementError) throw agreementError;
+      if (agreementError) {
+        console.error("Error fetching agreement details:", agreementError);
+        throw agreementError;
+      }
       
       if (!agreement) {
+        console.error("Could not find agreement details");
         toast.error("Could not find agreement details");
         return;
       }
       
-      // Call the API to generate missing payments
-      // We need lastPaidDate plus one month as the start date
+      console.log("Found agreement:", agreement);
+      
+      // Use the forceGeneratePaymentsForMissingMonths function directly
       const startDate = new Date(lastPaidDate || new Date(2024, 7, 3)); // Default to Aug 3, 2024 if no last payment
-      startDate.setMonth(startDate.getMonth() + 1); // Start from the month after the last payment
       
-      const response = await fetch('/api/generate-missing-payments', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agreementId,
-          amount: agreement.total_amount,
-          startDate: startDate.toISOString(),
-          endDate: systemDate.toISOString(),
-        }),
-      });
+      console.log("Generating payments from:", startDate.toISOString(), "to:", systemDate.toISOString());
       
-      if (!response.ok) {
-        throw new Error('Failed to generate missing payments');
-      }
+      const result = await forceGeneratePaymentsForMissingMonths(
+        agreementId,
+        agreement.total_amount,
+        startDate,
+        systemDate
+      );
       
-      const result = await response.json();
+      console.log("Generation result:", result);
       
       if (result.success) {
         toast.success(`Generated ${result.generated} missing payments`);
@@ -209,7 +210,9 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
       }
     } catch (error) {
       console.error("Error generating missing payments:", error);
-      toast.error("Failed to generate missing payments");
+      toast.error("Failed to generate missing payments: " + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsGeneratingPayments(false);
     }
   };
 
@@ -245,8 +248,9 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
                 variant="outline" 
                 className="ml-2 bg-white"
                 onClick={handleGenerateMissingPayments}
+                disabled={isGeneratingPayments}
               >
-                Generate Missing Payments
+                {isGeneratingPayments ? 'Generating...' : 'Generate Missing Payments'}
               </Button>
             </AlertDescription>
           </Alert>
