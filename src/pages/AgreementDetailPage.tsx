@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { initializeSystem, forceCheckAllAgreementsForPayments, forceGeneratePaymentsForMissingMonths, supabase } from '@/lib/supabase';
+import { differenceInMonths } from 'date-fns';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +18,7 @@ const AgreementDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
   const [paymentGenerationAttempted, setPaymentGenerationAttempted] = useState(false);
+  const [contractAmount, setContractAmount] = useState<number | null>(null);
 
   useEffect(() => {
     // Initialize the system to check for payment generation
@@ -45,6 +47,14 @@ const AgreementDetailPage = () => {
               // If we have a rent_amount from leases table, update the agreement object
               data.total_amount = leaseData.rent_amount;
               console.log("Updated agreement total_amount with rent_amount:", leaseData.rent_amount);
+              
+              // Calculate contract amount = rent_amount * duration in months
+              if (data.start_date && data.end_date) {
+                const durationMonths = differenceInMonths(new Date(data.end_date), new Date(data.start_date));
+                const calculatedContractAmount = leaseData.rent_amount * (durationMonths || 1);
+                setContractAmount(calculatedContractAmount);
+                console.log(`Contract duration: ${durationMonths} months, Contract amount: ${calculatedContractAmount}`);
+              }
             }
           } catch (err) {
             console.error("Error fetching lease rent amount:", err);
@@ -176,6 +186,7 @@ const AgreementDetailPage = () => {
         <AgreementDetail 
           agreement={agreement} 
           onDelete={handleDelete}
+          contractAmount={contractAmount}
         />
       ) : (
         <div className="text-center py-12">

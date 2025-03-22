@@ -1,11 +1,10 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
 import { formatCurrency } from "@/lib/utils"
 import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
 import { Badge } from "@/components/ui/badge"
-import { format } from "date-fns"
+import { format, differenceInMonths } from "date-fns"
 import { Trash2, Edit, FileText } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
@@ -19,6 +18,7 @@ import { AgreementTrafficFines } from "./AgreementTrafficFines"
 interface AgreementDetailProps {
   agreement: Agreement
   onDelete?: (id: string) => void
+  contractAmount?: number | null
 }
 
 const getStatusColor = (status: string) => {
@@ -42,13 +42,25 @@ const getStatusColor = (status: string) => {
 
 export const AgreementDetail: React.FC<AgreementDetailProps> = ({ 
   agreement, 
-  onDelete 
+  onDelete,
+  contractAmount
 }) => {
   const navigate = useNavigate()
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
   const [payments, setPayments] = useState<Payment[]>([])
   const [isLoadingPayments, setIsLoadingPayments] = useState(true)
   const [rentAmount, setRentAmount] = useState<number | null>(null)
+  const [durationMonths, setDurationMonths] = useState<number>(0)
+
+  useEffect(() => {
+    if (agreement.start_date && agreement.end_date) {
+      const months = differenceInMonths(
+        new Date(agreement.end_date),
+        new Date(agreement.start_date)
+      );
+      setDurationMonths(months > 0 ? months : 1);
+    }
+  }, [agreement]);
 
   const handleEdit = () => {
     navigate(`/agreements/edit/${agreement.id}`)
@@ -121,7 +133,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       setPayments(formattedPayments);
       console.log("Formatted payments set:", formattedPayments);
       
-      // Check for incorrect payment amounts (debugging)
       if (formattedPayments.length > 0 && rentAmount) {
         const incorrectPayments = formattedPayments.filter(p => 
           p.amount > rentAmount * 5 && 
@@ -237,6 +248,9 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                   <p>
                     {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
                   </p>
+                  <p className="text-sm text-muted-foreground">
+                    Duration: {durationMonths} {durationMonths === 1 ? 'month' : 'months'}
+                  </p>
                 </div>
                 <div>
                   <p className="font-medium">Additional Drivers</p>
@@ -251,11 +265,15 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 <div>
                   <p className="font-medium">Monthly Rent Amount</p>
                   <p className="text-lg font-bold">{formatCurrency(rentAmount || agreement.total_amount)}</p>
-                  {rentAmount && rentAmount !== agreement.total_amount && (
-                    <p className="text-xs text-amber-600">
-                      Note: Contract amount differs from monthly rent amount
-                    </p>
-                  )}
+                </div>
+                <div>
+                  <p className="font-medium">Total Contract Amount</p>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(contractAmount || (rentAmount ? rentAmount * durationMonths : agreement.total_amount * durationMonths))}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    (Monthly rent × {durationMonths} {durationMonths === 1 ? 'month' : 'months'})
+                  </p>
                 </div>
                 <div>
                   <p className="font-medium">Deposit Amount</p>
