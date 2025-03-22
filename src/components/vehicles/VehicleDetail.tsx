@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
-import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Tool } from 'lucide-react';
+import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isAfter, parseISO } from 'date-fns';
 import { useMaintenance } from '@/hooks/use-maintenance';
@@ -21,7 +20,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const { useList } = useMaintenance();
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   
-  // Status colors mapping
   const statusColors = {
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
@@ -29,19 +27,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     retired: 'bg-red-100 text-red-800',
   };
 
-  // Fetch maintenance records for this vehicle
   const { data: allMaintenance, isLoading: isLoadingMaintenance } = useList({
     vehicle_id: vehicle.id
   });
   
-  // Update maintenance records when data is loaded
   useEffect(() => {
     if (allMaintenance) {
       setMaintenanceRecords(allMaintenance);
     }
   }, [allMaintenance]);
 
-  // Format maintenance type for display
   const formatMaintenanceType = (type: string) => {
     return type
       .split('_')
@@ -49,7 +44,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
       .join(' ');
   };
   
-  // Get status badge color for maintenance records
   const getMaintenanceStatusColor = (status: string) => {
     switch(status) {
       case MaintenanceStatus.COMPLETED:
@@ -65,13 +59,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     }
   };
 
-  // Default image for cars
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
-  // Updated T77 image path
   const t77Image = '/lovable-uploads/32900e30-d61f-4057-8601-bc451101312c.png';
   
-  // Custom image logic by make/model
   let displayImageUrl = defaultCarImage;
   
   try {
@@ -79,7 +70,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     const modelLower = (vehicle.model || '').toString().toLowerCase();
 
     if (modelLower.includes('t77')) {
-      displayImageUrl = t77Image; // Use the new uploaded T77 image
+      displayImageUrl = t77Image;
     } else if (makeLower.includes('mg')) {
       displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
     } else if (vehicle.imageUrl) {
@@ -89,29 +80,24 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     console.error('Error setting vehicle detail image:', error);
   }
 
-  // Check insurance status
   const hasInsurance = !!vehicle.insurance_company;
   const insuranceExpiry = vehicle.insurance_expiry ? parseISO(vehicle.insurance_expiry) : null;
   const isInsuranceValid = insuranceExpiry ? isAfter(insuranceExpiry, new Date()) : false;
   
-  // Determine insurance badge style
   const getInsuranceBadgeStyle = () => {
     if (!hasInsurance) return 'bg-red-100 text-red-800';
     return isInsuranceValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
 
-  // Get insurance status text
   const getInsuranceStatusText = () => {
     if (!hasInsurance) return 'No Insurance';
     return isInsuranceValid ? 'Valid' : 'Expired';
   };
 
-  // Function to navigate to maintenance detail
   const handleViewMaintenance = (id: string) => {
     navigate(`/maintenance/${id}`);
   };
   
-  // Function to add new maintenance record
   const handleAddMaintenance = () => {
     navigate(`/maintenance/add?vehicleId=${vehicle.id}`);
   };
@@ -268,7 +254,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           </div>
         )}
         
-        {/* Maintenance History Section */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Maintenance History</CardTitle>
@@ -277,7 +262,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
               variant="outline" 
               onClick={handleAddMaintenance}
             >
-              <Tool className="h-4 w-4 mr-2" />
+              <Wrench className="h-4 w-4 mr-2" />
               Add Maintenance
             </CustomButton>
           </div>
