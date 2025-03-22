@@ -20,7 +20,8 @@ import {
   FileX, 
   FileClock, 
   FileEdit,
-  FilePlus 
+  FilePlus,
+  AlertTriangle 
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,11 +47,13 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export function AgreementList() {
   const { 
     agreements, 
     isLoading, 
+    error,
     searchParams, 
     setSearchParams, 
     deleteAgreement 
@@ -270,6 +273,14 @@ export function AgreementList() {
         </Button>
       </div>
       
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -305,7 +316,17 @@ export function AgreementList() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {isLoading ? "Loading..." : "No agreements found."}
+                  {isLoading ? (
+                    "Loading..."
+                  ) : (
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <FileText className="h-8 w-8 text-muted-foreground" />
+                      <p>No agreements found.</p>
+                      <p className="text-sm text-muted-foreground">
+                        {!error && "Try creating a new agreement or adjusting your filters."}
+                      </p>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
             )}
