@@ -65,32 +65,49 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const fetchPayments = async () => {
     setIsLoadingPayments(true)
     try {
-      const { data, error } = await supabase
+      console.log("Fetching payments for agreement:", agreement.id);
+      
+      const { data: unifiedPayments, error: unifiedError } = await supabase
         .from('unified_payments')
         .select('*')
         .eq('lease_id', agreement.id)
-        .order('payment_date', { ascending: false })
+        .order('payment_date', { ascending: false });
       
-      if (error) {
-        throw error
+      if (unifiedError) {
+        console.error("Error fetching unified payments:", unifiedError);
+        throw unifiedError;
       }
       
-      setPayments(data || [])
+      const formattedPayments = (unifiedPayments || []).map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        payment_date: payment.payment_date,
+        payment_method: payment.payment_method || 'cash',
+        reference_number: payment.transaction_id,
+        notes: payment.description,
+        type: payment.type,
+        status: payment.status,
+        late_fine_amount: payment.late_fine_amount,
+        days_overdue: payment.days_overdue
+      }));
+      
+      setPayments(formattedPayments);
+      console.log("Payments set:", formattedPayments.length);
     } catch (error) {
-      console.error("Error fetching payments:", error)
-      toast.error("Failed to load payment history")
+      console.error("Error fetching payments:", error);
+      toast.error("Failed to load payment history");
     } finally {
-      setIsLoadingPayments(false)
+      setIsLoadingPayments(false);
     }
   }
 
   useEffect(() => {
     initializeSystem().then(() => {
-      console.log("System initialized, checking for payments")
+      console.log("System initialized, checking for payments");
     });
     
-    fetchPayments()
-  }, [agreement.id])
+    fetchPayments();
+  }, [agreement.id]);
 
   return (
     <div className="space-y-8">

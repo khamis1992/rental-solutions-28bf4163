@@ -1,10 +1,12 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 export interface Payment {
   id: string;
@@ -31,6 +33,9 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
+
+  // Add debug log to see if payments are being passed
+  console.log("Payment history rendered with payments:", payments);
 
   return (
     <Card>

@@ -40,6 +40,8 @@ const AgreementDetailPage = () => {
             const shouldForceCheck = data.agreement_number === 'MR202462' || isNewMonth();
             
             if (shouldForceCheck) {
+              console.log("Force checking payments due to special agreement or new month");
+              
               // Force check all agreements for current month payments
               const allResult = await forceCheckAllAgreementsForPayments();
               if (allResult.success) {
@@ -49,13 +51,15 @@ const AgreementDetailPage = () => {
                 }
               }
               
-              // For agreement MR202462, check for all missing months including August 2024
+              // Special handling for MR202462
               if (data.agreement_number === 'MR202462') {
                 console.log(`Special check for agreement ${data.agreement_number} to catch up missing payments`);
                 
                 // Generate payments for all missing months from August 2024 to March 2025
                 const lastKnownPaymentDate = new Date(2024, 7, 3); // August 3, 2024
                 const currentSystemDate = new Date(2025, 2, 22); // March 22, 2025
+                
+                console.log(`Looking for missing payments between ${lastKnownPaymentDate.toDateString()} and ${currentSystemDate.toDateString()}`);
                 
                 const missingResult = await forceGeneratePaymentsForMissingMonths(
                   data.id,
@@ -68,7 +72,11 @@ const AgreementDetailPage = () => {
                   console.log("Missing payments check completed:", missingResult);
                   if (missingResult.generated > 0) {
                     toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
+                  } else {
+                    console.log("No missing payments were generated, all months might be covered already");
                   }
+                } else {
+                  console.error("Failed to generate missing payments:", missingResult);
                 }
               }
             }
