@@ -27,7 +27,8 @@ import {
   ChevronRight,
   AlertCircle,
   Info,
-  X
+  X,
+  Car
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,24 +81,35 @@ export function AgreementList() {
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
   const [searchTip, setSearchTip] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
   
   useEffect(() => {
     const handler = setTimeout(() => {
-      setSearchParams({...searchParams, query: searchQuery});
+      if (searchQuery !== searchParams.query) {
+        setIsSearching(true);
+        setSearchParams({...searchParams, query: searchQuery});
+      }
     }, 300);
     
     return () => clearTimeout(handler);
   }, [searchQuery]);
   
+  // Reset searching state when results come in
+  useEffect(() => {
+    if (isSearching && !isLoading) {
+      setIsSearching(false);
+    }
+  }, [isLoading, agreements]);
+  
   useEffect(() => {
     const isNumericSearch = /^\d{3,}$/.test(searchQuery);
-    const shouldShowTip = isNumericSearch && (!agreements || agreements.length === 0);
+    const shouldShowTip = isNumericSearch && (!agreements || agreements.length === 0) && !isLoading;
     setSearchTip(shouldShowTip);
     
     if (shouldShowTip) {
       console.log(`Showing search tip for numeric search: ${searchQuery}`);
     }
-  }, [searchQuery, agreements]);
+  }, [searchQuery, agreements, isLoading]);
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -158,11 +170,18 @@ export function AgreementList() {
                 className="hover:underline"
               >
                 {vehicle.make && vehicle.model ? (
-                  <span>
-                    {vehicle.make} {vehicle.model} <span className="font-semibold text-primary">({vehicle.license_plate})</span>
-                  </span>
+                  <div className="flex items-center">
+                    <Car className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    <span>
+                      {vehicle.make} {vehicle.model} 
+                      <span className="font-semibold text-primary ml-1">({vehicle.license_plate})</span>
+                    </span>
+                  </div>
                 ) : vehicle.license_plate ? (
-                  <span>Vehicle: <span className="font-semibold text-primary">{vehicle.license_plate}</span></span>
+                  <div className="flex items-center">
+                    <Car className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                    <span>Vehicle: <span className="font-semibold text-primary">{vehicle.license_plate}</span></span>
+                  </div>
                 ) : 'N/A'}
               </Link>
             ) : row.original.vehicle_id ? (
@@ -416,7 +435,7 @@ export function AgreementList() {
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isLoading || isSearching ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   {Array.from({ length: 7 }).map((_, j) => (

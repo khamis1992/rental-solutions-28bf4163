@@ -198,3 +198,61 @@ export const forceGeneratePaymentForAgreement = async (
     return { success: false, error };
   }
 };
+
+/**
+ * Helper function to extract numerics from license plate
+ * This can be used for testing license plate matching locally
+ * without relying on database functions
+ */
+export const extractLicensePlateNumerics = (plate: string): string => {
+  if (!plate) return '';
+  
+  // 1. Remove all non-digit characters
+  return plate.replace(/\D/g, '');
+};
+
+/**
+ * Check if a license plate matches a numeric search pattern
+ * in various formats (for local processing)
+ */
+export const doesLicensePlateMatchNumeric = (
+  plate: string, 
+  searchPattern: string
+): boolean => {
+  if (!plate || !searchPattern) return false;
+  
+  // 1. Direct includes (case insensitive)
+  if (plate.toLowerCase().includes(searchPattern.toLowerCase())) {
+    return true;
+  }
+  
+  // Only continue with numeric pattern matching if the search is numeric
+  if (!/^\d+$/.test(searchPattern)) return false;
+  
+  // 2. Extract just the numbers from the plate
+  const plateNumerics = extractLicensePlateNumerics(plate);
+  
+  // 3. Direct exact match of extracted numbers
+  if (plateNumerics === searchPattern) {
+    return true;
+  }
+  
+  // 4. Substring match of extracted numbers
+  if (plateNumerics.includes(searchPattern)) {
+    return true;
+  }
+  
+  // 5. Try trimming leading zeros and compare
+  const trimmedPlateNumerics = plateNumerics.replace(/^0+/, '');
+  const trimmedSearch = searchPattern.replace(/^0+/, '');
+  
+  if (trimmedPlateNumerics === trimmedSearch) {
+    return true;
+  }
+  
+  if (trimmedPlateNumerics.includes(trimmedSearch)) {
+    return true;
+  }
+  
+  return false;
+};
