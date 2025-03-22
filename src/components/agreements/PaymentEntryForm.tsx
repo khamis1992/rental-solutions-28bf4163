@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -41,9 +40,10 @@ type PaymentFormData = z.infer<typeof paymentFormSchema>;
 interface PaymentEntryFormProps {
   agreementId: string;
   onPaymentComplete: () => void;
+  defaultAmount?: number; // Add defaultAmount as an optional prop
 }
 
-export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntryFormProps) {
+export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount }: PaymentEntryFormProps) {
   const [lateFeeDetails, setLateFeeDetails] = useState<{
     amount: number;
     daysLate: number;
@@ -54,7 +54,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
-      amount: undefined,
+      amount: defaultAmount, // Use defaultAmount if provided
       paymentMethod: "cash",
       referenceNumber: "",
       notes: "",
@@ -63,6 +63,13 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
       pendingPaymentId: undefined,
     },
   });
+
+  // Update form value if defaultAmount changes
+  useEffect(() => {
+    if (defaultAmount && !selectedPendingPayment) {
+      form.setValue("amount", defaultAmount);
+    }
+  }, [defaultAmount, form, selectedPendingPayment]);
 
   const paymentDate = form.watch("paymentDate");
   const includeLatePaymentFee = form.watch("includeLatePaymentFee");
