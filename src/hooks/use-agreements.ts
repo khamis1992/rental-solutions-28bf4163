@@ -47,7 +47,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
       }
       
       // Transform the data to match the Agreement schema
-      const transformedData = data.map((lease: any) => ({
+      const transformedData = data.map((lease: any): Agreement => ({
         id: lease.id,
         customer_id: lease.customer_id,
         vehicle_id: lease.vehicle_id,
@@ -56,10 +56,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         status: lease.status,
         created_at: lease.created_at ? new Date(lease.created_at) : undefined,
         updated_at: lease.updated_at ? new Date(lease.updated_at) : undefined,
-        total_amount: lease.total_amount,
+        total_amount: lease.total_amount || 0,
         deposit_amount: lease.down_payment || 0,
-        agreement_number: lease.agreement_number,
-        notes: lease.notes,
+        agreement_number: lease.agreement_number || '',
+        notes: lease.notes || '',
         terms_accepted: true, // Assuming existing leases have terms accepted
         pickup_location: lease.pickup_location || "",
         return_location: lease.return_location || "",
@@ -80,7 +80,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   const createAgreement = useApiMutation(
     async (agreement: Omit<Agreement, 'id'>) => {
       const { data, error } = await supabase
-        .from('agreements')
+        .from('leases')
         .insert(agreement)
         .select()
         .single();
@@ -104,7 +104,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   const updateAgreement = useApiMutation(
     async ({ id, data }: { id: string, data: Partial<Agreement> }) => {
       const { data: updatedData, error } = await supabase
-        .from('agreements')
+        .from('leases')
         .update(data)
         .eq('id', id)
         .select()
@@ -129,7 +129,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   const deleteAgreement = useApiMutation(
     async (id: string) => {
       const { error } = await supabase
-        .from('agreements')
+        .from('leases')
         .delete()
         .eq('id', id);
         
@@ -151,7 +151,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   // Get agreement by ID
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     const { data, error } = await supabase
-      .from('agreements')
+      .from('leases')
       .select(`
         *,
         customers(id, full_name, email, phone),
@@ -166,7 +166,31 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
       return null;
     }
     
-    return data;
+    // Transform to Agreement type
+    if (data) {
+      return {
+        id: data.id,
+        customer_id: data.customer_id,
+        vehicle_id: data.vehicle_id,
+        start_date: new Date(data.start_date),
+        end_date: new Date(data.end_date),
+        status: data.status,
+        created_at: data.created_at ? new Date(data.created_at) : undefined,
+        updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
+        total_amount: data.total_amount || 0,
+        deposit_amount: data.down_payment || 0,
+        agreement_number: data.agreement_number || '',
+        notes: data.notes || '',
+        terms_accepted: true,
+        pickup_location: data.pickup_location || "",
+        return_location: data.return_location || "",
+        additional_drivers: [],
+        customers: data.customers,
+        vehicles: data.vehicles
+      };
+    }
+    
+    return null;
   };
   
   return {

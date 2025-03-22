@@ -13,16 +13,16 @@ export const AgreementStatus = {
 // Customer and Vehicle nested objects schema
 export const CustomerSchema = z.object({
   id: z.string(),
-  full_name: z.string(),
+  full_name: z.string().optional(),
   email: z.string().optional(),
   phone: z.string().optional()
 });
 
 export const VehicleSchema = z.object({
   id: z.string(),
-  make: z.string(),
-  model: z.string(),
-  license_plate: z.string(),
+  make: z.string().optional(),
+  model: z.string().optional(),
+  license_plate: z.string().optional(),
   image_url: z.string().optional(),
   year: z.number().optional(),
   color: z.string().optional()
@@ -30,9 +30,9 @@ export const VehicleSchema = z.object({
 
 // Agreement validation schema
 export const agreementSchema = z.object({
-  id: z.string().optional(),
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
+  id: z.string(),
+  customer_id: z.string(),
+  vehicle_id: z.string(),
   start_date: z.date(),
   end_date: z.date(),
   status: z.enum([
@@ -44,9 +44,9 @@ export const agreementSchema = z.object({
   ]),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
-  total_amount: z.number().min(0, "Total amount must be a positive number"),
-  deposit_amount: z.number().min(0, "Deposit must be a positive number"),
-  agreement_number: z.string().optional(),
+  total_amount: z.number(),
+  deposit_amount: z.number().optional(),
+  agreement_number: z.string(),
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false),
   signature_url: z.string().optional(),
