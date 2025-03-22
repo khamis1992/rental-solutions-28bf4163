@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -259,14 +258,13 @@ export function AgreementList() {
     },
   ];
 
-  // Helper for better search experience feedback
   const renderSearchHelp = () => {
     if (!searchQuery || agreements?.length > 0) return null;
     
     const isNumeric = /^\d+$/.test(searchQuery);
     
     return (
-      <Alert variant="info" className="mt-2">
+      <Alert variant="default" className="mt-2">
         <Info className="h-4 w-4" />
         <AlertTitle>Search Tips</AlertTitle>
         <AlertDescription>

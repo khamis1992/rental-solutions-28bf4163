@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -195,8 +194,22 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       notes: lease.notes || '',
       terms_accepted: true,
       additional_drivers: [],
-      customers: lease.profiles || null,
-      vehicles: lease.vehicles || null
+      customers: lease.profiles ? {
+        id: lease.profiles.id,
+        full_name: lease.profiles.full_name,
+        email: lease.profiles.email,
+        phone: lease.profiles.phone_number
+      } : null,
+      vehicles: lease.vehicles ? {
+        id: lease.vehicles.id,
+        make: lease.vehicles.make,
+        model: lease.vehicles.model,
+        license_plate: lease.vehicles.license_plate,
+        image_url: lease.vehicles.image_url,
+        year: lease.vehicles.year,
+        color: lease.vehicles.color,
+        vin: lease.vehicles.vin
+      } : null
     }));
   };
   
@@ -336,8 +349,22 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           notes: data.notes || '',
           terms_accepted: true,
           additional_drivers: [],
-          customers: data.profiles,
-          vehicles: data.vehicles
+          customers: data.profiles ? {
+            id: data.profiles.id,
+            full_name: data.profiles.full_name,
+            email: data.profiles.email,
+            phone: data.profiles.phone_number
+          } : null,
+          vehicles: data.vehicles ? {
+            id: data.vehicles.id,
+            make: data.vehicles.make,
+            model: data.vehicles.model,
+            license_plate: data.vehicles.license_plate,
+            image_url: data.vehicles.image_url,
+            year: data.vehicles.year,
+            color: data.vehicles.color,
+            vin: data.vehicles.vin
+          } : null
         };
       }
       
