@@ -8,12 +8,12 @@ import { toast } from 'sonner';
 export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   
-  // Fetch agreements with filters
+  // Fetch agreements with filters - using leases table
   const { data: agreements, isLoading, refetch } = useApiQuery(
     ['agreements', JSON.stringify(searchParams)],
     async () => {
       let query = supabase
-        .from('agreements')
+        .from('leases')
         .select(`
           *,
           customers(id, full_name, email),
@@ -46,7 +46,29 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         return [];
       }
       
-      return data || [];
+      // Transform the data to match the Agreement schema
+      const transformedData = data.map((lease: any) => ({
+        id: lease.id,
+        customer_id: lease.customer_id,
+        vehicle_id: lease.vehicle_id,
+        start_date: new Date(lease.start_date),
+        end_date: new Date(lease.end_date),
+        status: lease.status,
+        created_at: lease.created_at ? new Date(lease.created_at) : undefined,
+        updated_at: lease.updated_at ? new Date(lease.updated_at) : undefined,
+        total_amount: lease.total_amount,
+        deposit_amount: lease.down_payment || 0,
+        agreement_number: lease.agreement_number,
+        notes: lease.notes,
+        terms_accepted: true, // Assuming existing leases have terms accepted
+        pickup_location: lease.pickup_location || "",
+        return_location: lease.return_location || "",
+        additional_drivers: [],
+        customers: lease.customers,
+        vehicles: lease.vehicles
+      }));
+      
+      return transformedData || [];
     },
     {
       staleTime: 60000,
