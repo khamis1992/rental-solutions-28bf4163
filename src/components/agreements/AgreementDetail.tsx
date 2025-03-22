@@ -48,6 +48,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
   const [payments, setPayments] = useState<Payment[]>([])
   const [isLoadingPayments, setIsLoadingPayments] = useState(true)
+  const [rentAmount, setRentAmount] = useState<number | null>(null)
 
   const handleEdit = () => {
     navigate(`/agreements/edit/${agreement.id}`)
@@ -62,6 +63,27 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const handlePrintAgreement = () => {
     toast.info("Print functionality will be implemented in a future update")
   }
+
+  const fetchRentAmount = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("leases")
+        .select("rent_amount")
+        .eq("id", agreement.id)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching rent amount:", error);
+        return;
+      }
+      
+      if (data && data.rent_amount) {
+        setRentAmount(data.rent_amount);
+      }
+    } catch (error) {
+      console.error("Error fetching rent amount:", error);
+    }
+  }, [agreement.id]);
 
   const fetchPayments = useCallback(async () => {
     setIsLoadingPayments(true)
@@ -108,11 +130,12 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   useEffect(() => {
     const initializeAndFetch = async () => {
       await initializeSystem();
+      await fetchRentAmount();
       await fetchPayments();
     };
     
     initializeAndFetch();
-  }, [agreement.id, fetchPayments]);
+  }, [agreement.id, fetchPayments, fetchRentAmount]);
 
   return (
     <div className="space-y-8">
@@ -210,8 +233,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               </div>
               <div className="space-y-4">
                 <div>
-                  <p className="font-medium">Total Amount</p>
-                  <p className="text-lg font-bold">{formatCurrency(agreement.total_amount)}</p>
+                  <p className="font-medium">Monthly Rent Amount</p>
+                  <p className="text-lg font-bold">{formatCurrency(rentAmount || agreement.total_amount)}</p>
                 </div>
                 <div>
                   <p className="font-medium">Deposit Amount</p>
