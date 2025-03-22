@@ -7,6 +7,7 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { TrafficFineStatusType } from "@/hooks/use-traffic-fines";
+import { toast } from "sonner";
 
 type TrafficFine = {
   id: string;
@@ -18,6 +19,7 @@ type TrafficFine = {
   paymentStatus: TrafficFineStatusType;
   location?: string;
   lease_id?: string;
+  vehicle_id?: string;
 };
 
 interface AgreementTrafficFinesProps {
@@ -51,56 +53,71 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
-        // First try to get directly related fines
-        let { data: relatedFines, error: relatedError } = await supabase
-          .from('traffic_fines')
-          .select('*')
-          .eq('lease_id', agreementId);
-
-        if (relatedError) {
-          console.error("Error fetching related traffic fines:", relatedError);
-        }
-
-        // Then get fines by date range for the same vehicle
-        const { data: vehicleData, error: vehicleError } = await supabase
+        // Get the vehicle ID associated with this agreement
+        const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('vehicle_id')
           .eq('id', agreementId)
           .single();
-
-        if (vehicleError) {
-          console.error("Error fetching vehicle info:", vehicleError);
-          setTrafficFines(relatedFines || []);
+        
+        if (leaseError) {
+          console.error("Error fetching lease info:", leaseError);
           setIsLoading(false);
           return;
         }
 
-        if (vehicleData) {
-          const { data: dateRangeFines, error: dateRangeError } = await supabase
-            .from('traffic_fines')
-            .select('*')
-            .eq('vehicle_id', vehicleData.vehicle_id)
-            .gte('violationDate', startDate.toISOString())
-            .lte('violationDate', endDate.toISOString())
-            .is('lease_id', null); // Only get unassigned fines
-
-          if (dateRangeError) {
-            console.error("Error fetching date range traffic fines:", dateRangeError);
-          } else if (dateRangeFines) {
-            // Combine both sets of fines, ensuring no duplicates
-            const allFines = [...(relatedFines || [])];
-            
-            dateRangeFines.forEach(fine => {
-              if (!allFines.some(f => f.id === fine.id)) {
-                allFines.push(fine);
-              }
-            });
-            
-            setTrafficFines(allFines);
-          }
+        if (!leaseData?.vehicle_id) {
+          console.error("No vehicle associated with this agreement");
+          setIsLoading(false);
+          return;
         }
+
+        // Fetch traffic fines that are directly associated with this agreement
+        const { data: directFines, error: directError } = await supabase
+          .from('traffic_fines')
+          .select('*')
+          .eq('lease_id', agreementId);
+
+        if (directError) {
+          console.error("Error fetching direct traffic fines:", directError);
+        }
+
+        // Fetch traffic fines for the vehicle during the rental period
+        const { data: dateRangeFines, error: dateRangeError } = await supabase
+          .from('traffic_fines')
+          .select('*')
+          .eq('vehicle_id', leaseData.vehicle_id)
+          .gte('violationDate', startDate.toISOString())
+          .lte('violationDate', endDate.toISOString());
+
+        if (dateRangeError) {
+          console.error("Error fetching date range traffic fines:", dateRangeError);
+          toast.error("Failed to load traffic fines data");
+          setIsLoading(false);
+          return;
+        }
+
+        // Combine both sets and remove duplicates
+        let allFines: TrafficFine[] = [];
+        
+        if (directFines && directFines.length > 0) {
+          allFines = [...directFines];
+        }
+        
+        if (dateRangeFines && dateRangeFines.length > 0) {
+          dateRangeFines.forEach(fine => {
+            if (!allFines.some(f => f.id === fine.id)) {
+              allFines.push(fine);
+            }
+          });
+        }
+
+        // Check if any fines were found
+        console.log("All traffic fines found:", allFines);
+        setTrafficFines(allFines);
       } catch (error) {
         console.error("Unexpected error fetching traffic fines:", error);
+        toast.error("An error occurred while loading traffic fines");
       } finally {
         setIsLoading(false);
       }
