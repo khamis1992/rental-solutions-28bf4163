@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -9,7 +8,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   const [error, setError] = useState<string | null>(null);
   
-  // Fetch agreements with filters - using leases table
+  // Fetch agreements with filters
   const { data: agreements, isLoading, refetch } = useApiQuery(
     ['agreements', JSON.stringify(searchParams)],
     async () => {

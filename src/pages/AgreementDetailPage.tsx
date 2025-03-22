@@ -14,6 +14,7 @@ const AgreementDetailPage = () => {
   const { getAgreement, deleteAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const fetchAgreement = async () => {
@@ -33,11 +34,14 @@ const AgreementDetailPage = () => {
         toast.error("Failed to load agreement details");
       } finally {
         setIsLoading(false);
+        setIsInitialized(true);
       }
     };
 
-    fetchAgreement();
-  }, [id, getAgreement, navigate]);
+    if (!isInitialized) {
+      fetchAgreement();
+    }
+  }, [id, getAgreement, navigate, isInitialized]);
 
   const handleDelete = async (agreementId: string) => {
     try {
