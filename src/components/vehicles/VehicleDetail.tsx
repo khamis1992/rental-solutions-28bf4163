@@ -3,9 +3,9 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
-import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info } from 'lucide-react';
+import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, isAfter, parseISO } from 'date-fns';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -43,6 +43,23 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   } catch (error) {
     console.error('Error setting vehicle detail image:', error);
   }
+
+  // Check insurance status
+  const hasInsurance = !!vehicle.insurance_company;
+  const insuranceExpiry = vehicle.insurance_expiry ? parseISO(vehicle.insurance_expiry) : null;
+  const isInsuranceValid = insuranceExpiry ? isAfter(insuranceExpiry, new Date()) : false;
+  
+  // Determine insurance badge style
+  const getInsuranceBadgeStyle = () => {
+    if (!hasInsurance) return 'bg-red-100 text-red-800';
+    return isInsuranceValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+  };
+
+  // Get insurance status text
+  const getInsuranceStatusText = () => {
+    if (!hasInsurance) return 'No Insurance';
+    return isInsuranceValid ? 'Valid' : 'Expired';
+  };
 
   return (
     <Card className="w-full overflow-hidden card-transition">
@@ -119,6 +136,25 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           <div>
             <CardTitle className="mb-4 text-lg">Additional Information</CardTitle>
             <ul className="space-y-3">
+              <li className="flex items-center text-sm">
+                <Shield className="h-4 w-4 mr-2 text-muted-foreground" />
+                <span className="text-muted-foreground w-28">Insurance:</span>
+                <div>
+                  <Badge className={getInsuranceBadgeStyle()}>
+                    {getInsuranceStatusText()}
+                  </Badge>
+                  {hasInsurance && (
+                    <div className="mt-1">
+                      <div>{vehicle.insurance_company}</div>
+                      {insuranceExpiry && (
+                        <div className="text-xs text-muted-foreground">
+                          {isInsuranceValid ? 'Expires' : 'Expired'}: {format(insuranceExpiry, 'MMM d, yyyy')}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </li>
               <li className="flex items-center text-sm">
                 <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-muted-foreground w-28">Transmission:</span>

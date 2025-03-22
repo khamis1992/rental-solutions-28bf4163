@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -148,6 +149,7 @@ export const useVehicles = () => {
             description: formData.description,
             location: formData.location,
             insurance_company: formData.insurance_company,
+            insurance_expiry: formData.insurance_expiry,
             rent_amount: formData.rent_amount,
             vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
             image_url: imageUrl,
@@ -222,6 +224,7 @@ export const useVehicles = () => {
           if (data.description !== undefined) vehicleData.description = data.description;
           if (data.location !== undefined) vehicleData.location = data.location;
           if (data.insurance_company !== undefined) vehicleData.insurance_company = data.insurance_company;
+          if (data.insurance_expiry !== undefined) vehicleData.insurance_expiry = data.insurance_expiry;
           if (data.rent_amount !== undefined) vehicleData.rent_amount = data.rent_amount;
           
           if (data.vehicle_type_id !== undefined) {

@@ -1,3 +1,4 @@
+
 // Vehicle status enum from Supabase
 export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
@@ -39,6 +40,7 @@ export interface Vehicle {
   is_test_data?: boolean;
   location?: string;
   insurance_company?: string;
+  insurance_expiry?: string;
   device_type?: string;
   rent_amount?: number;
   vehicle_type_id?: string;
@@ -73,6 +75,7 @@ export interface VehicleFormData {
   description?: string;
   location?: string;
   insurance_company?: string;
+  insurance_expiry?: string;
   rent_amount?: number;
   vehicle_type_id?: string;
   image?: File | null;

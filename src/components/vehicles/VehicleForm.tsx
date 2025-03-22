@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +20,12 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Loader2 } from 'lucide-react';
 import { useVehicles } from '@/hooks/use-vehicles';
 import VehicleImageUpload from './VehicleImageUpload';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 // Schema for form validation
 const vehicleSchema = z.object({
@@ -33,6 +40,7 @@ const vehicleSchema = z.object({
   location: z.string().optional(),
   description: z.string().optional(),
   insurance_company: z.string().optional(),
+  insurance_expiry: z.string().optional(),
   rent_amount: z.coerce.number().min(0).optional(),
   vehicle_type_id: z.string().optional(),
 });
@@ -68,6 +76,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       location: initialData?.location || '',
       description: initialData?.notes || initialData?.description || '',
       insurance_company: initialData?.insurance_company || '',
+      insurance_expiry: initialData?.insurance_expiry || '',
       rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
       vehicle_type_id: initialData?.vehicle_type_id || '',
     },
@@ -94,6 +103,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       location: formValues.location,
       description: formValues.description,
       insurance_company: formValues.insurance_company,
+      insurance_expiry: formValues.insurance_expiry,
       rent_amount: formValues.rent_amount,
       vehicle_type_id: formValues.vehicle_type_id,
       image: selectedImage,
@@ -273,6 +283,45 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     <FormControl>
                       <Input placeholder="Insurance Provider" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="insurance_expiry"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Insurance Expiry Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(new Date(field.value), "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}
