@@ -88,7 +88,8 @@ export function AgreementList() {
   }, [searchQuery]);
   
   useEffect(() => {
-    setSearchTip(/^\d{3,}$/.test(searchQuery) && agreements?.length === 0);
+    const isNumericSearch = /^\d{3,}$/.test(searchQuery);
+    setSearchTip(isNumericSearch && agreements?.length === 0);
   }, [searchQuery, agreements]);
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +97,7 @@ export function AgreementList() {
     setSearchQuery(value);
     
     if (/^\d{3,6}$/.test(value)) {
-      console.log(`Numeric search detected: ${value} - applying special search handling`);
+      console.log(`Numeric search detected: ${value} - applying special vehicle number search handling`);
     }
   };
 
@@ -148,9 +149,13 @@ export function AgreementList() {
                 to={`/vehicles/${vehicle.id}`}
                 className="hover:underline"
               >
-                {vehicle.make && vehicle.model ? 
-                  `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 
-                  vehicle.license_plate ? `Vehicle: ${vehicle.license_plate}` : 'N/A'}
+                {vehicle.make && vehicle.model ? (
+                  <span>
+                    {vehicle.make} {vehicle.model} <span className="font-medium">({vehicle.license_plate})</span>
+                  </span>
+                ) : vehicle.license_plate ? (
+                  <span>Vehicle: <span className="font-medium">{vehicle.license_plate}</span></span>
+                ) : 'N/A'}
               </Link>
             ) : row.original.vehicle_id ? (
               <Link 
@@ -307,7 +312,7 @@ export function AgreementList() {
                   <p><strong>Search Tips:</strong></p>
                   <ul className="list-disc pl-4 mt-1 space-y-1">
                     <li>Agreement numbers: e.g., "MR202462"</li>
-                    <li>Vehicle numbers: e.g., "7042" (partial matches work)</li>
+                    <li>Vehicle numbers: e.g., "7042" (searches license plates)</li>
                     <li>Customer names, vehicle make/model, license plates</li>
                   </ul>
                 </TooltipContent>
@@ -355,8 +360,8 @@ export function AgreementList() {
             When searching for a vehicle number like "{searchQuery}", try these formats:
             <ul className="list-disc pl-5 mt-2">
               <li>Full agreement number (e.g., "MR202462")</li>
-              <li>Different variations of the number (e.g., try without leading zeros)</li>
-              <li>Only the significant digits (e.g., "7042" instead of "007042")</li>
+              <li>Just the vehicle number without any formatting (e.g., "7042")</li>
+              <li>Complete license plate (e.g., "ABC7042" or however it appears)</li>
             </ul>
           </AlertDescription>
         </Alert>

@@ -226,12 +226,35 @@ export const useAgreements = (initialFilters: AgreementFilters = {
             // Special case for numeric searches - check against vehicle numbers even if encrypted
             if (isNumericSearch) {
               if (agreement.vehicles) {
-                // Check if the entire number appears in the license plate (with more logging)
+                // Check if the search term appears anywhere in the license plate
                 if (agreement.vehicles.license_plate) {
-                  // Remove all non-digit characters for pure number comparison
+                  // First check if license plate directly contains the numeric search
+                  if (agreement.vehicles.license_plate.includes(searchTerm)) {
+                    console.log(`Match found in license plate (direct): ${agreement.vehicles.license_plate}`);
+                    return true;
+                  }
+                  
+                  // Extract only digits from license plate for numeric comparison
                   const digitsOnly = agreement.vehicles.license_plate.replace(/\D/g, '');
+                  
+                  // Check if the numeric part contains our search term
                   if (digitsOnly.includes(searchTerm)) {
-                    console.log(`Match found in license plate numbers: ${agreement.vehicles.license_plate} (digits: ${digitsOnly})`);
+                    console.log(`Match found in license plate digits: ${agreement.vehicles.license_plate} (digits: ${digitsOnly})`);
+                    return true;
+                  }
+                  
+                  // For vehicle numbers like 7042, sometimes they're represented as 007042
+                  // Check with leading zeros too
+                  const paddedSearch = searchTerm.padStart(6, '0');
+                  if (digitsOnly.includes(paddedSearch)) {
+                    console.log(`Match found in license plate with padded search: ${agreement.vehicles.license_plate}, search: ${paddedSearch}`);
+                    return true;
+                  }
+                  
+                  // And without leading zeros (trimmed)
+                  const trimmedDigits = digitsOnly.replace(/^0+/, '');
+                  if (trimmedDigits.includes(searchTerm) || searchTerm.includes(trimmedDigits)) {
+                    console.log(`Match found in license plate with trimmed digits: ${agreement.vehicles.license_plate}, trimmed: ${trimmedDigits}`);
                     return true;
                   }
                 }
