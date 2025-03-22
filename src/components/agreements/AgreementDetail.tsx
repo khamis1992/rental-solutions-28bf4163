@@ -79,6 +79,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       
       if (data && data.rent_amount) {
         setRentAmount(data.rent_amount);
+        console.log("Fetched rent amount:", data.rent_amount);
       }
     } catch (error) {
       console.error("Error fetching rent amount:", error);
@@ -119,13 +120,28 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       
       setPayments(formattedPayments);
       console.log("Formatted payments set:", formattedPayments);
+      
+      // Check for incorrect payment amounts (debugging)
+      if (formattedPayments.length > 0 && rentAmount) {
+        const incorrectPayments = formattedPayments.filter(p => 
+          p.amount > rentAmount * 5 && 
+          p.notes && 
+          p.notes.includes("Monthly rent payment")
+        );
+        
+        if (incorrectPayments.length > 0) {
+          console.warn(`Found ${incorrectPayments.length} payments with potentially incorrect amounts:`, 
+            incorrectPayments.map(p => ({ id: p.id, amount: p.amount, notes: p.notes }))
+          );
+        }
+      }
     } catch (error) {
       console.error("Error fetching payments:", error);
       toast.error("Failed to load payment history");
     } finally {
       setIsLoadingPayments(false);
     }
-  }, [agreement.id]);
+  }, [agreement.id, rentAmount]);
 
   useEffect(() => {
     const initializeAndFetch = async () => {
@@ -235,6 +251,11 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 <div>
                   <p className="font-medium">Monthly Rent Amount</p>
                   <p className="text-lg font-bold">{formatCurrency(rentAmount || agreement.total_amount)}</p>
+                  {rentAmount && rentAmount !== agreement.total_amount && (
+                    <p className="text-xs text-amber-600">
+                      Note: Contract amount differs from monthly rent amount
+                    </p>
+                  )}
                 </div>
                 <div>
                   <p className="font-medium">Deposit Amount</p>
@@ -287,6 +308,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                       setIsPaymentDialogOpen(false);
                       fetchPayments();
                     }} 
+                    defaultAmount={rentAmount}
                   />
                 </DialogContent>
               </Dialog>

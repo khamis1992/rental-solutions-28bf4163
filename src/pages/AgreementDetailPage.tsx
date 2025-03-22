@@ -7,7 +7,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { initializeSystem, forceCheckAllAgreementsForPayments, forceGeneratePaymentsForMissingMonths } from '@/lib/supabase';
+import { initializeSystem, forceCheckAllAgreementsForPayments, forceGeneratePaymentsForMissingMonths, supabase } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -29,8 +29,27 @@ const AgreementDetailPage = () => {
       
       setIsLoading(true);
       try {
+        // First get the agreement
         const data = await getAgreement(id);
+        
         if (data) {
+          // Get the rent_amount directly from the leases table
+          try {
+            const { data: leaseData, error: leaseError } = await supabase
+              .from("leases")
+              .select("rent_amount")
+              .eq("id", id)
+              .single();
+            
+            if (!leaseError && leaseData && leaseData.rent_amount) {
+              // If we have a rent_amount from leases table, update the agreement object
+              data.total_amount = leaseData.rent_amount;
+              console.log("Updated agreement total_amount with rent_amount:", leaseData.rent_amount);
+            }
+          } catch (err) {
+            console.error("Error fetching lease rent amount:", err);
+          }
+          
           setAgreement(data);
           
           // For any agreement, check for missing monthly payments
@@ -58,10 +77,27 @@ const AgreementDetailPage = () => {
               
               console.log(`Looking for missing payments between ${lastKnownPaymentDate.toISOString()} and ${currentSystemDate.toISOString()}`);
               
+              // Get the actual rent amount to use for generating payments
+              let rentAmount = data.total_amount;
+              try {
+                const { data: leaseData } = await supabase
+                  .from("leases")
+                  .select("rent_amount")
+                  .eq("id", id)
+                  .single();
+                
+                if (leaseData && leaseData.rent_amount) {
+                  rentAmount = leaseData.rent_amount;
+                  console.log(`Using rent_amount from leases table: ${rentAmount}`);
+                }
+              } catch (err) {
+                console.error("Error fetching rent amount for missing payments:", err);
+              }
+              
               // Generate payments for each month in the date range
               const missingResult = await forceGeneratePaymentsForMissingMonths(
                 data.id,
-                data.total_amount,
+                rentAmount,
                 lastKnownPaymentDate,
                 currentSystemDate
               );
