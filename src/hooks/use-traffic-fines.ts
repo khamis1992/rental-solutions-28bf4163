@@ -61,7 +61,8 @@ export function useTrafficFines() {
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          vehicleModel: fine.model || undefined, // Use model field from database
+          // The actual vehicle model might be stored in a different field or relation
+          vehicleModel: undefined, // We'll need to update this based on the actual data structure
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
@@ -84,7 +85,7 @@ export function useTrafficFines() {
         .insert({
           violation_number: fineData.violationNumber,
           license_plate: fineData.licensePlate,
-          model: fineData.vehicleModel, // Map to model field
+          // Don't try to map to model as it doesn't exist in the database
           violation_date: fineData.violationDate.toISOString(),
           fine_amount: fineData.fineAmount,
           violation_charge: fineData.violationCharge,
@@ -101,7 +102,7 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.model, // Map from model field
+        vehicleModel: undefined, // No corresponding field in database
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
@@ -131,7 +132,7 @@ export function useTrafficFines() {
       const updateData: any = {};
       if (data.violationNumber) updateData.violation_number = data.violationNumber;
       if (data.licensePlate) updateData.license_plate = data.licensePlate;
-      if (data.vehicleModel) updateData.model = data.vehicleModel;
+      // Don't try to map vehicleModel as there's no model field
       if (data.violationDate) updateData.violation_date = data.violationDate.toISOString();
       if (data.fineAmount) updateData.fine_amount = data.fineAmount;
       if (data.violationCharge) updateData.violation_charge = data.violationCharge;
@@ -153,7 +154,7 @@ export function useTrafficFines() {
         id: responseData.id,
         violationNumber: responseData.violation_number,
         licensePlate: responseData.license_plate,
-        vehicleModel: responseData.model, // Map from model field
+        vehicleModel: undefined, // No corresponding field in database
         violationDate: new Date(responseData.violation_date),
         fineAmount: responseData.fine_amount,
         violationCharge: responseData.violation_charge,
@@ -217,7 +218,7 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.model, // Map from model field
+        vehicleModel: undefined, // No corresponding field in database
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
@@ -259,7 +260,7 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.model, // Map from model field
+        vehicleModel: undefined, // No corresponding field in database
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
