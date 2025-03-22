@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -83,6 +82,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         
         query = query.order('created_at', { ascending: false }).limit(100);
         
+        console.log('Executing Supabase query for agreements:', query);
+        
         const { data: leaseData, error: leaseError } = await query;
         
         if (leaseError) {
@@ -91,6 +92,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           toast.error(`Failed to load agreements: ${leaseError.message}`);
           return [];
         }
+        
+        console.log('Lease data retrieved:', leaseData);
         
         if (!leaseData || leaseData.length === 0) {
           console.log('No agreements found in initial query');
@@ -288,7 +291,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           down_payment, 
           agreement_number, 
           notes,
-          vehicles:leases_vehicle_id_fkey (
+          vehicles!leases_vehicle_id_fkey (
             id, 
             make, 
             model, 
@@ -298,7 +301,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
             color, 
             vin
           ),
-          profiles:leases_customer_id_fkey (
+          profiles!leases_customer_id_fkey (
             id, 
             full_name, 
             email, 
@@ -313,6 +316,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         toast.error(`Failed to load agreement details: ${error.message}`);
         return null;
       }
+      
+      console.log('Agreement data retrieved:', data);
       
       if (data) {
         return {
