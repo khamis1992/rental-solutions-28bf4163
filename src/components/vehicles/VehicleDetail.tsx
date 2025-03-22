@@ -21,7 +21,7 @@ interface VehicleDetailProps {
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const navigate = useNavigate();
   const { useList: useMaintenanceList } = useMaintenance();
-  const { agreements: vehicleAgreements, isLoading: isLoadingAgreements, setSearchParams } = useAgreements();
+  const { agreements, isLoading: isLoadingAgreements, setSearchParams } = useAgreements({ vehicle_id: vehicle.id });
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
   const { getMaintenanceByVehicleId } = useMaintenance();
@@ -313,7 +313,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
             <div className="text-center py-8 text-muted-foreground">
               Loading agreements...
             </div>
-          ) : vehicleAgreements && vehicleAgreements.length > 0 ? (
+          ) : agreements && agreements.length > 0 ? (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -328,7 +328,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vehicleAgreements.map((agreement: Agreement) => (
+                  {agreements.map((agreement: Agreement) => (
                     <TableRow key={agreement.id}>
                       <TableCell className="font-medium">
                         {agreement.agreement_number}
