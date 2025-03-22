@@ -334,7 +334,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       }
       
       if (data) {
-        // Transform to Agreement type
+        // Transform to Agreement type - careful with the object structure
         return {
           id: data.id,
           customer_id: data.customer_id,
