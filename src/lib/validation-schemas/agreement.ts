@@ -100,7 +100,7 @@ export const generateMonthlyPayment = async (
     // First check if the agreement is still active
     const { data: agreement, error: agreementError } = await supabase
       .from("agreements")
-      .select("status")
+      .select("status, agreement_number")
       .eq("id", agreementId)
       .single();
     
@@ -108,6 +108,7 @@ export const generateMonthlyPayment = async (
     
     // If agreement is not active (closed, cancelled, etc.), don't generate payment
     if (agreement && agreement.status !== 'active') {
+      console.log(`Skipping payment generation for ${agreement.agreement_number} - status is ${agreement.status}`);
       return { success: false, message: `Agreement is no longer active (status: ${agreement.status})` };
     }
     
@@ -126,8 +127,11 @@ export const generateMonthlyPayment = async (
     
     // If payment already exists for this month, don't create another one
     if (existingPayments && existingPayments.length > 0) {
+      console.log(`Payment already exists for agreement ${agreement.agreement_number} for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
       return { success: false, message: "Payment already exists for this month" };
     }
+    
+    console.log(`Generating payment for agreement ${agreement.agreement_number} for ${paymentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
     
     // Create pending payment record for the 1st of the month
     const { data, error } = await supabase.from("unified_payments").insert({
@@ -144,9 +148,54 @@ export const generateMonthlyPayment = async (
     
     if (error) throw error;
     
+    console.log(`Successfully generated payment for agreement ${agreement.agreement_number}`);
     return { success: true, data };
   } catch (error) {
     console.error("Error generating monthly payment:", error);
+    return { success: false, error };
+  }
+};
+
+// Function to manually generate payments for a specific agreement
+export const forceGeneratePaymentForAgreement = async (
+  supabase: any,
+  agreementId: string
+) => {
+  try {
+    // Get the agreement details
+    const { data: agreement, error: agreementError } = await supabase
+      .from("agreements")
+      .select("id, total_amount, agreement_number, status")
+      .eq("id", agreementId)
+      .single();
+    
+    if (agreementError) throw agreementError;
+    
+    if (!agreement) {
+      return { success: false, message: "Agreement not found" };
+    }
+    
+    if (agreement.status !== 'active') {
+      return { success: false, message: `Agreement is not active (current status: ${agreement.status})` };
+    }
+    
+    // Get current month and year
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Generate a payment for the current month if it doesn't exist
+    const result = await generateMonthlyPayment(
+      supabase,
+      agreement.id,
+      agreement.total_amount,
+      currentMonth,
+      currentYear
+    );
+    
+    return result;
+  } catch (error) {
+    console.error("Error forcing payment generation:", error);
     return { success: false, error };
   }
 };

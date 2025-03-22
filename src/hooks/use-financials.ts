@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
-import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
+import { supabase, checkAndGenerateMonthlyPayments, forceCheckAllAgreementsForPayments } from '@/lib/supabase';
 
 export type TransactionType = 'income' | 'expense';
 export type TransactionStatusType = 'completed' | 'pending' | 'failed';
@@ -47,8 +47,9 @@ export function useFinancials() {
     const today = new Date().toDateString();
     
     if (!checkDate || checkDate !== today) {
-      checkAndGenerateMonthlyPayments().then(() => {
+      checkAndGenerateMonthlyPayments().then((result) => {
         localStorage.setItem('lastPaymentCheck', today);
+        console.log("Monthly payment check completed:", result);
       });
     }
   }, []);
@@ -190,12 +191,12 @@ export function useFinancials() {
         description: 'Please wait while we generate pending payments for active agreements.'
       });
       
-      const result = await checkAndGenerateMonthlyPayments();
+      const result = await forceCheckAllAgreementsForPayments();
       
-      if (result) {
+      if (result.success) {
         toast({
           title: 'Monthly payments generated',
-          description: 'System has generated pending payments for active agreements.'
+          description: `System has generated ${result.generated} pending payments for ${result.checked} active agreements.`
         });
       } else {
         toast({
@@ -203,6 +204,8 @@ export function useFinancials() {
           description: 'No new payments needed to be generated at this time.'
         });
       }
+      
+      return result;
     } catch (error) {
       console.error("Error generating payments:", error);
       toast({
@@ -210,6 +213,7 @@ export function useFinancials() {
         description: 'There was an error generating monthly payments.',
         variant: 'destructive'
       });
+      return { success: false, error };
     }
   };
 

@@ -7,7 +7,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { initializeSystem } from '@/lib/supabase';
+import { initializeSystem, forceCheckAllAgreementsForPayments } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +31,17 @@ const AgreementDetailPage = () => {
         const data = await getAgreement(id);
         if (data) {
           setAgreement(data);
+          
+          // Check agreement number for specific case
+          if (data.agreement_number === 'MR202462') {
+            console.log("Found agreement MR202462, checking payments...");
+            
+            // Force check for payments for this specific agreement
+            const result = await forceCheckAllAgreementsForPayments();
+            if (result.success) {
+              console.log("Payment check completed for MR202462:", result);
+            }
+          }
         } else {
           toast.error("Agreement not found");
           navigate("/agreements");

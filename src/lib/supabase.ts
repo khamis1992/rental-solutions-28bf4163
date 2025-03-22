@@ -1,5 +1,6 @@
+
 import { createClient } from '@supabase/supabase-js';
-import { generateMonthlyPayment } from './validation-schemas/agreement';
+import { generateMonthlyPayment, forceGeneratePaymentForAgreement } from './validation-schemas/agreement';
 
 // Get the environment variables
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -121,7 +122,7 @@ export const checkAndGenerateMonthlyPayments = async () => {
       // Get all active agreements
       const { data: agreements, error } = await supabase
         .from('agreements')
-        .select('id, total_amount, start_date, end_date')
+        .select('id, total_amount, start_date, end_date, agreement_number')
         .eq('status', 'active')
         .lt('start_date', today.toISOString()) // Agreement has started
         .gt('end_date', today.toISOString());   // Agreement has not ended yet
@@ -138,6 +139,8 @@ export const checkAndGenerateMonthlyPayments = async () => {
           const currentMonth = today.getMonth();
           const currentYear = today.getFullYear();
           
+          console.log(`Processing agreement ${agreement.agreement_number}`);
+          
           const result = await generateMonthlyPayment(
             supabase,
             agreement.id,
@@ -147,20 +150,94 @@ export const checkAndGenerateMonthlyPayments = async () => {
           );
           
           if (result.success) {
-            console.log(`Generated payment for agreement ${agreement.id}`);
+            console.log(`Generated payment for agreement ${agreement.agreement_number}`);
           } else {
-            console.log(`Payment already exists or failed for agreement ${agreement.id}`);
+            console.log(`Payment already exists or failed for agreement ${agreement.agreement_number}: ${result.message || 'Unknown error'}`);
           }
         }
         
         return true;
+      } else {
+        console.log('No active agreements found for payment generation');
       }
+    } else {
+      console.log(`Today is not the 1st of the month (it's the ${today.getDate()}), skipping automatic payment generation`);
     }
     
     return false;
   } catch (error) {
     console.error('Error generating monthly payments:', error);
     return false;
+  }
+};
+
+// Function to force generate payments for a specific agreement by ID
+export const generatePaymentForAgreement = async (agreementId: string) => {
+  try {
+    if (!agreementId) {
+      return { success: false, message: "No agreement ID provided" };
+    }
+    
+    console.log(`Manually generating payment for agreement ID: ${agreementId}`);
+    
+    const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
+    
+    return result;
+  } catch (error) {
+    console.error("Error manually generating payment:", error);
+    return { success: false, error };
+  }
+};
+
+// Function to force check all agreements regardless of date
+export const forceCheckAllAgreementsForPayments = async () => {
+  try {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    console.log('Force checking all active agreements for payment generation');
+    
+    // Get all active agreements
+    const { data: agreements, error } = await supabase
+      .from('agreements')
+      .select('id, total_amount, agreement_number')
+      .eq('status', 'active');
+    
+    if (error) {
+      throw error;
+    }
+    
+    if (agreements && agreements.length > 0) {
+      console.log(`Found ${agreements.length} active agreements to check`);
+      let generatedCount = 0;
+      
+      // Generate a pending payment for each active agreement
+      for (const agreement of agreements) {
+        const result = await generateMonthlyPayment(
+          supabase,
+          agreement.id,
+          agreement.total_amount,
+          currentMonth,
+          currentYear
+        );
+        
+        if (result.success) {
+          console.log(`Generated payment for agreement ${agreement.agreement_number}`);
+          generatedCount++;
+        } else {
+          console.log(`No payment needed for agreement ${agreement.agreement_number}: ${result.message || 'Unknown error'}`);
+        }
+      }
+      
+      return { success: true, generated: generatedCount, checked: agreements.length };
+    } else {
+      console.log('No active agreements found');
+      return { success: true, generated: 0, checked: 0 };
+    }
+  } catch (error) {
+    console.error('Error force checking agreements for payments:', error);
+    return { success: false, error };
   }
 };
 
