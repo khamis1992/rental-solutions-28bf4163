@@ -23,7 +23,8 @@ import {
   AlertTriangle,
   Loader2,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,7 @@ import {
   PaginationItem,
   PaginationLink
 } from "@/components/ui/pagination";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function AgreementList() {
   const { 
@@ -74,6 +76,7 @@ export function AgreementList() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
+  const [searchTip, setSearchTip] = useState<boolean>(false);
   
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -82,6 +85,10 @@ export function AgreementList() {
     
     return () => clearTimeout(handler);
   }, [searchQuery]);
+  
+  useEffect(() => {
+    setSearchTip(/^\d{3,}$/.test(searchQuery) && agreements?.length === 0);
+  }, [searchQuery, agreements]);
   
   const columns: ColumnDef<Agreement>[] = [
     {
@@ -275,12 +282,21 @@ export function AgreementList() {
         <div className="flex items-center w-full sm:w-auto space-x-2">
           <div className="relative w-full sm:w-[250px] md:w-[300px]">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
-            <Input
-              placeholder="Search by agreement #, customer, or vehicle..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 pl-9 w-full"
-            />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Input
+                    placeholder="Search by agreement #, customer, or vehicle..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="h-9 pl-9 w-full"
+                  />
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-xs">
+                  <p>Search by agreement number, customer name, or vehicle details (make, model, license plate, etc.)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <Select
             value={searchParams.status}
@@ -312,6 +328,18 @@ export function AgreementList() {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {searchTip && (
+        <Alert variant="warning" className="mb-4 bg-amber-50 border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-800">Search Tip</AlertTitle>
+          <AlertDescription className="text-amber-700">
+            When searching for a vehicle number like "{searchQuery}", try adding more details 
+            such as license plate prefix or model information. Vehicle numbers might be 
+            partially encrypted in the database.
+          </AlertDescription>
         </Alert>
       )}
       

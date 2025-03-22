@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -192,11 +193,47 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           
           console.log(`Filtering results for search term: "${searchTerm}"`);
           
+          // Add a special case for vehicle numbers (like "7042")
+          // This will check if the search term is a number that might be a vehicle identifier
+          const isNumericSearch = /^\d+$/.test(searchTerm);
+          
           transformedData = transformedData.filter(agreement => {
             // Check agreement number
             if (agreement.agreement_number?.toLowerCase().includes(searchTerm)) {
               console.log(`Match found in agreement number: ${agreement.agreement_number}`);
               return true;
+            }
+            
+            // Special case for numeric searches - check against vehicle numbers even if encrypted
+            if (isNumericSearch) {
+              if (agreement.vehicles) {
+                // Check license plate for numeric matches
+                if (agreement.vehicles.license_plate && 
+                    agreement.vehicles.license_plate.replace(/\D/g, '').includes(searchTerm)) {
+                  console.log(`Match found in license plate numbers: ${agreement.vehicles.license_plate}`);
+                  return true;
+                }
+                
+                // Check VIN for numeric matches
+                if (agreement.vehicles.vin && 
+                    agreement.vehicles.vin.replace(/\D/g, '').includes(searchTerm)) {
+                  console.log(`Match found in VIN digits: ${agreement.vehicles.vin}`);
+                  return true;
+                }
+                
+                // Check year if it matches the numeric search
+                if (agreement.vehicles.year && 
+                    agreement.vehicles.year.toString().includes(searchTerm)) {
+                  console.log(`Match found in vehicle year: ${agreement.vehicles.year}`);
+                  return true;
+                }
+              }
+              
+              // Check if the numeric search term appears in the notes
+              if (agreement.notes && agreement.notes.includes(searchTerm)) {
+                console.log(`Match found in notes for numeric search: ${agreement.notes}`);
+                return true;
+              }
             }
             
             // Check customer name
@@ -231,27 +268,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {
               if (vehicle.model?.toLowerCase().includes(searchTerm)) {
                 console.log(`Match found in vehicle model: ${vehicle.model}`);
                 return true;
-              }
-              
-              // Check if the search term is a year that matches the vehicle year
-              if (vehicle.year && searchTerm.match(/^\d+$/) && vehicle.year.toString().includes(searchTerm)) {
-                console.log(`Match found in vehicle year: ${vehicle.year}`);
-                return true;
-              }
-              
-              // Check if the search term is a number that appears in any numeric field
-              if (searchTerm.match(/^\d+$/)) {
-                // Check if this number appears in any part of the license plate
-                if (vehicle.license_plate && vehicle.license_plate.replace(/\D/g, '').includes(searchTerm)) {
-                  console.log(`Match found in license plate numbers: ${vehicle.license_plate}`);
-                  return true;
-                }
-                
-                // Check if it appears in the VIN
-                if (vehicle.vin && vehicle.vin.replace(/\D/g, '').includes(searchTerm)) {
-                  console.log(`Match found in VIN digits: ${vehicle.vin}`);
-                  return true;
-                }
               }
               
               // Also check the combined string just to be sure
