@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -25,7 +26,8 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertCircle,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +102,11 @@ export function AgreementList() {
       console.log(`Numeric search detected: ${value} - applying special vehicle number search handling`);
     }
   };
+  
+  const handleClearSearch = () => {
+    setSearchQuery('');
+    setSearchParams({...searchParams, query: ''});
+  };
 
   const columns: ColumnDef<Agreement>[] = [
     {
@@ -151,10 +158,10 @@ export function AgreementList() {
               >
                 {vehicle.make && vehicle.model ? (
                   <span>
-                    {vehicle.make} {vehicle.model} <span className="font-medium">({vehicle.license_plate})</span>
+                    {vehicle.make} {vehicle.model} <span className="font-medium text-primary">({vehicle.license_plate})</span>
                   </span>
                 ) : vehicle.license_plate ? (
-                  <span>Vehicle: <span className="font-medium">{vehicle.license_plate}</span></span>
+                  <span>Vehicle: <span className="font-medium text-primary">{vehicle.license_plate}</span></span>
                 ) : 'N/A'}
               </Link>
             ) : row.original.vehicle_id ? (
@@ -301,19 +308,31 @@ export function AgreementList() {
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Input
-                    placeholder="Search by agreement #, customer, or vehicle..."
-                    value={searchQuery}
-                    onChange={handleSearchInputChange}
-                    className="h-9 pl-9 w-full"
-                  />
+                  <div className="relative">
+                    <Input
+                      placeholder="Search by agreement #, customer, or vehicle..."
+                      value={searchQuery}
+                      onChange={handleSearchInputChange}
+                      className="h-9 pl-9 pr-8 w-full"
+                    />
+                    {searchQuery && (
+                      <button 
+                        onClick={handleClearSearch}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Clear search</span>
+                      </button>
+                    )}
+                  </div>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="max-w-xs">
                   <p><strong>Search Tips:</strong></p>
                   <ul className="list-disc pl-4 mt-1 space-y-1">
                     <li>Agreement numbers: e.g., "MR202462"</li>
-                    <li>Vehicle numbers: e.g., "7042" (searches license plates)</li>
-                    <li>Customer names, vehicle make/model, license plates</li>
+                    <li>Vehicle numbers: e.g., "7042" (searches license plates directly)</li>
+                    <li>License plates: with or without formatting</li>
+                    <li>Customer names, vehicle make/model</li>
                   </ul>
                 </TooltipContent>
               </Tooltip>
@@ -359,9 +378,9 @@ export function AgreementList() {
           <AlertDescription className="text-amber-700">
             When searching for a vehicle number like "{searchQuery}", try these formats:
             <ul className="list-disc pl-5 mt-2">
-              <li>Full agreement number (e.g., "MR202462")</li>
-              <li>Just the vehicle number without any formatting (e.g., "7042")</li>
-              <li>Complete license plate (e.g., "ABC7042" or however it appears)</li>
+              <li>Just the vehicle number as is (e.g., "7042")</li>
+              <li>Complete license plate if you know it (e.g., "ABC7042")</li>
+              <li>Agreement number if available (e.g., "MR202462")</li>
             </ul>
           </AlertDescription>
         </Alert>
@@ -421,7 +440,7 @@ export function AgreementList() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setSearchQuery('')}
+                        onClick={handleClearSearch}
                       >
                         Clear Search
                       </Button>
