@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -9,7 +10,7 @@ import { Trash2, Edit, FileText } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase, initializeSystem } from "@/lib/supabase"
@@ -62,7 +63,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     toast.info("Print functionality will be implemented in a future update")
   }
 
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     setIsLoadingPayments(true)
     try {
       console.log("Fetching payments for agreement:", agreement.id);
@@ -102,7 +103,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     } finally {
       setIsLoadingPayments(false);
     }
-  }
+  }, [agreement.id]);
 
   useEffect(() => {
     const initializeAndFetch = async () => {
@@ -111,7 +112,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     };
     
     initializeAndFetch();
-  }, [agreement.id]);
+  }, [agreement.id, fetchPayments]);
 
   return (
     <div className="space-y-8">

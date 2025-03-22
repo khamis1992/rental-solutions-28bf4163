@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,9 +6,10 @@ import { formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { supabase, forceGeneratePaymentsForMissingMonths } from "@/lib/supabase";
 import { toast } from "sonner";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Edit, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { PaymentEditDialog } from "./PaymentEditDialog";
 
 export interface Payment {
   id: string;
@@ -46,6 +46,10 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
   const [totalMissingAmount, setTotalMissingAmount] = useState(0);
   const [lastPaidDate, setLastPaidDate] = useState<Date | null>(null);
   const [isGeneratingPayments, setIsGeneratingPayments] = useState(false);
+  
+  // New state for payment editing
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   // System date is March 22, 2025
   const systemDate = new Date(2025, 2, 22);
@@ -220,6 +224,20 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
       setIsGeneratingPayments(false);
     }
   };
+  
+  // Handler for opening the edit dialog
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsEditDialogOpen(true);
+  };
+  
+  // Handler for after a payment is saved
+  const handlePaymentSaved = () => {
+    // Trigger a refetch of payments from the parent component
+    if (agreementId) {
+      fetchPendingPayments(agreementId);
+    }
+  };
 
   return (
     <Card>
@@ -280,6 +298,7 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
                   <TableHead>Method</TableHead>
                   <TableHead>Reference</TableHead>
                   <TableHead>Notes</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -320,12 +339,32 @@ export function PaymentHistory({ payments, isLoading }: PaymentHistoryProps) {
                     <TableCell className="max-w-[200px] truncate">
                       {payment.notes || "-"}
                     </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEditPayment(payment)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
         )}
+        
+        {/* Payment Edit Dialog */}
+        <PaymentEditDialog
+          payment={selectedPayment}
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          onSave={handlePaymentSaved}
+        />
       </CardContent>
     </Card>
   );
