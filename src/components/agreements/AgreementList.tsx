@@ -21,7 +21,6 @@ import {
   FileEdit,
   FilePlus,
   AlertTriangle,
-  X,
   Loader2,
   ChevronLeft,
   ChevronRight
@@ -57,7 +56,6 @@ import {
   PaginationItem,
   PaginationLink
 } from "@/components/ui/pagination";
-import { CustomButton } from '@/components/ui/custom-button';
 
 export function AgreementList() {
   const { 
@@ -66,77 +64,12 @@ export function AgreementList() {
     error,
     searchParams, 
     setSearchParams,
-    debouncedSetSearchParams,
     deleteAgreement 
   } = useAgreements();
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-
-  useEffect(() => {
-    if (searchParams.query) {
-      setSearchTerm(searchParams.query);
-    }
-  }, []);
-
-  const handleSearch = () => {
-    setCurrentPage(1);
-    setSearchParams({
-      ...searchParams,
-      query: searchTerm || ''
-    });
-  };
   
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSearch();
-    }
-  };
-  
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchTerm(value);
-    
-    if (value === '') {
-      debouncedSetSearchParams({
-        ...searchParams,
-        query: ''
-      });
-    }
-  };
-  
-  const handleStatusChange = (value: string) => {
-    setCurrentPage(1);
-    if (value) {
-      setSearchParams({
-        ...searchParams,
-        status: value
-      });
-    }
-  };
-  
-  const clearFilters = () => {
-    setSearchTerm('');
-    setCurrentPage(1);
-    setSearchParams({
-      query: '',
-      status: 'all'
-    });
-  };
-  
-  const clearSearchTerm = () => {
-    setSearchTerm('');
-    setCurrentPage(1);
-    setSearchParams({
-      ...searchParams,
-      query: ''
-    });
-  };
-
   const columns: ColumnDef<Agreement>[] = [
     {
       accessorKey: "agreement_number",
@@ -308,12 +241,12 @@ export function AgreementList() {
       sorting,
       columnFilters,
       pagination: {
-        pageIndex: currentPage - 1,
-        pageSize: itemsPerPage,
+        pageIndex: 0,
+        pageSize: 10,
       },
     },
     manualPagination: false,
-    pageCount: Math.ceil((agreements?.length || 0) / itemsPerPage),
+    pageCount: Math.ceil((agreements?.length || 0) / 10),
   });
 
   return (
@@ -324,43 +257,14 @@ export function AgreementList() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
             <Input
               placeholder="Search agreements..."
-              value={searchTerm}
-              onChange={handleSearchInputChange}
-              onKeyDown={handleKeyDown}
-              className="h-9 pl-9 w-full pr-8"
-              disabled={isLoading}
-              aria-label="Search agreements"
+              value={searchParams.query || ''}
+              onChange={(e) => setSearchParams({...searchParams, query: e.target.value})}
+              className="h-9 pl-9 w-full"
             />
-            {searchTerm && (
-              <button 
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                onClick={clearSearchTerm}
-                aria-label="Clear search"
-                disabled={isLoading}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={handleSearch}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Searching...
-              </>
-            ) : (
-              'Search'
-            )}
-          </Button>
           <Select
-            value={searchParams.status || 'all'}
-            onValueChange={handleStatusChange}
-            disabled={isLoading}
+            value={searchParams.status}
+            onValueChange={(value) => setSearchParams({...searchParams, status: value})}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select status" />
@@ -374,16 +278,6 @@ export function AgreementList() {
               <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
             </SelectContent>
           </Select>
-          {(searchTerm || searchParams.status !== 'all') && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              disabled={isLoading}
-            >
-              Clear
-            </Button>
-          )}
         </div>
         <Button asChild>
           <Link to="/agreements/add">
@@ -399,13 +293,6 @@ export function AgreementList() {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      )}
-      
-      {isLoading && (
-        <div className="py-8 text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-          <p className="text-muted-foreground">Loading agreements...</p>
-        </div>
       )}
       
       <div className="rounded-md border">
@@ -427,7 +314,18 @@ export function AgreementList() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              // Show skeleton loaders when loading
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  {Array.from({ length: 7 }).map((_, j) => (
+                    <TableCell key={`skeleton-cell-${i}-${j}`}>
+                      <div className="h-8 w-full animate-pulse rounded bg-muted"></div>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -442,21 +340,10 @@ export function AgreementList() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {isLoading ? (
-                    <div className="flex flex-col items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary mb-2" />
-                      <span>Loading agreements...</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <FileText className="h-8 w-8 text-muted-foreground" />
-                      <p>No agreements found.</p>
-                      <p className="text-sm text-muted-foreground">
-                        {!error && "Try creating a new agreement or adjusting your filters."}
-                      </p>
-                    </div>
-                  )}
+                <TableCell colSpan={7} className="h-24 text-center">
+                  No agreements found. {searchParams.query || searchParams.status !== 'all' ? 
+                    'Try adjusting your filters.' : 
+                    'Add your first agreement using the button above.'}
                 </TableCell>
               </TableRow>
             )}

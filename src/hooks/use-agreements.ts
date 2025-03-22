@@ -1,15 +1,15 @@
-
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementFilters } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
-import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
-export const useAgreements = (initialFilters: AgreementFilters = {}) => {
+export const useAgreements = (initialFilters: AgreementFilters = {
+  query: '',
+  status: 'all',
+}) => {
   const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   const [error, setError] = useState<string | null>(null);
-  const [isSearching, setIsSearching] = useState(false);
   
   // Clear error when search params change
   useEffect(() => {
@@ -21,7 +21,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
     ['agreements', JSON.stringify(searchParams)],
     async () => {
       try {
-        setIsSearching(true);
         console.log('Fetching agreements with params:', searchParams);
         
         // First, let's get the basic lease data with optimized query
@@ -143,8 +142,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
         toast.error("An unexpected error occurred while loading agreements");
         return [];
-      } finally {
-        setIsSearching(false);
       }
     },
     {
@@ -153,11 +150,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
       retry: 1, // Limit retries to prevent excessive requests
     }
   );
-  
-  // Debounced version of setSearchParams to prevent excessive renders and queries
-  const debouncedSetSearchParams = useDebouncedCallback((newParams: AgreementFilters) => {
-    setSearchParams(newParams);
-  }, 300);
   
   // Create agreement
   const createAgreement = useApiMutation(
@@ -312,11 +304,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
   
   return {
     agreements,
-    isLoading: isLoading || isSearching,
+    isLoading,
     error,
     searchParams,
     setSearchParams,
-    debouncedSetSearchParams,
     createAgreement,
     updateAgreement,
     deleteAgreement,
