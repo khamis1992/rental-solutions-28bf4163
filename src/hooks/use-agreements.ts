@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -55,7 +56,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         
         // Check if search term is a potential vehicle number (numeric only)
         const searchTerm = searchParams.query?.trim() || '';
-        const isNumericSearch = /^\d{3,6}$/.test(searchTerm);
+        const isNumericSearch = /^\d+$/.test(searchTerm);
         
         // Execute the query to get all agreements that we'll filter
         const { data: allLeases, error: allLeasesError } = await query
@@ -70,8 +71,11 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         }
         
         if (!allLeases || allLeases.length === 0) {
+          console.log("No agreements found in base database query");
           return [];
         }
+        
+        console.log(`Using all leases for advanced search`);
         
         // Fetch related customer data
         const customerIds = allLeases.map(lease => lease.customer_id).filter(Boolean);
@@ -146,85 +150,102 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         const searchTermLower = searchTerm.toLowerCase();
         console.log(`Filtering results for search term: "${searchTermLower}"`);
         
-        return transformedData.filter(agreement => {
-          // 1. Check agreement number (case insensitive)
+        // Create a filtered dataset
+        const filteredData = transformedData.filter(agreement => {
+          // 1. Check agreement number (case insensitive) - exact same logic as current implementation
           if (agreement.agreement_number?.toLowerCase().includes(searchTermLower)) {
             console.log(`Match found in agreement number: ${agreement.agreement_number}`);
             return true;
           }
           
-          // 2. Check vehicle license plate with enhanced matching for numeric searches
+          // 2. Check vehicle license plate - MODIFIED WITH NEW APPROACH
           if (agreement.vehicles?.license_plate) {
             const plate = agreement.vehicles.license_plate.toLowerCase();
             
-            // Direct license plate match
+            // Direct match - just like we do for agreement numbers
             if (plate.includes(searchTermLower)) {
               console.log(`Match found in license plate: ${plate}`);
               return true;
             }
             
-            // For numeric searches, try additional matching strategies
+            // For numeric searches, implement exact matching
             if (isNumericSearch) {
-              // Extract digits from license plate
+              // Exact match
+              if (plate === searchTerm) {
+                console.log(`Exact match found for license plate: ${plate}`);
+                return true;
+              }
+              
+              // Extract only the digits from license plate and match against search term
               const plateDigits = plate.replace(/\D/g, '');
+              if (plateDigits === searchTerm) {
+                console.log(`Exact numeric match found in license plate digits: ${plate} (digits: ${plateDigits})`);
+                return true;
+              }
               
-              // Match with just the digits (contains)
+              // If the plate contains the search term as a substring
               if (plateDigits.includes(searchTerm)) {
-                console.log(`Match found in license plate digits: ${plate} (digits: ${plateDigits})`);
+                console.log(`Substring match found in license plate digits: ${plate} (digits: ${plateDigits})`);
                 return true;
               }
               
-              // Match with digits stripped of leading zeros
+              // Match with leading zeros removed (both ways)
               const trimmedPlateDigits = plateDigits.replace(/^0+/, '');
-              if (trimmedPlateDigits === searchTerm || searchTerm === trimmedPlateDigits) {
-                console.log(`Match found with trimmed digits: ${plate}, trimmed: ${trimmedPlateDigits}`);
-                return true;
-              }
-              
-              // Try search term with leading zeros removed
               const trimmedSearchTerm = searchTerm.replace(/^0+/, '');
-              if (plateDigits === trimmedSearchTerm || trimmedPlateDigits === trimmedSearchTerm) {
-                console.log(`Match found with trimmed search term: ${trimmedSearchTerm}`);
+              
+              if (trimmedPlateDigits === trimmedSearchTerm) {
+                console.log(`Match found with trimmed digits: ${plate} matches ${searchTerm}`);
                 return true;
               }
             }
           }
           
-          // 3. Check customer name
+          // 3. Check VIN with same approach as agreement number
+          if (agreement.vehicles?.vin) {
+            const vin = agreement.vehicles.vin.toLowerCase();
+            if (vin.includes(searchTermLower)) {
+              console.log(`Match found in VIN: ${vin}`);
+              return true;
+            }
+          }
+          
+          // 4. Check customer name
           if (agreement.customers?.full_name?.toLowerCase().includes(searchTermLower)) {
             console.log(`Match found in customer name: ${agreement.customers.full_name}`);
             return true;
           }
           
-          // 4. Check additional vehicle fields
+          // 5. Check additional vehicle fields with same direct approach
           if (agreement.vehicles) {
             const vehicle = agreement.vehicles;
             
-            // Check make/model
+            // Check make/model with includes like agreement number
             if (vehicle.make?.toLowerCase().includes(searchTermLower) ||
                 vehicle.model?.toLowerCase().includes(searchTermLower)) {
-              return true;
-            }
-            
-            // Check VIN number
-            if (vehicle.vin?.toLowerCase().includes(searchTermLower)) {
-              return true;
-            }
-            
-            // For numeric searches, try exact vehicle ID matching
-            if (isNumericSearch && vehicle.id === searchTerm) {
-              console.log(`Match found in vehicle ID: ${vehicle.id}`);
+              console.log(`Match found in vehicle make/model: ${vehicle.make} ${vehicle.model}`);
               return true;
             }
           }
           
-          // 5. Check notes
+          // 6. Check notes
           if (agreement.notes?.toLowerCase().includes(searchTermLower)) {
+            console.log(`Match found in notes: ${agreement.notes}`);
             return true;
+          }
+          
+          // 7. For numeric searches, match vehicle ID directly
+          if (isNumericSearch && agreement.vehicle_id) {
+            if (agreement.vehicle_id === searchTerm) {
+              console.log(`Match found in vehicle ID: ${agreement.vehicle_id}`);
+              return true;
+            }
           }
           
           return false;
         });
+        
+        console.log(`After filtering: ${filteredData.length} agreements match the search`);
+        return filteredData;
       } catch (err) {
         console.error("Unexpected error in useAgreements:", err);
         setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
