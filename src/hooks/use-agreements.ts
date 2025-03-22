@@ -20,13 +20,13 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           .from('leases')
           .select(`
             *,
-            customers(id, full_name, email),
+            profiles(id, full_name, email, phone_number),
             vehicles(id, make, model, license_plate, image_url)
           `);
         
         // Apply filters
         if (searchParams.query) {
-          query = query.or(`agreement_number.ilike.%${searchParams.query}%,customers.full_name.ilike.%${searchParams.query}%`);
+          query = query.or(`agreement_number.ilike.%${searchParams.query}%,profiles.full_name.ilike.%${searchParams.query}%`);
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
@@ -75,7 +75,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           pickup_location: lease.pickup_location || "",
           return_location: lease.return_location || "",
           additional_drivers: [],
-          customers: lease.customers,
+          customers: lease.profiles, // Changed from 'customers' to 'profiles'
           vehicles: lease.vehicles
         }));
         
@@ -174,7 +174,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         .from('leases')
         .select(`
           *,
-          customers(id, full_name, email, phone),
+          profiles(id, full_name, email, phone_number),
           vehicles(id, make, model, license_plate, image_url, year, color)
         `)
         .eq('id', id)
@@ -207,7 +207,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           pickup_location: data.pickup_location || "",
           return_location: data.return_location || "",
           additional_drivers: [],
-          customers: data.customers,
+          customers: data.profiles, // Changed from 'customers' to 'profiles'
           vehicles: data.vehicles
         };
       }
