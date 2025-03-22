@@ -61,12 +61,12 @@ export function useTrafficFines() {
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          vehicleModel: fine.model, // Changed from vehicle_model to model
+          vehicleModel: fine.vehicleModel, // Use vehicleModel field or undefined
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
-          paymentStatus: (fine.payment_status || 'pending') as TrafficFineStatusType, // Cast to TrafficFineStatusType
-          location: fine.fine_location, // Changed from location to fine_location
+          paymentStatus: (fine.payment_status || 'pending') as TrafficFineStatusType,
+          location: fine.fine_location, // Use fine_location field
           vehicleId: fine.vehicle_id,
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
@@ -84,12 +84,12 @@ export function useTrafficFines() {
         .insert({
           violation_number: fineData.violationNumber,
           license_plate: fineData.licensePlate,
-          model: fineData.vehicleModel, // Changed from vehicle_model to model
+          vehicleModel: fineData.vehicleModel, // Keep as is, will be mapped to vehicleModel
           violation_date: fineData.violationDate.toISOString(),
           fine_amount: fineData.fineAmount,
           violation_charge: fineData.violationCharge,
           payment_status: fineData.paymentStatus,
-          fine_location: fineData.location, // Changed from location to fine_location
+          fine_location: fineData.location, // Map to fine_location
           vehicle_id: fineData.vehicleId
         })
         .select()
@@ -101,12 +101,12 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.model, // Changed from vehicle_model to model
+        vehicleModel: data.vehicleModel, // Map vehicleModel field
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
-        paymentStatus: data.payment_status as TrafficFineStatusType, // Cast to TrafficFineStatusType
-        location: data.fine_location, // Changed from location to fine_location
+        paymentStatus: data.payment_status as TrafficFineStatusType,
+        location: data.fine_location, // Map fine_location field
         vehicleId: data.vehicle_id,
         paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
@@ -131,12 +131,12 @@ export function useTrafficFines() {
       const updateData: any = {};
       if (data.violationNumber) updateData.violation_number = data.violationNumber;
       if (data.licensePlate) updateData.license_plate = data.licensePlate;
-      if (data.vehicleModel) updateData.model = data.vehicleModel; // Changed from vehicle_model to model
+      if (data.vehicleModel) updateData.vehicleModel = data.vehicleModel;
       if (data.violationDate) updateData.violation_date = data.violationDate.toISOString();
       if (data.fineAmount) updateData.fine_amount = data.fineAmount;
       if (data.violationCharge) updateData.violation_charge = data.violationCharge;
       if (data.paymentStatus) updateData.payment_status = data.paymentStatus;
-      if (data.location) updateData.fine_location = data.location; // Changed from location to fine_location
+      if (data.location) updateData.fine_location = data.location;
       if (data.vehicleId) updateData.vehicle_id = data.vehicleId;
       if (data.paymentDate) updateData.payment_date = data.paymentDate.toISOString();
 
@@ -153,12 +153,12 @@ export function useTrafficFines() {
         id: responseData.id,
         violationNumber: responseData.violation_number,
         licensePlate: responseData.license_plate,
-        vehicleModel: responseData.model, // Changed from vehicle_model to model
+        vehicleModel: responseData.vehicleModel,
         violationDate: new Date(responseData.violation_date),
         fineAmount: responseData.fine_amount,
         violationCharge: responseData.violation_charge,
-        paymentStatus: responseData.payment_status as TrafficFineStatusType, // Cast to TrafficFineStatusType
-        location: responseData.fine_location, // Changed from location to fine_location
+        paymentStatus: responseData.payment_status as TrafficFineStatusType,
+        location: responseData.fine_location,
         vehicleId: responseData.vehicle_id,
         paymentDate: responseData.payment_date ? new Date(responseData.payment_date) : undefined
       };
@@ -217,12 +217,12 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.model, // Changed from vehicle_model to model
+        vehicleModel: data.vehicleModel,
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
-        paymentStatus: data.payment_status as TrafficFineStatusType, // Cast to TrafficFineStatusType
-        location: data.fine_location, // Changed from location to fine_location
+        paymentStatus: data.payment_status as TrafficFineStatusType,
+        location: data.fine_location,
         vehicleId: data.vehicle_id,
         paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
@@ -259,12 +259,12 @@ export function useTrafficFines() {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
-        vehicleModel: data.model, // Changed from vehicle_model to model
+        vehicleModel: data.vehicleModel,
         violationDate: new Date(data.violation_date),
         fineAmount: data.fine_amount,
         violationCharge: data.violation_charge,
-        paymentStatus: data.payment_status as TrafficFineStatusType, // Cast to TrafficFineStatusType
-        location: data.fine_location, // Changed from location to fine_location
+        paymentStatus: data.payment_status as TrafficFineStatusType,
+        location: data.fine_location,
         vehicleId: data.vehicle_id,
         paymentDate: data.payment_date ? new Date(data.payment_date) : undefined
       };
