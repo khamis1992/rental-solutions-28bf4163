@@ -19,8 +19,9 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         let query = supabase.from('leases').select('*');
         
         // Apply filters
-        if (searchParams.query) {
-          query = query.or(`agreement_number.ilike.%${searchParams.query}%`);
+        if (searchParams.query && searchParams.query.trim() !== '') {
+          const searchTerm = searchParams.query.trim();
+          query = query.or(`agreement_number.ilike.%${searchTerm}%,notes.ilike.%${searchTerm}%`);
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
@@ -36,7 +37,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         }
         
         // Get the data
-        console.log('Executing query...');
+        console.log('Executing query with params:', query);
         const { data: leaseData, error: leaseError } = await query.order('created_at', { ascending: false });
         
         if (leaseError) {
@@ -109,12 +110,12 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           deposit_amount: lease.down_payment || 0,
           agreement_number: lease.agreement_number || '',
           notes: lease.notes || '',
-          terms_accepted: true, // Assuming existing leases have terms accepted
+          terms_accepted: true,
           pickup_location: lease.pickup_location || "",
           return_location: lease.return_location || "",
           additional_drivers: [],
-          customers: customerData[lease.customer_id] || null, // Map customer data
-          vehicles: vehicleData[lease.vehicle_id] || null  // Map vehicle data
+          customers: customerData[lease.customer_id] || null,
+          vehicles: vehicleData[lease.vehicle_id] || null
         }));
         
         console.log('Transformed agreements:', transformedData);
@@ -274,8 +275,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           pickup_location: data.pickup_location || "",
           return_location: data.return_location || "",
           additional_drivers: [],
-          customers: customerData, // Use customer data
-          vehicles: vehicleData  // Use vehicle data
+          customers: customerData,
+          vehicles: vehicleData
         };
       }
       

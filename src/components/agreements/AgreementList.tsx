@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -61,6 +60,30 @@ export function AgreementList() {
   
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  
+  const [searchTerm, setSearchTerm] = useState(searchParams.query || '');
+  
+  const handleSearch = () => {
+    setSearchParams({...searchParams, query: searchTerm});
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+  
+  const handleStatusChange = (value: string) => {
+    setSearchParams({...searchParams, status: value});
+  };
+  
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSearchParams({
+      query: '',
+      status: 'all'
+    });
+  };
   
   const columns: ColumnDef<Agreement>[] = [
     {
@@ -243,14 +266,22 @@ export function AgreementList() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
             <Input
               placeholder="Search agreements..."
-              value={searchParams.query || ''}
-              onChange={(e) => setSearchParams({...searchParams, query: e.target.value})}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
               className="h-9 pl-9 w-full"
             />
           </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleSearch}
+          >
+            Search
+          </Button>
           <Select
-            value={searchParams.status}
-            onValueChange={(value) => setSearchParams({...searchParams, status: value})}
+            value={searchParams.status || 'all'}
+            onValueChange={handleStatusChange}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select status" />
@@ -264,6 +295,15 @@ export function AgreementList() {
               <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          {(searchTerm || searchParams.status !== 'all') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearFilters}
+            >
+              Clear
+            </Button>
+          )}
         </div>
         <Button asChild>
           <Link to="/agreements/add">
@@ -279,6 +319,12 @@ export function AgreementList() {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+      
+      {isLoading && (
+        <div className="py-2 text-center text-muted-foreground">
+          Loading agreements...
+        </div>
       )}
       
       <div className="rounded-md border">
