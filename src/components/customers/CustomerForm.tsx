@@ -121,6 +121,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
                     <SelectItem value="active">Active</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>
                     <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                    <SelectItem value="pending_review">Pending Review</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>

@@ -1,10 +1,12 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 
-const CUSTOMERS_TABLE = 'customers';
+// Change the table name from 'customers' to 'profiles'
+const PROFILES_TABLE = 'profiles';
 
 export const useCustomers = () => {
   const queryClient = useQueryClient();
@@ -25,8 +27,9 @@ export const useCustomers = () => {
       
       try {
         let query = supabase
-          .from(CUSTOMERS_TABLE)
+          .from(PROFILES_TABLE)
           .select('*')
+          .eq('role', 'customer') // Only select profiles with role='customer'
           .order('created_at', { ascending: false });
 
         // Apply status filter if not 'all'
@@ -37,7 +40,7 @@ export const useCustomers = () => {
         // Apply search query if provided
         if (searchParams.query) {
           query = query.or(
-            `first_name.ilike.%${searchParams.query}%,last_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
+            `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone_number.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
           );
         }
 
@@ -49,23 +52,31 @@ export const useCustomers = () => {
         }
         
         // Log raw data for debugging
-        console.log('Raw customer data:', data);
+        console.log('Raw customer data from profiles table:', data);
         
-        // Process customers to add full_name property
-        const processedCustomers = (data || []).map(customer => ({
-          ...customer,
-          full_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim(),
-          status: customer.status || 'active'
+        // Process customers to ensure they have required fields
+        const processedCustomers = (data || []).map(profile => ({
+          id: profile.id,
+          full_name: profile.full_name || '',
+          first_name: profile.first_name || profile.full_name?.split(' ')[0] || '',
+          last_name: profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '',
+          email: profile.email || '',
+          phone: profile.phone_number || '',
+          driver_license: profile.driver_license || '',
+          address: profile.address || '',
+          notes: profile.notes || '',
+          status: profile.status || 'active',
+          created_at: profile.created_at,
+          updated_at: profile.updated_at,
         }));
         
-        console.log('Processed customers:', processedCustomers);
+        console.log('Processed customers from profiles:', processedCustomers);
         return processedCustomers as Customer[];
       } catch (catchError) {
         console.error('Unexpected error in customer fetch:', catchError);
         return [];
       }
     },
-    // Ensure data is always an array, even if null/undefined
     initialData: []
   });
 
@@ -73,8 +84,20 @@ export const useCustomers = () => {
   const createCustomer = useMutation({
     mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
       const { data, error } = await supabase
-        .from(CUSTOMERS_TABLE)
-        .insert([{ ...newCustomer, created_at: new Date().toISOString() }])
+        .from(PROFILES_TABLE)
+        .insert([{ 
+          full_name: newCustomer.full_name || `${newCustomer.first_name} ${newCustomer.last_name}`.trim(),
+          first_name: newCustomer.first_name,
+          last_name: newCustomer.last_name,
+          email: newCustomer.email,
+          phone_number: newCustomer.phone, // Map to phone_number in profiles
+          address: newCustomer.address,
+          driver_license: newCustomer.driver_license,
+          notes: newCustomer.notes,
+          status: newCustomer.status || 'active',
+          role: 'customer', // Ensure role is set to customer
+          created_at: new Date().toISOString() 
+        }])
         .select()
         .single();
 
@@ -94,8 +117,19 @@ export const useCustomers = () => {
   const updateCustomer = useMutation({
     mutationFn: async (customer: Customer) => {
       const { data, error } = await supabase
-        .from(CUSTOMERS_TABLE)
-        .update({ ...customer, updated_at: new Date().toISOString() })
+        .from(PROFILES_TABLE)
+        .update({ 
+          full_name: customer.full_name || `${customer.first_name} ${customer.last_name}`.trim(),
+          first_name: customer.first_name,
+          last_name: customer.last_name,
+          email: customer.email,
+          phone_number: customer.phone, // Map to phone_number in profiles
+          address: customer.address,
+          driver_license: customer.driver_license,
+          notes: customer.notes,
+          status: customer.status,
+          updated_at: new Date().toISOString() 
+        })
         .eq('id', customer.id)
         .select()
         .single();
@@ -116,7 +150,7 @@ export const useCustomers = () => {
   const deleteCustomer = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from(CUSTOMERS_TABLE)
+        .from(PROFILES_TABLE)
         .delete()
         .eq('id', id);
 
@@ -135,7 +169,7 @@ export const useCustomers = () => {
   // Get a single customer by ID
   const getCustomer = async (id: string): Promise<Customer | null> => {
     const { data, error } = await supabase
-      .from(CUSTOMERS_TABLE)
+      .from(PROFILES_TABLE)
       .select('*')
       .eq('id', id)
       .single();
@@ -146,9 +180,18 @@ export const useCustomers = () => {
     }
 
     return {
-      ...data,
-      full_name: `${data.first_name || ''} ${data.last_name || ''}`.trim(),
-      status: data.status || 'active'
+      id: data.id,
+      full_name: data.full_name || '',
+      first_name: data.first_name || data.full_name?.split(' ')[0] || '',
+      last_name: data.last_name || data.full_name?.split(' ').slice(1).join(' ') || '',
+      email: data.email || '',
+      phone: data.phone_number || '',
+      driver_license: data.driver_license || '',
+      address: data.address || '',
+      notes: data.notes || '',
+      status: data.status || 'active',
+      created_at: data.created_at,
+      updated_at: data.updated_at,
     } as Customer;
   };
 

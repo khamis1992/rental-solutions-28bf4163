@@ -35,11 +35,13 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function CustomerList() {
   const { 
     customers, 
     isLoading, 
+    error,
     searchParams, 
     setSearchParams, 
     deleteCustomer 
@@ -56,10 +58,6 @@ export function CustomerList() {
       header: "Customer Name",
       cell: ({ row }) => {
         const fullName = row.getValue("full_name") as string;
-        const firstName = row.original.first_name || '';
-        const lastName = row.original.last_name || '';
-        // Use full_name if available, otherwise construct from first_name and last_name
-        const displayName = fullName || `${firstName} ${lastName}`.trim();
         
         return (
           <div>
@@ -67,7 +65,7 @@ export function CustomerList() {
               to={`/customers/${row.original.id}`}
               className="font-medium text-primary hover:underline"
             >
-              {displayName}
+              {fullName || 'Unnamed Customer'}
             </Link>
           </div>
         );
@@ -84,11 +82,16 @@ export function CustomerList() {
     {
       accessorKey: "driver_license",
       header: "License",
-      cell: ({ row }) => (
-        <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-          {row.getValue("driver_license")}
-        </code>
-      ),
+      cell: ({ row }) => {
+        const license = row.getValue("driver_license") as string;
+        return license ? (
+          <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
+            {license}
+          </code>
+        ) : (
+          <span className="text-muted-foreground text-sm">Not provided</span>
+        );
+      },
     },
     {
       accessorKey: "status",
@@ -100,6 +103,7 @@ export function CustomerList() {
             variant={
               status === "active" ? "success" : 
               status === "inactive" ? "outline" : 
+              status === "pending_review" ? "secondary" :
               "destructive"
             }
             className="capitalize"
@@ -146,7 +150,7 @@ export function CustomerList() {
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={() => {
-                  if (window.confirm(`Are you sure you want to delete ${customer.first_name} ${customer.last_name}?`)) {
+                  if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
                     deleteCustomer.mutate(customer.id as string);
                   }
                 }}
@@ -175,6 +179,16 @@ export function CustomerList() {
     },
   });
 
+  // Display an error message if there was an error fetching customers
+  if (error) {
+    return (
+      <div className="p-4 bg-destructive/10 text-destructive rounded-md">
+        <h3 className="font-semibold mb-2">Error loading customers</h3>
+        <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -200,6 +214,7 @@ export function CustomerList() {
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
               <SelectItem value="blacklisted">Blacklisted</SelectItem>
+              <SelectItem value="pending_review">Pending Review</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -230,7 +245,18 @@ export function CustomerList() {
             ))}
           </TableHeader>
           <TableBody>
-            {table.getRowModel().rows?.length ? (
+            {isLoading ? (
+              // Show skeleton loaders when loading
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  {Array.from({ length: columns.length }).map((_, j) => (
+                    <TableCell key={`skeleton-cell-${i}-${j}`}>
+                      <Skeleton className="h-8 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -246,7 +272,9 @@ export function CustomerList() {
             ) : (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {isLoading ? "Loading..." : "No customers found."}
+                  No customers found. {searchParams.query || searchParams.status !== 'all' ? 
+                    'Try adjusting your filters.' : 
+                    'Add your first customer using the button above.'}
                 </TableCell>
               </TableRow>
             )}
