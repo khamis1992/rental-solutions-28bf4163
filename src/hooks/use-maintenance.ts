@@ -208,12 +208,12 @@ export function useMaintenance() {
   // New function to delete all maintenance records
   const deleteAllRecords = async () => {
     try {
-      // Fix the DELETE query - we need to remove the .neq('id', '0') condition
-      // which was causing the "invalid input syntax for type uuid" error
+      // Fix the TypeScript error - use a different approach to delete all records
+      // The .is() method expects a boolean for the second parameter
       const { error } = await supabase
         .from('maintenance')
         .delete()
-        .is('id', 'not.null'); // This ensures we delete all records without the invalid condition
+        .filter('id', 'not.is', null); // This is the correct syntax for deleting all records
       
       if (error) {
         console.error('Error deleting all maintenance records:', error);
