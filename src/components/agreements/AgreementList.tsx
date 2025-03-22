@@ -22,7 +22,9 @@ import {
   FilePlus,
   AlertTriangle,
   X,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -53,10 +55,9 @@ import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
+  PaginationLink
 } from "@/components/ui/pagination";
+import { CustomButton } from '@/components/ui/custom-button';
 
 export function AgreementList() {
   const { 
@@ -467,11 +468,17 @@ export function AgreementList() {
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious 
+              <Button 
+                variant="outline" 
+                size="default"
+                className="gap-1 pl-2.5"
                 onClick={() => table.previousPage()} 
                 disabled={!table.getCanPreviousPage()}
-                className={!table.getCanPreviousPage() ? "pointer-events-none opacity-50" : ""}
-              />
+                aria-label="Go to previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>Previous</span>
+              </Button>
             </PaginationItem>
             
             {Array.from({ length: table.getPageCount() }).map((_, index) => (
@@ -489,11 +496,17 @@ export function AgreementList() {
             )}
             
             <PaginationItem>
-              <PaginationNext 
+              <Button 
+                variant="outline" 
+                size="default"
+                className="gap-1 pr-2.5"
                 onClick={() => table.nextPage()} 
                 disabled={!table.getCanNextPage()}
-                className={!table.getCanNextPage() ? "pointer-events-none opacity-50" : ""}
-              />
+                aria-label="Go to next page"
+              >
+                <span>Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </PaginationItem>
           </PaginationContent>
         </Pagination>
