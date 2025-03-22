@@ -23,8 +23,7 @@ import {
   AlertTriangle,
   Loader2,
   ChevronLeft,
-  ChevronRight,
-  Info
+  ChevronRight
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,12 +57,6 @@ import {
   PaginationItem,
   PaginationLink
 } from "@/components/ui/pagination";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 export function AgreementList() {
   const { 
@@ -139,10 +132,7 @@ export function AgreementList() {
                 className="hover:underline"
               >
                 {vehicle.make && vehicle.model ? 
-                  `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 
-                  vehicle.license_plate ? 
-                  `Vehicle #${vehicle.license_plate}` : 
-                  'Vehicle ID: ' + vehicle.id}
+                  `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'N/A'}
               </Link>
             ) : row.original.vehicle_id ? (
               <Link 
@@ -258,24 +248,6 @@ export function AgreementList() {
     },
   ];
 
-  const renderSearchHelp = () => {
-    if (!searchQuery || agreements?.length > 0) return null;
-    
-    const isNumeric = /^\d+$/.test(searchQuery);
-    
-    return (
-      <Alert variant="default" className="mt-2">
-        <Info className="h-4 w-4" />
-        <AlertTitle>Search Tips</AlertTitle>
-        <AlertDescription>
-          {isNumeric ? 
-            "You can search by agreement number, license plate, or VIN. For vehicle numbers, make sure to enter the exact format." : 
-            "Try searching by agreement number, customer name, vehicle make or model. For vehicle numbers, enter the exact format."}
-        </AlertDescription>
-      </Alert>
-    );
-  };
-
   const table = useReactTable({
     data: agreements || [],
     columns,
@@ -309,16 +281,6 @@ export function AgreementList() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-9 pl-9 w-full"
             />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50 cursor-help" />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Search by agreement #, customer, license plate, or vehicle model</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
           </div>
           <Select
             value={searchParams.status}
@@ -344,8 +306,6 @@ export function AgreementList() {
           </Link>
         </Button>
       </div>
-      
-      {renderSearchHelp()}
       
       {error && (
         <Alert variant="destructive" className="mb-4">
