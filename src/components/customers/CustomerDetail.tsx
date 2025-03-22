@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, UserCog, CalendarClock, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -35,24 +35,36 @@ export function CustomerDetail() {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Use useCallback to prevent recreating the fetchCustomer function on every render
+  const fetchCustomer = useCallback(async () => {
+    if (!id || hasLoaded) return;
+    
+    setLoading(true);
+    setFetchError(null);
+    
+    try {
+      const data = await getCustomer(id);
+      if (data) {
+        setCustomer(data);
+        setHasLoaded(true);
+      } else {
+        setFetchError("Customer not found");
+      }
+    } catch (error) {
+      console.error("Error fetching customer:", error);
+      setFetchError("Failed to load customer details");
+      toast.error("Error loading customer details");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, getCustomer, hasLoaded]);
 
   useEffect(() => {
-    const fetchCustomer = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const data = await getCustomer(id);
-        setCustomer(data);
-      } catch (error) {
-        console.error("Error fetching customer:", error);
-        toast("Error loading customer details");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCustomer();
-  }, [id, getCustomer]);
+  }, [fetchCustomer]);
 
   const handleDelete = async () => {
     if (!customer?.id || isDeleting) return;
@@ -60,29 +72,34 @@ export function CustomerDetail() {
     setIsDeleting(true);
     try {
       await deleteCustomer.mutateAsync(customer.id, {
-        onSuccess: () => navigate('/customers'),
+        onSuccess: () => {
+          toast.success("Customer deleted successfully");
+          navigate('/customers');
+        },
         onError: (error) => {
           console.error("Delete error:", error);
-          toast("Failed to delete customer");
+          toast.error("Failed to delete customer");
           setIsDeleting(false);
         }
       });
     } catch (error) {
+      console.error("Unexpected error during delete:", error);
+      toast.error("An unexpected error occurred");
       setIsDeleting(false);
     }
   };
 
-  if (loading) {
+  if (loading && !hasLoaded) {
     return <div className="flex justify-center items-center p-8">Loading customer details...</div>;
   }
 
-  if (!customer) {
+  if (fetchError || !customer) {
     return (
       <Card className="mx-auto max-w-2xl">
         <CardHeader className="text-center">
           <CardTitle>Customer Not Found</CardTitle>
           <CardDescription>
-            The customer you're looking for doesn't exist or has been removed.
+            {fetchError || "The customer you're looking for doesn't exist or has been removed."}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-center">

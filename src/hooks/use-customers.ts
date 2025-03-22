@@ -168,6 +168,9 @@ export const useCustomers = () => {
   // Get a single customer by ID
   const getCustomer = async (id: string): Promise<Customer | null> => {
     try {
+      // Add a console log to track each time getCustomer is called
+      console.log('Fetching customer with ID:', id);
+      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .select('*')
@@ -187,7 +190,8 @@ export const useCustomers = () => {
 
       console.log('Raw customer data from profiles:', data);
 
-      return {
+      // Map the data properly to the Customer type
+      const customerData: Customer = {
         id: data.id,
         full_name: data.full_name || '',
         first_name: data.first_name || data.full_name?.split(' ')[0] || '',
@@ -200,9 +204,12 @@ export const useCustomers = () => {
         status: data.status || 'active',
         created_at: data.created_at,
         updated_at: data.updated_at,
-      } as Customer;
+      };
+      
+      return customerData;
     } catch (error) {
       console.error('Unexpected error fetching customer:', error);
+      toast.error('Failed to fetch customer');
       return null;
     }
   };
