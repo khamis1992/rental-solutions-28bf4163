@@ -40,12 +40,12 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { title: 'Vehicles', path: '/vehicles', icon: Car },
   { title: 'Customers', path: '/customers', icon: Users, roles: ['admin', 'manager'] },
   { title: 'Agreements', path: '/agreements', icon: FileText },
-  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin', 'manager'] },
+  { title: 'Vehicles', path: '/vehicles', icon: Car },
   { title: 'Maintenance', path: '/maintenance', icon: Wrench },
   { title: 'Traffic Fines', path: '/fines', icon: AlertTriangle },
+  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin', 'manager'] },
   { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin', 'manager'] },
   { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin', 'manager'] },
   { title: 'User Management', path: '/users', icon: UserPlus, roles: ['admin'] },
