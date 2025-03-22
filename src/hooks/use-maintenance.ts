@@ -22,6 +22,24 @@ const mapStatusToDb = (status: string | undefined): MaintenanceStatusType | unde
     : undefined;
 };
 
+// Helper to ensure all required fields are present in the maintenance record
+const normalizeMaintenanceRecord = (record: any) => {
+  if (!record) return null;
+  
+  return {
+    ...record,
+    service_provider: record.service_provider || null,
+    invoice_number: record.invoice_number || null,
+    notes: record.notes || null,
+    description: record.description || null,
+    // Ensure dates are properly formatted or null
+    scheduled_date: record.scheduled_date || null,
+    completion_date: record.completion_date || null,
+    created_at: record.created_at || null,
+    updated_at: record.updated_at || null
+  };
+};
+
 export function useMaintenance() {
   const { toast } = useToast();
   const [filters, setFilters] = useState({
@@ -73,7 +91,8 @@ export function useMaintenance() {
           return [];
         }
         
-        return data || [];
+        // Normalize all records to ensure consistent format
+        return data?.map(normalizeMaintenanceRecord) || [];
       } catch (error) {
         console.error('Error in maintenance query:', error);
         return [];
@@ -95,7 +114,8 @@ export function useMaintenance() {
         return [];
       }
       
-      return data || [];
+      // Normalize all records to ensure consistent format
+      return data?.map(normalizeMaintenanceRecord) || [];
     } catch (error) {
       console.error('Error in getMaintenanceByVehicleId:', error);
       return [];
@@ -157,20 +177,32 @@ export function useMaintenance() {
             return [];
           }
           
-          // Transform the data to ensure we have consistent field names
-          // This ensures all expected fields are present, even if null
-          const transformedData = data?.map(record => ({
-            ...record,
-            service_provider: record.service_provider || null
-          })) || [];
+          // Normalize all records to ensure consistent format 
+          const normalizedData = data?.map(normalizeMaintenanceRecord) || [];
           
-          return transformedData;
+          return normalizedData;
         } catch (error) {
           console.error('Error in useCustomList query:', error);
           return [];
         }
       }
     );
+  };
+
+  // Wrap the useOne hook to properly handle date fields and field normalization
+  const useOneWithNormalization = (id?: string) => {
+    const result = crudApi.useItem(id);
+    
+    // If we have data, normalize it to ensure consistency
+    if (result.data) {
+      const normalizedData = normalizeMaintenanceRecord(result.data);
+      return {
+        ...result,
+        data: normalizedData
+      };
+    }
+    
+    return result;
   };
 
   // Return both the basic state and the CRUD operations
@@ -187,7 +219,7 @@ export function useMaintenance() {
     
     // CRUD operations
     useList: useCustomList,
-    useOne: crudApi.useItem,
+    useOne: useOneWithNormalization,
     useCreate: crudApi.useCreate,
     useUpdate: crudApi.useUpdate,
     useDelete: crudApi.useDelete

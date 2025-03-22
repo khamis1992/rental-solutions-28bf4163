@@ -26,6 +26,26 @@ import {
   AlertTriangle
 } from 'lucide-react';
 
+// Helper function to safely format dates
+const safeFormatDate = (dateValue: string | Date | null | undefined, formatString: string = 'MMMM d, yyyy') => {
+  if (!dateValue) return 'N/A';
+  
+  try {
+    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+    
+    // Check if date is valid before formatting
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date value:', dateValue);
+      return 'Invalid date';
+    }
+    
+    return format(date, formatString);
+  } catch (error) {
+    console.error('Error formatting date:', error, dateValue);
+    return 'Error formatting date';
+  }
+};
+
 const MaintenanceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -174,14 +194,14 @@ const MaintenanceDetailPage = () => {
                   <div className="flex items-center gap-2">
                     <CalendarCheck className="h-5 w-5 text-muted-foreground" />
                     <span className="text-sm">
-                      <span className="font-medium">Scheduled:</span> {format(new Date(maintenance.scheduled_date), 'MMMM d, yyyy')}
+                      <span className="font-medium">Scheduled:</span> {safeFormatDate(maintenance.scheduled_date)}
                     </span>
                   </div>
                   {maintenance.completion_date && (
                     <div className="flex items-center gap-2">
                       <CalendarCheck className="h-5 w-5 text-green-600" />
                       <span className="text-sm">
-                        <span className="font-medium">Completed:</span> {format(new Date(maintenance.completion_date), 'MMMM d, yyyy')}
+                        <span className="font-medium">Completed:</span> {safeFormatDate(maintenance.completion_date)}
                       </span>
                     </div>
                   )}
@@ -293,10 +313,10 @@ const MaintenanceDetailPage = () => {
           <CardFooter className="justify-between">
             <div className="text-xs text-muted-foreground">
               {maintenance.created_at && (
-                <p>Created: {format(new Date(maintenance.created_at), 'MMM d, yyyy')}</p>
+                <p>Created: {safeFormatDate(maintenance.created_at, 'MMM d, yyyy')}</p>
               )}
               {maintenance.updated_at && maintenance.updated_at !== maintenance.created_at && (
-                <p>Last updated: {format(new Date(maintenance.updated_at), 'MMM d, yyyy')}</p>
+                <p>Last updated: {safeFormatDate(maintenance.updated_at, 'MMM d, yyyy')}</p>
               )}
             </div>
             <CustomButton
