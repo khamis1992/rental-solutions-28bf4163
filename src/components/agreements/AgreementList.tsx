@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -47,6 +46,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAgreements } from '@/hooks/use-agreements';
+import { useVehicles } from '@/hooks/use-vehicles';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
@@ -68,11 +68,13 @@ export function AgreementList() {
     deleteAgreement 
   } = useAgreements();
   
+  const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
+  useVehicleRealtimeUpdates();
+  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
   
-  // Handle search with debounce
   useEffect(() => {
     const handler = setTimeout(() => {
       setSearchParams({...searchParams, query: searchQuery});
@@ -131,6 +133,13 @@ export function AgreementList() {
               >
                 {vehicle.make && vehicle.model ? 
                   `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'N/A'}
+              </Link>
+            ) : row.original.vehicle_id ? (
+              <Link 
+                to={`/vehicles/${row.original.vehicle_id}`}
+                className="hover:underline text-amber-600"
+              >
+                Vehicle ID: {row.original.vehicle_id}
               </Link>
             ) : (
               'N/A'
@@ -326,7 +335,6 @@ export function AgreementList() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              // Show skeleton loaders when loading
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   {Array.from({ length: 7 }).map((_, j) => (

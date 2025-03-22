@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -143,23 +142,27 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           }
         }
         
-        // Fetch related vehicle data in a separate, optimized query
+        // Fetch related vehicle data in a separate, optimized query - note we're checking for the registration_number error
         const vehicleIds = dataToProcess.map(lease => lease.vehicle_id).filter(Boolean);
         let vehicleData = {};
         
         if (vehicleIds.length > 0) {
-          const { data: vehicles, error: vehiclesError } = await supabase
-            .from('vehicles')
-            .select('id, make, model, license_plate, image_url, year, color, vin, registration_number')
-            .in('id', vehicleIds);
-            
-          if (vehiclesError) {
-            console.error("Error fetching vehicles:", vehiclesError);
-          } else if (vehicles) {
-            vehicleData = vehicles.reduce((acc, vehicle) => {
-              acc[vehicle.id] = vehicle;
-              return acc;
-            }, {});
+          try {
+            const { data: vehicles, error: vehiclesError } = await supabase
+              .from('vehicles')
+              .select('id, make, model, license_plate, image_url, year, color, vin')
+              .in('id', vehicleIds);
+              
+            if (vehiclesError) {
+              console.error("Error fetching vehicles:", vehiclesError);
+            } else if (vehicles) {
+              vehicleData = vehicles.reduce((acc, vehicle) => {
+                acc[vehicle.id] = vehicle;
+                return acc;
+              }, {});
+            }
+          } catch (error) {
+            console.error("Error processing vehicles:", error);
           }
         }
         
@@ -212,12 +215,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {
                 return true;
               }
               
-              // Check registration number - for vehicle numbers like 7042
-              if (vehicle.registration_number?.toLowerCase().includes(searchTerm)) {
-                console.log(`Match found in registration number: ${vehicle.registration_number}`);
-                return true;
-              }
-              
               // Check VIN number
               if (vehicle.vin?.toLowerCase().includes(searchTerm)) {
                 console.log(`Match found in VIN number: ${vehicle.vin}`);
@@ -250,12 +247,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {
                   return true;
                 }
                 
-                // Check if it appears in the registration number
-                if (vehicle.registration_number && vehicle.registration_number.replace(/\D/g, '').includes(searchTerm)) {
-                  console.log(`Match found in registration number digits: ${vehicle.registration_number}`);
-                  return true;
-                }
-                
                 // Check if it appears in the VIN
                 if (vehicle.vin && vehicle.vin.replace(/\D/g, '').includes(searchTerm)) {
                   console.log(`Match found in VIN digits: ${vehicle.vin}`);
@@ -264,7 +255,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
               }
               
               // Also check the combined string just to be sure
-              const vehicleText = `${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.license_plate || ''} ${vehicle.year || ''} ${vehicle.vin || ''} ${vehicle.registration_number || ''}`.toLowerCase();
+              const vehicleText = `${vehicle.make || ''} ${vehicle.model || ''} ${vehicle.license_plate || ''} ${vehicle.year || ''} ${vehicle.vin || ''}`.toLowerCase();
               if (vehicleText.includes(searchTerm)) {
                 console.log(`Match found in combined vehicle info: ${vehicleText}`);
                 return true;
@@ -404,19 +395,23 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           }
         }
         
-        // Get vehicle data
+        // Get vehicle data - optimized with error handling
         let vehicleData = null;
         if (data.vehicle_id) {
-          const { data: vehicle, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('id, make, model, license_plate, image_url, year, color, vin, registration_number')
-            .eq('id', data.vehicle_id)
-            .single();
-            
-          if (vehicleError) {
-            console.error("Error fetching vehicle:", vehicleError);
-          } else {
-            vehicleData = vehicle;
+          try {
+            const { data: vehicle, error: vehicleError } = await supabase
+              .from('vehicles')
+              .select('id, make, model, license_plate, image_url, year, color, vin')
+              .eq('id', data.vehicle_id)
+              .single();
+              
+            if (vehicleError) {
+              console.error("Error fetching vehicle:", vehicleError);
+            } else {
+              vehicleData = vehicle;
+            }
+          } catch (error) {
+            console.error("Error processing vehicle data:", error);
           }
         }
         
