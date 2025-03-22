@@ -16,17 +16,12 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
       try {
         console.log('Fetching agreements with params:', searchParams);
         
-        let query = supabase
-          .from('leases')
-          .select(`
-            *,
-            customer_id(id, full_name, email, phone_number),
-            vehicle_id(id, make, model, license_plate, image_url)
-          `);
+        // First, let's get the basic lease data
+        let query = supabase.from('leases').select('*');
         
         // Apply filters
         if (searchParams.query) {
-          query = query.or(`agreement_number.ilike.%${searchParams.query}%,customer_id.full_name.ilike.%${searchParams.query}%`);
+          query = query.or(`agreement_number.ilike.%${searchParams.query}%`);
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
@@ -43,22 +38,66 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
         
         // Get the data
         console.log('Executing query...');
-        const { data, error } = await query.order('created_at', { ascending: false });
+        const { data: leaseData, error: leaseError } = await query.order('created_at', { ascending: false });
         
-        if (error) {
-          console.error("Error fetching agreements:", error);
-          setError(`Failed to load agreements: ${error.message}`);
-          toast.error(`Failed to load agreements: ${error.message}`);
+        if (leaseError) {
+          console.error("Error fetching agreements:", leaseError);
+          setError(`Failed to load agreements: ${leaseError.message}`);
+          toast.error(`Failed to load agreements: ${leaseError.message}`);
           return [];
         }
         
-        console.log('Query results:', data);
-        if (!data || data.length === 0) {
+        if (!leaseData || leaseData.length === 0) {
           console.log('No agreements found in database');
+          return [];
         }
         
+        // Fetch related customer data
+        const customerIds = leaseData.map(lease => lease.customer_id).filter(Boolean);
+        let customerData = {};
+        
+        if (customerIds.length > 0) {
+          const { data: customers, error: customersError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, phone_number')
+            .in('id', customerIds);
+            
+          if (customersError) {
+            console.error("Error fetching customers:", customersError);
+          } else if (customers) {
+            customerData = customers.reduce((acc, customer) => {
+              acc[customer.id] = customer;
+              return acc;
+            }, {});
+          }
+        }
+        
+        // Fetch related vehicle data
+        const vehicleIds = leaseData.map(lease => lease.vehicle_id).filter(Boolean);
+        let vehicleData = {};
+        
+        if (vehicleIds.length > 0) {
+          const { data: vehicles, error: vehiclesError } = await supabase
+            .from('vehicles')
+            .select('id, make, model, license_plate, image_url, year, color')
+            .in('id', vehicleIds);
+            
+          if (vehiclesError) {
+            console.error("Error fetching vehicles:", vehiclesError);
+          } else if (vehicles) {
+            vehicleData = vehicles.reduce((acc, vehicle) => {
+              acc[vehicle.id] = vehicle;
+              return acc;
+            }, {});
+          }
+        }
+        
+        console.log('Query results:', leaseData);
+        console.log('Customer data:', customerData);
+        console.log('Vehicle data:', vehicleData);
+        
         // Transform the data to match the Agreement schema
-        const transformedData = data.map((lease: any): Agreement => ({
+        const transformedData = leaseData.map((lease: any): Agreement => ({
           id: lease.id,
           customer_id: lease.customer_id,
           vehicle_id: lease.vehicle_id,
@@ -75,8 +114,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           pickup_location: lease.pickup_location || "",
           return_location: lease.return_location || "",
           additional_drivers: [],
-          customers: lease.customer_id, // Use customer_id for joined customer data
-          vehicles: lease.vehicle_id // Use vehicle_id for joined vehicle data
+          customers: customerData[lease.customer_id] || null, // Map customer data
+          vehicles: vehicleData[lease.vehicle_id] || null  // Map vehicle data
         }));
         
         console.log('Transformed agreements:', transformedData);
@@ -172,11 +211,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
       console.log(`Fetching agreement details for ID: ${id}`);
       const { data, error } = await supabase
         .from('leases')
-        .select(`
-          *,
-          customer_id(id, full_name, email, phone_number),
-          vehicle_id(id, make, model, license_plate, image_url, year, color)
-        `)
+        .select('*')
         .eq('id', id)
         .single();
         
@@ -188,8 +223,41 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
       
       console.log('Agreement details:', data);
       
-      // Transform to Agreement type
+      // If we have the lease data, get the related customer and vehicle data
       if (data) {
+        // Get customer data
+        let customerData = null;
+        if (data.customer_id) {
+          const { data: customer, error: customerError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, phone_number')
+            .eq('id', data.customer_id)
+            .single();
+            
+          if (customerError) {
+            console.error("Error fetching customer:", customerError);
+          } else {
+            customerData = customer;
+          }
+        }
+        
+        // Get vehicle data
+        let vehicleData = null;
+        if (data.vehicle_id) {
+          const { data: vehicle, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('id, make, model, license_plate, image_url, year, color')
+            .eq('id', data.vehicle_id)
+            .single();
+            
+          if (vehicleError) {
+            console.error("Error fetching vehicle:", vehicleError);
+          } else {
+            vehicleData = vehicle;
+          }
+        }
+        
+        // Transform to Agreement type
         return {
           id: data.id,
           customer_id: data.customer_id,
@@ -207,8 +275,8 @@ export const useAgreements = (initialFilters: AgreementFilters = {}) => {
           pickup_location: data.pickup_location || "",
           return_location: data.return_location || "",
           additional_drivers: [],
-          customers: data.customer_id, // Use customer_id for joined customer data
-          vehicles: data.vehicle_id // Use vehicle_id for joined vehicle data
+          customers: customerData, // Use customer data
+          vehicles: vehicleData  // Use vehicle data
         };
       }
       
