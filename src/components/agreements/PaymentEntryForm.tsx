@@ -18,7 +18,13 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { isFirstDayOfMonth } from "date-fns";
+
+// Define the pending payment interface to match our state structure
+interface PendingPayment {
+  id: string;
+  date: string;
+  amount: number;
+}
 
 const paymentFormSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be greater than 0" }),
@@ -42,7 +48,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
     amount: number;
     daysLate: number;
   } | null>(null);
-  const [pendingPayments, setPendingPayments] = useState<{id: string, date: string, amount: number}[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [selectedPendingPayment, setSelectedPendingPayment] = useState<string | null>(null);
 
   const form = useForm<PaymentFormData>({
@@ -79,15 +85,23 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
       if (error) throw error;
       
       if (data && data.length > 0) {
-        setPendingPayments(data);
+        // Transform the data to match our state structure
+        const transformedData: PendingPayment[] = data.map(item => ({
+          id: item.id,
+          date: item.payment_date,
+          amount: item.amount
+        }));
+        
+        setPendingPayments(transformedData);
+        
         // Auto-select the first pending payment
-        const firstPending = data[0];
+        const firstPending = transformedData[0];
         setSelectedPendingPayment(firstPending.id);
         form.setValue("pendingPaymentId", firstPending.id);
         form.setValue("amount", firstPending.amount);
         
         // Calculate late fee based on the pending payment date
-        const pendingDate = new Date(firstPending.payment_date);
+        const pendingDate = new Date(firstPending.date);
         calculateLateFee(pendingDate);
       }
     } catch (error) {
@@ -133,7 +147,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete }: PaymentEntr
       form.setValue("amount", payment.amount);
       
       // Recalculate late fee based on the pending payment date
-      const pendingDate = new Date(payment.payment_date);
+      const pendingDate = new Date(payment.date);
       calculateLateFee(pendingDate);
     }
   };

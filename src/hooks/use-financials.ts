@@ -184,13 +184,27 @@ export function useFinancials() {
 
   // Generate monthly payments function
   const generateMonthlyPayments = async () => {
-    const result = await checkAndGenerateMonthlyPayments();
-    if (result) {
+    try {
       toast({
-        title: 'Monthly payments generated',
-        description: 'System has generated pending payments for active agreements.'
+        title: 'Generating monthly payments',
+        description: 'Please wait while we generate pending payments for active agreements.'
       });
-    } else {
+      
+      const result = await checkAndGenerateMonthlyPayments();
+      
+      if (result) {
+        toast({
+          title: 'Monthly payments generated',
+          description: 'System has generated pending payments for active agreements.'
+        });
+      } else {
+        toast({
+          title: 'Payment generation complete',
+          description: 'No new payments needed to be generated at this time.'
+        });
+      }
+    } catch (error) {
+      console.error("Error generating payments:", error);
       toast({
         title: 'Payment generation failed',
         description: 'There was an error generating monthly payments.',
