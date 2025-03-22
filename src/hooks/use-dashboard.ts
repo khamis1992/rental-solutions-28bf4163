@@ -210,18 +210,30 @@ export function useDashboardData() {
         
         // Add lease activities
         leases.forEach(lease => {
+          // Typescript needs interface definition for the returned data structure
+          type LeaseWithRelations = {
+            id: string;
+            created_at: string;
+            customer_id: string;
+            vehicle_id: string;
+            customers: { full_name: string } | null;
+            vehicles: { make: string; model: string; license_plate: string } | null;
+          };
+          
+          const typedLease = lease as unknown as LeaseWithRelations;
+          
           // Safely access nested properties
-          const customerName = lease.customers ? lease.customers.full_name || 'Customer' : 'Customer';
-          const vehicleMake = lease.vehicles ? lease.vehicles.make || '' : '';
-          const vehicleModel = lease.vehicles ? lease.vehicles.model || '' : '';
-          const licensePlate = lease.vehicles ? lease.vehicles.license_plate || '' : '';
+          const customerName = typedLease.customers?.full_name || 'Customer';
+          const vehicleMake = typedLease.vehicles?.make || '';
+          const vehicleModel = typedLease.vehicles?.model || '';
+          const licensePlate = typedLease.vehicles?.license_plate || '';
           
           activities.push({
-            id: lease.id,
+            id: typedLease.id,
             type: 'rental',
             title: 'New Rental',
             description: `${customerName} rented ${vehicleMake} ${vehicleModel} (${licensePlate})`,
-            time: getTimeAgo(new Date(lease.created_at))
+            time: getTimeAgo(new Date(typedLease.created_at))
           });
         });
         
@@ -238,17 +250,28 @@ export function useDashboardData() {
         
         // Add maintenance activities
         maintenance.forEach(item => {
+          // Typescript needs interface definition for the returned data structure
+          type MaintenanceWithRelations = {
+            id: string;
+            created_at: string;
+            vehicle_id: string;
+            type: string;
+            vehicles: { make: string; model: string; license_plate: string } | null;
+          };
+          
+          const typedItem = item as unknown as MaintenanceWithRelations;
+          
           // Safely access nested properties
-          const vehicleMake = item.vehicles ? item.vehicles.make || '' : '';
-          const vehicleModel = item.vehicles ? item.vehicles.model || '' : '';
-          const licensePlate = item.vehicles ? item.vehicles.license_plate || '' : '';
+          const vehicleMake = typedItem.vehicles?.make || '';
+          const vehicleModel = typedItem.vehicles?.model || '';
+          const licensePlate = typedItem.vehicles?.license_plate || '';
           
           activities.push({
-            id: item.id,
+            id: typedItem.id,
             type: 'maintenance',
             title: 'Maintenance Scheduled',
-            description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${item.type}`,
-            time: getTimeAgo(new Date(item.created_at))
+            description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${typedItem.type}`,
+            time: getTimeAgo(new Date(typedItem.created_at))
           });
         });
         
