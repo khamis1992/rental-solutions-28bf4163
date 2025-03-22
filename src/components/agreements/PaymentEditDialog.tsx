@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,9 +32,10 @@ export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentE
   const [notes, setNotes] = useState(payment?.notes || "");
   const [status, setStatus] = useState(payment?.status || "pending");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [rentAmount, setRentAmount] = useState<number | null>(null);
 
   // Reset form when payment changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (payment) {
       setAmount(payment.amount);
       setPaymentDate(payment.payment_date ? new Date(payment.payment_date) : undefined);
@@ -42,8 +43,31 @@ export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentE
       setReference(payment.reference_number || "");
       setNotes(payment.notes || "");
       setStatus(payment.status || "pending");
+      
+      // Fetch rent amount from leases table
+      if (payment.lease_id) {
+        fetchRentAmount(payment.lease_id);
+      }
     }
   }, [payment]);
+
+  const fetchRentAmount = async (leaseId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("leases")
+        .select("rent_amount")
+        .eq("id", leaseId)
+        .single();
+      
+      if (error) throw error;
+      if (data && data.rent_amount) {
+        setRentAmount(data.rent_amount);
+        setAmount(data.rent_amount); // Set the amount to the rent amount
+      }
+    } catch (error) {
+      console.error("Error fetching rent amount:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,6 +130,11 @@ export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentE
                   onChange={(e) => setAmount(parseFloat(e.target.value) || 0)}
                   required
                 />
+                {rentAmount !== null && rentAmount !== amount && (
+                  <p className="text-xs text-muted-foreground">
+                    Rent amount from lease: ${rentAmount}
+                  </p>
+                )}
               </div>
               
               <div className="space-y-2">
