@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Card, 
   CardContent, 
@@ -37,6 +36,7 @@ import { useMaintenance } from '@/hooks/use-maintenance';
 import { MaintenanceStatus, MaintenanceType, type MaintenanceFilters, type MaintenanceStatusType } from '@/lib/validation-schemas/maintenance';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DateRange } from 'react-day-picker';
+import { useToast } from '@/hooks/use-toast';
 
 const formatMaintenanceType = (type: string | null | undefined) => {
   if (!type) return "Unknown";
@@ -66,6 +66,8 @@ const getStatusBadge = (status: string) => {
 
 export const MaintenanceList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<MaintenanceStatusType | undefined>(undefined);
@@ -75,6 +77,14 @@ export const MaintenanceList = () => {
   const itemsPerPage = 10;
 
   const { useList } = useMaintenance();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const vehicleId = params.get('vehicleId');
+    if (vehicleId) {
+      setVehicleFilter(vehicleId);
+    }
+  }, [location.search]);
 
   const filters: MaintenanceFilters = {
     query: searchQuery,
@@ -86,6 +96,17 @@ export const MaintenanceList = () => {
   };
 
   const { data: maintenanceRecords, isLoading, error } = useList(filters);
+
+  useEffect(() => {
+    if (error) {
+      console.error("Maintenance list error:", error);
+      toast({
+        title: "Error loading maintenance records",
+        description: "Please try again or contact support",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   const totalItems = maintenanceRecords?.length || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -146,11 +167,9 @@ export const MaintenanceList = () => {
                   <h4 className="text-sm font-medium leading-none mb-2">Status</h4>
                   <Select 
                     onValueChange={(value) => {
-                      // Handle the empty string case which means "clear filter"
                       if (value === "") {
                         setStatusFilter(undefined);
                       } else {
-                        // Cast the value to MaintenanceStatusType
                         setStatusFilter(value as MaintenanceStatusType);
                       }
                     }} 
@@ -252,7 +271,13 @@ export const MaintenanceList = () => {
         ) : error ? (
           <p className="text-red-500 mt-4">Error: {error instanceof Error ? error.message : 'An unknown error occurred'}</p>
         ) : displayedRecords.length === 0 && !isLoading ? (
-          <p className="mt-4">No maintenance records found.</p>
+          <div className="mt-4 p-8 border rounded-md text-center">
+            <p className="text-muted-foreground mb-4">No maintenance records found.</p>
+            <CustomButton onClick={() => navigate('/maintenance/add')}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Your First Maintenance Record
+            </CustomButton>
+          </div>
         ) : (
           <div className="mt-4 overflow-x-auto">
             <Table>
