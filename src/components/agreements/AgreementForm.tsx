@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Alert, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Calendar } from "@/components/ui/calendar"
 import { CalendarIcon } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -35,14 +37,19 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
   const [rentAmount, setRentAmount] = useState<number>(0);
   const [notes, setNotes] = useState<string>('');
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  
+  // Fix the way we use the useVehicles hook
+  const vehiclesHook = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
+  
   useEffect(() => {
     if (selectedVehicle) {
       setTotalAmount(selectedVehicle.rent_amount || 0);
       setRentAmount(selectedVehicle.rent_amount || 0);
     }
   }, [selectedVehicle]);
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -66,11 +73,14 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     // Submit the processed data to the parent component
     onSubmit(formData);
   };
+  
   return (
     <form onSubmit={handleSubmit}>
       {!standardTemplateExists && !isCheckingTemplate && <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          Agreement template not found. Please upload a template file to enable agreement creation.
+          <AlertDescription>
+            Agreement template not found. Please upload a template file to enable agreement creation.
+          </AlertDescription>
         </Alert>}
       
       <div className="grid gap-4">
