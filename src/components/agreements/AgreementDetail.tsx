@@ -421,4 +421,3 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     </div>
   )
 }
-

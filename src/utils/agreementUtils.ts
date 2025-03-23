@@ -1,3 +1,4 @@
+
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
@@ -17,7 +18,7 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
     
     if (templateText) {
       console.log("Successfully retrieved template from storage");
-      return processAgreementTemplate(templateText, agreement);
+      return processAgreementText(templateText, agreement);
     }
     
     // Fall back to database template if storage fails
@@ -26,7 +27,7 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
     
     if (dbTemplate) {
       console.log("Successfully retrieved template from database");
-      return processAgreementTemplate(dbTemplate, agreement);
+      return processAgreementText(dbTemplate, agreement);
     }
     
     // If both storage and database fail, use default template
@@ -36,6 +37,74 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
     console.error("Error generating agreement text:", error);
     return generateDefaultAgreementText(agreement); // Fallback to default
   }
+};
+
+/**
+ * Process agreement template text with actual data
+ */
+const processAgreementText = (templateText: string, agreement: Agreement): string => {
+  let processedText = templateText;
+  const customerData = agreement.customers || {};
+  const vehicleData = agreement.vehicles || {};
+  
+  // Format dates for better readability
+  const startDate = agreement.start_date ? new Date(agreement.start_date).toLocaleDateString() : 'N/A';
+  const endDate = agreement.end_date ? new Date(agreement.end_date).toLocaleDateString() : 'N/A';
+  const currentDate = new Date().toLocaleDateString();
+  
+  // Replace all template variables with actual data
+  // Agreement data
+  processedText = processedText
+    .replace(/\{\{agreement\.agreement_number\}\}/g, agreement.agreement_number || '')
+    .replace(/\{\{agreement_number\}\}/g, agreement.agreement_number || '')
+    .replace(/\{\{AGREEMENT_NUMBER\}\}/g, agreement.agreement_number || '')
+    .replace(/\{\{agreement\.start_date\}\}/g, startDate)
+    .replace(/\{\{start_date\}\}/g, startDate)
+    .replace(/\{\{START_DATE\}\}/g, startDate)
+    .replace(/\{\{agreement\.end_date\}\}/g, endDate)
+    .replace(/\{\{end_date\}\}/g, endDate)
+    .replace(/\{\{END_DATE\}\}/g, endDate)
+    .replace(/\{\{agreement\.total_amount\}\}/g, agreement.total_amount?.toString() || '0')
+    .replace(/\{\{total_amount\}\}/g, agreement.total_amount?.toString() || '0')
+    .replace(/\{\{TOTAL_AMOUNT\}\}/g, agreement.total_amount?.toString() || '0')
+    .replace(/\{\{agreement\.deposit_amount\}\}/g, agreement.deposit_amount?.toString() || '0')
+    .replace(/\{\{deposit_amount\}\}/g, agreement.deposit_amount?.toString() || '0')
+    .replace(/\{\{DEPOSIT_AMOUNT\}\}/g, agreement.deposit_amount?.toString() || '0')
+    .replace(/\{\{current_date\}\}/g, currentDate)
+    .replace(/\{\{CURRENT_DATE\}\}/g, currentDate);
+  
+  // Customer data
+  processedText = processedText
+    .replace(/\{\{customer\.full_name\}\}/g, customerData.full_name || 'N/A')
+    .replace(/\{\{CUSTOMER_NAME\}\}/g, customerData.full_name || 'N/A')
+    .replace(/\{\{customer\.email\}\}/g, customerData.email || 'N/A')
+    .replace(/\{\{CUSTOMER_EMAIL\}\}/g, customerData.email || 'N/A')
+    .replace(/\{\{customer\.phone\}\}/g, customerData.phone || 'N/A')
+    .replace(/\{\{customer\.phone_number\}\}/g, customerData.phone || 'N/A')
+    .replace(/\{\{CUSTOMER_PHONE\}\}/g, customerData.phone || 'N/A')
+    .replace(/\{\{customer\.driver_license\}\}/g, customerData.driver_license || 'N/A')
+    .replace(/\{\{CUSTOMER_LICENSE\}\}/g, customerData.driver_license || 'N/A')
+    .replace(/\{\{customer\.nationality\}\}/g, customerData.nationality || 'N/A')
+    .replace(/\{\{CUSTOMER_NATIONALITY\}\}/g, customerData.nationality || 'N/A')
+    .replace(/\{\{customer\.address\}\}/g, customerData.address || 'N/A')
+    .replace(/\{\{CUSTOMER_ADDRESS\}\}/g, customerData.address || 'N/A');
+  
+  // Vehicle data
+  processedText = processedText
+    .replace(/\{\{vehicle\.make\}\}/g, vehicleData.make || 'N/A')
+    .replace(/\{\{VEHICLE_MAKE\}\}/g, vehicleData.make || 'N/A')
+    .replace(/\{\{vehicle\.model\}\}/g, vehicleData.model || 'N/A')
+    .replace(/\{\{VEHICLE_MODEL\}\}/g, vehicleData.model || 'N/A')
+    .replace(/\{\{vehicle\.year\}\}/g, vehicleData.year?.toString() || 'N/A')
+    .replace(/\{\{VEHICLE_YEAR\}\}/g, vehicleData.year?.toString() || 'N/A')
+    .replace(/\{\{vehicle\.color\}\}/g, vehicleData.color || 'N/A')
+    .replace(/\{\{VEHICLE_COLOR\}\}/g, vehicleData.color || 'N/A')
+    .replace(/\{\{vehicle\.license_plate\}\}/g, vehicleData.license_plate || 'N/A')
+    .replace(/\{\{VEHICLE_PLATE\}\}/g, vehicleData.license_plate || 'N/A')
+    .replace(/\{\{vehicle\.vin\}\}/g, vehicleData.vin || 'N/A')
+    .replace(/\{\{VEHICLE_VIN\}\}/g, vehicleData.vin || 'N/A');
+  
+  return processedText;
 };
 
 /**
