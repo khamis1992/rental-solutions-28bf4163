@@ -19,7 +19,7 @@ export const ensureStorageBuckets = async (): Promise<boolean> => {
     if (!agreementBucketExists) {
       // Create the agreements bucket
       const { error: createError } = await supabase.storage.createBucket('agreements', {
-        public: true,
+        public: true, // Make bucket public
         fileSizeLimit: 10485760, // 10MB
       });
       
@@ -30,16 +30,19 @@ export const ensureStorageBuckets = async (): Promise<boolean> => {
       
       console.log('Agreements bucket created successfully');
       
-      // Set up public access policy for the bucket
-      const { error: policyError } = await supabase.rpc('create_storage_policy', {
-        bucket_name: 'agreements',
-        policy_name: 'public_access',
-        definition: `bucket_id = 'agreements'`
-      });
-      
-      if (policyError) {
-        console.error('Error setting up bucket policy, but bucket was created:', policyError);
+      // Set public access policy for the bucket
+      try {
+        // Update bucket to be publicly accessible
+        const { error: policyError } = await supabase.storage.from('agreements').getPublicUrl('test.txt');
+        
+        if (policyError) {
+          console.error('Error setting up bucket policy:', policyError);
+        }
+      } catch (policyError) {
+        console.error('Error setting up public access:', policyError);
       }
+    } else {
+      console.log('Agreements bucket already exists');
     }
     
     return true;

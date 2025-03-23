@@ -1,16 +1,17 @@
-
 import { useState } from "react";
 import { 
   UploadCloud, 
   FileText, 
   X, 
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  RefreshCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ensureStorageBuckets } from "@/utils/setupBuckets";
 
 interface TemplateUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -25,6 +26,7 @@ export const TemplateUploader = ({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [retryingBucket, setRetryingBucket] = useState(false);
 
   const allowedFileTypes = [
     "application/pdf",
@@ -61,6 +63,25 @@ export const TemplateUploader = ({
     }
   };
 
+  const retryBucketSetup = async () => {
+    setRetryingBucket(true);
+    setError(null);
+    
+    try {
+      const success = await ensureStorageBuckets();
+      
+      if (!success) {
+        throw new Error("Failed to set up storage bucket. Please try again later.");
+      }
+      
+      setError(null);
+    } catch (err: any) {
+      setError(`Storage bucket setup failed: ${err.message || "Unknown error"}`);
+    } finally {
+      setRetryingBucket(false);
+    }
+  };
+
   const handleUpload = async () => {
     if (!file) return;
     
@@ -68,7 +89,6 @@ export const TemplateUploader = ({
     setError(null);
     
     try {
-      // First, check if the bucket exists
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
       
       if (bucketsError) {
@@ -78,10 +98,13 @@ export const TemplateUploader = ({
       const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
       
       if (!bucketExists) {
-        throw new Error('Storage bucket "agreements" not found. Please contact your administrator.');
+        const bucketCreated = await ensureStorageBuckets();
+        
+        if (!bucketCreated) {
+          throw new Error('Storage bucket "agreements" not available. Please try again later.');
+        }
       }
       
-      // Continue with file upload
       const fileExt = file.name.split('.').pop();
       const fileName = `template_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `agreement_templates/${fileName}`;
@@ -108,7 +131,12 @@ export const TemplateUploader = ({
       setFile(null);
     } catch (err: any) {
       console.error("Error uploading file:", err);
-      setError(err.message || "Failed to upload template");
+      
+      if (err.message && err.message.includes("bucket")) {
+        setError(`Storage bucket error: ${err.message}. You can try to refresh the page or use the retry button.`);
+      } else {
+        setError(err.message || "Failed to upload template");
+      }
     } finally {
       setUploading(false);
     }
@@ -128,7 +156,30 @@ export const TemplateUploader = ({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription className="flex flex-col">
+            <span>{error}</span>
+            {error.includes("bucket") && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 self-start"
+                onClick={retryBucketSetup}
+                disabled={retryingBucket}
+              >
+                {retryingBucket ? (
+                  <>
+                    <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                    Trying to fix...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCcw className="mr-2 h-4 w-4" />
+                    Retry Bucket Setup
+                  </>
+                )}
+              </Button>
+            )}
+          </AlertDescription>
         </Alert>
       )}
       

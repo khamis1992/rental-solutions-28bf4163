@@ -10,6 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { TemplateUploader } from "@/components/agreements/TemplateUploader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
+import { Loader2 } from "lucide-react";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -17,19 +18,34 @@ const AddAgreement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [templateUrl, setTemplateUrl] = useState<string | null>(null);
   const [isBucketReady, setIsBucketReady] = useState(false);
+  const [isSettingUpBucket, setIsSettingUpBucket] = useState(true);
 
   // Check and create buckets if needed on component mount
   useEffect(() => {
     const setupBuckets = async () => {
-      const success = await ensureStorageBuckets();
-      setIsBucketReady(success);
-      
-      if (!success) {
+      setIsSettingUpBucket(true);
+      try {
+        const success = await ensureStorageBuckets();
+        setIsBucketReady(success);
+        
+        if (success) {
+          console.log("Storage buckets set up successfully");
+        } else {
+          toast({
+            title: "Storage setup issue",
+            description: "There was a problem setting up storage. Template uploads may not work.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Error setting up storage buckets:", error);
         toast({
-          title: "Storage setup issue",
-          description: "There was a problem setting up storage. Template uploads may not work.",
+          title: "Storage setup error",
+          description: "Failed to set up storage buckets. Please try refreshing the page.",
           variant: "destructive"
         });
+      } finally {
+        setIsSettingUpBucket(false);
       }
     };
     
@@ -111,15 +127,21 @@ const AddAgreement = () => {
               <CardTitle>Upload Agreement Template</CardTitle>
             </CardHeader>
             <CardContent>
-              {!isBucketReady && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 mb-4 rounded-md">
-                  Setting up storage... Template uploads might not work until this is complete.
+              {isSettingUpBucket ? (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 mb-4 rounded-md flex items-center">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Setting up storage... Please wait while we prepare the template upload functionality.
                 </div>
+              ) : !isBucketReady ? (
+                <div className="bg-red-50 border border-red-200 text-red-800 p-4 mb-4 rounded-md">
+                  Storage setup failed. Template uploads will not work. Please refresh the page to try again.
+                </div>
+              ) : (
+                <TemplateUploader 
+                  onUploadComplete={handleTemplateUpload} 
+                  currentTemplate={templateUrl} 
+                />
               )}
-              <TemplateUploader 
-                onUploadComplete={handleTemplateUpload} 
-                currentTemplate={templateUrl} 
-              />
             </CardContent>
           </Card>
         </TabsContent>
