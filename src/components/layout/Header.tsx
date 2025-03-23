@@ -25,9 +25,7 @@ const Header = () => {
           </span>
         </Button>
         
-        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-          
-        </div>
+        
       </div>
     </header>;
 };
