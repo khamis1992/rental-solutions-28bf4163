@@ -63,23 +63,27 @@ export const fetchLegalObligations = async (): Promise<{
               payment.leases.profiles && 
               typeof payment.leases.profiles === 'object' && 
               'id' in payment.leases.profiles && 
-              'full_name' in payment.leases.profiles) {
+              'full_name' in payment.leases.profiles &&
+              payment.leases.profiles?.id !== null && 
+              payment.leases.profiles?.full_name !== null) {
             
             const daysOverdue = payment.days_overdue || 0;
             const customerData = payment.leases.profiles;
             
-            allObligations.push({
-              id: payment.id,
-              customerId: customerData.id as string,
-              customerName: customerData.full_name as string,
-              obligationType: 'payment' as ObligationType,
-              amount: payment.balance || 0,
-              dueDate: new Date(payment.payment_date),
-              description: `Overdue rent payment (Agreement #${payment.leases.agreement_number})`,
-              urgency: determineUrgency(daysOverdue),
-              status: 'Overdue Payment',
-              daysOverdue
-            });
+            if (customerData) {
+              allObligations.push({
+                id: payment.id,
+                customerId: customerData.id as string,
+                customerName: customerData.full_name as string,
+                obligationType: 'payment' as ObligationType,
+                amount: payment.balance || 0,
+                dueDate: new Date(payment.payment_date),
+                description: `Overdue rent payment (Agreement #${payment.leases.agreement_number})`,
+                urgency: determineUrgency(daysOverdue),
+                status: 'Overdue Payment',
+                daysOverdue
+              });
+            }
           } else {
             console.log(`Skipping payment ${payment.id} - missing customer data`);
           }
@@ -129,25 +133,29 @@ export const fetchLegalObligations = async (): Promise<{
               fine.leases.profiles && 
               typeof fine.leases.profiles === 'object' && 
               'id' in fine.leases.profiles && 
-              'full_name' in fine.leases.profiles) {
+              'full_name' in fine.leases.profiles &&
+              fine.leases.profiles?.id !== null && 
+              fine.leases.profiles?.full_name !== null) {
             
             const violationDate = new Date(fine.violation_date);
             const today = new Date();
             const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
             const customerData = fine.leases.profiles;
             
-            allObligations.push({
-              id: fine.id,
-              customerId: customerData.id as string,
-              customerName: customerData.full_name as string,
-              obligationType: 'traffic_fine' as ObligationType,
-              amount: fine.fine_amount || 0,
-              dueDate: violationDate,
-              description: `Unpaid traffic fine (Agreement #${fine.leases.agreement_number})`,
-              urgency: determineUrgency(daysOverdue),
-              status: 'Unpaid Fine',
-              daysOverdue
-            });
+            if (customerData) {
+              allObligations.push({
+                id: fine.id,
+                customerId: customerData.id as string,
+                customerName: customerData.full_name as string,
+                obligationType: 'traffic_fine' as ObligationType,
+                amount: fine.fine_amount || 0,
+                dueDate: violationDate,
+                description: `Unpaid traffic fine (Agreement #${fine.leases.agreement_number})`,
+                urgency: determineUrgency(daysOverdue),
+                status: 'Unpaid Fine',
+                daysOverdue
+              });
+            }
           } else {
             console.log(`Skipping fine ${fine.id} - missing customer data`);
           }
@@ -190,7 +198,8 @@ export const fetchLegalObligations = async (): Promise<{
           // Check if required nested data exists before accessing properties
           if (legalCase.profiles && 
               typeof legalCase.profiles === 'object' && 
-              'full_name' in legalCase.profiles) {
+              'full_name' in legalCase.profiles &&
+              legalCase.profiles?.full_name !== null) {
             
             const createdDate = new Date(legalCase.created_at);
             const today = new Date();
@@ -204,18 +213,20 @@ export const fetchLegalObligations = async (): Promise<{
             
             const customerData = legalCase.profiles;
             
-            allObligations.push({
-              id: legalCase.id,
-              customerId: legalCase.customer_id,
-              customerName: customerData.full_name as string,
-              obligationType: 'legal_case' as ObligationType,
-              amount: legalCase.amount_owed || 0,
-              dueDate: createdDate,
-              description: `Legal case (${legalCase.status.replace(/_/g, ' ')})`,
-              urgency,
-              status: 'Legal Case',
-              daysOverdue
-            });
+            if (customerData) {
+              allObligations.push({
+                id: legalCase.id,
+                customerId: legalCase.customer_id,
+                customerName: customerData.full_name as string,
+                obligationType: 'legal_case' as ObligationType,
+                amount: legalCase.amount_owed || 0,
+                dueDate: createdDate,
+                description: `Legal case (${legalCase.status.replace(/_/g, ' ')})`,
+                urgency,
+                status: 'Legal Case',
+                daysOverdue
+              });
+            }
           } else {
             console.log(`Skipping legal case ${legalCase.id} - missing customer data`);
           }
