@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ const AddAgreement = () => {
   const [standardTemplateExists, setStandardTemplateExists] = useState<boolean>(true);
 
   // Check if the standard template exists on component mount
-  useState(() => {
+  useEffect(() => {
     const checkTemplate = async () => {
       const exists = await checkStandardTemplateExists();
       setStandardTemplateExists(exists);
