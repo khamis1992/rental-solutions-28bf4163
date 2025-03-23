@@ -36,7 +36,8 @@ import {
   ArrowDownUp,
   AlertCircle,
   RefreshCw,
-  ChevronDown
+  ChevronDown,
+  Info
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
@@ -79,6 +80,7 @@ const CustomerLegalObligations: React.FC = () => {
   const [filteredObligations, setFilteredObligations] = useState<CustomerObligation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [partialSuccess, setPartialSuccess] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -91,15 +93,24 @@ const CustomerLegalObligations: React.FC = () => {
   const fetchObligations = async () => {
     setLoading(true);
     setError(null);
+    setPartialSuccess(false);
     
     try {
       console.log(`Fetching obligations (attempt ${retryCount + 1})...`);
-      const { obligations: fetchedObligations, error: fetchError } = await fetchLegalObligations();
+      const { obligations: fetchedObligations, error: fetchError, partialSuccess: hasPartialSuccess } = await fetchLegalObligations();
       
       if (fetchError) {
         console.error('Error in fetchLegalObligations:', fetchError);
         setError(fetchError);
-        toast.error(fetchError);
+        
+        if (hasPartialSuccess) {
+          setPartialSuccess(true);
+          setObligations(fetchedObligations);
+          setFilteredObligations(fetchedObligations);
+          toast.warning('Some data could not be loaded, but partial results are displayed');
+        } else {
+          toast.error(fetchError);
+        }
       } else {
         setObligations(fetchedObligations);
         setFilteredObligations(fetchedObligations);
@@ -277,6 +288,18 @@ const CustomerLegalObligations: React.FC = () => {
           Manage customers with pending payments, fines, or legal cases
         </CardDescription>
         
+        {partialSuccess && (
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-3 flex items-start mt-4">
+            <Info className="h-5 w-5 text-amber-500 mt-0.5 mr-2 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">Partial data loaded</p>
+              <p className="text-xs text-amber-700 mt-1">
+                Some data sources couldn't be reached. The displayed information may be incomplete.
+              </p>
+            </div>
+          </div>
+        )}
+        
         {/* Filter and sort controls */}
         <div className="flex flex-col md:flex-row gap-4 mt-4">
           <div className="relative flex-1">
@@ -335,7 +358,7 @@ const CustomerLegalObligations: React.FC = () => {
               This may take a moment as we're fetching data from multiple sources.
             </p>
           </div>
-        ) : error ? (
+        ) : error && !partialSuccess ? (
           <div className="text-center py-8 flex flex-col items-center gap-4">
             <AlertCircle className="h-10 w-10 text-destructive" />
             <div className="text-destructive font-medium">{error}</div>
