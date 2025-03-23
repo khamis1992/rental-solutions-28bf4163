@@ -1,8 +1,21 @@
+
 import React from 'react';
 import { Bell, Settings, Search, User } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import NotificationDropdown from '@/components/notifications/NotificationDropdown';
+import { useNotifications } from '@/hooks/use-notifications';
+
 const Header = () => {
-  return <header className="w-full h-16 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
+  const { 
+    notifications, 
+    loading, 
+    markAsRead, 
+    markAllAsRead, 
+    dismissNotification 
+  } = useNotifications();
+
+  return (
+    <header className="w-full h-16 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
       <div className="flex items-center">
         <div className="hidden md:flex h-10 w-10 rounded-md bg-primary text-primary-foreground items-center justify-center font-semibold text-xl">
           AR
@@ -18,15 +31,33 @@ const Header = () => {
       </div>
       
       <div className="flex items-center space-x-4">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-white">
-            3
-          </span>
-        </Button>
-        
-        
+        <div className="notification-bell">
+          <NotificationDropdown 
+            notifications={notifications} 
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
+            onDismiss={dismissNotification}
+          />
+        </div>
       </div>
-    </header>;
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes bellRing {
+          0% { transform: rotate(0); }
+          10% { transform: rotate(10deg); }
+          20% { transform: rotate(-10deg); }
+          30% { transform: rotate(6deg); }
+          40% { transform: rotate(-6deg); }
+          50% { transform: rotate(0); }
+          100% { transform: rotate(0); }
+        }
+        
+        .notification-bell-ring {
+          animation: bellRing 1s ease;
+        }
+      `}} />
+    </header>
+  );
 };
+
 export default Header;

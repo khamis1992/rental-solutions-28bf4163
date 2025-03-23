@@ -12,11 +12,7 @@ createRoot(document.getElementById("root")!).render(
   <Router>
     <QueryClientProvider client={queryClient}>
       <App>
-        <Router>
-          <QueryClientProvider client={queryClient}>
-            {/* Application routes and content would go here */}
-          </QueryClientProvider>
-        </Router>
+        {/* Application routes and content would go here */}
       </App>
     </QueryClientProvider>
   </Router>
