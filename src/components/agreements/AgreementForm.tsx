@@ -191,7 +191,9 @@ const AgreementForm = ({
     const finalData = {
       ...data,
       customer_data: selectedCustomer,
-      vehicle_data: selectedVehicle
+      vehicle_data: selectedVehicle,
+      deposit_amount: data.deposit_amount,
+      terms_accepted: true
     };
     
     onSubmit(finalData);

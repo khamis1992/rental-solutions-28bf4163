@@ -336,7 +336,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       deposit_amount: lease.down_payment || 0,
       agreement_number: lease.agreement_number || '',
       notes: lease.notes || '',
-      terms_accepted: true,
+      terms_accepted: true, // Default to true since the column doesn't exist in DB
       additional_drivers: [],
       customers: customerData[lease.customer_id] || null,
       vehicles: vehicleData[lease.vehicle_id] || null
@@ -417,9 +417,13 @@ export const useAgreements = (initialFilters: AgreementFilters = {
   // Create agreement
   const createAgreement = useApiMutation(
     async (agreement: Omit<Agreement, 'id'>) => {
+      // Remove terms_accepted field before sending to database
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { terms_accepted, additional_drivers, customers, vehicles, ...dbAgreement } = agreement;
+      
       const { data, error } = await supabase
         .from('leases')
-        .insert(agreement)
+        .insert(dbAgreement)
         .select()
         .single();
         
@@ -503,10 +507,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           created_at: data.created_at ? new Date(data.created_at) : undefined,
           updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
           total_amount: data.total_amount || 0,
-          deposit_amount: data.down_payment || 0,
+          deposit_amount: data.down_payment || 0, // Use deposit_amount instead of down_payment
           agreement_number: data.agreement_number || '',
           notes: data.notes || '',
-          terms_accepted: true,
+          terms_accepted: true, // Default to true since the column doesn't exist in DB
           additional_drivers: [],
           customers: customerData,
           vehicles: vehicleData
@@ -521,6 +525,35 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     }
   };
   
+  // Update agreement
+  const updateAgreement = useApiMutation(
+    async ({ id, data }: { id: string, data: Partial<Agreement> }) => {
+      // Remove terms_accepted field before sending to database
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { terms_accepted, additional_drivers, customers, vehicles, ...dbData } = data;
+      
+      const { data: updatedData, error } = await supabase
+        .from('leases')
+        .update(dbData)
+        .eq('id', id)
+        .select()
+        .single();
+          
+      if (error) {
+        console.error("Error updating agreement:", error);
+        throw new Error(error.message);
+      }
+      
+      return updatedData;
+    },
+    {
+      onSuccess: () => {
+        toast.success("Agreement updated successfully");
+        refetch();
+      }
+    }
+  );
+  
   return {
     agreements,
     isLoading,
@@ -528,29 +561,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     searchParams,
     setSearchParams,
     createAgreement,
-    updateAgreement: useApiMutation(
-      async ({ id, data }: { id: string, data: Partial<Agreement> }) => {
-        const { data: updatedData, error } = await supabase
-          .from('leases')
-          .update(data)
-          .eq('id', id)
-          .select()
-          .single();
-          
-        if (error) {
-          console.error("Error updating agreement:", error);
-          throw new Error(error.message);
-        }
-        
-        return updatedData;
-      },
-      {
-        onSuccess: () => {
-          toast.success("Agreement updated successfully");
-          refetch();
-        }
-      }
-    ),
+    updateAgreement,
     deleteAgreement: useApiMutation(
       async (id: string) => {
         const { error } = await supabase

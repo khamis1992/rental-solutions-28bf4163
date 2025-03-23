@@ -6236,6 +6236,7 @@ export type Database = {
           nationality: string | null
           needs_review: boolean | null
           normalized_name: string | null
+          notes: string | null
           phone_number: string | null
           portal_password: string | null
           portal_username: string | null
@@ -6279,6 +6280,7 @@ export type Database = {
           nationality?: string | null
           needs_review?: boolean | null
           normalized_name?: string | null
+          notes?: string | null
           phone_number?: string | null
           portal_password?: string | null
           portal_username?: string | null
@@ -6322,6 +6324,7 @@ export type Database = {
           nationality?: string | null
           needs_review?: boolean | null
           normalized_name?: string | null
+          notes?: string | null
           phone_number?: string | null
           portal_password?: string | null
           portal_username?: string | null

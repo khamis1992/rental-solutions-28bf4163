@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -114,7 +115,7 @@ const AddAgreement = () => {
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      const { customer_data, vehicle_data, ...leaseData } = formData;
+      const { customer_data, vehicle_data, terms_accepted, ...leaseData } = formData;
       
       console.log("Submitting lease data:", leaseData);
       
