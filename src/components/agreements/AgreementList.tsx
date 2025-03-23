@@ -28,7 +28,8 @@ import {
   AlertCircle,
   Info,
   X,
-  Car
+  Car,
+  Filter
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +103,8 @@ export function AgreementList() {
   }, [isLoading, agreements]);
   
   useEffect(() => {
-    const isNumericSearch = /^\d{3,}$/.test(searchQuery);
+    // Show search tip for numeric searches that return no results
+    const isNumericSearch = /^\d{2,}$/.test(searchQuery);
     const shouldShowTip = isNumericSearch && (!agreements || agreements.length === 0) && !isLoading;
     setSearchTip(shouldShowTip);
     
@@ -350,11 +352,11 @@ export function AgreementList() {
                   <p className="font-semibold">Search Examples:</p>
                   <ul className="list-disc pl-4 mt-2 space-y-1.5">
                     <li><strong>Agreement numbers:</strong> "MR202462", "AGR-202502"</li>
-                    <li><strong>Vehicle numbers:</strong> "7042" (searches license plates directly)</li>
-                    <li><strong>License plates:</strong> With or without formatting</li>
+                    <li><strong>Vehicle numbers:</strong> Just type the numeric part (e.g., "7042", "704")</li>
+                    <li><strong>License plates:</strong> Full plate with or without formatting</li>
                     <li><strong>Customer names, vehicle make/model</strong></li>
                   </ul>
-                  <p className="mt-2 text-sm text-muted-foreground">Tip: For vehicle numbers, try entering just the digits (e.g., "7042" instead of "ABC-7042")</p>
+                  <p className="mt-2 text-sm text-muted-foreground">Tip: For partial vehicle numbers, try entering just 2-4 digits (e.g., "70" instead of full "7042")</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -399,10 +401,11 @@ export function AgreementList() {
           <AlertDescription className="text-amber-700">
             When searching for vehicle number "{searchQuery}", try these formats:
             <ul className="list-disc pl-5 mt-2">
-              <li>Only the number digits (e.g., "7042")</li>
-              <li>Complete license plate if you know it (e.g., "ABC7042")</li>
+              <li>Fewer digits (e.g., use "70" instead of "7042")</li>
+              <li>Just the ending digits (e.g., "42" to match plates ending with those digits)</li>
+              <li>Complete license plate if you know it</li>
             </ul>
-            <div className="mt-2 text-sm">
+            <div className="mt-2 text-sm flex space-x-2">
               <Button 
                 variant="outline" 
                 size="sm"
@@ -411,6 +414,21 @@ export function AgreementList() {
               >
                 <X className="h-3.5 w-3.5 mr-1.5" /> Clear Search
               </Button>
+              
+              {searchQuery.length > 2 && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Try with fewer digits
+                    const shorterQuery = searchQuery.substring(0, Math.ceil(searchQuery.length/2));
+                    setSearchQuery(shorterQuery);
+                  }}
+                  className="bg-white hover:bg-white/90"
+                >
+                  <Filter className="h-3.5 w-3.5 mr-1.5" /> Try with "{searchQuery.substring(0, Math.ceil(searchQuery.length/2))}"
+                </Button>
+              )}
             </div>
           </AlertDescription>
         </Alert>
@@ -467,13 +485,29 @@ export function AgreementList() {
                       'Try adjusting your filters or search terms.' : 
                       'Add your first agreement using the button above.'}</p>
                     {searchQuery && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleClearSearch}
-                      >
-                        Clear Search
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleClearSearch}
+                        >
+                          <X className="h-3.5 w-3.5 mr-1.5" /> Clear Search
+                        </Button>
+                        
+                        {searchQuery.length > 2 && /^\d+$/.test(searchQuery) && (
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                              // Try with fewer digits
+                              const shorterQuery = searchQuery.substring(0, Math.ceil(searchQuery.length/2));
+                              setSearchQuery(shorterQuery);
+                            }}
+                          >
+                            <Filter className="h-3.5 w-3.5 mr-1.5" /> Try fewer digits
+                          </Button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </TableCell>

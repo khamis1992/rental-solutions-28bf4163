@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 // Define agreement statuses
@@ -207,13 +208,13 @@ export const forceGeneratePaymentForAgreement = async (
 export const extractLicensePlateNumerics = (plate: string): string => {
   if (!plate) return '';
   
-  // 1. Remove all non-digit characters
+  // Remove all non-digit characters to get just the numbers
   return plate.replace(/\D/g, '');
 };
 
 /**
  * Check if a license plate matches a numeric search pattern
- * in various formats (for local processing)
+ * using multiple matching strategies
  */
 export const doesLicensePlateMatchNumeric = (
   plate: string, 
@@ -242,7 +243,7 @@ export const doesLicensePlateMatchNumeric = (
     return true;
   }
   
-  // 5. Try trimming leading zeros and compare
+  // 5. Try removing leading zeros and compare
   const trimmedPlateNumerics = plateNumerics.replace(/^0+/, '');
   const trimmedSearch = searchPattern.replace(/^0+/, '');
   
@@ -251,6 +252,13 @@ export const doesLicensePlateMatchNumeric = (
   }
   
   if (trimmedPlateNumerics.includes(trimmedSearch)) {
+    return true;
+  }
+  
+  // 6. Additional check for suffix matching
+  // This is valuable when a user searches for the last digits of a plate
+  // E.g., searching "42" should match "ABC1042"
+  if (plateNumerics.endsWith(searchPattern)) {
     return true;
   }
   

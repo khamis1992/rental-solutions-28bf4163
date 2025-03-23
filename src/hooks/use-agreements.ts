@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
-import { Agreement, AgreementFilters } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementFilters, doesLicensePlateMatchNumeric } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
 
 export const useAgreements = (initialFilters: AgreementFilters = {
@@ -28,31 +28,20 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         const searchTerm = searchParams.query?.trim() || '';
         const isNumericSearch = /^\d+$/.test(searchTerm);
         
-        if (isNumericSearch && searchTerm.length >= 3) {
+        if (isNumericSearch && searchTerm.length >= 2) {
           console.log(`Detected numeric search with ${searchTerm}. Performing optimized vehicle search first.`);
           
           // Try a specialized vehicle search first for better number matching
           const vehicleMatches = await performOptimizedVehicleSearch(searchTerm);
           
           if (vehicleMatches && vehicleMatches.length > 0) {
-            console.log(`Found ${vehicleMatches.length} vehicle matches for numeric search "${searchTerm}"`);
+            console.log(`Found ${vehicleMatches.length} vehicle matches for numeric search "${searchTerm}":`, vehicleMatches.map(v => v.license_plate));
             
             // Get all associated agreements for these vehicles
             const { data: vehicleAgreements, error: vehicleAgreementsError } = await supabase
               .from('leases')
               .select(`
-                id, 
-                customer_id, 
-                vehicle_id, 
-                start_date, 
-                end_date, 
-                status, 
-                created_at, 
-                updated_at, 
-                total_amount, 
-                down_payment, 
-                agreement_number, 
-                notes
+                *
               `)
               .in('vehicle_id', vehicleMatches.map(v => v.id));
               
@@ -81,18 +70,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         
         // Proceed with standard search
         let query = supabase.from('leases').select(`
-          id, 
-          customer_id, 
-          vehicle_id, 
-          start_date, 
-          end_date, 
-          status, 
-          created_at, 
-          updated_at, 
-          total_amount, 
-          down_payment, 
-          agreement_number, 
-          notes
+          *
         `);
         
         // Apply filters for status, customer_id, and vehicle_id first
@@ -122,15 +100,17 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         
         if (!allLeases || allLeases.length === 0) {
           console.log("No agreements found in base database query");
+          
+          // For numeric searches, try a more aggressive search approach as a last resort
+          if (isNumericSearch) {
+            console.log(`Attempting last-resort search for numeric pattern: ${searchTerm}`);
+            return await performLastResortSearch(searchTerm);
+          }
+          
           return [];
         }
         
         console.log(`Retrieved ${allLeases.length} agreements for filtering`);
-        
-        // If there's no search term, skip the additional vehicle data fetch
-        if (!searchTerm) {
-          return transformLeaseData(allLeases, {}, {});
-        }
         
         // For more effective search, we should always fetch related data when there's a search term
         const vehicleIds = allLeases.map(lease => lease.vehicle_id).filter(Boolean);
@@ -164,42 +144,114 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     }
   );
   
+  // Last resort search when no agreements are found in the base query
+  const performLastResortSearch = async (numericSearch: string) => {
+    try {
+      console.log(`Performing last resort search for: ${numericSearch}`);
+      
+      // First get ALL vehicles that might match the pattern
+      const { data: allVehicles } = await supabase
+        .from('vehicles')
+        .select('id, make, model, license_plate, image_url, year, color, vin')
+        .limit(200);
+        
+      if (!allVehicles || allVehicles.length === 0) {
+        console.log("No vehicles found for last resort search");
+        return [];
+      }
+      
+      // Filter vehicles client-side using our robust matching function
+      const matchingVehicles = allVehicles.filter(vehicle => 
+        doesLicensePlateMatchNumeric(vehicle.license_plate, numericSearch)
+      );
+      
+      console.log(`Found ${matchingVehicles.length} matching vehicles in last resort search:`, 
+        matchingVehicles.map(v => v.license_plate));
+      
+      if (matchingVehicles.length === 0) {
+        return [];
+      }
+      
+      // Get all agreements for these vehicles
+      const { data: vehicleAgreements } = await supabase
+        .from('leases')
+        .select('*')
+        .in('vehicle_id', matchingVehicles.map(v => v.id));
+        
+      if (!vehicleAgreements || vehicleAgreements.length === 0) {
+        console.log("No agreements found for matching vehicles");
+        return [];
+      }
+      
+      console.log(`Found ${vehicleAgreements.length} agreements in last resort search`);
+      
+      // Map vehicle data
+      const vehicleData = matchingVehicles.reduce((acc, vehicle) => {
+        acc[vehicle.id] = vehicle;
+        return acc;
+      }, {});
+      
+      // Get customer data for these agreements
+      const customerIds = vehicleAgreements.map(a => a.customer_id).filter(Boolean);
+      const customerData = await fetchCustomerData(customerIds);
+      
+      // Return the transformed agreements
+      return transformLeaseData(vehicleAgreements, customerData, vehicleData);
+    } catch (error) {
+      console.error("Error in last resort search:", error);
+      return [];
+    }
+  };
+  
   // New function for optimized vehicle license plate search
   const performOptimizedVehicleSearch = async (numericSearch: string) => {
     try {
       console.log(`Performing optimized vehicle search for numeric pattern: "${numericSearch}"`);
       
-      const { data: vehicles, error } = await supabase
-        .from('vehicles')
-        .select('id, make, model, license_plate, image_url, year, color, vin')
-        .or(`license_plate.ilike.%${numericSearch}%,vin.ilike.%${numericSearch}%`);
+      // Try 3 different approaches in parallel for better matching chances
+      const [directResults, numericResults, customResults] = await Promise.all([
+        // 1. Direct license plate contains search
+        supabase
+          .from('vehicles')
+          .select('id, make, model, license_plate, image_url, year, color, vin')
+          .ilike('license_plate', `%${numericSearch}%`)
+          .limit(50),
+          
+        // 2. Use database function for extracting numerics if available
+        supabase.rpc('search_numeric_plates', { 
+          search_pattern: numericSearch 
+        }).limit(50).catch(() => ({ data: null })),  // Gracefully handle if RPC doesn't exist
         
-      if (error) {
-        console.error("Error in optimized vehicle search:", error);
-        return [];
+        // 3. Custom approach using VIN as fallback
+        supabase
+          .from('vehicles')
+          .select('id, make, model, license_plate, image_url, year, color, vin')
+          .ilike('vin', `%${numericSearch}%`)
+          .limit(50)
+      ]);
+      
+      // Combine results, removing duplicates
+      const allResults = [
+        ...(directResults.data || []),
+        ...(numericResults.data || []),
+        ...(customResults.data || [])
+      ];
+      
+      // Remove duplicates by vehicle ID
+      const uniqueVehicles = [];
+      const seenIds = new Set();
+      
+      for (const vehicle of allResults) {
+        if (!seenIds.has(vehicle.id)) {
+          seenIds.add(vehicle.id);
+          uniqueVehicles.push(vehicle);
+        }
       }
       
-      if (!vehicles || vehicles.length === 0) {
-        console.log(`No direct license plate matches for "${numericSearch}"`);
-        
-        // Try an additional search for license_plate with only numeric digits matching
-        const { data: numericMatches, error: numericError } = await supabase.rpc(
-          'search_numeric_plates',
-          { search_pattern: numericSearch }
-        ).limit(20);
-        
-        if (numericError) {
-          console.error("Error in numeric vehicle search:", numericError);
-          return [];
-        }
-        
-        if (numericMatches && numericMatches.length > 0) {
-          console.log(`Found ${numericMatches.length} numeric matches for "${numericSearch}"`);
-          return numericMatches;
-        }
-      }
+      console.log(`Found ${uniqueVehicles.length} unique vehicles matching "${numericSearch}":`, 
+        uniqueVehicles.map(v => v.license_plate));
       
-      return vehicles || [];
+      return uniqueVehicles;
     } catch (error) {
       console.error("Error in optimized vehicle search:", error);
       return [];
@@ -299,44 +351,18 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       
       // Priority 2: Check license plate with special handling
       if (agreement.vehicles?.license_plate) {
-        const plate = agreement.vehicles.license_plate.toLowerCase();
+        const plate = agreement.vehicles.license_plate;
         
-        // Direct contains match (case insensitive)
-        if (plate.includes(searchTermLower)) {
-          console.log(`Match found in license plate (direct): ${plate}`);
+        // Use our robust license plate matching function for numeric searches
+        if (isNumericSearch && doesLicensePlateMatchNumeric(plate, searchTerm)) {
+          console.log(`Match found in license plate (advanced): ${plate}`);
           return true;
         }
         
-        // Special case for numeric searches: more thorough matching
-        if (isNumericSearch) {
-          // Remove all non-digits and compare
-          const plateNumbers = plate.replace(/\D/g, '');
-          
-          // Full match
-          if (plateNumbers === searchTerm) {
-            console.log(`Match found in license plate numbers (exact): ${plate} → ${plateNumbers}`);
-            return true;
-          }
-          
-          // Contains match
-          if (plateNumbers.includes(searchTerm)) {
-            console.log(`Match found in license plate numbers (contains): ${plate} → ${plateNumbers} contains ${searchTerm}`);
-            return true;
-          }
-          
-          // Attempt with trimmed leading zeros
-          const trimmedPlateDigits = plateNumbers.replace(/^0+/, '');
-          const trimmedSearchTerm = searchTerm.replace(/^0+/, '');
-          
-          if (trimmedPlateDigits === trimmedSearchTerm) {
-            console.log(`Match found with trimmed zeros: ${plate} → ${trimmedPlateDigits} = ${trimmedSearchTerm}`);
-            return true;
-          }
-          
-          if (trimmedPlateDigits.includes(trimmedSearchTerm)) {
-            console.log(`Match found with trimmed zeros (contains): ${plate} → ${trimmedPlateDigits} contains ${trimmedSearchTerm}`);
-            return true;
-          }
+        // Standard contains check for non-numeric searches
+        if (!isNumericSearch && plate.toLowerCase().includes(searchTermLower)) {
+          console.log(`Match found in license plate (standard): ${plate}`);
+          return true;
         }
       }
       
