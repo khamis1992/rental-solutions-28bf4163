@@ -11,27 +11,32 @@ export const useAgreements = (initialFilters: AgreementFilters = {
   const [searchParams, setSearchParams] = useState<AgreementFilters>(initialFilters);
   const [error, setError] = useState<string | null>(null);
   
+  // Clear error when search params change
   useEffect(() => {
     setError(null);
   }, [searchParams]);
 
+  // Optimized fetch agreements with better error handling
   const { data: agreements, isLoading, refetch } = useApiQuery(
     ['agreements', JSON.stringify(searchParams)],
     async () => {
       try {
         console.log('Fetching agreements with params:', searchParams);
         
+        // First, let's check if we have a numeric vehicle license plate search
         const searchTerm = searchParams.query?.trim() || '';
         const isNumericSearch = /^\d+$/.test(searchTerm);
         
         if (isNumericSearch && searchTerm.length >= 2) {
           console.log(`Detected numeric search with ${searchTerm}. Performing optimized vehicle search first.`);
           
+          // Try a specialized vehicle search first for better number matching
           const vehicleMatches = await performOptimizedVehicleSearch(searchTerm);
           
           if (vehicleMatches && vehicleMatches.length > 0) {
             console.log(`Found ${vehicleMatches.length} vehicle matches for numeric search "${searchTerm}":`, vehicleMatches.map(v => v.license_plate));
             
+            // Get all associated agreements for these vehicles
             const { data: vehicleAgreements, error: vehicleAgreementsError } = await supabase
               .from('leases')
               .select(`
@@ -41,12 +46,11 @@ export const useAgreements = (initialFilters: AgreementFilters = {
               
             if (vehicleAgreementsError) {
               console.error("Error fetching vehicle agreements:", vehicleAgreementsError);
-              setError(`Failed to load agreements: ${vehicleAgreementsError.message}`);
-              toast.error(`Failed to load agreements: ${vehicleAgreementsError.message}`);
-              return [];
+              // Continue with normal search as fallback
             } else if (vehicleAgreements && vehicleAgreements.length > 0) {
               console.log(`Found ${vehicleAgreements.length} agreements for matched vehicles`);
               
+              // Map vehicle and customer data 
               const vehicleData = vehicleMatches.reduce((acc, vehicle) => {
                 acc[vehicle.id] = vehicle;
                 return acc;
@@ -55,6 +59,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
               const customerIds = vehicleAgreements.map(a => a.customer_id).filter(Boolean);
               const customerData = await fetchCustomerData(customerIds);
               
+              // Transform and return the agreements
               return transformLeaseData(vehicleAgreements, customerData, vehicleData);
             }
           }
@@ -62,10 +67,12 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           console.log(`No direct vehicle matches for "${searchTerm}", falling back to standard search`);
         }
         
+        // Proceed with standard search
         let query = supabase.from('leases').select(`
           *
         `);
         
+        // Apply filters for status, customer_id, and vehicle_id first
         if (searchParams.status && searchParams.status !== 'all') {
           query = query.eq('status', searchParams.status);
         }
@@ -78,9 +85,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           query = query.eq('vehicle_id', searchParams.vehicle_id);
         }
         
+        // Execute the query to get all agreements that we'll filter
         const { data: allLeases, error: allLeasesError } = await query
           .order('created_at', { ascending: false })
-          .limit(200);
+          .limit(200);  // Increased limit for more comprehensive search
             
         if (allLeasesError) {
           console.error("Error fetching agreements:", allLeasesError);
@@ -92,6 +100,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         if (!allLeases || allLeases.length === 0) {
           console.log("No agreements found in base database query");
           
+          // For numeric searches, try a more aggressive search approach as a last resort
           if (isNumericSearch) {
             console.log(`Attempting last-resort search for numeric pattern: ${searchTerm}`);
             return await performLastResortSearch(searchTerm);
@@ -102,16 +111,20 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         
         console.log(`Retrieved ${allLeases.length} agreements for filtering`);
         
+        // For more effective search, we should always fetch related data when there's a search term
         const vehicleIds = allLeases.map(lease => lease.vehicle_id).filter(Boolean);
         const customerIds = allLeases.map(lease => lease.customer_id).filter(Boolean);
         
+        // Fetch related data in parallel for better performance
         const [customerData, vehicleData] = await Promise.all([
           fetchCustomerData(customerIds),
           fetchVehicleData(vehicleIds)
         ]);
         
+        // Transform raw lease data to Agreement objects
         const transformedLeases = transformLeaseData(allLeases, customerData, vehicleData);
         
+        // Now perform filtering with the full dataset that includes vehicle info
         const filteredData = filterLeases(transformedLeases, searchTerm);
         
         console.log(`After filtering: ${filteredData.length} agreements match the search`);
@@ -130,10 +143,12 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     }
   );
   
+  // Last resort search when no agreements are found in the base query
   const performLastResortSearch = async (numericSearch: string) => {
     try {
       console.log(`Performing last resort search for: ${numericSearch}`);
       
+      // First get ALL vehicles that might match the pattern
       const { data: allVehicles } = await supabase
         .from('vehicles')
         .select('id, make, model, license_plate, image_url, year, color, vin')
@@ -144,6 +159,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         return [];
       }
       
+      // Filter vehicles client-side using our robust matching function
       const matchingVehicles = allVehicles.filter(vehicle => 
         doesLicensePlateMatchNumeric(vehicle.license_plate, numericSearch)
       );
@@ -155,6 +171,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         return [];
       }
       
+      // Get all agreements for these vehicles
       const { data: vehicleAgreements } = await supabase
         .from('leases')
         .select('*')
@@ -167,14 +184,17 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       
       console.log(`Found ${vehicleAgreements.length} agreements in last resort search`);
       
+      // Map vehicle data
       const vehicleData = matchingVehicles.reduce((acc, vehicle) => {
         acc[vehicle.id] = vehicle;
         return acc;
       }, {});
       
+      // Get customer data for these agreements
       const customerIds = vehicleAgreements.map(a => a.customer_id).filter(Boolean);
       const customerData = await fetchCustomerData(customerIds);
       
+      // Return the transformed agreements
       return transformLeaseData(vehicleAgreements, customerData, vehicleData);
     } catch (error) {
       console.error("Error in last resort search:", error);
@@ -182,19 +202,24 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     }
   };
   
+  // New function for optimized vehicle license plate search
   const performOptimizedVehicleSearch = async (numericSearch: string) => {
     try {
       console.log(`Performing optimized vehicle search for numeric pattern: "${numericSearch}"`);
       
+      // Try 3 different approaches in parallel for better matching chances
       const numericResults = { data: null };
       
+      // Parallel execution of search approaches
       const [directResults, customResults] = await Promise.all([
+        // 1. Direct license plate contains search
         supabase
           .from('vehicles')
           .select('id, make, model, license_plate, image_url, year, color, vin')
           .ilike('license_plate', `%${numericSearch}%`)
           .limit(50),
           
+        // 3. Custom approach using VIN as fallback
         supabase
           .from('vehicles')
           .select('id, make, model, license_plate, image_url, year, color, vin')
@@ -202,6 +227,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           .limit(50)
       ]);
       
+      // Check if we can try the RPC method separately (won't throw error if it doesn't exist)
       try {
         const rpcResult = await supabase.rpc('search_numeric_plates', { 
           search_pattern: numericSearch 
@@ -214,12 +240,14 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         console.log('RPC method not available, skipping numeric search:', rpcError);
       }
       
+      // Combine results, removing duplicates
       const allResults = [
         ...(directResults.data || []),
         ...(numericResults.data || []),
         ...(customResults.data || [])
       ];
       
+      // Remove duplicates by vehicle ID
       const uniqueVehicles = [];
       const seenIds = new Set();
       
@@ -240,6 +268,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     }
   };
   
+  // Fetch customer data for given IDs
   const fetchCustomerData = async (customerIds: string[]) => {
     let customerData = {};
     
@@ -262,6 +291,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     return customerData;
   };
   
+  // Fetch vehicle data for given IDs
   const fetchVehicleData = async (vehicleIds: string[]) => {
     let vehicleData = {};
     
@@ -291,6 +321,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     return vehicleData;
   };
   
+  // Transform lease data from Supabase to Agreement objects
   const transformLeaseData = (leases, customerData, vehicleData) => {
     return leases.map((lease: any): Agreement => ({
       id: lease.id,
@@ -312,6 +343,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     }));
   };
   
+  // Enhanced filter leases function with priority-based matching
   const filterLeases = (leases, searchTerm) => {
     if (!searchTerm) return leases;
     
@@ -321,35 +353,42 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     console.log(`Filtering with search term: "${searchTermLower}" (isNumeric: ${isNumericSearch})`);
     
     const results = leases.filter(agreement => {
+      // Priority 1: Check agreement number (highest priority)
       if (agreement.agreement_number?.toLowerCase().includes(searchTermLower)) {
         console.log(`Match found in agreement number: ${agreement.agreement_number}`);
         return true;
       }
       
+      // Priority 2: Check license plate with special handling
       if (agreement.vehicles?.license_plate) {
         const plate = agreement.vehicles.license_plate;
         
+        // Use our robust license plate matching function for numeric searches
         if (isNumericSearch && doesLicensePlateMatchNumeric(plate, searchTerm)) {
           console.log(`Match found in license plate (advanced): ${plate}`);
           return true;
         }
         
+        // Standard contains check for non-numeric searches
         if (!isNumericSearch && plate.toLowerCase().includes(searchTermLower)) {
           console.log(`Match found in license plate (standard): ${plate}`);
           return true;
         }
       }
       
+      // Priority 3: Check VIN
       if (agreement.vehicles?.vin?.toLowerCase().includes(searchTermLower)) {
         console.log(`Match found in VIN: ${agreement.vehicles.vin}`);
         return true;
       }
       
+      // Priority 4: Check customer name
       if (agreement.customers?.full_name?.toLowerCase().includes(searchTermLower)) {
         console.log(`Match found in customer name: ${agreement.customers.full_name}`);
         return true;
       }
       
+      // Priority 5: Check vehicle make/model
       if (agreement.vehicles) {
         const vehicle = agreement.vehicles;
         if (
@@ -361,11 +400,13 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         }
       }
       
+      // Priority 6: Check notes
       if (agreement.notes?.toLowerCase().includes(searchTermLower)) {
         console.log(`Match found in notes: ${agreement.notes}`);
         return true;
       }
       
+      // If nothing matched, exclude this agreement
       return false;
     });
     
@@ -373,16 +414,13 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     return results;
   };
   
+  // Create agreement
   const createAgreement = useApiMutation(
-    async (formData: Omit<Agreement, 'id'>) => {
-      const { customers, vehicles, ...agreementData } = formData;
-      
-      console.log('Creating agreement with data:', agreementData);
-      
+    async (agreement: Omit<Agreement, 'id'>) => {
       const { data, error } = await supabase
         .from('leases')
-        .insert([agreementData])
-        .select('id')
+        .insert(agreement)
+        .select()
         .single();
         
       if (error) {
@@ -400,52 +438,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     }
   );
   
-  const updateAgreement = useApiMutation(
-    async ({ id, data }: { id: string, data: Partial<Agreement> }) => {
-      const { data: updatedData, error } = await supabase
-        .from('leases')
-        .update(data)
-        .eq('id', id)
-        .select()
-        .single();
-        
-      if (error) {
-        console.error("Error updating agreement:", error);
-        throw new Error(error.message);
-      }
-      
-      return updatedData;
-    },
-    {
-      onSuccess: () => {
-        toast.success("Agreement updated successfully");
-        refetch();
-      }
-    }
-  );
-  
-  const deleteAgreement = useApiMutation(
-    async (id: string) => {
-      const { error } = await supabase
-        .from('leases')
-        .delete()
-        .eq('id', id);
-          
-      if (error) {
-        console.error("Error deleting agreement:", error);
-        throw new Error(error.message);
-      }
-      
-      return id;
-    },
-    {
-      onSuccess: () => {
-        toast.success("Agreement deleted successfully");
-        refetch();
-      }
-    }
-  );
-  
+  // Get agreement by ID
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
@@ -461,7 +454,9 @@ export const useAgreements = (initialFilters: AgreementFilters = {
         return null;
       }
       
+      // If we have the lease data, get the related customer and vehicle data
       if (data) {
+        // Get customer data
         let customerData = null;
         if (data.customer_id) {
           const { data: customer, error: customerError } = await supabase
@@ -477,6 +472,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           }
         }
         
+        // Get vehicle data - optimized with error handling
         let vehicleData = null;
         if (data.vehicle_id) {
           try {
@@ -496,6 +492,7 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           }
         }
         
+        // Transform to Agreement type
         return {
           id: data.id,
           customer_id: data.customer_id,
@@ -531,8 +528,50 @@ export const useAgreements = (initialFilters: AgreementFilters = {
     searchParams,
     setSearchParams,
     createAgreement,
-    updateAgreement,
-    deleteAgreement,
+    updateAgreement: useApiMutation(
+      async ({ id, data }: { id: string, data: Partial<Agreement> }) => {
+        const { data: updatedData, error } = await supabase
+          .from('leases')
+          .update(data)
+          .eq('id', id)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error("Error updating agreement:", error);
+          throw new Error(error.message);
+        }
+        
+        return updatedData;
+      },
+      {
+        onSuccess: () => {
+          toast.success("Agreement updated successfully");
+          refetch();
+        }
+      }
+    ),
+    deleteAgreement: useApiMutation(
+      async (id: string) => {
+        const { error } = await supabase
+          .from('leases')
+          .delete()
+          .eq('id', id);
+          
+        if (error) {
+          console.error("Error deleting agreement:", error);
+          throw new Error(error.message);
+        }
+        
+        return id;
+      },
+      {
+        onSuccess: () => {
+          toast.success("Agreement deleted successfully");
+          refetch();
+        }
+      }
+    ),
     getAgreement,
     refetch
   };
