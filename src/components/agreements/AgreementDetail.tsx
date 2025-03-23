@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -71,11 +70,16 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
 
   const handleEdit = () => {
     if (agreement && agreement.id) {
-      // Navigate to the edit agreement page with the agreement ID
       navigate(`/agreements/edit/${agreement.id}`);
       toast.info("Editing agreement " + agreement.agreement_number);
     } else {
       toast.error("Cannot edit: Agreement ID is missing");
+    }
+  }
+
+  const handleDelete = () => {
+    if (onDelete && agreement.id) {
+      onDelete(agreement.id);
     }
   }
 
