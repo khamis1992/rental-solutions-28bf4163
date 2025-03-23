@@ -23,28 +23,19 @@ const AddAgreement = () => {
         console.log("Checking if agreement template exists...");
         setCheckingTemplate(true);
         
-        // Get the table structure first to log what tables are available
-        const { data: tables, error: tablesError } = await supabase
-          .from('postgres_tables')
-          .select('*');
-        
-        if (!tablesError) {
-          console.log("Available tables:", tables);
-        }
-        
         const exists = await checkStandardTemplateExists();
         console.log("Template exists result:", exists);
         setStandardTemplateExists(exists);
         
         if (!exists) {
           toast({
-            title: "Template not found",
-            description: "The agreement template was not found in either the database or storage. Creating a new agreement will use the default template format.",
+            title: "Template Not Found",
+            description: "The standard agreement template was not found. A default template has been created for you.",
             variant: "destructive"
           });
         } else {
           toast({
-            title: "Template found",
+            title: "Template Found",
             description: "The agreement template was found and will be used for new agreements.",
           });
         }
@@ -52,8 +43,8 @@ const AddAgreement = () => {
         console.error("Error checking template:", error);
         setStandardTemplateExists(false);
         toast({
-          title: "Error checking template",
-          description: "There was an error checking for the agreement template.",
+          title: "Error Checking Template",
+          description: "There was an error checking for the agreement template. A default template will be used.",
           variant: "destructive"
         });
       } finally {

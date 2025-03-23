@@ -261,6 +261,35 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {
     console.log("Checking for template 'agreement temp.docx'");
     
+    // First check if template exists in database
+    const dbTemplateExists = await checkTemplateInDatabase();
+    if (dbTemplateExists) {
+      console.log("Template found in database");
+      return true;
+    }
+    
+    // If database check fails, try storage bucket
+    const storageTemplateExists = await checkTemplateInStorage();
+    if (storageTemplateExists) {
+      console.log("Template found in storage");
+      return true;
+    }
+    
+    // If template doesn't exist in either location, create the bucket and default template
+    console.log("Template not found in database or storage, attempting to create default template");
+    const created = await createAgreementsBucketAndTemplate();
+    return created;
+  } catch (error) {
+    console.error("Exception checking templates:", error);
+    return false;
+  }
+};
+
+/**
+ * Check if the template exists in the database
+ */
+async function checkTemplateInDatabase(): Promise<boolean> {
+  try {
     // Get the table structure first to understand what columns exist
     const { data: tableInfo, error: tableError } = await supabase
       .from("agreement_templates")
@@ -269,24 +298,20 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
     
     if (tableError) {
       console.error("Error fetching template table structure:", tableError);
-      
-      // If database check fails, try storage bucket
-      return await checkTemplateInStorage();
+      return false;
     }
     
     // Log the table structure to understand available columns
     console.log("Template table structure:", tableInfo);
     
-    // Determine which column contains the template name (assuming it might be 'name' instead of 'template_name')
+    // Determine which column contains the template name
     const nameColumn = tableInfo && tableInfo[0] && 
       ('template_name' in tableInfo[0] ? 'template_name' : 
         ('name' in tableInfo[0] ? 'name' : null));
     
     if (!nameColumn) {
       console.error("Could not determine template name column in the database");
-      
-      // If we can't determine the column name, try storage bucket
-      return await checkTemplateInStorage();
+      return false;
     }
     
     console.log(`Using column "${nameColumn}" for template name lookup`);
@@ -311,38 +336,22 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
         
       if (fallbackResult.error) {
         console.error("Error checking fallback template:", fallbackResult.error);
-        
-        // If database check fails, try storage bucket
-        return await checkTemplateInStorage();
+        return false;
       }
       
       const fallbackExists = !!fallbackResult.data;
       console.log("Fallback template exists:", fallbackExists, fallbackResult.data);
-      
-      if (!fallbackExists) {
-        // If not found in database, try storage bucket
-        return await checkTemplateInStorage();
-      }
-      
       return fallbackExists;
     }
     
     const exists = !!data;
     console.log("Template with .docx exists:", exists, data);
-    
-    if (!exists) {
-      // If not found in database, try storage bucket
-      return await checkTemplateInStorage();
-    }
-    
     return exists;
   } catch (error) {
-    console.error("Exception checking templates:", error);
-    
-    // If database check fails, try storage bucket
-    return await checkTemplateInStorage();
+    console.error("Error checking database for template:", error);
+    return false;
   }
-};
+}
 
 /**
  * Check if the template exists in the storage bucket
@@ -361,7 +370,7 @@ async function checkTemplateInStorage(): Promise<boolean> {
     
     const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
     if (!bucketExists) {
-      console.error("The 'agreements' bucket does not exist");
+      console.log("The 'agreements' bucket does not exist");
       return false;
     }
     
@@ -388,4 +397,129 @@ async function checkTemplateInStorage(): Promise<boolean> {
     console.error("Error checking template in storage:", error);
     return false;
   }
+}
+
+/**
+ * Create the agreements bucket and upload a default template if it doesn't exist
+ */
+async function createAgreementsBucketAndTemplate(): Promise<boolean> {
+  try {
+    console.log("Creating agreements bucket and default template");
+    
+    // Check if bucket exists
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    
+    if (listError) {
+      console.error('Error listing buckets:', listError);
+      return false;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
+    
+    // Create the bucket if it doesn't exist
+    if (!bucketExists) {
+      console.log("Creating 'agreements' bucket");
+      let bucketCreated = false;
+      
+      // First try with current client
+      try {
+        const { error: createError } = await supabase.storage.createBucket('agreements', {
+          public: true,
+          fileSizeLimit: 10485760, // 10MB
+        });
+        
+        if (!createError) {
+          console.log("Agreements bucket created successfully");
+          bucketCreated = true;
+        } else {
+          console.error("Error creating bucket with anon key:", createError);
+        }
+      } catch (e) {
+        console.error('Error creating bucket with anon key:', e);
+      }
+      
+      if (!bucketCreated) {
+        console.error("Failed to create agreements bucket");
+        return false;
+      }
+    }
+    
+    // Now upload the default template
+    console.log("Uploading default agreement template");
+    
+    // Create a default template content
+    const defaultTemplate = generateDefaultTemplateContent();
+    
+    // Convert to Blob
+    const blob = new Blob([defaultTemplate], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+    
+    // Upload to storage
+    const { error: uploadError } = await supabase.storage
+      .from('agreements')
+      .upload('agreement temp.docx', blob);
+      
+    if (uploadError) {
+      console.error("Error uploading default template:", uploadError);
+      return false;
+    }
+    
+    console.log("Default template uploaded successfully");
+    return true;
+  } catch (error) {
+    console.error("Error creating agreements bucket and template:", error);
+    return false;
+  }
+}
+
+/**
+ * Generate default template content
+ */
+function generateDefaultTemplateContent(): string {
+  return `
+VEHICLE RENTAL AGREEMENT
+=======================
+
+Agreement Number: {{agreement.agreement_number}}
+Date: {{current_date}}
+
+PARTIES
+-------
+LESSOR: [Your Company Name]
+LESSEE: {{customer.full_name}}
+        {{customer.email}}
+        {{customer.phone_number}}
+        Driver License: {{customer.driver_license}}
+        Nationality: {{customer.nationality}}
+
+VEHICLE DETAILS
+--------------
+Make: {{vehicle.make}}
+Model: {{vehicle.model}}
+Year: {{vehicle.year}}
+Color: {{vehicle.color}}
+License Plate: {{vehicle.license_plate}}
+VIN: {{vehicle.vin}}
+
+AGREEMENT TERMS
+--------------
+Start Date: {{agreement.start_date}}
+End Date: {{agreement.end_date}}
+Rent Amount: {{agreement.rent_amount}} QAR per month
+Security Deposit: {{agreement.deposit_amount}} QAR
+Total Contract Value: {{agreement.total_amount}} QAR
+
+TERMS AND CONDITIONS
+-------------------
+1. The Lessee agrees to pay the monthly rent on time.
+2. The Lessee will maintain the vehicle in good condition.
+3. The Lessee will not use the vehicle for illegal purposes.
+4. The Lessee will be responsible for any traffic violations.
+5. The Lessee will return the vehicle on the end date in good condition.
+
+SIGNATURES
+---------
+Lessor: ______________________     Date: _____________
+
+Lessee: ______________________     Date: _____________
+`;
 }
