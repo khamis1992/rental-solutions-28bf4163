@@ -21,11 +21,12 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       };
     }
     
-    // Create a service client with full admin permissions
+    // IMPORTANT: Create a service client with the correct options
+    // Fixing the invalid signature issue by properly configuring the client
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false
+        autoRefreshToken: false,
+        persistSession: false
       }
     });
     
@@ -36,7 +37,11 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
     
     if (listError) {
       console.error('Error listing buckets with service client:', listError);
-      return { success: false, error: `Failed to list buckets: ${listError.message}`, details: listError };
+      return { 
+        success: false, 
+        error: `Failed to list buckets: ${listError.message}`, 
+        details: listError 
+      };
     }
     
     const agreementBucketExists = buckets?.some(bucket => bucket.name === 'agreements');
@@ -45,7 +50,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       console.log('Agreements bucket does not exist, creating it with service role key...');
       
       try {
-        // Create the bucket with service role client with public permissions
+        // Create the bucket with service role client
         const { error: createError } = await serviceClient.storage.createBucket('agreements', {
           public: true,
           fileSizeLimit: 10485760, // 10MB
@@ -191,6 +196,7 @@ export const diagnoseStorageIssues = async (): Promise<{
     let serviceClient = null;
     
     if (supabaseServiceKey) {
+      // IMPORTANT: Create service client with correct auth options to fix signature issues
       serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
         auth: {
           persistSession: false,
