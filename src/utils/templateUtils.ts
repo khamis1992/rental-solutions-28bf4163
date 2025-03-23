@@ -1,6 +1,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { createClient } from '@supabase/supabase-js';
+import { ensureStorageBuckets } from './setupBuckets';
 
 /**
  * Uploads a new agreement template to the storage bucket
@@ -9,6 +10,13 @@ export const uploadAgreementTemplate = async (
   templateFile: File
 ): Promise<{ success: boolean; error?: string; url?: string }> => {
   try {
+    // First ensure the bucket exists
+    const bucketResult = await ensureStorageBuckets();
+    if (!bucketResult.success) {
+      console.error("Failed to ensure bucket exists:", bucketResult.error);
+      return { success: false, error: bucketResult.error || "Failed to ensure storage bucket exists" };
+    }
+
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     
@@ -18,48 +26,6 @@ export const uploadAgreementTemplate = async (
     
     // Create a service client with full permissions
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Check if the agreements bucket exists
-    const { data: buckets, error: bucketsError } = await serviceClient.storage.listBuckets();
-    
-    if (bucketsError) {
-      console.error("Failed to list buckets:", bucketsError);
-      return { success: false, error: `Failed to list buckets: ${bucketsError.message}` };
-    }
-    
-    const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
-    
-    // If bucket doesn't exist, create it with the service role key
-    if (!bucketExists) {
-      try {
-        const { error: createError } = await serviceClient.storage.createBucket('agreements', {
-          public: true,
-          fileSizeLimit: 10485760 // 10MB
-        });
-        
-        if (createError) {
-          console.error("Failed to create bucket with service role:", createError);
-          
-          // Special message for RLS errors
-          if (createError.message.includes('violates row-level security')) {
-            return { 
-              success: false, 
-              error: "RLS policy error. Please create the 'agreements' bucket manually in the Supabase dashboard." 
-            };
-          }
-          
-          return { success: false, error: `Failed to create bucket: ${createError.message}` };
-        }
-        
-        console.log("Successfully created agreements bucket");
-      } catch (createErr: any) {
-        console.error("Error creating bucket:", createErr);
-        return { 
-          success: false, 
-          error: "Please create the 'agreements' bucket manually in the Supabase dashboard." 
-        };
-      }
-    }
     
     // Set the filename to agreement_template.docx (with underscore, not space)
     const safeFileName = 'agreement_template.docx';
@@ -86,6 +52,8 @@ export const uploadAgreementTemplate = async (
     let publicUrl = urlData.publicUrl;
     publicUrl = publicUrl.replace(/\/\/agreements\//, '/agreements/');
     
+    console.log("Template uploaded successfully. URL:", publicUrl);
+    
     return { 
       success: true, 
       url: publicUrl
@@ -108,6 +76,13 @@ export const downloadAgreementTemplate = async (): Promise<{
   error?: string;
 }> => {
   try {
+    // Check if bucket exists first via ensureStorageBuckets
+    const bucketCheck = await ensureStorageBuckets();
+    if (!bucketCheck.success) {
+      console.error("Bucket check failed:", bucketCheck.error);
+      return { success: false, error: bucketCheck.error || "Failed to ensure bucket exists" };
+    }
+    
     // Try different filename formats to handle potential inconsistencies
     const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
     
@@ -118,6 +93,36 @@ export const downloadAgreementTemplate = async (): Promise<{
     
     if (listError) {
       console.error("Error listing files:", listError);
+      
+      // Try with service role key as fallback
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (supabaseServiceKey) {
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: serviceFiles, error: serviceListError } = await serviceClient.storage
+          .from('agreements')
+          .list();
+          
+        if (serviceListError || !serviceFiles?.length) {
+          return { success: false, error: `Failed to list files with service key: ${serviceListError?.message || "No files found"}` };
+        }
+        
+        // Try to download file with service client
+        for (const option of fileOptions) {
+          if (serviceFiles.some(file => file.name === option)) {
+            const { data, error: downloadError } = await serviceClient.storage
+              .from('agreements')
+              .download(option);
+              
+            if (!downloadError && data) {
+              console.log(`Successfully downloaded template with service client: ${option}`);
+              return { success: true, data };
+            }
+          }
+        }
+      }
+      
       return { success: false, error: `Failed to list files: ${listError.message}` };
     }
     
@@ -142,6 +147,25 @@ export const downloadAgreementTemplate = async (): Promise<{
       .download(templateFile);
     
     if (downloadError || !data) {
+      console.error("Failed to download with regular client, trying service client...");
+      
+      // Try with service role key as fallback
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (supabaseServiceKey) {
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: serviceData, error: serviceDownloadError } = await serviceClient.storage
+          .from('agreements')
+          .download(templateFile);
+          
+        if (serviceDownloadError || !serviceData) {
+          return { success: false, error: `Failed to download with service key: ${serviceDownloadError?.message || "No data returned"}` };
+        }
+        
+        return { success: true, data: serviceData };
+      }
+      
       return { success: false, error: `Failed to download template: ${downloadError?.message || "No data returned"}` };
     }
     
@@ -157,6 +181,13 @@ export const downloadAgreementTemplate = async (): Promise<{
  */
 export const getAgreementTemplateUrl = async (): Promise<string | null> => {
   try {
+    // Ensure storage bucket exists first
+    const bucketCheck = await ensureStorageBuckets();
+    if (!bucketCheck.success) {
+      console.error("Bucket check failed:", bucketCheck.error);
+      return null;
+    }
+    
     // Check which template file exists
     const { data: files, error: listError } = await supabase.storage
       .from('agreements')
@@ -164,6 +195,46 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
     
     if (listError || !files) {
       console.error("Error listing template files:", listError);
+      
+      // Try with service role key as fallback
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (supabaseServiceKey) {
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { data: serviceFiles } = await serviceClient.storage
+          .from('agreements')
+          .list();
+          
+        if (serviceFiles?.length) {
+          // Try to find which template exists - prioritize agreement_template.docx
+          const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
+          let templateFile = null;
+          
+          for (const option of fileOptions) {
+            if (serviceFiles.some(file => file.name === option)) {
+              templateFile = option;
+              break;
+            }
+          }
+          
+          if (templateFile) {
+            // Get the URL for the template that exists
+            const { data } = serviceClient.storage
+              .from('agreements')
+              .getPublicUrl(templateFile);
+            
+            // Fix the double slash issue in the URL
+            let fixedUrl = data.publicUrl;
+            if (fixedUrl.includes('//agreements/')) {
+              fixedUrl = fixedUrl.replace('//agreements/', '/agreements/');
+            }
+            
+            return fixedUrl;
+          }
+        }
+      }
+      
       return null;
     }
     
@@ -217,6 +288,20 @@ export const diagnoseTemplateUrl = async (): Promise<{
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     
+    // First ensure the bucket exists
+    const bucketCheck = await ensureStorageBuckets();
+    if (!bucketCheck.success) {
+      issues.push(`Storage bucket setup failed: ${bucketCheck.error}`);
+      suggestions.push("Check the service role key in your .env file");
+      suggestions.push("Create the 'agreements' bucket manually in the Supabase dashboard");
+      
+      return { 
+        status: "error", 
+        issues, 
+        suggestions 
+      };
+    }
+    
     // Create service client for bucket operations
     const serviceClient = supabaseServiceKey 
       ? createClient(supabaseUrl, supabaseServiceKey)
@@ -231,7 +316,7 @@ export const diagnoseTemplateUrl = async (): Promise<{
       issues.push(`Error checking buckets: ${bucketsError.message}`);
       
       if (bucketsError.message.includes('violates row-level security')) {
-        suggestions.push("You need to create the 'agreements' bucket manually in the Supabase dashboard due to RLS restrictions");
+        suggestions.push("Use the service role key for storage operations");
         suggestions.push("Go to Storage in the Supabase dashboard and create the 'agreements' bucket with public read access");
       }
       
@@ -246,7 +331,7 @@ export const diagnoseTemplateUrl = async (): Promise<{
     
     if (!bucketExists) {
       issues.push("The 'agreements' bucket does not exist");
-      suggestions.push("Create the 'agreements' bucket in the Supabase dashboard");
+      suggestions.push("Create the 'agreements' bucket in the Supabase dashboard or through the app");
       suggestions.push("Make sure to set the bucket to 'public' for file access");
       
       return { 
@@ -257,7 +342,7 @@ export const diagnoseTemplateUrl = async (): Promise<{
     }
     
     // Get list of files
-    const { data: files, error: listError } = await supabase.storage
+    const { data: files, error: listError } = await (serviceClient || supabase).storage
       .from('agreements')
       .list();
     
@@ -311,11 +396,11 @@ export const diagnoseTemplateUrl = async (): Promise<{
     
     // Get URL for the first found template
     const templateName = foundTemplates[0].name;
-    const { data } = supabase.storage
+    const { data } = (serviceClient || supabase).storage
       .from('agreements')
       .getPublicUrl(templateName);
     
-    const url = data.publicUrl;
+    let url = data.publicUrl;
     
     // Check URL format for issues
     if (url.includes('//agreements/')) {
@@ -323,18 +408,24 @@ export const diagnoseTemplateUrl = async (): Promise<{
       suggestions.push("This is a known formatting issue that will be fixed automatically");
       
       // Provide a fixed URL
-      const fixedUrl = url.replace('//agreements/', '/agreements/');
-      
-      return { 
-        status: "warning",
-        issues, 
-        suggestions,
-        url: fixedUrl
-      };
+      url = url.replace('//agreements/', '/agreements/');
+    }
+    
+    // Try to verify the URL by making a HEAD request to it
+    try {
+      const testResponse = await fetch(url, { method: 'HEAD' });
+      if (!testResponse.ok) {
+        issues.push(`Template URL returns ${testResponse.status} status`);
+        suggestions.push("Check if the file is publicly accessible in Supabase storage");
+      } else {
+        console.log("URL validation successful!");
+      }
+    } catch (fetchError: any) {
+      issues.push(`Unable to access template URL: ${fetchError.message}`);
     }
     
     return { 
-      status: "success",
+      status: issues.length > 0 ? "warning" : "success",
       issues, 
       suggestions,
       url
@@ -343,5 +434,43 @@ export const diagnoseTemplateUrl = async (): Promise<{
     issues.push(`Unexpected error: ${error.message}`);
     suggestions.push("Check the browser console for more detailed error information");
     return { status: "error", issues, suggestions };
+  }
+};
+
+/**
+ * Attempts a direct URL fetch for the template to validate accessibility 
+ */
+export const validateTemplateAccess = async (): Promise<{
+  accessible: boolean;
+  error?: string;
+  url?: string;
+}> => {
+  try {
+    // Get the template URL
+    const url = await getAgreementTemplateUrl();
+    if (!url) {
+      return { accessible: false, error: "Could not generate template URL" };
+    }
+    
+    // Try to fetch the template directly
+    const response = await fetch(url, {
+      method: 'HEAD', // Just check headers, don't download the whole file
+      cache: 'no-cache',
+    });
+    
+    if (!response.ok) {
+      return { 
+        accessible: false, 
+        error: `Template URL returns ${response.status} status`, 
+        url 
+      };
+    }
+    
+    return { accessible: true, url };
+  } catch (error: any) {
+    return { 
+      accessible: false, 
+      error: `Error accessing template: ${error.message}`,
+    };
   }
 };
