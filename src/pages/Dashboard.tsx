@@ -42,9 +42,13 @@ const Dashboard = () => {
               <Skeleton className="h-32" />
             </div>
             
+            <div className="grid grid-cols-1 gap-6">
+              <Skeleton className="h-96" />
+            </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              <Skeleton className="h-80 lg:col-span-3" />
-              <Skeleton className="h-80" />
+              <Skeleton className="h-80 col-span-full lg:col-span-3" />
+              <Skeleton className="h-80 col-span-full lg:col-span-1" />
             </div>
             
             <Skeleton className="h-96" />
@@ -58,8 +62,13 @@ const Dashboard = () => {
           <>
             <DashboardStats stats={stats} />
             
+            {/* Revenue chart now takes full width */}
+            <div className="grid grid-cols-1 gap-6 section-transition">
+              <RevenueChart data={revenue} fullWidth={true} />
+            </div>
+            
+            {/* Vehicle Status chart in a separate row */}
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 section-transition">
-              <RevenueChart data={revenue} />
               <VehicleStatusChart data={stats?.vehicleStats} />
             </div>
             

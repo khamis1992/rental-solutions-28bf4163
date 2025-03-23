@@ -6,16 +6,17 @@ import { formatCurrency } from '@/lib/utils';
 
 interface RevenueChartProps {
   data: { name: string; revenue: number }[];
+  fullWidth?: boolean;
 }
 
-const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
+const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
   return (
-    <Card className="col-span-3 card-transition">
+    <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
       <CardHeader className="pb-0">
         <CardTitle>Revenue Overview</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
+        <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={data}
