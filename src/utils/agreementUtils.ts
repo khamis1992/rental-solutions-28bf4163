@@ -1,3 +1,4 @@
+
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
@@ -897,4 +898,102 @@ async function getTemplateFromStorage(): Promise<string | null> {
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
-      console.error("
+      console.error("Error checking bucket existence:", bucketsError);
+      return null;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
+    if (!bucketExists) {
+      console.log("Agreements bucket does not exist");
+      return null;
+    }
+    
+    // Try to list files in the bucket
+    const { data: files, error: listError } = await supabase.storage
+      .from('agreements')
+      .list();
+      
+    if (listError) {
+      console.error("Error listing files in agreements bucket:", listError);
+      return null;
+    }
+    
+    // Check for various template file names that might exist
+    const templateFileNames = [
+      'agreement_template.docx',
+      'agreement temp.docx',
+      'agreement_temp.docx'
+    ];
+    
+    // Find the first matching template file
+    const templateFile = files?.find(file => 
+      templateFileNames.includes(file.name)
+    );
+    
+    if (!templateFile) {
+      console.log("No template file found in the agreements bucket");
+      return null;
+    }
+    
+    // Try to download the template
+    console.log(`Downloading template file: ${templateFile.name}`);
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('agreements')
+      .download(templateFile.name);
+      
+    if (downloadError || !fileData) {
+      console.error("Error downloading template:", downloadError);
+      return null;
+    }
+    
+    // Convert the blob to text
+    const templateText = await fileData.text();
+    console.log(`Template downloaded successfully, size: ${templateText.length} characters`);
+    
+    return templateText;
+  } catch (error) {
+    console.error("Exception getting template from storage:", error);
+    return null;
+  }
+}
+
+/**
+ * Try to get template from database
+ */
+async function getTemplateFromDatabase(): Promise<string | null> {
+  try {
+    console.log("Attempting to get template from database");
+    
+    // Check if the agreement_templates table exists and has any templates
+    const { data: templates, error } = await supabase
+      .from("agreement_templates")
+      .select('content, template_name, name')
+      .limit(1);
+    
+    if (error) {
+      console.error("Error checking for templates in database:", error);
+      return null;
+    }
+    
+    if (!templates || templates.length === 0) {
+      console.log("No templates found in database");
+      return null;
+    }
+    
+    const template = templates[0];
+    
+    // Try to get the content from different possible column names
+    const templateContent = template.content || template.template_content || template.text || null;
+    
+    if (!templateContent) {
+      console.log("Template found but has no content");
+      return null;
+    }
+    
+    console.log(`Template found in database: ${template.template_name || template.name}`);
+    return templateContent;
+  } catch (error) {
+    console.error("Exception getting template from database:", error);
+    return null;
+  }
+}
