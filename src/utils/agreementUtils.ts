@@ -1,3 +1,4 @@
+
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
@@ -7,20 +8,46 @@ import { supabase } from "@/lib/supabase";
  */
 export const generateAgreementText = async (agreement: Agreement): Promise<string> => {
   try {
-    // Fetch the standard template from the database
+    // Get the table structure first to understand what columns exist
+    const { data: tableInfo, error: tableError } = await supabase
+      .from("agreement_templates")
+      .select('*')
+      .limit(1);
+    
+    if (tableError) {
+      console.error("Error fetching template table structure:", tableError);
+      return generateDefaultAgreementText(agreement);
+    }
+    
+    // Log the table structure to understand available columns
+    console.log("Template table structure:", tableInfo);
+    
+    // Determine which column contains the template name (assuming it might be 'name' instead of 'template_name')
+    const nameColumn = tableInfo && tableInfo[0] && 
+      ('template_name' in tableInfo[0] ? 'template_name' : 
+        ('name' in tableInfo[0] ? 'name' : null));
+    
+    if (!nameColumn) {
+      console.error("Could not determine template name column in the database");
+      return generateDefaultAgreementText(agreement);
+    }
+    
+    console.log(`Using column "${nameColumn}" for template name lookup`);
+    
+    // Fetch the template using the determined name column
     const { data, error } = await supabase
       .from("agreement_templates")
-      .select("content, template_name")
-      .eq("template_name", "agreement temp.docx")
+      .select("*")
+      .eq(nameColumn, "agreement temp.docx")
       .maybeSingle();
     
-    if (error) {
+    if (error || !data) {
       console.error("Error fetching template from database:", error);
       // Try fallback to the regular template name
       const fallbackResult = await supabase
         .from("agreement_templates")
-        .select("content, template_name")
-        .eq("template_name", "agreement temp")
+        .select("*")
+        .eq(nameColumn, "agreement temp")
         .maybeSingle();
         
       if (fallbackResult.error || !fallbackResult.data) {
@@ -28,23 +55,32 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
         return generateDefaultAgreementText(agreement);
       }
       
-      // Use the fallback template if found
-      if (fallbackResult.data && fallbackResult.data.content) {
-        console.log("Using fallback template: agreement temp");
-        return processAgreementTemplate(fallbackResult.data.content, agreement);
+      // Determine which column contains the content
+      const contentColumn = 'content' in fallbackResult.data ? 'content' : 
+        ('template_content' in fallbackResult.data ? 'template_content' : null);
+      
+      if (!contentColumn || !fallbackResult.data[contentColumn]) {
+        console.error("Could not determine template content column");
+        return generateDefaultAgreementText(agreement);
       }
       
+      // Use the fallback template if found
+      console.log(`Using fallback template: agreement temp (content column: ${contentColumn})`);
+      return processAgreementTemplate(fallbackResult.data[contentColumn], agreement);
+    }
+    
+    // Determine which column contains the content
+    const contentColumn = 'content' in data ? 'content' : 
+      ('template_content' in data ? 'template_content' : null);
+    
+    if (!contentColumn || !data[contentColumn]) {
+      console.error("Could not determine template content column");
       return generateDefaultAgreementText(agreement);
     }
     
-    if (data && data.content) {
-      // Process standard template with agreement data
-      console.log(`Using template: ${data.template_name}`);
-      return processAgreementTemplate(data.content, agreement);
-    }
-    
-    // If no standard template found, generate default agreement text
-    return generateDefaultAgreementText(agreement);
+    // Process standard template with agreement data
+    console.log(`Using template: agreement temp.docx (content column: ${contentColumn})`);
+    return processAgreementTemplate(data[contentColumn], agreement);
   } catch (error) {
     console.error("Error generating agreement text:", error);
     return generateDefaultAgreementText(agreement); // Fallback to default
@@ -197,11 +233,37 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {
     console.log("Checking for template 'agreement temp.docx'");
     
-    // First try with the .docx extension
+    // Get the table structure first to understand what columns exist
+    const { data: tableInfo, error: tableError } = await supabase
+      .from("agreement_templates")
+      .select('*')
+      .limit(1);
+    
+    if (tableError) {
+      console.error("Error fetching template table structure:", tableError);
+      return false;
+    }
+    
+    // Log the table structure to understand available columns
+    console.log("Template table structure:", tableInfo);
+    
+    // Determine which column contains the template name (assuming it might be 'name' instead of 'template_name')
+    const nameColumn = tableInfo && tableInfo[0] && 
+      ('template_name' in tableInfo[0] ? 'template_name' : 
+        ('name' in tableInfo[0] ? 'name' : null));
+    
+    if (!nameColumn) {
+      console.error("Could not determine template name column in the database");
+      return false;
+    }
+    
+    console.log(`Using column "${nameColumn}" for template name lookup`);
+    
+    // First try with the .docx extension using the determined name column
     const { data, error } = await supabase
       .from("agreement_templates")
-      .select("id, template_name")
-      .eq("template_name", "agreement temp.docx")
+      .select("id")
+      .eq(nameColumn, "agreement temp.docx")
       .maybeSingle();
     
     if (error) {
@@ -211,8 +273,8 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
       console.log("Checking fallback template 'agreement temp'");
       const fallbackResult = await supabase
         .from("agreement_templates")
-        .select("id, template_name")
-        .eq("template_name", "agreement temp")
+        .select("id")
+        .eq(nameColumn, "agreement temp")
         .maybeSingle();
         
       if (fallbackResult.error) {

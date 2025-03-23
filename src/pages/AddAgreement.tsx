@@ -22,6 +22,16 @@ const AddAgreement = () => {
       try {
         console.log("Checking if agreement template exists...");
         setCheckingTemplate(true);
+        
+        // Get the table structure first to log what tables are available
+        const { data: tables, error: tablesError } = await supabase
+          .from('postgres_tables')
+          .select('*');
+        
+        if (!tablesError) {
+          console.log("Available tables:", tables);
+        }
+        
         const exists = await checkStandardTemplateExists();
         console.log("Template exists result:", exists);
         setStandardTemplateExists(exists);
