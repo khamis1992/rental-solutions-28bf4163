@@ -3711,19 +3711,13 @@ export type Database = {
           customer_id: string
           daily_late_fee: number | null
           daily_late_fine: number | null
-          damage_penalty_rate: number | null
           deposit_amount: number | null
           early_payoff_allowed: boolean | null
           end_date: string | null
-          fuel_penalty_rate: number | null
           id: string
-          initial_mileage: number
-          interest_rate: number | null
           last_payment_date: string | null
-          late_fee_grace_period: unknown | null
           late_fee_rate: number | null
           late_fine_start_day: number | null
-          late_return_fee: number | null
           lease_duration: unknown | null
           license_no: string | null
           license_number: string | null
@@ -3738,7 +3732,6 @@ export type Database = {
           rent_amount: number | null
           rent_due_day: number | null
           return_date: string | null
-          return_mileage: number | null
           start_date: string | null
           status: Database["public"]["Enums"]["lease_status"] | null
           template_id: string | null
@@ -3758,19 +3751,13 @@ export type Database = {
           customer_id: string
           daily_late_fee?: number | null
           daily_late_fine?: number | null
-          damage_penalty_rate?: number | null
           deposit_amount?: number | null
           early_payoff_allowed?: boolean | null
           end_date?: string | null
-          fuel_penalty_rate?: number | null
           id?: string
-          initial_mileage: number
-          interest_rate?: number | null
           last_payment_date?: string | null
-          late_fee_grace_period?: unknown | null
           late_fee_rate?: number | null
           late_fine_start_day?: number | null
-          late_return_fee?: number | null
           lease_duration?: unknown | null
           license_no?: string | null
           license_number?: string | null
@@ -3785,7 +3772,6 @@ export type Database = {
           rent_amount?: number | null
           rent_due_day?: number | null
           return_date?: string | null
-          return_mileage?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["lease_status"] | null
           template_id?: string | null
@@ -3805,19 +3791,13 @@ export type Database = {
           customer_id?: string
           daily_late_fee?: number | null
           daily_late_fine?: number | null
-          damage_penalty_rate?: number | null
           deposit_amount?: number | null
           early_payoff_allowed?: boolean | null
           end_date?: string | null
-          fuel_penalty_rate?: number | null
           id?: string
-          initial_mileage?: number
-          interest_rate?: number | null
           last_payment_date?: string | null
-          late_fee_grace_period?: unknown | null
           late_fee_rate?: number | null
           late_fine_start_day?: number | null
-          late_return_fee?: number | null
           lease_duration?: unknown | null
           license_no?: string | null
           license_number?: string | null
@@ -3832,7 +3812,6 @@ export type Database = {
           rent_amount?: number | null
           rent_due_day?: number | null
           return_date?: string | null
-          return_mileage?: number | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["lease_status"] | null
           template_id?: string | null

@@ -5,7 +5,7 @@ import { formatCurrency } from "@/lib/utils"
 import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
 import { Badge } from "@/components/ui/badge"
 import { format, differenceInMonths } from "date-fns"
-import { Trash2, Edit, FileText } from "lucide-react"
+import { Trash2, Edit, FileText, Download } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -14,6 +14,7 @@ import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
+import { generateAgreementText } from "@/utils/agreementUtils"
 
 interface AgreementDetailProps {
   agreement: Agreement
@@ -55,6 +56,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const [isLoadingPayments, setIsLoadingPayments] = useState(true)
   const [localRentAmount, setLocalRentAmount] = useState<number | null>(rentAmount)
   const [durationMonths, setDurationMonths] = useState<number>(0)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
   useEffect(() => {
     if (agreement.start_date && agreement.end_date) {
@@ -79,6 +81,31 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const handlePrintAgreement = () => {
     toast.info("Print functionality will be implemented in a future update")
   }
+
+  const handleDownloadAgreement = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      const agreementText = await generateAgreementText(agreement);
+      
+      const blob = new Blob([agreementText], { type: 'text/plain' });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Agreement_${agreement.agreement_number}.txt`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Agreement downloaded successfully");
+    } catch (error) {
+      console.error("Error generating agreement:", error);
+      toast.error("Failed to generate agreement document");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
 
   const fetchRentAmount = useCallback(async () => {
     try {
@@ -314,6 +341,14 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               <Button variant="outline" onClick={handlePrintAgreement}>
                 <FileText className="mr-2 h-4 w-4" />
                 Print
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadAgreement}
+                disabled={isGeneratingPdf}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {isGeneratingPdf ? "Generating..." : "Download"}
               </Button>
               <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                 <DialogTrigger asChild>
