@@ -14,8 +14,7 @@ import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
-import { generateAgreementText } from "@/utils/agreementUtils"
-import { jsPDF } from "jspdf"
+import { generatePdfDocument } from "@/utils/agreementUtils"
 
 interface AgreementDetailProps {
   agreement: Agreement
@@ -86,23 +85,18 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const handleDownloadAgreement = async () => {
     setIsGeneratingPdf(true);
     try {
-      const agreementText = await generateAgreementText(agreement);
+      console.log("Generating PDF for agreement:", agreement);
       
-      const doc = new jsPDF();
+      const success = await generatePdfDocument(agreement);
       
-      doc.setFont("helvetica");
-      doc.setFontSize(10);
-      
-      const textLines = doc.splitTextToSize(agreementText, 180);
-      
-      doc.text(textLines, 15, 15);
-      
-      doc.save(`Agreement_${agreement.agreement_number}.pdf`);
-      
-      toast.success("Agreement downloaded as PDF");
+      if (success) {
+        toast.success("Agreement downloaded as PDF");
+      } else {
+        toast.error("Failed to generate PDF document");
+      }
     } catch (error) {
       console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF document");
+      toast.error("Failed to generate PDF document: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsGeneratingPdf(false);
     }
