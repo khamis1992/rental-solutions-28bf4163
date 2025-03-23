@@ -11,16 +11,35 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
     const { data, error } = await supabase
       .from("agreement_templates")
       .select("content, template_name")
-      .eq("template_name", "agreement temp")
-      .single();
+      .eq("template_name", "agreement temp.docx")
+      .maybeSingle();
     
     if (error) {
       console.error("Error fetching template from database:", error);
+      // Try fallback to the regular template name
+      const fallbackResult = await supabase
+        .from("agreement_templates")
+        .select("content, template_name")
+        .eq("template_name", "agreement temp")
+        .maybeSingle();
+        
+      if (fallbackResult.error || !fallbackResult.data) {
+        console.error("Error fetching fallback template:", fallbackResult.error);
+        return generateDefaultAgreementText(agreement);
+      }
+      
+      // Use the fallback template if found
+      if (fallbackResult.data && fallbackResult.data.content) {
+        console.log("Using fallback template: agreement temp");
+        return processAgreementTemplate(fallbackResult.data.content, agreement);
+      }
+      
       return generateDefaultAgreementText(agreement);
     }
     
     if (data && data.content) {
       // Process standard template with agreement data
+      console.log(`Using template: ${data.template_name}`);
       return processAgreementTemplate(data.content, agreement);
     }
     
@@ -176,25 +195,42 @@ export const isStorageConfigured = async (): Promise<boolean> => {
  */
 export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {
-    console.log("Checking for standard template 'agreement temp'");
+    console.log("Checking for template 'agreement temp.docx'");
     
+    // First try with the .docx extension
     const { data, error } = await supabase
       .from("agreement_templates")
       .select("id, template_name")
-      .eq("template_name", "agreement temp")
-      .maybeSingle(); // Use maybeSingle instead of single to avoid errors if not found
+      .eq("template_name", "agreement temp.docx")
+      .maybeSingle();
     
     if (error) {
-      console.error("Error checking standard template:", error);
-      return false;
+      console.error("Error checking template with .docx extension:", error);
+      
+      // Try fallback to the regular template name
+      console.log("Checking fallback template 'agreement temp'");
+      const fallbackResult = await supabase
+        .from("agreement_templates")
+        .select("id, template_name")
+        .eq("template_name", "agreement temp")
+        .maybeSingle();
+        
+      if (fallbackResult.error) {
+        console.error("Error checking fallback template:", fallbackResult.error);
+        return false;
+      }
+      
+      const fallbackExists = !!fallbackResult.data;
+      console.log("Fallback template exists:", fallbackExists, fallbackResult.data);
+      return fallbackExists;
     }
     
     const exists = !!data;
-    console.log("Template exists:", exists, data);
+    console.log("Template with .docx exists:", exists, data);
     
     return exists;
   } catch (error) {
-    console.error("Exception checking standard template:", error);
+    console.error("Exception checking templates:", error);
     return false;
   }
 };

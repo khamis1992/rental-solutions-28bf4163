@@ -20,7 +20,7 @@ const AddAgreement = () => {
   useEffect(() => {
     const checkTemplate = async () => {
       try {
-        console.log("Checking if standard template exists...");
+        console.log("Checking if agreement template exists...");
         setCheckingTemplate(true);
         const exists = await checkStandardTemplateExists();
         console.log("Template exists result:", exists);
@@ -29,13 +29,13 @@ const AddAgreement = () => {
         if (!exists) {
           toast({
             title: "Template not found",
-            description: "The standard agreement template was not found in the database. Creating a new agreement will use the default template format.",
+            description: "The agreement template was not found in the database. Creating a new agreement will use the default template format.",
             variant: "destructive"
           });
         } else {
           toast({
             title: "Template found",
-            description: "The standard agreement template was found and will be used for new agreements.",
+            description: "The agreement template was found and will be used for new agreements.",
           });
         }
       } catch (error) {
