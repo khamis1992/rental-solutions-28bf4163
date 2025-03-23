@@ -3,6 +3,7 @@ import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
 import { createClient } from '@supabase/supabase-js';
 import { getAgreementTemplateUrl } from './templateUtils';
+import { jsPDF } from "jspdf";
 
 /**
  * Generate the agreement text by processing the template with agreement data
@@ -102,21 +103,28 @@ Lessee: ______________________     Date: _____________
  * Helper function to download agreement as PDF
  */
 export const downloadAgreementAsPdf = async (agreement: Agreement): Promise<void> => {
-  // This is a placeholder - in a real implementation, you would use
-  // a library like jsPDF to convert the agreement text to PDF
-  alert("PDF generation would happen here. This requires additional libraries.");
-  
-  // Example implementation with jsPDF would look like:
-  /*
-  import { jsPDF } from "jspdf";
-  
-  const agreementText = await generateAgreementText(agreement);
-  const doc = new jsPDF();
-  
-  doc.setFontSize(12);
-  doc.text(agreementText, 10, 10);
-  doc.save(`agreement_${agreement.agreement_number}.pdf`);
-  */
+  try {
+    const agreementText = await generateAgreementText(agreement);
+    
+    // Create new PDF document
+    const doc = new jsPDF();
+    
+    // Set properties
+    doc.setFont("helvetica");
+    doc.setFontSize(10);
+    
+    // Split the text into lines that fit in the PDF
+    const textLines = doc.splitTextToSize(agreementText, 180);
+    
+    // Add text to the PDF
+    doc.text(textLines, 15, 15);
+    
+    // Save the PDF
+    doc.save(`agreement_${agreement.agreement_number}.pdf`);
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    throw new Error("Failed to generate PDF document");
+  }
 };
 
 /**

@@ -15,6 +15,7 @@ import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
 import { generateAgreementText } from "@/utils/agreementUtils"
+import { jsPDF } from "jspdf"
 
 interface AgreementDetailProps {
   agreement: Agreement
@@ -87,21 +88,21 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     try {
       const agreementText = await generateAgreementText(agreement);
       
-      const blob = new Blob([agreementText], { type: 'text/plain' });
+      const doc = new jsPDF();
       
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Agreement_${agreement.agreement_number}.txt`;
+      doc.setFont("helvetica");
+      doc.setFontSize(10);
       
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const textLines = doc.splitTextToSize(agreementText, 180);
       
-      toast.success("Agreement downloaded successfully");
+      doc.text(textLines, 15, 15);
+      
+      doc.save(`Agreement_${agreement.agreement_number}.pdf`);
+      
+      toast.success("Agreement downloaded as PDF");
     } catch (error) {
-      console.error("Error generating agreement:", error);
-      toast.error("Failed to generate agreement document");
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF document");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -348,7 +349,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 disabled={isGeneratingPdf}
               >
                 <Download className="mr-2 h-4 w-4" />
-                {isGeneratingPdf ? "Generating..." : "Download"}
+                {isGeneratingPdf ? "Generating..." : "Download PDF"}
               </Button>
               <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                 <DialogTrigger asChild>
@@ -420,3 +421,4 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     </div>
   )
 }
+
