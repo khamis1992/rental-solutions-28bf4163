@@ -21,7 +21,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Get leases directly from the leases table for this customer
+        // First, get all leases that belong to this customer
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
@@ -36,9 +36,10 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           return;
         }
         
+        // Extract the lease IDs
         const leaseIds = leases.map(lease => lease.id);
         
-        // Then fetch traffic fines associated with these agreements
+        // Then fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
           .from('traffic_fines')
           .select('*')
