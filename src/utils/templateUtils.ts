@@ -1,7 +1,31 @@
-
 import { supabase } from "@/lib/supabase";
 import { createClient } from '@supabase/supabase-js';
 import { ensureStorageBuckets } from './setupBuckets';
+
+/**
+ * Fixes double slash issues in URLs
+ */
+export const fixTemplateUrl = (url: string): string => {
+  // Fix the specific double slash issue in agreements path
+  let fixedUrl = url.replace(/\/\/agreements\//, '/agreements/');
+  
+  // Also check for other potential double slashes in the path (but not in the protocol)
+  const protocolSeparator = '://';
+  if (fixedUrl.includes(protocolSeparator)) {
+    const parts = fixedUrl.split(protocolSeparator);
+    const protocol = parts[0];
+    let path = parts[1];
+    
+    // Replace any double slashes in the path portion
+    while (path.includes('//')) {
+      path = path.replace('//', '/');
+    }
+    
+    fixedUrl = `${protocol}${protocolSeparator}${path}`;
+  }
+  
+  return fixedUrl;
+};
 
 /**
  * Uploads a new agreement template to the storage bucket
@@ -65,7 +89,7 @@ export const uploadAgreementTemplate = async (
     
     // Fix double slash issue in URL if it exists
     let publicUrl = urlData.publicUrl;
-    publicUrl = publicUrl.replace(/\/\/agreements\//, '/agreements/');
+    publicUrl = fixTemplateUrl(publicUrl);
     
     console.log("Template uploaded successfully. URL:", publicUrl);
     
@@ -239,7 +263,7 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
             
             // Fix the double slash issue in the URL
             let fixedUrl = data.publicUrl;
-            fixedUrl = fixedUrl.replace(/\/\/agreements\//, '/agreements/');
+            fixedUrl = fixTemplateUrl(fixedUrl);
             
             console.log(`Successfully got template URL: ${fixedUrl}`);
             return fixedUrl;
@@ -282,7 +306,7 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
           
           // Fix the double slash issue in the URL
           let fixedUrl = data.publicUrl;
-          fixedUrl = fixedUrl.replace(/\/\/agreements\//, '/agreements/');
+          fixedUrl = fixTemplateUrl(fixedUrl);
           
           console.log(`Successfully got template URL with regular client: ${fixedUrl}`);
           return fixedUrl;
@@ -445,8 +469,7 @@ export const diagnoseTemplateUrl = async (): Promise<{
       .getPublicUrl(templateName);
     
     // Fix the double slash issue in the URL
-    let url = data.publicUrl;
-    url = url.replace(/\/\/agreements\//, '/agreements/');
+    let url = fixTemplateUrl(data.publicUrl);
     
     const originalUrl = data.publicUrl;
     if (originalUrl !== url) {
@@ -500,8 +523,11 @@ export const validateTemplateAccess = async (): Promise<{
       return { accessible: false, error: "Could not generate template URL" };
     }
     
+    // Fix any double slash issues
+    const fixedUrl = fixTemplateUrl(url);
+    
     // Try to fetch the template directly
-    const response = await fetch(url, {
+    const response = await fetch(fixedUrl, {
       method: 'HEAD', // Just check headers, don't download the whole file
       cache: 'no-cache', // Avoid caching issues
     });
@@ -510,11 +536,11 @@ export const validateTemplateAccess = async (): Promise<{
       return { 
         accessible: false, 
         error: `Template URL returns ${response.status} status`, 
-        url 
+        url: fixedUrl
       };
     }
     
-    return { accessible: true, url };
+    return { accessible: true, url: fixedUrl };
   } catch (error: any) {
     return { 
       accessible: false, 
@@ -522,3 +548,54 @@ export const validateTemplateAccess = async (): Promise<{
     };
   }
 };
+
+/**
+ * Direct check for the template at the specific URL provided
+ */
+export const checkSpecificTemplateUrl = async (url: string): Promise<{
+  accessible: boolean;
+  fixedUrl: string;
+  error?: string;
+}> => {
+  try {
+    // First, fix any double slash issues
+    const fixedUrl = fixTemplateUrl(url);
+    
+    // Check if URL was actually fixed
+    const wasFixed = fixedUrl !== url;
+    
+    console.log(`Checking specific template URL: ${url}`);
+    if (wasFixed) {
+      console.log(`URL fixed to: ${fixedUrl}`);
+    }
+    
+    // Try to fetch the template directly
+    const response = await fetch(fixedUrl, {
+      method: 'HEAD',
+      cache: 'no-cache',
+    });
+    
+    if (!response.ok) {
+      console.log(`Template fetch failed: ${response.status}`);
+      return { 
+        accessible: false, 
+        fixedUrl,
+        error: `URL returns ${response.status} status`
+      };
+    }
+    
+    console.log("Template fetch successful!");
+    return { 
+      accessible: true, 
+      fixedUrl 
+    };
+  } catch (error: any) {
+    console.error("Error checking template URL:", error);
+    return { 
+      accessible: false, 
+      fixedUrl: fixTemplateUrl(url),
+      error: error.message
+    };
+  }
+};
+

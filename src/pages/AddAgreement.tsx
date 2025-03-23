@@ -11,7 +11,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
-import { diagnoseTemplateUrl, uploadAgreementTemplate } from "@/utils/templateUtils";
+import { 
+  diagnoseTemplateUrl, 
+  uploadAgreementTemplate, 
+  checkSpecificTemplateUrl,
+  fixTemplateUrl
+} from "@/utils/templateUtils";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -24,6 +29,7 @@ const AddAgreement = () => {
   const [templateUrlDiagnosis, setTemplateUrlDiagnosis] = useState<any>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [specificUrlCheck, setSpecificUrlCheck] = useState<any>(null);
 
   useEffect(() => {
     const setupStorage = async () => {
@@ -31,6 +37,22 @@ const AddAgreement = () => {
         console.log("Setting up storage and ensuring buckets exist...");
         setCheckingTemplate(true);
         setTemplateError(null);
+        
+        // First, check the specific URL the user provided
+        const specificUrl = "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx";
+        console.log("Checking specific URL: ", specificUrl);
+        const specificCheck = await checkSpecificTemplateUrl(specificUrl);
+        setSpecificUrlCheck(specificCheck);
+        
+        if (specificCheck.accessible) {
+          console.log("Specific URL is accessible!");
+          setStandardTemplateExists(true);
+          setTemplateError(null);
+          setCheckingTemplate(false);
+          return;
+        } else {
+          console.log("Specific URL is not accessible:", specificCheck.error);
+        }
         
         const result = await ensureStorageBuckets();
         if (!result.success) {
@@ -185,6 +207,56 @@ const AddAgreement = () => {
       description="Create a new rental agreement with a customer"
       backLink="/agreements"
     >
+      {specificUrlCheck && (
+        <Alert 
+          variant={specificUrlCheck.accessible ? "default" : "destructive"} 
+          className={`mb-4 ${specificUrlCheck.accessible ? 'border-green-500 bg-green-50' : ''}`}
+        >
+          {specificUrlCheck.accessible ? (
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          <AlertTitle>
+            {specificUrlCheck.accessible 
+              ? "Template URL Accessible" 
+              : "Template URL Issue"
+            }
+          </AlertTitle>
+          <AlertDescription>
+            {specificUrlCheck.accessible ? (
+              <>
+                The specified template URL is accessible and will be used for new agreements.
+                {specificUrlCheck.fixedUrl !== specificUrlCheck.originalUrl && (
+                  <p className="text-xs mt-1">URL was fixed to remove double slashes.</p>
+                )}
+                <div className="mt-1">
+                  <a 
+                    href={specificUrlCheck.fixedUrl} 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
+                  >
+                    View template
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                Could not access the template at the specified URL.
+                <div className="mt-2 text-xs">
+                  <p>Error: {specificUrlCheck.error}</p>
+                  {specificUrlCheck.fixedUrl !== "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx" && (
+                    <p className="mt-1">URL was fixed to: {specificUrlCheck.fixedUrl}</p>
+                  )}
+                </div>
+              </>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {templateError && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
@@ -231,7 +303,7 @@ const AddAgreement = () => {
         </Alert>
       )}
       
-      {templateUrlDiagnosis && templateUrlDiagnosis.status !== "success" && (
+      {templateUrlDiagnosis && templateUrlDiagnosis.status !== "success" && !specificUrlCheck?.accessible && (
         <Alert variant="destructive" className="mb-4 border-amber-500 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertTitle>Template URL Issues</AlertTitle>
@@ -273,16 +345,16 @@ const AddAgreement = () => {
         </Alert>
       )}
       
-      {standardTemplateExists && !templateError && (
+      {(standardTemplateExists || specificUrlCheck?.accessible) && !templateError && (
         <Alert variant="default" className="mb-4 border-green-500 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertTitle>Template Ready</AlertTitle>
           <AlertDescription>
             Agreement template is available and will be used for new agreements.
-            {templateUrlDiagnosis?.url && (
+            {(specificUrlCheck?.accessible ? specificUrlCheck.fixedUrl : templateUrlDiagnosis?.url) && (
               <div className="mt-1">
                 <a 
-                  href={templateUrlDiagnosis.url} 
+                  href={specificUrlCheck?.accessible ? specificUrlCheck.fixedUrl : templateUrlDiagnosis.url} 
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
@@ -304,7 +376,7 @@ const AddAgreement = () => {
           <AgreementForm 
             onSubmit={handleSubmit} 
             isSubmitting={isSubmitting} 
-            standardTemplateExists={standardTemplateExists}
+            standardTemplateExists={standardTemplateExists || (specificUrlCheck?.accessible || false)}
             isCheckingTemplate={checkingTemplate}
           />
         </CardContent>
