@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   UploadCloud, 
@@ -5,13 +6,15 @@ import {
   X, 
   AlertCircle,
   CheckCircle,
-  RefreshCcw
+  RefreshCcw,
+  Bug
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ensureStorageBuckets } from "@/utils/setupBuckets";
+import { ensureStorageBuckets, diagnoseStorageIssues } from "@/utils/setupBuckets";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface TemplateUploaderProps {
   onUploadComplete: (url: string) => void;
@@ -25,8 +28,11 @@ export const TemplateUploader = ({
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<any>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [retryingBucket, setRetryingBucket] = useState(false);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
 
   const allowedFileTypes = [
     "application/pdf",
@@ -53,6 +59,7 @@ export const TemplateUploader = ({
       
       setFile(selectedFile);
       setError(null);
+      setErrorDetails(null);
       
       if (selectedFile.type === "application/pdf") {
         const url = URL.createObjectURL(selectedFile);
@@ -66,12 +73,13 @@ export const TemplateUploader = ({
   const retryBucketSetup = async () => {
     setRetryingBucket(true);
     setError(null);
+    setErrorDetails(null);
     
     try {
-      const success = await ensureStorageBuckets();
+      const result = await ensureStorageBuckets();
       
-      if (!success) {
-        throw new Error("Failed to set up storage bucket. Please try again later.");
+      if (!result.success) {
+        throw new Error(result.error || "Failed to set up storage bucket");
       }
       
       setError(null);
@@ -81,12 +89,26 @@ export const TemplateUploader = ({
       setRetryingBucket(false);
     }
   };
+  
+  const runDiagnostics = async () => {
+    setIsRunningDiagnostics(true);
+    try {
+      const diagnostics = await diagnoseStorageIssues();
+      setDiagnosticInfo(diagnostics);
+      console.log("Storage diagnostics:", diagnostics);
+    } catch (error) {
+      console.error("Error running diagnostics:", error);
+    } finally {
+      setIsRunningDiagnostics(false);
+    }
+  };
 
   const handleUpload = async () => {
     if (!file) return;
     
     setUploading(true);
     setError(null);
+    setErrorDetails(null);
     
     try {
       const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
@@ -98,10 +120,11 @@ export const TemplateUploader = ({
       const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
       
       if (!bucketExists) {
-        const bucketCreated = await ensureStorageBuckets();
+        console.log('Bucket does not exist, attempting to create it first...');
+        const result = await ensureStorageBuckets();
         
-        if (!bucketCreated) {
-          throw new Error('Storage bucket "agreements" not available. Please try again later.');
+        if (!result.success) {
+          throw new Error(result.error || 'Storage bucket "agreements" could not be created');
         }
       }
       
@@ -109,18 +132,25 @@ export const TemplateUploader = ({
       const fileName = `template_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `agreement_templates/${fileName}`;
       
+      console.log(`Attempting to upload file to path: ${filePath}`);
       const { error: uploadError, data } = await supabase.storage
         .from('agreements')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
       
       if (uploadError) {
+        console.error('Upload error:', uploadError);
         throw uploadError;
       }
       
+      console.log('Upload successful, getting public URL');
       const { data: { publicUrl } } = supabase.storage
         .from('agreements')
         .getPublicUrl(filePath);
       
+      console.log('Public URL generated:', publicUrl);
       onUploadComplete(publicUrl);
       
       if (preview) {
@@ -132,8 +162,21 @@ export const TemplateUploader = ({
     } catch (err: any) {
       console.error("Error uploading file:", err);
       
+      // Run diagnostics automatically on failure
+      const diagnostics = await diagnoseStorageIssues();
+      setDiagnosticInfo(diagnostics);
+      setErrorDetails(err);
+      
       if (err.message && err.message.includes("bucket")) {
         setError(`Storage bucket error: ${err.message}. You can try to refresh the page or use the retry button.`);
+      } else if (err.message && err.message.includes("permission")) {
+        setError(`Permission denied: ${err.message}. The storage bucket may not be properly configured.`);
+      } else if (err.statusCode === 400) {
+        setError(`Bad request: ${err.message}. There might be an issue with the file or the bucket configuration.`);
+      } else if (err.statusCode === 404) {
+        setError(`Not found: The storage bucket "agreements" could not be found or accessed.`);
+      } else if (err.statusCode === 403) {
+        setError(`Forbidden: You don't have permission to upload to this bucket.`);
       } else {
         setError(err.message || "Failed to upload template");
       }
@@ -158,26 +201,73 @@ export const TemplateUploader = ({
           <AlertTitle>Error</AlertTitle>
           <AlertDescription className="flex flex-col">
             <span>{error}</span>
-            {error.includes("bucket") && (
-              <Button
-                variant="outline"
+            <div className="flex flex-wrap gap-2 mt-2">
+              {error.includes("bucket") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={retryBucketSetup}
+                  disabled={retryingBucket}
+                >
+                  {retryingBucket ? (
+                    <>
+                      <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
+                      Trying to fix...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      Retry Bucket Setup
+                    </>
+                  )}
+                </Button>
+              )}
+              
+              <Button 
+                variant="outline" 
                 size="sm"
-                className="mt-2 self-start"
-                onClick={retryBucketSetup}
-                disabled={retryingBucket}
+                onClick={runDiagnostics}
+                disabled={isRunningDiagnostics}
               >
-                {retryingBucket ? (
+                {isRunningDiagnostics ? (
                   <>
                     <RefreshCcw className="mr-2 h-4 w-4 animate-spin" />
-                    Trying to fix...
+                    Running diagnostics...
                   </>
                 ) : (
                   <>
-                    <RefreshCcw className="mr-2 h-4 w-4" />
-                    Retry Bucket Setup
+                    <Bug className="mr-2 h-4 w-4" />
+                    Diagnose Issues
                   </>
                 )}
               </Button>
+            </div>
+            
+            {(diagnosticInfo || errorDetails) && (
+              <Accordion type="single" collapsible className="w-full mt-2 bg-red-50 rounded p-2">
+                <AccordionItem value="diagnostics">
+                  <AccordionTrigger className="text-sm">
+                    <span className="flex items-center">
+                      <Bug className="h-4 w-4 mr-2" />
+                      View Diagnostic Information
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="text-xs font-mono whitespace-pre-wrap bg-black text-green-400 p-2 rounded overflow-auto max-h-60">
+                      <div className="mb-2">
+                        <strong>Diagnostics:</strong>
+                        {JSON.stringify(diagnosticInfo, null, 2)}
+                      </div>
+                      {errorDetails && (
+                        <div>
+                          <strong>Error Details:</strong>
+                          {JSON.stringify(errorDetails, null, 2)}
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             )}
           </AlertDescription>
         </Alert>

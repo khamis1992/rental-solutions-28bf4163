@@ -9,9 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { TemplateUploader } from "@/components/agreements/TemplateUploader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ensureStorageBuckets } from "@/utils/setupBuckets";
-import { Loader2, RefreshCcw, AlertCircle } from "lucide-react";
+import { ensureStorageBuckets, diagnoseStorageIssues } from "@/utils/setupBuckets";
+import { Loader2, RefreshCcw, AlertCircle, Bug, Terminal } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ const AddAgreement = () => {
   const [isSettingUpBucket, setIsSettingUpBucket] = useState(true);
   const [setupAttempts, setSetupAttempts] = useState(0);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const [diagnosticInfo, setDiagnosticInfo] = useState<any>(null);
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false);
 
   // Check and create buckets if needed on component mount
   useEffect(() => {
@@ -31,24 +34,31 @@ const AddAgreement = () => {
       
       try {
         console.log(`Attempting to setup storage buckets (attempt ${setupAttempts + 1})...`);
-        const success = await ensureStorageBuckets();
-        setIsBucketReady(success);
+        const result = await ensureStorageBuckets();
+        setIsBucketReady(result.success);
         
-        if (success) {
+        if (result.success) {
           console.log("Storage buckets set up successfully");
           toast({
             title: "Storage setup complete",
             description: "Template uploads are now available.",
           });
+          
+          if (result.error) {
+            console.warn("Storage setup succeeded with warnings:", result.error);
+          }
         } else {
-          const errorMsg = "Storage setup failed. Please try again or contact support.";
-          console.error(errorMsg);
+          const errorMsg = `Storage setup failed: ${result.error || "Unknown error"}`;
+          console.error(errorMsg, result.details);
           setSetupError(errorMsg);
           toast({
             title: "Storage setup issue",
             description: errorMsg,
             variant: "destructive"
           });
+          
+          // Run diagnostics automatically on failure
+          runDiagnostics();
         }
       } catch (error: any) {
         const errorMsg = `Error setting up storage: ${error.message || "Unknown error"}`;
@@ -68,7 +78,21 @@ const AddAgreement = () => {
   }, [toast, setupAttempts]);
 
   const retryBucketSetup = () => {
+    setDiagnosticInfo(null);
     setSetupAttempts(prev => prev + 1);
+  };
+  
+  const runDiagnostics = async () => {
+    setIsRunningDiagnostics(true);
+    try {
+      const diagnostics = await diagnoseStorageIssues();
+      setDiagnosticInfo(diagnostics);
+      console.log("Storage diagnostics:", diagnostics);
+    } catch (error) {
+      console.error("Error running diagnostics:", error);
+    } finally {
+      setIsRunningDiagnostics(false);
+    }
   };
 
   const handleTemplateUpload = (url: string) => {
@@ -129,25 +153,63 @@ const AddAgreement = () => {
           <AlertTitle>Storage Setup Error</AlertTitle>
           <AlertDescription className="flex flex-col space-y-2">
             <span>{setupError}</span>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="self-start mt-2" 
-              onClick={retryBucketSetup}
-              disabled={isSettingUpBucket}
-            >
-              {isSettingUpBucket ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Trying to fix...
-                </>
-              ) : (
-                <>
-                  <RefreshCcw className="mr-2 h-4 w-4" />
-                  Retry Storage Setup
-                </>
-              )}
-            </Button>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={retryBucketSetup}
+                disabled={isSettingUpBucket}
+              >
+                {isSettingUpBucket ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Trying to fix...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCcw className="mr-2 h-4 w-4" />
+                    Retry Storage Setup
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={runDiagnostics}
+                disabled={isRunningDiagnostics}
+              >
+                {isRunningDiagnostics ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Running diagnostics...
+                  </>
+                ) : (
+                  <>
+                    <Bug className="mr-2 h-4 w-4" />
+                    Diagnose Issues
+                  </>
+                )}
+              </Button>
+            </div>
+            
+            {diagnosticInfo && (
+              <Accordion type="single" collapsible className="w-full mt-2 bg-red-50 rounded p-2">
+                <AccordionItem value="diagnostics">
+                  <AccordionTrigger className="text-sm">
+                    <span className="flex items-center">
+                      <Terminal className="h-4 w-4 mr-2" />
+                      View Diagnostic Information
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="text-xs font-mono whitespace-pre-wrap bg-black text-green-400 p-2 rounded overflow-auto max-h-60">
+                      {JSON.stringify(diagnosticInfo, null, 2)}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
           </AlertDescription>
         </Alert>
       )}
@@ -187,16 +249,58 @@ const AddAgreement = () => {
                       <AlertCircle className="h-4 w-4 mr-2" />
                       Storage setup failed. Template uploads will not work.
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="self-start" 
-                      onClick={retryBucketSetup}
-                      disabled={isSettingUpBucket}
-                    >
-                      <RefreshCcw className="mr-2 h-4 w-4" />
-                      Retry Storage Setup
-                    </Button>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={retryBucketSetup}
+                        disabled={isSettingUpBucket}
+                      >
+                        <RefreshCcw className="mr-2 h-4 w-4" />
+                        Retry Storage Setup
+                      </Button>
+                      
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={runDiagnostics}
+                        disabled={isRunningDiagnostics}
+                      >
+                        {isRunningDiagnostics ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Running diagnostics...
+                          </>
+                        ) : (
+                          <>
+                            <Bug className="mr-2 h-4 w-4" />
+                            Diagnose Issues
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    
+                    {diagnosticInfo && (
+                      <Accordion type="single" collapsible className="w-full mt-2 bg-red-50 rounded border border-red-200 p-2">
+                        <AccordionItem value="diagnostics">
+                          <AccordionTrigger className="text-sm">
+                            <span className="flex items-center">
+                              <Terminal className="h-4 w-4 mr-2" />
+                              View Diagnostic Information
+                            </span>
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="text-xs font-mono whitespace-pre-wrap bg-black text-green-400 p-2 rounded overflow-auto max-h-60">
+                              {JSON.stringify(diagnosticInfo, null, 2)}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    )}
+                    
+                    <p className="text-sm mt-2">
+                      You can continue creating the agreement without a template, or try again later.
+                    </p>
                   </div>
                 </div>
               ) : (

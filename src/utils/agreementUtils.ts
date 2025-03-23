@@ -1,6 +1,6 @@
-
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Generate the agreement text by processing the template with agreement data
@@ -111,4 +111,61 @@ export const downloadAgreementAsPdf = async (agreement: Agreement): Promise<void
   doc.text(agreementText, 10, 10);
   doc.save(`agreement_${agreement.agreement_number}.pdf`);
   */
+};
+
+/**
+ * Register an external template URL for an agreement
+ * This allows manual registration of templates when bucket upload fails
+ */
+export const registerExternalTemplateUrl = async (
+  agreementId: string, 
+  templateUrl: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    if (!agreementId || !templateUrl) {
+      return { success: false, error: "Missing agreement ID or template URL" };
+    }
+    
+    // Validate the URL
+    try {
+      new URL(templateUrl);
+    } catch (e) {
+      return { success: false, error: "Invalid URL format" };
+    }
+    
+    // Update the agreement with the template URL
+    const { error } = await supabase
+      .from("leases")
+      .update({ template_url: templateUrl })
+      .eq("id", agreementId);
+    
+    if (error) {
+      throw error;
+    }
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error registering external template URL:", error);
+    return { success: false, error: error.message || "Failed to register template URL" };
+  }
+};
+
+/**
+ * Check if storage is configured and working correctly
+ */
+export const isStorageConfigured = async (): Promise<boolean> => {
+  try {
+    // Check if the agreements bucket exists
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error("Error checking storage configuration:", error);
+      return false;
+    }
+    
+    return buckets?.some(bucket => bucket.name === 'agreements') || false;
+  } catch (error) {
+    console.error("Exception checking storage configuration:", error);
+    return false;
+  }
 };
