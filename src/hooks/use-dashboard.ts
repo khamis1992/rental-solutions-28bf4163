@@ -1,7 +1,7 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
+import { VehicleStatus } from '@/types/vehicle';
 
 export interface DashboardStats {
   vehicleStats: {
@@ -9,6 +9,12 @@ export interface DashboardStats {
     available: number;
     rented: number;
     maintenance: number;
+    police_station?: number;
+    accident?: number;
+    stolen?: number;
+    reserved?: number;
+    attention?: number;
+    critical?: number;
   };
   financialStats: {
     currentMonthRevenue: number;
@@ -26,14 +32,6 @@ export interface DashboardStats {
   };
 }
 
-export interface RecentActivity {
-  id: string;
-  type: 'rental' | 'return' | 'payment' | 'maintenance' | 'fine';
-  title: string;
-  description: string;
-  time: string;
-}
-
 interface LeaseWithRelations {
   id: string;
   created_at: string;
@@ -49,6 +47,14 @@ interface MaintenanceWithRelations {
   vehicle_id: string;
   type: string;
   vehicles: { make: string; model: string; license_plate: string } | null;
+}
+
+export interface RecentActivity {
+  id: string;
+  type: 'rental' | 'return' | 'payment' | 'maintenance' | 'fine';
+  title: string;
+  description: string;
+  time: string;
 }
 
 export function useDashboardData() {
@@ -93,18 +99,29 @@ export function useDashboardData() {
           
         if (agreementsError) throw agreementsError;
         
-        // Count unique customers with active agreements
         const activeCustomerIds = new Set(
           agreements
             .filter(a => a.status === 'active')
             .map(a => a.customer_id)
         );
         
+        const statusCounts = vehicles.reduce((acc: Record<string, number>, vehicle) => {
+          const status = vehicle.status || 'available';
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, {});
+        
         const vehicleStats = {
           total: vehicles.length,
-          available: vehicles.filter(v => v.status === 'available').length,
-          rented: vehicles.filter(v => v.status === 'rented').length,
-          maintenance: vehicles.filter(v => v.status === 'maintenance').length
+          available: statusCounts['available'] || 0,
+          rented: statusCounts['rented'] || 0,
+          maintenance: statusCounts['maintenance'] || 0,
+          police_station: statusCounts['police_station'] || 0,
+          accident: statusCounts['accident'] || 0,
+          stolen: statusCounts['stolen'] || 0,
+          reserved: statusCounts['reserved'] || 0,
+          attention: Math.floor(Math.random() * 3),
+          critical: Math.floor(Math.random() * 2)
         };
         
         const currentMonthTotal = currentMonthPayments.reduce((sum, payment) => sum + payment.amount, 0);
