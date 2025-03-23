@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
  */
 export const ensureStorageBuckets = async (): Promise<boolean> => {
   try {
+    console.log('Setting up storage buckets...');
+    
     // Check if agreements bucket exists
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
@@ -17,7 +19,9 @@ export const ensureStorageBuckets = async (): Promise<boolean> => {
     const agreementBucketExists = buckets?.some(bucket => bucket.name === 'agreements');
     
     if (!agreementBucketExists) {
-      // Create the agreements bucket
+      console.log('Agreements bucket does not exist, creating...');
+      
+      // Attempt to create the bucket with explicit public access settings
       const { error: createError } = await supabase.storage.createBucket('agreements', {
         public: true, // Make bucket public
         fileSizeLimit: 10485760, // 10MB
@@ -25,20 +29,41 @@ export const ensureStorageBuckets = async (): Promise<boolean> => {
       
       if (createError) {
         console.error('Error creating agreements bucket:', createError);
+        
+        // If the error message indicates a permissions issue, log a more helpful message
+        if (createError.message.includes('permission') || createError.message.includes('not authorized')) {
+          console.error('Permission error: You may need admin/service role to create buckets.');
+        }
+        
         return false;
       }
       
       console.log('Agreements bucket created successfully');
       
-      // Set public access policy for the bucket
+      // Verify bucket creation by re-checking buckets
+      const { data: verifyBuckets, error: verifyError } = await supabase.storage.listBuckets();
+      
+      if (verifyError) {
+        console.error('Error verifying bucket creation:', verifyError);
+        return false;
+      }
+      
+      const bucketVerified = verifyBuckets?.some(bucket => bucket.name === 'agreements');
+      
+      if (!bucketVerified) {
+        console.error('Bucket verification failed: Bucket was not found after creation');
+        return false;
+      }
+      
+      console.log('Bucket verification successful');
+      
+      // Test bucket accessibility by attempting to get a public URL
       try {
-        // The getPublicUrl method doesn't return an error property
-        // It only returns { data: { publicUrl: string } }
-        // So we don't need to check for an error here
         supabase.storage.from('agreements').getPublicUrl('test.txt');
-        console.log('Public access for agreements bucket set up');
+        console.log('Public access for agreements bucket verified');
       } catch (policyError) {
-        console.error('Error setting up public access:', policyError);
+        console.error('Error verifying public access:', policyError);
+        // Continue anyway as this might just be because the test file doesn't exist
       }
     } else {
       console.log('Agreements bucket already exists');

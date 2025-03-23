@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabase";
 import { TemplateUploader } from "@/components/agreements/TemplateUploader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCcw } from "lucide-react";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -19,18 +19,25 @@ const AddAgreement = () => {
   const [templateUrl, setTemplateUrl] = useState<string | null>(null);
   const [isBucketReady, setIsBucketReady] = useState(false);
   const [isSettingUpBucket, setIsSettingUpBucket] = useState(true);
+  const [setupAttempts, setSetupAttempts] = useState(0);
 
   // Check and create buckets if needed on component mount
   useEffect(() => {
     const setupBuckets = async () => {
       setIsSettingUpBucket(true);
       try {
+        console.log(`Attempting to setup storage buckets (attempt ${setupAttempts + 1})...`);
         const success = await ensureStorageBuckets();
         setIsBucketReady(success);
         
         if (success) {
           console.log("Storage buckets set up successfully");
+          toast({
+            title: "Storage setup complete",
+            description: "Template uploads are now available.",
+          });
         } else {
+          console.error("Storage setup failed");
           toast({
             title: "Storage setup issue",
             description: "There was a problem setting up storage. Template uploads may not work.",
@@ -50,7 +57,11 @@ const AddAgreement = () => {
     };
     
     setupBuckets();
-  }, [toast]);
+  }, [toast, setupAttempts]);
+
+  const retryBucketSetup = () => {
+    setSetupAttempts(prev => prev + 1);
+  };
 
   const handleTemplateUpload = (url: string) => {
     setTemplateUrl(url);
@@ -134,7 +145,21 @@ const AddAgreement = () => {
                 </div>
               ) : !isBucketReady ? (
                 <div className="bg-red-50 border border-red-200 text-red-800 p-4 mb-4 rounded-md">
-                  Storage setup failed. Template uploads will not work. Please refresh the page to try again.
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center">
+                      Storage setup failed. Template uploads will not work.
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="self-start" 
+                      onClick={retryBucketSetup}
+                      disabled={isSettingUpBucket}
+                    >
+                      <RefreshCcw className="mr-2 h-4 w-4" />
+                      Retry Storage Setup
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <TemplateUploader 
