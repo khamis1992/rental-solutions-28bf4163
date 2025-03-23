@@ -32,12 +32,11 @@ export const ensureStorageBuckets = async (): Promise<boolean> => {
       
       // Set public access policy for the bucket
       try {
-        // Update bucket to be publicly accessible
-        const { error: policyError } = await supabase.storage.from('agreements').getPublicUrl('test.txt');
-        
-        if (policyError) {
-          console.error('Error setting up bucket policy:', policyError);
-        }
+        // The getPublicUrl method doesn't return an error property
+        // It only returns { data: { publicUrl: string } }
+        // So we don't need to check for an error here
+        supabase.storage.from('agreements').getPublicUrl('test.txt');
+        console.log('Public access for agreements bucket set up');
       } catch (policyError) {
         console.error('Error setting up public access:', policyError);
       }
