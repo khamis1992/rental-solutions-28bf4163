@@ -26,7 +26,7 @@ const Header = () => {
         </Button>
         
         <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-          <User className="h-5 w-5 text-muted-foreground" />
+          
         </div>
       </div>
     </header>;
