@@ -35,11 +35,12 @@ import {
   ArrowUpAZ,
   ArrowDownUp,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  ChevronDown
 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
+import { fetchLegalObligations, determineUrgency } from './LegalObligationsService';
 
 // Types
 export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
@@ -57,14 +58,6 @@ export interface CustomerObligation {
   status: string;
   daysOverdue: number;
 }
-
-// Helper function to determine urgency
-const determineUrgency = (daysOverdue: number): UrgencyLevel => {
-  if (daysOverdue <= 0) return 'low';
-  if (daysOverdue <= 15) return 'medium';
-  if (daysOverdue <= 30) return 'high';
-  return 'critical';
-};
 
 // Urgency badge styling
 const getUrgencyBadge = (urgency: UrgencyLevel) => {
@@ -91,216 +84,33 @@ const CustomerLegalObligations: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('urgency');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [retryCount, setRetryCount] = useState(0);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
 
-  // Fetch data
+  // Fetch data with retries
   const fetchObligations = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Fetch overdue payments
-      const { data: overduePayments, error: paymentsError } = await supabase
-        .from('unified_payments')
-        .select('id, lease_id, amount, amount_paid, balance, payment_date, days_overdue')
-        .eq('status', 'pending')
-        .gt('days_overdue', 0)
-        .order('days_overdue', { ascending: false });
+      console.log(`Fetching obligations (attempt ${retryCount + 1})...`);
+      const { obligations: fetchedObligations, error: fetchError } = await fetchLegalObligations();
+      
+      if (fetchError) {
+        console.error('Error in fetchLegalObligations:', fetchError);
+        setError(fetchError);
+        toast.error(fetchError);
+      } else {
+        setObligations(fetchedObligations);
+        setFilteredObligations(fetchedObligations);
         
-      if (paymentsError) {
-        console.error('Error fetching overdue payments:', paymentsError);
-        toast.error('Failed to load overdue payments');
-        throw new Error(paymentsError.message);
-      }
-      
-      // Fetch customer details for overdue payments
-      const paymentObligations: CustomerObligation[] = [];
-      
-      if (overduePayments && overduePayments.length > 0) {
-        for (const payment of overduePayments) {
-          try {
-            // Get lease information
-            const { data: leaseData, error: leaseError } = await supabase
-              .from('leases')
-              .select('customer_id, agreement_number')
-              .eq('id', payment.lease_id)
-              .single();
-            
-            if (leaseError || !leaseData) {
-              console.error('Error fetching lease data:', leaseError);
-              continue;
-            }
-            
-            // Get customer information
-            const { data: customerData, error: customerError } = await supabase
-              .from('profiles')
-              .select('id, full_name')
-              .eq('id', leaseData.customer_id)
-              .single();
-            
-            if (customerError || !customerData) {
-              console.error('Error fetching customer data:', customerError);
-              continue;
-            }
-            
-            const daysOverdue = payment.days_overdue || 0;
-            
-            paymentObligations.push({
-              id: payment.id,
-              customerId: customerData.id,
-              customerName: customerData.full_name,
-              obligationType: 'payment',
-              amount: payment.balance || 0,
-              dueDate: new Date(payment.payment_date),
-              description: `Overdue rent payment (Agreement #${leaseData.agreement_number})`,
-              urgency: determineUrgency(daysOverdue),
-              status: 'Overdue Payment',
-              daysOverdue
-            });
-          } catch (error) {
-            console.error('Error processing payment:', error);
-          }
+        // Show message if no data found
+        if (fetchedObligations.length === 0) {
+          console.log('No legal obligations found in the database');
+        } else {
+          console.log(`Successfully loaded ${fetchedObligations.length} obligations`);
         }
       }
-      
-      // Fetch traffic fines
-      const { data: trafficFines, error: finesError } = await supabase
-        .from('traffic_fines')
-        .select('id, fine_amount, violation_date, lease_id')
-        .eq('payment_status', 'pending')
-        .order('violation_date', { ascending: false });
-        
-      if (finesError) {
-        console.error('Error fetching traffic fines:', finesError);
-        toast.error('Failed to load traffic fines');
-        throw new Error(finesError.message);
-      }
-      
-      // Process traffic fines
-      const fineObligations: CustomerObligation[] = [];
-      
-      if (trafficFines && trafficFines.length > 0) {
-        for (const fine of trafficFines) {
-          try {
-            // Get lease information
-            const { data: leaseData, error: leaseError } = await supabase
-              .from('leases')
-              .select('customer_id, agreement_number')
-              .eq('id', fine.lease_id)
-              .single();
-            
-            if (leaseError || !leaseData) {
-              console.error('Error fetching lease data for traffic fine:', leaseError);
-              continue;
-            }
-            
-            // Get customer information
-            const { data: customerData, error: customerError } = await supabase
-              .from('profiles')
-              .select('id, full_name')
-              .eq('id', leaseData.customer_id)
-              .single();
-            
-            if (customerError || !customerData) {
-              console.error('Error fetching customer data for traffic fine:', customerError);
-              continue;
-            }
-            
-            const violationDate = new Date(fine.violation_date);
-            const today = new Date();
-            const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            fineObligations.push({
-              id: fine.id,
-              customerId: customerData.id,
-              customerName: customerData.full_name,
-              obligationType: 'traffic_fine',
-              amount: fine.fine_amount || 0,
-              dueDate: violationDate,
-              description: `Unpaid traffic fine (Agreement #${leaseData.agreement_number})`,
-              urgency: determineUrgency(daysOverdue),
-              status: 'Unpaid Fine',
-              daysOverdue
-            });
-          } catch (error) {
-            console.error('Error processing traffic fine:', error);
-          }
-        }
-      }
-      
-      // Fetch legal cases
-      const { data: legalCases, error: casesError } = await supabase
-        .from('legal_cases')
-        .select('id, amount_owed, created_at, customer_id, priority, status')
-        .in('status', ['pending_reminder', 'in_legal_process', 'escalated'])
-        .order('created_at', { ascending: false });
-        
-      if (casesError) {
-        console.error('Error fetching legal cases:', casesError);
-        toast.error('Failed to load legal cases');
-        throw new Error(casesError.message);
-      }
-      
-      // Process legal cases
-      const caseObligations: CustomerObligation[] = [];
-      
-      if (legalCases && legalCases.length > 0) {
-        for (const legalCase of legalCases) {
-          try {
-            // Get customer information
-            const { data: customerData, error: customerError } = await supabase
-              .from('profiles')
-              .select('id, full_name')
-              .eq('id', legalCase.customer_id)
-              .single();
-            
-            if (customerError || !customerData) {
-              console.error('Error fetching customer data for legal case:', customerError);
-              continue;
-            }
-            
-            const createdDate = new Date(legalCase.created_at);
-            const today = new Date();
-            const daysOverdue = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            // Map priority to urgency
-            let urgency: UrgencyLevel = 'medium';
-            if (legalCase.priority === 'high') urgency = 'high';
-            if (legalCase.priority === 'urgent') urgency = 'critical';
-            if (legalCase.priority === 'low') urgency = 'low';
-            
-            caseObligations.push({
-              id: legalCase.id,
-              customerId: legalCase.customer_id,
-              customerName: customerData.full_name,
-              obligationType: 'legal_case',
-              amount: legalCase.amount_owed || 0,
-              dueDate: createdDate,
-              description: `Legal case (${legalCase.status.replace(/_/g, ' ')})`,
-              urgency,
-              status: 'Legal Case',
-              daysOverdue
-            });
-          } catch (error) {
-            console.error('Error processing legal case:', error);
-          }
-        }
-      }
-      
-      // Combine all obligations
-      const allObligations = [
-        ...paymentObligations,
-        ...fineObligations,
-        ...caseObligations
-      ];
-      
-      setObligations(allObligations);
-      setFilteredObligations(allObligations);
-      
-      // Show message if no data found
-      if (allObligations.length === 0) {
-        console.log('No legal obligations found in the database');
-      }
-      
     } catch (error) {
       console.error('Error fetching obligations:', error);
       setError('Failed to load customer obligations. Please try again.');
@@ -310,9 +120,25 @@ const CustomerLegalObligations: React.FC = () => {
     }
   };
   
+  // Initial data fetch with retry logic
   useEffect(() => {
     fetchObligations();
-  }, []);
+    
+    // Set up automatic retry if needed (max 3 retries with increasing delay)
+    const retryTimeouts = [3000, 6000, 10000]; // 3, 6, 10 seconds
+    
+    if (retryCount < 3) {
+      const timeoutId = setTimeout(() => {
+        if (loading || error) {
+          console.log(`Auto-retrying... Attempt ${retryCount + 1}`);
+          setRetryCount(prev => prev + 1);
+          fetchObligations();
+        }
+      }, retryTimeouts[retryCount]);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [retryCount]);
   
   // Apply filters and sorting
   useEffect(() => {
@@ -402,6 +228,12 @@ const CustomerLegalObligations: React.FC = () => {
     }
   };
   
+  // Force refresh with loading state
+  const handleRefresh = () => {
+    setRetryCount(0);
+    fetchObligations();
+  };
+  
   // Group obligations by customer for the customer list view
   const customerSummary = React.useMemo(() => {
     const summary: Record<string, {
@@ -484,7 +316,7 @@ const CustomerLegalObligations: React.FC = () => {
           
           <Button 
             variant="outline" 
-            onClick={() => fetchObligations()} 
+            onClick={handleRefresh} 
             className="md:w-auto"
             disabled={loading}
           >
@@ -496,12 +328,18 @@ const CustomerLegalObligations: React.FC = () => {
       
       <CardContent>
         {loading ? (
-          <div className="text-center py-8">Loading customer obligations...</div>
+          <div className="text-center py-8 space-y-4">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p>Loading customer obligations...</p>
+            <p className="text-xs text-muted-foreground">
+              This may take a moment as we're fetching data from multiple sources.
+            </p>
+          </div>
         ) : error ? (
           <div className="text-center py-8 flex flex-col items-center gap-4">
             <AlertCircle className="h-10 w-10 text-destructive" />
             <div className="text-destructive font-medium">{error}</div>
-            <Button onClick={fetchObligations}>Try Again</Button>
+            <Button onClick={handleRefresh}>Try Again</Button>
           </div>
         ) : filteredObligations.length === 0 ? (
           <div className="text-center py-12 border rounded-md flex flex-col items-center gap-4">
@@ -513,74 +351,89 @@ const CustomerLegalObligations: React.FC = () => {
                 or there might be a connection issue with the database.
               </p>
             </div>
-            <Button onClick={fetchObligations} className="mt-2">
+            <Button onClick={handleRefresh} className="mt-2">
               <RefreshCw className="mr-2 h-4 w-4" />
               Refresh Data
             </Button>
           </div>
         ) : customerSummary.length > 0 ? (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('customer')}>
-                    <div className="flex items-center">
-                      Customer
-                      {sortBy === 'customer' && (
-                        sortOrder === 'asc' ? <ArrowUpAZ className="ml-1 h-4 w-4" /> : <ArrowDownAZ className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('amount')}>
-                    <div className="flex items-center">
-                      Total Amount Due
-                      {sortBy === 'amount' && (
-                        sortOrder === 'asc' ? <ArrowUpAZ className="ml-1 h-4 w-4" /> : <ArrowDownAZ className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead className="hidden md:table-cell">Issues Count</TableHead>
-                  <TableHead className="cursor-pointer" onClick={() => handleSort('urgency')}>
-                    <div className="flex items-center">
-                      Highest Urgency
-                      {sortBy === 'urgency' && (
-                        sortOrder === 'asc' ? <ArrowUpAZ className="ml-1 h-4 w-4" /> : <ArrowDownAZ className="ml-1 h-4 w-4" />
-                      )}
-                    </div>
-                  </TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {customerSummary.map((summary) => (
-                  <TableRow key={summary.customerId}>
-                    <TableCell className="font-medium">
-                      {summary.customerName}
-                    </TableCell>
-                    <TableCell>
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'QAR' }).format(summary.totalAmount)}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {summary.obligationCount}
-                    </TableCell>
-                    <TableCell>
-                      {getUrgencyBadge(summary.highestUrgency)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="ml-auto"
-                        onClick={() => handleGenerateReport(summary.customerId, summary.customerName)}
-                      >
-                        <FileDown className="mr-2 h-4 w-4" />
-                        Report
-                      </Button>
-                    </TableCell>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-medium">Customer Summary</h3>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowDetails(!showDetails)}
+                className="ml-auto"
+              >
+                {showDetails ? 'Hide Details' : 'Show Details'}
+                <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${showDetails ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+            
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('customer')}>
+                      <div className="flex items-center">
+                        Customer
+                        {sortBy === 'customer' && (
+                          sortOrder === 'asc' ? <ArrowUpAZ className="ml-1 h-4 w-4" /> : <ArrowDownAZ className="ml-1 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('amount')}>
+                      <div className="flex items-center">
+                        Total Amount Due
+                        {sortBy === 'amount' && (
+                          sortOrder === 'asc' ? <ArrowUpAZ className="ml-1 h-4 w-4" /> : <ArrowDownAZ className="ml-1 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead className="hidden md:table-cell">Issues Count</TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('urgency')}>
+                      <div className="flex items-center">
+                        Highest Urgency
+                        {sortBy === 'urgency' && (
+                          sortOrder === 'asc' ? <ArrowUpAZ className="ml-1 h-4 w-4" /> : <ArrowDownAZ className="ml-1 h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {customerSummary.map((summary) => (
+                    <TableRow key={summary.customerId}>
+                      <TableCell className="font-medium">
+                        {summary.customerName}
+                      </TableCell>
+                      <TableCell>
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'QAR' }).format(summary.totalAmount)}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {summary.obligationCount}
+                      </TableCell>
+                      <TableCell>
+                        {getUrgencyBadge(summary.highestUrgency)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="ml-auto"
+                          onClick={() => handleGenerateReport(summary.customerId, summary.customerName)}
+                        >
+                          <FileDown className="mr-2 h-4 w-4" />
+                          Report
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         ) : (
           <div className="text-center py-8 text-muted-foreground">
@@ -589,7 +442,7 @@ const CustomerLegalObligations: React.FC = () => {
         )}
         
         {/* Detailed list of all obligations */}
-        {filteredObligations.length > 0 && (
+        {showDetails && filteredObligations.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-medium mb-4">All Obligations</h3>
             
