@@ -61,13 +61,16 @@ export const uploadAgreementTemplate = async (
       }
     }
     
-    // Set the filename to avoid path issues (use agreement_template.docx - no spaces)
+    // Set the filename to agreement_template.docx (with underscore, not space)
     const safeFileName = 'agreement_template.docx';
     
     // Upload the template file with the safe filename using service role client
     const { error: uploadError } = await serviceClient.storage
       .from('agreements')
-      .upload(safeFileName, templateFile, { upsert: true });
+      .upload(safeFileName, templateFile, { 
+        upsert: true,
+        cacheControl: '3600'
+      });
     
     if (uploadError) {
       console.error("Upload error:", uploadError);
@@ -105,8 +108,8 @@ export const downloadAgreementTemplate = async (): Promise<{
   error?: string;
 }> => {
   try {
-    // Try both filename formats
-    const fileOptions = ['agreement_template.docx', 'agreement_temp.docx'];
+    // Try different filename formats to handle potential inconsistencies
+    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
     
     // First check if any template exists
     const { data: files, error: listError } = await supabase.storage
@@ -164,8 +167,8 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
       return null;
     }
     
-    // Try to find which template exists
-    const fileOptions = ['agreement_template.docx', 'agreement_temp.docx'];
+    // Try to find which template exists - prioritize agreement_template.docx (with underscore)
+    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
     let templateFile = null;
     
     for (const option of fileOptions) {
@@ -285,7 +288,7 @@ export const diagnoseTemplateUrl = async (): Promise<{
     }
     
     // Check for template files with various names
-    const templateOptions = ['agreement_template.docx', 'agreement_temp.docx'];
+    const templateOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
     const foundTemplates = files.filter(file => 
       templateOptions.includes(file.name)
     );
