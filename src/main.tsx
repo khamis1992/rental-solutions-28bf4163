@@ -18,6 +18,9 @@ import UserManagement from './pages/UserManagement.tsx';
 import UserSettings from './pages/UserSettings.tsx';
 import NotFound from './pages/NotFound.tsx';
 import Index from './pages/Index.tsx';
+import Login from './pages/auth/Login.tsx';
+import Register from './pages/auth/Register.tsx';
+import ForgotPassword from './pages/auth/ForgotPassword.tsx';
 
 // Initialize React Query
 const queryClient = new QueryClient();
@@ -39,6 +42,9 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/legal" element={<Legal />} />
           <Route path="/user-management" element={<UserManagement />} />
           <Route path="/user-settings" element={<UserSettings />} />
+          <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </App>
