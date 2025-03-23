@@ -176,30 +176,7 @@ const AddAgreement = () => {
     }
   };
   return <PageContainer title="Create New Agreement" description="Create a new rental agreement with a customer" backLink="/agreements">
-      {specificUrlCheck && <Alert variant={specificUrlCheck.accessible ? "default" : "destructive"} className={`mb-4 ${specificUrlCheck.accessible ? 'border-green-500 bg-green-50' : ''}`}>
-          {specificUrlCheck.accessible ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertTitle>
-            {specificUrlCheck.accessible ? "Template URL Accessible" : "Template URL Issue"}
-          </AlertTitle>
-          <AlertDescription>
-            {specificUrlCheck.accessible ? <>
-                The specified template URL is accessible and will be used for new agreements.
-                {specificUrlCheck.fixedUrl !== specificUrlCheck.originalUrl && <p className="text-xs mt-1">URL was fixed to remove double slashes.</p>}
-                <div className="mt-1">
-                  <a href={specificUrlCheck.fixedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 flex items-center gap-1 hover:underline">
-                    View template
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              </> : <>
-                Could not access the template at the specified URL.
-                <div className="mt-2 text-xs">
-                  <p>Error: {specificUrlCheck.error}</p>
-                  {specificUrlCheck.fixedUrl !== "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx" && <p className="mt-1">URL was fixed to: {specificUrlCheck.fixedUrl}</p>}
-                </div>
-              </>}
-          </AlertDescription>
-        </Alert>}
+      {specificUrlCheck}
       
       {templateError && <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
