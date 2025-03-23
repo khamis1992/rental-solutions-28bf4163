@@ -60,7 +60,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
             
             return { 
               success: false, 
-              error: 'Failed to create bucket: Row-level security policy violation. You may need to manually create the bucket in the Supabase Dashboard.', 
+              error: 'Failed to create bucket: Row-level security policy violation. Check if the service role key has proper privileges.', 
               details: createError 
             };
           }
@@ -74,9 +74,9 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         
         console.log('Successfully created agreements bucket!');
         
-        // Create policy to allow public access to the bucket files
+        // Set public access policy for the bucket
         try {
-          // Allow public access to files in the bucket
+          // Create a public access policy for the bucket
           const { error: policyError } = await serviceClient.storage.from('agreements').createSignedUrl('dummy-file.txt', 60);
           
           if (policyError && !policyError.message.includes('not found')) {
@@ -96,17 +96,9 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         if (uploadError) {
           console.error('Error uploading test file:', uploadError);
           
-          if (uploadError.message.includes('violates row-level security policy')) {
-            return { 
-              success: true, 
-              error: 'Bucket created but has RLS policy issues. You may need to manually set bucket permissions in the Supabase Dashboard.',
-              details: uploadError
-            };
-          }
-          
           return { 
             success: true, 
-            error: 'Bucket created but may have permission issues for uploads',
+            error: 'Bucket created but has access issues for uploads. Check RLS policies.',
             details: uploadError
           };
         }
@@ -123,7 +115,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         console.error('Exception creating bucket with service role key:', serviceErr);
         return { 
           success: false, 
-          error: 'Exception during bucket creation with service role key. You may need to manually create the bucket in the Supabase Dashboard.', 
+          error: 'Exception during bucket creation with service role key. Check Supabase storage dashboard and RLS policies.', 
           details: serviceErr 
         };
       }
@@ -132,7 +124,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
     // If we get here, the bucket already exists
     console.log('Agreements bucket already exists, verifying access...');
     
-    // Verify bucket is usable by trying to list files with both service role and regular client
+    // Verify bucket is usable by trying to list files with service role client
     try {
       // First try with service role client for more reliable check
       const { data: serviceFiles, error: serviceListError } = await serviceClient.storage
@@ -142,22 +134,11 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       if (serviceListError) {
         console.error('Error listing files with service client:', serviceListError);
         
-        // Try with regular client as a fallback
-        const { data: files, error: listFilesError } = await supabase.storage
-          .from('agreements')
-          .list('', { limit: 100 });
-        
-        if (listFilesError) {
-          console.error('Error listing files with regular client too:', listFilesError);
-          return { 
-            success: false, 
-            error: 'Bucket exists but has access issues with both clients', 
-            details: { serviceListError, listFilesError }
-          };
-        }
-        
-        console.log('Successfully listed files with regular client:', files);
-        return { success: true, details: { files } };
+        return { 
+          success: false, 
+          error: 'Bucket exists but has access issues. Check RLS policies.', 
+          details: { serviceListError }
+        };
       }
       
       console.log('Successfully listed files with service client:', serviceFiles);
@@ -178,7 +159,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       console.error('Error verifying bucket access:', final);
       return { 
         success: false, 
-        error: 'Bucket exists but encountered error verifying access', 
+        error: 'Bucket exists but encountered error verifying access. Check RLS policies.', 
         details: final 
       };
     }
