@@ -8,6 +8,7 @@ import AgreementForm from "@/components/agreements/AgreementForm";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists } from "@/utils/agreementUtils";
+import { ensureStorageBuckets } from "@/utils/setupBuckets";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -18,11 +19,26 @@ const AddAgreement = () => {
 
   // Check if the standard template exists on component mount
   useEffect(() => {
-    const checkTemplate = async () => {
+    const setupStorage = async () => {
       try {
-        console.log("Checking if agreement template exists...");
+        console.log("Setting up storage and ensuring buckets exist...");
         setCheckingTemplate(true);
         
+        // First ensure the storage buckets are configured
+        const result = await ensureStorageBuckets();
+        if (!result.success) {
+          console.error("Error setting up storage buckets:", result.error);
+          toast({
+            title: "Storage Setup Error",
+            description: "There was an error setting up storage buckets. Template creation may fail.",
+            variant: "destructive"
+          });
+        } else {
+          console.log("Storage buckets setup complete");
+        }
+        
+        // Now check if template exists
+        console.log("Checking if agreement template exists...");
         const exists = await checkStandardTemplateExists();
         console.log("Template exists result:", exists);
         setStandardTemplateExists(exists);
@@ -40,7 +56,7 @@ const AddAgreement = () => {
           });
         }
       } catch (error) {
-        console.error("Error checking template:", error);
+        console.error("Error during template setup:", error);
         setStandardTemplateExists(false);
         toast({
           title: "Error Checking Template",
@@ -52,7 +68,7 @@ const AddAgreement = () => {
       }
     };
     
-    checkTemplate();
+    setupStorage();
   }, [toast]);
 
   const handleSubmit = async (formData: any) => {

@@ -1,6 +1,8 @@
+
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Generate the agreement text by processing the template with agreement data
@@ -421,25 +423,55 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
       console.log("Creating 'agreements' bucket");
       let bucketCreated = false;
       
-      // First try with current client
-      try {
-        const { error: createError } = await supabase.storage.createBucket('agreements', {
-          public: true,
-          fileSizeLimit: 10485760, // 10MB
-        });
-        
-        if (!createError) {
-          console.log("Agreements bucket created successfully");
-          bucketCreated = true;
-        } else {
-          console.error("Error creating bucket with anon key:", createError);
+      // Use service role key to create bucket
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      
+      if (supabaseServiceKey) {
+        try {
+          console.log("Using service role key to create bucket");
+          const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+          
+          const { error: createError } = await serviceClient.storage.createBucket('agreements', {
+            public: true,
+            fileSizeLimit: 10485760, // 10MB
+          });
+          
+          if (createError) {
+            console.error("Error creating bucket with service role key:", createError);
+          } else {
+            console.log("Agreements bucket created successfully with service role key");
+            bucketCreated = true;
+          }
+        } catch (e) {
+          console.error('Error creating bucket with service role key:', e);
         }
-      } catch (e) {
-        console.error('Error creating bucket with anon key:', e);
+      }
+      
+      // Only try anon key as fallback if service key fails
+      if (!bucketCreated) {
+        try {
+          console.log("Falling back to anon key to create bucket");
+          const { error: anonError } = await supabase.storage.createBucket('agreements', {
+            public: true,
+            fileSizeLimit: 10485760, // 10MB
+          });
+          
+          if (anonError) {
+            console.error("Error creating bucket with anon key:", anonError);
+            return false;
+          } else {
+            console.log("Agreements bucket created successfully with anon key");
+            bucketCreated = true;
+          }
+        } catch (e) {
+          console.error('Error creating bucket with anon key:', e);
+          return false;
+        }
       }
       
       if (!bucketCreated) {
-        console.error("Failed to create agreements bucket");
+        console.error("Failed to create agreements bucket with both service and anon key");
         return false;
       }
     }
@@ -453,18 +485,50 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
     // Convert to Blob
     const blob = new Blob([defaultTemplate], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     
-    // Upload to storage
-    const { error: uploadError } = await supabase.storage
-      .from('agreements')
-      .upload('agreement temp.docx', blob);
-      
-    if (uploadError) {
-      console.error("Error uploading default template:", uploadError);
-      return false;
+    // Try to upload with service role client first if bucket creation was successful
+    let uploadSuccess = false;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (supabaseServiceKey) {
+      try {
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { error: uploadError } = await serviceClient.storage
+          .from('agreements')
+          .upload('agreement temp.docx', blob);
+          
+        if (uploadError) {
+          console.error("Error uploading template with service role key:", uploadError);
+        } else {
+          console.log("Default template uploaded successfully with service role key");
+          uploadSuccess = true;
+        }
+      } catch (e) {
+        console.error("Exception uploading template with service role key:", e);
+      }
     }
     
-    console.log("Default template uploaded successfully");
-    return true;
+    // Fall back to anon key if service key upload fails
+    if (!uploadSuccess) {
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('agreements')
+          .upload('agreement temp.docx', blob);
+          
+        if (uploadError) {
+          console.error("Error uploading default template with anon key:", uploadError);
+          return false;
+        }
+        
+        console.log("Default template uploaded successfully with anon key");
+        uploadSuccess = true;
+      } catch (e) {
+        console.error("Exception uploading template with anon key:", e);
+        return false;
+      }
+    }
+    
+    return uploadSuccess;
   } catch (error) {
     console.error("Error creating agreements bucket and template:", error);
     return false;
