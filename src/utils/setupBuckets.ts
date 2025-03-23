@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from "@/lib/supabase";
 
@@ -22,172 +21,112 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
     if (!agreementBucketExists) {
       console.log('Agreements bucket does not exist, attempting to create...');
       
-      // Try with service role key first if available (more likely to work)
+      // Try with service role key first - this is the most reliable method
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       
-      if (supabaseServiceKey) {
-        console.log('Attempting to create bucket using service role key...');
+      if (!supabaseServiceKey) {
+        console.error('Service role key is missing! This is required for bucket creation');
+        return { 
+          success: false, 
+          error: 'Service role key is missing. Cannot create storage bucket. Check .env file.', 
+        };
+      }
+      
+      console.log('Creating bucket using service role key...');
+      
+      try {
+        // Create a new client with the service role key
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
         
-        try {
-          // Create a new client with the service role key
-          const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-          
-          const { error: serviceError } = await serviceClient.storage.createBucket('agreements', {
-            public: true,
-            fileSizeLimit: 10485760, // 10MB
-          });
-          
-          if (serviceError) {
-            console.error('Error creating bucket with service role key:', serviceError);
-            
-            // Fall back to anon key as a last resort
-            try {
-              console.log('Falling back to anon key...');
-              const { error: anonError } = await supabase.storage.createBucket('agreements', {
-                public: true,
-                fileSizeLimit: 10485760, // 10MB
-              });
-              
-              if (anonError) {
-                console.error('Error creating bucket with anon key:', anonError);
-                return { 
-                  success: false, 
-                  error: 'Failed to create bucket with both service role and anon keys', 
-                  details: { serviceError, anonError } 
-                };
-              }
-            } catch (anonErr) {
-              console.error('Exception during bucket creation with anon key:', anonErr);
-              return { 
-                success: false, 
-                error: 'Exception during bucket creation attempts', 
-                details: { serviceError, anonErr } 
-              };
-            }
-          } else {
-            console.log('Bucket created successfully with service role key!');
-          }
-        } catch (serviceErr) {
-          console.error('Exception during bucket creation with service role key:', serviceErr);
+        // First attempt to create the bucket with service role
+        const { error: serviceError } = await serviceClient.storage.createBucket('agreements', {
+          public: true,
+          fileSizeLimit: 10485760, // 10MB
+        });
+        
+        if (serviceError) {
+          console.error('Error creating bucket with service role key:', serviceError);
           return { 
             success: false, 
-            error: 'Exception during bucket creation with service role key', 
-            details: serviceErr 
+            error: `Failed to create bucket with service role key: ${serviceError.message}`, 
+            details: serviceError 
           };
         }
-      } else {
-        // No service role key, try with anon key
+        
+        console.log('Successfully created agreements bucket!');
+        
+        // Setup public access policies
         try {
-          console.log('No service role key available, trying with anon key only...');
-          const { error: anonError } = await supabase.storage.createBucket('agreements', {
-            public: true,
-            fileSizeLimit: 10485760, // 10MB
-          });
+          // Test if bucket is accessible by creating a test file
+          const testFile = new Blob(['test'], { type: 'text/plain' });
           
-          if (anonError) {
-            console.error('Error creating bucket with anon key:', anonError);
+          const { error: uploadError } = await serviceClient.storage
+            .from('agreements')
+            .upload('test-access.txt', testFile, { upsert: true });
+          
+          if (uploadError) {
+            console.error('Error uploading test file:', uploadError);
             return { 
-              success: false, 
-              error: 'Failed to create bucket with anon key and no service role key available', 
-              details: anonError 
+              success: true, 
+              error: 'Bucket created but may have permission issues for uploads',
+              details: uploadError
             };
           }
           
-          console.log('Bucket created successfully with anon key!');
-        } catch (err) {
-          console.error('Exception during bucket creation with anon key:', err);
+          // Try to get a public URL for the test file
+          const { data: urlData } = serviceClient.storage
+            .from('agreements')
+            .getPublicUrl('test-access.txt');
+          
+          console.log('Test file public URL:', urlData.publicUrl);
+          
+          console.log('Bucket created successfully with proper permissions');
+          return { success: true };
+        } catch (policyError) {
+          console.error('Error setting up bucket policies:', policyError);
           return { 
-            success: false, 
-            error: 'Exception during bucket creation with anon key', 
-            details: err 
+            success: true, 
+            error: 'Bucket created but has permission configuration issues',
+            details: policyError
           };
         }
-      }
-      
-      // Verify bucket creation by re-checking buckets
-      const { data: verifyBuckets, error: verifyError } = await supabase.storage.listBuckets();
-      
-      if (verifyError) {
-        console.error('Error verifying bucket creation:', verifyError);
+      } catch (serviceErr) {
+        console.error('Exception creating bucket with service role key:', serviceErr);
         return { 
           success: false, 
-          error: 'Failed to verify bucket creation', 
-          details: verifyError 
+          error: 'Exception during bucket creation with service role key', 
+          details: serviceErr 
         };
       }
-      
-      const bucketVerified = verifyBuckets?.some(bucket => bucket.name === 'agreements');
-      
-      if (!bucketVerified) {
-        console.error('Bucket verification failed: Bucket was not found after creation attempt');
-        return { 
-          success: false, 
-          error: 'Bucket verification failed: Bucket was not found after creation attempt' 
-        };
-      }
-      
-      console.log('Bucket verification successful!');
-    } else {
-      console.log('Agreements bucket already exists');
     }
     
-    // Set up bucket policies
-    try {
-      // Attempt to create public access policy for the agreements bucket
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (supabaseServiceKey) {
-        console.log('Setting up bucket policies with service role key...');
-        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-        
-        // Ensure read policy exists
-        const { error: policyError } = await serviceClient.storage.from('agreements').createSignedUrl('test-policy.txt', 60);
-        
-        if (policyError) {
-          console.log('Setting up public read policy for bucket...');
-          
-          // Try to set up a public policy
-          try {
-            // Create temporary test file to ensure bucket is working
-            const testFile = new Blob(['test'], { type: 'text/plain' });
-            await serviceClient.storage.from('agreements').upload('test-policy.txt', testFile);
-            
-            // This would be where we create a policy if needed
-            console.log('Storage policies appear to be functioning');
-          } catch (err) {
-            console.error('Error setting up policies:', err);
-            // Continue anyway as some operations may still work
-          }
-        }
-      }
-    } catch (policyError) {
-      console.error('Error setting up bucket policies:', policyError);
-      // Continue anyway as the bucket might still work for some operations
-    }
+    // If we get here, the bucket already exists
+    console.log('Agreements bucket already exists');
     
-    // Final test to verify bucket is usable
+    // Verify bucket is usable by trying to list files
     try {
-      const publicUrlData = supabase.storage.from('agreements').getPublicUrl('test-file.txt');
+      const { data: files, error: listFilesError } = await supabase.storage
+        .from('agreements')
+        .list();
       
-      if (!publicUrlData || !publicUrlData.data || !publicUrlData.data.publicUrl) {
-        console.error('Error getting public URL: No data returned');
+      if (listFilesError) {
+        console.error('Error listing files in agreements bucket:', listFilesError);
         return { 
           success: true, 
           error: 'Bucket exists but may have permission issues', 
-          details: 'No public URL data returned' 
+          details: listFilesError 
         };
       }
       
-      console.log('Public URL generation successful:', publicUrlData.data.publicUrl);
-      return { success: true };
-    } catch (finalError) {
-      console.error('Error in final bucket verification:', finalError);
+      console.log('Successfully listed files in agreements bucket:', files);
+      return { success: true, details: { files } };
+    } catch (final) {
+      console.error('Error verifying bucket access:', final);
       return { 
         success: true, 
-        error: 'Bucket exists but encountered an error in final verification', 
-        details: finalError 
+        error: 'Bucket exists but encountered error verifying access', 
+        details: final 
       };
     }
   } catch (error) {
@@ -200,7 +139,9 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
   }
 };
 
-// Function to help debug bucket permissions
+/**
+ * Function to help debug bucket permissions
+ */
 export const diagnoseStorageIssues = async (): Promise<{ 
   bucketExists: boolean;
   canUpload: boolean;
