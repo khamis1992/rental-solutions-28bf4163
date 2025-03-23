@@ -39,13 +39,13 @@ const AddAgreement = () => {
         if (!exists) {
           toast({
             title: "Template not found",
-            description: "The agreement template 'agreement temp.docx' was not found. Creating a new agreement will use the default template format.",
+            description: "The agreement template was not found in either the database or storage. Creating a new agreement will use the default template format.",
             variant: "destructive"
           });
         } else {
           toast({
             title: "Template found",
-            description: "The agreement template 'agreement temp.docx' was found and will be used for new agreements.",
+            description: "The agreement template was found and will be used for new agreements.",
           });
         }
       } catch (error) {

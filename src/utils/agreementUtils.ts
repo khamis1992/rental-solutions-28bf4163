@@ -1,4 +1,3 @@
-
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
@@ -52,7 +51,36 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
         
       if (fallbackResult.error || !fallbackResult.data) {
         console.error("Error fetching fallback template:", fallbackResult.error);
-        return generateDefaultAgreementText(agreement);
+        
+        // Check if the template exists in the storage bucket
+        console.log("Checking for template in storage bucket 'agreements'");
+        const { data: storageData, error: storageError } = await supabase.storage
+          .from('agreements')
+          .download('agreement temp.docx');
+          
+        if (storageError || !storageData) {
+          console.error("Error fetching template from storage:", storageError);
+          
+          // Try fallback template name in storage
+          const { data: fallbackStorageData, error: fallbackStorageError } = await supabase.storage
+            .from('agreements')
+            .download('agreement temp');
+            
+          if (fallbackStorageError || !fallbackStorageData) {
+            console.error("Error fetching fallback template from storage:", fallbackStorageError);
+            return generateDefaultAgreementText(agreement);
+          }
+          
+          // Process the template from storage
+          console.log("Using fallback template from storage bucket");
+          const templateContent = await fallbackStorageData.text();
+          return processAgreementTemplate(templateContent, agreement);
+        }
+        
+        // Process the template from storage
+        console.log("Using template from storage bucket");
+        const templateContent = await storageData.text();
+        return processAgreementTemplate(templateContent, agreement);
       }
       
       // Determine which column contains the content
@@ -227,7 +255,7 @@ export const isStorageConfigured = async (): Promise<boolean> => {
 };
 
 /**
- * Check if the standard agreement template exists in the database
+ * Check if the standard agreement template exists in the database or storage
  */
 export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {
@@ -241,7 +269,9 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
     
     if (tableError) {
       console.error("Error fetching template table structure:", tableError);
-      return false;
+      
+      // If database check fails, try storage bucket
+      return await checkTemplateInStorage();
     }
     
     // Log the table structure to understand available columns
@@ -254,7 +284,9 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
     
     if (!nameColumn) {
       console.error("Could not determine template name column in the database");
-      return false;
+      
+      // If we can't determine the column name, try storage bucket
+      return await checkTemplateInStorage();
     }
     
     console.log(`Using column "${nameColumn}" for template name lookup`);
@@ -279,20 +311,81 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
         
       if (fallbackResult.error) {
         console.error("Error checking fallback template:", fallbackResult.error);
-        return false;
+        
+        // If database check fails, try storage bucket
+        return await checkTemplateInStorage();
       }
       
       const fallbackExists = !!fallbackResult.data;
       console.log("Fallback template exists:", fallbackExists, fallbackResult.data);
+      
+      if (!fallbackExists) {
+        // If not found in database, try storage bucket
+        return await checkTemplateInStorage();
+      }
+      
       return fallbackExists;
     }
     
     const exists = !!data;
     console.log("Template with .docx exists:", exists, data);
     
+    if (!exists) {
+      // If not found in database, try storage bucket
+      return await checkTemplateInStorage();
+    }
+    
     return exists;
   } catch (error) {
     console.error("Exception checking templates:", error);
-    return false;
+    
+    // If database check fails, try storage bucket
+    return await checkTemplateInStorage();
   }
 };
+
+/**
+ * Check if the template exists in the storage bucket
+ */
+async function checkTemplateInStorage(): Promise<boolean> {
+  try {
+    console.log("Checking for template in storage bucket 'agreements'");
+    
+    // First check if the bucket exists
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      console.error("Error listing storage buckets:", bucketsError);
+      return false;
+    }
+    
+    const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
+    if (!bucketExists) {
+      console.error("The 'agreements' bucket does not exist");
+      return false;
+    }
+    
+    // Check for the template file with .docx extension
+    const { data: files, error: listError } = await supabase.storage
+      .from('agreements')
+      .list();
+      
+    if (listError) {
+      console.error("Error listing files in agreements bucket:", listError);
+      return false;
+    }
+    
+    console.log("Files in agreements bucket:", files);
+    
+    // Check if either template name exists
+    const templateExists = files?.some(file => 
+      file.name === 'agreement temp.docx' || file.name === 'agreement temp'
+    );
+    
+    console.log("Template exists in storage:", templateExists);
+    return templateExists;
+  } catch (error) {
+    console.error("Error checking template in storage:", error);
+    return false;
+  }
+}
