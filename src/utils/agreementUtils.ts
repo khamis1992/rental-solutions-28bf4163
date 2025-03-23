@@ -1,4 +1,3 @@
-
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
@@ -982,8 +981,8 @@ async function getTemplateFromDatabase(): Promise<string | null> {
     
     const template = templates[0];
     
-    // Try to get the content from different possible column names
-    const templateContent = template.content || template.template_content || template.text || null;
+    // Since we only selected 'content, template_name, name', we can only access these properties
+    const templateContent = template.content;
     
     if (!templateContent) {
       console.log("Template found but has no content");
