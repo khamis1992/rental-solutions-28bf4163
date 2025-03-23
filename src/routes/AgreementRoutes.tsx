@@ -18,15 +18,6 @@ export const AgreementRoutes = [
     } 
   />,
   <Route 
-    key="agreement-detail" 
-    path="agreements/:id" 
-    element={
-      <ProtectedRoute>
-        <AgreementDetailPage />
-      </ProtectedRoute>
-    } 
-  />,
-  <Route 
     key="add-agreement" 
     path="agreements/add" 
     element={
@@ -41,6 +32,15 @@ export const AgreementRoutes = [
     element={
       <ProtectedRoute>
         <EditAgreement />
+      </ProtectedRoute>
+    } 
+  />,
+  <Route 
+    key="agreement-detail" 
+    path="agreements/:id" 
+    element={
+      <ProtectedRoute>
+        <AgreementDetailPage />
       </ProtectedRoute>
     } 
   />
