@@ -37,8 +37,9 @@ export const fetchLegalObligations = async (): Promise<{
     const allObligations: CustomerObligation[] = [];
     let fetchError: string | null = null;
     
-    // 1. Fetch overdue payments with customer data in a single optimized query
+    // 1. Fetch overdue payments with customer data in a single query
     try {
+      // Modified query to directly join to profiles for more reliable data
       const { data: overduePayments, error: paymentsError } = await supabase
         .from('unified_payments')
         .select(`
@@ -52,7 +53,7 @@ export const fetchLegalObligations = async (): Promise<{
           leases:lease_id (
             customer_id, 
             agreement_number,
-            profiles:customer_id (
+            customer:customer_id (
               id, 
               full_name
             )
@@ -63,12 +64,12 @@ export const fetchLegalObligations = async (): Promise<{
         .order('days_overdue', { ascending: false });
       
       if (paymentsError) {
-        console.error('Error fetching overdue payments with JOIN:', paymentsError);
+        console.error('Error fetching overdue payments:', paymentsError);
         toast.error('Failed to load payment data');
         throw new Error(paymentsError.message);
       }
       
-      console.log(`Fetched ${overduePayments?.length || 0} overdue payments with JOIN`);
+      console.log(`Fetched ${overduePayments?.length || 0} overdue payments`);
       
       if (overduePayments) {
         for (const payment of overduePayments) {
@@ -78,14 +79,14 @@ export const fetchLegalObligations = async (): Promise<{
             continue;
           }
           
-          // Make sure profiles exists in leases
-          if (!payment.leases.profiles) {
-            console.log(`Skipping payment ${payment.id} - missing profile data`);
+          // Make sure customer exists in leases
+          if (!payment.leases.customer) {
+            console.log(`Skipping payment ${payment.id} - missing customer data`);
             continue;
           }
           
           // Type guard to ensure we have proper profile data
-          const profileData = payment.leases.profiles;
+          const profileData = payment.leases.customer;
           
           if (!isValidProfile(profileData)) {
             console.log(`Skipping payment ${payment.id} - invalid profile data`);
@@ -114,8 +115,9 @@ export const fetchLegalObligations = async (): Promise<{
       fetchError = 'Failed to load payment obligations';
     }
     
-    // 2. Fetch traffic fines with customer data in a single optimized query
+    // 2. Fetch traffic fines with customer data in a single query
     try {
+      // Modified query to directly join to profiles for more reliable data
       const { data: trafficFines, error: finesError } = await supabase
         .from('traffic_fines')
         .select(`
@@ -129,7 +131,7 @@ export const fetchLegalObligations = async (): Promise<{
           leases:lease_id (
             customer_id, 
             agreement_number,
-            profiles:customer_id (
+            customer:customer_id (
               id, 
               full_name
             )
@@ -139,12 +141,12 @@ export const fetchLegalObligations = async (): Promise<{
         .order('violation_date', { ascending: false });
       
       if (finesError) {
-        console.error('Error fetching traffic fines with JOIN:', finesError);
+        console.error('Error fetching traffic fines:', finesError);
         toast.error('Failed to load traffic fines data');
         throw new Error(finesError.message);
       }
       
-      console.log(`Fetched ${trafficFines?.length || 0} traffic fines with JOIN`);
+      console.log(`Fetched ${trafficFines?.length || 0} traffic fines`);
       
       if (trafficFines) {
         for (const fine of trafficFines) {
@@ -154,14 +156,14 @@ export const fetchLegalObligations = async (): Promise<{
             continue;
           }
           
-          // Make sure profiles exists in leases
-          if (!fine.leases.profiles) {
-            console.log(`Skipping fine ${fine.id} - missing profile data`);
+          // Make sure customer exists in leases
+          if (!fine.leases.customer) {
+            console.log(`Skipping fine ${fine.id} - missing customer data`);
             continue;
           }
           
           // Type guard to ensure we have proper profile data
-          const profileData = fine.leases.profiles;
+          const profileData = fine.leases.customer;
           
           if (!isValidProfile(profileData)) {
             console.log(`Skipping fine ${fine.id} - invalid profile data`);
@@ -192,8 +194,9 @@ export const fetchLegalObligations = async (): Promise<{
       if (!fetchError) fetchError = 'Failed to load traffic fine obligations';
     }
     
-    // 3. Fetch legal cases with customer data in a single optimized query
+    // 3. Fetch legal cases with customer data in a single query
     try {
+      // Modified query to directly join to profiles for more reliable data
       const { data: legalCases, error: casesError } = await supabase
         .from('legal_cases')
         .select(`
@@ -203,7 +206,7 @@ export const fetchLegalObligations = async (): Promise<{
           customer_id, 
           priority, 
           status,
-          profiles:customer_id (
+          customer:customer_id (
             id, 
             full_name
           )
@@ -212,23 +215,23 @@ export const fetchLegalObligations = async (): Promise<{
         .order('created_at', { ascending: false });
       
       if (casesError) {
-        console.error('Error fetching legal cases with JOIN:', casesError);
+        console.error('Error fetching legal cases:', casesError);
         toast.error('Failed to load legal cases data');
         throw new Error(casesError.message);
       }
       
-      console.log(`Fetched ${legalCases?.length || 0} legal cases with JOIN`);
+      console.log(`Fetched ${legalCases?.length || 0} legal cases`);
       
       if (legalCases) {
         for (const legalCase of legalCases) {
-          // Make sure profiles exists
-          if (!legalCase.profiles) {
-            console.log(`Skipping legal case ${legalCase.id} - missing profile data`);
+          // Make sure customer exists
+          if (!legalCase.customer) {
+            console.log(`Skipping legal case ${legalCase.id} - missing customer data`);
             continue;
           }
           
           // Type guard to ensure we have proper profile data
-          const profileData = legalCase.profiles;
+          const profileData = legalCase.customer;
           
           if (!isValidProfile(profileData)) {
             console.log(`Skipping legal case ${legalCase.id} - invalid profile data`);
