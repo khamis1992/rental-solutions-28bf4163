@@ -40,10 +40,13 @@ export const uploadAgreementTemplate = async (
       }
     }
     
-    // Upload the template file (always use agreement temp.docx as the filename)
+    // Set the filename to avoid path issues (use agreement_template.docx - no spaces)
+    const safeFileName = 'agreement_template.docx';
+    
+    // Upload the template file with the safe filename
     const { error: uploadError } = await serviceClient.storage
       .from('agreements')
-      .upload('agreement temp.docx', templateFile, { upsert: true });
+      .upload(safeFileName, templateFile, { upsert: true });
     
     if (uploadError) {
       return { success: false, error: `Failed to upload template: ${uploadError.message}` };
@@ -52,7 +55,7 @@ export const uploadAgreementTemplate = async (
     // Get the public URL
     const { data: urlData } = serviceClient.storage
       .from('agreements')
-      .getPublicUrl('agreement temp.docx');
+      .getPublicUrl(safeFileName);
     
     return { 
       success: true, 
@@ -75,7 +78,10 @@ export const downloadAgreementTemplate = async (): Promise<{
   error?: string;
 }> => {
   try {
-    // First check if the template exists
+    // Try both filename formats
+    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement temp'];
+    
+    // First check if any template exists
     const { data: files, error: listError } = await supabase.storage
       .from('agreements')
       .list();
@@ -84,30 +90,28 @@ export const downloadAgreementTemplate = async (): Promise<{
       return { success: false, error: `Failed to list files: ${listError.message}` };
     }
     
-    const templateExists = files?.some(file => 
-      file.name === 'agreement temp.docx' || file.name === 'agreement temp'
-    );
-    
-    if (!templateExists) {
-      return { success: false, error: "Template does not exist" };
+    // Find which template file exists in storage
+    let templateFile = null;
+    for (const option of fileOptions) {
+      if (files?.some(file => file.name === option)) {
+        templateFile = option;
+        break;
+      }
     }
     
-    // Try to download the template
+    if (!templateFile) {
+      return { success: false, error: "Template does not exist in any known format" };
+    }
+    
+    console.log(`Found template file: ${templateFile}`);
+    
+    // Download the template that was found
     const { data, error: downloadError } = await supabase.storage
       .from('agreements')
-      .download('agreement temp.docx');
+      .download(templateFile);
     
     if (downloadError || !data) {
-      // Try fallback name if primary fails
-      const { data: fallbackData, error: fallbackError } = await supabase.storage
-        .from('agreements')
-        .download('agreement temp');
-      
-      if (fallbackError || !fallbackData) {
-        return { success: false, error: "Failed to download template" };
-      }
-      
-      return { success: true, data: fallbackData };
+      return { success: false, error: `Failed to download template: ${downloadError?.message || "No data returned"}` };
     }
     
     return { success: true, data };
@@ -119,10 +123,111 @@ export const downloadAgreementTemplate = async (): Promise<{
 /**
  * Gets the public URL for the agreement template
  */
-export const getAgreementTemplateUrl = (): string => {
-  const { data } = supabase.storage
-    .from('agreements')
-    .getPublicUrl('agreement temp.docx');
+export const getAgreementTemplateUrl = async (): Promise<string | null> => {
+  try {
+    // Check which template file exists
+    const { data: files, error: listError } = await supabase.storage
+      .from('agreements')
+      .list();
+    
+    if (listError || !files) {
+      console.error("Error listing template files:", listError);
+      return null;
+    }
+    
+    // Try to find which template exists
+    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement temp'];
+    let templateFile = null;
+    
+    for (const option of fileOptions) {
+      if (files.some(file => file.name === option)) {
+        templateFile = option;
+        break;
+      }
+    }
+    
+    if (!templateFile) {
+      console.error("No template file found in agreements bucket");
+      return null;
+    }
+    
+    // Get the URL for the template that exists
+    const { data } = supabase.storage
+      .from('agreements')
+      .getPublicUrl(templateFile);
+    
+    return data.publicUrl;
+  } catch (error) {
+    console.error("Error getting template URL:", error);
+    return null;
+  }
+};
+
+/**
+ * Diagnose template issues by checking URL construction
+ */
+export const diagnoseTemplateUrl = async (): Promise<{
+  status: string;
+  issues: string[];
+  suggestions: string[];
+  url?: string;
+}> => {
+  const issues: string[] = [];
+  const suggestions: string[] = [];
   
-  return data.publicUrl;
+  try {
+    // Get list of files
+    const { data: files, error: listError } = await supabase.storage
+      .from('agreements')
+      .list();
+    
+    if (listError) {
+      issues.push(`Error listing files: ${listError.message}`);
+      suggestions.push("Check if the agreements bucket exists in Supabase storage");
+      return { status: "error", issues, suggestions };
+    }
+    
+    if (!files || files.length === 0) {
+      issues.push("No files found in the agreements bucket");
+      suggestions.push("Upload a template file to the agreements bucket");
+      return { status: "error", issues, suggestions };
+    }
+    
+    // Check for template files with various names
+    const templateOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement temp'];
+    const foundTemplates = files.filter(file => 
+      templateOptions.includes(file.name)
+    );
+    
+    if (foundTemplates.length === 0) {
+      issues.push("No template files found with expected names");
+      suggestions.push("Upload a file named 'agreement_template.docx' to the agreements bucket");
+      return { status: "error", issues, suggestions };
+    }
+    
+    // Get URL for the first found template
+    const templateName = foundTemplates[0].name;
+    const { data } = supabase.storage
+      .from('agreements')
+      .getPublicUrl(templateName);
+    
+    const url = data.publicUrl;
+    
+    // Check URL format
+    if (url.includes('//agreements//')) {
+      issues.push("Double slash detected in URL path");
+      suggestions.push("The URL contains a double slash that may cause issues with loading the template");
+    }
+    
+    return { 
+      status: issues.length > 0 ? "warning" : "success",
+      issues, 
+      suggestions,
+      url
+    };
+  } catch (error: any) {
+    issues.push(`Unexpected error: ${error.message}`);
+    suggestions.push("Check the browser console for more detailed error information");
+    return { status: "error", issues, suggestions };
+  }
 };

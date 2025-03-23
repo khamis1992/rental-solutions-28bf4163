@@ -4,13 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import AgreementForm from "@/components/agreements/AgreementForm";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
+import { diagnoseTemplateUrl } from "@/utils/templateUtils";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -20,8 +21,9 @@ const AddAgreement = () => {
   const [checkingTemplate, setCheckingTemplate] = useState<boolean>(true);
   const [templateDiagnosis, setTemplateDiagnosis] = useState<any>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
+  const [templateUrlDiagnosis, setTemplateUrlDiagnosis] = useState<any>(null);
 
-  // Improved template setup with better error handling
+  // Improved template setup with better error handling and URL diagnostics
   useEffect(() => {
     const setupStorage = async () => {
       try {
@@ -71,6 +73,15 @@ const AddAgreement = () => {
             title: "Template Found",
             description: "The agreement template was found and will be used for new agreements.",
           });
+        }
+        
+        // Now run URL diagnostics to check for URL issues
+        const urlDiagnosis = await diagnoseTemplateUrl();
+        setTemplateUrlDiagnosis(urlDiagnosis);
+        console.log("Template URL diagnosis:", urlDiagnosis);
+        
+        if (urlDiagnosis.status === "error") {
+          console.error("Template URL issues:", urlDiagnosis.issues);
         }
       } catch (error) {
         console.error("Error during template setup:", error);
@@ -143,12 +154,67 @@ const AddAgreement = () => {
         </Alert>
       )}
       
+      {templateUrlDiagnosis && templateUrlDiagnosis.status !== "success" && (
+        <Alert variant="warning" className="mb-4 border-amber-500 bg-amber-50">
+          <AlertCircle className="h-4 w-4 text-amber-500" />
+          <AlertTitle>Template URL Issues</AlertTitle>
+          <AlertDescription>
+            <div className="mt-1">
+              <ul className="list-disc pl-5 text-sm">
+                {templateUrlDiagnosis.issues.map((issue: string, i: number) => (
+                  <li key={i}>{issue}</li>
+                ))}
+              </ul>
+              
+              {templateUrlDiagnosis.suggestions.length > 0 && (
+                <>
+                  <p className="font-semibold mt-2">Suggestions:</p>
+                  <ul className="list-disc pl-5 text-sm">
+                    {templateUrlDiagnosis.suggestions.map((suggestion: string, i: number) => (
+                      <li key={i}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              
+              {templateUrlDiagnosis.url && (
+                <div className="mt-2">
+                  <p className="text-sm">Current template URL:</p>
+                  <a 
+                    href={templateUrlDiagnosis.url} 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
+                  >
+                    {templateUrlDiagnosis.url.substring(0, 50)}...
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {standardTemplateExists && !templateError && (
         <Alert variant="default" className="mb-4 border-green-500 bg-green-50">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertTitle>Template Ready</AlertTitle>
           <AlertDescription>
             Agreement template is available and will be used for new agreements.
+            {templateUrlDiagnosis?.url && (
+              <div className="mt-1">
+                <a 
+                  href={templateUrlDiagnosis.url} 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
+                >
+                  View template
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            )}
           </AlertDescription>
         </Alert>
       )}
