@@ -5,6 +5,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
+import { toast } from 'sonner';
 
 const AddCustomer = () => {
   const navigate = useNavigate();
@@ -15,7 +16,10 @@ const AddCustomer = () => {
     setIsSubmitting(true);
     try {
       await createCustomer.mutateAsync(data);
+      toast('Customer added successfully');
       navigate('/customers');
+    } catch (error) {
+      console.error('Error creating customer:', error);
     } finally {
       setIsSubmitting(false);
     }

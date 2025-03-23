@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,7 +46,11 @@ const AddAgreement = () => {
   };
 
   return (
-    <PageContainer title="Create New Agreement" backUrl="/agreements">
+    <PageContainer
+      title="Create New Agreement" 
+      description="Create a new rental agreement with a customer"
+      backLink="/agreements"
+    >
       <Card>
         <CardHeader>
           <CardTitle>Agreement Information</CardTitle>

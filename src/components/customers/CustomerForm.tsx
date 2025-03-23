@@ -40,6 +40,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
       phone: "",
       address: "",
       driver_license: "",
+      nationality: "",
       notes: "",
       status: "active",
     },
@@ -99,6 +100,20 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
                 <FormLabel>Driver License</FormLabel>
                 <FormControl>
                   <Input placeholder="License number" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="nationality"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nationality</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter customer's nationality" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -11,6 +11,7 @@ export const customerSchema = z.object({
   phone: z.string().regex(validationPatterns.phone, "Please enter a valid phone number"),
   address: z.string().min(5, "Address must be at least 5 characters").optional(),
   driver_license: z.string().min(3, "Driver license number is required"),
+  nationality: z.string().min(2, "Nationality is required"),
   notes: z.string().optional(),
   status: z.enum(["active", "inactive", "blacklisted", "pending_review"]).default("active"),
   created_at: z.string().optional(),

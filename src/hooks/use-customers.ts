@@ -63,6 +63,7 @@ export const useCustomers = () => {
           email: profile.email || '',
           phone: profile.phone_number || '',
           driver_license: profile.driver_license || '',
+          nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
           status: profile.status || 'active',
@@ -93,6 +94,7 @@ export const useCustomers = () => {
           phone_number: newCustomer.phone, // Map to phone_number in profiles
           address: newCustomer.address,
           driver_license: newCustomer.driver_license,
+          nationality: newCustomer.nationality,
           notes: newCustomer.notes,
           status: newCustomer.status || 'active',
           role: 'customer', // Ensure role is set to customer
@@ -126,6 +128,7 @@ export const useCustomers = () => {
           phone_number: customer.phone, // Map to phone_number in profiles
           address: customer.address,
           driver_license: customer.driver_license,
+          nationality: customer.nationality,
           notes: customer.notes,
           status: customer.status,
           updated_at: new Date().toISOString() 
@@ -199,6 +202,7 @@ export const useCustomers = () => {
         email: data.email || '',
         phone: data.phone_number || '',
         driver_license: data.driver_license || '',
+        nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
         status: data.status || 'active',
