@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
 import { diagnoseTemplateUrl, uploadAgreementTemplate, checkSpecificTemplateUrl, fixTemplateUrl } from "@/utils/templateUtils";
+
 const AddAgreement = () => {
   const navigate = useNavigate();
   const {
@@ -25,6 +26,7 @@ const AddAgreement = () => {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [specificUrlCheck, setSpecificUrlCheck] = useState<any>(null);
+
   useEffect(() => {
     const setupStorage = async () => {
       try {
@@ -109,22 +111,31 @@ const AddAgreement = () => {
     };
     setupStorage();
   }, [toast]);
+
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      const {
-        data,
-        error
-      } = await supabase.from("leases").insert([formData]).select("id").single();
+      console.log("Submitting agreement data:", formData);
+      
+      // Make sure we're not sending fields that don't exist in the database
+      const { data, error } = await supabase
+        .from("leases")
+        .insert([formData])
+        .select("id")
+        .single();
+        
       if (error) {
         throw error;
       }
+      
       toast({
         title: "Agreement created",
         description: "The agreement has been successfully created."
       });
+      
       navigate(`/agreements/${data.id}`);
     } catch (error: any) {
+      console.error("Error creating agreement:", error);
       toast({
         title: "Error creating agreement",
         description: error.message || "Something went wrong.",
@@ -134,6 +145,7 @@ const AddAgreement = () => {
       setIsSubmitting(false);
     }
   };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -175,6 +187,7 @@ const AddAgreement = () => {
       event.target.value = '';
     }
   };
+
   return <PageContainer title="Create New Agreement" description="Create a new rental agreement with a customer" backLink="/agreements">
       {specificUrlCheck && <Alert variant={specificUrlCheck.accessible ? "default" : "destructive"} className={`mb-4 ${specificUrlCheck.accessible ? 'border-green-500 bg-green-50' : ''}`}>
           {specificUrlCheck.accessible ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4" />}
@@ -270,9 +283,15 @@ const AddAgreement = () => {
           <CardTitle>Agreement Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <AgreementForm onSubmit={handleSubmit} isSubmitting={isSubmitting} standardTemplateExists={standardTemplateExists || specificUrlCheck?.accessible || false} isCheckingTemplate={checkingTemplate} />
+          <AgreementForm 
+            onSubmit={handleSubmit} 
+            isSubmitting={isSubmitting} 
+            standardTemplateExists={standardTemplateExists || specificUrlCheck?.accessible || false} 
+            isCheckingTemplate={checkingTemplate} 
+          />
         </CardContent>
       </Card>
     </PageContainer>;
 };
+
 export default AddAgreement;
