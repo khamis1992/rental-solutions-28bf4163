@@ -704,3 +704,60 @@ async function getTemplateFromStorage(): Promise<string | null> {
     return null;
   }
 }
+
+/**
+ * Try to get template from database
+ */
+async function getTemplateFromDatabase(): Promise<string | null> {
+  try {
+    console.log("Attempting to get template from database");
+    
+    // First check if the template table exists
+    const { data: tableExists, error: tableError } = await supabase
+      .from("agreement_templates")
+      .select('id')
+      .limit(1);
+      
+    if (tableError || !tableExists || tableExists.length === 0) {
+      console.log("Agreement templates table may not exist or is empty:", tableError);
+      return null;
+    }
+    
+    // Try to get the active template
+    const { data: template, error: templateError } = await supabase
+      .from("agreement_templates")
+      .select('content')
+      .eq('is_active', true)
+      .maybeSingle();
+      
+    if (templateError) {
+      console.error("Error fetching template from database:", templateError);
+      return null;
+    }
+    
+    if (!template || !template.content) {
+      console.log("No active template found in database");
+      
+      // Try any template as fallback
+      const { data: anyTemplate, error: anyError } = await supabase
+        .from("agreement_templates")
+        .select('content')
+        .limit(1)
+        .maybeSingle();
+        
+      if (anyError || !anyTemplate || !anyTemplate.content) {
+        console.log("No templates found in database at all");
+        return null;
+      }
+      
+      console.log("Found non-active template in database");
+      return anyTemplate.content;
+    }
+    
+    console.log("Successfully retrieved active template from database");
+    return template.content;
+  } catch (error) {
+    console.error("Error getting template from database:", error);
+    return null;
+  }
+}
