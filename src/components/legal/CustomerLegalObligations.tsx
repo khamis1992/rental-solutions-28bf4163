@@ -41,10 +41,10 @@ import { toast } from 'sonner';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 
 // Types
-type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
-type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
+export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
+export type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
 
-interface CustomerObligation {
+export interface CustomerObligation {
   id: string;
   customerId: string;
   customerName: string;
@@ -107,8 +107,8 @@ const CustomerLegalObligations: React.FC = () => {
             balance,
             payment_date,
             days_overdue,
-            leases!inner(customer_id, agreement_number),
-            profiles!inner(id, full_name)
+            leases(customer_id, agreement_number),
+            profiles!leases(customer_id).profiles(id, full_name)
           `)
           .eq('status', 'pending')
           .gt('days_overdue', 0)
@@ -127,8 +127,8 @@ const CustomerLegalObligations: React.FC = () => {
             fine_amount,
             violation_date,
             lease_id,
-            leases!inner(customer_id, agreement_number),
-            profiles!inner(id, full_name)
+            leases(customer_id, agreement_number),
+            profiles!leases(customer_id).profiles(id, full_name)
           `)
           .eq('payment_status', 'pending')
           .order('violation_date', { ascending: false });
@@ -148,9 +148,9 @@ const CustomerLegalObligations: React.FC = () => {
             customer_id,
             priority,
             status,
-            profiles!inner(id, full_name)
+            profiles(id, full_name)
           `)
-          .in('status', ['pending_reminder', 'pending_payment', 'pending_legal_action'])
+          .in('status', ['pending_reminder', 'in_legal_process', 'escalated'])
           .order('created_at', { ascending: false });
           
         if (casesError) {
@@ -162,50 +162,56 @@ const CustomerLegalObligations: React.FC = () => {
         const allObligations: CustomerObligation[] = [];
         
         // Process overdue payments
-        if (overduePayments) {
-          const processedPayments = overduePayments.map(payment => {
-            const daysOverdue = payment.days_overdue || 0;
-            return {
-              id: payment.id,
-              customerId: payment.profiles.id,
-              customerName: payment.profiles.full_name,
-              obligationType: 'payment' as ObligationType,
-              amount: payment.balance || 0,
-              dueDate: new Date(payment.payment_date),
-              description: `Overdue rent payment (Agreement #${payment.leases.agreement_number})`,
-              urgency: determineUrgency(daysOverdue),
-              status: 'Overdue Payment',
-              daysOverdue
-            };
-          });
+        if (overduePayments && overduePayments.length > 0) {
+          const processedPayments = overduePayments
+            .filter(payment => payment.profiles && payment.profiles.length > 0)
+            .map(payment => {
+              const daysOverdue = payment.days_overdue || 0;
+              const profile = payment.profiles[0]; // Get the first profile from the joined results
+              return {
+                id: payment.id,
+                customerId: profile.id,
+                customerName: profile.full_name,
+                obligationType: 'payment' as ObligationType,
+                amount: payment.balance || 0,
+                dueDate: new Date(payment.payment_date),
+                description: `Overdue rent payment (Agreement #${payment.leases?.agreement_number})`,
+                urgency: determineUrgency(daysOverdue),
+                status: 'Overdue Payment',
+                daysOverdue
+              };
+            });
           allObligations.push(...processedPayments);
         }
         
         // Process traffic fines
-        if (trafficFines) {
-          const processedFines = trafficFines.map(fine => {
-            const violationDate = new Date(fine.violation_date);
-            const today = new Date();
-            const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            return {
-              id: fine.id,
-              customerId: fine.profiles.id,
-              customerName: fine.profiles.full_name,
-              obligationType: 'traffic_fine' as ObligationType,
-              amount: fine.fine_amount || 0,
-              dueDate: violationDate,
-              description: `Unpaid traffic fine (Agreement #${fine.leases.agreement_number})`,
-              urgency: determineUrgency(daysOverdue),
-              status: 'Unpaid Fine',
-              daysOverdue
-            };
-          });
+        if (trafficFines && trafficFines.length > 0) {
+          const processedFines = trafficFines
+            .filter(fine => fine.profiles && fine.profiles.length > 0)
+            .map(fine => {
+              const violationDate = new Date(fine.violation_date);
+              const today = new Date();
+              const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
+              const profile = fine.profiles[0]; // Get the first profile from the joined results
+              
+              return {
+                id: fine.id,
+                customerId: profile.id,
+                customerName: profile.full_name,
+                obligationType: 'traffic_fine' as ObligationType,
+                amount: fine.fine_amount || 0,
+                dueDate: violationDate,
+                description: `Unpaid traffic fine (Agreement #${fine.leases?.agreement_number})`,
+                urgency: determineUrgency(daysOverdue),
+                status: 'Unpaid Fine',
+                daysOverdue
+              };
+            });
           allObligations.push(...processedFines);
         }
         
         // Process legal cases
-        if (legalCases) {
+        if (legalCases && legalCases.length > 0) {
           const processedCases = legalCases.map(legalCase => {
             const createdDate = new Date(legalCase.created_at);
             const today = new Date();

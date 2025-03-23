@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const generateLegalCustomerReport = async (
   customerId: string,
   customerName: string,
-  obligations: any[]
+  obligations: CustomerObligation[]
 ): Promise<jsPDF> => {
   // Fetch customer details
   const { data: customer, error: customerError } = await supabase
@@ -66,7 +66,7 @@ export const generateLegalCustomerReport = async (
   yPos += 10;
   
   // Group by type of obligation for the summary
-  const summaryByType = obligations.reduce((acc, obligation) => {
+  const summaryByType: Record<string, { count: number, totalAmount: number }> = obligations.reduce((acc, obligation) => {
     const type = obligation.obligationType || 'other';
     if (!acc[type]) {
       acc[type] = { 
@@ -112,14 +112,14 @@ export const generateLegalCustomerReport = async (
   yPos += 10;
   
   // Group obligations by type for detailed section
-  const obligationsByType = obligations.reduce((acc, obligation) => {
+  const obligationsByType: Record<string, CustomerObligation[]> = obligations.reduce((acc, obligation) => {
     const type = obligation.obligationType || 'other';
     if (!acc[type]) {
       acc[type] = [];
     }
     acc[type].push(obligation);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {} as Record<string, CustomerObligation[]>);
   
   // Add each type of obligation
   doc.setFontSize(10);
