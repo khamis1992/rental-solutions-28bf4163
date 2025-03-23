@@ -10,7 +10,8 @@ import { supabase } from "@/lib/supabase";
 import { TemplateUploader } from "@/components/agreements/TemplateUploader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
-import { Loader2, RefreshCcw } from "lucide-react";
+import { Loader2, RefreshCcw, AlertCircle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -20,11 +21,14 @@ const AddAgreement = () => {
   const [isBucketReady, setIsBucketReady] = useState(false);
   const [isSettingUpBucket, setIsSettingUpBucket] = useState(true);
   const [setupAttempts, setSetupAttempts] = useState(0);
+  const [setupError, setSetupError] = useState<string | null>(null);
 
   // Check and create buckets if needed on component mount
   useEffect(() => {
     const setupBuckets = async () => {
       setIsSettingUpBucket(true);
+      setSetupError(null);
+      
       try {
         console.log(`Attempting to setup storage buckets (attempt ${setupAttempts + 1})...`);
         const success = await ensureStorageBuckets();
@@ -37,18 +41,22 @@ const AddAgreement = () => {
             description: "Template uploads are now available.",
           });
         } else {
-          console.error("Storage setup failed");
+          const errorMsg = "Storage setup failed. Please try again or contact support.";
+          console.error(errorMsg);
+          setSetupError(errorMsg);
           toast({
             title: "Storage setup issue",
-            description: "There was a problem setting up storage. Template uploads may not work.",
+            description: errorMsg,
             variant: "destructive"
           });
         }
-      } catch (error) {
-        console.error("Error setting up storage buckets:", error);
+      } catch (error: any) {
+        const errorMsg = `Error setting up storage: ${error.message || "Unknown error"}`;
+        console.error(errorMsg, error);
+        setSetupError(errorMsg);
         toast({
           title: "Storage setup error",
-          description: "Failed to set up storage buckets. Please try refreshing the page.",
+          description: errorMsg,
           variant: "destructive"
         });
       } finally {
@@ -115,6 +123,35 @@ const AddAgreement = () => {
       description="Create a new rental agreement with a customer"
       backLink="/agreements"
     >
+      {setupError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Storage Setup Error</AlertTitle>
+          <AlertDescription className="flex flex-col space-y-2">
+            <span>{setupError}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="self-start mt-2" 
+              onClick={retryBucketSetup}
+              disabled={isSettingUpBucket}
+            >
+              {isSettingUpBucket ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Trying to fix...
+                </>
+              ) : (
+                <>
+                  <RefreshCcw className="mr-2 h-4 w-4" />
+                  Retry Storage Setup
+                </>
+              )}
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Tabs defaultValue="form">
         <TabsList className="mb-4">
           <TabsTrigger value="form">Agreement Form</TabsTrigger>
@@ -147,6 +184,7 @@ const AddAgreement = () => {
                 <div className="bg-red-50 border border-red-200 text-red-800 p-4 mb-4 rounded-md">
                   <div className="flex flex-col space-y-2">
                     <div className="flex items-center">
+                      <AlertCircle className="h-4 w-4 mr-2" />
                       Storage setup failed. Template uploads will not work.
                     </div>
                     <Button 
