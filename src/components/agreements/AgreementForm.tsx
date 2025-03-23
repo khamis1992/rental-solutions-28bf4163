@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,15 +30,15 @@ import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
+import { CheckCircle, InfoIcon, FileText, AlertCircle, AlertTitle, AlertDescription } from "lucide-react";
 
-// Interface for the form props
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
   isSubmitting: boolean;
   initialData?: any;
+  templateUrl?: string | null;
 }
 
-// Custom form schema based on the agreement schema
 const formSchema = z.object({
   agreement_number: z.string().min(1, "Agreement number is required"),
   start_date: z.date(),
@@ -60,6 +59,7 @@ const AgreementForm = ({
   onSubmit,
   isSubmitting,
   initialData,
+  templateUrl,
 }: AgreementFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -67,7 +67,6 @@ const AgreementForm = ({
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [durationMonths, setDurationMonths] = useState<number>(12);
 
-  // Generate a unique agreement number
   const generateAgreementNumber = () => {
     const prefix = "AGR";
     const timestamp = Date.now().toString().slice(-6);
@@ -75,7 +74,6 @@ const AgreementForm = ({
     return `${prefix}-${timestamp}-${random}`;
   };
 
-  // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: initialData || {
@@ -86,14 +84,13 @@ const AgreementForm = ({
       rent_amount: 0,
       deposit_amount: 0,
       total_amount: 0,
-      daily_late_fee: 120, // Default daily late fee
+      daily_late_fee: 120,
       agreement_duration: "12 months",
       notes: "",
       terms_accepted: false,
     },
   });
 
-  // Fetch customers
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
@@ -115,7 +112,6 @@ const AgreementForm = ({
     fetchCustomers();
   }, []);
 
-  // Fetch vehicles
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
@@ -137,7 +133,6 @@ const AgreementForm = ({
     fetchVehicles();
   }, []);
 
-  // Handle customer selection
   const handleCustomerChange = async (customerId: string) => {
     try {
       const { data, error } = await supabase
@@ -151,15 +146,11 @@ const AgreementForm = ({
       }
 
       setSelectedCustomer(data);
-      
-      // Auto-fill customer fields in template (if needed)
-      // This data will be used in the final form submission
     } catch (error) {
       console.error("Error fetching customer details:", error);
     }
   };
 
-  // Handle vehicle selection
   const handleVehicleChange = async (vehicleId: string) => {
     try {
       const { data, error } = await supabase
@@ -173,8 +164,6 @@ const AgreementForm = ({
       }
 
       setSelectedVehicle(data);
-      
-      // Auto-fill vehicle fields and suggested rent amount
       form.setValue("rent_amount", data.rent_amount || 0);
       calculateTotalAmount(data.rent_amount || 0, form.getValues("deposit_amount"));
     } catch (error) {
@@ -182,55 +171,187 @@ const AgreementForm = ({
     }
   };
 
-  // Update end date based on start date and duration
   const updateEndDate = (startDate: Date, months: number) => {
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + months);
     form.setValue("end_date", endDate);
     form.setValue("agreement_duration", `${months} months`);
-    
-    // Recalculate total amount
     calculateTotalAmount(form.getValues("rent_amount"), form.getValues("deposit_amount"));
   };
 
-  // Calculate total amount
   const calculateTotalAmount = (rentAmount: number, depositAmount: number) => {
     const months = durationMonths || 12;
     const total = (rentAmount * months) + depositAmount;
     form.setValue("total_amount", total);
   };
 
-  // Handle form submission
   const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
-    // Prepare final data for submission
     const finalData = {
       ...data,
       customer_data: selectedCustomer,
       vehicle_data: selectedVehicle,
+      template_url: templateUrl,
     };
     
     onSubmit(finalData);
   };
 
-  // Watch fields for changes
   const startDate = form.watch("start_date");
   const rentAmount = form.watch("rent_amount");
   const depositAmount = form.watch("deposit_amount");
 
-  // Update total amount when relevant fields change
   useEffect(() => {
     calculateTotalAmount(rentAmount, depositAmount);
   }, [rentAmount, depositAmount, durationMonths]);
 
+  const renderTemplateStatus = () => {
+    if (templateUrl) {
+      return (
+        <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md border border-green-200 flex items-center">
+          <div className="w-8 h-8 rounded-full bg-green-100 mr-3 flex items-center justify-center">
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </div>
+          <div>
+            <p className="font-medium">Template Uploaded</p>
+            <p className="text-sm">The agreement will use the uploaded template.</p>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md border border-blue-200 flex items-center">
+        <div className="w-8 h-8 rounded-full bg-blue-100 mr-3 flex items-center justify-center">
+          <InfoIcon className="h-4 w-4 text-blue-500" />
+        </div>
+        <div>
+          <p className="font-medium">No Template Selected</p>
+          <p className="text-sm">Go to the Template tab to upload a custom template.</p>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAgreementPreview = () => {
+    if (!(selectedCustomer && selectedVehicle)) {
+      return null;
+    }
+    
+    return (
+      <div className="space-y-4 pt-4 border-t">
+        <h3 className="text-lg font-medium">Agreement Preview</h3>
+        
+        {templateUrl ? (
+          <div className="bg-muted p-4 rounded-md text-sm">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-bold text-base">CUSTOM AGREEMENT TEMPLATE</h4>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => window.open(templateUrl, '_blank')}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                View Template
+              </Button>
+            </div>
+            
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Template Preview</AlertTitle>
+              <AlertDescription>
+                Your custom template will be populated with the following information:
+              </AlertDescription>
+            </Alert>
+            
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border p-3 rounded-md">
+                <h5 className="font-semibold mb-2">Customer Data</h5>
+                <p><code>{{CUSTOMER_NAME}}</code>: {selectedCustomer.full_name}</p>
+                <p><code>{{CUSTOMER_EMAIL}}</code>: {selectedCustomer.email}</p>
+                <p><code>{{CUSTOMER_PHONE}}</code>: {selectedCustomer.phone_number}</p>
+                <p><code>{{CUSTOMER_LICENSE}}</code>: {selectedCustomer.driver_license}</p>
+                <p><code>{{CUSTOMER_NATIONALITY}}</code>: {selectedCustomer.nationality}</p>
+              </div>
+              
+              <div className="border p-3 rounded-md">
+                <h5 className="font-semibold mb-2">Vehicle Data</h5>
+                <p><code>{{VEHICLE_MAKE}}</code>: {selectedVehicle.make}</p>
+                <p><code>{{VEHICLE_MODEL}}</code>: {selectedVehicle.model}</p>
+                <p><code>{{VEHICLE_PLATE}}</code>: {selectedVehicle.license_plate}</p>
+                <p><code>{{VEHICLE_VIN}}</code>: {selectedVehicle.vin}</p>
+                <p><code>{{VEHICLE_YEAR}}</code>: {selectedVehicle.year}</p>
+              </div>
+            </div>
+            
+            <div className="mt-4 border p-3 rounded-md">
+              <h5 className="font-semibold mb-2">Agreement Data</h5>
+              <div className="grid grid-cols-2 gap-2">
+                <p><code>{{AGREEMENT_NUMBER}}</code>: {form.getValues("agreement_number")}</p>
+                <p><code>{{START_DATE}}</code>: {format(form.getValues("start_date"), "PPP")}</p>
+                <p><code>{{END_DATE}}</code>: {format(form.getValues("end_date"), "PPP")}</p>
+                <p><code>{{RENT_AMOUNT}}</code>: {form.getValues("rent_amount")} QAR</p>
+                <p><code>{{DEPOSIT_AMOUNT}}</code>: {form.getValues("deposit_amount")} QAR</p>
+                <p><code>{{TOTAL_AMOUNT}}</code>: {form.getValues("total_amount")} QAR</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-muted p-4 rounded-md text-sm">
+            <h4 className="font-bold text-center text-base mb-4">VEHICLE RENTAL AGREEMENT</h4>
+            <p className="mb-2">
+              <strong>Agreement Number:</strong> {form.getValues("agreement_number")}
+            </p>
+            <p className="mb-2">
+              <strong>Date:</strong> {format(form.getValues("start_date"), "PPP")}
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
+              <div className="border-b pb-2">
+                <h5 className="font-semibold">CUSTOMER INFORMATION</h5>
+                <p><strong>Name:</strong> {selectedCustomer.full_name}</p>
+                <p><strong>ID/Driver License:</strong> {selectedCustomer.driver_license}</p>
+                <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
+                <p><strong>Email:</strong> {selectedCustomer.email}</p>
+                <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
+              </div>
+              
+              <div className="border-b pb-2">
+                <h5 className="font-semibold">VEHICLE INFORMATION</h5>
+                <p><strong>Make:</strong> {selectedVehicle.make}</p>
+                <p><strong>Model:</strong> {selectedVehicle.model}</p>
+                <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
+                <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
+              </div>
+            </div>
+            
+            <div className="border-b pb-2 mb-2">
+              <h5 className="font-semibold">AGREEMENT TERMS</h5>
+              <p><strong>Start Date:</strong> {format(form.getValues("start_date"), "PPP")}</p>
+              <p><strong>End Date:</strong> {format(form.getValues("end_date"), "PPP")}</p>
+              <p><strong>Duration:</strong> {form.getValues("agreement_duration")}</p>
+              <p><strong>Monthly Rent:</strong> {form.getValues("rent_amount")} QAR</p>
+              <p><strong>Security Deposit:</strong> {form.getValues("deposit_amount")} QAR</p>
+              <p><strong>Daily Late Fee:</strong> {form.getValues("daily_late_fee")} QAR</p>
+              <p><strong>Total Contract Value:</strong> {form.getValues("total_amount")} QAR</p>
+            </div>
+            
+            <p className="italic text-xs">
+              * This is a preview of the agreement. The final document will include complete terms and conditions.
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        {templateUrl && renderTemplateStatus()}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Agreement Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Agreement Details</h3>
             
-            {/* Agreement Number */}
             <FormField
               control={form.control}
               name="agreement_number"
@@ -245,7 +366,6 @@ const AgreementForm = ({
               )}
             />
             
-            {/* Start Date */}
             <FormField
               control={form.control}
               name="start_date"
@@ -290,7 +410,6 @@ const AgreementForm = ({
               )}
             />
             
-            {/* Duration */}
             <FormItem>
               <FormLabel>Duration (Months)</FormLabel>
               <Select 
@@ -314,7 +433,6 @@ const AgreementForm = ({
               </Select>
             </FormItem>
             
-            {/* End Date */}
             <FormField
               control={form.control}
               name="end_date"
@@ -355,7 +473,6 @@ const AgreementForm = ({
               )}
             />
             
-            {/* Agreement Status */}
             <FormField
               control={form.control}
               name="status"
@@ -383,11 +500,9 @@ const AgreementForm = ({
             />
           </div>
           
-          {/* Customer & Vehicle Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Customer & Vehicle</h3>
             
-            {/* Customer Selection */}
             <FormField
               control={form.control}
               name="customer_id"
@@ -419,7 +534,6 @@ const AgreementForm = ({
               )}
             />
             
-            {/* Customer Information Display */}
             {selectedCustomer && (
               <div className="bg-muted p-3 rounded-md text-sm">
                 <p><strong>Email:</strong> {selectedCustomer.email}</p>
@@ -429,7 +543,6 @@ const AgreementForm = ({
               </div>
             )}
             
-            {/* Vehicle Selection */}
             <FormField
               control={form.control}
               name="vehicle_id"
@@ -461,7 +574,6 @@ const AgreementForm = ({
               )}
             />
             
-            {/* Vehicle Information Display */}
             {selectedVehicle && (
               <div className="bg-muted p-3 rounded-md text-sm">
                 <p><strong>Make:</strong> {selectedVehicle.make}</p>
@@ -473,12 +585,10 @@ const AgreementForm = ({
           </div>
         </div>
         
-        {/* Payment Information */}
         <div className="space-y-4 pt-4 border-t">
           <h3 className="text-lg font-medium">Payment Information</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Rent Amount */}
             <FormField
               control={form.control}
               name="rent_amount"
@@ -497,7 +607,6 @@ const AgreementForm = ({
               )}
             />
             
-            {/* Deposit Amount */}
             <FormField
               control={form.control}
               name="deposit_amount"
@@ -516,7 +625,6 @@ const AgreementForm = ({
               )}
             />
             
-            {/* Daily Late Fee */}
             <FormField
               control={form.control}
               name="daily_late_fee"
@@ -536,7 +644,6 @@ const AgreementForm = ({
             />
           </div>
           
-          {/* Total Contract Amount */}
           <FormField
             control={form.control}
             name="total_amount"
@@ -556,7 +663,6 @@ const AgreementForm = ({
             )}
           />
           
-          {/* Notes */}
           <FormField
             control={form.control}
             name="notes"
@@ -575,57 +681,8 @@ const AgreementForm = ({
           />
         </div>
         
-        {/* Agreement Template Preview */}
-        {(selectedCustomer && selectedVehicle) && (
-          <div className="space-y-4 pt-4 border-t">
-            <h3 className="text-lg font-medium">Agreement Preview</h3>
-            <div className="bg-muted p-4 rounded-md text-sm">
-              <h4 className="font-bold text-center text-base mb-4">VEHICLE RENTAL AGREEMENT</h4>
-              <p className="mb-2">
-                <strong>Agreement Number:</strong> {form.getValues("agreement_number")}
-              </p>
-              <p className="mb-2">
-                <strong>Date:</strong> {format(form.getValues("start_date"), "PPP")}
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-                <div className="border-b pb-2">
-                  <h5 className="font-semibold">CUSTOMER INFORMATION</h5>
-                  <p><strong>Name:</strong> {selectedCustomer.full_name}</p>
-                  <p><strong>ID/Driver License:</strong> {selectedCustomer.driver_license}</p>
-                  <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
-                  <p><strong>Email:</strong> {selectedCustomer.email}</p>
-                  <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
-                </div>
-                
-                <div className="border-b pb-2">
-                  <h5 className="font-semibold">VEHICLE INFORMATION</h5>
-                  <p><strong>Make:</strong> {selectedVehicle.make}</p>
-                  <p><strong>Model:</strong> {selectedVehicle.model}</p>
-                  <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
-                  <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
-                </div>
-              </div>
-              
-              <div className="border-b pb-2 mb-2">
-                <h5 className="font-semibold">AGREEMENT TERMS</h5>
-                <p><strong>Start Date:</strong> {format(form.getValues("start_date"), "PPP")}</p>
-                <p><strong>End Date:</strong> {format(form.getValues("end_date"), "PPP")}</p>
-                <p><strong>Duration:</strong> {form.getValues("agreement_duration")}</p>
-                <p><strong>Monthly Rent:</strong> {form.getValues("rent_amount")} QAR</p>
-                <p><strong>Security Deposit:</strong> {form.getValues("deposit_amount")} QAR</p>
-                <p><strong>Daily Late Fee:</strong> {form.getValues("daily_late_fee")} QAR</p>
-                <p><strong>Total Contract Value:</strong> {form.getValues("total_amount")} QAR</p>
-              </div>
-              
-              <p className="italic text-xs">
-                * This is a preview of the agreement. The final document will include complete terms and conditions.
-              </p>
-            </div>
-          </div>
-        )}
+        {renderAgreementPreview()}
         
-        {/* Submit Button */}
         <div className="flex justify-end">
           <Button 
             type="submit" 

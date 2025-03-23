@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 // Define agreement statuses
@@ -54,6 +53,7 @@ export const agreementSchema = z.object({
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false),
   signature_url: z.string().optional(),
+  template_url: z.string().optional(),
   additional_drivers: z.array(z.string()).optional(),
   // Include the nested objects returned from Supabase
   customers: CustomerSchema.optional(),
@@ -263,4 +263,46 @@ export const doesLicensePlateMatchNumeric = (
   }
   
   return false;
+};
+
+// Helper function to process template with dynamic values
+export const processAgreementTemplate = (templateText: string, data: any): string => {
+  // Replace placeholders with actual data
+  let processedTemplate = templateText;
+  
+  // Customer data
+  if (data.customer_data) {
+    processedTemplate = processedTemplate
+      .replace(/{{CUSTOMER_NAME}}/g, data.customer_data.full_name || '')
+      .replace(/{{CUSTOMER_EMAIL}}/g, data.customer_data.email || '')
+      .replace(/{{CUSTOMER_PHONE}}/g, data.customer_data.phone_number || '')
+      .replace(/{{CUSTOMER_LICENSE}}/g, data.customer_data.driver_license || '')
+      .replace(/{{CUSTOMER_NATIONALITY}}/g, data.customer_data.nationality || '')
+      .replace(/{{CUSTOMER_ADDRESS}}/g, data.customer_data.address || '');
+  }
+  
+  // Vehicle data
+  if (data.vehicle_data) {
+    processedTemplate = processedTemplate
+      .replace(/{{VEHICLE_MAKE}}/g, data.vehicle_data.make || '')
+      .replace(/{{VEHICLE_MODEL}}/g, data.vehicle_data.model || '')
+      .replace(/{{VEHICLE_YEAR}}/g, data.vehicle_data.year?.toString() || '')
+      .replace(/{{VEHICLE_COLOR}}/g, data.vehicle_data.color || '')
+      .replace(/{{VEHICLE_PLATE}}/g, data.vehicle_data.license_plate || '')
+      .replace(/{{VEHICLE_VIN}}/g, data.vehicle_data.vin || '');
+  }
+  
+  // Agreement data
+  processedTemplate = processedTemplate
+    .replace(/{{AGREEMENT_NUMBER}}/g, data.agreement_number || '')
+    .replace(/{{START_DATE}}/g, new Date(data.start_date).toLocaleDateString() || '')
+    .replace(/{{END_DATE}}/g, new Date(data.end_date).toLocaleDateString() || '')
+    .replace(/{{RENT_AMOUNT}}/g, data.rent_amount?.toString() || '')
+    .replace(/{{DEPOSIT_AMOUNT}}/g, data.deposit_amount?.toString() || '')
+    .replace(/{{TOTAL_AMOUNT}}/g, data.total_amount?.toString() || '')
+    .replace(/{{DAILY_LATE_FEE}}/g, data.daily_late_fee?.toString() || '')
+    .replace(/{{AGREEMENT_DURATION}}/g, data.agreement_duration || '')
+    .replace(/{{CURRENT_DATE}}/g, new Date().toLocaleDateString());
+    
+  return processedTemplate;
 };
