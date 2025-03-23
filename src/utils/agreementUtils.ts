@@ -2,6 +2,7 @@ import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
 import { createClient } from '@supabase/supabase-js';
+import { getAgreementTemplateUrl } from './templateUtils';
 
 /**
  * Generate the agreement text by processing the template with agreement data
@@ -179,9 +180,30 @@ export const isStorageConfigured = async (): Promise<boolean> => {
  */
 export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {
-    console.log("Checking for template files");
+    console.log("Checking if agreement template exists...");
     
-    // First check if template exists in storage (prioritize storage)
+    // First try direct URL validation - most reliable method
+    const templateUrl = await getAgreementTemplateUrl();
+    if (templateUrl) {
+      try {
+        // Try to fetch the template directly to verify accessibility
+        const response = await fetch(templateUrl, {
+          method: 'HEAD',
+          cache: 'no-cache' // Avoid caching issues
+        });
+        
+        if (response.ok) {
+          console.log("Template URL validated successfully:", templateUrl);
+          return true;
+        } else {
+          console.error(`Template URL validation failed with status ${response.status}`);
+        }
+      } catch (fetchError) {
+        console.error("Error validating template URL:", fetchError);
+      }
+    }
+    
+    // If URL validation failed, check if template exists in storage
     console.log("Checking if template exists in storage...");
     const storageTemplateExists = await checkTemplateInStorage();
     if (storageTemplateExists) {
@@ -197,7 +219,7 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
       return true;
     }
     
-    // If template doesn't exist in either location, create it
+    // If template doesn't exist in either location, attempt to create it
     console.log("Template not found in database or storage, attempting to create default template");
     const created = await createAgreementsBucketAndTemplate();
     return created;
@@ -282,8 +304,24 @@ async function checkTemplateInStorage(): Promise<boolean> {
   try {
     console.log("Checking for template in storage bucket 'agreements'");
     
+    // Use service role client for more reliable access
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    let serviceClient = null;
+    
+    if (supabaseServiceKey) {
+      serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+    }
+    
     // First check if the bucket exists
-    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: bucketsError } = serviceClient
+      ? await serviceClient.storage.listBuckets()
+      : await supabase.storage.listBuckets();
     
     if (bucketsError) {
       console.error("Error listing storage buckets:", bucketsError);
@@ -298,9 +336,9 @@ async function checkTemplateInStorage(): Promise<boolean> {
     
     // List all files in the bucket to check for template
     console.log("Listing files in agreements bucket");
-    const { data: files, error: listError } = await supabase.storage
-      .from('agreements')
-      .list();
+    const { data: files, error: listError } = serviceClient
+      ? await serviceClient.storage.from('agreements').list()
+      : await supabase.storage.from('agreements').list();
       
     if (listError) {
       console.error("Error listing files in agreements bucket:", listError);
@@ -309,10 +347,13 @@ async function checkTemplateInStorage(): Promise<boolean> {
     
     console.log("Files in agreements bucket:", files);
     
-    // Check if any template name exists (using both space and underscore variants)
+    // Primary filename is agreement_template.docx (with underscore)
+    const primaryFileName = 'agreement_template.docx';
+    
+    // Check if any template name exists (prioritizing the primary filename)
     const templateExists = files?.some(file => 
-      file.name === 'agreement_template.docx' || 
-      file.name === 'agreement temp.docx' ||
+      file.name === primaryFileName || 
+      file.name === 'agreement temp.docx' || 
       file.name === 'agreement_temp.docx'
     );
     
@@ -331,8 +372,24 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
   try {
     console.log("Creating agreements bucket and default template");
     
+    // Use service role client for more reliable access
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    let serviceClient = null;
+    
+    if (supabaseServiceKey) {
+      serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+    }
+    
     // Check if bucket exists first
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+    const { data: buckets, error: listError } = serviceClient
+      ? await serviceClient.storage.listBuckets()
+      : await supabase.storage.listBuckets();
     
     if (listError) {
       console.error('Error listing buckets:', listError);
@@ -347,13 +404,9 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
       console.log("Creating 'agreements' bucket");
       
       // Use service role key to create bucket (prioritize this method)
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (supabaseServiceKey) {
+      if (serviceClient) {
         try {
           console.log("Using service role key to create bucket");
-          const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
           
           const { error: createError } = await serviceClient.storage.createBucket('agreements', {
             public: true,
@@ -401,16 +454,20 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
     
     // Check if the template already exists before uploading
     if (bucketCreated || bucketExists) {
-      const { data: files, error: listFilesError } = await supabase.storage
+      const client = serviceClient || supabase;
+      const { data: files, error: listFilesError } = await client.storage
         .from('agreements')
         .list();
         
       if (listFilesError) {
         console.error("Error listing files to check for template:", listFilesError);
       } else {
+        // Primary filename is agreement_template.docx (with underscore)
+        const primaryFileName = 'agreement_template.docx';
+        
         const templateExists = files?.some(file => 
-          file.name === 'agreement_template.docx' || 
-          file.name === 'agreement temp.docx' ||
+          file.name === primaryFileName || 
+          file.name === 'agreement temp.docx' || 
           file.name === 'agreement_temp.docx'
         );
         
@@ -430,17 +487,14 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
     // Convert to Blob
     const blob = new Blob([defaultTemplate], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
     
-    // Always use agreement_template.docx (with underscore) as the filename
+    // Always use agreement_template.docx (with underscore) as the standardized filename
     const safeFileName = 'agreement_template.docx';
     
     // Try to upload with service role client first
     let uploadSuccess = false;
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     
-    if (supabaseServiceKey) {
+    if (serviceClient) {
       try {
-        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
         const { error: uploadError } = await serviceClient.storage
           .from('agreements')
           .upload(safeFileName, blob, { 
@@ -454,12 +508,16 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
           console.log("Default template uploaded successfully with service role key");
           uploadSuccess = true;
           
-          // Make the template publicly accessible
+          // Make the template publicly accessible and verify URL
           const { data: publicUrlData } = serviceClient.storage
             .from('agreements')
             .getPublicUrl(safeFileName);
             
-          console.log("Template public URL:", publicUrlData.publicUrl);
+          // Fix double slash issue if present
+          let fixedUrl = publicUrlData.publicUrl;
+          fixedUrl = fixedUrl.replace(/\/\/agreements\//, '/agreements/');
+            
+          console.log("Template public URL:", fixedUrl);
         }
       } catch (e) {
         console.error("Exception uploading template with service role key:", e);
@@ -483,6 +541,17 @@ async function createAgreementsBucketAndTemplate(): Promise<boolean> {
         
         console.log("Default template uploaded successfully with anon key");
         uploadSuccess = true;
+        
+        // Verify URL
+        const { data: publicUrlData } = supabase.storage
+          .from('agreements')
+          .getPublicUrl(safeFileName);
+          
+        // Fix double slash issue if present
+        let fixedUrl = publicUrlData.publicUrl;
+        fixedUrl = fixedUrl.replace(/\/\/agreements\//, '/agreements/');
+          
+        console.log("Template public URL (anon client):", fixedUrl);
       } catch (e) {
         console.error("Exception uploading template with anon key:", e);
         return false;

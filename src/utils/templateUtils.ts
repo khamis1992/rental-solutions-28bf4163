@@ -27,8 +27,8 @@ export const uploadAgreementTemplate = async (
     // Create a service client with full permissions and direct control settings
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false
+        autoRefreshToken: false,
+        persistSession: false
       }
     });
     
@@ -58,7 +58,7 @@ export const uploadAgreementTemplate = async (
       return { success: false, error: `Failed to upload template: ${uploadError.message}` };
     }
     
-    // Get the public URL using service role client
+    // Get the public URL using service client
     const { data: urlData } = serviceClient.storage
       .from('agreements')
       .getPublicUrl(safeFileName);
@@ -98,93 +98,83 @@ export const downloadAgreementTemplate = async (): Promise<{
       return { success: false, error: bucketCheck.error || "Failed to ensure bucket exists" };
     }
     
-    // Try different filename formats to handle potential inconsistencies
-    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
+    // Primary filename with underscore (standardized format)
+    const primaryFileName = 'agreement_template.docx';
     
-    // First check if any template exists
-    const { data: files, error: listError } = await supabase.storage
-      .from('agreements')
-      .list();
+    // First attempt with service role client (more reliable)
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     
-    if (listError) {
-      console.error("Error listing files:", listError);
-      
-      // Try with service role key as fallback
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (supabaseServiceKey) {
-        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: serviceFiles, error: serviceListError } = await serviceClient.storage
+    if (supabaseServiceKey) {
+      try {
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        });
+        
+        // Try direct download with primary filename
+        const { data: fileData, error: downloadError } = await serviceClient.storage
           .from('agreements')
-          .list();
+          .download(primaryFileName);
           
-        if (serviceListError || !serviceFiles?.length) {
-          return { success: false, error: `Failed to list files with service key: ${serviceListError?.message || "No files found"}` };
+        if (!downloadError && fileData) {
+          console.log(`Successfully downloaded template: ${primaryFileName} with service client`);
+          return { success: true, data: fileData };
         }
         
-        // Try to download file with service client
-        for (const option of fileOptions) {
-          if (serviceFiles.some(file => file.name === option)) {
-            const { data, error: downloadError } = await serviceClient.storage
-              .from('agreements')
-              .download(option);
-              
-            if (!downloadError && data) {
-              console.log(`Successfully downloaded template with service client: ${option}`);
-              return { success: true, data };
-            }
+        // If primary file not found, try secondary variations
+        const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
+        
+        for (const fileName of alternateFiles) {
+          const { data: altData, error: altError } = await serviceClient.storage
+            .from('agreements')
+            .download(fileName);
+            
+          if (!altError && altData) {
+            console.log(`Successfully downloaded alternate template: ${fileName} with service client`);
+            return { success: true, data: altData };
           }
         }
-      }
-      
-      return { success: false, error: `Failed to list files: ${listError.message}` };
-    }
-    
-    // Find which template file exists in storage
-    let templateFile = null;
-    for (const option of fileOptions) {
-      if (files?.some(file => file.name === option)) {
-        templateFile = option;
-        break;
-      }
-    }
-    
-    if (!templateFile) {
-      return { success: false, error: "Template does not exist in any known format" };
-    }
-    
-    console.log(`Found template file: ${templateFile}`);
-    
-    // Download the template that was found
-    const { data, error: downloadError } = await supabase.storage
-      .from('agreements')
-      .download(templateFile);
-    
-    if (downloadError || !data) {
-      console.error("Failed to download with regular client, trying service client...");
-      
-      // Try with service role key as fallback
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (supabaseServiceKey) {
-        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: serviceData, error: serviceDownloadError } = await serviceClient.storage
-          .from('agreements')
-          .download(templateFile);
-          
-        if (serviceDownloadError || !serviceData) {
-          return { success: false, error: `Failed to download with service key: ${serviceDownloadError?.message || "No data returned"}` };
-        }
         
-        return { success: true, data: serviceData };
+        // If we reach here, none of the templates were found with service client
+        console.error("No template file found with service client");
+      } catch (serviceErr) {
+        console.error("Error with service client download:", serviceErr);
       }
-      
-      return { success: false, error: `Failed to download template: ${downloadError?.message || "No data returned"}` };
     }
     
-    return { success: true, data };
+    // Fallback to regular client if service client failed
+    try {
+      const { data: fileData, error: downloadError } = await supabase.storage
+        .from('agreements')
+        .download(primaryFileName);
+        
+      if (!downloadError && fileData) {
+        console.log(`Successfully downloaded template: ${primaryFileName} with regular client`);
+        return { success: true, data: fileData };
+      }
+      
+      // If primary file not found, try secondary variations
+      const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
+      
+      for (const fileName of alternateFiles) {
+        const { data: altData, error: altError } = await supabase.storage
+          .from('agreements')
+          .download(fileName);
+          
+        if (!altError && altData) {
+          console.log(`Successfully downloaded alternate template: ${fileName} with regular client`);
+          return { success: true, data: altData };
+        }
+      }
+    } catch (err) {
+      console.error("Error downloading template with regular client:", err);
+    }
+    
+    // If we reach here, all download attempts failed
+    return { success: false, error: "Template file not found or cannot be accessed" };
   } catch (error: any) {
     console.error("Error in downloadAgreementTemplate:", error);
     return { success: false, error: `Unexpected error: ${error.message}` };
@@ -203,84 +193,106 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
       return null;
     }
     
-    // Check which template file exists
-    const { data: files, error: listError } = await supabase.storage
-      .from('agreements')
-      .list();
+    // Primary filename (standardized format)
+    const primaryFileName = 'agreement_template.docx';
     
-    if (listError || !files) {
-      console.error("Error listing template files:", listError);
-      
-      // Try with service role key as fallback
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (supabaseServiceKey) {
-        const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { data: serviceFiles } = await serviceClient.storage
+    // Try with service role client first (more reliable)
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (supabaseServiceKey) {
+      try {
+        const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        });
+        
+        // First check if the primary file exists
+        const { data: fileList, error: listError } = await serviceClient.storage
           .from('agreements')
           .list();
           
-        if (serviceFiles?.length) {
-          // Try to find which template exists - prioritize agreement_template.docx
-          const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
-          let templateFile = null;
+        if (!listError && fileList) {
+          let templateFileName = null;
           
-          for (const option of fileOptions) {
-            if (serviceFiles.some(file => file.name === option)) {
-              templateFile = option;
-              break;
+          // Check for primary file first
+          if (fileList.some(file => file.name === primaryFileName)) {
+            templateFileName = primaryFileName;
+          } else {
+            // Fall back to alternate filenames
+            const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
+            for (const fileName of alternateFiles) {
+              if (fileList.some(file => file.name === fileName)) {
+                templateFileName = fileName;
+                break;
+              }
             }
           }
           
-          if (templateFile) {
-            // Get the URL for the template that exists
+          if (templateFileName) {
+            // Get the URL for the template
             const { data } = serviceClient.storage
               .from('agreements')
-              .getPublicUrl(templateFile);
+              .getPublicUrl(templateFileName);
             
             // Fix the double slash issue in the URL
             let fixedUrl = data.publicUrl;
-            if (fixedUrl.includes('//agreements/')) {
-              fixedUrl = fixedUrl.replace('//agreements/', '/agreements/');
-            }
+            fixedUrl = fixedUrl.replace(/\/\/agreements\//, '/agreements/');
             
+            console.log(`Successfully got template URL: ${fixedUrl}`);
             return fixedUrl;
           }
         }
-      }
-      
-      return null;
-    }
-    
-    // Try to find which template exists - prioritize agreement_template.docx (with underscore)
-    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
-    let templateFile = null;
-    
-    for (const option of fileOptions) {
-      if (files.some(file => file.name === option)) {
-        templateFile = option;
-        break;
+      } catch (serviceErr) {
+        console.error("Error with service client for URL:", serviceErr);
       }
     }
     
-    if (!templateFile) {
-      console.error("No template file found in agreements bucket");
-      return null;
+    // Fallback to regular client
+    try {
+      // Check if the primary file exists
+      const { data: fileList, error: listError } = await supabase.storage
+        .from('agreements')
+        .list();
+        
+      if (!listError && fileList) {
+        let templateFileName = null;
+        
+        // Check for primary file first
+        if (fileList.some(file => file.name === primaryFileName)) {
+          templateFileName = primaryFileName;
+        } else {
+          // Fall back to alternate filenames
+          const alternateFiles = ['agreement temp.docx', 'agreement_temp.docx'];
+          for (const fileName of alternateFiles) {
+            if (fileList.some(file => file.name === fileName)) {
+              templateFileName = fileName;
+              break;
+            }
+          }
+        }
+        
+        if (templateFileName) {
+          // Get the URL for the template
+          const { data } = supabase.storage
+            .from('agreements')
+            .getPublicUrl(templateFileName);
+          
+          // Fix the double slash issue in the URL
+          let fixedUrl = data.publicUrl;
+          fixedUrl = fixedUrl.replace(/\/\/agreements\//, '/agreements/');
+          
+          console.log(`Successfully got template URL with regular client: ${fixedUrl}`);
+          return fixedUrl;
+        }
+      }
+    } catch (err) {
+      console.error("Error getting template URL with regular client:", err);
     }
     
-    // Get the URL for the template that exists
-    const { data } = supabase.storage
-      .from('agreements')
-      .getPublicUrl(templateFile);
-    
-    // Fix the double slash issue in the URL
-    let fixedUrl = data.publicUrl;
-    if (fixedUrl.includes('//agreements/')) {
-      fixedUrl = fixedUrl.replace('//agreements/', '/agreements/');
-    }
-    
-    return fixedUrl;
+    return null;
   } catch (error) {
     console.error("Error getting template URL:", error);
     return null;
@@ -317,9 +329,14 @@ export const diagnoseTemplateUrl = async (): Promise<{
       };
     }
     
-    // Create service client for bucket operations
+    // Create service client for bucket operations with proper auth options
     const serviceClient = supabaseServiceKey 
-      ? createClient(supabaseUrl, supabaseServiceKey)
+      ? createClient(supabaseUrl, supabaseServiceKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        })
       : null;
     
     // Check if bucket exists using service role if available
@@ -356,10 +373,10 @@ export const diagnoseTemplateUrl = async (): Promise<{
       };
     }
     
-    // Get list of files
-    const { data: files, error: listError } = await (serviceClient || supabase).storage
-      .from('agreements')
-      .list();
+    // Get list of files with properly configured client
+    const { data: files, error: listError } = serviceClient 
+      ? await serviceClient.storage.from('agreements').list()
+      : await supabase.storage.from('agreements').list();
     
     if (listError) {
       issues.push(`Error listing files: ${listError.message}`);
@@ -387,13 +404,17 @@ export const diagnoseTemplateUrl = async (): Promise<{
       };
     }
     
-    // Check for template files with various names
-    const templateOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
-    const foundTemplates = files.filter(file => 
-      templateOptions.includes(file.name)
+    // Primary filename is agreement_template.docx (with underscore)
+    const primaryFileName = 'agreement_template.docx';
+    
+    // Check for template files with various names, prioritizing primary filename
+    const templateFiles = files.filter(file => 
+      file.name === primaryFileName || 
+      file.name === 'agreement temp.docx' || 
+      file.name === 'agreement_temp.docx'
     );
     
-    if (foundTemplates.length === 0) {
+    if (templateFiles.length === 0) {
       issues.push("No template files found with expected names");
       
       const fileNames = files.map(file => file.name).join(", ");
@@ -410,25 +431,36 @@ export const diagnoseTemplateUrl = async (): Promise<{
     }
     
     // Get URL for the first found template
-    const templateName = foundTemplates[0].name;
+    let templateName = templateFiles[0].name;
+    
+    // If primary file exists, prioritize it
+    const primaryFile = templateFiles.find(file => file.name === primaryFileName);
+    if (primaryFile) {
+      templateName = primaryFile.name;
+    }
+    
+    // Get the URL with properly configured client
     const { data } = (serviceClient || supabase).storage
       .from('agreements')
       .getPublicUrl(templateName);
     
+    // Fix the double slash issue in the URL
     let url = data.publicUrl;
+    url = url.replace(/\/\/agreements\//, '/agreements/');
     
-    // Check URL format for issues
-    if (url.includes('//agreements/')) {
-      issues.push("Double slash detected in URL path");
-      suggestions.push("This is a known formatting issue that will be fixed automatically");
-      
-      // Provide a fixed URL
-      url = url.replace('//agreements/', '/agreements/');
+    const originalUrl = data.publicUrl;
+    if (originalUrl !== url) {
+      issues.push("Double slash detected in URL path and fixed");
+      suggestions.push("The URL was automatically corrected from double slash to single slash");
     }
     
     // Try to verify the URL by making a HEAD request to it
     try {
-      const testResponse = await fetch(url, { method: 'HEAD' });
+      const testResponse = await fetch(url, { 
+        method: 'HEAD',
+        cache: 'no-store' // Avoid caching issues
+      });
+      
       if (!testResponse.ok) {
         issues.push(`Template URL returns ${testResponse.status} status`);
         suggestions.push("Check if the file is publicly accessible in Supabase storage");
@@ -437,6 +469,7 @@ export const diagnoseTemplateUrl = async (): Promise<{
       }
     } catch (fetchError: any) {
       issues.push(`Unable to access template URL: ${fetchError.message}`);
+      suggestions.push("Check network connectivity and CORS settings");
     }
     
     return { 
@@ -470,7 +503,7 @@ export const validateTemplateAccess = async (): Promise<{
     // Try to fetch the template directly
     const response = await fetch(url, {
       method: 'HEAD', // Just check headers, don't download the whole file
-      cache: 'no-cache',
+      cache: 'no-cache', // Avoid caching issues
     });
     
     if (!response.ok) {

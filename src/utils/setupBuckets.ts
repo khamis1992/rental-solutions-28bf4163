@@ -79,18 +79,6 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         
         console.log('Successfully created agreements bucket!');
         
-        // Set public access policy for the bucket
-        try {
-          // Create a public access policy for the bucket
-          const { error: policyError } = await serviceClient.storage.from('agreements').createSignedUrl('dummy-file.txt', 60);
-          
-          if (policyError && !policyError.message.includes('not found')) {
-            console.warn('Warning: Possible issue with bucket policies:', policyError);
-          }
-        } catch (policyErr) {
-          console.warn('Warning when setting up bucket policy:', policyErr);
-        }
-        
         // Test if bucket is accessible by uploading a test file
         const testFile = new Blob(['test'], { type: 'text/plain' });
         
@@ -113,7 +101,23 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
           .from('agreements')
           .getPublicUrl('test-access.txt');
         
-        console.log('Test file public URL:', urlData.publicUrl);
+        let publicUrl = urlData.publicUrl;
+        // Fix double slash issue if present
+        publicUrl = publicUrl.replace(/\/\/agreements\//, '/agreements/');
+        
+        console.log('Test file public URL:', publicUrl);
+        
+        // Test URL by fetching it
+        try {
+          const response = await fetch(publicUrl, { method: 'HEAD' });
+          if (!response.ok) {
+            console.warn(`URL access test failed: ${response.status}`);
+          } else {
+            console.log('URL access test succeeded!');
+          }
+        } catch (fetchErr) {
+          console.warn('URL fetch test error:', fetchErr);
+        }
         
         return { success: true };
       } catch (serviceErr) {
@@ -148,15 +152,43 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       
       console.log('Successfully listed files with service client:', serviceFiles);
       
-      // Try to add public policy to bucket if needed
-      try {
-        const { data: urlData } = serviceClient.storage
+      // If no test file exists, create one to verify write access
+      if (!serviceFiles.some(file => file.name === 'test-access.txt')) {
+        console.log('Creating test file to verify write access...');
+        const testFile = new Blob(['test-access'], { type: 'text/plain' });
+        
+        const { error: uploadError } = await serviceClient.storage
           .from('agreements')
-          .getPublicUrl('test-file.txt');
+          .upload('test-access.txt', testFile, { upsert: true });
           
-        console.log('Public URL generation successful:', urlData.publicUrl);
-      } catch (policyErr) {
-        console.log('Note: Attempted to verify public policy:', policyErr);
+        if (uploadError) {
+          console.warn('Write access test failed:', uploadError);
+        } else {
+          console.log('Write access test succeeded!');
+        }
+      }
+      
+      // Get and test public URL
+      const { data: urlData } = serviceClient.storage
+        .from('agreements')
+        .getPublicUrl('test-access.txt');
+        
+      let publicUrl = urlData.publicUrl;
+      // Fix double slash issue if present
+      publicUrl = publicUrl.replace(/\/\/agreements\//, '/agreements/');
+        
+      console.log('Public URL test:', publicUrl);
+      
+      // Test URL by fetching it
+      try {
+        const response = await fetch(publicUrl, { method: 'HEAD' });
+        if (!response.ok) {
+          console.warn(`URL access test failed: ${response.status}`);
+        } else {
+          console.log('URL access test succeeded!');
+        }
+      } catch (fetchErr) {
+        console.warn('URL fetch test error:', fetchErr);
       }
       
       return { success: true, details: { files: serviceFiles } };
@@ -199,8 +231,8 @@ export const diagnoseStorageIssues = async (): Promise<{
       // IMPORTANT: Create service client with correct auth options to fix signature issues
       serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
         auth: {
-          persistSession: false,
-          autoRefreshToken: false
+          autoRefreshToken: false,
+          persistSession: false
         }
       });
       console.log('Created service client for diagnosis');
@@ -263,6 +295,7 @@ export const diagnoseStorageIssues = async (): Promise<{
     // Test URL generation
     let canGetPublicUrl = false;
     let urlError = null;
+    let publicUrl = null;
     
     try {
       if (bucketExists) {
@@ -270,6 +303,16 @@ export const diagnoseStorageIssues = async (): Promise<{
         const publicUrlData = client.storage.from('agreements').getPublicUrl('test.txt');
         
         canGetPublicUrl = !!publicUrlData && !!publicUrlData.data && !!publicUrlData.data.publicUrl;
+        
+        if (canGetPublicUrl) {
+          publicUrl = publicUrlData.data.publicUrl;
+          
+          // Check and fix double slash
+          if (publicUrl.includes('//agreements/')) {
+            publicUrl = publicUrl.replace('//agreements/', '/agreements/');
+            console.log('Fixed double slash in URL:', publicUrl);
+          }
+        }
         
         if (!canGetPublicUrl) {
           urlError = 'Failed to generate public URL';
@@ -295,6 +338,22 @@ export const diagnoseStorageIssues = async (): Promise<{
       permissionError = error;
     }
     
+    // Test URL access if we have a URL
+    let canAccessUrl = false;
+    let accessUrlError = null;
+    
+    if (publicUrl) {
+      try {
+        const response = await fetch(publicUrl, { method: 'HEAD' });
+        canAccessUrl = response.ok;
+        if (!response.ok) {
+          accessUrlError = `HTTP Status: ${response.status}`;
+        }
+      } catch (error) {
+        accessUrlError = error;
+      }
+    }
+    
     return {
       bucketExists,
       canUpload,
@@ -304,7 +363,10 @@ export const diagnoseStorageIssues = async (): Promise<{
         listError,
         uploadError,
         urlError,
-        permissionError
+        permissionError,
+        publicUrl,
+        canAccessUrl,
+        accessUrlError
       }
     };
   } catch (error) {
