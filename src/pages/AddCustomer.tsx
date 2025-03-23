@@ -20,6 +20,9 @@ const AddCustomer = () => {
       navigate('/customers');
     } catch (error) {
       console.error('Error creating customer:', error);
+      toast('Failed to create customer', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
     } finally {
       setIsSubmitting(false);
     }

@@ -58,8 +58,6 @@ export const useCustomers = () => {
         const processedCustomers = (data || []).map(profile => ({
           id: profile.id,
           full_name: profile.full_name || '',
-          first_name: profile.first_name || profile.full_name?.split(' ')[0] || '',
-          last_name: profile.last_name || profile.full_name?.split(' ').slice(1).join(' ') || '',
           email: profile.email || '',
           phone: profile.phone_number || '',
           driver_license: profile.driver_license || '',
@@ -84,12 +82,12 @@ export const useCustomers = () => {
   // Create a new customer
   const createCustomer = useMutation({
     mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
+      console.log('Creating new customer with data:', newCustomer);
+      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .insert([{ 
-          full_name: newCustomer.full_name || `${newCustomer.first_name} ${newCustomer.last_name}`.trim(),
-          first_name: newCustomer.first_name,
-          last_name: newCustomer.last_name,
+          full_name: newCustomer.full_name,
           email: newCustomer.email,
           phone_number: newCustomer.phone, // Map to phone_number in profiles
           address: newCustomer.address,
@@ -103,7 +101,12 @@ export const useCustomers = () => {
         .select()
         .single();
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error('Error creating customer:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('Created customer:', data);
       return data as Customer;
     },
     onSuccess: () => {
@@ -121,9 +124,7 @@ export const useCustomers = () => {
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .update({ 
-          full_name: customer.full_name || `${customer.first_name} ${customer.last_name}`.trim(),
-          first_name: customer.first_name,
-          last_name: customer.last_name,
+          full_name: customer.full_name,
           email: customer.email,
           phone_number: customer.phone, // Map to phone_number in profiles
           address: customer.address,
@@ -197,8 +198,6 @@ export const useCustomers = () => {
       const customerData: Customer = {
         id: data.id,
         full_name: data.full_name || '',
-        first_name: data.first_name || data.full_name?.split(' ')[0] || '',
-        last_name: data.last_name || data.full_name?.split(' ').slice(1).join(' ') || '',
         email: data.email || '',
         phone: data.phone_number || '',
         driver_license: data.driver_license || '',

@@ -3712,7 +3712,7 @@ export type Database = {
           daily_late_fee: number | null
           daily_late_fine: number | null
           damage_penalty_rate: number | null
-          down_payment: number | null
+          deposit_amount: number | null
           early_payoff_allowed: boolean | null
           end_date: string | null
           fuel_penalty_rate: number | null
@@ -3759,7 +3759,7 @@ export type Database = {
           daily_late_fee?: number | null
           daily_late_fine?: number | null
           damage_penalty_rate?: number | null
-          down_payment?: number | null
+          deposit_amount?: number | null
           early_payoff_allowed?: boolean | null
           end_date?: string | null
           fuel_penalty_rate?: number | null
@@ -3806,7 +3806,7 @@ export type Database = {
           daily_late_fee?: number | null
           daily_late_fine?: number | null
           damage_penalty_rate?: number | null
-          down_payment?: number | null
+          deposit_amount?: number | null
           early_payoff_allowed?: boolean | null
           end_date?: string | null
           fuel_penalty_rate?: number | null
