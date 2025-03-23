@@ -90,8 +90,10 @@ const CustomerLegalObligations: React.FC = () => {
   const [showDetails, setShowDetails] = useState<boolean>(false);
 
   // Fetch data with retries
-  const fetchObligations = async () => {
-    setLoading(true);
+  const fetchObligations = async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setLoading(true);
+    }
     setError(null);
     setPartialSuccess(false);
     
@@ -239,10 +241,11 @@ const CustomerLegalObligations: React.FC = () => {
     }
   };
   
-  // Force refresh with loading state
-  const handleRefresh = () => {
+  // Force refresh with loading state - Fix: Added preventDefault to avoid page refreshes
+  const handleRefresh = (e: React.MouseEvent) => {
+    e.preventDefault();
     setRetryCount(0);
-    fetchObligations();
+    fetchObligations(true);
   };
   
   // Group obligations by customer for the customer list view

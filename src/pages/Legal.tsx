@@ -7,6 +7,11 @@ import CustomerLegalObligations from '@/components/legal/CustomerLegalObligation
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Legal = () => {
+  const handleTabChange = (value: string) => {
+    // This ensures we don't refresh the page when changing tabs
+    console.log(`Tab changed to: ${value}`);
+  };
+
   return (
     <PageContainer
       title="Legal Management"
@@ -18,7 +23,7 @@ const Legal = () => {
         icon={Gavel}
       />
       
-      <Tabs defaultValue="obligations" className="space-y-4">
+      <Tabs defaultValue="obligations" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="obligations">
             <FileText className="h-4 w-4 mr-2" />
