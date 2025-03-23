@@ -32,7 +32,6 @@ const AddAgreement = () => {
         setCheckingTemplate(true);
         setTemplateError(null);
 
-        // First, check the specific URL the user provided
         const specificUrl = "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx";
         console.log("Checking specific URL: ", specificUrl);
         const specificCheck = await checkSpecificTemplateUrl(specificUrl);
@@ -51,7 +50,6 @@ const AddAgreement = () => {
         if (!result.success) {
           console.error("Error setting up storage buckets:", result.error);
 
-          // Special handling for RLS errors
           if (result.error?.includes("row-level security") || result.error?.includes("RLS")) {
             setTemplateError("Permission error: Please create the 'agreements' bucket manually in the Supabase dashboard. Use the service role key for storage operations.");
           } else {
@@ -116,7 +114,11 @@ const AddAgreement = () => {
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase.from("leases").insert([formData]).select("id").single();
+      const { customer_data, vehicle_data, ...leaseData } = formData;
+      
+      console.log("Submitting lease data:", leaseData);
+      
+      const { data, error } = await supabase.from("leases").insert([leaseData]).select("id").single();
       if (error) {
         throw error;
       }
@@ -126,6 +128,7 @@ const AddAgreement = () => {
       });
       navigate(`/agreements/${data.id}`);
     } catch (error: any) {
+      console.error("Error creating agreement:", error);
       toast({
         title: "Error creating agreement",
         description: error.message || "Something went wrong.",
@@ -151,11 +154,9 @@ const AddAgreement = () => {
           description: "The agreement template has been successfully uploaded."
         });
 
-        // Refresh template status
         setStandardTemplateExists(true);
         setTemplateError(null);
 
-        // Update URL diagnosis
         const urlDiagnosis = await diagnoseTemplateUrl();
         setTemplateUrlDiagnosis(urlDiagnosis);
       } else {
@@ -175,7 +176,6 @@ const AddAgreement = () => {
       });
     } finally {
       setIsUploading(false);
-      // Reset the file input
       event.target.value = '';
     }
   };
@@ -186,7 +186,6 @@ const AddAgreement = () => {
       description="Create a new rental agreement with a customer" 
       backLink="/agreements"
     >
-      {/* Render template check status */}
       {specificUrlCheck && (
         <Alert className="mb-4">
           <AlertCircle className="h-4 w-4" />
@@ -292,7 +291,6 @@ const AddAgreement = () => {
         </Alert>
       )}
       
-      {/* Show success message when template is ready */}
       {((standardTemplateExists || (specificUrlCheck && specificUrlCheck.accessible)) && !templateError) && (
         <Alert className="mb-4 bg-green-50 border-green-500">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
