@@ -11,15 +11,23 @@ export const generateLegalCustomerReport = async (
   customerName: string,
   obligations: CustomerObligation[]
 ): Promise<jsPDF> => {
-  // Fetch customer details
-  const { data: customer, error: customerError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', customerId)
-    .single();
-
-  if (customerError) {
-    console.error("Error fetching customer details:", customerError);
+  let customer = null;
+  
+  try {
+    // Fetch customer details
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', customerId)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching customer details:", error);
+    } else {
+      customer = data;
+    }
+  } catch (error) {
+    console.error("Error fetching customer details:", error);
   }
   
   // Initialize the PDF document
