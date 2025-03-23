@@ -58,35 +58,45 @@ export const fetchLegalObligations = async (): Promise<{
       
       if (overduePayments) {
         for (const payment of overduePayments) {
-          // Check if required nested data exists before accessing properties
-          if (payment.leases && 
-              payment.leases.profiles && 
-              typeof payment.leases.profiles === 'object' && 
-              'id' in payment.leases.profiles && 
-              'full_name' in payment.leases.profiles &&
-              payment.leases.profiles?.id !== null && 
-              payment.leases.profiles?.full_name !== null) {
-            
-            const daysOverdue = payment.days_overdue || 0;
-            const customerData = payment.leases.profiles;
-            
-            if (customerData) {
-              allObligations.push({
-                id: payment.id,
-                customerId: customerData.id as string,
-                customerName: customerData.full_name as string,
-                obligationType: 'payment' as ObligationType,
-                amount: payment.balance || 0,
-                dueDate: new Date(payment.payment_date),
-                description: `Overdue rent payment (Agreement #${payment.leases.agreement_number})`,
-                urgency: determineUrgency(daysOverdue),
-                status: 'Overdue Payment',
-                daysOverdue
-              });
-            }
-          } else {
-            console.log(`Skipping payment ${payment.id} - missing customer data`);
+          // Make sure leases exists
+          if (!payment.leases) {
+            console.log(`Skipping payment ${payment.id} - missing lease data`);
+            continue;
           }
+          
+          // Make sure profiles exists in leases
+          if (!payment.leases.profiles) {
+            console.log(`Skipping payment ${payment.id} - missing profile data`);
+            continue;
+          }
+          
+          // Type guard to ensure we have proper profile data
+          const profileData = payment.leases.profiles;
+          if (typeof profileData !== 'object' || 
+              !profileData || 
+              !('id' in profileData) || 
+              !('full_name' in profileData) ||
+              profileData.id === null || 
+              profileData.full_name === null) {
+            console.log(`Skipping payment ${payment.id} - invalid profile data`);
+            continue;
+          }
+          
+          const daysOverdue = payment.days_overdue || 0;
+          
+          // Safely access customer data after validating
+          allObligations.push({
+            id: payment.id,
+            customerId: profileData.id as string,
+            customerName: profileData.full_name as string,
+            obligationType: 'payment' as ObligationType,
+            amount: payment.balance || 0,
+            dueDate: new Date(payment.payment_date),
+            description: `Overdue rent payment (Agreement #${payment.leases.agreement_number})`,
+            urgency: determineUrgency(daysOverdue),
+            status: 'Overdue Payment',
+            daysOverdue
+          });
         }
       }
     } catch (error) {
@@ -128,37 +138,47 @@ export const fetchLegalObligations = async (): Promise<{
       
       if (trafficFines) {
         for (const fine of trafficFines) {
-          // Check if required nested data exists before accessing properties
-          if (fine.leases && 
-              fine.leases.profiles && 
-              typeof fine.leases.profiles === 'object' && 
-              'id' in fine.leases.profiles && 
-              'full_name' in fine.leases.profiles &&
-              fine.leases.profiles?.id !== null && 
-              fine.leases.profiles?.full_name !== null) {
-            
-            const violationDate = new Date(fine.violation_date);
-            const today = new Date();
-            const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
-            const customerData = fine.leases.profiles;
-            
-            if (customerData) {
-              allObligations.push({
-                id: fine.id,
-                customerId: customerData.id as string,
-                customerName: customerData.full_name as string,
-                obligationType: 'traffic_fine' as ObligationType,
-                amount: fine.fine_amount || 0,
-                dueDate: violationDate,
-                description: `Unpaid traffic fine (Agreement #${fine.leases.agreement_number})`,
-                urgency: determineUrgency(daysOverdue),
-                status: 'Unpaid Fine',
-                daysOverdue
-              });
-            }
-          } else {
-            console.log(`Skipping fine ${fine.id} - missing customer data`);
+          // Make sure leases exists
+          if (!fine.leases) {
+            console.log(`Skipping fine ${fine.id} - missing lease data`);
+            continue;
           }
+          
+          // Make sure profiles exists in leases
+          if (!fine.leases.profiles) {
+            console.log(`Skipping fine ${fine.id} - missing profile data`);
+            continue;
+          }
+          
+          // Type guard to ensure we have proper profile data
+          const profileData = fine.leases.profiles;
+          if (typeof profileData !== 'object' || 
+              !profileData || 
+              !('id' in profileData) || 
+              !('full_name' in profileData) ||
+              profileData.id === null || 
+              profileData.full_name === null) {
+            console.log(`Skipping fine ${fine.id} - invalid profile data`);
+            continue;
+          }
+          
+          const violationDate = new Date(fine.violation_date);
+          const today = new Date();
+          const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Safely access customer data after validating
+          allObligations.push({
+            id: fine.id,
+            customerId: profileData.id as string,
+            customerName: profileData.full_name as string,
+            obligationType: 'traffic_fine' as ObligationType,
+            amount: fine.fine_amount || 0,
+            dueDate: violationDate,
+            description: `Unpaid traffic fine (Agreement #${fine.leases.agreement_number})`,
+            urgency: determineUrgency(daysOverdue),
+            status: 'Unpaid Fine',
+            daysOverdue
+          });
         }
       }
     } catch (error) {
@@ -195,41 +215,45 @@ export const fetchLegalObligations = async (): Promise<{
       
       if (legalCases) {
         for (const legalCase of legalCases) {
-          // Check if required nested data exists before accessing properties
-          if (legalCase.profiles && 
-              typeof legalCase.profiles === 'object' && 
-              'full_name' in legalCase.profiles &&
-              legalCase.profiles?.full_name !== null) {
-            
-            const createdDate = new Date(legalCase.created_at);
-            const today = new Date();
-            const daysOverdue = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-            
-            // Map priority to urgency
-            let urgency: UrgencyLevel = 'medium';
-            if (legalCase.priority === 'high') urgency = 'high';
-            if (legalCase.priority === 'urgent') urgency = 'critical';
-            if (legalCase.priority === 'low') urgency = 'low';
-            
-            const customerData = legalCase.profiles;
-            
-            if (customerData) {
-              allObligations.push({
-                id: legalCase.id,
-                customerId: legalCase.customer_id,
-                customerName: customerData.full_name as string,
-                obligationType: 'legal_case' as ObligationType,
-                amount: legalCase.amount_owed || 0,
-                dueDate: createdDate,
-                description: `Legal case (${legalCase.status.replace(/_/g, ' ')})`,
-                urgency,
-                status: 'Legal Case',
-                daysOverdue
-              });
-            }
-          } else {
-            console.log(`Skipping legal case ${legalCase.id} - missing customer data`);
+          // Make sure profiles exists
+          if (!legalCase.profiles) {
+            console.log(`Skipping legal case ${legalCase.id} - missing profile data`);
+            continue;
           }
+          
+          // Type guard to ensure we have proper profile data
+          const profileData = legalCase.profiles;
+          if (typeof profileData !== 'object' || 
+              !profileData || 
+              !('full_name' in profileData) ||
+              profileData.full_name === null) {
+            console.log(`Skipping legal case ${legalCase.id} - invalid profile data`);
+            continue;
+          }
+          
+          const createdDate = new Date(legalCase.created_at);
+          const today = new Date();
+          const daysOverdue = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+          
+          // Map priority to urgency
+          let urgency: UrgencyLevel = 'medium';
+          if (legalCase.priority === 'high') urgency = 'high';
+          if (legalCase.priority === 'urgent') urgency = 'critical';
+          if (legalCase.priority === 'low') urgency = 'low';
+          
+          // Safely access customer data after validating
+          allObligations.push({
+            id: legalCase.id,
+            customerId: legalCase.customer_id,
+            customerName: profileData.full_name as string,
+            obligationType: 'legal_case' as ObligationType,
+            amount: legalCase.amount_owed || 0,
+            dueDate: createdDate,
+            description: `Legal case (${String(legalCase.status).replace(/_/g, ' ')})`,
+            urgency,
+            status: 'Legal Case',
+            daysOverdue
+          });
         }
       }
     } catch (error) {
