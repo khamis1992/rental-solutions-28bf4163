@@ -169,18 +169,18 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
     
     // Final test to verify bucket is usable
     try {
-      const { data, error: urlError } = supabase.storage.from('agreements').getPublicUrl('test-file.txt');
+      const publicUrlData = supabase.storage.from('agreements').getPublicUrl('test-file.txt');
       
-      if (urlError) {
-        console.error('Error getting public URL:', urlError);
+      if (!publicUrlData || !publicUrlData.data || !publicUrlData.data.publicUrl) {
+        console.error('Error getting public URL: No data returned');
         return { 
           success: true, 
           error: 'Bucket exists but may have permission issues', 
-          details: urlError 
+          details: 'No public URL data returned' 
         };
       }
       
-      console.log('Public URL generation successful:', data.publicUrl);
+      console.log('Public URL generation successful:', publicUrlData.data.publicUrl);
       return { success: true };
     } catch (finalError) {
       console.error('Error in final bucket verification:', finalError);
@@ -233,9 +233,11 @@ export const diagnoseStorageIssues = async (): Promise<{
     let canGetPublicUrl = false;
     let urlError = null;
     try {
-      const { data, error } = supabase.storage.from('agreements').getPublicUrl('test.txt');
-      canGetPublicUrl = !error && !!data.publicUrl;
-      urlError = error;
+      const publicUrlData = supabase.storage.from('agreements').getPublicUrl('test.txt');
+      canGetPublicUrl = !!publicUrlData && !!publicUrlData.data && !!publicUrlData.data.publicUrl;
+      if (!canGetPublicUrl) {
+        urlError = 'Failed to generate public URL';
+      }
     } catch (error) {
       urlError = error;
     }
