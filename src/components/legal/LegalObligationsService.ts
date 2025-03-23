@@ -33,7 +33,7 @@ const fetchOverduePayments = async (): Promise<{
   try {
     console.log("Fetching overdue payments...");
     
-    // First fetch payments with lease_id that are overdue
+    // Step 1: First fetch payments that are overdue
     const { data: overduePayments, error: paymentsError } = await supabase
       .from('unified_payments')
       .select(`
@@ -60,10 +60,14 @@ const fetchOverduePayments = async (): Promise<{
       return { data: [], error: null };
     }
     
-    // Extract lease IDs for the second query
-    const leaseIds = overduePayments.map(payment => payment.lease_id);
+    // Step 2: Extract lease IDs for the second query
+    const leaseIds = overduePayments.map(payment => payment.lease_id).filter(Boolean);
     
-    // Fetch leases data for these payments
+    if (leaseIds.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    // Step 3: Fetch leases data separately
     const { data: leasesData, error: leasesError } = await supabase
       .from('leases')
       .select(`
@@ -78,16 +82,20 @@ const fetchOverduePayments = async (): Promise<{
       return { data: [], error: `Lease data fetch error: ${leasesError.message}` };
     }
     
-    // Create a map of lease IDs to lease data for quick lookup
+    // Step 4: Create a map of lease IDs to lease data for quick lookup
     const leaseMap = new Map();
     leasesData?.forEach(lease => {
       leaseMap.set(lease.id, lease);
     });
     
-    // Extract customer IDs for the third query
-    const customerIds = leasesData?.map(lease => lease.customer_id) || [];
+    // Step 5: Extract customer IDs for the third query
+    const customerIds = leasesData?.map(lease => lease.customer_id).filter(Boolean) || [];
     
-    // Fetch customer data
+    if (customerIds.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    // Step 6: Fetch customer data separately
     const { data: customersData, error: customersError } = await supabase
       .from('profiles')
       .select(`
@@ -101,31 +109,41 @@ const fetchOverduePayments = async (): Promise<{
       return { data: [], error: `Customer data fetch error: ${customersError.message}` };
     }
     
-    // Create a map of customer IDs to customer data for quick lookup
+    // Step 7: Create a map of customer IDs to customer data for quick lookup
     const customerMap = new Map();
     customersData?.forEach(customer => {
       customerMap.set(customer.id, customer);
     });
     
+    // Step 8: Combine all the data manually
     const result: CustomerObligation[] = [];
     
-    // Combine all the data
     for (const payment of overduePayments) {
+      if (!payment.lease_id) {
+        console.log(`Skipping payment ${payment.id} - missing lease ID`);
+        continue;
+      }
+      
       const lease = leaseMap.get(payment.lease_id);
       if (!lease) {
-        console.log(`Skipping payment ${payment.id} - missing lease data`);
+        console.log(`Skipping payment ${payment.id} - missing lease data for lease ID ${payment.lease_id}`);
+        continue;
+      }
+      
+      if (!lease.customer_id) {
+        console.log(`Skipping payment ${payment.id} - missing customer ID in lease ${lease.id}`);
         continue;
       }
       
       const customer = customerMap.get(lease.customer_id);
       if (!customer) {
-        console.log(`Skipping payment ${payment.id} - missing customer data`);
+        console.log(`Skipping payment ${payment.id} - missing customer data for customer ID ${lease.customer_id}`);
         continue;
       }
       
       // Type guard to ensure we have proper profile data
       if (!isValidProfile(customer)) {
-        console.log(`Skipping payment ${payment.id} - invalid profile data`);
+        console.log(`Skipping payment ${payment.id} - invalid profile data for customer ID ${lease.customer_id}`);
         continue;
       }
       
