@@ -13,20 +13,41 @@ const AddAgreement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [standardTemplateExists, setStandardTemplateExists] = useState<boolean>(true);
+  const [standardTemplateExists, setStandardTemplateExists] = useState<boolean>(false);
+  const [checkingTemplate, setCheckingTemplate] = useState<boolean>(true);
 
   // Check if the standard template exists on component mount
   useEffect(() => {
     const checkTemplate = async () => {
-      const exists = await checkStandardTemplateExists();
-      setStandardTemplateExists(exists);
-      
-      if (!exists) {
+      try {
+        console.log("Checking if standard template exists...");
+        setCheckingTemplate(true);
+        const exists = await checkStandardTemplateExists();
+        console.log("Template exists result:", exists);
+        setStandardTemplateExists(exists);
+        
+        if (!exists) {
+          toast({
+            title: "Template not found",
+            description: "The standard agreement template was not found in the database. Creating a new agreement will use the default template format.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Template found",
+            description: "The standard agreement template was found and will be used for new agreements.",
+          });
+        }
+      } catch (error) {
+        console.error("Error checking template:", error);
+        setStandardTemplateExists(false);
         toast({
-          title: "Template not found",
-          description: "The standard agreement template was not found in the database.",
+          title: "Error checking template",
+          description: "There was an error checking for the agreement template.",
           variant: "destructive"
         });
+      } finally {
+        setCheckingTemplate(false);
       }
     };
     
@@ -80,6 +101,7 @@ const AddAgreement = () => {
             onSubmit={handleSubmit} 
             isSubmitting={isSubmitting} 
             standardTemplateExists={standardTemplateExists}
+            isCheckingTemplate={checkingTemplate}
           />
         </CardContent>
       </Card>

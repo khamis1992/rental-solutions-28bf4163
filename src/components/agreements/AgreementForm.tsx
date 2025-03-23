@@ -37,6 +37,7 @@ interface AgreementFormProps {
   isSubmitting: boolean;
   initialData?: any;
   standardTemplateExists?: boolean;
+  isCheckingTemplate?: boolean;
 }
 
 const formSchema = z.object({
@@ -60,6 +61,7 @@ const AgreementForm = ({
   isSubmitting,
   initialData,
   standardTemplateExists = true,
+  isCheckingTemplate = false,
 }: AgreementFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -204,6 +206,20 @@ const AgreementForm = ({
   }, [rentAmount, depositAmount, durationMonths]);
 
   const renderTemplateStatus = () => {
+    if (isCheckingTemplate) {
+      return (
+        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md border border-blue-200 flex items-center">
+          <div className="w-8 h-8 rounded-full bg-blue-100 mr-3 flex items-center justify-center">
+            <InfoIcon className="h-4 w-4 text-blue-500" />
+          </div>
+          <div>
+            <p className="font-medium">Checking Template Status</p>
+            <p className="text-sm">Verifying if the standard agreement template exists...</p>
+          </div>
+        </div>
+      );
+    }
+    
     if (!standardTemplateExists) {
       return (
         <Alert variant="destructive" className="mt-4">

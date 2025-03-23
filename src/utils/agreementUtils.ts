@@ -176,20 +176,25 @@ export const isStorageConfigured = async (): Promise<boolean> => {
  */
 export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {
+    console.log("Checking for standard template 'agreement temp'");
+    
     const { data, error } = await supabase
       .from("agreement_templates")
-      .select("id")
+      .select("id, template_name")
       .eq("template_name", "agreement temp")
-      .single();
+      .maybeSingle(); // Use maybeSingle instead of single to avoid errors if not found
     
-    if (error || !data) {
-      console.error("Standard template not found:", error);
+    if (error) {
+      console.error("Error checking standard template:", error);
       return false;
     }
     
-    return true;
+    const exists = !!data;
+    console.log("Template exists:", exists, data);
+    
+    return exists;
   } catch (error) {
-    console.error("Error checking standard template:", error);
+    console.error("Exception checking standard template:", error);
     return false;
   }
 };
