@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   UploadCloud, 
@@ -67,6 +68,20 @@ export const TemplateUploader = ({
     setError(null);
     
     try {
+      // First, check if the bucket exists
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      
+      if (bucketsError) {
+        throw new Error(`Failed to check storage buckets: ${bucketsError.message}`);
+      }
+      
+      const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
+      
+      if (!bucketExists) {
+        throw new Error('Storage bucket "agreements" not found. Please contact your administrator.');
+      }
+      
+      // Continue with file upload
       const fileExt = file.name.split('.').pop();
       const fileName = `template_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `agreement_templates/${fileName}`;
@@ -118,7 +133,7 @@ export const TemplateUploader = ({
       )}
       
       {currentTemplate && (
-        <Alert className="bg-green-50 text-green-800 border-green-200">
+        <Alert variant="default" className="bg-green-50 text-green-800 border-green-200">
           <CheckCircle className="h-4 w-4 text-green-500" />
           <AlertTitle>Template Ready</AlertTitle>
           <AlertDescription className="flex items-center justify-between">

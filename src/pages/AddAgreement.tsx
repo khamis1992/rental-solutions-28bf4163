@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,12 +9,32 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { TemplateUploader } from "@/components/agreements/TemplateUploader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ensureStorageBuckets } from "@/utils/setupBuckets";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [templateUrl, setTemplateUrl] = useState<string | null>(null);
+  const [isBucketReady, setIsBucketReady] = useState(false);
+
+  // Check and create buckets if needed on component mount
+  useEffect(() => {
+    const setupBuckets = async () => {
+      const success = await ensureStorageBuckets();
+      setIsBucketReady(success);
+      
+      if (!success) {
+        toast({
+          title: "Storage setup issue",
+          description: "There was a problem setting up storage. Template uploads may not work.",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    setupBuckets();
+  }, [toast]);
 
   const handleTemplateUpload = (url: string) => {
     setTemplateUrl(url);
@@ -91,6 +111,11 @@ const AddAgreement = () => {
               <CardTitle>Upload Agreement Template</CardTitle>
             </CardHeader>
             <CardContent>
+              {!isBucketReady && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 mb-4 rounded-md">
+                  Setting up storage... Template uploads might not work until this is complete.
+                </div>
+              )}
               <TemplateUploader 
                 onUploadComplete={handleTemplateUpload} 
                 currentTemplate={templateUrl} 
