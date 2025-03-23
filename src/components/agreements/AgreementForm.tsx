@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,11 +27,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, CheckCircle, InfoIcon, FileText, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
-import { CheckCircle, InfoIcon, FileText, AlertCircle, AlertTitle, AlertDescription } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
@@ -265,32 +266,32 @@ const AgreementForm = ({
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="border p-3 rounded-md">
                 <h5 className="font-semibold mb-2">Customer Data</h5>
-                <p><code>{{CUSTOMER_NAME}}</code>: {selectedCustomer.full_name}</p>
-                <p><code>{{CUSTOMER_EMAIL}}</code>: {selectedCustomer.email}</p>
-                <p><code>{{CUSTOMER_PHONE}}</code>: {selectedCustomer.phone_number}</p>
-                <p><code>{{CUSTOMER_LICENSE}}</code>: {selectedCustomer.driver_license}</p>
-                <p><code>{{CUSTOMER_NATIONALITY}}</code>: {selectedCustomer.nationality}</p>
+                <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
+                <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
+                <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
+                <p><code>{"{{CUSTOMER_LICENSE}}"}</code>: {selectedCustomer.driver_license}</p>
+                <p><code>{"{{CUSTOMER_NATIONALITY}}"}</code>: {selectedCustomer.nationality}</p>
               </div>
               
               <div className="border p-3 rounded-md">
                 <h5 className="font-semibold mb-2">Vehicle Data</h5>
-                <p><code>{{VEHICLE_MAKE}}</code>: {selectedVehicle.make}</p>
-                <p><code>{{VEHICLE_MODEL}}</code>: {selectedVehicle.model}</p>
-                <p><code>{{VEHICLE_PLATE}}</code>: {selectedVehicle.license_plate}</p>
-                <p><code>{{VEHICLE_VIN}}</code>: {selectedVehicle.vin}</p>
-                <p><code>{{VEHICLE_YEAR}}</code>: {selectedVehicle.year}</p>
+                <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
+                <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
+                <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
+                <p><code>{"{{VEHICLE_VIN}}"}</code>: {selectedVehicle.vin}</p>
+                <p><code>{"{{VEHICLE_YEAR}}"}</code>: {selectedVehicle.year}</p>
               </div>
             </div>
             
             <div className="mt-4 border p-3 rounded-md">
               <h5 className="font-semibold mb-2">Agreement Data</h5>
               <div className="grid grid-cols-2 gap-2">
-                <p><code>{{AGREEMENT_NUMBER}}</code>: {form.getValues("agreement_number")}</p>
-                <p><code>{{START_DATE}}</code>: {format(form.getValues("start_date"), "PPP")}</p>
-                <p><code>{{END_DATE}}</code>: {format(form.getValues("end_date"), "PPP")}</p>
-                <p><code>{{RENT_AMOUNT}}</code>: {form.getValues("rent_amount")} QAR</p>
-                <p><code>{{DEPOSIT_AMOUNT}}</code>: {form.getValues("deposit_amount")} QAR</p>
-                <p><code>{{TOTAL_AMOUNT}}</code>: {form.getValues("total_amount")} QAR</p>
+                <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
+                <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
+                <p><code>{"{{END_DATE}}"}</code>: {format(form.getValues("end_date"), "PPP")}</p>
+                <p><code>{"{{RENT_AMOUNT}}"}</code>: {form.getValues("rent_amount")} QAR</p>
+                <p><code>{"{{DEPOSIT_AMOUNT}}"}</code>: {form.getValues("deposit_amount")} QAR</p>
+                <p><code>{"{{TOTAL_AMOUNT}}"}</code>: {form.getValues("total_amount")} QAR</p>
               </div>
             </div>
           </div>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   UploadCloud, 
@@ -37,14 +36,12 @@ export const TemplateUploader = ({
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       
-      // Check file type
       if (!allowedFileTypes.includes(selectedFile.type)) {
         setError("Invalid file type. Please upload a PDF, Word document, or text file.");
         setFile(null);
         return;
       }
       
-      // Check file size (max 5MB)
       if (selectedFile.size > 5 * 1024 * 1024) {
         setError("File is too large. Maximum size is 5MB.");
         setFile(null);
@@ -54,7 +51,6 @@ export const TemplateUploader = ({
       setFile(selectedFile);
       setError(null);
       
-      // Generate preview for supported file types
       if (selectedFile.type === "application/pdf") {
         const url = URL.createObjectURL(selectedFile);
         setPreview(url);
@@ -71,12 +67,10 @@ export const TemplateUploader = ({
     setError(null);
     
     try {
-      // Create a unique file name
       const fileExt = file.name.split('.').pop();
       const fileName = `template_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
       const filePath = `agreement_templates/${fileName}`;
       
-      // Upload file to Supabase Storage
       const { error: uploadError, data } = await supabase.storage
         .from('agreements')
         .upload(filePath, file);
@@ -85,15 +79,12 @@ export const TemplateUploader = ({
         throw uploadError;
       }
       
-      // Get public URL for the uploaded file
       const { data: { publicUrl } } = supabase.storage
         .from('agreements')
         .getPublicUrl(filePath);
       
-      // Notify parent component of successful upload
       onUploadComplete(publicUrl);
       
-      // Clean up file preview
       if (preview) {
         URL.revokeObjectURL(preview);
         setPreview(null);
@@ -127,7 +118,7 @@ export const TemplateUploader = ({
       )}
       
       {currentTemplate && (
-        <Alert variant="success" className="bg-green-50 text-green-800 border-green-200">
+        <Alert className="bg-green-50 text-green-800 border-green-200">
           <CheckCircle className="h-4 w-4 text-green-500" />
           <AlertTitle>Template Ready</AlertTitle>
           <AlertDescription className="flex items-center justify-between">
@@ -221,7 +212,7 @@ export const TemplateUploader = ({
       <div className="mt-6">
         <h4 className="font-medium mb-2">Template Guidelines</h4>
         <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-          <li>Use placeholders like {{CUSTOMER_NAME}}, {{VEHICLE_MODEL}}, etc.</li>
+          <li>Use placeholders like {"{{CUSTOMER_NAME}}"}, {"{{VEHICLE_MODEL}}"}, etc.</li>
           <li>The system will automatically replace placeholders with agreement data</li>
           <li>Include sections for Terms & Conditions, Signatures, and Payment Schedule</li>
           <li>Add your company logo and branding to the template</li>
