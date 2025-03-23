@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Settings, Search, User } from 'lucide-react';
+import { Bell, Search } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -11,7 +11,8 @@ const Header = () => {
     loading, 
     markAsRead, 
     markAllAsRead, 
-    dismissNotification 
+    dismissNotification,
+    hasNewNotification
   } = useNotifications();
 
   return (
@@ -31,7 +32,7 @@ const Header = () => {
       </div>
       
       <div className="flex items-center space-x-4">
-        <div className="notification-bell">
+        <div className={`notification-bell ${hasNewNotification ? 'notification-bell-ring' : ''}`}>
           <NotificationDropdown 
             notifications={notifications} 
             onMarkAsRead={markAsRead}
