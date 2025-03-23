@@ -33,6 +33,7 @@ const fetchOverduePayments = async (): Promise<{
   try {
     console.log("Fetching overdue payments...");
     
+    // First fetch payments with lease_id that are overdue
     const { data: overduePayments, error: paymentsError } = await supabase
       .from('unified_payments')
       .select(`
@@ -42,15 +43,7 @@ const fetchOverduePayments = async (): Promise<{
         balance, 
         payment_date, 
         days_overdue,
-        lease_id,
-        leases:lease_id (
-          customer_id, 
-          agreement_number,
-          customer:customer_id (
-            id, 
-            full_name
-          )
-        )
+        lease_id
       `)
       .eq('status', 'pending')
       .gt('days_overdue', 0)
@@ -63,46 +56,93 @@ const fetchOverduePayments = async (): Promise<{
     
     console.log(`Fetched ${overduePayments?.length || 0} overdue payments`);
     
+    if (!overduePayments || overduePayments.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    // Extract lease IDs for the second query
+    const leaseIds = overduePayments.map(payment => payment.lease_id);
+    
+    // Fetch leases data for these payments
+    const { data: leasesData, error: leasesError } = await supabase
+      .from('leases')
+      .select(`
+        id,
+        agreement_number,
+        customer_id
+      `)
+      .in('id', leaseIds);
+    
+    if (leasesError) {
+      console.error('Error fetching leases data:', leasesError);
+      return { data: [], error: `Lease data fetch error: ${leasesError.message}` };
+    }
+    
+    // Create a map of lease IDs to lease data for quick lookup
+    const leaseMap = new Map();
+    leasesData?.forEach(lease => {
+      leaseMap.set(lease.id, lease);
+    });
+    
+    // Extract customer IDs for the third query
+    const customerIds = leasesData?.map(lease => lease.customer_id) || [];
+    
+    // Fetch customer data
+    const { data: customersData, error: customersError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        full_name
+      `)
+      .in('id', customerIds);
+    
+    if (customersError) {
+      console.error('Error fetching customers data:', customersError);
+      return { data: [], error: `Customer data fetch error: ${customersError.message}` };
+    }
+    
+    // Create a map of customer IDs to customer data for quick lookup
+    const customerMap = new Map();
+    customersData?.forEach(customer => {
+      customerMap.set(customer.id, customer);
+    });
+    
     const result: CustomerObligation[] = [];
     
-    if (overduePayments) {
-      for (const payment of overduePayments) {
-        // Make sure leases exists
-        if (!payment.leases) {
-          console.log(`Skipping payment ${payment.id} - missing lease data`);
-          continue;
-        }
-        
-        // Make sure customer exists in leases
-        if (!payment.leases.customer) {
-          console.log(`Skipping payment ${payment.id} - missing customer data`);
-          continue;
-        }
-        
-        // Type guard to ensure we have proper profile data
-        const profileData = payment.leases.customer;
-        
-        if (!isValidProfile(profileData)) {
-          console.log(`Skipping payment ${payment.id} - invalid profile data`);
-          continue;
-        }
-        
-        const daysOverdue = payment.days_overdue || 0;
-        
-        // Safely access customer data after validating with type guard
-        result.push({
-          id: payment.id,
-          customerId: profileData.id,
-          customerName: profileData.full_name,
-          obligationType: 'payment' as ObligationType,
-          amount: payment.balance || 0,
-          dueDate: new Date(payment.payment_date),
-          description: `Overdue rent payment (Agreement #${payment.leases.agreement_number})`,
-          urgency: determineUrgency(daysOverdue),
-          status: 'Overdue Payment',
-          daysOverdue
-        });
+    // Combine all the data
+    for (const payment of overduePayments) {
+      const lease = leaseMap.get(payment.lease_id);
+      if (!lease) {
+        console.log(`Skipping payment ${payment.id} - missing lease data`);
+        continue;
       }
+      
+      const customer = customerMap.get(lease.customer_id);
+      if (!customer) {
+        console.log(`Skipping payment ${payment.id} - missing customer data`);
+        continue;
+      }
+      
+      // Type guard to ensure we have proper profile data
+      if (!isValidProfile(customer)) {
+        console.log(`Skipping payment ${payment.id} - invalid profile data`);
+        continue;
+      }
+      
+      const daysOverdue = payment.days_overdue || 0;
+      
+      result.push({
+        id: payment.id,
+        customerId: customer.id,
+        customerName: customer.full_name,
+        obligationType: 'payment' as ObligationType,
+        amount: payment.balance || 0,
+        dueDate: new Date(payment.payment_date),
+        description: `Overdue rent payment (Agreement #${lease.agreement_number})`,
+        urgency: determineUrgency(daysOverdue),
+        status: 'Overdue Payment',
+        daysOverdue
+      });
     }
     
     return { data: result, error: null };
@@ -120,6 +160,7 @@ const fetchTrafficFines = async (): Promise<{
   try {
     console.log("Fetching traffic fines...");
     
+    // First fetch traffic fines with lease_id
     const { data: trafficFines, error: finesError } = await supabase
       .from('traffic_fines')
       .select(`
@@ -129,15 +170,7 @@ const fetchTrafficFines = async (): Promise<{
         violation_number,
         violation_charge,
         fine_location,
-        lease_id,
-        leases:lease_id (
-          customer_id, 
-          agreement_number,
-          customer:customer_id (
-            id, 
-            full_name
-          )
-        )
+        lease_id
       `)
       .eq('payment_status', 'pending')
       .order('violation_date', { ascending: false });
@@ -149,48 +182,104 @@ const fetchTrafficFines = async (): Promise<{
     
     console.log(`Fetched ${trafficFines?.length || 0} traffic fines`);
     
+    if (!trafficFines || trafficFines.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    // Extract lease IDs for the second query
+    const leaseIds = trafficFines.map(fine => fine.lease_id).filter(id => id != null);
+    
+    if (leaseIds.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    // Fetch leases data for these fines
+    const { data: leasesData, error: leasesError } = await supabase
+      .from('leases')
+      .select(`
+        id,
+        agreement_number,
+        customer_id
+      `)
+      .in('id', leaseIds);
+    
+    if (leasesError) {
+      console.error('Error fetching leases data for fines:', leasesError);
+      return { data: [], error: `Lease data fetch error: ${leasesError.message}` };
+    }
+    
+    // Create a map of lease IDs to lease data for quick lookup
+    const leaseMap = new Map();
+    leasesData?.forEach(lease => {
+      leaseMap.set(lease.id, lease);
+    });
+    
+    // Extract customer IDs for the third query
+    const customerIds = leasesData?.map(lease => lease.customer_id) || [];
+    
+    // Fetch customer data
+    const { data: customersData, error: customersError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        full_name
+      `)
+      .in('id', customerIds);
+    
+    if (customersError) {
+      console.error('Error fetching customers data for fines:', customersError);
+      return { data: [], error: `Customer data fetch error: ${customersError.message}` };
+    }
+    
+    // Create a map of customer IDs to customer data for quick lookup
+    const customerMap = new Map();
+    customersData?.forEach(customer => {
+      customerMap.set(customer.id, customer);
+    });
+    
     const result: CustomerObligation[] = [];
     
-    if (trafficFines) {
-      for (const fine of trafficFines) {
-        // Make sure leases exists
-        if (!fine.leases) {
-          console.log(`Skipping fine ${fine.id} - missing lease data`);
-          continue;
-        }
-        
-        // Make sure customer exists in leases
-        if (!fine.leases.customer) {
-          console.log(`Skipping fine ${fine.id} - missing customer data`);
-          continue;
-        }
-        
-        // Type guard to ensure we have proper profile data
-        const profileData = fine.leases.customer;
-        
-        if (!isValidProfile(profileData)) {
-          console.log(`Skipping fine ${fine.id} - invalid profile data`);
-          continue;
-        }
-        
-        const violationDate = new Date(fine.violation_date);
-        const today = new Date();
-        const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Safely access customer data after validating with type guard
-        result.push({
-          id: fine.id,
-          customerId: profileData.id,
-          customerName: profileData.full_name,
-          obligationType: 'traffic_fine' as ObligationType,
-          amount: fine.fine_amount || 0,
-          dueDate: violationDate,
-          description: `Unpaid traffic fine (Agreement #${fine.leases.agreement_number})`,
-          urgency: determineUrgency(daysOverdue),
-          status: 'Unpaid Fine',
-          daysOverdue
-        });
+    // Combine all the data
+    for (const fine of trafficFines) {
+      if (!fine.lease_id) {
+        console.log(`Skipping fine ${fine.id} - missing lease ID`);
+        continue;
       }
+      
+      const lease = leaseMap.get(fine.lease_id);
+      if (!lease) {
+        console.log(`Skipping fine ${fine.id} - missing lease data`);
+        continue;
+      }
+      
+      const customer = customerMap.get(lease.customer_id);
+      if (!customer) {
+        console.log(`Skipping fine ${fine.id} - missing customer data`);
+        continue;
+      }
+      
+      // Type guard to ensure we have proper profile data
+      if (!isValidProfile(customer)) {
+        console.log(`Skipping fine ${fine.id} - invalid profile data`);
+        continue;
+      }
+      
+      const violationDate = new Date(fine.violation_date);
+      const today = new Date();
+      const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      result.push({
+        id: fine.id,
+        customerId: customer.id,
+        customerName: customer.full_name,
+        obligationType: 'traffic_fine' as ObligationType,
+        amount: fine.fine_amount || 0,
+        dueDate: violationDate,
+        description: `Unpaid traffic fine (Agreement #${lease.agreement_number})`,
+        urgency: determineUrgency(daysOverdue),
+        status: 'Unpaid Fine',
+        daysOverdue
+      });
     }
     
     return { data: result, error: null };
@@ -208,6 +297,7 @@ const fetchLegalCases = async (): Promise<{
   try {
     console.log("Fetching legal cases...");
     
+    // Fetch legal cases directly with customer_id
     const { data: legalCases, error: casesError } = await supabase
       .from('legal_cases')
       .select(`
@@ -216,11 +306,7 @@ const fetchLegalCases = async (): Promise<{
         created_at, 
         customer_id, 
         priority, 
-        status,
-        customer:customer_id (
-          id, 
-          full_name
-        )
+        status
       `)
       .in('status', ['pending_reminder', 'in_legal_process', 'escalated'])
       .order('created_at', { ascending: false });
@@ -232,48 +318,80 @@ const fetchLegalCases = async (): Promise<{
     
     console.log(`Fetched ${legalCases?.length || 0} legal cases`);
     
+    if (!legalCases || legalCases.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    // Extract customer IDs for the second query
+    const customerIds = legalCases.map(legalCase => legalCase.customer_id).filter(id => id != null);
+    
+    if (customerIds.length === 0) {
+      return { data: [], error: null };
+    }
+    
+    // Fetch customer data
+    const { data: customersData, error: customersError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        full_name
+      `)
+      .in('id', customerIds);
+    
+    if (customersError) {
+      console.error('Error fetching customers data for legal cases:', customersError);
+      return { data: [], error: `Customer data fetch error: ${customersError.message}` };
+    }
+    
+    // Create a map of customer IDs to customer data for quick lookup
+    const customerMap = new Map();
+    customersData?.forEach(customer => {
+      customerMap.set(customer.id, customer);
+    });
+    
     const result: CustomerObligation[] = [];
     
-    if (legalCases) {
-      for (const legalCase of legalCases) {
-        // Make sure customer exists
-        if (!legalCase.customer) {
-          console.log(`Skipping legal case ${legalCase.id} - missing customer data`);
-          continue;
-        }
-        
-        // Type guard to ensure we have proper profile data
-        const profileData = legalCase.customer;
-        
-        if (!isValidProfile(profileData)) {
-          console.log(`Skipping legal case ${legalCase.id} - invalid profile data`);
-          continue;
-        }
-        
-        const createdDate = new Date(legalCase.created_at);
-        const today = new Date();
-        const daysOverdue = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
-        
-        // Map priority to urgency
-        let urgency: UrgencyLevel = 'medium';
-        if (legalCase.priority === 'high') urgency = 'high';
-        if (legalCase.priority === 'urgent') urgency = 'critical';
-        if (legalCase.priority === 'low') urgency = 'low';
-        
-        // Safely access customer data after validating with type guard
-        result.push({
-          id: legalCase.id,
-          customerId: legalCase.customer_id,
-          customerName: profileData.full_name,
-          obligationType: 'legal_case' as ObligationType,
-          amount: legalCase.amount_owed || 0,
-          dueDate: createdDate,
-          description: `Legal case (${String(legalCase.status).replace(/_/g, ' ')})`,
-          urgency,
-          status: 'Legal Case',
-          daysOverdue
-        });
+    // Combine all the data
+    for (const legalCase of legalCases) {
+      if (!legalCase.customer_id) {
+        console.log(`Skipping legal case ${legalCase.id} - missing customer ID`);
+        continue;
       }
+      
+      const customer = customerMap.get(legalCase.customer_id);
+      if (!customer) {
+        console.log(`Skipping legal case ${legalCase.id} - missing customer data`);
+        continue;
+      }
+      
+      // Type guard to ensure we have proper profile data
+      if (!isValidProfile(customer)) {
+        console.log(`Skipping legal case ${legalCase.id} - invalid profile data`);
+        continue;
+      }
+      
+      const createdDate = new Date(legalCase.created_at);
+      const today = new Date();
+      const daysOverdue = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      // Map priority to urgency
+      let urgency: UrgencyLevel = 'medium';
+      if (legalCase.priority === 'high') urgency = 'high';
+      if (legalCase.priority === 'urgent') urgency = 'critical';
+      if (legalCase.priority === 'low') urgency = 'low';
+      
+      result.push({
+        id: legalCase.id,
+        customerId: legalCase.customer_id,
+        customerName: customer.full_name,
+        obligationType: 'legal_case' as ObligationType,
+        amount: legalCase.amount_owed || 0,
+        dueDate: createdDate,
+        description: `Legal case (${String(legalCase.status).replace(/_/g, ' ')})`,
+        urgency,
+        status: 'Legal Case',
+        daysOverdue
+      });
     }
     
     return { data: result, error: null };
