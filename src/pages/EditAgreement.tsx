@@ -14,8 +14,12 @@ const EditAgreement = () => {
   const { getAgreement, updateAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   useEffect(() => {
+    // Guard against multiple fetches in rapid succession
+    if (hasAttemptedFetch) return;
+    
     const fetchAgreement = async () => {
       if (!id) {
         toast.error("Agreement ID is required");
@@ -40,11 +44,12 @@ const EditAgreement = () => {
         navigate("/agreements");
       } finally {
         setIsLoading(false);
+        setHasAttemptedFetch(true);
       }
     };
 
     fetchAgreement();
-  }, [id, getAgreement, navigate]);
+  }, [id, getAgreement, navigate, hasAttemptedFetch]);
 
   const handleSubmit = async (updatedAgreement: Agreement) => {
     if (!id) return;
