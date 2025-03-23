@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export type Notification = {
   id: string;
@@ -30,6 +32,7 @@ const NotificationDropdown = ({
   onDismiss
 }: NotificationDropdownProps) => {
   const { toast } = useToast();
+  const [open, setOpen] = useState(false);
   const unreadCount = notifications.filter(notif => !notif.read).length;
   
   const priorityColor = (priority: string) => {
@@ -43,27 +46,53 @@ const NotificationDropdown = ({
 
   const handleMarkAllAsRead = () => {
     onMarkAllAsRead();
+    setOpen(false);
     toast({
       title: "All notifications marked as read",
       description: `${unreadCount} notification${unreadCount !== 1 ? 's' : ''} marked as read.`,
     });
   };
 
+  const handleMarkAsRead = (id: string) => {
+    onMarkAsRead(id);
+    toast({
+      title: "Notification marked as read",
+      description: "The notification has been marked as read.",
+      variant: "default",
+    });
+  };
+
+  const handleDismiss = (id: string) => {
+    onDismiss(id);
+    toast({
+      title: "Notification dismissed",
+      description: "The notification has been removed from your list.",
+      variant: "default",
+    });
+  };
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button variant="ghost" size="icon" className="relative">
           <div className="relative">
-            <Bell className="h-5 w-5" />
+            <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'text-primary' : ''}`} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-primary text-[10px] flex items-center justify-center text-white">
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] font-bold"
+              >
                 {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
+              </Badge>
             )}
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent 
+        className="w-80 p-0 z-50 bg-background border" 
+        align="end"
+        sideOffset={8}
+      >
         <div className="flex items-center justify-between p-4 border-b border-border/60">
           <h3 className="font-medium">Notifications</h3>
           {unreadCount > 0 && (
@@ -78,7 +107,7 @@ const NotificationDropdown = ({
           )}
         </div>
         
-        <ScrollArea className="max-h-[70vh]">
+        <ScrollArea className="max-h-[60vh]">
           {notifications.length > 0 ? (
             <div className="py-2">
               {notifications.map((notification) => (
@@ -93,11 +122,11 @@ const NotificationDropdown = ({
                     </div>
                     <HoverCard>
                       <HoverCardTrigger asChild>
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 cursor-pointer">
                           {notification.description}
                         </p>
                       </HoverCardTrigger>
-                      <HoverCardContent className="w-80">
+                      <HoverCardContent className="w-80 z-[60] bg-popover">
                         <p className="text-sm">{notification.description}</p>
                       </HoverCardContent>
                     </HoverCard>
@@ -111,7 +140,8 @@ const NotificationDropdown = ({
                         variant="ghost"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => onMarkAsRead(notification.id)}
+                        onClick={() => handleMarkAsRead(notification.id)}
+                        title="Mark as read"
                       >
                         <Check className="h-3 w-3" />
                         <span className="sr-only">Mark as read</span>
@@ -121,7 +151,8 @@ const NotificationDropdown = ({
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      onClick={() => onDismiss(notification.id)}
+                      onClick={() => handleDismiss(notification.id)}
+                      title="Dismiss"
                     >
                       <X className="h-3 w-3" />
                       <span className="sr-only">Dismiss</span>

@@ -1,20 +1,53 @@
 
-import React from 'react';
-import { Search, User, Settings } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { Search, User, Settings, BellRing } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import NotificationDropdown from '@/components/notifications/NotificationDropdown';
 import { useNotifications } from '@/hooks/use-notifications';
+import { toast } from 'sonner';
 
 const Header = () => {
   const { 
     notifications, 
     loading, 
+    hasNewNotification,
     markAsRead, 
     markAllAsRead, 
-    dismissNotification 
+    dismissNotification,
+    addNotification
   } = useNotifications();
 
-  return <header className="w-full h-16 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
+  // Demonstrate adding a notification when user clicks on settings
+  const handleSettingsClick = () => {
+    addNotification({
+      title: 'Settings Updated',
+      description: 'Your user preferences have been successfully updated.',
+      priority: 'low',
+    });
+  };
+
+  // Notification bell animation effect when there are new notifications
+  useEffect(() => {
+    if (hasNewNotification) {
+      const bell = document.getElementById('notification-bell');
+      if (bell) {
+        bell.classList.add('animate-bell');
+        
+        const removeAnimation = () => {
+          bell.classList.remove('animate-bell');
+        };
+        
+        bell.addEventListener('animationend', removeAnimation, { once: true });
+        
+        return () => {
+          bell.removeEventListener('animationend', removeAnimation);
+        };
+      }
+    }
+  }, [hasNewNotification]);
+
+  return (
+    <header className="w-full h-16 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
       <div className="flex items-center">
         <div className="hidden md:flex h-10 w-10 rounded-md bg-primary text-primary-foreground items-center justify-center font-semibold text-xl">
           AR
@@ -30,14 +63,20 @@ const Header = () => {
       </div>
       
       <div className="flex items-center space-x-4">
-        <NotificationDropdown 
-          notifications={notifications}
-          onMarkAsRead={markAsRead}
-          onMarkAllAsRead={markAllAsRead}
-          onDismiss={dismissNotification}
-        />
+        <div id="notification-bell" className={`${hasNewNotification ? 'animate-bell' : ''}`}>
+          <NotificationDropdown 
+            notifications={notifications}
+            onMarkAsRead={markAsRead}
+            onMarkAllAsRead={markAllAsRead}
+            onDismiss={dismissNotification}
+          />
+        </div>
         
-        <Button variant="ghost" size="icon">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={handleSettingsClick}
+        >
           <Settings className="h-5 w-5" />
         </Button>
         
@@ -45,7 +84,32 @@ const Header = () => {
           <User className="h-5 w-5" />
         </Button>
       </div>
-    </header>;
+      
+      <style jsx global>{`
+        @keyframes bellRing {
+          0%, 100% {
+            transform: rotate(0);
+          }
+          10%, 30%, 50%, 70% {
+            transform: rotate(10deg);
+          }
+          20%, 40%, 60% {
+            transform: rotate(-10deg);
+          }
+          80% {
+            transform: rotate(5deg);
+          }
+          90% {
+            transform: rotate(-5deg);
+          }
+        }
+        
+        .animate-bell {
+          animation: bellRing 1s ease-in-out;
+        }
+      `}</style>
+    </header>
+  );
 };
 
 export default Header;
