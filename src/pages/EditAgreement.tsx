@@ -23,9 +23,11 @@ const EditAgreement = () => {
         return;
       }
       
+      console.log("Fetching agreement with ID:", id);
       setIsLoading(true);
       try {
         const data = await getAgreement(id);
+        console.log("Fetched agreement data:", data);
         if (data) {
           setAgreement(data);
         } else {

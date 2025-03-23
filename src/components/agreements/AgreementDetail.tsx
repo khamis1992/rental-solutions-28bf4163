@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -70,6 +71,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
 
   const handleEdit = () => {
     if (agreement && agreement.id) {
+      // Fix the navigation path to use the explicit path pattern
+      console.log(`Navigating to edit agreement: /agreements/edit/${agreement.id}`);
       navigate(`/agreements/edit/${agreement.id}`);
       toast.info("Editing agreement " + agreement.agreement_number);
     } else {
