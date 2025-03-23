@@ -6,6 +6,31 @@ import NotificationDropdown from '@/components/notifications/NotificationDropdow
 import { useNotifications } from '@/hooks/use-notifications';
 import { toast } from 'sonner';
 
+// Define the CSS for bell animation as a string
+const bellAnimationStyles = `
+  @keyframes bellRing {
+    0%, 100% {
+      transform: rotate(0);
+    }
+    10%, 30%, 50%, 70% {
+      transform: rotate(10deg);
+    }
+    20%, 40%, 60% {
+      transform: rotate(-10deg);
+    }
+    80% {
+      transform: rotate(5deg);
+    }
+    90% {
+      transform: rotate(-5deg);
+    }
+  }
+  
+  .animate-bell {
+    animation: bellRing 1s ease-in-out;
+  }
+`;
+
 const Header = () => {
   const { 
     notifications, 
@@ -85,29 +110,8 @@ const Header = () => {
         </Button>
       </div>
       
-      <style jsx global>{`
-        @keyframes bellRing {
-          0%, 100% {
-            transform: rotate(0);
-          }
-          10%, 30%, 50%, 70% {
-            transform: rotate(10deg);
-          }
-          20%, 40%, 60% {
-            transform: rotate(-10deg);
-          }
-          80% {
-            transform: rotate(5deg);
-          }
-          90% {
-            transform: rotate(-5deg);
-          }
-        }
-        
-        .animate-bell {
-          animation: bellRing 1s ease-in-out;
-        }
-      `}</style>
+      {/* Insert the CSS styles as a regular style element */}
+      <style dangerouslySetInnerHTML={{ __html: bellAnimationStyles }} />
     </header>
   );
 };
