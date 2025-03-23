@@ -7,23 +7,24 @@ import { supabase } from "@/lib/supabase";
  */
 export const generateAgreementText = async (agreement: Agreement): Promise<string> => {
   try {
-    // If there's a custom template URL, fetch and process it
-    if (agreement.template_url) {
-      // Fetch the template file content
-      const response = await fetch(agreement.template_url);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch template");
-      }
-      
-      // Get template text
-      const templateText = await response.text();
-      
-      // Process template with agreement data
-      return processAgreementTemplate(templateText, agreement);
+    // Fetch the standard template from the database
+    const { data, error } = await supabase
+      .from("agreement_templates")
+      .select("content, template_name")
+      .eq("template_name", "agreement temp")
+      .single();
+    
+    if (error) {
+      console.error("Error fetching template from database:", error);
+      return generateDefaultAgreementText(agreement);
     }
     
-    // If no custom template, generate default agreement text
+    if (data && data.content) {
+      // Process standard template with agreement data
+      return processAgreementTemplate(data.content, agreement);
+    }
+    
+    // If no standard template found, generate default agreement text
     return generateDefaultAgreementText(agreement);
   } catch (error) {
     console.error("Error generating agreement text:", error);
@@ -166,6 +167,29 @@ export const isStorageConfigured = async (): Promise<boolean> => {
     return buckets?.some(bucket => bucket.name === 'agreements') || false;
   } catch (error) {
     console.error("Exception checking storage configuration:", error);
+    return false;
+  }
+};
+
+/**
+ * Check if the standard agreement template exists in the database
+ */
+export const checkStandardTemplateExists = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase
+      .from("agreement_templates")
+      .select("id")
+      .eq("template_name", "agreement temp")
+      .single();
+    
+    if (error || !data) {
+      console.error("Standard template not found:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error checking standard template:", error);
     return false;
   }
 };

@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, CheckCircle, InfoIcon, FileText, AlertCircle } from "lucide-react";
+import { CalendarIcon, CheckCircle, InfoIcon, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { agreementSchema } from "@/lib/validation-schemas/agreement";
@@ -37,7 +36,7 @@ interface AgreementFormProps {
   onSubmit: (data: any) => void;
   isSubmitting: boolean;
   initialData?: any;
-  templateUrl?: string | null;
+  standardTemplateExists?: boolean;
 }
 
 const formSchema = z.object({
@@ -60,7 +59,7 @@ const AgreementForm = ({
   onSubmit,
   isSubmitting,
   initialData,
-  templateUrl,
+  standardTemplateExists = true,
 }: AgreementFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -190,8 +189,7 @@ const AgreementForm = ({
     const finalData = {
       ...data,
       customer_data: selectedCustomer,
-      vehicle_data: selectedVehicle,
-      template_url: templateUrl,
+      vehicle_data: selectedVehicle
     };
     
     onSubmit(finalData);
@@ -206,27 +204,27 @@ const AgreementForm = ({
   }, [rentAmount, depositAmount, durationMonths]);
 
   const renderTemplateStatus = () => {
-    if (templateUrl) {
+    if (!standardTemplateExists) {
       return (
-        <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md border border-green-200 flex items-center">
-          <div className="w-8 h-8 rounded-full bg-green-100 mr-3 flex items-center justify-center">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-          </div>
-          <div>
-            <p className="font-medium">Template Uploaded</p>
-            <p className="text-sm">The agreement will use the uploaded template.</p>
-          </div>
-        </div>
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Template Not Found</AlertTitle>
+          <AlertDescription>
+            The standard agreement template "agreement temp" was not found in the database.
+            The agreement will use the default template format.
+          </AlertDescription>
+        </Alert>
       );
     }
+    
     return (
-      <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md border border-blue-200 flex items-center">
-        <div className="w-8 h-8 rounded-full bg-blue-100 mr-3 flex items-center justify-center">
-          <InfoIcon className="h-4 w-4 text-blue-500" />
+      <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md border border-green-200 flex items-center">
+        <div className="w-8 h-8 rounded-full bg-green-100 mr-3 flex items-center justify-center">
+          <CheckCircle className="h-4 w-4 text-green-500" />
         </div>
         <div>
-          <p className="font-medium">No Template Selected</p>
-          <p className="text-sm">Go to the Template tab to upload a custom template.</p>
+          <p className="font-medium">Using Standard Template</p>
+          <p className="text-sm">The agreement will use the standard template from the database.</p>
         </div>
       </div>
     );
@@ -241,105 +239,53 @@ const AgreementForm = ({
       <div className="space-y-4 pt-4 border-t">
         <h3 className="text-lg font-medium">Agreement Preview</h3>
         
-        {templateUrl ? (
-          <div className="bg-muted p-4 rounded-md text-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-bold text-base">CUSTOM AGREEMENT TEMPLATE</h4>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => window.open(templateUrl, '_blank')}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                View Template
-              </Button>
+        <div className="bg-muted p-4 rounded-md text-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-bold text-base">AGREEMENT TEMPLATE PREVIEW</h4>
+          </div>
+          
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Template Information</AlertTitle>
+            <AlertDescription>
+              {standardTemplateExists ? 
+                "Using the standard 'agreement temp' template from the database." : 
+                "Standard template not found. Using default format."}
+            </AlertDescription>
+          </Alert>
+          
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border p-3 rounded-md">
+              <h5 className="font-semibold mb-2">Customer Data</h5>
+              <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
+              <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
+              <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
+              <p><code>{"{{CUSTOMER_LICENSE}}"}</code>: {selectedCustomer.driver_license}</p>
+              <p><code>{"{{CUSTOMER_NATIONALITY}}"}</code>: {selectedCustomer.nationality}</p>
             </div>
             
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Template Preview</AlertTitle>
-              <AlertDescription>
-                Your custom template will be populated with the following information:
-              </AlertDescription>
-            </Alert>
-            
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="border p-3 rounded-md">
-                <h5 className="font-semibold mb-2">Customer Data</h5>
-                <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
-                <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
-                <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
-                <p><code>{"{{CUSTOMER_LICENSE}}"}</code>: {selectedCustomer.driver_license}</p>
-                <p><code>{"{{CUSTOMER_NATIONALITY}}"}</code>: {selectedCustomer.nationality}</p>
-              </div>
-              
-              <div className="border p-3 rounded-md">
-                <h5 className="font-semibold mb-2">Vehicle Data</h5>
-                <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
-                <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
-                <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
-                <p><code>{"{{VEHICLE_VIN}}"}</code>: {selectedVehicle.vin}</p>
-                <p><code>{"{{VEHICLE_YEAR}}"}</code>: {selectedVehicle.year}</p>
-              </div>
-            </div>
-            
-            <div className="mt-4 border p-3 rounded-md">
-              <h5 className="font-semibold mb-2">Agreement Data</h5>
-              <div className="grid grid-cols-2 gap-2">
-                <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
-                <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
-                <p><code>{"{{END_DATE}}"}</code>: {format(form.getValues("end_date"), "PPP")}</p>
-                <p><code>{"{{RENT_AMOUNT}}"}</code>: {form.getValues("rent_amount")} QAR</p>
-                <p><code>{"{{DEPOSIT_AMOUNT}}"}</code>: {form.getValues("deposit_amount")} QAR</p>
-                <p><code>{"{{TOTAL_AMOUNT}}"}</code>: {form.getValues("total_amount")} QAR</p>
-              </div>
+            <div className="border p-3 rounded-md">
+              <h5 className="font-semibold mb-2">Vehicle Data</h5>
+              <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
+              <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
+              <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
+              <p><code>{"{{VEHICLE_VIN}}"}</code>: {selectedVehicle.vin}</p>
+              <p><code>{"{{VEHICLE_YEAR}}"}</code>: {selectedVehicle.year}</p>
             </div>
           </div>
-        ) : (
-          <div className="bg-muted p-4 rounded-md text-sm">
-            <h4 className="font-bold text-center text-base mb-4">VEHICLE RENTAL AGREEMENT</h4>
-            <p className="mb-2">
-              <strong>Agreement Number:</strong> {form.getValues("agreement_number")}
-            </p>
-            <p className="mb-2">
-              <strong>Date:</strong> {format(form.getValues("start_date"), "PPP")}
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
-              <div className="border-b pb-2">
-                <h5 className="font-semibold">CUSTOMER INFORMATION</h5>
-                <p><strong>Name:</strong> {selectedCustomer.full_name}</p>
-                <p><strong>ID/Driver License:</strong> {selectedCustomer.driver_license}</p>
-                <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
-                <p><strong>Email:</strong> {selectedCustomer.email}</p>
-                <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
-              </div>
-              
-              <div className="border-b pb-2">
-                <h5 className="font-semibold">VEHICLE INFORMATION</h5>
-                <p><strong>Make:</strong> {selectedVehicle.make}</p>
-                <p><strong>Model:</strong> {selectedVehicle.model}</p>
-                <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
-                <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
-              </div>
+          
+          <div className="mt-4 border p-3 rounded-md">
+            <h5 className="font-semibold mb-2">Agreement Data</h5>
+            <div className="grid grid-cols-2 gap-2">
+              <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
+              <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
+              <p><code>{"{{END_DATE}}"}</code>: {format(form.getValues("end_date"), "PPP")}</p>
+              <p><code>{"{{RENT_AMOUNT}}"}</code>: {form.getValues("rent_amount")} QAR</p>
+              <p><code>{"{{DEPOSIT_AMOUNT}}"}</code>: {form.getValues("deposit_amount")} QAR</p>
+              <p><code>{"{{TOTAL_AMOUNT}}"}</code>: {form.getValues("total_amount")} QAR</p>
             </div>
-            
-            <div className="border-b pb-2 mb-2">
-              <h5 className="font-semibold">AGREEMENT TERMS</h5>
-              <p><strong>Start Date:</strong> {format(form.getValues("start_date"), "PPP")}</p>
-              <p><strong>End Date:</strong> {format(form.getValues("end_date"), "PPP")}</p>
-              <p><strong>Duration:</strong> {form.getValues("agreement_duration")}</p>
-              <p><strong>Monthly Rent:</strong> {form.getValues("rent_amount")} QAR</p>
-              <p><strong>Security Deposit:</strong> {form.getValues("deposit_amount")} QAR</p>
-              <p><strong>Daily Late Fee:</strong> {form.getValues("daily_late_fee")} QAR</p>
-              <p><strong>Total Contract Value:</strong> {form.getValues("total_amount")} QAR</p>
-            </div>
-            
-            <p className="italic text-xs">
-              * This is a preview of the agreement. The final document will include complete terms and conditions.
-            </p>
           </div>
-        )}
+        </div>
       </div>
     );
   };
@@ -347,7 +293,7 @@ const AgreementForm = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-        {templateUrl && renderTemplateStatus()}
+        {renderTemplateStatus()}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
