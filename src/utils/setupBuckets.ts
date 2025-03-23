@@ -22,7 +22,12 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
     }
     
     // Create a service client with full admin permissions
-    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
     
     console.log('Checking if agreements bucket exists...');
     
@@ -40,7 +45,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       console.log('Agreements bucket does not exist, creating it with service role key...');
       
       try {
-        // Create the bucket with service role client and public permissions
+        // Create the bucket with service role client with public permissions
         const { error: createError } = await serviceClient.storage.createBucket('agreements', {
           public: true,
           fileSizeLimit: 10485760, // 10MB
@@ -48,6 +53,18 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         
         if (createError) {
           console.error('Error creating bucket with service role key:', createError);
+          
+          // Special handling for RLS errors
+          if (createError.message.includes('violates row-level security policy')) {
+            console.error('Row-level security policy violation. This usually means the service role key is not bypassing RLS correctly.');
+            
+            return { 
+              success: false, 
+              error: 'Failed to create bucket: Row-level security policy violation. You may need to manually create the bucket in the Supabase Dashboard.', 
+              details: createError 
+            };
+          }
+          
           return { 
             success: false, 
             error: `Failed to create bucket with service role key: ${createError.message}`, 
@@ -57,11 +74,16 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         
         console.log('Successfully created agreements bucket!');
         
-        // Set up bucket policy to make it publicly accessible
-        const { error: policyError } = await serviceClient.storage.from('agreements').createSignedUrl('dummy-file.txt', 60);
-        
-        if (policyError && !policyError.message.includes('not found')) {
-          console.warn('Warning: Possible issue with bucket policies:', policyError);
+        // Create policy to allow public access to the bucket files
+        try {
+          // Allow public access to files in the bucket
+          const { error: policyError } = await serviceClient.storage.from('agreements').createSignedUrl('dummy-file.txt', 60);
+          
+          if (policyError && !policyError.message.includes('not found')) {
+            console.warn('Warning: Possible issue with bucket policies:', policyError);
+          }
+        } catch (policyErr) {
+          console.warn('Warning when setting up bucket policy:', policyErr);
         }
         
         // Test if bucket is accessible by uploading a test file
@@ -73,6 +95,15 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         
         if (uploadError) {
           console.error('Error uploading test file:', uploadError);
+          
+          if (uploadError.message.includes('violates row-level security policy')) {
+            return { 
+              success: true, 
+              error: 'Bucket created but has RLS policy issues. You may need to manually set bucket permissions in the Supabase Dashboard.',
+              details: uploadError
+            };
+          }
+          
           return { 
             success: true, 
             error: 'Bucket created but may have permission issues for uploads',
@@ -92,7 +123,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         console.error('Exception creating bucket with service role key:', serviceErr);
         return { 
           success: false, 
-          error: 'Exception during bucket creation with service role key', 
+          error: 'Exception during bucket creation with service role key. You may need to manually create the bucket in the Supabase Dashboard.', 
           details: serviceErr 
         };
       }
@@ -106,7 +137,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       // First try with service role client for more reliable check
       const { data: serviceFiles, error: serviceListError } = await serviceClient.storage
         .from('agreements')
-        .list();
+        .list('', { limit: 100 });
       
       if (serviceListError) {
         console.error('Error listing files with service client:', serviceListError);
@@ -114,7 +145,7 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
         // Try with regular client as a fallback
         const { data: files, error: listFilesError } = await supabase.storage
           .from('agreements')
-          .list();
+          .list('', { limit: 100 });
         
         if (listFilesError) {
           console.error('Error listing files with regular client too:', listFilesError);
@@ -133,9 +164,13 @@ export const ensureStorageBuckets = async (): Promise<{ success: boolean; error?
       
       // Try to add public policy to bucket if needed
       try {
-        await serviceClient.storage.from('agreements').getPublicUrl('test-file.txt');
+        const { data: urlData } = serviceClient.storage
+          .from('agreements')
+          .getPublicUrl('test-file.txt');
+          
+        console.log('Public URL generation successful:', urlData.publicUrl);
       } catch (policyErr) {
-        console.log('Note: Attempted to verify public policy');
+        console.log('Note: Attempted to verify public policy:', policyErr);
       }
       
       return { success: true, details: { files: serviceFiles } };
@@ -175,7 +210,12 @@ export const diagnoseStorageIssues = async (): Promise<{
     let serviceClient = null;
     
     if (supabaseServiceKey) {
-      serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+      serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false
+        }
+      });
       console.log('Created service client for diagnosis');
     }
     
@@ -259,7 +299,7 @@ export const diagnoseStorageIssues = async (): Promise<{
     try {
       if (bucketExists) {
         const client = serviceClient || supabase;
-        const { data, error } = await client.storage.from('agreements').list();
+        const { data, error } = await client.storage.from('agreements').list('', { limit: 100 });
         
         hasPermission = !error;
         permissionError = error;

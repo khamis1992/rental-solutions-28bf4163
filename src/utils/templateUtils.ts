@@ -24,8 +24,13 @@ export const uploadAgreementTemplate = async (
       return { success: false, error: "Service role key is missing" };
     }
     
-    // Create a service client with full permissions
-    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    // Create a service client with full permissions and direct control settings
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false
+      }
+    });
     
     // Set the filename to agreement_template.docx (with underscore, not space)
     const safeFileName = 'agreement_template.docx';
@@ -40,6 +45,16 @@ export const uploadAgreementTemplate = async (
     
     if (uploadError) {
       console.error("Upload error:", uploadError);
+      
+      // Special handling for RLS policy violations
+      if (uploadError.message.includes('violates row-level security policy')) {
+        return { 
+          success: false, 
+          error: `Row-level security policy violation. Please check the storage bucket permissions in Supabase Dashboard. 
+                 You may need to add policies to allow this operation or create the bucket manually.` 
+        };
+      }
+      
       return { success: false, error: `Failed to upload template: ${uploadError.message}` };
     }
     
