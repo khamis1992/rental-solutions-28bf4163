@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,16 +10,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
-import { 
-  diagnoseTemplateUrl, 
-  uploadAgreementTemplate, 
-  checkSpecificTemplateUrl,
-  fixTemplateUrl
-} from "@/utils/templateUtils";
-
+import { diagnoseTemplateUrl, uploadAgreementTemplate, checkSpecificTemplateUrl, fixTemplateUrl } from "@/utils/templateUtils";
 const AddAgreement = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [standardTemplateExists, setStandardTemplateExists] = useState<boolean>(false);
   const [checkingTemplate, setCheckingTemplate] = useState<boolean>(true);
@@ -30,20 +25,18 @@ const AddAgreement = () => {
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [specificUrlCheck, setSpecificUrlCheck] = useState<any>(null);
-
   useEffect(() => {
     const setupStorage = async () => {
       try {
         console.log("Setting up storage and ensuring buckets exist...");
         setCheckingTemplate(true);
         setTemplateError(null);
-        
+
         // First, check the specific URL the user provided
         const specificUrl = "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx";
         console.log("Checking specific URL: ", specificUrl);
         const specificCheck = await checkSpecificTemplateUrl(specificUrl);
         setSpecificUrlCheck(specificCheck);
-        
         if (specificCheck.accessible) {
           console.log("Specific URL is accessible!");
           setStandardTemplateExists(true);
@@ -53,18 +46,16 @@ const AddAgreement = () => {
         } else {
           console.log("Specific URL is not accessible:", specificCheck.error);
         }
-        
         const result = await ensureStorageBuckets();
         if (!result.success) {
           console.error("Error setting up storage buckets:", result.error);
-          
+
           // Special handling for RLS errors
           if (result.error?.includes("row-level security") || result.error?.includes("RLS")) {
             setTemplateError("Permission error: Please create the 'agreements' bucket manually in the Supabase dashboard. Use the service role key for storage operations.");
           } else {
             setTemplateError(`Storage setup error: ${result.error}`);
           }
-          
           toast({
             title: "Storage Setup Error",
             description: "There was an error setting up storage buckets. Template creation may fail.",
@@ -73,12 +64,10 @@ const AddAgreement = () => {
         } else {
           console.log("Storage buckets setup complete");
         }
-        
         console.log("Checking if agreement template exists...");
         const exists = await checkStandardTemplateExists();
         console.log("Template exists result:", exists);
         setStandardTemplateExists(exists);
-        
         if (!exists) {
           setTemplateError("Template not found. Please upload a template file or create the agreements bucket manually in Supabase dashboard.");
           toast({
@@ -86,11 +75,9 @@ const AddAgreement = () => {
             description: "The standard agreement template was not found. Please upload a template file.",
             variant: "destructive"
           });
-          
           const diagnosis = await diagnosisTemplateAccess();
           setTemplateDiagnosis(diagnosis);
           console.log("Template diagnosis:", diagnosis);
-          
           if (diagnosis.errors.length > 0) {
             console.error("Diagnosis errors:", diagnosis.errors);
           }
@@ -98,14 +85,12 @@ const AddAgreement = () => {
           setTemplateError(null);
           toast({
             title: "Template Found",
-            description: "The agreement template was found and will be used for new agreements.",
+            description: "The agreement template was found and will be used for new agreements."
           });
         }
-        
         const urlDiagnosis = await diagnoseTemplateUrl();
         setTemplateUrlDiagnosis(urlDiagnosis);
         console.log("Template URL diagnosis:", urlDiagnosis);
-        
         if (urlDiagnosis.status === "error") {
           console.error("Template URL issues:", urlDiagnosis.issues);
         }
@@ -122,60 +107,50 @@ const AddAgreement = () => {
         setCheckingTemplate(false);
       }
     };
-    
     setupStorage();
   }, [toast]);
-
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from("leases")
-        .insert([formData])
-        .select("id")
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from("leases").insert([formData]).select("id").single();
       if (error) {
         throw error;
       }
-
       toast({
         title: "Agreement created",
-        description: "The agreement has been successfully created.",
+        description: "The agreement has been successfully created."
       });
-
       navigate(`/agreements/${data.id}`);
     } catch (error: any) {
       toast({
         title: "Error creating agreement",
         description: error.message || "Something went wrong.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
     setIsUploading(true);
     setUploadError(null);
-    
     try {
       const result = await uploadAgreementTemplate(file);
-      
       if (result.success) {
         toast({
           title: "Template Uploaded",
-          description: "The agreement template has been successfully uploaded.",
+          description: "The agreement template has been successfully uploaded."
         });
-        
+
         // Refresh template status
         setStandardTemplateExists(true);
         setTemplateError(null);
-        
+
         // Update URL diagnosis
         const urlDiagnosis = await diagnoseTemplateUrl();
         setTemplateUrlDiagnosis(urlDiagnosis);
@@ -184,7 +159,7 @@ const AddAgreement = () => {
         toast({
           title: "Upload Failed",
           description: result.error || "Failed to upload template.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } catch (error: any) {
@@ -192,7 +167,7 @@ const AddAgreement = () => {
       toast({
         title: "Upload Error",
         description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsUploading(false);
@@ -200,75 +175,41 @@ const AddAgreement = () => {
       event.target.value = '';
     }
   };
-
-  return (
-    <PageContainer
-      title="Create New Agreement" 
-      description="Create a new rental agreement with a customer"
-      backLink="/agreements"
-    >
-      {specificUrlCheck && (
-        <Alert 
-          variant={specificUrlCheck.accessible ? "default" : "destructive"} 
-          className={`mb-4 ${specificUrlCheck.accessible ? 'border-green-500 bg-green-50' : ''}`}
-        >
-          {specificUrlCheck.accessible ? (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
+  return <PageContainer title="Create New Agreement" description="Create a new rental agreement with a customer" backLink="/agreements">
+      {specificUrlCheck && <Alert variant={specificUrlCheck.accessible ? "default" : "destructive"} className={`mb-4 ${specificUrlCheck.accessible ? 'border-green-500 bg-green-50' : ''}`}>
+          {specificUrlCheck.accessible ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <AlertCircle className="h-4 w-4" />}
           <AlertTitle>
-            {specificUrlCheck.accessible 
-              ? "Template URL Accessible" 
-              : "Template URL Issue"
-            }
+            {specificUrlCheck.accessible ? "Template URL Accessible" : "Template URL Issue"}
           </AlertTitle>
           <AlertDescription>
-            {specificUrlCheck.accessible ? (
-              <>
+            {specificUrlCheck.accessible ? <>
                 The specified template URL is accessible and will be used for new agreements.
-                {specificUrlCheck.fixedUrl !== specificUrlCheck.originalUrl && (
-                  <p className="text-xs mt-1">URL was fixed to remove double slashes.</p>
-                )}
+                {specificUrlCheck.fixedUrl !== specificUrlCheck.originalUrl && <p className="text-xs mt-1">URL was fixed to remove double slashes.</p>}
                 <div className="mt-1">
-                  <a 
-                    href={specificUrlCheck.fixedUrl} 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
-                  >
+                  <a href={specificUrlCheck.fixedUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 flex items-center gap-1 hover:underline">
                     View template
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
-              </>
-            ) : (
-              <>
+              </> : <>
                 Could not access the template at the specified URL.
                 <div className="mt-2 text-xs">
                   <p>Error: {specificUrlCheck.error}</p>
-                  {specificUrlCheck.fixedUrl !== "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx" && (
-                    <p className="mt-1">URL was fixed to: {specificUrlCheck.fixedUrl}</p>
-                  )}
+                  {specificUrlCheck.fixedUrl !== "https://vqdlsidkucrownbfuouq.supabase.co/storage/v1/object/public/agreements//agreement_template.docx" && <p className="mt-1">URL was fixed to: {specificUrlCheck.fixedUrl}</p>}
                 </div>
-              </>
-            )}
+              </>}
           </AlertDescription>
-        </Alert>
-      )}
+        </Alert>}
       
-      {templateError && (
-        <Alert variant="destructive" className="mb-4">
+      {templateError && <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Template Issue</AlertTitle>
           <AlertDescription>
             {templateError}
-            {templateDiagnosis && (
-              <div className="mt-2 text-xs">
+            {templateDiagnosis && <div className="mt-2 text-xs">
                 <p>Diagnosis: Storage bucket {templateDiagnosis.bucketExists ? 'exists' : 'missing'}, 
                    Template {templateDiagnosis.templateExists ? 'exists' : 'missing'}</p>
-              </div>
-            )}
+              </div>}
             
             <div className="mt-3">
               <label htmlFor="template-upload" className="cursor-pointer">
@@ -276,14 +217,7 @@ const AddAgreement = () => {
                   <Upload className="h-4 w-4" />
                   Upload Template File
                 </div>
-                <input
-                  id="template-upload"
-                  type="file"
-                  accept=".docx"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  disabled={isUploading}
-                />
+                <input id="template-upload" type="file" accept=".docx" className="hidden" onChange={handleFileUpload} disabled={isUploading} />
               </label>
               {isUploading && <p className="text-xs mt-1">Uploading...</p>}
               {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
@@ -300,89 +234,45 @@ const AddAgreement = () => {
               </ol>
             </div>
           </AlertDescription>
-        </Alert>
-      )}
+        </Alert>}
       
-      {templateUrlDiagnosis && templateUrlDiagnosis.status !== "success" && !specificUrlCheck?.accessible && (
-        <Alert variant="destructive" className="mb-4 border-amber-500 bg-amber-50">
+      {templateUrlDiagnosis && templateUrlDiagnosis.status !== "success" && !specificUrlCheck?.accessible && <Alert variant="destructive" className="mb-4 border-amber-500 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertTitle>Template URL Issues</AlertTitle>
           <AlertDescription>
             <div className="mt-1">
               <ul className="list-disc pl-5 text-sm">
-                {templateUrlDiagnosis.issues.map((issue: string, i: number) => (
-                  <li key={i}>{issue}</li>
-                ))}
+                {templateUrlDiagnosis.issues.map((issue: string, i: number) => <li key={i}>{issue}</li>)}
               </ul>
               
-              {templateUrlDiagnosis.suggestions.length > 0 && (
-                <>
+              {templateUrlDiagnosis.suggestions.length > 0 && <>
                   <p className="font-semibold mt-2">Suggestions:</p>
                   <ul className="list-disc pl-5 text-sm">
-                    {templateUrlDiagnosis.suggestions.map((suggestion: string, i: number) => (
-                      <li key={i}>{suggestion}</li>
-                    ))}
+                    {templateUrlDiagnosis.suggestions.map((suggestion: string, i: number) => <li key={i}>{suggestion}</li>)}
                   </ul>
-                </>
-              )}
+                </>}
               
-              {templateUrlDiagnosis.url && (
-                <div className="mt-2">
+              {templateUrlDiagnosis.url && <div className="mt-2">
                   <p className="text-sm">Current template URL:</p>
-                  <a 
-                    href={templateUrlDiagnosis.url} 
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
-                  >
+                  <a href={templateUrlDiagnosis.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 flex items-center gap-1 hover:underline">
                     {templateUrlDiagnosis.url.substring(0, 50)}...
                     <ExternalLink className="h-3 w-3" />
                   </a>
-                </div>
-              )}
+                </div>}
             </div>
           </AlertDescription>
-        </Alert>
-      )}
+        </Alert>}
       
-      {(standardTemplateExists || specificUrlCheck?.accessible) && !templateError && (
-        <Alert variant="default" className="mb-4 border-green-500 bg-green-50">
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
-          <AlertTitle>Template Ready</AlertTitle>
-          <AlertDescription>
-            Agreement template is available and will be used for new agreements.
-            {(specificUrlCheck?.accessible ? specificUrlCheck.fixedUrl : templateUrlDiagnosis?.url) && (
-              <div className="mt-1">
-                <a 
-                  href={specificUrlCheck?.accessible ? specificUrlCheck.fixedUrl : templateUrlDiagnosis.url} 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
-                >
-                  View template
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
+      {(standardTemplateExists || specificUrlCheck?.accessible) && !templateError}
       
       <Card>
         <CardHeader>
           <CardTitle>Agreement Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <AgreementForm 
-            onSubmit={handleSubmit} 
-            isSubmitting={isSubmitting} 
-            standardTemplateExists={standardTemplateExists || (specificUrlCheck?.accessible || false)}
-            isCheckingTemplate={checkingTemplate}
-          />
+          <AgreementForm onSubmit={handleSubmit} isSubmitting={isSubmitting} standardTemplateExists={standardTemplateExists || specificUrlCheck?.accessible || false} isCheckingTemplate={checkingTemplate} />
         </CardContent>
       </Card>
-    </PageContainer>
-  );
+    </PageContainer>;
 };
-
 export default AddAgreement;
