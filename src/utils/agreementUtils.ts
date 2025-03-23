@@ -12,6 +12,12 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
   try {
     console.log("Starting PDF generation for agreement:", agreement.id);
     
+    // First, ensure the agreements bucket exists
+    const bucketResult = await ensureAgreementsBucketExists();
+    if (!bucketResult) {
+      console.warn("Could not ensure agreements bucket exists, using fallback template");
+    }
+    
     // Get the template text
     const agreementText = await generateAgreementText(agreement);
     console.log("Generated agreement text length:", agreementText.length);
@@ -19,18 +25,25 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     // Debug: Show first 100 chars to check if variables were replaced
     console.log("First 100 chars of agreement text:", agreementText.substring(0, 100));
     
-    // Create PDF document
+    // Create PDF document with proper formatting
     const doc = new jsPDF();
     
     // Set font and size
     doc.setFont("helvetica");
     doc.setFontSize(10);
     
+    // Add title
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("VEHICLE RENTAL AGREEMENT", 105, 20, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
     // Split text into lines that fit the PDF page width
     const textLines = doc.splitTextToSize(agreementText, 180);
     
-    // Add text to the PDF
-    doc.text(textLines, 15, 15);
+    // Add text to the PDF starting below the title
+    doc.text(textLines, 15, 30);
     
     // Save the PDF with a descriptive filename
     const filename = `Agreement_${agreement.agreement_number || agreement.id}.pdf`;
@@ -70,6 +83,10 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
     
     // If both storage and database fail, use default template
     console.log("No templates found, using default template");
+    
+    // Attempt to create and upload a default template for future use
+    await createAndUploadDefaultTemplate();
+    
     return generateDefaultAgreementText(agreement);
   } catch (error) {
     console.error("Error generating agreement text:", error);
@@ -873,126 +890,4 @@ export const diagnosisTemplateAccess = async (): Promise<{
       templateContent,
       errors
     };
-  } catch (error) {
-    errors.push({ location: "diagnosis", error });
-    return {
-      storageAccess: false,
-      databaseAccess: false,
-      bucketExists: false,
-      templateExists: false,
-      templateContent: null,
-      errors
-    };
   }
-};
-
-/**
- * Try to get template from storage bucket
- */
-async function getTemplateFromStorage(): Promise<string | null> {
-  try {
-    console.log("Attempting to get template from storage bucket");
-    
-    // First check if the bucket exists
-    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-    
-    if (bucketsError) {
-      console.error("Error checking bucket existence:", bucketsError);
-      return null;
-    }
-    
-    const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
-    if (!bucketExists) {
-      console.log("Agreements bucket does not exist");
-      return null;
-    }
-    
-    // Try to list files in the bucket
-    const { data: files, error: listError } = await supabase.storage
-      .from('agreements')
-      .list();
-      
-    if (listError) {
-      console.error("Error listing files in agreements bucket:", listError);
-      return null;
-    }
-    
-    // Check for various template file names that might exist
-    const templateFileNames = [
-      'agreement_template.docx',
-      'agreement temp.docx',
-      'agreement_temp.docx'
-    ];
-    
-    // Find the first matching template file
-    const templateFile = files?.find(file => 
-      templateFileNames.includes(file.name)
-    );
-    
-    if (!templateFile) {
-      console.log("No template file found in the agreements bucket");
-      return null;
-    }
-    
-    // Try to download the template
-    console.log(`Downloading template file: ${templateFile.name}`);
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('agreements')
-      .download(templateFile.name);
-      
-    if (downloadError || !fileData) {
-      console.error("Error downloading template:", downloadError);
-      return null;
-    }
-    
-    // Convert the blob to text
-    const templateText = await fileData.text();
-    console.log(`Template downloaded successfully, size: ${templateText.length} characters`);
-    
-    return templateText;
-  } catch (error) {
-    console.error("Exception getting template from storage:", error);
-    return null;
-  }
-}
-
-/**
- * Try to get template from database
- */
-async function getTemplateFromDatabase(): Promise<string | null> {
-  try {
-    console.log("Attempting to get template from database");
-    
-    // Check if the agreement_templates table exists and has any templates
-    const { data: templates, error } = await supabase
-      .from("agreement_templates")
-      .select('content, template_name, name')
-      .limit(1);
-    
-    if (error) {
-      console.error("Error checking for templates in database:", error);
-      return null;
-    }
-    
-    if (!templates || templates.length === 0) {
-      console.log("No templates found in database");
-      return null;
-    }
-    
-    const template = templates[0];
-    
-    // Since we only selected 'content, template_name, name', we can only access these properties
-    const templateContent = template.content;
-    
-    if (!templateContent) {
-      console.log("Template found but has no content");
-      return null;
-    }
-    
-    console.log(`Template found in database: ${template.template_name || template.name}`);
-    return templateContent;
-  } catch (error) {
-    console.error("Exception getting template from database:", error);
-    return null;
-  }
-}

@@ -93,6 +93,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     try {
       console.log("Generating PDF for agreement:", agreement);
       
+      toast.info("Preparing agreement PDF document...");
+      
       const success = await generatePdfDocument(agreement);
       
       if (success) {
