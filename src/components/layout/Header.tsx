@@ -63,7 +63,7 @@ const Header = () => {
       </div>
       
       <div className="flex items-center space-x-4">
-        <div id="notification-bell" className={`${hasNewNotification ? 'animate-bell' : ''}`}>
+        <div id="notification-bell" className={hasNewNotification ? 'animate-bell' : ''}>
           <NotificationDropdown 
             notifications={notifications}
             onMarkAsRead={markAsRead}
