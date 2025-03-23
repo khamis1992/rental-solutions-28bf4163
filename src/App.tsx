@@ -38,6 +38,7 @@ import EditCustomer from "./pages/EditCustomer";
 // Agreement pages
 import Agreements from "./pages/Agreements";
 import AgreementDetailPage from "./pages/AgreementDetailPage";
+import AddAgreement from "./pages/AddAgreement";
 
 // Maintenance pages
 import Maintenance from "./pages/Maintenance";
@@ -102,6 +103,7 @@ const App = () => (
                         
                         {/* Agreement Management Routes */}
                         <Route path="/agreements" element={<Agreements />} />
+                        <Route path="/agreements/add" element={<AddAgreement />} />
                         <Route path="/agreements/:id" element={<AgreementDetailPage />} />
                         
                         {/* Maintenance Management Routes */}
