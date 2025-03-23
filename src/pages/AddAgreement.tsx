@@ -1,16 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2, ExternalLink } from "lucide-react";
+import { AlertCircle, CheckCircle2, ExternalLink, Upload } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
 import AgreementForm from "@/components/agreements/AgreementForm";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
-import { diagnoseTemplateUrl } from "@/utils/templateUtils";
+import { diagnoseTemplateUrl, uploadAgreementTemplate } from "@/utils/templateUtils";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -21,6 +22,8 @@ const AddAgreement = () => {
   const [templateDiagnosis, setTemplateDiagnosis] = useState<any>(null);
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [templateUrlDiagnosis, setTemplateUrlDiagnosis] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     const setupStorage = async () => {
@@ -32,7 +35,14 @@ const AddAgreement = () => {
         const result = await ensureStorageBuckets();
         if (!result.success) {
           console.error("Error setting up storage buckets:", result.error);
-          setTemplateError(`Storage setup error: ${result.error}`);
+          
+          // Special handling for RLS errors
+          if (result.error?.includes("row-level security") || result.error?.includes("RLS")) {
+            setTemplateError("Permission error: Please create the 'agreements' bucket manually in the Supabase dashboard. Use the service role key for storage operations.");
+          } else {
+            setTemplateError(`Storage setup error: ${result.error}`);
+          }
+          
           toast({
             title: "Storage Setup Error",
             description: "There was an error setting up storage buckets. Template creation may fail.",
@@ -48,10 +58,10 @@ const AddAgreement = () => {
         setStandardTemplateExists(exists);
         
         if (!exists) {
-          setTemplateError("Template not found. A default template will be used.");
+          setTemplateError("Template not found. Please upload a template file or create the agreements bucket manually in Supabase dashboard.");
           toast({
             title: "Template Not Found",
-            description: "The standard agreement template was not found. A default template has been created for you.",
+            description: "The standard agreement template was not found. Please upload a template file.",
             variant: "destructive"
           });
           
@@ -80,10 +90,10 @@ const AddAgreement = () => {
       } catch (error) {
         console.error("Error during template setup:", error);
         setStandardTemplateExists(false);
-        setTemplateError("Error checking template. A default template will be used.");
+        setTemplateError("Error checking template. Please upload a template file.");
         toast({
           title: "Error Checking Template",
-          description: "There was an error checking for the agreement template. A default template will be used.",
+          description: "There was an error checking for the agreement template. Please upload a template file.",
           variant: "destructive"
         });
       } finally {
@@ -124,6 +134,51 @@ const AddAgreement = () => {
     }
   };
 
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    setIsUploading(true);
+    setUploadError(null);
+    
+    try {
+      const result = await uploadAgreementTemplate(file);
+      
+      if (result.success) {
+        toast({
+          title: "Template Uploaded",
+          description: "The agreement template has been successfully uploaded.",
+        });
+        
+        // Refresh template status
+        setStandardTemplateExists(true);
+        setTemplateError(null);
+        
+        // Update URL diagnosis
+        const urlDiagnosis = await diagnoseTemplateUrl();
+        setTemplateUrlDiagnosis(urlDiagnosis);
+      } else {
+        setUploadError(result.error || "Unknown error uploading template");
+        toast({
+          title: "Upload Failed",
+          description: result.error || "Failed to upload template.",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      setUploadError(error.message || "Error uploading template");
+      toast({
+        title: "Upload Error",
+        description: error.message || "An unexpected error occurred.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset the file input
+      event.target.value = '';
+    }
+  };
+
   return (
     <PageContainer
       title="Create New Agreement" 
@@ -142,6 +197,36 @@ const AddAgreement = () => {
                    Template {templateDiagnosis.templateExists ? 'exists' : 'missing'}</p>
               </div>
             )}
+            
+            <div className="mt-3">
+              <label htmlFor="template-upload" className="cursor-pointer">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary hover:underline">
+                  <Upload className="h-4 w-4" />
+                  Upload Template File
+                </div>
+                <input
+                  id="template-upload"
+                  type="file"
+                  accept=".docx"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={isUploading}
+                />
+              </label>
+              {isUploading && <p className="text-xs mt-1">Uploading...</p>}
+              {uploadError && <p className="text-xs text-red-500 mt-1">{uploadError}</p>}
+            </div>
+            
+            <div className="mt-3 text-xs">
+              <strong>Manual Fix:</strong>
+              <ol className="list-decimal pl-5 mt-1 space-y-1">
+                <li>Go to the Supabase dashboard</li>
+                <li>Navigate to Storage</li>
+                <li>Create a bucket named "agreements" with public read access</li>
+                <li>Upload a file named "agreement_template.docx"</li>
+                <li>Set the file permissions to public</li>
+              </ol>
+            </div>
           </AlertDescription>
         </Alert>
       )}
