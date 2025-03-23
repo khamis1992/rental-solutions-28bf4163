@@ -61,14 +61,14 @@ const Dashboard = () => {
           <>
             <DashboardStats stats={stats} />
             
-            {/* Revenue chart takes full width */}
-            <div className="grid grid-cols-1 gap-6 section-transition">
-              <RevenueChart data={revenue} fullWidth={true} />
-            </div>
-            
-            {/* Enhanced Vehicle Status chart */}
+            {/* Vehicle Status chart - now after the stats */}
             <div className="grid grid-cols-1 gap-6 section-transition">
               <VehicleStatusChart data={stats?.vehicleStats} />
+            </div>
+            
+            {/* Revenue chart now below the Vehicle Status */}
+            <div className="grid grid-cols-1 gap-6 section-transition">
+              <RevenueChart data={revenue} fullWidth={true} />
             </div>
             
             <RecentActivity activities={activity} />
