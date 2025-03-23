@@ -74,8 +74,8 @@ const EditAgreement = () => {
       ) : agreement ? (
         <AgreementForm 
           initialData={agreement} 
-          onSubmit={handleSubmit} 
-          isEditMode={true}
+          onSubmit={handleSubmit}
+          isSubmitting={updateAgreement.isPending}
         />
       ) : (
         <div className="text-center py-12">
