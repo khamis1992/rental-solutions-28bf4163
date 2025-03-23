@@ -25,7 +25,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { jsPDF } from 'jspdf';
 import { 
   Search, 
   FileDown, 
@@ -107,8 +106,10 @@ const CustomerLegalObligations: React.FC = () => {
             balance,
             payment_date,
             days_overdue,
-            leases(customer_id, agreement_number),
-            profiles!leases(customer_id).profiles(id, full_name)
+            leases (
+              customer_id,
+              agreement_number
+            )
           `)
           .eq('status', 'pending')
           .gt('days_overdue', 0)
@@ -119,6 +120,42 @@ const CustomerLegalObligations: React.FC = () => {
           toast.error('Failed to load overdue payments');
         }
         
+        // Fetch customer details for overdue payments
+        const paymentObligations: CustomerObligation[] = [];
+        
+        if (overduePayments && overduePayments.length > 0) {
+          for (const payment of overduePayments) {
+            if (!payment.leases?.customer_id) continue;
+            
+            // Get customer information
+            const { data: customerData, error: customerError } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .eq('id', payment.leases.customer_id)
+              .single();
+            
+            if (customerError || !customerData) {
+              console.error('Error fetching customer data:', customerError);
+              continue;
+            }
+            
+            const daysOverdue = payment.days_overdue || 0;
+            
+            paymentObligations.push({
+              id: payment.id,
+              customerId: customerData.id,
+              customerName: customerData.full_name,
+              obligationType: 'payment',
+              amount: payment.balance || 0,
+              dueDate: new Date(payment.payment_date),
+              description: `Overdue rent payment (Agreement #${payment.leases?.agreement_number})`,
+              urgency: determineUrgency(daysOverdue),
+              status: 'Overdue Payment',
+              daysOverdue
+            });
+          }
+        }
+        
         // Fetch traffic fines
         const { data: trafficFines, error: finesError } = await supabase
           .from('traffic_fines')
@@ -127,8 +164,10 @@ const CustomerLegalObligations: React.FC = () => {
             fine_amount,
             violation_date,
             lease_id,
-            leases(customer_id, agreement_number),
-            profiles!leases(customer_id).profiles(id, full_name)
+            leases (
+              customer_id,
+              agreement_number
+            )
           `)
           .eq('payment_status', 'pending')
           .order('violation_date', { ascending: false });
@@ -136,6 +175,44 @@ const CustomerLegalObligations: React.FC = () => {
         if (finesError) {
           console.error('Error fetching traffic fines:', finesError);
           toast.error('Failed to load traffic fines');
+        }
+        
+        // Process traffic fines
+        const fineObligations: CustomerObligation[] = [];
+        
+        if (trafficFines && trafficFines.length > 0) {
+          for (const fine of trafficFines) {
+            if (!fine.leases?.customer_id) continue;
+            
+            // Get customer information
+            const { data: customerData, error: customerError } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .eq('id', fine.leases.customer_id)
+              .single();
+            
+            if (customerError || !customerData) {
+              console.error('Error fetching customer data for traffic fine:', customerError);
+              continue;
+            }
+            
+            const violationDate = new Date(fine.violation_date);
+            const today = new Date();
+            const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
+            
+            fineObligations.push({
+              id: fine.id,
+              customerId: customerData.id,
+              customerName: customerData.full_name,
+              obligationType: 'traffic_fine',
+              amount: fine.fine_amount || 0,
+              dueDate: violationDate,
+              description: `Unpaid traffic fine (Agreement #${fine.leases?.agreement_number})`,
+              urgency: determineUrgency(daysOverdue),
+              status: 'Unpaid Fine',
+              daysOverdue
+            });
+          }
         }
         
         // Fetch legal cases
@@ -147,8 +224,7 @@ const CustomerLegalObligations: React.FC = () => {
             created_at,
             customer_id,
             priority,
-            status,
-            profiles(id, full_name)
+            status
           `)
           .in('status', ['pending_reminder', 'in_legal_process', 'escalated'])
           .order('created_at', { ascending: false });
@@ -158,61 +234,23 @@ const CustomerLegalObligations: React.FC = () => {
           toast.error('Failed to load legal cases');
         }
         
-        // Format and combine all obligations
-        const allObligations: CustomerObligation[] = [];
-        
-        // Process overdue payments
-        if (overduePayments && overduePayments.length > 0) {
-          const processedPayments = overduePayments
-            .filter(payment => payment.profiles && payment.profiles.length > 0)
-            .map(payment => {
-              const daysOverdue = payment.days_overdue || 0;
-              const profile = payment.profiles[0]; // Get the first profile from the joined results
-              return {
-                id: payment.id,
-                customerId: profile.id,
-                customerName: profile.full_name,
-                obligationType: 'payment' as ObligationType,
-                amount: payment.balance || 0,
-                dueDate: new Date(payment.payment_date),
-                description: `Overdue rent payment (Agreement #${payment.leases?.agreement_number})`,
-                urgency: determineUrgency(daysOverdue),
-                status: 'Overdue Payment',
-                daysOverdue
-              };
-            });
-          allObligations.push(...processedPayments);
-        }
-        
-        // Process traffic fines
-        if (trafficFines && trafficFines.length > 0) {
-          const processedFines = trafficFines
-            .filter(fine => fine.profiles && fine.profiles.length > 0)
-            .map(fine => {
-              const violationDate = new Date(fine.violation_date);
-              const today = new Date();
-              const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
-              const profile = fine.profiles[0]; // Get the first profile from the joined results
-              
-              return {
-                id: fine.id,
-                customerId: profile.id,
-                customerName: profile.full_name,
-                obligationType: 'traffic_fine' as ObligationType,
-                amount: fine.fine_amount || 0,
-                dueDate: violationDate,
-                description: `Unpaid traffic fine (Agreement #${fine.leases?.agreement_number})`,
-                urgency: determineUrgency(daysOverdue),
-                status: 'Unpaid Fine',
-                daysOverdue
-              };
-            });
-          allObligations.push(...processedFines);
-        }
-        
         // Process legal cases
+        const caseObligations: CustomerObligation[] = [];
+        
         if (legalCases && legalCases.length > 0) {
-          const processedCases = legalCases.map(legalCase => {
+          for (const legalCase of legalCases) {
+            // Get customer information
+            const { data: customerData, error: customerError } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .eq('id', legalCase.customer_id)
+              .single();
+            
+            if (customerError || !customerData) {
+              console.error('Error fetching customer data for legal case:', customerError);
+              continue;
+            }
+            
             const createdDate = new Date(legalCase.created_at);
             const today = new Date();
             const daysOverdue = Math.floor((today.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -223,21 +261,27 @@ const CustomerLegalObligations: React.FC = () => {
             if (legalCase.priority === 'urgent') urgency = 'critical';
             if (legalCase.priority === 'low') urgency = 'low';
             
-            return {
+            caseObligations.push({
               id: legalCase.id,
               customerId: legalCase.customer_id,
-              customerName: legalCase.profiles.full_name,
-              obligationType: 'legal_case' as ObligationType,
+              customerName: customerData.full_name,
+              obligationType: 'legal_case',
               amount: legalCase.amount_owed || 0,
               dueDate: createdDate,
               description: `Legal case (${legalCase.status.replace(/_/g, ' ')})`,
               urgency,
               status: 'Legal Case',
               daysOverdue
-            };
-          });
-          allObligations.push(...processedCases);
+            });
+          }
         }
+        
+        // Combine all obligations
+        const allObligations = [
+          ...paymentObligations,
+          ...fineObligations,
+          ...caseObligations
+        ];
         
         setObligations(allObligations);
         setFilteredObligations(allObligations);

@@ -66,18 +66,19 @@ export const generateLegalCustomerReport = async (
   yPos += 10;
   
   // Group by type of obligation for the summary
-  const summaryByType: Record<string, { count: number, totalAmount: number }> = obligations.reduce((acc, obligation) => {
+  const summaryByType: Record<string, { count: number, totalAmount: number }> = {};
+  
+  obligations.forEach(obligation => {
     const type = obligation.obligationType || 'other';
-    if (!acc[type]) {
-      acc[type] = { 
+    if (!summaryByType[type]) {
+      summaryByType[type] = { 
         count: 0, 
         totalAmount: 0 
       };
     }
-    acc[type].count += 1;
-    acc[type].totalAmount += obligation.amount;
-    return acc;
-  }, {} as Record<string, { count: number, totalAmount: number }>);
+    summaryByType[type].count += 1;
+    summaryByType[type].totalAmount += obligation.amount;
+  });
   
   // Calculate total owed
   const totalOwed = obligations.reduce((sum, obligation) => sum + obligation.amount, 0);
@@ -112,14 +113,15 @@ export const generateLegalCustomerReport = async (
   yPos += 10;
   
   // Group obligations by type for detailed section
-  const obligationsByType: Record<string, CustomerObligation[]> = obligations.reduce((acc, obligation) => {
+  const obligationsByType: Record<string, CustomerObligation[]> = {};
+  
+  obligations.forEach(obligation => {
     const type = obligation.obligationType || 'other';
-    if (!acc[type]) {
-      acc[type] = [];
+    if (!obligationsByType[type]) {
+      obligationsByType[type] = [];
     }
-    acc[type].push(obligation);
-    return acc;
-  }, {} as Record<string, CustomerObligation[]>);
+    obligationsByType[type].push(obligation);
+  });
   
   // Add each type of obligation
   doc.setFontSize(10);
