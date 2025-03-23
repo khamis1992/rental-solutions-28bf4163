@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -187,9 +186,9 @@ const AddAgreement = () => {
       description="Create a new rental agreement with a customer" 
       backLink="/agreements"
     >
-      {/* Fix: Don't render the object directly, render specific properties or UI elements instead */}
+      {/* Render template check status */}
       {specificUrlCheck && (
-        <Alert variant="info" className="mb-4">
+        <Alert className="mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Template Check</AlertTitle>
           <AlertDescription>
@@ -293,9 +292,9 @@ const AddAgreement = () => {
         </Alert>
       )}
       
-      {/* Fix: Add conditional to check if specificUrlCheck exists and is accessible */}
+      {/* Show success message when template is ready */}
       {((standardTemplateExists || (specificUrlCheck && specificUrlCheck.accessible)) && !templateError) && (
-        <Alert variant="success" className="mb-4 bg-green-50 border-green-500">
+        <Alert className="mb-4 bg-green-50 border-green-500">
           <CheckCircle2 className="h-4 w-4 text-green-500" />
           <AlertTitle>Template Ready</AlertTitle>
           <AlertDescription>
