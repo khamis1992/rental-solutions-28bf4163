@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ const AddAgreement = () => {
   const [templateError, setTemplateError] = useState<string | null>(null);
   const [templateUrlDiagnosis, setTemplateUrlDiagnosis] = useState<any>(null);
 
-  // Improved template setup with better error handling and URL diagnostics
   useEffect(() => {
     const setupStorage = async () => {
       try {
@@ -31,7 +29,6 @@ const AddAgreement = () => {
         setCheckingTemplate(true);
         setTemplateError(null);
         
-        // First ensure the storage buckets are configured
         const result = await ensureStorageBuckets();
         if (!result.success) {
           console.error("Error setting up storage buckets:", result.error);
@@ -45,7 +42,6 @@ const AddAgreement = () => {
           console.log("Storage buckets setup complete");
         }
         
-        // Now check if template exists with improved error handling
         console.log("Checking if agreement template exists...");
         const exists = await checkStandardTemplateExists();
         console.log("Template exists result:", exists);
@@ -59,7 +55,6 @@ const AddAgreement = () => {
             variant: "destructive"
           });
           
-          // Run diagnostic to get more detailed info about the issue
           const diagnosis = await diagnosisTemplateAccess();
           setTemplateDiagnosis(diagnosis);
           console.log("Template diagnosis:", diagnosis);
@@ -75,7 +70,6 @@ const AddAgreement = () => {
           });
         }
         
-        // Now run URL diagnostics to check for URL issues
         const urlDiagnosis = await diagnoseTemplateUrl();
         setTemplateUrlDiagnosis(urlDiagnosis);
         console.log("Template URL diagnosis:", urlDiagnosis);
@@ -103,7 +97,6 @@ const AddAgreement = () => {
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
     try {
-      // Create the agreement in the database
       const { data, error } = await supabase
         .from("leases")
         .insert([formData])
@@ -119,7 +112,6 @@ const AddAgreement = () => {
         description: "The agreement has been successfully created.",
       });
 
-      // Navigate to the agreement detail page
       navigate(`/agreements/${data.id}`);
     } catch (error: any) {
       toast({
@@ -155,7 +147,7 @@ const AddAgreement = () => {
       )}
       
       {templateUrlDiagnosis && templateUrlDiagnosis.status !== "success" && (
-        <Alert variant="warning" className="mb-4 border-amber-500 bg-amber-50">
+        <Alert variant="destructive" className="mb-4 border-amber-500 bg-amber-50">
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertTitle>Template URL Issues</AlertTitle>
           <AlertDescription>

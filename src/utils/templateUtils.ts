@@ -29,13 +29,14 @@ export const uploadAgreementTemplate = async (
     const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
     
     if (!bucketExists) {
-      // Create the bucket if it doesn't exist
-      const { error: createError } = await serviceClient.storage.createBucket('agreements', {
-        public: true,
-        fileSizeLimit: 10485760, // 10MB
-      });
-      
-      if (createError) {
+      try {
+        // Create the bucket if it doesn't exist through Supabase dashboard
+        // We won't try to create it programmatically since it's failing with RLS errors
+        return {
+          success: false,
+          error: "The 'agreements' bucket doesn't exist. Please create it manually in the Supabase dashboard.",
+        };
+      } catch (createError: any) {
         return { success: false, error: `Failed to create bucket: ${createError.message}` };
       }
     }
@@ -57,9 +58,13 @@ export const uploadAgreementTemplate = async (
       .from('agreements')
       .getPublicUrl(safeFileName);
     
+    // Fix double slash issue in URL if it exists
+    let publicUrl = urlData.publicUrl;
+    publicUrl = publicUrl.replace(/\/\/agreements\//, '/agreements/');
+    
     return { 
       success: true, 
-      url: urlData.publicUrl 
+      url: publicUrl
     };
   } catch (error: any) {
     return { 
@@ -79,7 +84,7 @@ export const downloadAgreementTemplate = async (): Promise<{
 }> => {
   try {
     // Try both filename formats
-    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement temp'];
+    const fileOptions = ['agreement_template.docx', 'agreement_temp.docx', 'agreement temp.docx', 'agreement temp'];
     
     // First check if any template exists
     const { data: files, error: listError } = await supabase.storage
@@ -156,7 +161,13 @@ export const getAgreementTemplateUrl = async (): Promise<string | null> => {
       .from('agreements')
       .getPublicUrl(templateFile);
     
-    return data.publicUrl;
+    // Fix the double slash issue in the URL
+    let fixedUrl = data.publicUrl;
+    if (fixedUrl.includes('//agreements/')) {
+      fixedUrl = fixedUrl.replace('//agreements/', '/agreements/');
+    }
+    
+    return fixedUrl;
   } catch (error) {
     console.error("Error getting template URL:", error);
     return null;
@@ -213,14 +224,25 @@ export const diagnoseTemplateUrl = async (): Promise<{
     
     const url = data.publicUrl;
     
-    // Check URL format
-    if (url.includes('//agreements//')) {
+    // Check URL format for issues
+    if (url.includes('//agreements/')) {
       issues.push("Double slash detected in URL path");
       suggestions.push("The URL contains a double slash that may cause issues with loading the template");
+      
+      // Provide a fixed URL
+      const fixedUrl = url.replace('//agreements/', '/agreements/');
+      suggestions.push(`Try using this fixed URL instead: ${fixedUrl}`);
+      
+      return { 
+        status: "warning",
+        issues, 
+        suggestions,
+        url
+      };
     }
     
     return { 
-      status: issues.length > 0 ? "warning" : "success",
+      status: "success",
       issues, 
       suggestions,
       url
