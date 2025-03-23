@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/lib/supabase';
@@ -209,7 +208,10 @@ export const useAgreements = (initialFilters: AgreementFilters = {
       console.log(`Performing optimized vehicle search for numeric pattern: "${numericSearch}"`);
       
       // Try 3 different approaches in parallel for better matching chances
-      const [directResults, numericResults, customResults] = await Promise.all([
+      const numericResults = { data: null };
+      
+      // Parallel execution of search approaches
+      const [directResults, customResults] = await Promise.all([
         // 1. Direct license plate contains search
         supabase
           .from('vehicles')
@@ -217,11 +219,6 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           .ilike('license_plate', `%${numericSearch}%`)
           .limit(50),
           
-        // 2. Use database function for extracting numerics if available
-        supabase.rpc('search_numeric_plates', { 
-          search_pattern: numericSearch 
-        }).limit(50).catch(() => ({ data: null })),  // Gracefully handle if RPC doesn't exist
-        
         // 3. Custom approach using VIN as fallback
         supabase
           .from('vehicles')
@@ -229,6 +226,19 @@ export const useAgreements = (initialFilters: AgreementFilters = {
           .ilike('vin', `%${numericSearch}%`)
           .limit(50)
       ]);
+      
+      // Check if we can try the RPC method separately (won't throw error if it doesn't exist)
+      try {
+        const rpcResult = await supabase.rpc('search_numeric_plates', { 
+          search_pattern: numericSearch 
+        }).limit(50);
+        
+        if (rpcResult.data) {
+          numericResults.data = rpcResult.data;
+        }
+      } catch (rpcError) {
+        console.log('RPC method not available, skipping numeric search:', rpcError);
+      }
       
       // Combine results, removing duplicates
       const allResults = [
