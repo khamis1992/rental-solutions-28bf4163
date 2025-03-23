@@ -11,6 +11,20 @@ export const determineUrgency = (daysOverdue: number): UrgencyLevel => {
   return 'critical';
 };
 
+// Type guard function to validate profile data
+const isValidProfile = (profile: any): profile is { id: string; full_name: string } => {
+  return (
+    profile &&
+    typeof profile === 'object' &&
+    'id' in profile &&
+    'full_name' in profile &&
+    typeof profile.id === 'string' &&
+    typeof profile.full_name === 'string' &&
+    profile.id !== null &&
+    profile.full_name !== null
+  );
+};
+
 // Main function to fetch all legal obligations with optimized queries
 export const fetchLegalObligations = async (): Promise<{
   obligations: CustomerObligation[];
@@ -72,23 +86,19 @@ export const fetchLegalObligations = async (): Promise<{
           
           // Type guard to ensure we have proper profile data
           const profileData = payment.leases.profiles;
-          if (typeof profileData !== 'object' || 
-              !profileData || 
-              !('id' in profileData) || 
-              !('full_name' in profileData) ||
-              profileData.id === null || 
-              profileData.full_name === null) {
+          
+          if (!isValidProfile(profileData)) {
             console.log(`Skipping payment ${payment.id} - invalid profile data`);
             continue;
           }
           
           const daysOverdue = payment.days_overdue || 0;
           
-          // Safely access customer data after validating
+          // Safely access customer data after validating with type guard
           allObligations.push({
             id: payment.id,
-            customerId: profileData.id as string,
-            customerName: profileData.full_name as string,
+            customerId: profileData.id,
+            customerName: profileData.full_name,
             obligationType: 'payment' as ObligationType,
             amount: payment.balance || 0,
             dueDate: new Date(payment.payment_date),
@@ -152,12 +162,8 @@ export const fetchLegalObligations = async (): Promise<{
           
           // Type guard to ensure we have proper profile data
           const profileData = fine.leases.profiles;
-          if (typeof profileData !== 'object' || 
-              !profileData || 
-              !('id' in profileData) || 
-              !('full_name' in profileData) ||
-              profileData.id === null || 
-              profileData.full_name === null) {
+          
+          if (!isValidProfile(profileData)) {
             console.log(`Skipping fine ${fine.id} - invalid profile data`);
             continue;
           }
@@ -166,11 +172,11 @@ export const fetchLegalObligations = async (): Promise<{
           const today = new Date();
           const daysOverdue = Math.floor((today.getTime() - violationDate.getTime()) / (1000 * 60 * 60 * 24));
           
-          // Safely access customer data after validating
+          // Safely access customer data after validating with type guard
           allObligations.push({
             id: fine.id,
-            customerId: profileData.id as string,
-            customerName: profileData.full_name as string,
+            customerId: profileData.id,
+            customerName: profileData.full_name,
             obligationType: 'traffic_fine' as ObligationType,
             amount: fine.fine_amount || 0,
             dueDate: violationDate,
@@ -223,10 +229,8 @@ export const fetchLegalObligations = async (): Promise<{
           
           // Type guard to ensure we have proper profile data
           const profileData = legalCase.profiles;
-          if (typeof profileData !== 'object' || 
-              !profileData || 
-              !('full_name' in profileData) ||
-              profileData.full_name === null) {
+          
+          if (!isValidProfile(profileData)) {
             console.log(`Skipping legal case ${legalCase.id} - invalid profile data`);
             continue;
           }
@@ -241,11 +245,11 @@ export const fetchLegalObligations = async (): Promise<{
           if (legalCase.priority === 'urgent') urgency = 'critical';
           if (legalCase.priority === 'low') urgency = 'low';
           
-          // Safely access customer data after validating
+          // Safely access customer data after validating with type guard
           allObligations.push({
             id: legalCase.id,
             customerId: legalCase.customer_id,
-            customerName: profileData.full_name as string,
+            customerName: profileData.full_name,
             obligationType: 'legal_case' as ObligationType,
             amount: legalCase.amount_owed || 0,
             dueDate: createdDate,
