@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
@@ -332,6 +333,18 @@ export const generateLegalCustomerReport = async (
     yPos += 7;
   });
   
+  // Add contact information
+  yPos += 10;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Contact Information:", 14, yPos);
+  yPos += 7;
+  
+  doc.setFont('helvetica', 'normal');
+  doc.text("Financial Department: finance@yourcompany.com | +974 XXXX XXXX", 14, yPos);
+  yPos += 7;
+  doc.text("Legal Department: legal@yourcompany.com | +974 XXXX XXXX", 14, yPos);
+  
   // Add the footer with company info and logo to each page
   const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
   
@@ -340,34 +353,22 @@ export const generateLegalCustomerReport = async (
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Footer margin - use same margin as rest of document
-    const footerMargin = 14;
-    const footerTopPosition = pageHeight - 30;
-    
-    // Add footer text with consistent left margin
+    // Add footer text first - above the footer logo
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("© 2025 ALARAF CAR RENTAL", footerMargin, footerTopPosition);
-    
+    doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text("Quality Service, Premium Experience", footerMargin, footerTopPosition + 5);
-    doc.text("المكتب الرئيسي: طريق المطار، الدوحة، قطر", footerMargin, footerTopPosition + 10);
-    
-    // Calculate logo dimensions to fit within margins
-    const logoHeight = 10;
-    const logoWidth = pageWidth - (2 * footerMargin);
-    const logoY = footerTopPosition + 15;
+    doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
     
     // Add the footer image below the text
-    doc.addImage(footerLogoPath, 'PNG', footerMargin, logoY, logoWidth, logoHeight);
+    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
     
-    // Add page number and other info at the very bottom
-    const pageInfoY = pageHeight - 5;
+    // Add page number
     doc.setFontSize(8);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageInfoY, { align: 'center' });
-    doc.text('CONFIDENTIAL', footerMargin, pageInfoY);
-    doc.text(new Date().toLocaleDateString(), pageWidth - footerMargin, pageInfoY, { align: 'right' });
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text('CONFIDENTIAL', 14, pageHeight - 5);
+    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 5, { align: 'right' });
   }
   
   return doc;
