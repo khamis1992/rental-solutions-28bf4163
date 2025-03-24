@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -6,8 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams, VehicleStatus, VehicleInsertData } from '@/types/vehicle';
 import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
 
-// Type for database interactions to prevent circular reference issues
-type DatabaseVehicle = {
+// Type for raw database vehicle records to prevent circular reference issues
+type DatabaseVehicleRecord = {
   id: string;
   make: string;
   model: string;
@@ -15,7 +14,7 @@ type DatabaseVehicle = {
   license_plate: string;
   vin: string;
   color?: string | null;
-  status?: VehicleStatus | null;
+  status?: string | null;
   mileage?: number | null;
   image_url?: string | null;
   description?: string | null;
@@ -29,12 +28,22 @@ type DatabaseVehicle = {
   registration_number?: string | null;
   created_at: string;
   updated_at: string;
-  vehicle_types?: VehicleType;
+  vehicle_types?: VehicleType | null;
 };
 
 // Helper function to validate status
 function isValidStatus(status: string): status is VehicleStatus {
   return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status);
+}
+
+// Normalize vehicle status to ensure it matches VehicleStatus type
+function normalizeVehicleStatus(status: string | null | undefined): VehicleStatus | undefined {
+  if (!status) return undefined;
+  
+  // Handle the "reserve" to "reserved" mapping and other potential mismatches
+  if (status === 'reserve') return 'reserved';
+  
+  return isValidStatus(status) ? status : 'available';
 }
 
 // Using explicit return type to avoid excessive type instantiation
@@ -56,14 +65,18 @@ const fetchVehicles = async (filters?: VehicleFilterParams): Promise<Vehicle[]> 
     throw new Error(`Error fetching vehicles: ${error.message}`);
   }
   
-  return data.map((vehicle: DatabaseVehicle) => {
+  // Use type assertion for the raw database records
+  return (data as DatabaseVehicleRecord[]).map((vehicle) => {
+    // Ensure status is normalized to match VehicleStatus type
     const vehicleWithType = {
       ...vehicle,
+      status: normalizeVehicleStatus(vehicle.status),
       vehicleType: vehicle.vehicle_types
     };
+    
     delete vehicleWithType.vehicle_types;
     
-    return formatVehicleForDisplay(vehicleWithType);
+    return formatVehicleForDisplay(vehicleWithType as any);
   });
 };
 
@@ -79,10 +92,13 @@ const fetchVehicleById = async (id: string): Promise<Vehicle> => {
     throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
   }
   
+  // Normalize the vehicle status to ensure it matches VehicleStatus type
   const vehicleWithType = {
     ...data,
+    status: normalizeVehicleStatus(data.status),
     vehicleType: data.vehicle_types
   };
+  
   delete vehicleWithType.vehicle_types;
   
   return formatVehicleForDisplay(vehicleWithType);
