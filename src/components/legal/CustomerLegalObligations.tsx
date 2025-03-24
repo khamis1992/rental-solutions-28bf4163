@@ -37,11 +37,16 @@ import {
   AlertCircle,
   RefreshCw,
   ChevronDown,
-  Info
+  Info,
+  CreditCard,
+  UserCog,
+  ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 import { fetchLegalObligations, determineUrgency } from './LegalObligationsService';
+import LegalCaseDetails from './LegalCaseDetails';
+import { Link } from 'react-router-dom';
 
 // Types
 export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
@@ -58,6 +63,8 @@ export interface CustomerObligation {
   urgency: UrgencyLevel;
   status: string;
   daysOverdue: number;
+  agreementId?: string; // Added for lease agreement integration
+  agreementNumber?: string; // Added for lease agreement integration
 }
 
 // Urgency badge styling
@@ -88,6 +95,7 @@ const CustomerLegalObligations: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [retryCount, setRetryCount] = useState(0);
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [selectedObligation, setSelectedObligation] = useState<CustomerObligation | null>(null);
 
   // Fetch data with retries
   const fetchObligations = async (isManualRefresh = false) => {
@@ -162,7 +170,8 @@ const CustomerLegalObligations: React.FC = () => {
       result = result.filter(obligation => 
         obligation.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         obligation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        obligation.status.toLowerCase().includes(searchQuery.toLowerCase())
+        obligation.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (obligation.agreementNumber && obligation.agreementNumber.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
     
@@ -247,6 +256,22 @@ const CustomerLegalObligations: React.FC = () => {
     setRetryCount(0);
     fetchObligations(true);
   };
+
+  // View case details
+  const handleViewDetails = (obligation: CustomerObligation) => {
+    setSelectedObligation(obligation);
+  };
+
+  // Close case details
+  const handleCloseDetails = () => {
+    setSelectedObligation(null);
+  };
+
+  // Process payment 
+  const handleProcessPayment = (obligation: CustomerObligation) => {
+    toast.info(`Redirecting to payment processing for ${obligation.customerName}...`);
+    // In a real implementation, we would redirect to the payment processing page
+  };
   
   // Group obligations by customer for the customer list view
   const customerSummary = React.useMemo(() => {
@@ -308,7 +333,7 @@ const CustomerLegalObligations: React.FC = () => {
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by customer or description..."
+              placeholder="Search by customer, agreement, or description..."
               className="pl-8"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -353,6 +378,12 @@ const CustomerLegalObligations: React.FC = () => {
       </CardHeader>
       
       <CardContent>
+        {selectedObligation && (
+          <div className="mb-6">
+            <LegalCaseDetails obligation={selectedObligation} onClose={handleCloseDetails} />
+          </div>
+        )}
+        
         {loading ? (
           <div className="text-center py-8 space-y-4">
             <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary" />
@@ -433,7 +464,13 @@ const CustomerLegalObligations: React.FC = () => {
                   {customerSummary.map((summary) => (
                     <TableRow key={summary.customerId}>
                       <TableCell className="font-medium">
-                        {summary.customerName}
+                        <Link 
+                          to={`/customers/${summary.customerId}`} 
+                          className="text-primary hover:underline flex items-center"
+                        >
+                          {summary.customerName}
+                          <ExternalLink className="ml-1 h-3 w-3" />
+                        </Link>
                       </TableCell>
                       <TableCell>
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'QAR' }).format(summary.totalAmount)}
@@ -510,13 +547,20 @@ const CustomerLegalObligations: React.FC = () => {
                         )}
                       </div>
                     </TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredObligations.map((obligation) => (
                     <TableRow key={`${obligation.id}-${obligation.obligationType}`}>
                       <TableCell className="font-medium">
-                        {obligation.customerName}
+                        <Link 
+                          to={`/customers/${obligation.customerId}`} 
+                          className="text-primary hover:underline flex items-center"
+                        >
+                          {obligation.customerName}
+                          <ExternalLink className="ml-1 h-3 w-3" />
+                        </Link>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
@@ -529,7 +573,20 @@ const CustomerLegalObligations: React.FC = () => {
                           {obligation.obligationType === 'legal_case' && (
                             <FileText className="mr-2 h-4 w-4 text-blue-500" />
                           )}
-                          {obligation.description}
+                          <div>
+                            {obligation.description}
+                            {obligation.agreementNumber && (
+                              <div className="text-xs text-muted-foreground">
+                                <Link 
+                                  to={`/agreements/${obligation.agreementId}`}
+                                  className="hover:underline flex items-center inline-flex"
+                                >
+                                  Agreement: {obligation.agreementNumber}
+                                  <ExternalLink className="ml-1 h-3 w-3" />
+                                </Link>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">
@@ -543,6 +600,42 @@ const CustomerLegalObligations: React.FC = () => {
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {getUrgencyBadge(obligation.urgency)}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreVertical className="h-4 w-4" />
+                              <span className="sr-only">Actions</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewDetails(obligation)}>
+                              <FileText className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Link to={`/customers/${obligation.customerId}`} className="flex w-full items-center">
+                                <UserCog className="mr-2 h-4 w-4" />
+                                Customer Profile
+                              </Link>
+                            </DropdownMenuItem>
+                            {obligation.agreementId && (
+                              <DropdownMenuItem>
+                                <Link to={`/agreements/${obligation.agreementId}`} className="flex w-full items-center">
+                                  <FileText className="mr-2 h-4 w-4" />
+                                  View Agreement
+                                </Link>
+                              </DropdownMenuItem>
+                            )}
+                            {obligation.obligationType === 'payment' && (
+                              <DropdownMenuItem onClick={() => handleProcessPayment(obligation)}>
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                Process Payment
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
