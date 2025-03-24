@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -37,12 +36,14 @@ interface ContractDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: Omit<CarInstallmentContract, 'id' | 'created_at' | 'updated_at'>) => void;
+  onClose: () => void;
 }
 
 export const ContractDialog: React.FC<ContractDialogProps> = ({
   open,
   onOpenChange,
   onSubmit,
+  onClose,
 }) => {
   const form = useForm<ContractFormData>({
     resolver: zodResolver(contractSchema),
@@ -89,7 +90,7 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
   const handleSubmit = (data: ContractFormData) => {
     // Convert form data to contract data with required fields for database
     const contractData: Omit<CarInstallmentContract, 'id' | 'created_at' | 'updated_at'> = {
-      car_type: data.car_type, // Ensure car_type is not optional
+      car_type: data.car_type,
       model_year: data.model_year,
       number_of_cars: data.number_of_cars,
       price_per_car: data.price_per_car,
@@ -100,10 +101,11 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
       amount_pending: totalContractValue,
       remaining_installments: data.total_installments,
       overdue_payments: 0,
-      category: 'car-finance' // Add the required category field
+      category: data.category || 'Standard'
     };
-    
+
     onSubmit(contractData);
+    onClose();
   };
 
   return (
