@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -6,7 +7,7 @@ import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams, VehicleStat
 import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
 
 // Type for database interactions to prevent circular reference issues
-interface DatabaseVehicle {
+type DatabaseVehicle = {
   id: string;
   make: string;
   model: string;
@@ -29,14 +30,14 @@ interface DatabaseVehicle {
   created_at: string;
   updated_at: string;
   vehicle_types?: VehicleType;
-}
+};
 
 // Helper function to validate status
 function isValidStatus(status: string): status is VehicleStatus {
   return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status);
 }
 
-// Fix the excessive type instantiation by using explicit return type
+// Using explicit return type to avoid excessive type instantiation
 const fetchVehicles = async (filters?: VehicleFilterParams): Promise<Vehicle[]> => {
   let query = supabase.from('vehicles')
     .select('*, vehicle_types(*)');
@@ -55,7 +56,7 @@ const fetchVehicles = async (filters?: VehicleFilterParams): Promise<Vehicle[]> 
     throw new Error(`Error fetching vehicles: ${error.message}`);
   }
   
-  return data.map((vehicle: any) => {
+  return data.map((vehicle: DatabaseVehicle) => {
     const vehicleWithType = {
       ...vehicle,
       vehicleType: vehicle.vehicle_types
@@ -66,7 +67,7 @@ const fetchVehicles = async (filters?: VehicleFilterParams): Promise<Vehicle[]> 
   });
 };
 
-// Fix the excessive type instantiation by using explicit return type
+// Using explicit return type to avoid excessive type instantiation
 const fetchVehicleById = async (id: string): Promise<Vehicle> => {
   const { data, error } = await supabase
     .from('vehicles')
@@ -87,7 +88,7 @@ const fetchVehicleById = async (id: string): Promise<Vehicle> => {
   return formatVehicleForDisplay(vehicleWithType);
 };
 
-// Fix the excessive type instantiation by using explicit return type
+// Using explicit return type to avoid excessive type instantiation
 const fetchVehicleTypes = async (): Promise<VehicleType[]> => {
   const { data, error } = await supabase
     .from('vehicle_types')
