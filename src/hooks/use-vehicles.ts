@@ -37,7 +37,8 @@ function isValidStatus(status: string): status is VehicleStatus {
   return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status);
 }
 
-const fetchVehicles = async (filters?: VehicleFilterParams) => {
+// Fix the excessive type instantiation by using explicit return type
+const fetchVehicles = async (filters?: VehicleFilterParams): Promise<Vehicle[]> => {
   let query = supabase.from('vehicles')
     .select('*, vehicle_types(*)');
   
@@ -66,7 +67,8 @@ const fetchVehicles = async (filters?: VehicleFilterParams) => {
   });
 };
 
-const fetchVehicleById = async (id: string) => {
+// Fix the excessive type instantiation by using explicit return type
+const fetchVehicleById = async (id: string): Promise<Vehicle> => {
   const { data, error } = await supabase
     .from('vehicles')
     .select('*, vehicle_types(*)')
@@ -86,7 +88,8 @@ const fetchVehicleById = async (id: string) => {
   return formatVehicleForDisplay(vehicleWithType);
 };
 
-const fetchVehicleTypes = async () => {
+// Fix the excessive type instantiation by using explicit return type
+const fetchVehicleTypes = async (): Promise<VehicleType[]> => {
   const { data, error } = await supabase
     .from('vehicle_types')
     .select('*')
