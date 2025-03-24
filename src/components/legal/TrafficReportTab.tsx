@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { CustomerObligation } from './CustomerLegalObligations';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { jsPDF } from 'jspdf';
 
 interface TrafficReportTabProps {
   language?: 'english' | 'arabic';
@@ -288,7 +288,8 @@ const TrafficReportTab: React.FC<TrafficReportTabProps> = ({
           
           <div className="space-y-4 text-sm">
             <p>
-              <strong>PDF Library:</strong> jsPDF {jspdf.version}
+              <strong>PDF Library:</strong> jsPDF
+              {typeof jsPDF === 'function' && (jsPDF as any).version ? (jsPDF as any).version : 'Unknown'}
             </p>
             <p>
               <strong>Font Configuration:</strong> {language === 'arabic' ? 'RTL enabled, Arabic language support' : 'Standard LTR'}
@@ -300,7 +301,7 @@ const TrafficReportTab: React.FC<TrafficReportTabProps> = ({
               This information can help troubleshoot any issues with report generation.
             </p>
             
-            <Alert variant="outline">
+            <Alert variant="default">
               <AlertTitle>Debug Mode</AlertTitle>
               <AlertDescription>
                 PDF generation will include additional debug information in the console.

@@ -1,4 +1,3 @@
-
 /**
  * Utilities for managing fonts in PDF reports
  */
@@ -25,9 +24,6 @@ export const configureFontForLanguage = (doc: jsPDF, language: 'english' | 'arab
       
       // Set language-specific properties to improve Arabic text rendering
       doc.setLanguage('ar');
-      
-      // Make sure we're using Unicode encoding
-      doc.setFontStyle('normal');
       
       // Increase font size slightly for better Arabic readability
       const currentFontSize = doc.getFontSize();
