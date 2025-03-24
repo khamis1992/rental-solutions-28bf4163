@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -7,17 +8,19 @@ import {
 } from 'react-router-dom';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
-import Bookings from './pages/Bookings';
 import Vehicles from './pages/Vehicles';
 import Customers from './pages/Customers';
-import Settings from './pages/Settings';
-import Login from './pages/Login';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import PageContainer from './components/layout/PageContainer';
 import Financials from './pages/Financials';
-import Expenses from './pages/Expenses'; // Add import for Expenses page 
+import Expenses from './pages/Expenses';
+
+// Create placeholder components for missing pages
+const Bookings = () => <PageContainer title="Bookings">Bookings page content</PageContainer>;
+const Settings = () => <PageContainer title="Settings">Settings page content</PageContainer>;
+const Login = () => <div className="p-8">Login page content</div>;
+const ForgotPassword = () => <div className="p-8">Forgot Password page content</div>;
+const ResetPassword = () => <div className="p-8">Reset Password page content</div>;
 
 const AppContent = () => {
   const { isLoggedIn } = useAuth();
