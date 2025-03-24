@@ -7,6 +7,7 @@ import VehicleForm from '@/components/vehicles/VehicleForm';
 import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
+import { toast } from 'sonner';
 
 const AddVehicle = () => {
   const navigate = useNavigate();
@@ -17,6 +18,11 @@ const AddVehicle = () => {
     createVehicle(formData, {
       onSuccess: () => {
         navigate('/vehicles');
+      },
+      onError: (error) => {
+        toast.error('Failed to add vehicle', {
+          description: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
       }
     });
   };
