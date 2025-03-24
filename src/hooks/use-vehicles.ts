@@ -3,11 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams } from '@/types/vehicle';
+import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
 
-// Type for the vehicle data returned from Supabase
-type VehicleFromDB = {
+// Database vehicle type without circular references
+interface VehicleDBRow {
   id: string;
   make: string;
   model: string;
@@ -30,7 +30,7 @@ type VehicleFromDB = {
   created_at: string;
   updated_at: string;
   vehicle_types?: VehicleType;
-};
+}
 
 const fetchVehicles = async (filters?: VehicleFilterParams) => {
   let query = supabase.from('vehicles')
@@ -164,6 +164,9 @@ export const useVehicles = () => {
             }
           }
           
+          // Convert VehicleStatus (our enum) to string type for database
+          const statusForDB = formData.status as string || 'available';
+          
           // Type-safe vehicle data object
           const vehicleData = {
             make: formData.make,
@@ -172,7 +175,7 @@ export const useVehicles = () => {
             license_plate: formData.license_plate,
             vin: formData.vin,
             color: formData.color || null,
-            status: formData.status || 'available',
+            status: statusForDB,
             mileage: formData.mileage || 0,
             description: formData.description || null,
             location: formData.location || null,
@@ -238,6 +241,9 @@ export const useVehicles = () => {
             }
           }
           
+          // Convert VehicleStatus (our enum) to string for database
+          const statusForDB = data.status ? data.status as string : undefined;
+          
           // Explicit typing for the update data
           const vehicleData: Record<string, unknown> = {};
           
@@ -250,7 +256,7 @@ export const useVehicles = () => {
           
           // Optional fields
           if (data.color !== undefined) vehicleData.color = data.color;
-          if (data.status !== undefined) vehicleData.status = data.status;
+          if (statusForDB !== undefined) vehicleData.status = statusForDB;
           if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
           if (data.description !== undefined) vehicleData.description = data.description;
           if (data.location !== undefined) vehicleData.location = data.location;
