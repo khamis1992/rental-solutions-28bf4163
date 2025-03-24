@@ -123,7 +123,10 @@ const TrafficFinesList = () => {
                     <TableCell className="font-medium">
                       <div className="flex items-center">
                         <AlertTriangle className="mr-2 h-4 w-4 text-warning" />
-                        {fine.violationNumber}
+                        <div>
+                          <div>Unpaid traffic fine ({fine.violationNumber})</div>
+                          <div className="text-xs text-muted-foreground">{fine.violationCharge}</div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{fine.licensePlate}</TableCell>
