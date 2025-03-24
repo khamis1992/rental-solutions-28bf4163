@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -10,6 +9,15 @@ import { Badge } from '@/components/ui/badge';
 const CustomerReport = () => {
   return (
     <div className="space-y-8">
+      <div className="flex items-center mb-6">
+        <img 
+          src="/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png" 
+          alt="Alaraf Car Rental" 
+          className="h-10 mr-4" 
+        />
+        <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
+      </div>
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Customers" 

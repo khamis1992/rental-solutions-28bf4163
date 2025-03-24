@@ -1,6 +1,5 @@
-
 import { jsPDF } from 'jspdf';
-import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
+import { CustomerObligation } from '@/components/legal/CustomerObligations';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -34,24 +33,28 @@ export const generateLegalCustomerReport = async (
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
+  // Add logo to the header
+  const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+  doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+  
   // Add title and header
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, 20, { align: "center" });
+  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, 25, { align: "center" });
   
   // Add report date
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: "center" });
+  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 33, { align: "center" });
   
   // Add customer information
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text("Customer Information", 14, 40);
+  doc.text("Customer Information", 14, 45);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  let yPos = 50;
+  let yPos = 55;
   doc.text(`Name: ${customerName}`, 14, yPos); yPos += 7;
   
   if (customer) {
@@ -139,6 +142,8 @@ export const generateLegalCustomerReport = async (
     if (yPos > 250) {
       doc.addPage();
       yPos = 20;
+      // Add logo to new page
+      doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
     }
     
     // Add section header for this type
@@ -166,6 +171,9 @@ export const generateLegalCustomerReport = async (
       if (yPos > 270) {
         doc.addPage();
         yPos = 20;
+        
+        // Add logo to new page
+        doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
         
         // Add column headers on new page
         doc.setFont('helvetica', 'bold');
@@ -207,6 +215,8 @@ export const generateLegalCustomerReport = async (
   if (yPos > 250) {
     doc.addPage();
     yPos = 20;
+    // Add logo to new page
+    doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
   }
   
   yPos += 5;
