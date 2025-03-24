@@ -354,15 +354,16 @@ export const generateLegalCustomerReport = async (
     doc.setPage(i);
     
     // Add footer text first - above the footer logo
+    // Using the same left margin (14) for consistency with the header
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
+    doc.text("© 2025 ALARAF CAR RENTAL", 14, pageHeight - 30);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
+    doc.text("Quality Service, Premium Experience", 14, pageHeight - 25);
     
     // Add the footer image below the text
-    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
+    doc.addImage(footerLogoPath, 'PNG', 14, pageHeight - 20, pageWidth - 28, 12);
     
     // Add page number
     doc.setFontSize(8);
