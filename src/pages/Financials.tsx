@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { BarChart4, Plus, FileText, Download } from 'lucide-react';
+import { BarChart4, Plus, FileText, Download, Car } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FinancialSummary from '@/components/financials/FinancialSummary';
@@ -9,6 +10,7 @@ import FinancialTransactions from '@/components/financials/FinancialTransactions
 import FinancialRevenueChart from '@/components/financials/FinancialRevenueChart';
 import FinancialMetricsChart from '@/components/financials/FinancialMetricsChart';
 import TransactionDialog from '@/components/financials/TransactionDialog';
+import CarInstallmentContracts from '@/components/financials/car-installments/CarInstallmentContracts';
 import { useFinancials, FinancialTransaction } from '@/hooks/use-financials';
 import { useToast } from '@/hooks/use-toast';
 import { checkAndGenerateMonthlyPayments, forceCheckAllAgreementsForPayments } from '@/lib/supabase';
@@ -168,6 +170,7 @@ const Financials = () => {
           <TabsList>
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="installments">Installment Contracts</TabsTrigger>
           </TabsList>
           <TabsContent value="transactions" className="space-y-6">
             <FinancialTransactions
@@ -185,6 +188,9 @@ const Financials = () => {
               <FinancialRevenueChart />
               <FinancialMetricsChart />
             </div>
+          </TabsContent>
+          <TabsContent value="installments" className="space-y-6">
+            <CarInstallmentContracts />
           </TabsContent>
         </Tabs>
 
