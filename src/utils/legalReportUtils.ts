@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
@@ -341,23 +340,34 @@ export const generateLegalCustomerReport = async (
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Add footer text - aligned to left margin like header
+    // Footer margin - use same margin as rest of document
+    const footerMargin = 14;
+    const footerTopPosition = pageHeight - 30;
+    
+    // Add footer text with consistent left margin
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("© 2025 ALARAF CAR RENTAL", 14, pageHeight - 30);
+    doc.text("© 2025 ALARAF CAR RENTAL", footerMargin, footerTopPosition);
+    
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text("Quality Service, Premium Experience", 14, pageHeight - 25);
-    doc.text("المكتب الرئيسي: طريق المطار، الدوحة، قطر", 14, pageHeight - 20);
+    doc.text("Quality Service, Premium Experience", footerMargin, footerTopPosition + 5);
+    doc.text("المكتب الرئيسي: طريق المطار، الدوحة، قطر", footerMargin, footerTopPosition + 10);
+    
+    // Calculate logo dimensions to fit within margins
+    const logoHeight = 10;
+    const logoWidth = pageWidth - (2 * footerMargin);
+    const logoY = footerTopPosition + 15;
     
     // Add the footer image below the text
-    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 15, pageWidth - 30, 12);
+    doc.addImage(footerLogoPath, 'PNG', footerMargin, logoY, logoWidth, logoHeight);
     
-    // Add page number
+    // Add page number and other info at the very bottom
+    const pageInfoY = pageHeight - 5;
     doc.setFontSize(8);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-    doc.text('CONFIDENTIAL', 14, pageHeight - 5);
-    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 5, { align: 'right' });
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageInfoY, { align: 'center' });
+    doc.text('CONFIDENTIAL', footerMargin, pageInfoY);
+    doc.text(new Date().toLocaleDateString(), pageWidth - footerMargin, pageInfoY, { align: 'right' });
   }
   
   return doc;
