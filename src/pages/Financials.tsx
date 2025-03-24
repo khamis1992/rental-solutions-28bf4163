@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -33,6 +32,7 @@ const Financials = () => {
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<FinancialTransaction | undefined>(undefined);
   const [dialogTitle, setDialogTitle] = useState('Add Transaction');
+  const [activeTab, setActiveTab] = useState("transactions");
 
   // Check for monthly payments on page load
   useEffect(() => {
@@ -166,12 +166,21 @@ const Financials = () => {
           isLoading={isLoadingSummary}
         />
 
-        <Tabs defaultValue="transactions" className="space-y-6">
-          <TabsList>
+        <Tabs 
+          defaultValue="transactions" 
+          className="space-y-6"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
+          <TabsList className="mb-4">
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="installments">Installment Contracts</TabsTrigger>
+            <TabsTrigger value="installments">
+              <Car className="h-4 w-4 mr-2" />
+              Installment Contracts
+            </TabsTrigger>
           </TabsList>
+          
           <TabsContent value="transactions" className="space-y-6">
             <FinancialTransactions
               transactions={filteredTransactions}
@@ -183,12 +192,14 @@ const Financials = () => {
               setFilters={setFilters}
             />
           </TabsContent>
+          
           <TabsContent value="analytics" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <FinancialRevenueChart />
               <FinancialMetricsChart />
             </div>
           </TabsContent>
+          
           <TabsContent value="installments" className="space-y-6">
             <CarInstallmentContracts />
           </TabsContent>
