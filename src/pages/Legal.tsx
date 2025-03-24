@@ -7,10 +7,12 @@ import CustomerLegalObligations from '@/components/legal/CustomerLegalObligation
 import TrafficReportTab from '@/components/legal/TrafficReportTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Progress } from '@/components/ui/progress';
 
 const Legal = () => {
   const [activeTab, setActiveTab] = useState("obligations");
   const [language, setLanguage] = useState<'english' | 'arabic'>('english');
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleTabChange = (value: string) => {
     // This ensures we don't refresh the page when changing tabs
@@ -53,6 +55,16 @@ const Legal = () => {
         </div>
       </div>
       
+      {isGenerating && (
+        <div className="mb-4">
+          <div className="flex items-center mb-2">
+            <span className="text-sm font-medium mr-2">{language === 'arabic' ? "جاري إنشاء التقرير..." : "Generating report..."}</span>
+            <span className="text-xs text-muted-foreground">{language === 'arabic' ? "يرجى الانتظار" : "Please wait"}</span>
+          </div>
+          <Progress value={45} className="h-2" />
+        </div>
+      )}
+      
       <Tabs defaultValue="obligations" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="obligations">
@@ -70,7 +82,11 @@ const Legal = () => {
         </TabsContent>
 
         <TabsContent value="reports" className="space-y-4">
-          <TrafficReportTab />
+          <TrafficReportTab 
+            language={language} 
+            onGenerationStart={() => setIsGenerating(true)}
+            onGenerationEnd={() => setIsGenerating(false)}
+          />
         </TabsContent>
       </Tabs>
     </PageContainer>

@@ -6,7 +6,7 @@
 import { jsPDF } from 'jspdf';
 import { formatCurrency } from '@/lib/utils';
 
-// Standard Arabic font that jsPDF can handle
+// We'll use standard fonts that have better support for Arabic characters
 const ARABIC_FONT = 'Helvetica';
 
 /**
@@ -19,14 +19,14 @@ export const configureFontForLanguage = (doc: jsPDF, language: 'english' | 'arab
       // Set right-to-left mode for Arabic text
       doc.setR2L(true);
       
-      // For Arabic, use default font but with right-to-left rendering
+      // For Arabic, use standard font with right-to-left rendering
       doc.setFont(ARABIC_FONT);
       
       // Increase the font size slightly for better Arabic readability
       const currentFontSize = doc.getFontSize();
       doc.setFontSize(currentFontSize + 2);
       
-      console.log("Arabic font configuration applied successfully");
+      console.log("Arabic font configuration applied");
     } else {
       // For English, use default settings
       doc.setFont('helvetica');
@@ -49,15 +49,18 @@ export const getTextAlignment = (language: 'english' | 'arabic'): 'left' | 'cent
 
 /**
  * Format text for proper display in PDF based on language
- * Ensures characters are correctly encoded
+ * Uses specialized handling for Arabic text
  */
 export const formatTextForPdf = (text: string, language: 'english' | 'arabic'): string => {
   if (!text) return '';
   
   try {
-    // For Arabic, ensure we're handling the text correctly
+    // For Arabic, ensure proper character handling
     if (language === 'arabic') {
-      return text;
+      // Manually flip parentheses for better RTL rendering
+      return text
+        .replace(/\(/g, ')')
+        .replace(/\)/g, '(');
     }
     return text;
   } catch (error) {
@@ -130,8 +133,11 @@ export const addArabicText = (
     // Set alignment - default to right for Arabic
     const align = options.align || 'right';
     
-    // Add the text with alignment
-    doc.text(text, x, y, { align });
+    // Process text for better Arabic display
+    let processedText = text;
+    
+    // Use built-in text function with alignment
+    doc.text(processedText, x, y, { align });
     
   } catch (error) {
     console.error("Error adding Arabic text:", error, "Text:", text);

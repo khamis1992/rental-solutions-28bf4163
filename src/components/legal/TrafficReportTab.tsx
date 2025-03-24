@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,27 +9,43 @@ import { CustomerObligation } from './CustomerLegalObligations';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const TrafficReportTab: React.FC = () => {
+interface TrafficReportTabProps {
+  language?: 'english' | 'arabic';
+  onGenerationStart?: () => void;
+  onGenerationEnd?: () => void;
+}
+
+const TrafficReportTab: React.FC<TrafficReportTabProps> = ({ 
+  language: externalLanguage, 
+  onGenerationStart,
+  onGenerationEnd
+}) => {
   const { toast } = useToast();
-  const [language, setLanguage] = useState<'english' | 'arabic'>('english');
+  const [language, setLanguage] = useState<'english' | 'arabic'>(externalLanguage || 'english');
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string>('');
   const [showInstructions, setShowInstructions] = useState(false);
 
+  React.useEffect(() => {
+    if (externalLanguage) {
+      setLanguage(externalLanguage);
+    }
+  }, [externalLanguage]);
+
   const handleGenerateReport = async () => {
     setIsGenerating(true);
     setHasError(false);
     setErrorDetails('');
+    
+    if (onGenerationStart) onGenerationStart();
 
     try {
       console.log(`Generating report in ${language} language`);
       
-      // Example data - in real app this would come from actual data
       const customerId = "example-id";
       const customerName = language === 'arabic' ? "محمد عبدالله" : "John Smith";
       
-      // Sample obligations with Arabic text if Arabic language is selected
       const sampleObligations: CustomerObligation[] = [
         {
           id: "ob1",
@@ -66,7 +81,6 @@ const TrafficReportTab: React.FC = () => {
 
       console.log("Sample obligations prepared, generating PDF...");
       
-      // Generate PDF document
       const doc = await generateLegalCustomerReport(
         customerId, 
         customerName, 
@@ -74,7 +88,6 @@ const TrafficReportTab: React.FC = () => {
         language
       );
       
-      // Save the PDF with appropriate filename
       const timestamp = new Date().toISOString().split('T')[0];
       const filename = language === 'arabic' 
         ? `تقرير-قانوني-${customerName}-${timestamp}.pdf`
@@ -108,6 +121,7 @@ const TrafficReportTab: React.FC = () => {
       });
     } finally {
       setIsGenerating(false);
+      if (onGenerationEnd) onGenerationEnd();
     }
   };
 
@@ -143,29 +157,31 @@ const TrafficReportTab: React.FC = () => {
           </Alert>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              {language === 'arabic' ? "لغة التقرير" : "Report Language"}
-            </label>
-            <Select 
-              value={language} 
-              onValueChange={(value: 'english' | 'arabic') => {
-                setLanguage(value);
-                setHasError(false);
-                setErrorDetails('');
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={language === 'arabic' ? "اختر اللغة" : "Select language"} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="arabic">العربية</SelectItem>
-              </SelectContent>
-            </Select>
+        {!externalLanguage && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                {language === 'arabic' ? "لغة التقرير" : "Report Language"}
+              </label>
+              <Select 
+                value={language} 
+                onValueChange={(value: 'english' | 'arabic') => {
+                  setLanguage(value);
+                  setHasError(false);
+                  setErrorDetails('');
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={language === 'arabic' ? "اختر اللغة" : "Select language"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="english">English</SelectItem>
+                  <SelectItem value="arabic">العربية</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
+        )}
         
         <div className="flex flex-col space-y-2">
           <Button 
@@ -235,8 +251,8 @@ const TrafficReportTab: React.FC = () => {
               </AlertTitle>
               <AlertDescription>
                 {language === 'arabic'
-                  ? "لضمان أفضل تجربة، يرجى التأكد من تحديث النظام إلى أحدث إصدار."
-                  : "For the best experience, please ensure your system is updated to the latest version."}
+                  ? "لضمان أفضل تجربة، يرجى التأكد من حفظ الملف PDF وفتحه في برنامج قارئ PDF يدعم اللغة العربية."
+                  : "For the best experience, please ensure you save the PDF and open it in a PDF reader that supports Arabic language."}
               </AlertDescription>
             </Alert>
           </div>
