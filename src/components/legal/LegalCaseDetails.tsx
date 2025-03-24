@@ -18,7 +18,9 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
     return null;
   }
 
-  const getUrgencyColorClass = (urgency: string) => {
+  const getUrgencyColorClass = (urgency?: string) => {
+    if (!urgency) return '';
+    
     switch (urgency) {
       case 'critical': return 'text-red-600';
       case 'high': return 'text-orange-500';
@@ -28,10 +30,18 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
     }
   };
 
-  const isRecentDate = (date: Date) => {
+  const isRecentDate = (date: Date | string) => {
+    const dateObj = date instanceof Date ? date : new Date(date);
     const now = new Date();
-    const daysDiff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    const daysDiff = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60 * 60 * 24));
     return daysDiff <= 30;
+  };
+  
+  const formatDate = (date: Date | string) => {
+    if (date instanceof Date) {
+      return date.toLocaleDateString();
+    }
+    return new Date(date).toLocaleDateString();
   };
 
   return (
@@ -51,20 +61,24 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Customer</h4>
             <div className="flex items-center">
               <UserCog className="mr-2 h-4 w-4 text-muted-foreground" />
-              <Link 
-                to={`/customers/${obligation.customerId}`} 
-                className="text-primary hover:underline flex items-center"
-              >
-                {obligation.customerName}
-                <ExternalLink className="ml-1 h-3 w-3" />
-              </Link>
+              {obligation.customerId ? (
+                <Link 
+                  to={`/customers/${obligation.customerId}`} 
+                  className="text-primary hover:underline flex items-center"
+                >
+                  {obligation.customerName || 'Unknown Customer'}
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              ) : (
+                <span>Unknown Customer</span>
+              )}
             </div>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Amount Due</h4>
             <p className="font-medium">{formatCurrency(obligation.amount)}</p>
-            {obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
+            {obligation.lateFine && obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
               <p className="text-xs text-red-500">
                 Includes late fine: {formatCurrency(obligation.lateFine)}
               </p>
@@ -76,7 +90,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <div className="flex items-center">
               <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" />
               <span className={isRecentDate(obligation.dueDate) ? 'text-red-500 font-medium' : ''}>
-                {obligation.dueDate.toLocaleDateString()}
+                {formatDate(obligation.dueDate)}
               </span>
             </div>
           </div>
@@ -84,23 +98,26 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Urgency</h4>
             <p className={`font-medium ${getUrgencyColorClass(obligation.urgency)}`}>
-              {obligation.urgency.charAt(0).toUpperCase() + obligation.urgency.slice(1)}
+              {obligation.urgency ? (obligation.urgency.charAt(0).toUpperCase() + obligation.urgency.slice(1)) : 'Medium'}
             </p>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Status</h4>
-            <Badge variant={obligation.status.toLowerCase().includes('overdue') ? 'destructive' : 'outline'}>
+            <Badge variant={
+              typeof obligation.status === 'string' && 
+              obligation.status.toLowerCase().includes('overdue') ? 'destructive' : 'outline'
+            }>
               {obligation.status}
             </Badge>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Days Overdue</h4>
-            <p className={`font-medium ${obligation.daysOverdue > 0 ? 'text-red-500' : ''}`}>
-              {obligation.daysOverdue}
+            <p className={`font-medium ${obligation.daysOverdue && obligation.daysOverdue > 0 ? 'text-red-500' : ''}`}>
+              {obligation.daysOverdue || 0}
             </p>
-            {obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
+            {obligation.daysOverdue && obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
               <p className="text-xs text-red-500">
                 Late fee: {formatCurrency(120)} / day (max {formatCurrency(3000)})
               </p>
@@ -112,7 +129,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
         <div className="border-t pt-4 mt-4">
           <h4 className="text-sm font-medium mb-2">Related Information</h4>
           <div className="space-y-2">
-            {obligation.obligationType === 'payment' && (
+            {obligation.obligationType === 'payment' && obligation.agreementId && (
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -126,16 +143,18 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
               </Button>
             )}
             
-            <Button 
-              variant="outline" 
-              size="sm"
-              asChild
-            >
-              <Link to={`/customers/${obligation.customerId}`}>
-                <UserCog className="mr-2 h-4 w-4" />
-                View Customer Profile
-              </Link>
-            </Button>
+            {obligation.customerId && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                asChild
+              >
+                <Link to={`/customers/${obligation.customerId}`}>
+                  <UserCog className="mr-2 h-4 w-4" />
+                  View Customer Profile
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>

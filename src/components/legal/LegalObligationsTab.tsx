@@ -48,7 +48,9 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   }, [customerId]);
 
   // Get the urgency badge with appropriate styling
-  const getUrgencyBadge = (urgency: string) => {
+  const getUrgencyBadge = (urgency?: string) => {
+    if (!urgency) return <Badge variant="outline">Low</Badge>;
+    
     switch (urgency) {
       case 'critical':
         return <Badge variant="destructive">Critical</Badge>;
@@ -98,6 +100,14 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     );
   }
 
+  // Format a date object or string to a readable date string
+  const formatDate = (date: Date | string) => {
+    if (date instanceof Date) {
+      return date.toLocaleDateString();
+    }
+    return new Date(date).toLocaleDateString();
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -136,18 +146,18 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                   <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium">Amount Due:</span> {formatCurrency(obligation.amount)}
-                      {obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
+                      {obligation.lateFine && obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
                         <span className="text-xs text-red-500 block">
                           Includes late fine: {formatCurrency(obligation.lateFine)}
                         </span>
                       )}
                     </div>
                     <div>
-                      <span className="font-medium">Due Date:</span> {obligation.dueDate.toLocaleDateString()}
+                      <span className="font-medium">Due Date:</span> {formatDate(obligation.dueDate)}
                     </div>
                     <div>
-                      <span className="font-medium">Days Overdue:</span> {obligation.daysOverdue}
-                      {obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
+                      <span className="font-medium">Days Overdue:</span> {obligation.daysOverdue || 0}
+                      {obligation.daysOverdue && obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
                         <span className="text-xs text-red-500 block">
                           Late fee: {formatCurrency(120)}/day (max {formatCurrency(3000)})
                         </span>

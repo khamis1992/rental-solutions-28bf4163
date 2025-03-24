@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertCircle, Download, FileText } from 'lucide-react';
-import { getLegalObligations } from './LegalObligationsService';
+import { fetchLegalObligations } from './LegalObligationsService';
 import { jsPDF } from 'jspdf';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 import { ReportLanguage } from '@/utils/legalReportUtils';
@@ -16,11 +16,21 @@ export interface CustomerObligation {
   id: string;
   amount: number;
   description: string;
-  dueDate?: string;
-  status: 'pending' | 'resolved';
+  dueDate: Date | string;
+  status: 'pending' | 'resolved' | 'Overdue Payment' | 'Unpaid Fine' | 'Legal Case';
   obligationType?: 'traffic_fine' | 'payment' | 'legal_case' | 'other';
   daysOverdue?: number;
+  customerId?: string;
+  customerName?: string;
+  urgency?: 'low' | 'medium' | 'high' | 'critical';
+  agreementId?: string;
+  agreementNumber?: string;
+  lateFine?: number;
 }
+
+// Define these for exports to LegalObligationsService
+export type ObligationType = 'traffic_fine' | 'payment' | 'legal_case' | 'other';
+export type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
 
 interface CustomerLegalObligationsProps {
   language?: ReportLanguage;
@@ -46,8 +56,22 @@ const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> = ({
     setIsLoading(true);
     
     try {
-      const data = await getLegalObligations(customerId);
-      setObligations(data);
+      const result = await fetchLegalObligations();
+      if (result.error) {
+        console.error('Error fetching obligations:', result.error);
+        toast({
+          title: "Error",
+          description: "Failed to load legal obligations",
+          variant: "destructive",
+        });
+        setObligations([]);
+      } else {
+        // Filter obligations for the selected customer
+        const customerObligations = result.obligations.filter(
+          obligation => obligation.customerId === customerId
+        );
+        setObligations(customerObligations);
+      }
     } catch (error) {
       console.error('Error fetching obligations:', error);
       toast({
@@ -158,13 +182,21 @@ const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> = ({
                         {obligation.obligationType?.replace('_', ' ') || 'Other'}
                       </TableCell>
                       <TableCell>{obligation.description}</TableCell>
-                      <TableCell>{obligation.dueDate ? new Date(obligation.dueDate).toLocaleDateString() : 'N/A'}</TableCell>
+                      <TableCell>
+                        {obligation.dueDate instanceof Date 
+                          ? obligation.dueDate.toLocaleDateString() 
+                          : (typeof obligation.dueDate === 'string' ? new Date(obligation.dueDate).toLocaleDateString() : 'N/A')}
+                      </TableCell>
                       <TableCell className="text-right">
                         {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'QAR' }).format(obligation.amount)}
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          obligation.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                          obligation.status === 'pending' || 
+                          obligation.status === 'Overdue Payment' || 
+                          obligation.status === 'Unpaid Fine'
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : 'bg-green-100 text-green-800'
                         }`}>
                           {obligation.status}
                         </span>

@@ -173,7 +173,7 @@ const fetchOverduePayments = async (): Promise<{
         dueDate: new Date(payment.payment_date),
         description: `Overdue rent payment (Agreement #${lease.agreement_number})`,
         urgency: determineUrgency(daysOverdue),
-        status: 'Overdue Payment',
+        status: 'pending',
         daysOverdue,
         agreementId: lease.id,
         agreementNumber: lease.agreement_number,
@@ -313,7 +313,7 @@ const fetchTrafficFines = async (): Promise<{
         dueDate: violationDate,
         description: `Unpaid traffic fine (Agreement #${lease.agreement_number})`,
         urgency: determineUrgency(daysOverdue),
-        status: 'Unpaid Fine',
+        status: 'pending',
         daysOverdue,
         agreementId: lease.id,
         agreementNumber: lease.agreement_number
@@ -427,7 +427,7 @@ const fetchLegalCases = async (): Promise<{
         dueDate: createdDate,
         description: `Legal case (${String(legalCase.status).replace(/_/g, ' ')})`,
         urgency,
-        status: 'Legal Case',
+        status: 'pending',
         daysOverdue
       });
     }
