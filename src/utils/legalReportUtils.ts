@@ -35,28 +35,42 @@ export const generateLegalCustomerReport = async (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Add logo to the header
+  // Add header with text and logo
   const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+  
+  // Add company name as text header
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text("ALARAF CAR RENTAL", 60, 15);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text("Premium Car Rental Services", 60, 22);
+  
+  // Add logo
   doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+  
+  // Add a separator line
+  doc.setDrawColor(200, 200, 200);
+  doc.line(14, 30, pageWidth - 14, 30);
   
   // Add title and header
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, 25, { align: "center" });
+  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, 45, { align: "center" });
   
   // Add report date
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 33, { align: "center" });
+  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 53, { align: "center" });
   
   // Add customer information
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text("Customer Information", 14, 45);
+  doc.text("Customer Information", 14, 65);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  let yPos = 55;
+  let yPos = 75;
   doc.text(`Name: ${customerName}`, 14, yPos); yPos += 7;
   
   if (customer) {
@@ -144,8 +158,21 @@ export const generateLegalCustomerReport = async (
     if (yPos > 250) {
       doc.addPage();
       yPos = 20;
+      
+      // Add header with text and logo to new page
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text("ALARAF CAR RENTAL", 60, 15);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text("Premium Car Rental Services", 60, 22);
+      
       // Add logo to new page
       doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+      
+      // Add a separator line
+      doc.setDrawColor(200, 200, 200);
+      doc.line(14, 30, pageWidth - 14, 30);
     }
     
     // Add section header for this type
@@ -174,8 +201,20 @@ export const generateLegalCustomerReport = async (
         doc.addPage();
         yPos = 20;
         
+        // Add header with text and logo to new page
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text("ALARAF CAR RENTAL", 60, 15);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text("Premium Car Rental Services", 60, 22);
+        
         // Add logo to new page
         doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+        
+        // Add a separator line
+        doc.setDrawColor(200, 200, 200);
+        doc.line(14, 30, pageWidth - 14, 30);
         
         // Add column headers on new page
         doc.setFont('helvetica', 'bold');
@@ -217,8 +256,21 @@ export const generateLegalCustomerReport = async (
   if (yPos > 250) {
     doc.addPage();
     yPos = 20;
+    
+    // Add header with text and logo to new page
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("ALARAF CAR RENTAL", 60, 15);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text("Premium Car Rental Services", 60, 22);
+    
     // Add logo to new page
     doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+    
+    // Add a separator line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 30, pageWidth - 14, 30);
   }
   
   yPos += 5;
@@ -263,14 +315,22 @@ export const generateLegalCustomerReport = async (
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Add the footer image
-    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 25, pageWidth - 30, 15);
+    // Add footer text first
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text("© 2024 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 40, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 35, { align: 'center' });
+    
+    // Add the footer image below the text
+    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 30, pageWidth - 30, 12);
     
     // Add page number
     doc.setFontSize(8);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 30, { align: 'center' });
-    doc.text('CONFIDENTIAL', 14, pageHeight - 30);
-    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 30, { align: 'right' });
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text('CONFIDENTIAL', 14, pageHeight - 10);
+    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 10, { align: 'right' });
   }
   
   return doc;
