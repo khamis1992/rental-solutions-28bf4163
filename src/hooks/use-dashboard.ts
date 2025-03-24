@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -37,7 +38,7 @@ interface LeaseWithRelations {
   created_at: string;
   customer_id: string;
   vehicle_id: string;
-  customers: { full_name: string } | null;
+  profiles: { full_name: string } | null;
   vehicles: { make: string; model: string; license_plate: string } | null;
 }
 
@@ -88,8 +89,9 @@ export function useDashboardData() {
         if (lastMonthError) throw lastMonthError;
         
         const { data: customers, error: customersError } = await supabase
-          .from('customers')
-          .select('id');
+          .from('profiles')
+          .select('id')
+          .eq('role', 'customer');
           
         if (customersError) throw customersError;
         
@@ -203,7 +205,7 @@ export function useDashboardData() {
             created_at, 
             customer_id, 
             vehicle_id, 
-            customers:customer_id(full_name), 
+            profiles:customer_id(full_name), 
             vehicles:vehicle_id(make, model, license_plate)
           `)
           .order('created_at', { ascending: false })
@@ -238,7 +240,7 @@ export function useDashboardData() {
         leases.forEach(lease => {
           const typedLease = lease as unknown as LeaseWithRelations;
           
-          const customerName = typedLease.customers?.full_name || 'Customer';
+          const customerName = typedLease.profiles?.full_name || 'Customer';
           const vehicleMake = typedLease.vehicles?.make || '';
           const vehicleModel = typedLease.vehicles?.model || '';
           const licensePlate = typedLease.vehicles?.license_plate || '';
