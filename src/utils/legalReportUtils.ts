@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,34 +34,34 @@ export const generateLegalCustomerReport = async (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Add header with logo only
+  // Add header with logo on the left
   const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
   
-  // Add logo centered at the top
-  doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
+  // Add logo on the left at the top (changed from centered)
+  doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
   
   // Add a separator line
   doc.setDrawColor(200, 200, 200);
   doc.line(14, 30, pageWidth - 14, 30);
   
-  // Add title and header
+  // Add title and header - increased vertical spacing from 45 to 50
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, 45, { align: "center" });
+  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, 50, { align: "center" });
   
-  // Add report date
+  // Add report date - increased vertical spacing from 53 to 58
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 53, { align: "center" });
+  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 58, { align: "center" });
   
-  // Add customer information
+  // Add customer information - increased vertical spacing from 65 to 70
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text("Customer Information", 14, 65);
+  doc.text("Customer Information", 14, 70);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  let yPos = 75;
+  let yPos = 80; // Increased from 75 to 80
   doc.text(`Name: ${customerName}`, 14, yPos); yPos += 7;
   
   if (customer) {
@@ -77,7 +76,7 @@ export const generateLegalCustomerReport = async (
     }
   }
   
-  // Add summary of obligations
+  // Add summary of obligations - increase spacing consistently
   yPos += 10;
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
@@ -123,13 +122,18 @@ export const generateLegalCustomerReport = async (
   doc.setFont('helvetica', 'bold');
   doc.text(`Total Amount Owed: ${formatCurrency(totalOwed)}`, 14, yPos);
   doc.setFont('helvetica', 'normal');
-  yPos += 15;
   
-  // Add detailed breakdown of obligations
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Detailed Obligations", 14, yPos);
-  yPos += 10;
+  // Function to add section headers with consistent spacing
+  const addSectionHeader = (text: string, y: number) => {
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(text, 14, y);
+    return y + 10; // Return the new y position with consistent spacing
+  };
+  
+  // Add detailed breakdown of obligations with consistent spacing
+  yPos += 15;
+  yPos = addSectionHeader("Detailed Obligations", yPos);
   
   // Group obligations by type for detailed section
   const obligationsByType: Record<string, CustomerObligation[]> = {};
@@ -228,13 +232,13 @@ export const generateLegalCustomerReport = async (
     yPos += 10;
   }
   
-  // Add legal notice and next steps
+  // Add legal notice and next steps with consistent spacing
   if (yPos > 250) {
     doc.addPage();
     yPos = 20;
     
-    // Add header with logo to new page (no text)
-    doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
+    // Add header with logo to new page - on the left side
+    doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
     
     // Add a separator line
     doc.setDrawColor(200, 200, 200);
@@ -242,10 +246,7 @@ export const generateLegalCustomerReport = async (
   }
   
   yPos += 5;
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Important Information", 14, yPos);
-  yPos += 10;
+  yPos = addSectionHeader("Important Information", yPos);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
@@ -278,10 +279,19 @@ export const generateLegalCustomerReport = async (
   // Add the footer with company info and logo to each page
   const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
   
-  // Add footer with page numbers and footer image
+  // Apply consistent header and footer to all pages
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
+    
+    // For pages after the first page, add the header with logo on the left
+    if (i > 1) {
+      doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+      
+      // Add a separator line
+      doc.setDrawColor(200, 200, 200);
+      doc.line(14, 30, pageWidth - 14, 30);
+    }
     
     // Add footer text first - moved above the footer logo
     doc.setFontSize(10);
