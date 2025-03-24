@@ -28,6 +28,7 @@ const contractSchema = z.object({
   price_per_car: z.number().positive('Price per car must be positive'),
   installment_value: z.number().positive('Installment value must be positive'),
   total_installments: z.number().int().positive('Number of installments must be positive'),
+  category: z.string().default('Standard'),
 });
 
 type ContractFormData = z.infer<typeof contractSchema>;
@@ -54,26 +55,23 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
       price_per_car: 0,
       installment_value: 0,
       total_installments: 12,
+      category: 'Standard',
     },
   });
   
-  // Calculate total contract value
   const pricePerCar = form.watch('price_per_car') || 0;
   const numberOfCars = form.watch('number_of_cars') || 0;
   const totalContractValue = pricePerCar * numberOfCars;
   
-  // Calculate installment value when total value or installments change
   const totalInstallments = form.watch('total_installments') || 1;
   const calculatedInstallmentValue = totalInstallments > 0
     ? totalContractValue / totalInstallments
     : 0;
   
-  // Update installment value when contract value or number of installments change
   React.useEffect(() => {
     form.setValue('installment_value', calculatedInstallmentValue);
   }, [totalContractValue, totalInstallments, form]);
 
-  // Reset form when dialog opens
   React.useEffect(() => {
     if (open) {
       form.reset({
@@ -83,12 +81,12 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
         price_per_car: 0,
         installment_value: 0,
         total_installments: 12,
+        category: 'Standard',
       });
     }
   }, [open, form]);
 
   const handleSubmit = (data: ContractFormData) => {
-    // Convert form data to contract data with required fields for database
     const contractData: Omit<CarInstallmentContract, 'id' | 'created_at' | 'updated_at'> = {
       car_type: data.car_type,
       model_year: data.model_year,
@@ -101,7 +99,7 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
       amount_pending: totalContractValue,
       remaining_installments: data.total_installments,
       overdue_payments: 0,
-      category: data.category || 'Standard'
+      category: data.category
     };
 
     onSubmit(contractData);
@@ -221,6 +219,20 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
                       disabled
                       value={calculatedInstallmentValue.toFixed(2)}
                     />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

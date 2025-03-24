@@ -38,6 +38,10 @@ const CarInstallmentContracts = () => {
     setIsContractDialogOpen(false);
   };
 
+  const handleCloseContractDialog = () => {
+    setIsContractDialogOpen(false);
+  };
+
   const handleSearchChange = (value: string) => {
     setContractFilters({
       ...contractFilters,
@@ -80,6 +84,7 @@ const CarInstallmentContracts = () => {
         open={isContractDialogOpen}
         onOpenChange={setIsContractDialogOpen}
         onSubmit={handleContractSubmit}
+        onClose={handleCloseContractDialog}
       />
 
       {selectedContract && (
