@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
-// Define the current system date as March 22, 2025
-const SYSTEM_DATE = new Date(2025, 2, 22);
+// Define the current system date as March 24, 2025
+const SYSTEM_DATE = new Date(2025, 2, 24);
 
 export type TransactionType = 'income' | 'expense';
 export type TransactionStatusType = 'completed' | 'pending' | 'failed';

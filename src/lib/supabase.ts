@@ -109,8 +109,8 @@ export const formatVehicleForDisplay = (vehicle: any): any => {
   };
 };
 
-// Use the updated system date (March 22, 2025) for all date-related operations
-const SYSTEM_DATE = new Date(2025, 2, 22); // March 22, 2025
+// Use the updated system date (March 24, 2025) for all date-related operations
+const SYSTEM_DATE = new Date(2025, 2, 24); // March 24, 2025
 
 // Check if automatic payment generation is needed (run once daily)
 export const checkAndGenerateMonthlyPayments = async () => {
