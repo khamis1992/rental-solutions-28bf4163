@@ -3,7 +3,7 @@
 export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
 // Vehicle size enum for vehicle types
-export type VehicleSize = 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | 'truck' | 'van' | 'economy' | 'mid_size' | 'full_size';
+export type VehicleSize = 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | 'truck' | 'van' | 'economy';
 
 // Vehicle type definition matching Supabase schema
 export interface VehicleType {
@@ -58,7 +58,7 @@ export interface Vehicle {
   nextServiceDue?: string; // Will be fetched from maintenance records
   fuelType?: 'gasoline' | 'diesel' | 'electric' | 'hybrid'; // Will be added to vehicle_types
   transmission?: 'automatic' | 'manual'; // Will be added to vehicle_types
-  category?: 'economy' | 'compact' | 'midsize' | 'fullsize' | 'luxury' | 'suv' | 'truck' | 'van'; // Maps to vehicleType.size
+  category?: string; // Maps to vehicleType.size
   features?: string[]; // Will be fetched from vehicleType.features
   notes?: string; // Maps to description
 }

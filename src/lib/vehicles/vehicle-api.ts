@@ -23,8 +23,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
   }
   
   // Type assertion and mapping
-  const dbRecords = data as DatabaseVehicleRecord[];
-  return dbRecords.map(record => mapDatabaseRecordToVehicle(record));
+  return (data as unknown as DatabaseVehicleRecord[]).map(record => mapDatabaseRecordToVehicle(record));
 }
 
 // Fetch a single vehicle by ID
@@ -39,7 +38,7 @@ export async function fetchVehicleById(id: string): Promise<Vehicle> {
     throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
   }
   
-  return mapDatabaseRecordToVehicle(data as DatabaseVehicleRecord);
+  return mapDatabaseRecordToVehicle(data as unknown as DatabaseVehicleRecord);
 }
 
 // Fetch all vehicle types
@@ -54,5 +53,73 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
     throw new Error(`Error fetching vehicle types: ${error.message}`);
   }
   
-  return data as VehicleType[];
+  return data.map(type => {
+    // Ensure features is an array
+    if (typeof type.features === 'string') {
+      try {
+        type.features = JSON.parse(type.features);
+      } catch {
+        type.features = [];
+      }
+    }
+    return type as VehicleType;
+  });
+}
+
+// Insert a new vehicle 
+export async function insertVehicle(vehicleData: any): Promise<DatabaseVehicleRecord> {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .insert(vehicleData)
+    .select()
+    .single();
+    
+  if (error) {
+    throw new Error(`Error creating vehicle: ${error.message}`);
+  }
+  
+  return data as DatabaseVehicleRecord;
+}
+
+// Update a vehicle
+export async function updateVehicle(id: string, vehicleData: any): Promise<DatabaseVehicleRecord> {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .update(vehicleData)
+    .eq('id', id)
+    .select('*, vehicle_types(*)')
+    .single();
+  
+  if (error) {
+    throw new Error(`Error updating vehicle: ${error.message}`);
+  }
+  
+  return data as DatabaseVehicleRecord;
+}
+
+// Delete a vehicle
+export async function deleteVehicle(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('vehicles')
+    .delete()
+    .eq('id', id);
+  
+  if (error) {
+    throw new Error(`Error deleting vehicle: ${error.message}`);
+  }
+}
+
+// Get a vehicle with vehicle_types joined
+export async function fetchVehicleWithTypes(id: string): Promise<DatabaseVehicleRecord> {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('*, vehicle_types(*)')
+    .eq('id', id)
+    .single();
+    
+  if (error) {
+    throw new Error(`Error fetching complete vehicle data: ${error.message}`);
+  }
+  
+  return data as DatabaseVehicleRecord;
 }

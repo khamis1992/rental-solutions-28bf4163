@@ -1,5 +1,6 @@
 
 import { VehicleStatus, Vehicle, VehicleType } from '@/types/vehicle';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // Define explicit database record types to break circular references
 export interface DatabaseVehicleRecord {
@@ -35,7 +36,7 @@ export interface DatabaseVehicleType {
   weekly_rate?: number | null;
   monthly_rate?: number | null;
   description?: string | null;
-  features: string[];
+  features: string[] | any; // Using any to handle JSON from database
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -56,21 +57,54 @@ export function normalizeVehicleStatus(status: string | null | undefined): Vehic
   return isValidStatus(status) ? status : 'available';
 }
 
+// Convert database size string to application VehicleSize type
+export function normalizeVehicleSize(size: string): string {
+  // Map possible database values to valid application values
+  const sizeMap: Record<string, string> = {
+    'mid_size': 'midsize',
+    'full_size': 'fullsize'
+  };
+  
+  return sizeMap[size] || size;
+}
+
+// Convert database features to string array
+export function normalizeFeatures(features: any): string[] {
+  if (Array.isArray(features)) {
+    return features;
+  }
+  
+  // If it's a JSON string, try to parse it
+  if (typeof features === 'string') {
+    try {
+      const parsed = JSON.parse(features);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  
+  return [];
+}
+
 // Convert a database vehicle record to the application Vehicle type
 export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehicle {
   // Process the vehicle type first if it exists
   let vehicleType: VehicleType | undefined = undefined;
   
   if (record.vehicle_types) {
+    const features = normalizeFeatures(record.vehicle_types.features);
+    const normalizedSize = normalizeVehicleSize(record.vehicle_types.size);
+    
     vehicleType = {
       id: record.vehicle_types.id,
       name: record.vehicle_types.name,
-      size: record.vehicle_types.size as any, // Use type assertion for size
+      size: normalizedSize as any, // Use type assertion for size
       daily_rate: record.vehicle_types.daily_rate,
       weekly_rate: record.vehicle_types.weekly_rate || undefined,
       monthly_rate: record.vehicle_types.monthly_rate || undefined,
       description: record.vehicle_types.description || undefined,
-      features: record.vehicle_types.features,
+      features: features,
       is_active: record.vehicle_types.is_active,
       created_at: record.vehicle_types.created_at,
       updated_at: record.vehicle_types.updated_at

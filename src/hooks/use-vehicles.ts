@@ -2,8 +2,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData } from '@/types/vehicle';
-import { fetchVehicles, fetchVehicleById, fetchVehicleTypes } from '@/lib/vehicles/vehicle-api';
+import { Vehicle, VehicleFilterParams, VehicleFormData } from '@/types/vehicle';
+import { 
+  fetchVehicles, fetchVehicleById, fetchVehicleTypes, 
+  insertVehicle, updateVehicle, deleteVehicle, fetchVehicleWithTypes 
+} from '@/lib/vehicles/vehicle-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 import { supabase } from '@/integrations/supabase/client';
 import { mapDatabaseRecordToVehicle } from '@/lib/vehicles/vehicle-mappers';
@@ -51,8 +54,8 @@ export const useVehicles = () => {
             }
           }
           
-          // Build a properly typed vehicle data object for insertion
-          const vehicleData: VehicleInsertData = {
+          // Build vehicle data object for insertion
+          const vehicleData: any = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
@@ -70,20 +73,14 @@ export const useVehicles = () => {
             status: formData.status || 'available',
           };
           
-          const { data, error } = await supabase
-            .from('vehicles')
-            .insert(vehicleData)
-            .select()
-            .single();
-          
-          if (error) {
-            throw new Error(`Error creating vehicle: ${error.message}`);
-          }
+          // Insert new vehicle
+          const data = await insertVehicle(vehicleData);
           
           if (imageUrl && formData.image) {
             try {
               const newImageUrl = await uploadVehicleImage(formData.image, data.id);
               
+              // Update with the final image URL using the actual vehicle ID
               await supabase
                 .from('vehicles')
                 .update({ image_url: newImageUrl })
@@ -96,18 +93,13 @@ export const useVehicles = () => {
           }
           
           // Get the complete vehicle data with vehicle_types
-          const { data: completeData, error: fetchError } = await supabase
-            .from('vehicles')
-            .select('*, vehicle_types(*)')
-            .eq('id', data.id)
-            .single();
-            
-          if (fetchError) {
+          try {
+            const completeData = await fetchVehicleWithTypes(data.id);
+            return mapDatabaseRecordToVehicle(completeData);
+          } catch (fetchError) {
             console.error('Error fetching complete vehicle data:', fetchError);
             return mapDatabaseRecordToVehicle(data);
           }
-          
-          return mapDatabaseRecordToVehicle(completeData);
         },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -137,8 +129,8 @@ export const useVehicles = () => {
             }
           }
           
-          // Build an update object with proper typing for Supabase
-          const vehicleData: VehicleInsertData = {};
+          // Build an update object for Supabase
+          const vehicleData: any = {};
           
           // Required fields
           if (data.make !== undefined) vehicleData.make = data.make;
@@ -163,17 +155,8 @@ export const useVehicles = () => {
           
           if (imageUrl) vehicleData.image_url = imageUrl;
           
-          const { data: updatedVehicle, error } = await supabase
-            .from('vehicles')
-            .update(vehicleData)
-            .eq('id', id)
-            .select('*, vehicle_types(*)')
-            .single();
-          
-          if (error) {
-            throw new Error(`Error updating vehicle: ${error.message}`);
-          }
-          
+          // Update the vehicle
+          const updatedVehicle = await updateVehicle(id, vehicleData);
           return mapDatabaseRecordToVehicle(updatedVehicle);
         },
         onSuccess: (_, variables) => {
@@ -198,14 +181,7 @@ export const useVehicles = () => {
             .eq('id', id)
             .single();
           
-          const { error } = await supabase
-            .from('vehicles')
-            .delete()
-            .eq('id', id);
-          
-          if (error) {
-            throw new Error(`Error deleting vehicle: ${error.message}`);
-          }
+          await deleteVehicle(id);
           
           if (vehicle && vehicle.image_url) {
             try {
