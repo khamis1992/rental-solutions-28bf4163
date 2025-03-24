@@ -2,149 +2,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
+import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData } from '@/types/vehicle';
+import { fetchVehicles, fetchVehicleById, fetchVehicleTypes } from '@/lib/vehicles/vehicle-api';
+import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 import { supabase } from '@/integrations/supabase/client';
-import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams, VehicleStatus, VehicleInsertData } from '@/types/vehicle';
-import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
-
-// Type for raw database vehicle records to prevent circular reference issues
-type DatabaseVehicleRecord = {
-  id: string;
-  make: string;
-  model: string;
-  year: number;
-  license_plate: string;
-  vin: string;
-  color?: string | null;
-  status?: string | null;
-  mileage?: number | null;
-  image_url?: string | null;
-  description?: string | null;
-  is_test_data?: boolean | null;
-  location?: string | null;
-  insurance_company?: string | null;
-  insurance_expiry?: string | null;
-  device_type?: string | null;
-  rent_amount?: number | null;
-  vehicle_type_id?: string | null;
-  registration_number?: string | null;
-  created_at: string;
-  updated_at: string;
-  vehicle_types?: VehicleType | null;
-};
-
-// Helper function to validate status
-function isValidStatus(status: string): status is VehicleStatus {
-  return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status);
-}
-
-// Normalize vehicle status to ensure it matches VehicleStatus type
-function normalizeVehicleStatus(status: string | null | undefined): VehicleStatus | undefined {
-  if (!status) return undefined;
-  
-  // Handle the "reserve" to "reserved" mapping and other potential mismatches
-  if (status === 'reserve') return 'reserved';
-  
-  return isValidStatus(status) ? status : 'available';
-}
-
-// Using explicit return type to avoid excessive type instantiation
-const fetchVehicles = async (filters?: VehicleFilterParams): Promise<Vehicle[]> => {
-  let query = supabase.from('vehicles')
-    .select('*, vehicle_types(*)');
-  
-  if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '' && value !== 'any') {
-        query = query.eq(key, value);
-      }
-    });
-  }
-  
-  const { data, error } = await query.order('created_at', { ascending: false });
-  
-  if (error) {
-    throw new Error(`Error fetching vehicles: ${error.message}`);
-  }
-  
-  // Use type assertion for the raw database records
-  return (data as DatabaseVehicleRecord[]).map((vehicle) => {
-    // Ensure status is normalized to match VehicleStatus type
-    const vehicleWithType = {
-      ...vehicle,
-      status: normalizeVehicleStatus(vehicle.status),
-      vehicleType: vehicle.vehicle_types
-    };
-    
-    delete vehicleWithType.vehicle_types;
-    
-    return formatVehicleForDisplay(vehicleWithType as any);
-  });
-};
-
-// Using explicit return type to avoid excessive type instantiation
-const fetchVehicleById = async (id: string): Promise<Vehicle> => {
-  const { data, error } = await supabase
-    .from('vehicles')
-    .select('*, vehicle_types(*)')
-    .eq('id', id)
-    .single();
-  
-  if (error) {
-    throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
-  }
-  
-  // Normalize the vehicle status to ensure it matches VehicleStatus type
-  const vehicleWithType = {
-    ...data,
-    status: normalizeVehicleStatus(data.status),
-    vehicleType: data.vehicle_types
-  };
-  
-  delete vehicleWithType.vehicle_types;
-  
-  return formatVehicleForDisplay(vehicleWithType);
-};
-
-// Using explicit return type to avoid excessive type instantiation
-const fetchVehicleTypes = async (): Promise<VehicleType[]> => {
-  const { data, error } = await supabase
-    .from('vehicle_types')
-    .select('*')
-    .eq('is_active', true)
-    .order('name');
-  
-  if (error) {
-    throw new Error(`Error fetching vehicle types: ${error.message}`);
-  }
-  
-  return data as VehicleType[];
-};
-
-const uploadVehicleImage = async (file: File, id: string): Promise<string> => {
-  const bucketReady = await ensureVehicleImagesBucket();
-  
-  if (!bucketReady) {
-    throw new Error('Failed to ensure vehicle-images bucket exists. Please contact an administrator.');
-  }
-  
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${id}-${Date.now()}.${fileExt}`;
-  const filePath = `${fileName}`;
-  
-  const { error } = await supabase.storage
-    .from('vehicle-images')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-  
-  if (error) {
-    console.error('Upload error details:', error);
-    throw new Error(`Error uploading image: ${error.message}`);
-  }
-  
-  return getImagePublicUrl('vehicle-images', filePath);
-};
+import { mapDatabaseRecordToVehicle } from '@/lib/vehicles/vehicle-mappers';
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
@@ -174,7 +36,7 @@ export const useVehicles = () => {
     
     useCreate: () => {
       return useMutation({
-        mutationFn: async (formData: VehicleFormData) => {
+        mutationFn: async (formData: VehicleFormData): Promise<Vehicle> => {
           let imageUrl = null;
           if (formData.image) {
             try {
@@ -210,7 +72,7 @@ export const useVehicles = () => {
           
           const { data, error } = await supabase
             .from('vehicles')
-            .insert(vehicleData as any)
+            .insert(vehicleData)
             .select()
             .single();
           
@@ -233,7 +95,19 @@ export const useVehicles = () => {
             }
           }
           
-          return data;
+          // Get the complete vehicle data with vehicle_types
+          const { data: completeData, error: fetchError } = await supabase
+            .from('vehicles')
+            .select('*, vehicle_types(*)')
+            .eq('id', data.id)
+            .single();
+            
+          if (fetchError) {
+            console.error('Error fetching complete vehicle data:', fetchError);
+            return mapDatabaseRecordToVehicle(data);
+          }
+          
+          return mapDatabaseRecordToVehicle(completeData);
         },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -249,7 +123,7 @@ export const useVehicles = () => {
     
     useUpdate: () => {
       return useMutation({
-        mutationFn: async ({ id, data }: { id: string; data: VehicleFormData }) => {
+        mutationFn: async ({ id, data }: { id: string; data: VehicleFormData }): Promise<Vehicle> => {
           let imageUrl = null;
           if (data.image) {
             try {
@@ -291,7 +165,7 @@ export const useVehicles = () => {
           
           const { data: updatedVehicle, error } = await supabase
             .from('vehicles')
-            .update(vehicleData as any)
+            .update(vehicleData)
             .eq('id', id)
             .select('*, vehicle_types(*)')
             .single();
@@ -300,13 +174,7 @@ export const useVehicles = () => {
             throw new Error(`Error updating vehicle: ${error.message}`);
           }
           
-          const vehicleWithType = {
-            ...updatedVehicle,
-            vehicleType: updatedVehicle.vehicle_types
-          };
-          delete vehicleWithType.vehicle_types;
-          
-          return formatVehicleForDisplay(vehicleWithType);
+          return mapDatabaseRecordToVehicle(updatedVehicle);
         },
         onSuccess: (_, variables) => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -323,7 +191,7 @@ export const useVehicles = () => {
     
     useDelete: () => {
       return useMutation({
-        mutationFn: async (id: string) => {
+        mutationFn: async (id: string): Promise<string> => {
           const { data: vehicle } = await supabase
             .from('vehicles')
             .select('image_url')
