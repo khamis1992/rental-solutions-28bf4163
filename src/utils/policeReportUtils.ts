@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
@@ -206,7 +207,12 @@ const fetchReportData = async (customerId: string): Promise<ReportData | null> =
     // Return all the data required for the report
     return {
       customer,
-      vehicle,
+      vehicle: {
+        make: vehicle.make,
+        model: vehicle.model,
+        license_plate: vehicle.license_plate,
+        year: String(vehicle.year) // Convert year to string to match the interface
+      },
       lease: {
         agreement_number: lease.agreement_number,
         start_date: lease.start_date,
@@ -348,3 +354,4 @@ const generateReportContent = (doc: jsPDF, data: ReportData, formattedDate: stri
   doc.text('توقيع', 40, y);
   doc.text('ختم الشركة', 120, y);
 };
+
