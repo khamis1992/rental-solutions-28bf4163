@@ -93,42 +93,14 @@ export const generateLegalCustomerReport = async (
   doc.setFont('helvetica', 'normal');
   doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, startY + 8, { align: "center" });
   
-  // Add Arabic text below the title
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  
-  // Setting RTL for Arabic text
-  doc.setR2L(true);
-  
-  // Position the Arabic text
-  let arabicY = startY + 20;
-  
-  // Replace customer name placeholder with actual customer name
-  const arabicText = [
-    `السادة/ وزارة الداخلية\t\t\t\t\t\t\t\t\t\t\tالتاريخ:  19/3/2025`,
-    `مركز ام صلال`,
-    `الدوحة قطر`,
-    `تحية طيبة وبعد ،`,
-    `الموضوع: شكوى ضد السيد/ ${customerName}`
-  ];
-  
-  // Add each line of the Arabic text with proper spacing
-  arabicText.forEach((line) => {
-    doc.text(line, pageWidth - 14, arabicY, { align: "right" });
-    arabicY += 7;
-  });
-  
-  // Reset to LTR for the rest of the document
-  doc.setR2L(false);
-  
-  // Add customer information with consistent spacing (adjust Y position to account for Arabic text)
+  // Add customer information with consistent spacing
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text("Customer Information", 14, arabicY + 10);
+  doc.text("Customer Information", 14, startY + 20);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  let yPos = arabicY + 20;
+  let yPos = startY + 30;
   doc.text(`Name: ${customerName}`, 14, yPos); yPos += 7;
   
   if (customer) {
