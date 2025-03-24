@@ -7,7 +7,7 @@ import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { Car, Plus } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
-import { VehicleFilterParams } from '@/types/vehicle';
+import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 
@@ -24,10 +24,10 @@ const Vehicles = () => {
   useEffect(() => {
     const statusFromUrl = searchParams.get('status');
     
-    if (statusFromUrl) {
+    if (statusFromUrl && statusFromUrl !== 'all') {
       setFilters(prevFilters => ({ 
         ...prevFilters,
-        status: statusFromUrl
+        status: statusFromUrl as VehicleStatus
       }));
       
       // Show a toast to indicate filtered view
@@ -47,13 +47,20 @@ const Vehicles = () => {
     // Convert from VehicleFilterValues to VehicleFilterParams
     const convertedFilters: VehicleFilterParams = {};
     
-    if (newFilters.status) convertedFilters.status = newFilters.status;
-    if (newFilters.make) convertedFilters.make = newFilters.make;
-    if (newFilters.location) convertedFilters.location = newFilters.location;
-    if (newFilters.year) convertedFilters.year = newFilters.year;
+    if (newFilters.status && newFilters.status !== 'all') 
+      convertedFilters.status = newFilters.status as VehicleStatus;
+    
+    if (newFilters.make && newFilters.make !== 'all') 
+      convertedFilters.make = newFilters.make;
+    
+    if (newFilters.location && newFilters.location !== 'all') 
+      convertedFilters.location = newFilters.location;
+    
+    if (newFilters.year && newFilters.year !== 'all') 
+      convertedFilters.year = parseInt(newFilters.year);
     
     // Handle the category to vehicle_type_id mapping
-    if (newFilters.category) {
+    if (newFilters.category && newFilters.category !== 'all') {
       convertedFilters.vehicle_type_id = newFilters.category;
     }
     
@@ -77,11 +84,11 @@ const Vehicles = () => {
       <VehicleFilters 
         onFilterChange={handleFilterChange} 
         initialValues={{
-          status: filters.status as string || '',
-          make: filters.make || '',
-          location: filters.location || '',
-          year: filters.year?.toString() || '',
-          category: filters.vehicle_type_id || ''
+          status: filters.status || 'all',
+          make: filters.make || 'all',
+          location: filters.location || 'all',
+          year: filters.year?.toString() || 'all',
+          category: filters.vehicle_type_id || 'all'
         }}
         className="mb-6"
       />

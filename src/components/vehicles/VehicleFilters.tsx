@@ -27,11 +27,11 @@ interface VehicleFiltersProps {
 const VehicleFilters: React.FC<VehicleFiltersProps> = ({ 
   onFilterChange, 
   initialValues = {
-    status: '',
-    make: '',
-    location: '',
-    year: '',
-    category: ''
+    status: 'all',
+    make: 'all',
+    location: 'all',
+    year: 'all',
+    category: 'all'
   },
   className 
 }) => {
@@ -73,7 +73,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Statuses</SelectItem>
+          <SelectItem value="all">All Statuses</SelectItem>
           <SelectItem value="available">Available</SelectItem>
           <SelectItem value="rented">Rented Out</SelectItem>
           <SelectItem value="maintenance">In Maintenance</SelectItem>
@@ -92,7 +92,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <SelectValue placeholder="All Makes" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Makes</SelectItem>
+          <SelectItem value="all">All Makes</SelectItem>
           {uniqueMakes.map(make => (
             <SelectItem key={make} value={make}>{make}</SelectItem>
           ))}
@@ -107,7 +107,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <SelectValue placeholder="All Locations" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Locations</SelectItem>
+          <SelectItem value="all">All Locations</SelectItem>
           {uniqueLocations.map(location => (
             <SelectItem key={location} value={location}>{location}</SelectItem>
           ))}
@@ -122,7 +122,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <SelectValue placeholder="All Years" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Years</SelectItem>
+          <SelectItem value="all">All Years</SelectItem>
           {uniqueYears.map(year => (
             <SelectItem key={year} value={year}>{year}</SelectItem>
           ))}
@@ -137,7 +137,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           <SelectValue placeholder="All Categories" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Categories</SelectItem>
+          <SelectItem value="all">All Categories</SelectItem>
           {vehicleTypes?.map(type => (
             <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
           ))}
