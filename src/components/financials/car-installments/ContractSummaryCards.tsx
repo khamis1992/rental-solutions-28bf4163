@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Layers, DollarSign, CreditCard, Clock } from 'lucide-react';
 import { ContractSummary } from '@/types/car-installment';
 import { formatCurrency } from '@/lib/utils';
+import { StatCard } from '@/components/ui/stat-card';
 
 interface ContractSummaryCardsProps {
   summary?: ContractSummary;
@@ -71,17 +72,13 @@ export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       {summaryCards.map((card, index) => (
-        <Card key={index}>
-          <CardContent className="p-6 flex items-start">
-            <div className={`mr-4 p-2 rounded-full bg-primary/10 ${card.iconClass}`}>
-              <card.icon className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">{card.title}</p>
-              <h3 className="text-2xl font-bold mt-2">{card.format(card.value)}</h3>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard
+          key={index}
+          title={card.title}
+          value={card.format(card.value)}
+          icon={card.icon}
+          iconColor={card.iconClass}
+        />
       ))}
     </div>
   );
