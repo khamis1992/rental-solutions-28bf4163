@@ -131,6 +131,9 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
       <Upload className="h-4 w-4 text-red-500" />;
   };
 
+  // Get unique categories from transactions
+  const uniqueCategories = [...new Set(transactions.map(t => t.category))].filter(Boolean);
+
   if (isLoading) {
     return (
       <Card>
@@ -194,7 +197,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                   <SelectValue placeholder="Transaction Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all_types">All Types</SelectItem>
+                  <SelectItem value="">All Types</SelectItem>
                   <SelectItem value="income">Income</SelectItem>
                   <SelectItem value="expense">Expense</SelectItem>
                 </SelectContent>
@@ -207,12 +210,10 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all_categories">All Categories</SelectItem>
-                  <SelectItem value="Rental">Rental</SelectItem>
-                  <SelectItem value="Maintenance">Maintenance</SelectItem>
-                  <SelectItem value="Insurance">Insurance</SelectItem>
-                  <SelectItem value="Fuel">Fuel</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {uniqueCategories.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
