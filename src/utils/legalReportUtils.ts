@@ -1,7 +1,7 @@
-
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
+import { configureFontForLanguage } from './fontUtils';
 
 /**
  * Generate a legal report PDF for a customer with all their financial/legal obligations
@@ -66,14 +66,8 @@ export const generateLegalCustomerReport = async (
   // Initialize the PDF document with appropriate font for Arabic if needed
   const doc = new jsPDF();
   
-  // Add Arabic font support if in Arabic mode
-  if (language === 'arabic') {
-    doc.addFont('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'arabic', 'normal');
-    doc.setFont('arabic');
-    doc.setR2L(true); // Set right-to-left mode for Arabic
-  } else {
-    doc.setFont('helvetica');
-  }
+  // Configure font based on language
+  configureFontForLanguage(doc, language);
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -81,8 +75,13 @@ export const generateLegalCustomerReport = async (
   // Define a function to add consistent header to each page
   const addPageHeader = (doc: jsPDF) => {
     // Add logo on the left at the top
-    const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
-    doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+    try {
+      const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+      doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+    } catch (error) {
+      console.error("Error loading logo:", error);
+      // Continue without the logo if it fails to load
+    }
     
     // Add a separator line
     doc.setDrawColor(200, 200, 200);
@@ -96,7 +95,6 @@ export const generateLegalCustomerReport = async (
   
   // Add title and header with consistent spacing
   doc.setFontSize(20);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
   doc.text(language === 'arabic' ? "تقرير الالتزامات القانونية" : "LEGAL OBLIGATIONS REPORT", pageWidth / 2, startY, { align: "center" });
   
   // Add Arabic address section if in Arabic mode
@@ -138,7 +136,6 @@ export const generateLegalCustomerReport = async (
   
   // Add report date with consistent spacing
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
   doc.text(
     language === 'arabic' 
       ? `تم إنشاء التقرير في ${new Date().toLocaleDateString('ar-EG')}` 
@@ -148,7 +145,6 @@ export const generateLegalCustomerReport = async (
   
   // Add customer information with consistent spacing
   doc.setFontSize(14);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
   doc.text(
     language === 'arabic' ? "معلومات العميل" : "Customer Information", 
     language === 'arabic' ? pageWidth - 14 : 14, startY + 20,
@@ -156,7 +152,6 @@ export const generateLegalCustomerReport = async (
   );
   
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
   let yPos = startY + 30;
   
   if (language === 'arabic') {
@@ -473,48 +468,50 @@ export const generateLegalCustomerReport = async (
   }
   
   // Add the footer with company info and logo to each page
-  const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
-  
-  // Apply consistent footer to all pages
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
+  try {
+    const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
     
-    // Add footer text first - above the footer logo
-    doc.setFontSize(10);
-    doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
-    
-    if (language === 'arabic') {
-      doc.text("© 2025 شركة العراف لتأجير السيارات", pageWidth / 2, pageHeight - 30, { align: 'center' });
+    // Apply consistent footer to all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      
+      // Add footer text first - above the footer logo
+      doc.setFontSize(10);
+      
+      if (language === 'arabic') {
+        doc.text("© 2025 شركة العراف لتأجير السيارات", pageWidth / 2, pageHeight - 30, { align: 'center' });
+        doc.setFontSize(8);
+        doc.text("خدمة عالية الجودة، تجربة متميزة", pageWidth / 2, pageHeight - 25, { align: 'center' });
+      } else {
+        doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
+        doc.setFontSize(8);
+        doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
+      }
+      
+      // Add the footer image below the text
+      doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
+      
+      // Add page number
       doc.setFontSize(8);
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
-      doc.text("خدمة عالية الجودة، تجربة متميزة", pageWidth / 2, pageHeight - 25, { align: 'center' });
-    } else {
-      doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
-      doc.setFontSize(8);
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
-      doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
+      doc.text(
+        language === 'arabic' 
+          ? `صفحة ${i} من ${totalPages}` 
+          : `Page ${i} of ${totalPages}`, 
+        pageWidth / 2, pageHeight - 5, { align: 'center' }
+      );
+      
+      if (language === 'arabic') {
+        doc.text('سري', 14, pageHeight - 5);
+        doc.text(new Date().toLocaleDateString('ar-EG'), pageWidth - 14, pageHeight - 5, { align: 'right' });
+      } else {
+        doc.text('CONFIDENTIAL', 14, pageHeight - 5);
+        doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 5, { align: 'right' });
+      }
     }
-    
-    // Add the footer image below the text
-    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
-    
-    // Add page number
-    doc.setFontSize(8);
-    doc.text(
-      language === 'arabic' 
-        ? `صفحة ${i} من ${totalPages}` 
-        : `Page ${i} of ${totalPages}`, 
-      pageWidth / 2, pageHeight - 5, { align: 'center' }
-    );
-    
-    if (language === 'arabic') {
-      doc.text('سري', 14, pageHeight - 5);
-      doc.text(new Date().toLocaleDateString('ar-EG'), pageWidth - 14, pageHeight - 5, { align: 'right' });
-    } else {
-      doc.text('CONFIDENTIAL', 14, pageHeight - 5);
-      doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 5, { align: 'right' });
-    }
+  } catch (error) {
+    console.error("Error adding footer:", error);
+    // Continue without footer if it fails
   }
   
   return doc;
