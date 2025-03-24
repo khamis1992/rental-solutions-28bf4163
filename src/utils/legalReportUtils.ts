@@ -353,23 +353,21 @@ export const generateLegalCustomerReport = async (
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Add company details text
+    // Add footer text first - above the footer logo
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("© 2025 ALARAF CAR RENTAL", 14, pageHeight - 30);
+    doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text("Quality Service, Premium Experience", 14, pageHeight - 25);
+    doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
     
-    // Add Arabic text and office address below
-    doc.setFontSize(7);
-    doc.text("الاعراف لتأجير السيارات ذ.م.م ، سجل تجاري 146832 ، ام صلال محمد ، الشارع التجاري ، مبنى 79 ، الطابق 1 ، مكتب 2", 14, pageHeight - 20);
-    doc.text("ALARAF CAR RENTAL L.L.C CR: 146832 UMM SLAL MOHAMED, COMMERCIAL STREET, BUILDING 79, 1st FLOOR, OFFICE 2", 14, pageHeight - 15);
+    // Add the footer image below the text
+    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
     
-    // Add page number and confidential text
+    // Add page number
     doc.setFontSize(8);
-    doc.text("CONFIDENTIAL", 14, pageHeight - 5);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text('CONFIDENTIAL', 14, pageHeight - 5);
     doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 5, { align: 'right' });
   }
   
