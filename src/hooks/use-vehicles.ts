@@ -100,7 +100,7 @@ const fetchVehicleTypes = async (): Promise<VehicleType[]> => {
     throw new Error(`Error fetching vehicle types: ${error.message}`);
   }
   
-  return data;
+  return data as VehicleType[];
 };
 
 const uploadVehicleImage = async (file: File, id: string): Promise<string> => {

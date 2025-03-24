@@ -65,7 +65,16 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter }) =>
       {vehicles.map(vehicle => (
         <VehicleCard
           key={vehicle.id}
-          {...vehicle}
+          id={vehicle.id}
+          make={vehicle.make}
+          model={vehicle.model}
+          year={vehicle.year}
+          licensePlate={vehicle.license_plate}
+          status={vehicle.status || 'available'}
+          imageUrl={vehicle.image_url || ''}
+          location={vehicle.location}
+          fuelLevel={undefined}
+          mileage={vehicle.mileage}
           onSelect={onSelectVehicle}
         />
       ))}
