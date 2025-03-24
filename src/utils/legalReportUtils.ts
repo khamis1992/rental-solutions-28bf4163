@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
@@ -282,22 +283,22 @@ export const generateLegalCustomerReport = async (
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Add footer text first
+    // Add footer text first - moved above the footer logo
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("© 2024 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 40, { align: 'center' });
+    doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 35, { align: 'center' });
+    doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
     
     // Add the footer image below the text
-    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 30, pageWidth - 30, 12);
+    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
     
     // Add page number
     doc.setFontSize(8);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-    doc.text('CONFIDENTIAL', 14, pageHeight - 10);
-    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 10, { align: 'right' });
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text('CONFIDENTIAL', 14, pageHeight - 5);
+    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 5, { align: 'right' });
   }
   
   return doc;
