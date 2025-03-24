@@ -47,6 +47,7 @@ import { fetchLegalObligations, determineUrgency } from './LegalObligationsServi
 import LegalCaseDetails from './LegalCaseDetails';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from '@/components/ui/dialog';
 
 // Types
 export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
@@ -228,16 +229,83 @@ const CustomerLegalObligations: React.FC = () => {
         return;
       }
       
-      // Generate the PDF report
-      const pdf = await generateLegalCustomerReport(customerId, customerName, customerObligations);
+      // Show language selection dialog
+      const dialogRoot = document.createElement('div');
+      dialogRoot.id = 'language-dialog-root';
+      document.body.appendChild(dialogRoot);
       
-      // Save the PDF
-      pdf.save(`${customerName.replace(/\s+/g, '_')}_Legal_Report.pdf`);
+      const handleLanguageSelect = async (language: 'english' | 'arabic') => {
+        try {
+          // Generate the PDF report with selected language
+          const pdf = await generateLegalCustomerReport(
+            customerId, 
+            customerName, 
+            customerObligations,
+            language
+          );
+          
+          // Save the PDF
+          pdf.save(`${customerName.replace(/\s+/g, '_')}_Legal_Report.pdf`);
+          
+          toast.success('Report generated successfully');
+        } catch (error) {
+          console.error('Error generating report:', error);
+          toast.error('Failed to generate customer report');
+        } finally {
+          // Remove the dialog from DOM
+          if (dialogRoot && dialogRoot.parentNode) {
+            dialogRoot.parentNode.removeChild(dialogRoot);
+          }
+        }
+      };
       
-      toast.success('Report generated successfully');
+      // Create a new React root and render the dialog
+      const languageDialog = (
+        <Dialog open={true}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Select Report Language</DialogTitle>
+              <DialogDescription>
+                Choose the language for the legal report
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <Button
+                variant="outline"
+                className="flex flex-col items-center justify-center h-24 space-y-2"
+                onClick={() => handleLanguageSelect('english')}
+              >
+                <span className="text-2xl">🇬🇧</span>
+                <span>English</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="flex flex-col items-center justify-center h-24 space-y-2"
+                onClick={() => handleLanguageSelect('arabic')}
+              >
+                <span className="text-2xl">🇶🇦</span>
+                <span>العربية</span>
+              </Button>
+            </div>
+            <DialogFooter className="sm:justify-start">
+              <DialogClose asChild>
+                <Button type="button" variant="secondary">
+                  Cancel
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      );
+      
+      // Use ReactDOM to render the dialog
+      import('react-dom/client').then(({ createRoot }) => {
+        const root = createRoot(dialogRoot);
+        root.render(languageDialog);
+      });
     } catch (error) {
-      console.error('Error generating report:', error);
-      toast.error('Failed to generate customer report');
+      console.error('Error in report generation process:', error);
+      toast.error('Failed to start report generation process');
     }
   };
   
