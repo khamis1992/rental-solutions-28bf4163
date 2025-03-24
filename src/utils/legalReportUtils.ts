@@ -307,43 +307,7 @@ export const generateLegalCustomerReport = async (
     yPos += 10;
   }
   
-  // Add legal notice and next steps with consistent spacing
-  if (yPos > 250) {
-    doc.addPage();
-    // Add consistent header to the new page
-    yPos = addPageHeader(doc);
-  }
-  
-  yPos += 5;
-  yPos = addSectionHeader("Important Information", yPos);
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  
-  const legalNotice = [
-    "1. This report is a comprehensive summary of all financial and legal obligations as of the report date.",
-    "2. All amounts are due immediately unless a payment plan has been established.",
-    "3. Failure to address overdue payments may result in additional fees and legal action.",
-    "4. If you believe there is an error in this report, please contact our office immediately.",
-    "5. For questions or to establish a payment plan, please contact our financial department."
-  ];
-  
-  legalNotice.forEach(line => {
-    doc.text(line, 14, yPos);
-    yPos += 7;
-  });
-  
-  // Add contact information
-  yPos += 10;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Contact Information:", 14, yPos);
-  yPos += 7;
-  
-  doc.setFont('helvetica', 'normal');
-  doc.text("Financial Department: finance@yourcompany.com | +974 XXXX XXXX", 14, yPos);
-  yPos += 7;
-  doc.text("Legal Department: legal@yourcompany.com | +974 XXXX XXXX", 14, yPos);
+  // Removed the "Important Information" section and contact information
   
   // Add the footer with company info and logo to each page
   const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
