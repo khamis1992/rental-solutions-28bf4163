@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import FleetReport from '@/components/reports/FleetReport';
 import FinancialReport from '@/components/reports/FinancialReport';
 import CustomerReport from '@/components/reports/CustomerReport';
@@ -61,6 +61,14 @@ const Reports = () => {
           </Tabs>
         </CardContent>
       </Card>
+      
+      <div className="mt-8 text-center">
+        <img 
+          src="/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png" 
+          alt="Alaraf Car Rental Footer" 
+          className="h-8 mx-auto"
+        />
+      </div>
     </PageContainer>
   );
 };

@@ -4,10 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, Download, FileDown } from 'lucide-react';
+import { CalendarIcon, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { SectionHeader } from '@/components/ui/section-header';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -27,18 +26,26 @@ const ReportDownloadOptions = ({ reportType }: ReportDownloadOptionsProps) => {
       dateRange,
       format: fileFormat,
       logo: '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', // Include logo in report generation
+      footerLogo: '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png', // Include footer logo in report generation
     });
   };
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <img 
+            src="/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png" 
+            alt="Alaraf Car Rental" 
+            className="h-10 mr-4" 
+          />
+          <h3 className="text-lg font-semibold">Report Options</h3>
+        </div>
         <img 
-          src="/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png" 
-          alt="Alaraf Car Rental" 
-          className="h-10 mr-4" 
+          src="/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png" 
+          alt="Alaraf Car Rental Footer" 
+          className="h-5" 
         />
-        <h3 className="text-lg font-semibold">Report Options</h3>
       </div>
       
       <div className="flex items-center gap-4 flex-wrap">

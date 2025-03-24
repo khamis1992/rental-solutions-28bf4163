@@ -33,6 +33,7 @@ export const generateLegalCustomerReport = async (
   // Initialize the PDF document
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   
   // Add logo to the header
   const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
@@ -254,14 +255,22 @@ export const generateLegalCustomerReport = async (
   yPos += 7;
   doc.text("Legal Department: legal@yourcompany.com | +974 XXXX XXXX", 14, yPos);
   
-  // Add footer with page numbers
+  // Add the footer with company info and logo to each page
+  const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
+  
+  // Add footer with page numbers and footer image
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
+    
+    // Add the footer image
+    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 25, pageWidth - 30, 15);
+    
+    // Add page number
     doc.setFontSize(8);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, 285, { align: 'center' });
-    doc.text('CONFIDENTIAL', 14, 285);
-    doc.text(new Date().toLocaleDateString(), pageWidth - 14, 285, { align: 'right' });
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 30, { align: 'center' });
+    doc.text('CONFIDENTIAL', 14, pageHeight - 30);
+    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 30, { align: 'right' });
   }
   
   return doc;
