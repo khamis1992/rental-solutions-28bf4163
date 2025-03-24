@@ -36,7 +36,9 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     throw new Error(`Error fetching vehicles: ${error.message}`);
   }
   
-  return (data || []).map((record: any) => mapDatabaseRecordToVehicle(record as DatabaseVehicleRecord));
+  // Type assertion to tell TypeScript these are DatabaseVehicleRecord objects
+  const vehicleRecords = (data || []) as DatabaseVehicleRecord[];
+  return vehicleRecords.map(record => mapDatabaseRecordToVehicle(record));
 }
 
 // Fetch a single vehicle by ID
@@ -66,7 +68,8 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
     throw new Error(`Error fetching vehicle types: ${error.message}`);
   }
   
-  return (data || []).map((type: any) => ({
+  // Map the database vehicle types to application vehicle types with proper size mapping
+  return (data || []).map((type: DatabaseVehicleType) => ({
     id: type.id,
     name: type.name,
     size: type.size === 'mid_size' ? 'midsize' : 
