@@ -179,7 +179,7 @@ export function useCarInstallments() {
   >(
     async (contractData) => {
       try {
-        // Fix type error by ensuring all required fields are present
+        // Include all required fields
         const contractToInsert = {
           car_type: contractData.car_type,
           model_year: contractData.model_year,
@@ -191,7 +191,8 @@ export function useCarInstallments() {
           amount_paid: 0,
           amount_pending: contractData.total_contract_value,
           remaining_installments: contractData.total_installments,
-          overdue_payments: 0
+          overdue_payments: 0,
+          category: contractData.category || 'car-finance' // Ensure category is always present
         };
         
         const { data, error } = await supabase

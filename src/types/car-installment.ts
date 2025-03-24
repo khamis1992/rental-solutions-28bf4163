@@ -14,6 +14,7 @@ export interface CarInstallmentContract {
   amount_pending: number;
   overdue_payments: number;
   installment_value: number;
+  category: string;  // Adding the missing category field
   created_at: string;
   updated_at: string;
 }

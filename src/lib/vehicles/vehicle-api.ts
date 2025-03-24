@@ -12,6 +12,12 @@ import {
 } from '@/types/vehicle';
 import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
 
+// Helper function to convert database status to app status
+const mapDBStatusToAppStatus = (dbStatus: string | null): string | null => {
+  if (dbStatus === 'reserve') return 'reserved';
+  return dbStatus;
+};
+
 // Fetch vehicles with optional filtering
 export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehicle[]> {
   let query = supabase.from('vehicles')
@@ -91,10 +97,7 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
   // Make a copy of the data to avoid modifying the original
   const dbData = { ...vehicleData } as any;
   
-  // Handle the reserved to reserve conversion
-  if (vehicleData.status) {
-    dbData.status = mapToDBStatus(vehicleData.status);
-  }
+  // No need to convert status here since mapToDBStatus already handles it
   
   const { data, error } = await supabase
     .from('vehicles')
@@ -114,10 +117,7 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
   // Make a copy of the data to avoid modifying the original
   const dbData = { ...vehicleData } as any;
   
-  // Handle the reserved to reserve conversion
-  if (vehicleData.status) {
-    dbData.status = mapToDBStatus(vehicleData.status);
-  }
+  // No need to convert status here
   
   const { data, error } = await supabase
     .from('vehicles')

@@ -94,7 +94,8 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
       amount_paid: 0,
       amount_pending: totalContractValue,
       remaining_installments: data.total_installments,
-      overdue_payments: 0
+      overdue_payments: 0,
+      category: 'car-finance' // Add the required category field
     };
     
     onSubmit(contractData);
