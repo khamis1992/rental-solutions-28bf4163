@@ -1,7 +1,16 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { VehicleFilterParams, Vehicle, VehicleFormData, VehicleInsertData, VehicleType, DatabaseVehicleRecord } from '@/types/vehicle';
-import { mapDatabaseRecordToVehicle } from './vehicle-mappers';
+import { 
+  VehicleFilterParams, 
+  Vehicle, 
+  VehicleFormData, 
+  VehicleInsertData, 
+  VehicleType, 
+  VehicleUpdateData,
+  DatabaseVehicleRecord,
+  DatabaseVehicleType
+} from '@/types/vehicle';
+import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
 
 // Fetch vehicles with optional filtering
 export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehicle[]> {
@@ -11,7 +20,12 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
   if (filters) {
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== '' && value !== 'any') {
-        query = query.eq(key, value);
+        // Convert reserved to reserve for database query if status is being filtered
+        if (key === 'status' && value === 'reserved') {
+          query = query.eq(key, 'reserve');
+        } else {
+          query = query.eq(key, value);
+        }
       }
     });
   }
@@ -22,7 +36,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     throw new Error(`Error fetching vehicles: ${error.message}`);
   }
   
-  return (data as DatabaseVehicleRecord[]).map(record => mapDatabaseRecordToVehicle(record));
+  return data.map((record: DatabaseVehicleRecord) => mapDatabaseRecordToVehicle(record));
 }
 
 // Fetch a single vehicle by ID
@@ -52,18 +66,37 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
     throw new Error(`Error fetching vehicle types: ${error.message}`);
   }
   
-  return data.map(type => ({
-    ...type,
-    features: Array.isArray(type.features) ? type.features : 
-      (typeof type.features === 'string' ? JSON.parse(type.features) : [])
+  return data.map((type: DatabaseVehicleType) => ({
+    id: type.id,
+    name: type.name,
+    size: type.size === 'mid_size' ? 'midsize' : 
+          type.size === 'full_size' ? 'fullsize' : type.size as VehicleType['size'],
+    daily_rate: type.daily_rate,
+    weekly_rate: type.weekly_rate || undefined,
+    monthly_rate: type.monthly_rate || undefined,
+    description: type.description || undefined,
+    features: normalizeFeatures(type.features),
+    is_active: type.is_active,
+    created_at: type.created_at,
+    updated_at: type.updated_at
   }));
 }
 
 // Insert a new vehicle 
 export async function insertVehicle(vehicleData: VehicleInsertData): Promise<DatabaseVehicleRecord> {
+  // If status is 'reserved', convert to 'reserve' for database
+  const dbData: Record<string, any> = {
+    ...vehicleData
+  };
+  
+  // Handle the reserved to reserve conversion
+  if (vehicleData.status) {
+    dbData.status = mapToDBStatus(vehicleData.status as any);
+  }
+  
   const { data, error } = await supabase
     .from('vehicles')
-    .insert(vehicleData)
+    .insert(dbData)
     .select()
     .single();
     
@@ -75,10 +108,20 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
 }
 
 // Update a vehicle
-export async function updateVehicle(id: string, vehicleData: Partial<VehicleInsertData>): Promise<DatabaseVehicleRecord> {
+export async function updateVehicle(id: string, vehicleData: VehicleUpdateData): Promise<DatabaseVehicleRecord> {
+  // If status is 'reserved', convert to 'reserve' for database
+  const dbData: Record<string, any> = {
+    ...vehicleData
+  };
+  
+  // Handle the reserved to reserve conversion
+  if (vehicleData.status) {
+    dbData.status = mapToDBStatus(vehicleData.status as any);
+  }
+  
   const { data, error } = await supabase
     .from('vehicles')
-    .update(vehicleData)
+    .update(dbData)
     .eq('id', id)
     .select('*, vehicle_types(*)')
     .single();

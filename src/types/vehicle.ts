@@ -2,11 +2,14 @@
 // Vehicle status enum from Supabase
 export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
+// Database-specific vehicle status type (allowing for variations in naming)
+export type DatabaseVehicleStatus = 'available' | 'rented' | 'reserve' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
+
 // Vehicle size enum for vehicle types
 export type VehicleSize = 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | 'truck' | 'van' | 'economy';
 
 // Database-specific vehicle size type (allowing for variations in naming)
-export type DatabaseVehicleSize = VehicleSize | 'mid_size' | 'full_size';
+export type DatabaseVehicleSize = 'compact' | 'mid_size' | 'full_size' | 'suv' | 'luxury' | 'truck' | 'van' | 'economy';
 
 // Vehicle type definition matching Supabase schema
 export interface VehicleType {
@@ -120,7 +123,7 @@ export interface DatabaseVehicleRecord {
   license_plate: string;
   vin: string;
   color?: string | null;
-  status?: VehicleStatus | null;
+  status?: DatabaseVehicleStatus | null;
   mileage?: number | null;
   image_url?: string | null;
   description?: string | null;
@@ -145,7 +148,27 @@ export interface VehicleInsertData {
   license_plate: string;
   vin: string;
   color?: string | null;
-  status?: VehicleStatus | null;
+  status?: DatabaseVehicleStatus | null;
+  mileage?: number | null;
+  image_url?: string | null;
+  description?: string | null;
+  location?: string | null;
+  insurance_company?: string | null;
+  insurance_expiry?: string | null;
+  rent_amount?: number | null;
+  vehicle_type_id?: string | null;
+  registration_number?: string | null;
+}
+
+// Type for database update operations
+export interface VehicleUpdateData {
+  make?: string;
+  model?: string;
+  year?: number;
+  license_plate?: string;
+  vin?: string;
+  color?: string | null;
+  status?: DatabaseVehicleStatus | null;
   mileage?: number | null;
   image_url?: string | null;
   description?: string | null;

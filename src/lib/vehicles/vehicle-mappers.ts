@@ -1,23 +1,40 @@
 
-import { DatabaseVehicleRecord, DatabaseVehicleType, Vehicle, VehicleSize, VehicleStatus } from '@/types/vehicle';
+import { 
+  DatabaseVehicleRecord, 
+  DatabaseVehicleStatus, 
+  DatabaseVehicleType, 
+  Vehicle, 
+  VehicleSize, 
+  VehicleStatus 
+} from '@/types/vehicle';
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is VehicleStatus {
   return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status);
 }
 
-// Normalize vehicle status to ensure it matches VehicleStatus type
-export function normalizeVehicleStatus(status: string | null | undefined): VehicleStatus | undefined {
+// Map database status to application status
+export function mapDatabaseStatus(status: DatabaseVehicleStatus | null | undefined): VehicleStatus | undefined {
   if (!status) return undefined;
   
-  // Handle the "reserve" to "reserved" mapping and other potential mismatches
+  // Handle the "reserve" to "reserved" mapping
   if (status === 'reserve') return 'reserved';
   
   return isValidStatus(status) ? status : 'available';
 }
 
-// Convert database size string to application VehicleSize type
-export function normalizeVehicleSize(size: string): VehicleSize {
+// Convert application status to database status
+export function mapToDBStatus(status: VehicleStatus | null | undefined): DatabaseVehicleStatus | null {
+  if (!status) return null;
+  
+  // Handle the "reserved" to "reserve" mapping
+  if (status === 'reserved') return 'reserve';
+  
+  return status as DatabaseVehicleStatus;
+}
+
+// Map database size to application size
+export function mapDatabaseSize(size: string): VehicleSize {
   // Map possible database values to valid application values
   const sizeMap: Record<string, VehicleSize> = {
     'mid_size': 'midsize',
@@ -27,7 +44,7 @@ export function normalizeVehicleSize(size: string): VehicleSize {
   return (sizeMap[size] || size) as VehicleSize;
 }
 
-// Convert database features to string array
+// Convert features to string array
 export function normalizeFeatures(features: any): string[] {
   if (Array.isArray(features)) {
     return features;
@@ -53,7 +70,7 @@ function mapDatabaseVehicleType(dbType: DatabaseVehicleType | null | undefined) 
   return {
     id: dbType.id,
     name: dbType.name,
-    size: normalizeVehicleSize(dbType.size),
+    size: mapDatabaseSize(dbType.size),
     daily_rate: dbType.daily_rate,
     weekly_rate: dbType.weekly_rate || undefined,
     monthly_rate: dbType.monthly_rate || undefined,
@@ -79,7 +96,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
     licensePlate: record.license_plate, // For UI compatibility
     vin: record.vin,
     color: record.color || undefined,
-    status: normalizeVehicleStatus(record.status),
+    status: mapDatabaseStatus(record.status),
     mileage: record.mileage || undefined,
     image_url: record.image_url || undefined,
     imageUrl: record.image_url || undefined, // For UI compatibility

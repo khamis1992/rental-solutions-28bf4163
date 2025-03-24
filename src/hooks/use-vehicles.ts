@@ -2,14 +2,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { Vehicle, VehicleFilterParams, VehicleFormData } from '@/types/vehicle';
+import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
 import { 
   fetchVehicles, fetchVehicleById, fetchVehicleTypes, 
   insertVehicle, updateVehicle, deleteVehicle, fetchVehicleWithTypes 
 } from '@/lib/vehicles/vehicle-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 import { supabase } from '@/integrations/supabase/client';
-import { mapDatabaseRecordToVehicle } from '@/lib/vehicles/vehicle-mappers';
+import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
@@ -55,7 +55,7 @@ export const useVehicles = () => {
           }
           
           // Build vehicle data object for insertion
-          const vehicleData: any = {
+          const vehicleData: VehicleInsertData = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
@@ -70,7 +70,7 @@ export const useVehicles = () => {
             rent_amount: formData.rent_amount || null,
             vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
             image_url: imageUrl,
-            status: formData.status || 'available',
+            status: formData.status ? mapToDBStatus(formData.status) : 'available',
           };
           
           // Insert new vehicle
@@ -130,7 +130,7 @@ export const useVehicles = () => {
           }
           
           // Build an update object for Supabase
-          const vehicleData: any = {};
+          const vehicleData: VehicleUpdateData = {};
           
           // Required fields
           if (data.make !== undefined) vehicleData.make = data.make;
@@ -141,7 +141,7 @@ export const useVehicles = () => {
           
           // Optional fields
           if (data.color !== undefined) vehicleData.color = data.color;
-          if (data.status !== undefined) vehicleData.status = data.status;
+          if (data.status !== undefined) vehicleData.status = mapToDBStatus(data.status);
           if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
           if (data.description !== undefined) vehicleData.description = data.description;
           if (data.location !== undefined) vehicleData.location = data.location;
