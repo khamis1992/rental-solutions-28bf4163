@@ -1,71 +1,9 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams } from '@/types/vehicle';
-
-// Helper function to ensure vehicle-images bucket exists
-const ensureVehicleImagesBucket = async () => {
-  try {
-    // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-    
-    if (listError) {
-      console.error('Error listing buckets:', listError);
-      return false;
-    }
-    
-    const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
-    
-    if (!bucketExists) {
-      // Create the bucket
-      const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
-        public: true,
-        fileSizeLimit: 10485760, // 10MB
-      });
-      
-      if (createError) {
-        console.error('Error creating bucket:', createError);
-        return false;
-      }
-      
-      console.log('Vehicle images bucket created successfully');
-      return true;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error ensuring vehicle images bucket exists:', error);
-    return false;
-  }
-};
-
-// Helper function to get image URL with public URL transformation
-const getImagePublicUrl = (bucket: string, path: string): string => {
-  try {
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    return data.publicUrl;
-  } catch (error) {
-    console.error('Error getting public URL:', error);
-    return '';
-  }
-};
-
-// Helper to format data for display with camelCase keys for frontend compatibility
-const formatVehicleForDisplay = (vehicle: any): any => {
-  if (!vehicle) return null;
-  
-  return {
-    ...vehicle,
-    imageUrl: vehicle.image_url,
-    licensePlate: vehicle.license_plate,
-    dailyRate: vehicle.rent_amount || (vehicle.vehicleType?.daily_rate || 0),
-    category: vehicle.vehicleType?.size || 'midsize', // Map to existing frontend category
-    features: vehicle.vehicleType?.features || [],
-    notes: vehicle.description
-  };
-};
+import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
 
 const fetchVehicles = async (filters?: VehicleFilterParams) => {
   let query = supabase.from('vehicles')
@@ -199,7 +137,7 @@ export const useVehicles = () => {
             }
           }
           
-          const vehicleData = {
+          const vehicleData: Record<string, any> = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
