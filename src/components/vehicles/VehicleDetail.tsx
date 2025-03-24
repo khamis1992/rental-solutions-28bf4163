@@ -13,26 +13,34 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
-
 interface VehicleDetailProps {
   vehicle: Vehicle;
 }
-
-export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
+export const VehicleDetail: React.FC<VehicleDetailProps> = ({
+  vehicle
+}) => {
   const navigate = useNavigate();
-  const { useList: useMaintenanceList } = useMaintenance();
-  const { agreements, isLoading: isLoadingAgreements, setSearchParams } = useAgreements({ vehicle_id: vehicle.id });
+  const {
+    useList: useMaintenanceList
+  } = useMaintenance();
+  const {
+    agreements,
+    isLoading: isLoadingAgreements,
+    setSearchParams
+  } = useAgreements({
+    vehicle_id: vehicle.id
+  });
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
-  const { getMaintenanceByVehicleId } = useMaintenance();
-
+  const {
+    getMaintenanceByVehicleId
+  } = useMaintenance();
   const statusColors = {
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
     maintenance: 'bg-amber-100 text-amber-800',
-    retired: 'bg-red-100 text-red-800',
+    retired: 'bg-red-100 text-red-800'
   };
-
   useEffect(() => {
     const fetchMaintenance = async () => {
       setIsLoadingMaintenance(true);
@@ -45,21 +53,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
         setIsLoadingMaintenance(false);
       }
     };
-    
     if (vehicle.id) {
       fetchMaintenance();
     }
   }, [vehicle.id, getMaintenanceByVehicleId]);
-
   const formatMaintenanceType = (type: string) => {
-    return type
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
-  
   const getMaintenanceStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case MaintenanceStatus.COMPLETED:
         return 'bg-green-100 text-green-800';
       case MaintenanceStatus.IN_PROGRESS:
@@ -72,9 +74,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getAgreementStatusColor = (status: string) => {
-    switch(status) {
+    switch (status) {
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'pending':
@@ -88,21 +89,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   const formatAgreementStatus = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
-
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
-  
   const t77Image = '/lovable-uploads/32900e30-d61f-4057-8601-bc451101312c.png';
-  
   let displayImageUrl = defaultCarImage;
-  
   try {
     const makeLower = (vehicle.make || '').toString().toLowerCase();
     const modelLower = (vehicle.model || '').toString().toLowerCase();
-
     if (modelLower.includes('t77')) {
       displayImageUrl = t77Image;
     } else if (makeLower.includes('mg')) {
@@ -113,50 +108,36 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   } catch (error) {
     console.error('Error setting vehicle detail image:', error);
   }
-
   const hasInsurance = !!vehicle.insurance_company;
   const insuranceExpiry = vehicle.insurance_expiry ? parseISO(vehicle.insurance_expiry) : null;
   const isInsuranceValid = insuranceExpiry ? isAfter(insuranceExpiry, new Date()) : false;
-  
   const getInsuranceBadgeStyle = () => {
     if (!hasInsurance) return 'bg-red-100 text-red-800';
     return isInsuranceValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
-
   const getInsuranceStatusText = () => {
     if (!hasInsurance) return 'No Insurance';
     return isInsuranceValid ? 'Valid' : 'Expired';
   };
-
   const handleViewMaintenance = (id: string) => {
     navigate(`/maintenance/${id}`);
   };
-  
   const handleAddMaintenance = () => {
     navigate(`/maintenance/add?vehicleId=${vehicle.id}`);
   };
-
   const handleViewAgreement = (id: string) => {
     navigate(`/agreements/${id}`);
   };
-
   const handleCreateAgreement = () => {
     navigate(`/agreements/add?vehicleId=${vehicle.id}`);
   };
-
-  return (
-    <Card className="w-full overflow-hidden card-transition">
+  return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-        <img 
-          src={displayImageUrl}
-          alt={`${vehicle.make} ${vehicle.model}`}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            console.log('Detail image failed to load, using fallback');
-            e.currentTarget.src = defaultCarImage;
-          }}
-        />
+        <img src={displayImageUrl} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-full object-cover" onError={e => {
+        console.log('Detail image failed to load, using fallback');
+        e.currentTarget.src = defaultCarImage;
+      }} />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-20">
           <div className="flex items-center justify-between">
@@ -198,9 +179,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                 <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-muted-foreground w-28">Mileage:</span>
                 <span>
-                  {vehicle.mileage !== undefined && vehicle.mileage !== null 
-                    ? `${vehicle.mileage.toLocaleString()} km` 
-                    : 'N/A'}
+                  {vehicle.mileage !== undefined && vehicle.mileage !== null ? `${vehicle.mileage.toLocaleString()} km` : 'N/A'}
                 </span>
               </li>
               <li className="flex items-center text-sm">
@@ -226,16 +205,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                   <Badge className={getInsuranceBadgeStyle()}>
                     {getInsuranceStatusText()}
                   </Badge>
-                  {hasInsurance && (
-                    <div className="mt-1">
+                  {hasInsurance && <div className="mt-1">
                       <div>{vehicle.insurance_company}</div>
-                      {insuranceExpiry && (
-                        <div className="text-xs text-muted-foreground">
+                      {insuranceExpiry && <div className="text-xs text-muted-foreground">
                           {isInsuranceValid ? 'Expires' : 'Expired'}: {format(insuranceExpiry, 'MMM d, yyyy')}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        </div>}
+                    </div>}
                 </div>
               </li>
               <li className="flex items-center text-sm">
@@ -271,21 +246,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           </div>
         </div>
         
-        {vehicle.features && vehicle.features.length > 0 && (
-          <div className="mt-6">
+        {vehicle.features && vehicle.features.length > 0 && <div className="mt-6">
             <CardTitle className="mb-4 text-lg">Features</CardTitle>
             <div className="flex flex-wrap gap-2">
-              {vehicle.features.map((feature, index) => (
-                <Badge key={index} variant="secondary" className="rounded-md">
+              {vehicle.features.map((feature, index) => <Badge key={index} variant="secondary" className="rounded-md">
                   {feature}
-                </Badge>
-              ))}
+                </Badge>)}
             </div>
-          </div>
-        )}
+          </div>}
         
-        {vehicle.notes && (
-          <div className="mt-6">
+        {vehicle.notes && <div className="mt-6">
             <CardTitle className="mb-4 text-lg">Notes</CardTitle>
             <div className="bg-muted/50 p-3 rounded-md text-sm">
               <div className="flex items-start">
@@ -293,28 +263,17 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                 <p>{vehicle.notes}</p>
               </div>
             </div>
-          </div>
-        )}
+          </div>}
         
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Rental Agreements</CardTitle>
-            <CustomButton 
-              size="sm" 
-              variant="outline" 
-              onClick={handleCreateAgreement}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Create Agreement
-            </CustomButton>
+            
           </div>
           
-          {isLoadingAgreements ? (
-            <div className="text-center py-8 text-muted-foreground">
+          {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
               Loading agreements...
-            </div>
-          ) : agreements && agreements.length > 0 ? (
-            <div className="rounded-md border">
+            </div> : agreements && agreements.length > 0 ? <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -328,8 +287,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {agreements.map((agreement: Agreement) => (
-                    <TableRow key={agreement.id}>
+                  {agreements.map((agreement: Agreement) => <TableRow key={agreement.id}>
                       <TableCell className="font-medium">
                         {agreement.agreement_number}
                       </TableCell>
@@ -349,45 +307,30 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                       </TableCell>
                       <TableCell>${agreement.total_amount?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell className="text-right">
-                        <CustomButton
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleViewAgreement(agreement.id)}
-                        >
+                        <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(agreement.id)}>
                           View
                         </CustomButton>
                       </TableCell>
-                    </TableRow>
-                  ))}
+                    </TableRow>)}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 border rounded-md text-muted-foreground">
+            </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
               No rental agreements found for this vehicle.
-            </div>
-          )}
+            </div>}
         </div>
         
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Maintenance History</CardTitle>
-            <CustomButton 
-              size="sm" 
-              variant="outline" 
-              onClick={handleAddMaintenance}
-            >
+            <CustomButton size="sm" variant="outline" onClick={handleAddMaintenance}>
               <Wrench className="h-4 w-4 mr-2" />
               Add Maintenance
             </CustomButton>
           </div>
           
-          {isLoadingMaintenance ? (
-            <div className="text-center py-8 text-muted-foreground">
+          {isLoadingMaintenance ? <div className="text-center py-8 text-muted-foreground">
               Loading maintenance records...
-            </div>
-          ) : maintenanceRecords && maintenanceRecords.length > 0 ? (
-            <div className="rounded-md border">
+            </div> : maintenanceRecords && maintenanceRecords.length > 0 ? <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -400,8 +343,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {maintenanceRecords.map((record) => (
-                    <TableRow key={record.id}>
+                  {maintenanceRecords.map(record => <TableRow key={record.id}>
                       <TableCell className="font-medium">
                         {formatMaintenanceType(record.maintenance_type)}
                       </TableCell>
@@ -410,35 +352,23 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                       </TableCell>
                       <TableCell>
                         <Badge className={getMaintenanceStatusColor(record.status)}>
-                          {record.status
-                            .split('_')
-                            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                            .join(' ')}
+                          {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell>{record.service_provider || 'N/A'}</TableCell>
                       <TableCell className="text-right">
-                        <CustomButton
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleViewMaintenance(record.id)}
-                        >
+                        <CustomButton size="sm" variant="ghost" onClick={() => handleViewMaintenance(record.id)}>
                           View
                         </CustomButton>
                       </TableCell>
-                    </TableRow>
-                  ))}
+                    </TableRow>)}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 border rounded-md text-muted-foreground">
+            </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
               No maintenance records found for this vehicle.
-            </div>
-          )}
+            </div>}
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
