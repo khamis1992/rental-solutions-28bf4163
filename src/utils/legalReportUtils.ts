@@ -4,7 +4,7 @@ import { CustomerObligation } from '@/components/legal/CustomerLegalObligations'
 import { supabase } from '@/integrations/supabase/client';
 
 // Define a type for the language options to ensure consistency
-type ReportLanguage = 'english' | 'arabic';
+export type ReportLanguage = 'english' | 'arabic';
 
 /**
  * Generate a legal report PDF for a customer with all their financial/legal obligations
