@@ -46,6 +46,7 @@ import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 import { fetchLegalObligations, determineUrgency } from './LegalObligationsService';
 import LegalCaseDetails from './LegalCaseDetails';
 import { Link } from 'react-router-dom';
+import { formatCurrency } from '@/lib/utils';
 
 // Types
 export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
