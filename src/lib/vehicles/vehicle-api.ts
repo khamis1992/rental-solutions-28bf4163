@@ -36,7 +36,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     throw new Error(`Error fetching vehicles: ${error.message}`);
   }
   
-  return data.map((record: DatabaseVehicleRecord) => mapDatabaseRecordToVehicle(record));
+  return (data || []).map((record: any) => mapDatabaseRecordToVehicle(record as DatabaseVehicleRecord));
 }
 
 // Fetch a single vehicle by ID
@@ -66,11 +66,12 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
     throw new Error(`Error fetching vehicle types: ${error.message}`);
   }
   
-  return data.map((type: DatabaseVehicleType) => ({
+  return (data || []).map((type: any) => ({
     id: type.id,
     name: type.name,
     size: type.size === 'mid_size' ? 'midsize' : 
-          type.size === 'full_size' ? 'fullsize' : type.size as VehicleType['size'],
+          type.size === 'full_size' ? 'fullsize' : 
+          type.size as VehicleType['size'],
     daily_rate: type.daily_rate,
     weekly_rate: type.weekly_rate || undefined,
     monthly_rate: type.monthly_rate || undefined,
@@ -84,14 +85,12 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
 
 // Insert a new vehicle 
 export async function insertVehicle(vehicleData: VehicleInsertData): Promise<DatabaseVehicleRecord> {
-  // If status is 'reserved', convert to 'reserve' for database
-  const dbData: Record<string, any> = {
-    ...vehicleData
-  };
+  // Make a copy of the data to avoid modifying the original
+  const dbData: Record<string, any> = { ...vehicleData };
   
   // Handle the reserved to reserve conversion
   if (vehicleData.status) {
-    dbData.status = mapToDBStatus(vehicleData.status as any);
+    dbData.status = mapToDBStatus(vehicleData.status);
   }
   
   const { data, error } = await supabase
@@ -109,14 +108,12 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
 
 // Update a vehicle
 export async function updateVehicle(id: string, vehicleData: VehicleUpdateData): Promise<DatabaseVehicleRecord> {
-  // If status is 'reserved', convert to 'reserve' for database
-  const dbData: Record<string, any> = {
-    ...vehicleData
-  };
+  // Make a copy of the data to avoid modifying the original
+  const dbData: Record<string, any> = { ...vehicleData };
   
   // Handle the reserved to reserve conversion
   if (vehicleData.status) {
-    dbData.status = mapToDBStatus(vehicleData.status as any);
+    dbData.status = mapToDBStatus(vehicleData.status);
   }
   
   const { data, error } = await supabase
