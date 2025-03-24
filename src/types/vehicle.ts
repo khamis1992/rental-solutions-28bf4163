@@ -95,13 +95,13 @@ export interface VehicleFilterParams {
 
 // Database table type for vehicles (matching Supabase schema)
 export interface VehicleInsertData {
-  make: string;
-  model: string;
-  year: number;
-  license_plate: string;
-  vin: string;
+  make?: string;
+  model?: string;
+  year?: number;
+  license_plate?: string;
+  vin?: string;
   color?: string | null;
-  status?: string | null;
+  status?: VehicleStatus | null;
   mileage?: number | null;
   image_url?: string | null;
   description?: string | null;

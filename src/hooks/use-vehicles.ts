@@ -15,7 +15,7 @@ interface DatabaseVehicle {
   license_plate: string;
   vin: string;
   color?: string | null;
-  status?: string | null;
+  status?: VehicleStatus | null;
   mileage?: number | null;
   image_url?: string | null;
   description?: string | null;
@@ -190,7 +190,7 @@ export const useVehicles = () => {
           
           const { data, error } = await supabase
             .from('vehicles')
-            .insert(vehicleData)
+            .insert(vehicleData as any)
             .select()
             .single();
           
@@ -271,7 +271,7 @@ export const useVehicles = () => {
           
           const { data: updatedVehicle, error } = await supabase
             .from('vehicles')
-            .update(vehicleData)
+            .update(vehicleData as any)
             .eq('id', id)
             .select('*, vehicle_types(*)')
             .single();
