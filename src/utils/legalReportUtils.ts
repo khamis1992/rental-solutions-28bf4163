@@ -333,18 +333,6 @@ export const generateLegalCustomerReport = async (
     yPos += 7;
   });
   
-  // Add contact information
-  yPos += 10;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text("Contact Information:", 14, yPos);
-  yPos += 7;
-  
-  doc.setFont('helvetica', 'normal');
-  doc.text("Financial Department: finance@yourcompany.com | +974 XXXX XXXX", 14, yPos);
-  yPos += 7;
-  doc.text("Legal Department: legal@yourcompany.com | +974 XXXX XXXX", 14, yPos);
-  
   // Add the footer with company info and logo to each page
   const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
   
@@ -353,16 +341,17 @@ export const generateLegalCustomerReport = async (
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // Add footer text first - above the footer logo
+    // Add footer text - aligned to left margin like header
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
+    doc.text("© 2025 ALARAF CAR RENTAL", 14, pageHeight - 30);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
+    doc.text("Quality Service, Premium Experience", 14, pageHeight - 25);
+    doc.text("المكتب الرئيسي: طريق المطار، الدوحة، قطر", 14, pageHeight - 20);
     
     // Add the footer image below the text
-    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
+    doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 15, pageWidth - 30, 12);
     
     // Add page number
     doc.setFontSize(8);
