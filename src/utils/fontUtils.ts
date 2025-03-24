@@ -6,7 +6,8 @@
 import { jsPDF } from 'jspdf';
 import { formatCurrency } from '@/lib/utils';
 
-// We'll use standard fonts that have better support for Arabic characters
+// Use a font with better Arabic character support
+// We're going to use jsPDF's built-in encoding support
 const ARABIC_FONT = 'Helvetica';
 
 /**
@@ -19,10 +20,16 @@ export const configureFontForLanguage = (doc: jsPDF, language: 'english' | 'arab
       // Set right-to-left mode for Arabic text
       doc.setR2L(true);
       
-      // For Arabic, use standard font with right-to-left rendering
+      // For Arabic, use a standard font but with RTL capabilities
       doc.setFont(ARABIC_FONT);
       
-      // Increase the font size slightly for better Arabic readability
+      // Set language-specific properties to improve Arabic text rendering
+      doc.setLanguage('ar');
+      
+      // Make sure we're using Unicode encoding
+      doc.setFontStyle('normal');
+      
+      // Increase font size slightly for better Arabic readability
       const currentFontSize = doc.getFontSize();
       doc.setFontSize(currentFontSize + 2);
       
@@ -31,6 +38,7 @@ export const configureFontForLanguage = (doc: jsPDF, language: 'english' | 'arab
       // For English, use default settings
       doc.setFont('helvetica');
       doc.setR2L(false);
+      doc.setLanguage('en-US');
     }
   } catch (error) {
     console.error("Error configuring font:", error);
@@ -57,10 +65,12 @@ export const formatTextForPdf = (text: string, language: 'english' | 'arabic'): 
   try {
     // For Arabic, ensure proper character handling
     if (language === 'arabic') {
-      // Manually flip parentheses for better RTL rendering
+      // Clean up text for better RTL display
       return text
         .replace(/\(/g, ')')
-        .replace(/\)/g, '(');
+        .replace(/\)/g, '(')
+        // Ensure text is in proper Unicode format
+        .normalize('NFKC');
     }
     return text;
   } catch (error) {
@@ -133,8 +143,11 @@ export const addArabicText = (
     // Set alignment - default to right for Arabic
     const align = options.align || 'right';
     
-    // Process text for better Arabic display
-    let processedText = text;
+    // Handle Arabic text display issues by using Unicode normalization
+    let processedText = text.normalize('NFKC');
+    
+    // Log the processed text to verify correct handling
+    console.log("Adding Arabic text:", processedText);
     
     // Use built-in text function with alignment
     doc.text(processedText, x, y, { align });

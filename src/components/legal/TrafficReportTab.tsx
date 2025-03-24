@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Download, Languages, AlertCircle, Loader2 } from 'lucide-react';
+import { FileText, Download, Languages, AlertCircle, Loader2, Info } from 'lucide-react';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 import { useToast } from '@/hooks/use-toast';
 import { CustomerObligation } from './CustomerLegalObligations';
@@ -26,6 +27,7 @@ const TrafficReportTab: React.FC<TrafficReportTabProps> = ({
   const [hasError, setHasError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string>('');
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   React.useEffect(() => {
     if (externalLanguage) {
@@ -93,6 +95,7 @@ const TrafficReportTab: React.FC<TrafficReportTabProps> = ({
         ? `تقرير-قانوني-${customerName}-${timestamp}.pdf`
         : `legal-report-${customerName}-${timestamp}.pdf`;
         
+      console.log("Saving report to:", filename);
       doc.save(filename);
       
       console.log("Report generated and saved successfully");
@@ -208,17 +211,31 @@ const TrafficReportTab: React.FC<TrafficReportTabProps> = ({
               : "This will generate a sample report with demonstration data"}
           </p>
           
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="self-start text-xs" 
-            onClick={() => setShowInstructions(true)}
-          >
-            <Languages className="h-3 w-3 mr-1" />
-            {language === 'arabic' 
-              ? "إرشادات حول التقارير باللغة العربية" 
-              : "Instructions for Arabic reports"}
-          </Button>
+          <div className="flex space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="self-start text-xs" 
+              onClick={() => setShowInstructions(true)}
+            >
+              <Languages className="h-3 w-3 mr-1" />
+              {language === 'arabic' 
+                ? "إرشادات حول التقارير باللغة العربية" 
+                : "Instructions for Arabic reports"}
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="self-start text-xs" 
+              onClick={() => setShowDebugInfo(true)}
+            >
+              <Info className="h-3 w-3 mr-1" />
+              {language === 'arabic' 
+                ? "معلومات تقنية" 
+                : "Technical Info"}
+            </Button>
+          </div>
         </div>
       </CardContent>
       
@@ -251,8 +268,42 @@ const TrafficReportTab: React.FC<TrafficReportTabProps> = ({
               </AlertTitle>
               <AlertDescription>
                 {language === 'arabic'
-                  ? "لضمان أفضل تجربة، يرجى التأكد من حفظ الملف PDF وفتحه في برنامج قارئ PDF يدعم اللغة العربية."
-                  : "For the best experience, please ensure you save the PDF and open it in a PDF reader that supports Arabic language."}
+                  ? "لضمان أفضل تجربة، يرجى التأكد من حفظ الملف PDF وفتحه في برنامج قارئ PDF يدعم اللغة العربية. قد تظهر بعض التحسينات في عرض النص العربي في إصدارات PDF المستقبلية."
+                  : "For the best experience, please ensure you save the PDF and open it in a PDF reader that supports Arabic language. Some improvements to Arabic text display may appear in future PDF versions."}
+              </AlertDescription>
+            </Alert>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showDebugInfo} onOpenChange={setShowDebugInfo}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'arabic' 
+                ? "معلومات تقنية" 
+                : "Technical Information"}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 text-sm">
+            <p>
+              <strong>PDF Library:</strong> jsPDF {jspdf.version}
+            </p>
+            <p>
+              <strong>Font Configuration:</strong> {language === 'arabic' ? 'RTL enabled, Arabic language support' : 'Standard LTR'}
+            </p>
+            <p>
+              <strong>Browser:</strong> {navigator.userAgent}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              This information can help troubleshoot any issues with report generation.
+            </p>
+            
+            <Alert variant="outline">
+              <AlertTitle>Debug Mode</AlertTitle>
+              <AlertDescription>
+                PDF generation will include additional debug information in the console.
               </AlertDescription>
             </Alert>
           </div>

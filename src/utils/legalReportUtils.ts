@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
-import { configureFontForLanguage } from './fontUtils';
+import { configureFontForLanguage, addArabicText, formatTextForPdf, configureDocumentProperties } from './fontUtils';
 
 /**
  * Generate a legal report PDF for a customer with all their financial/legal obligations
@@ -63,11 +63,18 @@ export const generateLegalCustomerReport = async (
     console.error("Error fetching customer details:", error);
   }
   
-  // Initialize the PDF document with appropriate font for Arabic if needed
-  const doc = new jsPDF();
+  // Initialize the PDF document
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
   
   // Configure font based on language
   configureFontForLanguage(doc, language);
+  
+  // Set document properties (metadata)
+  configureDocumentProperties(doc, language);
   
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -95,7 +102,12 @@ export const generateLegalCustomerReport = async (
   
   // Add title and header with consistent spacing
   doc.setFontSize(20);
-  doc.text(language === 'arabic' ? "تقرير الالتزامات القانونية" : "LEGAL OBLIGATIONS REPORT", pageWidth / 2, startY, { align: "center" });
+  
+  if (language === 'arabic') {
+    addArabicText(doc, "تقرير الالتزامات القانونية", pageWidth / 2, startY, { align: "center" });
+  } else {
+    doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, startY, { align: "center" });
+  }
   
   // Add Arabic address section if in Arabic mode
   if (language === 'arabic') {
@@ -110,7 +122,7 @@ export const generateLegalCustomerReport = async (
     
     let lineY = startY + 10;
     arabicLines.forEach(line => {
-      doc.text(line, pageWidth - 20, lineY, { align: "right" });
+      addArabicText(doc, line, pageWidth - 20, lineY, { align: "right" });
       lineY += 7;
     });
     
@@ -136,36 +148,50 @@ export const generateLegalCustomerReport = async (
   
   // Add report date with consistent spacing
   doc.setFontSize(10);
-  doc.text(
-    language === 'arabic' 
-      ? `تم إنشاء التقرير في ${new Date().toLocaleDateString('ar-EG')}` 
-      : `Report generated on ${new Date().toLocaleDateString()}`, 
-    pageWidth / 2, startY + 8, { align: "center" }
-  );
+  
+  if (language === 'arabic') {
+    addArabicText(
+      doc,
+      `تم إنشاء التقرير في ${new Date().toLocaleDateString('ar-EG')}`,
+      pageWidth / 2, startY + 8, 
+      { align: "center" }
+    );
+  } else {
+    doc.text(
+      `Report generated on ${new Date().toLocaleDateString()}`, 
+      pageWidth / 2, startY + 8, 
+      { align: "center" }
+    );
+  }
   
   // Add customer information with consistent spacing
   doc.setFontSize(14);
-  doc.text(
-    language === 'arabic' ? "معلومات العميل" : "Customer Information", 
-    language === 'arabic' ? pageWidth - 14 : 14, startY + 20,
-    language === 'arabic' ? { align: "right" } : undefined
-  );
+  
+  if (language === 'arabic') {
+    addArabicText(doc, "معلومات العميل", pageWidth - 14, startY + 20, { align: "right" });
+  } else {
+    doc.text("Customer Information", 14, startY + 20);
+  }
   
   doc.setFontSize(10);
   let yPos = startY + 30;
   
   if (language === 'arabic') {
-    doc.text(`الاسم: ${customerName}`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
+    addArabicText(doc, `الاسم: ${customerName}`, pageWidth - 14, yPos, { align: "right" }); 
+    yPos += 7;
     
     if (customer) {
       if (customer.email) {
-        doc.text(`البريد الإلكتروني: ${customer.email}`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `البريد الإلكتروني: ${customer.email}`, pageWidth - 14, yPos, { align: "right" }); 
+        yPos += 7;
       }
       if (customer.phone_number) {
-        doc.text(`الهاتف: ${customer.phone_number}`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `الهاتف: ${customer.phone_number}`, pageWidth - 14, yPos, { align: "right" }); 
+        yPos += 7;
       }
       if (customer.driver_license) {
-        doc.text(`رخصة القيادة: ${customer.driver_license}`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `رخصة القيادة: ${customer.driver_license}`, pageWidth - 14, yPos, { align: "right" }); 
+        yPos += 7;
       }
     }
   } else {
@@ -187,17 +213,17 @@ export const generateLegalCustomerReport = async (
   // Add vehicle information section
   yPos += 10;
   doc.setFontSize(14);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+  doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'bold');
   
   if (language === 'arabic') {
-    doc.text("معلومات المركبة", pageWidth - 14, yPos, { align: "right" });
+    addArabicText(doc, "معلومات المركبة", pageWidth - 14, yPos, { align: "right" });
   } else {
     doc.text("Vehicle Information", 14, yPos);
   }
   yPos += 10;
   
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'normal');
   
   if (customerVehicles && customerVehicles.length > 0) {
     customerVehicles.forEach((vehicle, index) => {
@@ -206,28 +232,28 @@ export const generateLegalCustomerReport = async (
         doc.addPage();
         yPos = addPageHeader(doc);
         doc.setFontSize(14);
-        doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+        doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'bold');
         
         if (language === 'arabic') {
-          doc.text("(تابع) معلومات المركبة", pageWidth - 14, yPos, { align: "right" });
+          addArabicText(doc, "(تابع) معلومات المركبة", pageWidth - 14, yPos, { align: "right" });
         } else {
           doc.text("Vehicle Information (continued)", 14, yPos);
         }
         
         yPos += 10;
         doc.setFontSize(10);
-        doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+        doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'normal');
       }
       
       if (language === 'arabic') {
-        doc.text(`المركبة ${index + 1}:`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
-        doc.text(`الصانع: ${vehicle.make || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
-        doc.text(`الطراز: ${vehicle.model || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
-        doc.text(`السنة: ${vehicle.year || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
-        doc.text(`اللون: ${vehicle.color || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
-        doc.text(`لوحة الترخيص: ${vehicle.license_plate || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
-        doc.text(`رقم VIN: ${vehicle.vin || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
-        doc.text(`الحالة: ${vehicle.status || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `المركبة ${index + 1}:`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `الصانع: ${vehicle.make || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `الطراز: ${vehicle.model || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `السنة: ${vehicle.year || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `اللون: ${vehicle.color || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `لوحة الترخيص: ${vehicle.license_plate || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `رقم VIN: ${vehicle.vin || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
+        addArabicText(doc, `الحالة: ${vehicle.status || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
       } else {
         doc.text(`Vehicle ${index + 1}:`, 14, yPos); yPos += 7;
         doc.text(`Make: ${vehicle.make || 'N/A'}`, 24, yPos); yPos += 7;
@@ -246,7 +272,7 @@ export const generateLegalCustomerReport = async (
     });
   } else {
     if (language === 'arabic') {
-      doc.text("لا توجد مركبات مرتبطة بهذا العميل.", pageWidth - 14, yPos, { align: "right" });
+      addArabicText(doc, "لا توجد مركبات مرتبطة بهذا العميل.", pageWidth - 14, yPos, { align: "right" });
     } else {
       doc.text("No vehicles associated with this customer.", 14, yPos);
     }
@@ -256,10 +282,10 @@ export const generateLegalCustomerReport = async (
   // Add summary of obligations with consistent spacing
   yPos += 10;
   doc.setFontSize(14);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+  doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'bold');
   
   if (language === 'arabic') {
-    doc.text("ملخص الالتزامات", pageWidth - 14, yPos, { align: "right" });
+    addArabicText(doc, "ملخص الالتزامات", pageWidth - 14, yPos, { align: "right" });
   } else {
     doc.text("Summary of Obligations", 14, yPos);
   }
@@ -285,7 +311,7 @@ export const generateLegalCustomerReport = async (
   
   // Display summary
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'normal');
   
   const typeLabels: Record<string, { en: string, ar: string }> = {
     payment: { en: 'Overdue Payments', ar: 'المدفوعات المتأخرة' },
@@ -297,32 +323,34 @@ export const generateLegalCustomerReport = async (
   for (const [type, data] of Object.entries(summaryByType)) {
     if (language === 'arabic') {
       const label = typeLabels[type]?.ar || type;
-      doc.text(`${label}: ${data.count} (المجموع: ${formatCurrency(data.totalAmount, language)})`, pageWidth - 14, yPos, { align: "right" });
+      const text = `${label}: ${data.count} (المجموع: ${data.totalAmount.toFixed(2)} ر.ق)`;
+      addArabicText(doc, text, pageWidth - 14, yPos, { align: "right" });
     } else {
       const label = typeLabels[type]?.en || type;
-      doc.text(`${label}: ${data.count} (Total: ${formatCurrency(data.totalAmount, language)})`, 14, yPos);
+      doc.text(`${label}: ${data.count} (Total: QAR ${data.totalAmount.toFixed(2)})`, 14, yPos);
     }
     yPos += 7;
   }
   
   // Add total amount
   yPos += 5;
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+  doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'bold');
   
   if (language === 'arabic') {
-    doc.text(`إجمالي المبلغ المستحق: ${formatCurrency(totalOwed, language)}`, pageWidth - 14, yPos, { align: "right" });
+    const totalText = `إجمالي المبلغ المستحق: ${totalOwed.toFixed(2)} ر.ق`;
+    addArabicText(doc, totalText, pageWidth - 14, yPos, { align: "right" });
   } else {
-    doc.text(`Total Amount Owed: ${formatCurrency(totalOwed, language)}`, 14, yPos);
+    doc.text(`Total Amount Owed: QAR ${totalOwed.toFixed(2)}`, 14, yPos);
   }
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'normal');
   
   // Function to add section headers with consistent spacing
   const addSectionHeader = (text: string, y: number) => {
     doc.setFontSize(14);
-    doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+    doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'bold');
     
     if (language === 'arabic') {
-      doc.text(text, pageWidth - 14, y, { align: "right" });
+      addArabicText(doc, text, pageWidth - 14, y, { align: "right" });
     } else {
       doc.text(text, 14, y);
     }
@@ -355,7 +383,7 @@ export const generateLegalCustomerReport = async (
       yPos = addPageHeader(doc);
       
       // Add section header for this type
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+      doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'bold');
       
       if (language === 'arabic') {
         doc.text(`${typeLabels[type]?.ar || type}`, pageWidth - 14, yPos, { align: "right" });
@@ -366,7 +394,7 @@ export const generateLegalCustomerReport = async (
       yPos += 7;
     } else {
       // Add section header for this type
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+      doc.setFont(language === 'arabic' ? 'Helvetica' : 'helvetica', 'bold');
       
       if (language === 'arabic') {
         doc.text(`${typeLabels[type]?.ar || type}`, pageWidth - 14, yPos, { align: "right" });
@@ -480,9 +508,9 @@ export const generateLegalCustomerReport = async (
       doc.setFontSize(10);
       
       if (language === 'arabic') {
-        doc.text("© 2025 شركة العراف لتأجير السيارات", pageWidth / 2, pageHeight - 30, { align: 'center' });
+        addArabicText(doc, "© 2025 شركة العراف لتأجير السيارات", pageWidth / 2, pageHeight - 30, { align: 'center' });
         doc.setFontSize(8);
-        doc.text("خدمة عالية الجودة، تجربة متميزة", pageWidth / 2, pageHeight - 25, { align: 'center' });
+        addArabicText(doc, "خدمة عالية الجودة، تجربة متميزة", pageWidth / 2, pageHeight - 25, { align: 'center' });
       } else {
         doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
         doc.setFontSize(8);
