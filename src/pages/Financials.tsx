@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -137,10 +138,11 @@ const Financials = () => {
     <PageContainer
       title="Financial Management"
       description="Monitor and manage your financial transactions and reports"
+      systemDate={systemDate}
     >
       <SectionHeader
         title="Financials"
-        description={`Track your income, expenses, and financial performance (System Date: ${systemDate.toLocaleDateString()})`}
+        description={`Track your income, expenses, and financial performance`}
         icon={BarChart4}
         actions={
           <>

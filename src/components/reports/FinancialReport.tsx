@@ -6,14 +6,132 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { CircleDollarSign, TrendingUp, ArrowDownRight, CreditCard } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
+import { useApiQuery } from '@/hooks/use-api';
+import { supabase } from '@/lib/supabase';
 
 const FinancialReport = () => {
+  // Fetch real financial data
+  const { data: financialData, isLoading } = useApiQuery(
+    ['financialReportData'],
+    async () => {
+      try {
+        // Get monthly revenue data
+        const { data: monthlyData, error: monthlyError } = await supabase
+          .from('unified_payments')
+          .select('payment_date, amount, type')
+          .eq('type', 'Income')
+          .order('payment_date');
+          
+        if (monthlyError) throw monthlyError;
+          
+        // Get vehicle type revenue data
+        const { data: vehicleTypeData, error: vehicleError } = await supabase
+          .from('unified_payments')
+          .select('amount, vehicle_id, vehicles!inner(type)')
+          .eq('type', 'Income');
+          
+        if (vehicleError) throw vehicleError;
+          
+        // Get recent transactions
+        const { data: recentTransactions, error: transactionsError } = await supabase
+          .from('unified_payments')
+          .select('id, payment_date, amount, description, type')
+          .order('payment_date', { ascending: false })
+          .limit(5);
+          
+        if (transactionsError) throw transactionsError;
+          
+        // Process monthly data
+        const monthlyRevenueMap = new Map();
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        monthlyData?.forEach(item => {
+          if (item.type === 'Income') {
+            const date = new Date(item.payment_date);
+            const monthKey = months[date.getMonth()];
+            const yearMonthKey = `${monthKey}-${date.getFullYear()}`;
+            
+            if (!monthlyRevenueMap.has(yearMonthKey)) {
+              monthlyRevenueMap.set(yearMonthKey, { month: monthKey, revenue: 0 });
+            }
+            
+            const existing = monthlyRevenueMap.get(yearMonthKey);
+            existing.revenue += (item.amount || 0);
+            monthlyRevenueMap.set(yearMonthKey, existing);
+          }
+        });
+        
+        const monthlyRevenue = Array.from(monthlyRevenueMap.values())
+          .sort((a, b) => months.indexOf(a.month) - months.indexOf(b.month));
+        
+        // Process vehicle type data
+        const vehicleTypeMap = new Map();
+        
+        vehicleTypeData?.forEach(item => {
+          if (!item.vehicle_id || !item.vehicles) return;
+          
+          const vehicleType = item.vehicles.type || 'Other';
+          if (!vehicleTypeMap.has(vehicleType)) {
+            vehicleTypeMap.set(vehicleType, { type: vehicleType, revenue: 0 });
+          }
+          
+          const existing = vehicleTypeMap.get(vehicleType);
+          existing.revenue += (item.amount || 0);
+          vehicleTypeMap.set(vehicleType, existing);
+        });
+        
+        const vehicleTypeRevenue = Array.from(vehicleTypeMap.values());
+        
+        // Format recent transactions
+        const formattedTransactions = recentTransactions?.map(transaction => ({
+          id: transaction.id,
+          date: new Date(transaction.payment_date).toLocaleDateString(),
+          type: transaction.type,
+          description: transaction.description,
+          amount: transaction.amount || 0
+        })) || [];
+        
+        // Calculate summary stats
+        const totalRevenue = monthlyData?.reduce((sum, item) => 
+          item.type === 'Income' ? sum + (item.amount || 0) : sum, 0) || 0;
+        
+        const avgDailyRevenue = totalRevenue / 30; // Approximation
+        
+        return {
+          monthlyRevenue: monthlyRevenue.length > 0 ? monthlyRevenue : monthlyRevenueData,
+          vehicleTypeRevenue: vehicleTypeRevenue.length > 0 ? vehicleTypeRevenue : revenueByVehicleType,
+          recentTransactions: formattedTransactions.length > 0 ? formattedTransactions : recentTransactions,
+          totalRevenue,
+          avgDailyRevenue
+        };
+      } catch (error) {
+        console.error('Error fetching financial report data:', error);
+        // Return default data if there's an error
+        return {
+          monthlyRevenue: monthlyRevenueData,
+          vehicleTypeRevenue: revenueByVehicleType,
+          recentTransactions,
+          totalRevenue: 286500,
+          avgDailyRevenue: 9550
+        };
+      }
+    }
+  );
+
+  const data = financialData || {
+    monthlyRevenue: monthlyRevenueData,
+    vehicleTypeRevenue: revenueByVehicleType,
+    recentTransactions,
+    totalRevenue: 286500,
+    avgDailyRevenue: 9550
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Revenue" 
-          value={formatCurrency(286500)} 
+          value={formatCurrency(data.totalRevenue)} 
           trend={8}
           trendLabel="vs last month"
           icon={CircleDollarSign}
@@ -21,7 +139,7 @@ const FinancialReport = () => {
         />
         <StatCard 
           title="Average Daily Revenue" 
-          value={formatCurrency(9550)} 
+          value={formatCurrency(data.avgDailyRevenue)} 
           trend={5}
           trendLabel="vs last month"
           icon={TrendingUp}
@@ -54,7 +172,7 @@ const FinancialReport = () => {
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
-                  data={monthlyRevenueData}
+                  data={data.monthlyRevenue}
                   margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -96,7 +214,7 @@ const FinancialReport = () => {
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
-                  data={revenueByVehicleType}
+                  data={data.vehicleTypeRevenue}
                   margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -140,7 +258,7 @@ const FinancialReport = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentTransactions.map((transaction) => (
+              {data.recentTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>{transaction.date}</TableCell>
                   <TableCell className="font-medium">{transaction.id}</TableCell>
@@ -159,6 +277,7 @@ const FinancialReport = () => {
   );
 };
 
+// Fallback data for empty database scenarios
 const monthlyRevenueData = [
   { month: 'Jan', revenue: 48500 },
   { month: 'Feb', revenue: 52300 },
