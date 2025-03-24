@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,19 +34,11 @@ export const generateLegalCustomerReport = async (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Add header with text and logo
+  // Add header with logo only
   const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
   
-  // Add company name as text header
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text("ALARAF CAR RENTAL", 60, 15);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text("Premium Car Rental Services", 60, 22);
-  
-  // Add logo
-  doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+  // Add logo centered at the top
+  doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
   
   // Add a separator line
   doc.setDrawColor(200, 200, 200);
@@ -159,16 +150,8 @@ export const generateLegalCustomerReport = async (
       doc.addPage();
       yPos = 20;
       
-      // Add header with text and logo to new page
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.text("ALARAF CAR RENTAL", 60, 15);
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
-      doc.text("Premium Car Rental Services", 60, 22);
-      
-      // Add logo to new page
-      doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+      // Add header with logo to new page (no text)
+      doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
       
       // Add a separator line
       doc.setDrawColor(200, 200, 200);
@@ -201,16 +184,8 @@ export const generateLegalCustomerReport = async (
         doc.addPage();
         yPos = 20;
         
-        // Add header with text and logo to new page
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text("ALARAF CAR RENTAL", 60, 15);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text("Premium Car Rental Services", 60, 22);
-        
-        // Add logo to new page
-        doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+        // Add header with logo to new page (no text)
+        doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
         
         // Add a separator line
         doc.setDrawColor(200, 200, 200);
@@ -257,16 +232,8 @@ export const generateLegalCustomerReport = async (
     doc.addPage();
     yPos = 20;
     
-    // Add header with text and logo to new page
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text("ALARAF CAR RENTAL", 60, 15);
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text("Premium Car Rental Services", 60, 22);
-    
-    // Add logo to new page
-    doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+    // Add header with logo to new page (no text)
+    doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
     
     // Add a separator line
     doc.setDrawColor(200, 200, 200);
