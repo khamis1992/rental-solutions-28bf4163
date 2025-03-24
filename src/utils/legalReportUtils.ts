@@ -2,6 +2,7 @@
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
+import { LANGUAGES } from './reportConstants';
 
 // Define a type for the language options to ensure consistency
 export type ReportLanguage = 'english' | 'arabic';
@@ -13,7 +14,7 @@ export const generateLegalCustomerReport = async (
   customerId: string,
   customerName: string,
   obligations: CustomerObligation[],
-  language: ReportLanguage = 'english'
+  language: ReportLanguage = LANGUAGES.ENGLISH
 ): Promise<jsPDF> => {
   let customer = null;
   let customerVehicles = [];
@@ -70,7 +71,7 @@ export const generateLegalCustomerReport = async (
   const doc = new jsPDF();
   
   // Add Arabic font support if in Arabic mode
-  if (language === 'arabic') {
+  if (language === LANGUAGES.ARABIC) {
     doc.addFont('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'arabic', 'normal');
     doc.setFont('arabic');
     doc.setR2L(true); // Set right-to-left mode for Arabic
@@ -99,11 +100,11 @@ export const generateLegalCustomerReport = async (
   
   // Add title and header with consistent spacing
   doc.setFontSize(20);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
-  doc.text(language === 'arabic' ? "تقرير الالتزامات القانونية" : "LEGAL OBLIGATIONS REPORT", pageWidth / 2, startY, { align: "center" });
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
+  doc.text(language === LANGUAGES.ARABIC ? "تقرير الالتزامات القانونية" : "LEGAL OBLIGATIONS REPORT", pageWidth / 2, startY, { align: "center" });
   
   // Add Arabic address section if in Arabic mode
-  if (language === 'arabic') {
+  if (language === LANGUAGES.ARABIC) {
     doc.setFontSize(12);
     let arabicLines = [
       `السادة/ وزارة الداخلية\t\t\t\t\t\t\t\t\tالتاريخ: ${new Date().toLocaleDateString('ar-EG')}`,
@@ -141,9 +142,9 @@ export const generateLegalCustomerReport = async (
   
   // Add report date with consistent spacing
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
   doc.text(
-    language === 'arabic' 
+    language === LANGUAGES.ARABIC 
       ? `تم إنشاء التقرير في ${new Date().toLocaleDateString('ar-EG')}` 
       : `Report generated on ${new Date().toLocaleDateString()}`, 
     pageWidth / 2, startY + 8, { align: "center" }
@@ -151,18 +152,18 @@ export const generateLegalCustomerReport = async (
   
   // Add customer information with consistent spacing
   doc.setFontSize(14);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
   doc.text(
-    language === 'arabic' ? "معلومات العميل" : "Customer Information", 
-    language === 'arabic' ? pageWidth - 14 : 14, startY + 20,
-    language === 'arabic' ? { align: "right" } : undefined
+    language === LANGUAGES.ARABIC ? "معلومات العميل" : "Customer Information", 
+    language === LANGUAGES.ARABIC ? pageWidth - 14 : 14, startY + 20,
+    language === LANGUAGES.ARABIC ? { align: "right" } : undefined
   );
   
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
   let yPos = startY + 30;
   
-  if (language === 'arabic') {
+  if (language === LANGUAGES.ARABIC) {
     doc.text(`الاسم: ${customerName}`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
     
     if (customer) {
@@ -195,9 +196,9 @@ export const generateLegalCustomerReport = async (
   // Add vehicle information section
   yPos += 10;
   doc.setFontSize(14);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
   
-  if (language === 'arabic') {
+  if (language === LANGUAGES.ARABIC) {
     doc.text("معلومات المركبة", pageWidth - 14, yPos, { align: "right" });
   } else {
     doc.text("Vehicle Information", 14, yPos);
@@ -205,7 +206,7 @@ export const generateLegalCustomerReport = async (
   yPos += 10;
   
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
   
   if (customerVehicles && customerVehicles.length > 0) {
     customerVehicles.forEach((vehicle, index) => {
@@ -214,9 +215,9 @@ export const generateLegalCustomerReport = async (
         doc.addPage();
         yPos = addPageHeader(doc);
         doc.setFontSize(14);
-        doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+        doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
         
-        if (language === 'arabic') {
+        if (language === LANGUAGES.ARABIC) {
           doc.text("(تابع) معلومات المركبة", pageWidth - 14, yPos, { align: "right" });
         } else {
           doc.text("Vehicle Information (continued)", 14, yPos);
@@ -224,10 +225,10 @@ export const generateLegalCustomerReport = async (
         
         yPos += 10;
         doc.setFontSize(10);
-        doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+        doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
       }
       
-      if (language === 'arabic') {
+      if (language === LANGUAGES.ARABIC) {
         doc.text(`المركبة ${index + 1}:`, pageWidth - 14, yPos, { align: "right" }); yPos += 7;
         doc.text(`الصانع: ${vehicle.make || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
         doc.text(`الطراز: ${vehicle.model || 'غير متوفر'}`, pageWidth - 24, yPos, { align: "right" }); yPos += 7;
@@ -253,7 +254,7 @@ export const generateLegalCustomerReport = async (
       }
     });
   } else {
-    if (language === 'arabic') {
+    if (language === LANGUAGES.ARABIC) {
       doc.text("لا توجد مركبات مرتبطة بهذا العميل.", pageWidth - 14, yPos, { align: "right" });
     } else {
       doc.text("No vehicles associated with this customer.", 14, yPos);
@@ -264,9 +265,9 @@ export const generateLegalCustomerReport = async (
   // Add summary of obligations with consistent spacing
   yPos += 10;
   doc.setFontSize(14);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
   
-  if (language === 'arabic') {
+  if (language === LANGUAGES.ARABIC) {
     doc.text("ملخص الالتزامات", pageWidth - 14, yPos, { align: "right" });
   } else {
     doc.text("Summary of Obligations", 14, yPos);
@@ -293,7 +294,7 @@ export const generateLegalCustomerReport = async (
   
   // Display summary
   doc.setFontSize(10);
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
   
   const typeLabels: Record<string, { en: string, ar: string }> = {
     payment: { en: 'Overdue Payments', ar: 'المدفوعات المتأخرة' },
@@ -303,7 +304,7 @@ export const generateLegalCustomerReport = async (
   };
   
   for (const [type, data] of Object.entries(summaryByType)) {
-    if (language === 'arabic') {
+    if (language === LANGUAGES.ARABIC) {
       const label = typeLabels[type]?.ar || type;
       doc.text(`${label}: ${data.count} (المجموع: ${formatCurrency(data.totalAmount, language)})`, pageWidth - 14, yPos, { align: "right" });
     } else {
@@ -315,21 +316,21 @@ export const generateLegalCustomerReport = async (
   
   // Add total amount
   yPos += 5;
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
   
-  if (language === 'arabic') {
+  if (language === LANGUAGES.ARABIC) {
     doc.text(`إجمالي المبلغ المستحق: ${formatCurrency(totalOwed, language)}`, pageWidth - 14, yPos, { align: "right" });
   } else {
     doc.text(`Total Amount Owed: ${formatCurrency(totalOwed, language)}`, 14, yPos);
   }
-  doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+  doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
   
   // Function to add section headers with consistent spacing
   const addSectionHeader = (text: string, y: number) => {
     doc.setFontSize(14);
-    doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+    doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
     
-    if (language === 'arabic') {
+    if (language === LANGUAGES.ARABIC) {
       doc.text(text, pageWidth - 14, y, { align: "right" });
     } else {
       doc.text(text, 14, y);
@@ -339,7 +340,7 @@ export const generateLegalCustomerReport = async (
   
   // Add detailed breakdown of obligations with consistent spacing
   yPos += 15;
-  yPos = addSectionHeader(language === 'arabic' ? "تفاصيل الالتزامات" : "Detailed Obligations", yPos);
+  yPos = addSectionHeader(language === LANGUAGES.ARABIC ? "تفاصيل الالتزامات" : "Detailed Obligations", yPos);
   
   // Group obligations by type for detailed section
   const obligationsByType: Record<string, CustomerObligation[]> = {};
@@ -363,9 +364,9 @@ export const generateLegalCustomerReport = async (
       yPos = addPageHeader(doc);
       
       // Add section header for this type
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+      doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
       
-      if (language === 'arabic') {
+      if (language === LANGUAGES.ARABIC) {
         doc.text(`${typeLabels[type]?.ar || type}`, pageWidth - 14, yPos, { align: "right" });
       } else {
         doc.text(`${typeLabels[type]?.en || type}`, 14, yPos);
@@ -374,9 +375,9 @@ export const generateLegalCustomerReport = async (
       yPos += 7;
     } else {
       // Add section header for this type
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+      doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
       
-      if (language === 'arabic') {
+      if (language === LANGUAGES.ARABIC) {
         doc.text(`${typeLabels[type]?.ar || type}`, pageWidth - 14, yPos, { align: "right" });
       } else {
         doc.text(`${typeLabels[type]?.en || type}`, 14, yPos);
@@ -386,9 +387,9 @@ export const generateLegalCustomerReport = async (
     }
     
     // Add column headers
-    const startX = language === 'arabic' ? pageWidth - 14 : 14;
+    const startX = language === LANGUAGES.ARABIC ? pageWidth - 14 : 14;
     
-    if (language === 'arabic') {
+    if (language === LANGUAGES.ARABIC) {
       doc.text("المبلغ", startX - 170, yPos, { align: "right" });
       doc.text("أيام التأخير", startX - 130, yPos, { align: "right" });
       doc.text("تاريخ الاستحقاق", startX - 90, yPos, { align: "right" });
@@ -403,11 +404,11 @@ export const generateLegalCustomerReport = async (
     
     // Add a separator line
     doc.setDrawColor(200, 200, 200);
-    doc.line(language === 'arabic' ? startX - 180 : startX, yPos, language === 'arabic' ? startX : startX + 180, yPos);
+    doc.line(language === LANGUAGES.ARABIC ? startX - 180 : startX, yPos, language === LANGUAGES.ARABIC ? startX : startX + 180, yPos);
     yPos += 5;
     
     // Add each obligation
-    doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+    doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
     typeObligations.forEach(obligation => {
       // Check if we need a new page
       if (yPos > 270) {
@@ -416,9 +417,9 @@ export const generateLegalCustomerReport = async (
         yPos = addPageHeader(doc);
         
         // Add column headers on new page
-        doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+        doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
         
-        if (language === 'arabic') {
+        if (language === LANGUAGES.ARABIC) {
           doc.text("المبلغ", startX - 170, yPos, { align: "right" });
           doc.text("أيام التأخير", startX - 130, yPos, { align: "right" });
           doc.text("تاريخ الاستحقاق", startX - 90, yPos, { align: "right" });
@@ -433,15 +434,15 @@ export const generateLegalCustomerReport = async (
         
         // Add a separator line
         doc.setDrawColor(200, 200, 200);
-        doc.line(language === 'arabic' ? startX - 180 : startX, yPos, language === 'arabic' ? startX : startX + 180, yPos);
+        doc.line(language === LANGUAGES.ARABIC ? startX - 180 : startX, yPos, language === LANGUAGES.ARABIC ? startX : startX + 180, yPos);
         yPos += 5;
-        doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+        doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
       }
       
       // Description text might be long, so we need to handle wrapping
       const description = obligation.description || '';
       
-      if (language === 'arabic') {
+      if (language === LANGUAGES.ARABIC) {
         if (description.length > 45) {
           const firstLine = description.substring(0, 45) + '...';
           doc.text(firstLine, startX, yPos, { align: "right" });
@@ -485,17 +486,17 @@ export const generateLegalCustomerReport = async (
     
     // Add footer text first - above the footer logo
     doc.setFontSize(10);
-    doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'bold');
+    doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'bold');
     
-    if (language === 'arabic') {
+    if (language === LANGUAGES.ARABIC) {
       doc.text("© 2025 شركة العراف لتأجير السيارات", pageWidth / 2, pageHeight - 30, { align: 'center' });
       doc.setFontSize(8);
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+      doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
       doc.text("خدمة عالية الجودة، تجربة متميزة", pageWidth / 2, pageHeight - 25, { align: 'center' });
     } else {
       doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
       doc.setFontSize(8);
-      doc.setFont(language === 'arabic' ? 'arabic' : 'helvetica', 'normal');
+      doc.setFont(language === LANGUAGES.ARABIC ? 'arabic' : 'helvetica', 'normal');
       doc.text("Quality Service, Premium Experience", pageWidth / 2, pageHeight - 25, { align: 'center' });
     }
     
@@ -505,13 +506,13 @@ export const generateLegalCustomerReport = async (
     // Add page number
     doc.setFontSize(8);
     doc.text(
-      language === 'arabic' 
+      language === LANGUAGES.ARABIC 
         ? `صفحة ${i} من ${totalPages}` 
         : `Page ${i} of ${totalPages}`, 
       pageWidth / 2, pageHeight - 5, { align: 'center' }
     );
     
-    if (language === 'arabic') {
+    if (language === LANGUAGES.ARABIC) {
       doc.text('سري', 14, pageHeight - 5);
       doc.text(new Date().toLocaleDateString('ar-EG'), pageWidth - 14, pageHeight - 5, { align: 'right' });
     } else {
@@ -524,8 +525,8 @@ export const generateLegalCustomerReport = async (
 };
 
 // Helper function to format currency
-const formatCurrency = (amount: number, language: ReportLanguage = 'english'): string => {
-  if (language === 'arabic') {
+const formatCurrency = (amount: number, language: ReportLanguage = LANGUAGES.ENGLISH): string => {
+  if (language === LANGUAGES.ARABIC) {
     return new Intl.NumberFormat('ar-QA', {
       style: 'currency',
       currency: 'QAR',
