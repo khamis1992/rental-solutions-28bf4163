@@ -89,7 +89,12 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
   const handleSubmit = (data: ContractFormData) => {
     // Convert form data to contract data with required fields for database
     const contractData: Omit<CarInstallmentContract, 'id' | 'created_at' | 'updated_at'> = {
-      ...data,
+      car_type: data.car_type, // Ensure car_type is not optional
+      model_year: data.model_year,
+      number_of_cars: data.number_of_cars,
+      price_per_car: data.price_per_car,
+      total_installments: data.total_installments,
+      installment_value: data.installment_value,
       total_contract_value: totalContractValue,
       amount_paid: 0,
       amount_pending: totalContractValue,

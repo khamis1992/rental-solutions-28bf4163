@@ -8,7 +8,9 @@ import {
   VehicleType, 
   VehicleUpdateData,
   DatabaseVehicleRecord,
-  DatabaseVehicleType
+  DatabaseVehicleType,
+  VehicleStatus,
+  DatabaseVehicleStatus
 } from '@/types/vehicle';
 import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
 
@@ -24,7 +26,10 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     .select('*, vehicle_types(*)');
   
   if (filters) {
-    Object.entries(filters).forEach(([key, value]) => {
+    // Using a manual iterator to prevent deep type instantiation
+    const filterEntries = Object.entries(filters);
+    for (let i = 0; i < filterEntries.length; i++) {
+      const [key, value] = filterEntries[i];
       if (value !== undefined && value !== null && value !== '' && value !== 'any') {
         // Convert reserved to reserve for database query if status is being filtered
         if (key === 'status' && value === 'reserved') {
@@ -33,7 +38,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
           query = query.eq(key, value);
         }
       }
-    });
+    }
   }
   
   const { data, error } = await query.order('created_at', { ascending: false });
