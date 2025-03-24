@@ -11,6 +11,15 @@ export const determineUrgency = (daysOverdue: number): UrgencyLevel => {
   return 'critical';
 };
 
+// Calculate late fine for overdue payments
+// 120 QAR per day starting from due date, maximum 3000 QAR per month
+export const calculateLateFine = (daysOverdue: number): number => {
+  if (daysOverdue <= 0) return 0;
+  const lateFine = daysOverdue * 120;
+  // Cap the fine at 3000 QAR
+  return Math.min(lateFine, 3000);
+};
+
 // Type guard function to validate profile data
 const isValidProfile = (profile: any): profile is { id: string; full_name: string } => {
   return (
@@ -149,19 +158,26 @@ const fetchOverduePayments = async (): Promise<{
       
       const daysOverdue = payment.days_overdue || 0;
       
+      // Calculate late fine for this payment
+      const lateFine = calculateLateFine(daysOverdue);
+      
+      // Add the original balance plus the late fine
+      const totalAmount = (payment.balance || 0) + lateFine;
+      
       result.push({
         id: payment.id,
         customerId: customer.id,
         customerName: customer.full_name,
         obligationType: 'payment' as ObligationType,
-        amount: payment.balance || 0,
+        amount: totalAmount,
         dueDate: new Date(payment.payment_date),
         description: `Overdue rent payment (Agreement #${lease.agreement_number})`,
         urgency: determineUrgency(daysOverdue),
         status: 'Overdue Payment',
         daysOverdue,
         agreementId: lease.id,
-        agreementNumber: lease.agreement_number
+        agreementNumber: lease.agreement_number,
+        lateFine: lateFine // Add the late fine amount to the obligation object
       });
     }
     

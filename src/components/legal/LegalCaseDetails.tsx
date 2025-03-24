@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, FileText, UserCog, CalendarClock } from 'lucide-react';
+import { ExternalLink, FileText, UserCog, CalendarClock, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/utils';
 import { CustomerObligation } from './CustomerLegalObligations';
@@ -64,6 +64,11 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Amount Due</h4>
             <p className="font-medium">{formatCurrency(obligation.amount)}</p>
+            {obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
+              <p className="text-xs text-red-500">
+                Includes late fine: {formatCurrency(obligation.lateFine)}
+              </p>
+            )}
           </div>
           
           <div>
@@ -95,6 +100,11 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <p className={`font-medium ${obligation.daysOverdue > 0 ? 'text-red-500' : ''}`}>
               {obligation.daysOverdue}
             </p>
+            {obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
+              <p className="text-xs text-red-500">
+                Late fee: {formatCurrency(120)} / day (max {formatCurrency(3000)})
+              </p>
+            )}
           </div>
         </div>
         

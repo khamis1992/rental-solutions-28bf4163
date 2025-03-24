@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -65,6 +64,7 @@ export interface CustomerObligation {
   daysOverdue: number;
   agreementId?: string; // Added for lease agreement integration
   agreementNumber?: string; // Added for lease agreement integration
+  lateFine?: number; // Added for late fine calculation
 }
 
 // Urgency badge styling
@@ -584,6 +584,11 @@ const CustomerLegalObligations: React.FC = () => {
                                   Agreement: {obligation.agreementNumber}
                                   <ExternalLink className="ml-1 h-3 w-3" />
                                 </Link>
+                              </div>
+                            )}
+                            {obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
+                              <div className="text-xs text-red-500">
+                                Includes late fine: {formatCurrency(obligation.lateFine)}
                               </div>
                             )}
                           </div>

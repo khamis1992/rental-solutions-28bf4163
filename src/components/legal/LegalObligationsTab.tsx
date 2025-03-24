@@ -136,12 +136,22 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                   <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                     <div>
                       <span className="font-medium">Amount Due:</span> {formatCurrency(obligation.amount)}
+                      {obligation.lateFine > 0 && obligation.obligationType === 'payment' && (
+                        <span className="text-xs text-red-500 block">
+                          Includes late fine: {formatCurrency(obligation.lateFine)}
+                        </span>
+                      )}
                     </div>
                     <div>
                       <span className="font-medium">Due Date:</span> {obligation.dueDate.toLocaleDateString()}
                     </div>
                     <div>
                       <span className="font-medium">Days Overdue:</span> {obligation.daysOverdue}
+                      {obligation.daysOverdue > 0 && obligation.obligationType === 'payment' && (
+                        <span className="text-xs text-red-500 block">
+                          Late fee: {formatCurrency(120)}/day (max {formatCurrency(3000)})
+                        </span>
+                      )}
                     </div>
                     <div>
                       <span className="font-medium">Urgency:</span> {getUrgencyBadge(obligation.urgency)}
