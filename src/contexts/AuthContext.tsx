@@ -5,17 +5,27 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextType {
   isLoggedIn: boolean;
   user: any | null;
+  session: any | null;
+  loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, metadata?: any) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   user: null,
+  session: null,
+  loading: true,
   login: async () => {},
   logout: async () => {},
   resetPassword: async () => {},
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {}
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -23,28 +33,24 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any | null>(null);
+  const [session, setSession] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if there's an active session when the component mounts
-    const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (data && data.session) {
-        setIsLoggedIn(true);
-        setUser(data.session.user);
-      }
-    };
-
-    checkSession();
-
-    // Set up an auth state change listener
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setIsLoggedIn(true);
-        setUser(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        setIsLoggedIn(false);
-        setUser(null);
-      }
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoggedIn(!!session);
+      setLoading(false);
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setIsLoggedIn(!!session);
+      setLoading(false);
     });
 
     // Cleanup function to remove the listener
@@ -65,12 +71,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setIsLoggedIn(true);
     setUser(data.user);
+    setSession(data.session);
   };
 
   const logout = async () => {
     await supabase.auth.signOut();
     setIsLoggedIn(false);
     setUser(null);
+    setSession(null);
   };
 
   const resetPassword = async (email: string) => {
@@ -83,8 +91,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Add the following methods to match the expected interface
+  const signIn = async (email: string, password: string) => {
+    await login(email, password);
+  };
+
+  const signUp = async (email: string, password: string, metadata?: any) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: metadata
+      }
+    });
+
+    if (error) {
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    await logout();
+  };
+
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout, resetPassword }}>
+    <AuthContext.Provider value={{ 
+      isLoggedIn, 
+      user, 
+      session, 
+      loading, 
+      login, 
+      logout, 
+      resetPassword,
+      signIn,
+      signUp,
+      signOut
+    }}>
       {children}
     </AuthContext.Provider>
   );
