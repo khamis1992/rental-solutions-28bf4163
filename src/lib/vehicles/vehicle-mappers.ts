@@ -1,46 +1,5 @@
 
-import { VehicleStatus, Vehicle, VehicleType } from '@/types/vehicle';
-import { SupabaseClient } from '@supabase/supabase-js';
-
-// Define explicit database record types to break circular references
-export interface DatabaseVehicleRecord {
-  id: string;
-  make: string;
-  model: string;
-  year: number;
-  license_plate: string;
-  vin: string;
-  color?: string | null;
-  status?: string | null;
-  mileage?: number | null;
-  image_url?: string | null;
-  description?: string | null;
-  is_test_data?: boolean | null;
-  location?: string | null;
-  insurance_company?: string | null;
-  insurance_expiry?: string | null;
-  device_type?: string | null;
-  rent_amount?: number | null;
-  vehicle_type_id?: string | null;
-  registration_number?: string | null;
-  created_at: string;
-  updated_at: string;
-  vehicle_types?: DatabaseVehicleType | null;
-}
-
-export interface DatabaseVehicleType {
-  id: string;
-  name: string;
-  size: string;
-  daily_rate: number;
-  weekly_rate?: number | null;
-  monthly_rate?: number | null;
-  description?: string | null;
-  features: string[] | any; // Using any to handle JSON from database
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { DatabaseVehicleRecord, DatabaseVehicleType, Vehicle, VehicleSize, VehicleStatus } from '@/types/vehicle';
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is VehicleStatus {
@@ -58,14 +17,14 @@ export function normalizeVehicleStatus(status: string | null | undefined): Vehic
 }
 
 // Convert database size string to application VehicleSize type
-export function normalizeVehicleSize(size: string): string {
+export function normalizeVehicleSize(size: string): VehicleSize {
   // Map possible database values to valid application values
-  const sizeMap: Record<string, string> = {
+  const sizeMap: Record<string, VehicleSize> = {
     'mid_size': 'midsize',
     'full_size': 'fullsize'
   };
   
-  return sizeMap[size] || size;
+  return (sizeMap[size] || size) as VehicleSize;
 }
 
 // Convert database features to string array
@@ -87,29 +46,28 @@ export function normalizeFeatures(features: any): string[] {
   return [];
 }
 
+// Map a database vehicle type to application VehicleType
+function mapDatabaseVehicleType(dbType: DatabaseVehicleType | null | undefined) {
+  if (!dbType) return undefined;
+  
+  return {
+    id: dbType.id,
+    name: dbType.name,
+    size: normalizeVehicleSize(dbType.size),
+    daily_rate: dbType.daily_rate,
+    weekly_rate: dbType.weekly_rate || undefined,
+    monthly_rate: dbType.monthly_rate || undefined,
+    description: dbType.description || undefined,
+    features: normalizeFeatures(dbType.features),
+    is_active: dbType.is_active,
+    created_at: dbType.created_at,
+    updated_at: dbType.updated_at
+  };
+}
+
 // Convert a database vehicle record to the application Vehicle type
 export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehicle {
-  // Process the vehicle type first if it exists
-  let vehicleType: VehicleType | undefined = undefined;
-  
-  if (record.vehicle_types) {
-    const features = normalizeFeatures(record.vehicle_types.features);
-    const normalizedSize = normalizeVehicleSize(record.vehicle_types.size);
-    
-    vehicleType = {
-      id: record.vehicle_types.id,
-      name: record.vehicle_types.name,
-      size: normalizedSize as any, // Use type assertion for size
-      daily_rate: record.vehicle_types.daily_rate,
-      weekly_rate: record.vehicle_types.weekly_rate || undefined,
-      monthly_rate: record.vehicle_types.monthly_rate || undefined,
-      description: record.vehicle_types.description || undefined,
-      features: features,
-      is_active: record.vehicle_types.is_active,
-      created_at: record.vehicle_types.created_at,
-      updated_at: record.vehicle_types.updated_at
-    };
-  }
+  const vehicleType = record.vehicle_types ? mapDatabaseVehicleType(record.vehicle_types) : undefined;
   
   // Map DB record to Vehicle type
   const vehicle: Vehicle = {
@@ -137,7 +95,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
     created_at: record.created_at,
     updated_at: record.updated_at,
     
-    // Add UI compatibility computed fields
+    // UI compatibility computed fields
     notes: record.description || undefined,
     vehicleType: vehicleType,
     dailyRate: record.rent_amount || (vehicleType?.daily_rate || 0),

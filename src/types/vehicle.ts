@@ -5,6 +5,9 @@ export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' 
 // Vehicle size enum for vehicle types
 export type VehicleSize = 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | 'truck' | 'van' | 'economy';
 
+// Database-specific vehicle size type (allowing for variations in naming)
+export type DatabaseVehicleSize = VehicleSize | 'mid_size' | 'full_size';
+
 // Vehicle type definition matching Supabase schema
 export interface VehicleType {
   id: string;
@@ -15,6 +18,21 @@ export interface VehicleType {
   monthly_rate?: number;
   description?: string;
   features: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Database-specific vehicle type (raw from database)
+export interface DatabaseVehicleType {
+  id: string;
+  name: string;
+  size: DatabaseVehicleSize;
+  daily_rate: number;
+  weekly_rate?: number | null;
+  monthly_rate?: number | null;
+  description?: string | null;
+  features: any; // Can be string[], string (JSON), or any other format from DB
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -94,12 +112,38 @@ export interface VehicleFilterParams {
 }
 
 // Database table type for vehicles (matching Supabase schema)
+export interface DatabaseVehicleRecord {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  vin: string;
+  color?: string | null;
+  status?: VehicleStatus | null;
+  mileage?: number | null;
+  image_url?: string | null;
+  description?: string | null;
+  is_test_data?: boolean | null;
+  location?: string | null;
+  insurance_company?: string | null;
+  insurance_expiry?: string | null;
+  device_type?: string | null;
+  rent_amount?: number | null;
+  vehicle_type_id?: string | null;
+  registration_number?: string | null;
+  created_at: string;
+  updated_at: string;
+  vehicle_types?: DatabaseVehicleType | null;
+}
+
+// Type for inserting new vehicles into the database
 export interface VehicleInsertData {
-  make?: string;
-  model?: string;
-  year?: number;
-  license_plate?: string;
-  vin?: string;
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  vin: string;
   color?: string | null;
   status?: VehicleStatus | null;
   mileage?: number | null;

@@ -1,7 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { VehicleFilterParams, Vehicle, VehicleFormData, VehicleInsertData, VehicleType } from '@/types/vehicle';
-import { DatabaseVehicleRecord, mapDatabaseRecordToVehicle } from './vehicle-mappers';
+import { VehicleFilterParams, Vehicle, VehicleFormData, VehicleInsertData, VehicleType, DatabaseVehicleRecord } from '@/types/vehicle';
+import { mapDatabaseRecordToVehicle } from './vehicle-mappers';
 
 // Fetch vehicles with optional filtering
 export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehicle[]> {
@@ -22,8 +22,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     throw new Error(`Error fetching vehicles: ${error.message}`);
   }
   
-  // Type assertion and mapping
-  return (data as unknown as DatabaseVehicleRecord[]).map(record => mapDatabaseRecordToVehicle(record));
+  return (data as DatabaseVehicleRecord[]).map(record => mapDatabaseRecordToVehicle(record));
 }
 
 // Fetch a single vehicle by ID
@@ -38,7 +37,7 @@ export async function fetchVehicleById(id: string): Promise<Vehicle> {
     throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
   }
   
-  return mapDatabaseRecordToVehicle(data as unknown as DatabaseVehicleRecord);
+  return mapDatabaseRecordToVehicle(data as DatabaseVehicleRecord);
 }
 
 // Fetch all vehicle types
@@ -53,21 +52,15 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
     throw new Error(`Error fetching vehicle types: ${error.message}`);
   }
   
-  return data.map(type => {
-    // Ensure features is an array
-    if (typeof type.features === 'string') {
-      try {
-        type.features = JSON.parse(type.features);
-      } catch {
-        type.features = [];
-      }
-    }
-    return type as VehicleType;
-  });
+  return data.map(type => ({
+    ...type,
+    features: Array.isArray(type.features) ? type.features : 
+      (typeof type.features === 'string' ? JSON.parse(type.features) : [])
+  }));
 }
 
 // Insert a new vehicle 
-export async function insertVehicle(vehicleData: any): Promise<DatabaseVehicleRecord> {
+export async function insertVehicle(vehicleData: VehicleInsertData): Promise<DatabaseVehicleRecord> {
   const { data, error } = await supabase
     .from('vehicles')
     .insert(vehicleData)
@@ -82,7 +75,7 @@ export async function insertVehicle(vehicleData: any): Promise<DatabaseVehicleRe
 }
 
 // Update a vehicle
-export async function updateVehicle(id: string, vehicleData: any): Promise<DatabaseVehicleRecord> {
+export async function updateVehicle(id: string, vehicleData: Partial<VehicleInsertData>): Promise<DatabaseVehicleRecord> {
   const { data, error } = await supabase
     .from('vehicles')
     .update(vehicleData)
