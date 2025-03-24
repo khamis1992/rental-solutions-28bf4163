@@ -46,7 +46,8 @@ export const getTranslation = (
   language: ReportLanguage = LANGUAGES.ENGLISH,
   replacements: Record<string, string> = {}
 ): string => {
-  const translations: Record<string, Record<ReportLanguage, string>> = {
+  // Define translations with proper Record<ReportLanguage, string> type
+  const translations: Record<string, Record<string, string>> = {
     // Customer information
     customerInfo: {
       [LANGUAGES.ENGLISH]: 'Customer Information',
@@ -69,6 +70,7 @@ export const getTranslation = (
     }
   };
   
+  // Get the translation or use the key as fallback
   let translatedText = translations[key]?.[language] || key;
   
   // Handle replacements
