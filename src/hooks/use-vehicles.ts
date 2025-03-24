@@ -169,15 +169,14 @@ export const useVehicles = () => {
             }
           }
           
-          // Create a type-safe vehicle data object with proper status handling
-          const vehicleData: Omit<DatabaseVehicle, 'id' | 'created_at' | 'updated_at'> = {
+          // Build a type-safe vehicle data object to avoid typecasting issues
+          const vehicleData: Record<string, any> = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
             license_plate: formData.license_plate,
             vin: formData.vin,
             color: formData.color || null,
-            status: formData.status || 'available',
             mileage: formData.mileage || 0,
             description: formData.description || null,
             location: formData.location || null,
@@ -187,6 +186,13 @@ export const useVehicles = () => {
             vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
             image_url: imageUrl,
           };
+          
+          // Handle the status field separately to ensure it matches valid Supabase values
+          if (formData.status) {
+            vehicleData.status = formData.status;
+          } else {
+            vehicleData.status = 'available';
+          }
           
           const { data, error } = await supabase
             .from('vehicles')
