@@ -20,7 +20,7 @@ const FinancialReport = () => {
     return <div>Loading financial data...</div>;
   }
 
-  // Calculate category totals from real transaction data with proper type checking
+  // Calculate category totals from real transaction data
   const categoryTotals = transactions.reduce((acc, transaction) => {
     const category = transaction.category || 'Other';
     if (!acc[category]) {
@@ -41,7 +41,7 @@ const FinancialReport = () => {
     }
     
     return acc;
-  }, {} as Record<string, { total: number; income: number; expense: number }>);
+  }, {});
 
   const categoryAnalytics = Object.entries(categoryTotals).map(([category, data]) => ({
     category,
@@ -59,28 +59,32 @@ const FinancialReport = () => {
         <StatCard 
           title="Total Income" 
           value={formatCurrency(financialSummary?.totalIncome || 0)} 
-          description="Revenue from car rentals"
+          trend={2.5}
+          trendLabel="vs last month"
           icon={TrendingUp}
           iconColor="text-green-500"
         />
         <StatCard 
           title="Total Expenses" 
           value={formatCurrency(financialSummary?.totalExpenses || 0)} 
-          description="Car installments and operational costs"
+          trend={-1.2}
+          trendLabel="vs last month"
           icon={TrendingDown}
           iconColor="text-red-500"
         />
         <StatCard 
           title="Net Revenue" 
           value={formatCurrency(financialSummary?.netRevenue || 0)} 
-          description="Income after expenses"
+          trend={3.4}
+          trendLabel="vs last month"
           icon={CircleDollarSign}
           iconColor="text-blue-500"
         />
         <StatCard 
           title="Pending Payments" 
           value={formatCurrency(financialSummary?.pendingPayments || 0)} 
-          description="Upcoming rental payments"
+          trend={-2.3}
+          trendLabel="vs last month"
           icon={Clock}
           iconColor="text-amber-500"
         />

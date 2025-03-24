@@ -102,7 +102,7 @@ export function useFinancials() {
             amount: payment.amount || 0,
             description: payment.description || 'Rental Payment',
             type: payment.type?.toLowerCase() === 'expense' ? 'expense' as TransactionType : 'income' as TransactionType,
-            category: payment.type === 'Expense' ? payment.category || 'Operational' : 'Rental',
+            category: payment.type === 'Expense' ? 'Operational' : 'Rental',
             status: payment.status?.toLowerCase() as TransactionStatusType || 'completed',
             reference: payment.reference || '',
             paymentMethod: payment.payment_method || 'Unknown',
@@ -450,7 +450,6 @@ export function useFinancials() {
     addTransaction: addTransactionMutation.mutate,
     updateTransaction: updateTransactionMutation.mutate,
     deleteTransaction: deleteTransactionMutation.mutate,
-    refetchTransactions,
     systemDate: SYSTEM_DATE
   };
 }
