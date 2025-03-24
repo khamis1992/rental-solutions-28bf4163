@@ -1,5 +1,6 @@
+
 import { jsPDF } from 'jspdf';
-import { CustomerObligation } from '@/components/legal/CustomerObligations';
+import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
