@@ -11,6 +11,18 @@ import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 
+// Define valid statuses based on database enum
+const VALID_STATUSES: VehicleStatus[] = [
+  'available',
+  'rented',
+  'reserved',
+  'maintenance',
+  'police_station',
+  'accident',
+  'stolen',
+  'retired'
+];
+
 const Vehicles = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -25,15 +37,22 @@ const Vehicles = () => {
     const statusFromUrl = searchParams.get('status');
     
     if (statusFromUrl && statusFromUrl !== 'all') {
-      setFilters(prevFilters => ({ 
-        ...prevFilters,
-        status: statusFromUrl as VehicleStatus
-      }));
-      
-      // Show a toast to indicate filtered view
-      toast.info(`Showing vehicles with status: ${statusFromUrl}`);
+      // Validate that the status is a valid enum value
+      if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
+        setFilters(prevFilters => ({ 
+          ...prevFilters,
+          status: statusFromUrl as VehicleStatus
+        }));
+        
+        // Show a toast to indicate filtered view
+        toast.info(`Showing vehicles with status: ${statusFromUrl}`);
+      } else {
+        // If invalid status, show error toast and reset filters
+        toast.error(`Invalid status filter: ${statusFromUrl}`);
+        navigate('/vehicles');
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const handleSelectVehicle = (id: string) => {
     navigate(`/vehicles/${id}`);

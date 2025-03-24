@@ -17,6 +17,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { VehicleStatus } from '@/types/vehicle';
 
 interface VehicleStatusChartProps {
   data?: {
@@ -39,63 +40,72 @@ const statusConfig = [
     name: 'Available', 
     color: '#22c55e', 
     icon: ShieldCheck,
-    description: 'Ready for rental'
+    description: 'Ready for rental',
+    filterValue: 'available' as VehicleStatus
   },
   { 
     key: 'rented', 
     name: 'Rented Out', 
     color: '#3b82f6', 
     icon: Car,
-    description: 'Currently with customer'
+    description: 'Currently with customer',
+    filterValue: 'rented' as VehicleStatus
   },
   { 
     key: 'maintenance', 
     name: 'In Maintenance', 
     color: '#f59e0b', 
     icon: WrenchIcon,
-    description: 'Undergoing service or repair'
+    description: 'Undergoing service or repair',
+    filterValue: 'maintenance' as VehicleStatus
   },
   { 
     key: 'reserved', 
     name: 'In Reserve', 
     color: '#8b5cf6', 
     icon: Clock,
-    description: 'Reserved for future rental'
+    description: 'Reserved for future rental',
+    filterValue: 'reserved' as VehicleStatus
   },
   { 
     key: 'attention', 
     name: 'Attention', 
     color: '#ec4899', 
     icon: AlertTriangle,
-    description: 'Requires review'
+    description: 'Requires review',
+    filterValue: 'maintenance' as VehicleStatus // Map UI "attention" to database "maintenance"
   },
   { 
     key: 'police_station', 
     name: 'At Police Station', 
     color: '#64748b', 
     icon: ShieldAlert,
-    description: 'Held at police station'
+    description: 'Held at police station',
+    filterValue: 'police_station' as VehicleStatus
   },
   { 
     key: 'accident', 
     name: 'In Accident', 
     color: '#ef4444', 
     icon: CircleOff,
-    description: 'Involved in accident'
+    description: 'Involved in accident',
+    filterValue: 'accident' as VehicleStatus
   },
   { 
     key: 'stolen', 
     name: 'Reported Stolen', 
     color: '#dc2626', 
     icon: ShieldX,
-    description: 'Vehicle reported stolen'
+    description: 'Vehicle reported stolen',
+    filterValue: 'stolen' as VehicleStatus
   },
   { 
     key: 'critical', 
     name: 'Critical', 
     color: '#b91c1c', 
     icon: CircleDashed,
-    description: 'Critical issues pending'
+    description: 'Critical issues pending',
+    filterValue: 'maintenance' as VehicleStatus // Map UI "critical" to database "maintenance"
   }
 ];
 
@@ -120,7 +130,8 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
       name: status.name,
       value: normalizedData[status.key as keyof typeof normalizedData],
       color: status.color,
-      key: status.key
+      key: status.key,
+      filterValue: status.filterValue
     }));
   
   // Calculate the total count of critical vehicles (stolen, accident, critical)
@@ -130,8 +141,9 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   
   const hasCriticalVehicles = criticalVehicles > 0;
   
-  const handleStatusClick = (statusKey: string) => {
-    navigate(`/vehicles?status=${statusKey}`);
+  const handleStatusClick = (data: any) => {
+    // Use the mapped filterValue instead of the UI key
+    navigate(`/vehicles?status=${data.filterValue}`);
   };
 
   return (
@@ -154,7 +166,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                   dataKey="value"
                   label={({ name, value }) => `${name}: ${value}`}
                   labelLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
-                  onClick={(data) => handleStatusClick(data.key)}
+                  onClick={handleStatusClick}
                   cursor="pointer"
                 >
                   {chartData.map((entry, index) => (
@@ -204,7 +216,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                         ? "bg-red-50 hover:bg-red-100" 
                         : "bg-slate-50 hover:bg-slate-100"
                     )}
-                    onClick={() => handleStatusClick(status.key)}
+                    onClick={() => navigate(`/vehicles?status=${status.filterValue}`)}
                   >
                     <div 
                       className="p-1.5 rounded-md" 
