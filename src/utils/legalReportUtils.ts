@@ -12,6 +12,7 @@ export const generateLegalCustomerReport = async (
   obligations: CustomerObligation[]
 ): Promise<jsPDF> => {
   let customer = null;
+  let customerVehicles = [];
   
   try {
     // Fetch customer details
@@ -25,6 +26,37 @@ export const generateLegalCustomerReport = async (
       console.error("Error fetching customer details:", error);
     } else {
       customer = data;
+    }
+    
+    // Fetch vehicles associated with the customer through leases
+    const { data: leasesData, error: leasesError } = await supabase
+      .from('leases')
+      .select(`
+        vehicle_id,
+        vehicles (
+          id,
+          make,
+          model,
+          year,
+          color,
+          license_plate,
+          vin,
+          status
+        )
+      `)
+      .eq('customer_id', customerId);
+    
+    if (leasesError) {
+      console.error("Error fetching customer vehicles:", leasesError);
+    } else if (leasesData) {
+      // Extract unique vehicles from leases
+      const vehicleMap = new Map();
+      leasesData.forEach(lease => {
+        if (lease.vehicles && !vehicleMap.has(lease.vehicles.id)) {
+          vehicleMap.set(lease.vehicles.id, lease.vehicles);
+        }
+      });
+      customerVehicles = Array.from(vehicleMap.values());
     }
   } catch (error) {
     console.error("Error fetching customer details:", error);
@@ -81,6 +113,49 @@ export const generateLegalCustomerReport = async (
     if (customer.driver_license) {
       doc.text(`Driver License: ${customer.driver_license}`, 14, yPos); yPos += 7;
     }
+  }
+  
+  // Add vehicle information section
+  yPos += 10;
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Vehicle Information", 14, yPos);
+  yPos += 10;
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  if (customerVehicles && customerVehicles.length > 0) {
+    customerVehicles.forEach((vehicle, index) => {
+      // Check if we need a new page for vehicle info
+      if (yPos > 250) {
+        doc.addPage();
+        yPos = addPageHeader(doc);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Vehicle Information (continued)", 14, yPos);
+        yPos += 10;
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+      }
+      
+      doc.text(`Vehicle ${index + 1}:`, 14, yPos); yPos += 7;
+      doc.text(`Make: ${vehicle.make || 'N/A'}`, 24, yPos); yPos += 7;
+      doc.text(`Model: ${vehicle.model || 'N/A'}`, 24, yPos); yPos += 7;
+      doc.text(`Year: ${vehicle.year || 'N/A'}`, 24, yPos); yPos += 7;
+      doc.text(`Color: ${vehicle.color || 'N/A'}`, 24, yPos); yPos += 7;
+      doc.text(`License Plate: ${vehicle.license_plate || 'N/A'}`, 24, yPos); yPos += 7;
+      doc.text(`VIN: ${vehicle.vin || 'N/A'}`, 24, yPos); yPos += 7;
+      doc.text(`Status: ${vehicle.status || 'N/A'}`, 24, yPos); yPos += 7;
+      
+      // Add a little spacing between vehicles
+      if (index < customerVehicles.length - 1) {
+        yPos += 3;
+      }
+    });
+  } else {
+    doc.text("No vehicles associated with this customer.", 14, yPos);
+    yPos += 7;
   }
   
   // Add summary of obligations with consistent spacing
