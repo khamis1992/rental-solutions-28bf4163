@@ -6,8 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
 
-// Database vehicle type without circular references
-interface VehicleDBRow {
+// Type for database interactions to prevent circular reference issues
+interface DatabaseVehicle {
   id: string;
   make: string;
   model: string;
@@ -30,6 +30,11 @@ interface VehicleDBRow {
   created_at: string;
   updated_at: string;
   vehicle_types?: VehicleType;
+}
+
+// Helper function to validate status
+function isValidStatus(status: string): status is VehicleStatus {
+  return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status);
 }
 
 const fetchVehicles = async (filters?: VehicleFilterParams) => {
@@ -164,18 +169,15 @@ export const useVehicles = () => {
             }
           }
           
-          // Convert VehicleStatus (our enum) to string type for database
-          const statusForDB = formData.status as string || 'available';
-          
-          // Type-safe vehicle data object
-          const vehicleData = {
+          // Create a type-safe vehicle data object with proper status handling
+          const vehicleData: Omit<DatabaseVehicle, 'id' | 'created_at' | 'updated_at'> = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
             license_plate: formData.license_plate,
             vin: formData.vin,
             color: formData.color || null,
-            status: statusForDB,
+            status: formData.status || 'available',
             mileage: formData.mileage || 0,
             description: formData.description || null,
             location: formData.location || null,
@@ -241,10 +243,8 @@ export const useVehicles = () => {
             }
           }
           
-          // Convert VehicleStatus (our enum) to string for database
-          const statusForDB = data.status ? data.status as string : undefined;
-          
-          // Explicit typing for the update data
+          // Build an update object with only the fields we want to update
+          // This avoids type issues with Supabase's typings
           const vehicleData: Record<string, unknown> = {};
           
           // Required fields
@@ -256,7 +256,7 @@ export const useVehicles = () => {
           
           // Optional fields
           if (data.color !== undefined) vehicleData.color = data.color;
-          if (statusForDB !== undefined) vehicleData.status = statusForDB;
+          if (data.status !== undefined) vehicleData.status = data.status;
           if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
           if (data.description !== undefined) vehicleData.description = data.description;
           if (data.location !== undefined) vehicleData.location = data.location;
