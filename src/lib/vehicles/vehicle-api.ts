@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
@@ -26,10 +25,9 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     .select('*, vehicle_types(*)');
   
   if (filters) {
-    // Using a manual loop to prevent deep type instantiation
+    // Using Object.entries instead of a deep type instantiation
     const filterEntries = Object.entries(filters);
-    for (let i = 0; i < filterEntries.length; i++) {
-      const [key, value] = filterEntries[i];
+    for (const [key, value] of filterEntries) {
       if (value !== undefined && value !== null && value !== '' && value !== 'any') {
         // Convert reserved to reserve for database query if status is being filtered
         if (key === 'status' && value === 'reserved') {

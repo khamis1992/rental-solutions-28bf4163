@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   BrowserRouter as Router,
@@ -14,10 +15,14 @@ import Settings from './pages/Settings';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import PageContainer from './components/layout/PageContainer';
 import Financials from './pages/Financials';
-import Expenses from './pages/Expenses'; // Add import for Expenses page 
+import Expenses from './pages/Expenses';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create a client
+const queryClient = new QueryClient();
 
 const AppContent = () => {
   const { isLoggedIn } = useAuth();
@@ -85,9 +90,11 @@ const router = createBrowserRouter([
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <RouterProvider router={router} />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
