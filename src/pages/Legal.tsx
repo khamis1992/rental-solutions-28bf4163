@@ -2,8 +2,9 @@
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Gavel, FileText } from 'lucide-react';
+import { Gavel, FileText, ShieldAlert } from 'lucide-react';
 import CustomerLegalObligations from '@/components/legal/CustomerLegalObligations';
+import PoliceReportTab from '@/components/legal/PoliceReportTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const Legal = () => {
@@ -29,10 +30,18 @@ const Legal = () => {
             <FileText className="h-4 w-4 mr-2" />
             Obligations
           </TabsTrigger>
+          <TabsTrigger value="police-reports">
+            <ShieldAlert className="h-4 w-4 mr-2" />
+            Police Reports
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="obligations" className="space-y-4">
           <CustomerLegalObligations />
+        </TabsContent>
+
+        <TabsContent value="police-reports" className="space-y-4">
+          <PoliceReportTab />
         </TabsContent>
       </Tabs>
     </PageContainer>
