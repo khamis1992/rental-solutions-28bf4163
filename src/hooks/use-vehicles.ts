@@ -1,9 +1,36 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams } from '@/types/vehicle';
 import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
+
+// Type for the vehicle data returned from Supabase
+type VehicleFromDB = {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  vin: string;
+  color?: string;
+  status?: string;
+  mileage?: number;
+  image_url?: string;
+  description?: string;
+  is_test_data?: boolean;
+  location?: string;
+  insurance_company?: string;
+  insurance_expiry?: string;
+  device_type?: string;
+  rent_amount?: number;
+  vehicle_type_id?: string;
+  registration_number?: string;
+  created_at: string;
+  updated_at: string;
+  vehicle_types?: VehicleType;
+};
 
 const fetchVehicles = async (filters?: VehicleFilterParams) => {
   let query = supabase.from('vehicles')
@@ -137,20 +164,21 @@ export const useVehicles = () => {
             }
           }
           
-          const vehicleData: Record<string, any> = {
+          // Type-safe vehicle data object
+          const vehicleData = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
             license_plate: formData.license_plate,
             vin: formData.vin,
-            color: formData.color,
+            color: formData.color || null,
             status: formData.status || 'available',
             mileage: formData.mileage || 0,
-            description: formData.description,
-            location: formData.location,
-            insurance_company: formData.insurance_company,
-            insurance_expiry: formData.insurance_expiry,
-            rent_amount: formData.rent_amount,
+            description: formData.description || null,
+            location: formData.location || null,
+            insurance_company: formData.insurance_company || null,
+            insurance_expiry: formData.insurance_expiry || null,
+            rent_amount: formData.rent_amount || null,
             vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
             image_url: imageUrl,
           };
@@ -210,17 +238,20 @@ export const useVehicles = () => {
             }
           }
           
-          const vehicleData: Record<string, any> = {
-            make: data.make,
-            model: data.model,
-            year: data.year,
-            license_plate: data.license_plate,
-            vin: data.vin,
-            status: data.status,
-            mileage: data.mileage,
-          };
+          // Explicit typing for the update data
+          const vehicleData: Record<string, unknown> = {};
           
+          // Required fields
+          if (data.make !== undefined) vehicleData.make = data.make;
+          if (data.model !== undefined) vehicleData.model = data.model;
+          if (data.year !== undefined) vehicleData.year = data.year;
+          if (data.license_plate !== undefined) vehicleData.license_plate = data.license_plate;
+          if (data.vin !== undefined) vehicleData.vin = data.vin;
+          
+          // Optional fields
           if (data.color !== undefined) vehicleData.color = data.color;
+          if (data.status !== undefined) vehicleData.status = data.status;
+          if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
           if (data.description !== undefined) vehicleData.description = data.description;
           if (data.location !== undefined) vehicleData.location = data.location;
           if (data.insurance_company !== undefined) vehicleData.insurance_company = data.insurance_company;
