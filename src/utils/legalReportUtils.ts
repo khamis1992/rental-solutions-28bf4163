@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,34 +35,40 @@ export const generateLegalCustomerReport = async (
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Add header with logo on the left
-  const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+  // Define a function to add consistent header to each page
+  const addPageHeader = (doc: jsPDF) => {
+    // Add logo on the left at the top
+    const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+    doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+    
+    // Add a separator line
+    doc.setDrawColor(200, 200, 200);
+    doc.line(14, 30, pageWidth - 14, 30);
+    
+    return 50; // Return the starting y-position for content after header
+  };
   
-  // Add logo on the left at the top (changed from centered)
-  doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
+  // Add header to first page and get starting y-position
+  let startY = addPageHeader(doc);
   
-  // Add a separator line
-  doc.setDrawColor(200, 200, 200);
-  doc.line(14, 30, pageWidth - 14, 30);
-  
-  // Add title and header - increased vertical spacing from 45 to 50
+  // Add title and header with consistent spacing
   doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
-  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, 50, { align: "center" });
+  doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, startY, { align: "center" });
   
-  // Add report date - increased vertical spacing from 53 to 58
+  // Add report date with consistent spacing
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, 58, { align: "center" });
+  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, startY + 8, { align: "center" });
   
-  // Add customer information - increased vertical spacing from 65 to 70
+  // Add customer information with consistent spacing
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text("Customer Information", 14, 70);
+  doc.text("Customer Information", 14, startY + 20);
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  let yPos = 80; // Increased from 75 to 80
+  let yPos = startY + 30;
   doc.text(`Name: ${customerName}`, 14, yPos); yPos += 7;
   
   if (customer) {
@@ -76,7 +83,7 @@ export const generateLegalCustomerReport = async (
     }
   }
   
-  // Add summary of obligations - increase spacing consistently
+  // Add summary of obligations with consistent spacing
   yPos += 10;
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
@@ -153,20 +160,19 @@ export const generateLegalCustomerReport = async (
     // Check if we need a new page
     if (yPos > 250) {
       doc.addPage();
-      yPos = 20;
+      // Add consistent header to the new page
+      yPos = addPageHeader(doc);
       
-      // Add header with logo to new page (no text)
-      doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
-      
-      // Add a separator line
-      doc.setDrawColor(200, 200, 200);
-      doc.line(14, 30, pageWidth - 14, 30);
+      // Add section header for this type
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${typeLabels[type] || type}`, 14, yPos);
+      yPos += 7;
+    } else {
+      // Add section header for this type
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${typeLabels[type] || type}`, 14, yPos);
+      yPos += 7;
     }
-    
-    // Add section header for this type
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${typeLabels[type] || type}`, 14, yPos);
-    yPos += 7;
     
     // Add column headers
     const startX = 14;
@@ -187,14 +193,8 @@ export const generateLegalCustomerReport = async (
       // Check if we need a new page
       if (yPos > 270) {
         doc.addPage();
-        yPos = 20;
-        
-        // Add header with logo to new page (no text)
-        doc.addImage(logoPath, 'PNG', (pageWidth - 40) / 2, 10, 40, 15);
-        
-        // Add a separator line
-        doc.setDrawColor(200, 200, 200);
-        doc.line(14, 30, pageWidth - 14, 30);
+        // Add consistent header to the new page
+        yPos = addPageHeader(doc);
         
         // Add column headers on new page
         doc.setFont('helvetica', 'bold');
@@ -235,14 +235,8 @@ export const generateLegalCustomerReport = async (
   // Add legal notice and next steps with consistent spacing
   if (yPos > 250) {
     doc.addPage();
-    yPos = 20;
-    
-    // Add header with logo to new page - on the left side
-    doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
-    
-    // Add a separator line
-    doc.setDrawColor(200, 200, 200);
-    doc.line(14, 30, pageWidth - 14, 30);
+    // Add consistent header to the new page
+    yPos = addPageHeader(doc);
   }
   
   yPos += 5;
@@ -279,21 +273,12 @@ export const generateLegalCustomerReport = async (
   // Add the footer with company info and logo to each page
   const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
   
-  // Apply consistent header and footer to all pages
+  // Apply consistent footer to all pages
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    // For pages after the first page, add the header with logo on the left
-    if (i > 1) {
-      doc.addImage(logoPath, 'PNG', 14, 10, 40, 15);
-      
-      // Add a separator line
-      doc.setDrawColor(200, 200, 200);
-      doc.line(14, 30, pageWidth - 14, 30);
-    }
-    
-    // Add footer text first - moved above the footer logo
+    // Add footer text first - above the footer logo
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text("© 2025 ALARAF CAR RENTAL", pageWidth / 2, pageHeight - 30, { align: 'center' });
