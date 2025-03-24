@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/dialog';
 import {
   Form,
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormControl,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -24,12 +24,11 @@ import { CarInstallmentContract } from '@/types/car-installment';
 
 const contractSchema = z.object({
   car_type: z.string().min(1, 'Car type is required'),
-  model_year: z.coerce.number().min(2000, 'Year must be 2000 or later').max(2050, 'Year must be 2050 or earlier'),
-  number_of_cars: z.coerce.number().min(1, 'Number of cars must be at least 1'),
-  price_per_car: z.coerce.number().min(1, 'Price per car must be greater than 0'),
-  total_contract_value: z.coerce.number().min(1, 'Total contract value must be greater than 0'),
-  total_installments: z.coerce.number().min(1, 'Number of installments must be at least 1'),
-  installment_value: z.coerce.number().min(1, 'Installment value must be greater than 0'),
+  model_year: z.number().int().positive('Year must be a positive number'),
+  number_of_cars: z.number().int().positive('Number of cars must be positive'),
+  price_per_car: z.number().positive('Price per car must be positive'),
+  installment_value: z.number().positive('Installment value must be positive'),
+  total_installments: z.number().int().positive('Number of installments must be positive'),
 });
 
 type ContractFormData = z.infer<typeof contractSchema>;
@@ -52,51 +51,62 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
       model_year: new Date().getFullYear(),
       number_of_cars: 1,
       price_per_car: 0,
-      total_contract_value: 0,
-      total_installments: 1,
       installment_value: 0,
+      total_installments: 12,
     },
   });
-
-  // Calculate values when input changes
+  
+  // Calculate total contract value
+  const pricePerCar = form.watch('price_per_car') || 0;
+  const numberOfCars = form.watch('number_of_cars') || 0;
+  const totalContractValue = pricePerCar * numberOfCars;
+  
+  // Calculate installment value when total value or installments change
+  const totalInstallments = form.watch('total_installments') || 1;
+  const calculatedInstallmentValue = totalInstallments > 0
+    ? totalContractValue / totalInstallments
+    : 0;
+  
+  // Update installment value when contract value or number of installments change
   React.useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === 'price_per_car' || name === 'number_of_cars') {
-        const price = parseFloat(value.price_per_car?.toString() || '0');
-        const cars = parseInt(value.number_of_cars?.toString() || '0');
-        if (!isNaN(price) && !isNaN(cars)) {
-          form.setValue('total_contract_value', price * cars);
-        }
-      }
+    form.setValue('installment_value', calculatedInstallmentValue);
+  }, [totalContractValue, totalInstallments, form]);
 
-      if (name === 'total_contract_value' || name === 'total_installments') {
-        const total = parseFloat(value.total_contract_value?.toString() || '0');
-        const installments = parseInt(value.total_installments?.toString() || '0');
-        if (!isNaN(total) && !isNaN(installments) && installments > 0) {
-          form.setValue('installment_value', total / installments);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [form]);
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        car_type: '',
+        model_year: new Date().getFullYear(),
+        number_of_cars: 1,
+        price_per_car: 0,
+        installment_value: 0,
+        total_installments: 12,
+      });
+    }
+  }, [open, form]);
 
   const handleSubmit = (data: ContractFormData) => {
-    onSubmit({
+    // Convert form data to contract data with required fields for database
+    const contractData: Omit<CarInstallmentContract, 'id' | 'created_at' | 'updated_at'> = {
       ...data,
+      total_contract_value: totalContractValue,
       amount_paid: 0,
-      amount_pending: data.total_contract_value,
+      amount_pending: totalContractValue,
       remaining_installments: data.total_installments,
-      overdue_payments: 0,
-    });
+      overdue_payments: 0
+    };
+    
+    onSubmit(contractData);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add Car Installment Contract</DialogTitle>
         </DialogHeader>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
@@ -104,42 +114,51 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
               name="car_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Car Type</FormLabel>
+                  <FormLabel>Car Type/Model</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Toyota Camry" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="model_year"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Model Year</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={2000} max={2050} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="number_of_cars"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Number of Cars</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+
+            <FormField
+              control={form.control}
+              name="model_year"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Model Year</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="number_of_cars"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Number of Cars</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="price_per_car"
@@ -147,75 +166,60 @@ export const ContractDialog: React.FC<ContractDialogProps> = ({
                 <FormItem>
                   <FormLabel>Price per Car</FormLabel>
                   <FormControl>
-                    <Input type="number" min={0} step={0.01} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="total_contract_value"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Total Contract Value</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min={0} 
-                      step={0.01} 
+                    <Input
+                      type="number"
                       {...field}
-                      className="bg-muted" 
-                      readOnly 
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="total_installments"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total Installments</FormLabel>
-                    <FormControl>
-                      <Input type="number" min={1} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="installment_value"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Installment Value</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min={0} 
-                        step={0.01} 
-                        {...field} 
-                        className="bg-muted"
-                        readOnly
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
+            <div className="py-2">
+              <div className="font-medium">Total Contract Value</div>
+              <div className="text-2xl font-bold">{totalContractValue.toLocaleString()}</div>
             </div>
+
+            <FormField
+              control={form.control}
+              name="total_installments"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Installments</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseInt(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="installment_value"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Installment Value</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      disabled
+                      value={calculatedInstallmentValue.toFixed(2)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
               <Button type="submit">Create Contract</Button>
             </DialogFooter>
           </form>

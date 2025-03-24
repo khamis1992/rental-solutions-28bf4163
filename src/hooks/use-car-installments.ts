@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +8,8 @@ import {
   ContractSummary,
   ImportedPayment,
   ContractFilters,
-  PaymentFilters
+  PaymentFilters,
+  InstallmentStatus
 } from '@/types/car-installment';
 import { useToast } from './use-toast';
 
@@ -177,15 +179,24 @@ export function useCarInstallments() {
   >(
     async (contractData) => {
       try {
+        // Fix type error by ensuring all required fields are present
+        const contractToInsert = {
+          car_type: contractData.car_type,
+          model_year: contractData.model_year,
+          number_of_cars: contractData.number_of_cars,
+          price_per_car: contractData.price_per_car,
+          total_contract_value: contractData.total_contract_value,
+          total_installments: contractData.total_installments,
+          installment_value: contractData.installment_value,
+          amount_paid: 0,
+          amount_pending: contractData.total_contract_value,
+          remaining_installments: contractData.total_installments,
+          overdue_payments: 0
+        };
+        
         const { data, error } = await supabase
           .from('car_installment_contracts')
-          .insert({
-            ...contractData,
-            amount_paid: 0,
-            amount_pending: contractData.total_contract_value,
-            remaining_installments: contractData.total_installments,
-            overdue_payments: 0
-          })
+          .insert(contractToInsert)
           .select()
           .single();
           
@@ -308,7 +319,7 @@ export function useCarInstallments() {
         const newRemainingAmount = payment.amount - newPaidAmount;
         
         // Determine the new status
-        let newStatus = payment.status;
+        let newStatus: InstallmentStatus = payment.status;
         if (newRemainingAmount <= 0) {
           newStatus = 'paid';
         } else if (newStatus === 'overdue') {
@@ -392,6 +403,7 @@ export function useCarInstallments() {
   >(
     async ({ contractId, payments }) => {
       try {
+        // Fix the type issues by explicitly specifying the payment status
         const formattedPayments = payments.map(payment => ({
           contract_id: contractId,
           cheque_number: payment.cheque_number,
@@ -400,16 +412,19 @@ export function useCarInstallments() {
           paid_amount: 0,
           remaining_amount: payment.amount,
           payment_date: payment.payment_date,
-          status: 'pending',
-          payment_notes: payment.notes
+          status: 'pending' as InstallmentStatus,
+          payment_notes: payment.notes || ''
         }));
         
-        const { data, error } = await supabase
-          .from('car_installment_payments')
-          .insert(formattedPayments);
-          
-        if (error) {
-          throw error;
+        // Use individual inserts instead of bulk insert to avoid type issues
+        for (const payment of formattedPayments) {
+          const { error } = await supabase
+            .from('car_installment_payments')
+            .insert(payment);
+            
+          if (error) {
+            throw error;
+          }
         }
         
         // Update contract with new installment count

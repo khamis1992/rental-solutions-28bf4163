@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
+import { useState } from "react";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
@@ -59,98 +60,102 @@ import Financials from "./pages/Financials";
 // Reports pages
 import Reports from "./pages/Reports";
 
-const queryClient = new QueryClient();
+const App = () => {
+  // Move the QueryClient initialization inside the component
+  // This ensures React hooks are called in the correct context
+  const [queryClient] = useState(() => new QueryClient());
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AuthProvider>
-        <ProfileProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              
-              {/* Auth Routes */}
-              <Route path="auth" element={<AuthLayout />}>
-                <Route path="login" element={<Login />} />
-                <Route path="register" element={<Register />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="reset-password" element={<ResetPassword />} />
-              </Route>
-              
-              {/* Protected Routes */}
-              <Route
-                path="/*"
-                element={
-                  <ProtectedRoute>
-                    <>
-                      <Sidebar />
-                      <Routes>
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        
-                        {/* Vehicle Management Routes */}
-                        <Route path="/vehicles" element={<Vehicles />} />
-                        <Route path="/vehicles/add" element={<AddVehicle />} />
-                        <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
-                        <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
-                        
-                        {/* Customer Management Routes */}
-                        <Route path="/customers" element={<Customers />} />
-                        <Route path="/customers/add" element={<AddCustomer />} />
-                        <Route path="/customers/:id" element={<CustomerDetailPage />} />
-                        <Route path="/customers/edit/:id" element={<EditCustomer />} />
-                        
-                        {/* Agreement Management Routes */}
-                        <Route path="/agreements" element={<Agreements />} />
-                        <Route path="/agreements/add" element={<AddAgreement />} />
-                        <Route path="/agreements/edit/:id" element={<EditAgreement />} />
-                        <Route path="/agreements/:id" element={<AgreementDetailPage />} />
-                        
-                        {/* Maintenance Management Routes */}
-                        <Route path="/maintenance" element={<Maintenance />} />
-                        <Route path="/maintenance/add" element={<AddMaintenance />} />
-                        <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
-                        <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
-                        
-                        {/* Legal Management Route */}
-                        <Route path="/legal" element={<Legal />} />
-                        
-                        {/* Traffic Fines Management Route */}
-                        <Route path="/fines" element={<TrafficFines />} />
-                        
-                        {/* Financials Management Route */}
-                        <Route path="/financials" element={<Financials />} />
-                        
-                        {/* Reports Route */}
-                        <Route path="/reports" element={<Reports />} />
-                        
-                        {/* User Management Routes */}
-                        <Route path="/settings" element={<UserSettings />} />
-                        <Route 
-                          path="/users" 
-                          element={
-                            <ProtectedRoute roles={["admin"]}>
-                              <UserManagement />
-                            </ProtectedRoute>
-                          } 
-                        />
-                        
-                        {/* Add other module routes here */}
-                        
-                        <Route path="*" element={<NotFound />} />
-                      </Routes>
-                    </>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </TooltipProvider>
-        </ProfileProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <ProfileProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                
+                {/* Auth Routes */}
+                <Route path="auth" element={<AuthLayout />}>
+                  <Route path="login" element={<Login />} />
+                  <Route path="register" element={<Register />} />
+                  <Route path="forgot-password" element={<ForgotPassword />} />
+                  <Route path="reset-password" element={<ResetPassword />} />
+                </Route>
+                
+                {/* Protected Routes */}
+                <Route
+                  path="/*"
+                  element={
+                    <ProtectedRoute>
+                      <>
+                        <Sidebar />
+                        <Routes>
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          
+                          {/* Vehicle Management Routes */}
+                          <Route path="/vehicles" element={<Vehicles />} />
+                          <Route path="/vehicles/add" element={<AddVehicle />} />
+                          <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
+                          <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
+                          
+                          {/* Customer Management Routes */}
+                          <Route path="/customers" element={<Customers />} />
+                          <Route path="/customers/add" element={<AddCustomer />} />
+                          <Route path="/customers/:id" element={<CustomerDetailPage />} />
+                          <Route path="/customers/edit/:id" element={<EditCustomer />} />
+                          
+                          {/* Agreement Management Routes */}
+                          <Route path="/agreements" element={<Agreements />} />
+                          <Route path="/agreements/add" element={<AddAgreement />} />
+                          <Route path="/agreements/edit/:id" element={<EditAgreement />} />
+                          <Route path="/agreements/:id" element={<AgreementDetailPage />} />
+                          
+                          {/* Maintenance Management Routes */}
+                          <Route path="/maintenance" element={<Maintenance />} />
+                          <Route path="/maintenance/add" element={<AddMaintenance />} />
+                          <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
+                          <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
+                          
+                          {/* Legal Management Route */}
+                          <Route path="/legal" element={<Legal />} />
+                          
+                          {/* Traffic Fines Management Route */}
+                          <Route path="/fines" element={<TrafficFines />} />
+                          
+                          {/* Financials Management Route */}
+                          <Route path="/financials" element={<Financials />} />
+                          
+                          {/* Reports Route */}
+                          <Route path="/reports" element={<Reports />} />
+                          
+                          {/* User Management Routes */}
+                          <Route path="/settings" element={<UserSettings />} />
+                          <Route 
+                            path="/users" 
+                            element={
+                              <ProtectedRoute roles={["admin"]}>
+                                <UserManagement />
+                              </ProtectedRoute>
+                            } 
+                          />
+                          
+                          {/* Add other module routes here */}
+                          
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </>
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </TooltipProvider>
+          </ProfileProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
