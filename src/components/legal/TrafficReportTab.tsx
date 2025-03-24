@@ -3,23 +3,29 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Download, Languages, AlertCircle } from 'lucide-react';
+import { FileText, Download, Languages, AlertCircle, Loader2 } from 'lucide-react';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
 import { useToast } from '@/hooks/use-toast';
 import { CustomerObligation } from './CustomerLegalObligations';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const TrafficReportTab: React.FC = () => {
   const { toast } = useToast();
   const [language, setLanguage] = useState<'english' | 'arabic'>('english');
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string>('');
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const handleGenerateReport = async () => {
     setIsGenerating(true);
     setHasError(false);
+    setErrorDetails('');
 
     try {
+      console.log(`Generating report in ${language} language`);
+      
       // Example data - in real app this would come from actual data
       const customerId = "example-id";
       const customerName = language === 'arabic' ? "محمد عبدالله" : "John Smith";
@@ -58,6 +64,8 @@ const TrafficReportTab: React.FC = () => {
         }
       ];
 
+      console.log("Sample obligations prepared, generating PDF...");
+      
       // Generate PDF document
       const doc = await generateLegalCustomerReport(
         customerId, 
@@ -74,6 +82,8 @@ const TrafficReportTab: React.FC = () => {
         
       doc.save(filename);
       
+      console.log("Report generated and saved successfully");
+      
       toast({
         title: language === 'arabic' ? "تم إنشاء التقرير" : "Report Generated",
         description: language === 'arabic' 
@@ -85,11 +95,15 @@ const TrafficReportTab: React.FC = () => {
       console.error("Error generating report:", error);
       setHasError(true);
       
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : (language === 'arabic' ? "حدث خطأ غير معروف" : "Unknown error occurred");
+      
+      setErrorDetails(errorMessage);
+      
       toast({
         title: language === 'arabic' ? "فشل إنشاء التقرير" : "Report Generation Failed",
-        description: error instanceof Error 
-          ? error.message 
-          : (language === 'arabic' ? "حدث خطأ غير معروف" : "Unknown error occurred"),
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -120,6 +134,11 @@ const TrafficReportTab: React.FC = () => {
               {language === 'arabic' 
                 ? "حدث خطأ أثناء إنشاء التقرير. يرجى المحاولة مرة أخرى." 
                 : "There was an error generating the report. Please try again."}
+              {errorDetails && (
+                <p className="mt-1 text-xs opacity-80">
+                  {errorDetails}
+                </p>
+              )}
             </AlertDescription>
           </Alert>
         )}
@@ -134,6 +153,7 @@ const TrafficReportTab: React.FC = () => {
               onValueChange={(value: 'english' | 'arabic') => {
                 setLanguage(value);
                 setHasError(false);
+                setErrorDetails('');
               }}
             >
               <SelectTrigger className="w-full">
@@ -154,7 +174,10 @@ const TrafficReportTab: React.FC = () => {
             className="w-full md:w-auto"
           >
             {isGenerating ? (
-              language === 'arabic' ? "جاري الإنشاء..." : "Generating..."
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {language === 'arabic' ? "جاري الإنشاء..." : "Generating..."}
+              </>
             ) : (
               <>
                 <Download className="mr-2 h-4 w-4" />
@@ -168,8 +191,57 @@ const TrafficReportTab: React.FC = () => {
               ? "سيتم إنشاء تقرير نموذجي مع بيانات توضيحية" 
               : "This will generate a sample report with demonstration data"}
           </p>
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="self-start text-xs" 
+            onClick={() => setShowInstructions(true)}
+          >
+            <Languages className="h-3 w-3 mr-1" />
+            {language === 'arabic' 
+              ? "إرشادات حول التقارير باللغة العربية" 
+              : "Instructions for Arabic reports"}
+          </Button>
         </div>
       </CardContent>
+      
+      <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {language === 'arabic' 
+                ? "إرشادات حول التقارير باللغة العربية" 
+                : "Arabic Reports Information"}
+            </DialogTitle>
+            <DialogDescription>
+              {language === 'arabic' 
+                ? "معلومات مهمة عن التقارير باللغة العربية" 
+                : "Important information about Arabic reports"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <p>
+              {language === 'arabic'
+                ? "تتم معالجة التقارير باللغة العربية باستخدام نظام متخصص للغة العربية. قد تكون هناك بعض الاختلافات في العرض والتنسيق مقارنة بالتقارير باللغة الإنجليزية."
+                : "Arabic reports are processed using a specialized system for Arabic language support. There may be some differences in display and formatting compared to English reports."}
+            </p>
+            
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>
+                {language === 'arabic' ? "ملاحظة" : "Note"}
+              </AlertTitle>
+              <AlertDescription>
+                {language === 'arabic'
+                  ? "لضمان أفضل تجربة، يرجى التأكد من تحديث النظام إلى أحدث إصدار."
+                  : "For the best experience, please ensure your system is updated to the latest version."}
+              </AlertDescription>
+            </Alert>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
