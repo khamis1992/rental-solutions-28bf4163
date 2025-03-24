@@ -86,7 +86,7 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
 // Insert a new vehicle 
 export async function insertVehicle(vehicleData: VehicleInsertData): Promise<DatabaseVehicleRecord> {
   // Make a copy of the data to avoid modifying the original
-  const dbData: Record<string, any> = { ...vehicleData };
+  const dbData = { ...vehicleData } as any;
   
   // Handle the reserved to reserve conversion
   if (vehicleData.status) {
@@ -109,7 +109,7 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
 // Update a vehicle
 export async function updateVehicle(id: string, vehicleData: VehicleUpdateData): Promise<DatabaseVehicleRecord> {
   // Make a copy of the data to avoid modifying the original
-  const dbData: Record<string, any> = { ...vehicleData };
+  const dbData = { ...vehicleData } as any;
   
   // Handle the reserved to reserve conversion
   if (vehicleData.status) {
