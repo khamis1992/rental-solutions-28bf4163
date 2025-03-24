@@ -3,6 +3,9 @@ import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
 
+// Define a type for the language options to ensure consistency
+type ReportLanguage = 'english' | 'arabic';
+
 /**
  * Generate a legal report PDF for a customer with all their financial/legal obligations
  */
@@ -10,7 +13,7 @@ export const generateLegalCustomerReport = async (
   customerId: string,
   customerName: string,
   obligations: CustomerObligation[],
-  language: 'english' | 'arabic' = 'english'
+  language: ReportLanguage = 'english'
 ): Promise<jsPDF> => {
   let customer = null;
   let customerVehicles = [];
@@ -521,7 +524,7 @@ export const generateLegalCustomerReport = async (
 };
 
 // Helper function to format currency
-const formatCurrency = (amount: number, language: 'english' | 'arabic' = 'english'): string => {
+const formatCurrency = (amount: number, language: ReportLanguage = 'english'): string => {
   if (language === 'arabic') {
     return new Intl.NumberFormat('ar-QA', {
       style: 'currency',
