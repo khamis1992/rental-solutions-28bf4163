@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface VehicleStatusChartProps {
   data?: {
@@ -99,6 +100,8 @@ const statusConfig = [
 ];
 
 const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
+  const navigate = useNavigate();
+  
   if (!data) return null;
   
   // Make sure all statuses have values
@@ -116,7 +119,8 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
     .map(status => ({
       name: status.name,
       value: normalizedData[status.key as keyof typeof normalizedData],
-      color: status.color
+      color: status.color,
+      key: status.key
     }));
   
   // Calculate the total count of critical vehicles (stolen, accident, critical)
@@ -125,6 +129,10 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                           (normalizedData.critical || 0);
   
   const hasCriticalVehicles = criticalVehicles > 0;
+  
+  const handleStatusClick = (statusKey: string) => {
+    navigate(`/vehicles?status=${statusKey}`);
+  };
 
   return (
     <Card className="col-span-full lg:col-span-4 card-transition">
@@ -146,6 +154,8 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                   dataKey="value"
                   label={({ name, value }) => `${name}: ${value}`}
                   labelLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                  onClick={(data) => handleStatusClick(data.key)}
+                  cursor="pointer"
                 >
                   {chartData.map((entry, index) => (
                     <Cell 
@@ -189,11 +199,12 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                   <div 
                     key={status.key} 
                     className={cn(
-                      "flex items-center space-x-2 p-2 rounded-md",
+                      "flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100",
                       status.key === 'stolen' || status.key === 'accident' || status.key === 'critical' 
-                        ? "bg-red-50" 
-                        : "bg-slate-50"
+                        ? "bg-red-50 hover:bg-red-100" 
+                        : "bg-slate-50 hover:bg-slate-100"
                     )}
+                    onClick={() => handleStatusClick(status.key)}
                   >
                     <div 
                       className="p-1.5 rounded-md" 

@@ -7,6 +7,11 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
+  // If amount is not a number, return empty string or placeholder
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    return '';
+  }
+  
   // Format with 2 decimal places
   const formatted = new Intl.NumberFormat('en-QA', {
     style: 'currency',

@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
@@ -9,14 +9,31 @@ import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
+import { toast } from 'sonner';
 
 const Vehicles = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
   const { useRealtimeUpdates } = useVehicles();
   
   // Setup real-time updates
   useRealtimeUpdates();
+
+  // Get status from URL search params
+  useEffect(() => {
+    const statusFromUrl = searchParams.get('status');
+    
+    if (statusFromUrl) {
+      setFilters(prevFilters => ({ 
+        ...prevFilters,
+        status: statusFromUrl
+      }));
+      
+      // Show a toast to indicate filtered view
+      toast.info(`Showing vehicles with status: ${statusFromUrl}`);
+    }
+  }, [searchParams]);
 
   const handleSelectVehicle = (id: string) => {
     navigate(`/vehicles/${id}`);
@@ -59,6 +76,13 @@ const Vehicles = () => {
       
       <VehicleFilters 
         onFilterChange={handleFilterChange} 
+        initialValues={{
+          status: filters.status as string || '',
+          make: filters.make || '',
+          location: filters.location || '',
+          year: filters.year?.toString() || '',
+          category: filters.vehicle_type_id || ''
+        }}
         className="mb-6"
       />
       
