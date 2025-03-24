@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
+import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams, VehicleStatus, VehicleInsertData } from '@/types/vehicle';
 import { ensureVehicleImagesBucket, getImagePublicUrl, formatVehicleForDisplay } from '@/lib/supabase';
 
 // Type for database interactions to prevent circular reference issues
@@ -14,19 +14,19 @@ interface DatabaseVehicle {
   year: number;
   license_plate: string;
   vin: string;
-  color?: string;
-  status?: string;
-  mileage?: number;
-  image_url?: string;
-  description?: string;
-  is_test_data?: boolean;
-  location?: string;
-  insurance_company?: string;
-  insurance_expiry?: string;
-  device_type?: string;
-  rent_amount?: number;
-  vehicle_type_id?: string;
-  registration_number?: string;
+  color?: string | null;
+  status?: string | null;
+  mileage?: number | null;
+  image_url?: string | null;
+  description?: string | null;
+  is_test_data?: boolean | null;
+  location?: string | null;
+  insurance_company?: string | null;
+  insurance_expiry?: string | null;
+  device_type?: string | null;
+  rent_amount?: number | null;
+  vehicle_type_id?: string | null;
+  registration_number?: string | null;
   created_at: string;
   updated_at: string;
   vehicle_types?: VehicleType;
@@ -169,8 +169,8 @@ export const useVehicles = () => {
             }
           }
           
-          // Build a type-safe vehicle data object to avoid typecasting issues
-          const vehicleData: Record<string, any> = {
+          // Build a properly typed vehicle data object for insertion
+          const vehicleData: VehicleInsertData = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
@@ -185,14 +185,8 @@ export const useVehicles = () => {
             rent_amount: formData.rent_amount || null,
             vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
             image_url: imageUrl,
+            status: formData.status || 'available',
           };
-          
-          // Handle the status field separately to ensure it matches valid Supabase values
-          if (formData.status) {
-            vehicleData.status = formData.status;
-          } else {
-            vehicleData.status = 'available';
-          }
           
           const { data, error } = await supabase
             .from('vehicles')
@@ -249,9 +243,8 @@ export const useVehicles = () => {
             }
           }
           
-          // Build an update object with only the fields we want to update
-          // This avoids type issues with Supabase's typings
-          const vehicleData: Record<string, unknown> = {};
+          // Build an update object with proper typing for Supabase
+          const vehicleData: VehicleInsertData = {};
           
           // Required fields
           if (data.make !== undefined) vehicleData.make = data.make;
