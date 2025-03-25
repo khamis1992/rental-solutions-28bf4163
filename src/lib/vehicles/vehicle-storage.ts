@@ -128,42 +128,85 @@ export async function getVehicleImageByPrefix(idPrefix: string): Promise<string 
   }
 }
 
-// Get specific model image from storage (for B70 or other models)
+// Get specific model image from storage (for models like B70, T33, T99, etc.)
 export async function getModelSpecificImage(model: string): Promise<string | null> {
-  const modelLower = (model || '').toString().toLowerCase().trim();
+  if (!model) return null;
   
-  // For now, we only implement this for B70 specifically
-  if (modelLower.includes('b70') || modelLower === 'b70') {
-    try {
-      // Query the storage for any files with 'b70' in the name
-      const { data, error } = await supabase.storage
-        .from('vehicle-images')
-        .list('', {
-          search: 'b70'
-        });
-      
-      if (error) {
-        console.error('Error searching for B70 image:', error);
-        return null;
-      }
-      
-      // Find B70 specific images
-      const b70Images = data.filter(item => 
-        item.name.toLowerCase().includes('b70') && 
-        !item.name.includes('-') // Exclude vehicle-specific images that contain hyphens
-      );
-      
-      if (b70Images.length > 0) {
-        return getImagePublicUrl('vehicle-images', b70Images[0].name);
-      }
-      
-      // Fallback to the public image if not in storage
-      return '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
-    } catch (error) {
-      console.error('Error getting B70 model image:', error);
-      return null;
+  const modelLower = model.toString().toLowerCase().trim();
+  const modelUpper = model.toString().toUpperCase().trim();
+  
+  // Map of supported models to their exact filenames in storage
+  const supportedModels: Record<string, string> = {
+    'b70': 'B70.png',
+    't33': 'T33.png',
+    't99': 'T99.png',
+    'a30': 'A30.png',
+    'territory': 'TERRITORY.png',
+    'gs3': 'GS3.png',
+    'mg5': 'MG5.png',
+    'alsvin': 'Alsvin.png'
+  };
+  
+  // Determine which model we're looking for
+  let targetFileName: string | null = null;
+  
+  // Check for exact matches first
+  for (const [key, fileName] of Object.entries(supportedModels)) {
+    if (modelLower === key || modelUpper === key || modelLower.includes(key) || modelUpper.includes(key)) {
+      targetFileName = fileName;
+      break;
     }
   }
   
-  return null;
+  if (!targetFileName) {
+    return null;
+  }
+  
+  try {
+    // First try with exact filename match
+    const { data, error } = await supabase.storage
+      .from('vehicle-images')
+      .list('', {
+        search: targetFileName
+      });
+    
+    if (error) {
+      console.error(`Error searching for ${targetFileName} image:`, error);
+      return null;
+    }
+    
+    // Find the exact model-specific image
+    const modelImages = data.filter(item => 
+      item.name.toLowerCase() === targetFileName?.toLowerCase()
+    );
+    
+    if (modelImages.length > 0) {
+      const imageUrl = getImagePublicUrl('vehicle-images', modelImages[0].name);
+      console.log(`Using ${targetFileName} image from storage:`, imageUrl);
+      return imageUrl;
+    }
+    
+    // If we didn't find the exact filename, fallback to searching
+    const { data: searchData, error: searchError } = await supabase.storage
+      .from('vehicle-images')
+      .list('', {
+        search: modelLower
+      });
+    
+    if (searchError) {
+      console.error(`Error searching for ${modelLower} image:`, searchError);
+      return null;
+    }
+    
+    if (searchData && searchData.length > 0) {
+      const imageUrl = getImagePublicUrl('vehicle-images', searchData[0].name);
+      console.log(`Using found ${modelLower} image from storage:`, imageUrl);
+      return imageUrl;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error(`Error getting ${modelLower} model image:`, error);
+    return null;
+  }
 }

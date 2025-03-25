@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -58,10 +57,24 @@ const VehicleCard = ({
       setIsImageLoading(true);
       
       try {
-        // First, check if we have a specific model image for B70
-        if (model && model.toLowerCase().includes('b70')) {
-          const modelImage = await getModelSpecificImage(model);
+        // Check model-specific images
+        const modelToCheck = model || '';
+        
+        // Models to check for specific storage images
+        const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
+        
+        // Find if current vehicle matches any known model
+        const matchedModelType = modelTypes.find(type => 
+          modelToCheck.toUpperCase().includes(type) || 
+          modelToCheck.toLowerCase().includes(type.toLowerCase())
+        );
+        
+        if (matchedModelType) {
+          console.log(`Vehicle matched model type: ${matchedModelType}`);
+          const modelImage = await getModelSpecificImage(matchedModelType);
+          
           if (modelImage) {
+            console.log(`Using ${matchedModelType} image from storage:`, modelImage);
             setActualImageUrl(modelImage);
             setIsImageLoading(false);
             return;
@@ -83,7 +96,7 @@ const VehicleCard = ({
           return;
         }
         
-        // Finally, fall back to model-specific images
+        // Finally, fall back to model-specific images from public folder
         fallbackToModelImages();
       } catch (error) {
         console.error('Error loading vehicle image:', error);
@@ -111,27 +124,27 @@ const VehicleCard = ({
       
       if (modelLower.includes('b70') || modelLower === 'b70') {
         setActualImageUrl(b70Image);
-        console.log('Using B70 image');
+        console.log('Using B70 fallback image');
       }
       else if (modelLower.includes('t33') || modelLower === 't33') {
         setActualImageUrl(t33Image);
-        console.log('Using T33 image');
+        console.log('Using T33 fallback image');
       }
       else if (modelLower.includes('t77') || modelLower === 't77') {
         setActualImageUrl(t77Image);
-        console.log('Using T77 image');
+        console.log('Using T77 fallback image');
       } 
       else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
         setActualImageUrl(gs3Image);
-        console.log('Using GAC GS3 image');
+        console.log('Using GAC GS3 fallback image');
       }
       else if (modelLower.includes('gs3') || modelLower === 'gs3') {
         setActualImageUrl(gs3Image);
-        console.log('Using GS3 image');
+        console.log('Using GS3 fallback image');
       }
       else if (makeLower.includes('gac')) {
         setActualImageUrl(gacImage);
-        console.log('Using generic GAC image');
+        console.log('Using generic GAC fallback image');
       } 
       else if (
         makeLower === 'mg' || 
@@ -145,10 +158,10 @@ const VehicleCard = ({
           (makeLower === 'mg' && modelLower === '5')
         ) {
           setActualImageUrl(mg5Image);
-          console.log('Using MG5 specific image:', mg5Image);
+          console.log('Using MG5 specific fallback image:', mg5Image);
         } else {
           setActualImageUrl(mgImage);
-          console.log('Using generic MG image:', mgImage);
+          console.log('Using generic MG fallback image:', mgImage);
         }
       } 
       else {

@@ -55,12 +55,22 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       setImageLoading(true);
       
       try {
-        if (vehicle.model && vehicle.model.toLowerCase().includes('b70')) {
-          const modelImage = await getModelSpecificImage(vehicle.model);
+        const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
+        const modelToCheck = vehicle.model || '';
+        
+        const matchedModelType = modelTypes.find(type => 
+          modelToCheck.toUpperCase().includes(type) || 
+          modelToCheck.toLowerCase().includes(type.toLowerCase())
+        );
+        
+        if (matchedModelType) {
+          console.log(`Detail view: Vehicle matched model type: ${matchedModelType}`);
+          const modelImage = await getModelSpecificImage(matchedModelType);
+          
           if (modelImage) {
+            console.log(`Detail view: Using ${matchedModelType} image from storage:`, modelImage);
             setVehicleImageUrl(modelImage);
             setImageLoading(false);
-            console.log('Using B70 model specific image from storage');
             return;
           }
         }
@@ -107,27 +117,27 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       
       if (modelLower.includes('b70') || modelLower === 'b70') {
         setVehicleImageUrl(b70Image);
-        console.log('Using B70 image in detail');
+        console.log('Using B70 fallback image in detail');
       }
       else if (modelLower.includes('t33') || modelLower === 't33') {
         setVehicleImageUrl(t33Image);
-        console.log('Using T33 image in detail');
+        console.log('Using T33 fallback image in detail');
       }
       else if (modelLower.includes('t77') || modelLower === 't77') {
         setVehicleImageUrl(t77Image);
-        console.log('Using T77 image in detail');
+        console.log('Using T77 fallback image in detail');
       } 
       else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
         setVehicleImageUrl(gs3Image);
-        console.log('Using GAC GS3 image in detail');
+        console.log('Using GAC GS3 fallback image in detail');
       }
       else if (modelLower.includes('gs3') || modelLower === 'gs3') {
         setVehicleImageUrl(gs3Image);
-        console.log('Using GS3 image in detail');
+        console.log('Using GS3 fallback image in detail');
       }
       else if (makeLower.includes('gac')) {
         setVehicleImageUrl(gacImage);
-        console.log('Using generic GAC image in detail');
+        console.log('Using generic GAC fallback image in detail');
       } 
       else if (
         makeLower === 'mg' || 
@@ -141,10 +151,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           (makeLower === 'mg' && modelLower === '5')
         ) {
           setVehicleImageUrl(mg5Image);
-          console.log('Using MG5 specific image in detail:', mg5Image);
+          console.log('Using MG5 specific fallback image in detail:', mg5Image);
         } else {
           setVehicleImageUrl(mgImage);
-          console.log('Using generic MG image in detail:', mgImage);
+          console.log('Using generic MG fallback image in detail:', mgImage);
         }
       } else {
         setVehicleImageUrl(defaultCarImage);
@@ -487,3 +497,4 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       </CardContent>
     </Card>;
 };
+
