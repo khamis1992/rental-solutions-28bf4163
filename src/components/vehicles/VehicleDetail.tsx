@@ -53,31 +53,49 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
 
   let displayImageUrl = defaultCarImage;
   try {
-    const makeLower = (vehicle.make || '').toString().toLowerCase();
-    const modelLower = (vehicle.model || '').toString().toLowerCase();
+    // Normalize make and model for consistent comparison (convert to lowercase)
+    const makeLower = (vehicle.make || '').toString().toLowerCase().trim();
+    const modelLower = (vehicle.model || '').toString().toLowerCase().trim();
     
     console.log('Vehicle detail make/model:', makeLower, modelLower);
     
-    if (modelLower.includes('t77')) {
+    // Check for T77 in model name
+    if (modelLower.includes('t77') || modelLower === 't77') {
       displayImageUrl = t77Image;
       console.log('Using T77 image in detail');
-    } else if (makeLower.includes('gac')) {
+    } 
+    // Check for GAC in make name
+    else if (makeLower.includes('gac')) {
       displayImageUrl = gacImage;
       console.log('Using GAC image in detail');
-    } else if (makeLower === 'mg' || makeLower.startsWith('mg ')) {
-      // Check if it's specifically an MG5
-      if (modelLower.includes('5') || modelLower.includes('mg5')) {
-        displayImageUrl = mg5Image; // Use the MG5 specific image
+    } 
+    // MG handling - check both make and model
+    else if (
+      makeLower === 'mg' || 
+      makeLower.startsWith('mg ') || 
+      modelLower.startsWith('mg')
+    ) {
+      // Specific check for MG5
+      if (
+        modelLower.includes('5') || 
+        modelLower.includes('mg5') || 
+        makeLower.includes('mg5') ||
+        (makeLower === 'mg' && modelLower === '5')
+      ) {
+        displayImageUrl = mg5Image;
         console.log('Using MG5 specific image in detail:', mg5Image);
       } else {
-        displayImageUrl = mgImage; // Use the generic MG image
+        displayImageUrl = mgImage;
         console.log('Using generic MG image in detail:', mgImage);
       }
-    } else if (vehicle.imageUrl) {
+    } 
+    // Use provided imageUrl if available
+    else if (vehicle.imageUrl) {
       displayImageUrl = vehicle.imageUrl;
     }
   } catch (error) {
     console.error('Error setting vehicle detail image:', error);
+    // Fallback already set to defaultCarImage
   }
 
   const hasInsurance = !!vehicle.insurance_company;

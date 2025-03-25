@@ -60,29 +60,48 @@ const VehicleCard = ({
   let displayImageUrl = '';
   
   try {
-    const makeLower = (make || '').toString().toLowerCase();
-    const modelLower = (model || '').toString().toLowerCase();
+    // Normalize make and model for consistent comparison (convert to lowercase)
+    const makeLower = (make || '').toString().toLowerCase().trim();
+    const modelLower = (model || '').toString().toLowerCase().trim();
     
-    console.log('Vehicle make/model:', makeLower, modelLower);
+    console.log('Vehicle card make/model:', makeLower, modelLower);
     
-    if (modelLower.includes('t77')) {
-      displayImageUrl = t77Image; // Use the T77 image
+    // Check for T77 in model name
+    if (modelLower.includes('t77') || modelLower === 't77') {
+      displayImageUrl = t77Image;
       console.log('Using T77 image');
-    } else if (makeLower.includes('gac')) {
-      displayImageUrl = gacImage; // Use the GAC image
+    } 
+    // Check for GAC in make name
+    else if (makeLower.includes('gac')) {
+      displayImageUrl = gacImage;
       console.log('Using GAC image');
-    } else if (makeLower === 'mg' || makeLower.startsWith('mg ')) {
-      // Check if it's specifically an MG5
-      if (modelLower.includes('5') || modelLower.includes('mg5')) {
-        displayImageUrl = mg5Image; // Use the MG5 specific image
+    } 
+    // MG handling - check both make and model
+    else if (
+      makeLower === 'mg' || 
+      makeLower.startsWith('mg ') || 
+      modelLower.startsWith('mg')
+    ) {
+      // Specific check for MG5
+      if (
+        modelLower.includes('5') || 
+        modelLower.includes('mg5') || 
+        makeLower.includes('mg5') ||
+        (makeLower === 'mg' && modelLower === '5')
+      ) {
+        displayImageUrl = mg5Image;
         console.log('Using MG5 specific image:', mg5Image);
       } else {
-        displayImageUrl = mgImage; // Use the generic MG image
+        displayImageUrl = mgImage;
         console.log('Using generic MG image:', mgImage);
       }
-    } else if (imageUrl) {
+    } 
+    // Use provided imageUrl if available
+    else if (imageUrl) {
       displayImageUrl = imageUrl;
-    } else {
+    } 
+    // Fallback to default image
+    else {
       displayImageUrl = defaultCarImage;
     }
   } catch (error) {
