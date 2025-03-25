@@ -83,7 +83,7 @@ const Sidebar = () => {
     >
       <div className="h-16 flex items-center px-4 justify-between border-b border-sidebar-border/50">
         {!collapsed && (
-          <div className="font-bold text-lg">Auto Rent Pro</div>
+          <div className="font-bold text-lg">Rental Solutions</div>
         )}
         <button 
           onClick={() => setCollapsed(!collapsed)}
