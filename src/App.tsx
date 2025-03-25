@@ -133,6 +133,14 @@ const App = () => {
                           {/* User Management Routes */}
                           <Route path="/settings" element={<UserSettings />} />
                           <Route 
+                            path="/user-management" 
+                            element={
+                              <ProtectedRoute roles={["admin"]}>
+                                <UserManagement />
+                              </ProtectedRoute>
+                            } 
+                          />
+                          <Route 
                             path="/users" 
                             element={
                               <ProtectedRoute roles={["admin"]}>
