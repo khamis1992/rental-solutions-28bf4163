@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -125,7 +124,20 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
       data.nextPaymentDate = null;
     }
 
-    onSubmit(data);
+    // Convert form data to the expected format, ensuring all required properties are present
+    const expenseData = {
+      amount: data.amount,
+      description: data.description,
+      date: data.date,
+      status: data.status, // This is now required
+      reference: data.reference || '',
+      paymentMethod: data.paymentMethod || 'Cash',
+      isRecurring: data.isRecurring,
+      recurringInterval: data.recurringInterval,
+      nextPaymentDate: data.nextPaymentDate,
+    };
+
+    onSubmit(expenseData);
     onOpenChange(false);
   };
 
