@@ -55,6 +55,7 @@ const VehicleCard = ({
   const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
   const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
   const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
+  const gs3Image = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
   
   // Custom image logic by make/model
   let displayImageUrl = '';
@@ -71,10 +72,15 @@ const VehicleCard = ({
       displayImageUrl = t77Image;
       console.log('Using T77 image');
     } 
-    // Check for GAC in make name
+    // Check for GAC GS3 specifically
+    else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
+      displayImageUrl = gs3Image;
+      console.log('Using GAC GS3 image');
+    }
+    // Check for other GAC models
     else if (makeLower.includes('gac')) {
       displayImageUrl = gacImage;
-      console.log('Using GAC image');
+      console.log('Using generic GAC image');
     } 
     // MG handling - check both make and model
     else if (
