@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -6,6 +7,7 @@ import { CircleUser, Calendar, MapPin, Fuel, Activity } from 'lucide-react';
 import { CustomButton } from './custom-button';
 import { VehicleStatus } from '@/types/vehicle';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { ColorAdjustedImage } from '@/components/vehicles/ColorAdjustedImage';
 
 interface VehicleCardProps {
   id: string;
@@ -20,6 +22,7 @@ interface VehicleCardProps {
   mileage?: number | null;
   className?: string;
   onSelect?: (id: string) => void;
+  color?: string;
 }
 
 const VehicleCard = ({
@@ -35,6 +38,7 @@ const VehicleCard = ({
   mileage,
   className,
   onSelect,
+  color,
 }: VehicleCardProps) => {
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [isImageLoading, setIsImageLoading] = useState(true);
@@ -188,13 +192,14 @@ const VehicleCard = ({
             <span className="text-muted-foreground">Loading...</span>
           </div>
         ) : (
-          <img 
-            src={actualImageUrl || defaultCarImage} 
+          <ColorAdjustedImage 
+            src={actualImageUrl || defaultCarImage}
             alt={`${make} ${model}`}
+            vehicle={{ color, id }} 
             className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
             onError={(e) => {
-              console.log('Image failed to load, using fallback:', e.currentTarget.src);
-              e.currentTarget.src = defaultCarImage;
+              console.log('Image failed to load, using fallback:', actualImageUrl);
+              setActualImageUrl(defaultCarImage);
             }}
           />
         )}
