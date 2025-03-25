@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
+import { useTrafficFines, TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { AlertTriangle, Check, Clock } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -79,7 +79,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status,
+          paymentStatus: fine.payment_status as TrafficFineStatusType,
           location: fine.fine_location || '',
           vehicleId: fine.vehicle_id,
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined

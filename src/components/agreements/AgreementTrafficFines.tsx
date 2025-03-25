@@ -34,7 +34,7 @@ interface TrafficFineResult {
   violation_date: string;
   fine_amount: number;
   violation_charge: string;
-  payment_status: TrafficFineStatusType;
+  payment_status: string;
   fine_location?: string;
   lease_id?: string;
   vehicle_id?: string;
@@ -127,7 +127,7 @@ export const AgreementTrafficFines = ({
             violationDate: fine.violation_date,
             fineAmount: fine.fine_amount,
             violationCharge: fine.violation_charge,
-            paymentStatus: fine.payment_status,
+            paymentStatus: fine.payment_status as TrafficFineStatusType,
             location: fine.fine_location,
             lease_id: fine.lease_id,
             vehicle_id: fine.vehicle_id
@@ -143,7 +143,7 @@ export const AgreementTrafficFines = ({
             violationDate: fine.violation_date,
             fineAmount: fine.fine_amount,
             violationCharge: fine.violation_charge,
-            paymentStatus: fine.payment_status,
+            paymentStatus: fine.payment_status as TrafficFineStatusType,
             location: fine.fine_location,
             lease_id: fine.lease_id,
             vehicle_id: fine.vehicle_id
