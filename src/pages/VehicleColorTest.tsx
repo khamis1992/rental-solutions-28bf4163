@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -160,7 +159,7 @@ const VehicleColorTest = () => {
                 <ColorAdjustedImage 
                   src={selectedImage}
                   alt="Filter preview"
-                  vehicle={{ color: selectedColor }}
+                  color={selectedColor}
                   forceMethod="filter"
                 />
               </TabsContent>
@@ -169,7 +168,7 @@ const VehicleColorTest = () => {
                 <ColorAdjustedImage 
                   src={selectedImage}
                   alt="Overlay preview"
-                  vehicle={{ color: selectedColor }}
+                  color={selectedColor}
                   forceMethod="overlay"
                 />
               </TabsContent>

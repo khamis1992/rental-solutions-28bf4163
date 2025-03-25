@@ -18,7 +18,7 @@ export const VehicleColorPreview: React.FC<VehicleColorPreviewProps> = ({
   selectedColor,
   onColorChange
 }) => {
-  const [previewMethod, setPreviewMethod] = useState<'filter' | 'overlay'>('filter');
+  const [previewMethod, setPreviewMethod] = useState<'filter' | 'overlay' | 'none'>('filter');
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
   // Popular colors for quick selection
@@ -50,7 +50,7 @@ export const VehicleColorPreview: React.FC<VehicleColorPreviewProps> = ({
         <ColorAdjustedImage
           src={imageSrc || defaultCarImage}
           alt="Vehicle color preview"
-          vehicle={{ color: selectedColor }}
+          color={selectedColor}
           forceMethod={previewMethod}
         />
       </div>

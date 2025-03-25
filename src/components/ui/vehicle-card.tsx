@@ -195,7 +195,7 @@ const VehicleCard = ({
           <ColorAdjustedImage 
             src={actualImageUrl || defaultCarImage}
             alt={`${make} ${model}`}
-            vehicle={{ color, id }} 
+            color={color}
             className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
             onError={(e) => {
               console.log('Image failed to load, using fallback:', actualImageUrl);

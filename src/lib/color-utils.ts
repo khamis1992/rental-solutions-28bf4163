@@ -98,8 +98,8 @@ export function isDarkColor(colorHex: string): boolean {
 /**
  * Get the best color adjustment method for a vehicle
  */
-export function getColorAdjustmentMethod(vehicle: Vehicle): 'filter' | 'overlay' | 'none' {
-  if (!vehicle.color) return 'none';
+export function getColorAdjustmentMethod(vehicle: Vehicle | Partial<Vehicle>): 'filter' | 'overlay' | 'none' {
+  if (!vehicle?.color) return 'none';
   
   const normalizedColor = vehicle.color.toLowerCase().trim();
   

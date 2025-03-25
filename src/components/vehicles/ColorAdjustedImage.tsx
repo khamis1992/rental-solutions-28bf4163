@@ -7,7 +7,8 @@ import { Vehicle } from '@/types/vehicle';
 interface ColorAdjustedImageProps {
   src: string;
   alt: string;
-  vehicle: Vehicle;
+  vehicle?: Partial<Vehicle> | null;
+  color?: string;
   className?: string;
   onLoad?: () => void;
   onError?: (e: React.SyntheticEvent<HTMLImageElement, Event>) => void;
@@ -18,7 +19,8 @@ interface ColorAdjustedImageProps {
 export const ColorAdjustedImage: React.FC<ColorAdjustedImageProps> = ({
   src,
   alt,
-  vehicle,
+  vehicle = null,
+  color: directColor,
   className,
   onLoad,
   onError,
@@ -29,17 +31,22 @@ export const ColorAdjustedImage: React.FC<ColorAdjustedImageProps> = ({
   const [imageSrc, setImageSrc] = useState(src);
   const [adjustmentMethod, setAdjustmentMethod] = useState<'filter' | 'overlay' | 'none'>('none');
   
+  // Get the color from either the direct color prop or from the vehicle
+  const colorToUse = directColor || (vehicle?.color) || '';
+  
   useEffect(() => {
     // Determine the best method to adjust color
     if (forceMethod !== 'auto') {
-      setAdjustmentMethod(forceMethod === 'auto' ? 'none' : forceMethod);
+      setAdjustmentMethod(forceMethod);
+    } else if (vehicle) {
+      setAdjustmentMethod(getColorAdjustmentMethod(vehicle as Vehicle));
     } else {
-      setAdjustmentMethod(getColorAdjustmentMethod(vehicle));
+      setAdjustmentMethod('none');
     }
   }, [vehicle, forceMethod]);
   
-  const colorHex = getColorHex(vehicle.color);
-  const colorFilter = getColorFilter(vehicle.color);
+  const colorHex = getColorHex(colorToUse);
+  const colorFilter = getColorFilter(colorToUse);
   
   const handleImageLoad = () => {
     setImageLoaded(true);
