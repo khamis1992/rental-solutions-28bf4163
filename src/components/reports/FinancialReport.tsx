@@ -8,6 +8,13 @@ import { Badge } from '@/components/ui/badge';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 
+// Define interface for category totals
+interface CategoryTotal {
+  total: number;
+  income: number;
+  expense: number;
+}
+
 const FinancialReport = () => {
   const { 
     financialSummary, 
@@ -21,7 +28,7 @@ const FinancialReport = () => {
   }
 
   // Calculate category totals from real transaction data
-  const categoryTotals = transactions.reduce((acc, transaction) => {
+  const categoryTotals = transactions.reduce<Record<string, CategoryTotal>>((acc, transaction) => {
     const category = transaction.category || 'Other';
     if (!acc[category]) {
       acc[category] = {
