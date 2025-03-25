@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
@@ -112,7 +113,7 @@ export function useFinancials() {
             date: new Date(payment.payment_date),
             amount: payment.amount || 0,
             description: payment.description || 'Rental Payment',
-            type: payment.type?.toLowerCase() === 'expense' ? 'expense' : 'income' as TransactionType,
+            type: payment.type?.toLowerCase() === 'expense' ? 'expense' as TransactionType : 'income' as TransactionType,
             category: payment.type === 'Expense' ? 'Operational' : 'Rental',
             status: payment.status?.toLowerCase() as TransactionStatusType || 'completed',
             reference: payment.reference || '',
@@ -282,7 +283,9 @@ export function useFinancials() {
           amount: expense.amount || 0,
           description: expense.description || 'Expense',
           type: 'expense' as TransactionType,
-          category: expense.category || 'Other',
+          category: expense.description?.includes('Salary') ? 'Salary' : 
+                   expense.description?.includes('Rent') ? 'Rent' : 
+                   expense.description?.includes('Utility') ? 'Utilities' : 'Other',
           status: expense.status?.toLowerCase() as TransactionStatusType || 'completed',
           reference: expense.reference || '',
           paymentMethod: expense.payment_method || 'Cash',
@@ -341,7 +344,6 @@ export function useFinancials() {
           amount: transactionData.amount,
           description: transactionData.description,
           type: transactionData.type === 'income' ? 'Income' : 'Expense',
-          category: transactionData.category,
           status: transactionData.status,
           reference: transactionData.reference,
           payment_method: transactionData.paymentMethod,
@@ -363,7 +365,10 @@ export function useFinancials() {
         amount: data.amount,
         description: data.description,
         type: data.type?.toLowerCase() === 'expense' ? 'expense' : 'income',
-        category: data.category || '',
+        category: data.type === 'Expense' ? 
+                 data.description?.includes('Salary') ? 'Salary' : 
+                 data.description?.includes('Rent') ? 'Rent' : 
+                 data.description?.includes('Utility') ? 'Utilities' : 'Other' : 'Rental',
         status: data.status as TransactionStatusType,
         reference: data.reference,
         paymentMethod: data.payment_method,
@@ -434,7 +439,6 @@ export function useFinancials() {
             amount: data.amount,
             description: data.description,
             type: data.type === 'income' ? 'Income' : 'Expense',
-            category: data.category,
             status: data.status,
             reference: data.reference,
             payment_method: data.paymentMethod,
@@ -456,7 +460,10 @@ export function useFinancials() {
           amount: updatedData.amount,
           description: updatedData.description,
           type: updatedData.type?.toLowerCase() === 'expense' ? 'expense' : 'income',
-          category: updatedData.category || '',
+          category: updatedData.type === 'Expense' ? 
+                   updatedData.description?.includes('Salary') ? 'Salary' : 
+                   updatedData.description?.includes('Rent') ? 'Rent' : 
+                   updatedData.description?.includes('Utility') ? 'Utilities' : 'Other' : 'Rental',
           status: updatedData.status as TransactionStatusType,
           reference: updatedData.reference,
           paymentMethod: updatedData.payment_method,
@@ -542,7 +549,6 @@ export function useFinancials() {
           amount: expenseData.amount,
           description: expenseData.description,
           type: 'Expense', // Always 'Expense' for this mutation
-          category: expenseData.category,
           status: expenseData.status,
           reference: expenseData.reference,
           payment_method: expenseData.paymentMethod,
@@ -565,7 +571,9 @@ export function useFinancials() {
         amount: data.amount,
         description: data.description,
         type: 'expense',
-        category: data.category || '',
+        category: data.description?.includes('Salary') ? 'Salary' : 
+                 data.description?.includes('Rent') ? 'Rent' : 
+                 data.description?.includes('Utility') ? 'Utilities' : 'Other',
         status: data.status as TransactionStatusType,
         reference: data.reference,
         paymentMethod: data.payment_method,
@@ -599,7 +607,6 @@ export function useFinancials() {
       if (data.date) updateData.payment_date = data.date.toISOString();
       if (data.amount !== undefined) updateData.amount = data.amount;
       if (data.description) updateData.description = data.description;
-      if (data.category) updateData.category = data.category;
       if (data.status) updateData.status = data.status;
       if (data.reference !== undefined) updateData.reference = data.reference;
       if (data.paymentMethod) updateData.payment_method = data.paymentMethod;
@@ -633,7 +640,9 @@ export function useFinancials() {
         amount: updatedData.amount,
         description: updatedData.description,
         type: 'expense',
-        category: updatedData.category || '',
+        category: updatedData.description?.includes('Salary') ? 'Salary' : 
+                 updatedData.description?.includes('Rent') ? 'Rent' : 
+                 updatedData.description?.includes('Utility') ? 'Utilities' : 'Other',
         status: updatedData.status as TransactionStatusType,
         reference: updatedData.reference,
         paymentMethod: updatedData.payment_method,
