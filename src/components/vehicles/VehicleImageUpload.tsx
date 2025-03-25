@@ -1,8 +1,9 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, Image, AlertCircle, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
+import { ensureVehicleImagesBucket } from '@/lib/vehicles/vehicle-storage';
 
 interface VehicleImageUploadProps {
   onImageSelected: (file: File | null) => void;
@@ -19,7 +20,32 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [bucketReady, setBucketReady] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Ensure the vehicle-images bucket exists on component mount
+    const checkBucket = async () => {
+      try {
+        const ready = await ensureVehicleImagesBucket();
+        setBucketReady(ready);
+        if (!ready) {
+          console.warn('Vehicle images bucket is not ready');
+        }
+      } catch (error) {
+        console.error('Error checking vehicle images bucket:', error);
+      }
+    };
+    
+    checkBucket();
+  }, []);
+
+  useEffect(() => {
+    // Update preview URL if initialImageUrl changes
+    if (initialImageUrl) {
+      setPreviewUrl(initialImageUrl);
+    }
+  }, [initialImageUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -87,7 +113,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   };
 
   const handleRemoveImage = () => {
-    if (previewUrl) {
+    if (previewUrl && !previewUrl.includes('supabase.co') && !previewUrl.includes('lovable-uploads')) {
       URL.revokeObjectURL(previewUrl);
     }
     setPreviewUrl(null);
@@ -133,6 +159,10 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
             src={previewUrl} 
             alt="Vehicle preview" 
             className="mx-auto max-h-64 rounded-md object-contain"
+            onError={(e) => {
+              console.error('Failed to load image:', previewUrl);
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
+            }}
           />
           <CustomButton
             type="button"
@@ -163,6 +193,12 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
           <p className="text-xs text-muted-foreground mt-3">
             JPG, PNG or WEBP (max. 5MB)
           </p>
+          
+          {!bucketReady && (
+            <p className="text-xs text-amber-500 mt-2">
+              Storage configuration is being set up. Try again shortly.
+            </p>
+          )}
           
           {errorMessage && (
             <div className="mt-3 flex items-center text-red-500 text-sm">
