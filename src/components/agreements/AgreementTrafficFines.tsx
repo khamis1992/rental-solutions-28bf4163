@@ -53,11 +53,11 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
-        // Get the vehicle ID associated with this agreement
+        // Get the vehicle ID associated with this agreement using a subquery approach
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId)
+          .filter('id', 'eq', agreementId)
           .single();
         
         if (leaseError) {
@@ -76,7 +76,7 @@ export const AgreementTrafficFines = ({
         const { data: directFines, error: directError } = await supabase
           .from('traffic_fines')
           .select('*')
-          .eq('lease_id', agreementId);
+          .filter('lease_id', 'eq', agreementId);
 
         if (directError) {
           console.error("Error fetching direct traffic fines:", directError);
@@ -87,7 +87,7 @@ export const AgreementTrafficFines = ({
         const { data: dateRangeFines, error: dateRangeError } = await supabase
           .from('traffic_fines')
           .select('*')
-          .eq('vehicle_id', leaseData.vehicle_id)
+          .filter('vehicle_id', 'eq', leaseData.vehicle_id)
           .gte('violation_date', startDate.toISOString())
           .lte('violation_date', endDate.toISOString());
 
@@ -211,4 +211,4 @@ export const AgreementTrafficFines = ({
       </CardContent>
     </Card>
   );
-};
+}

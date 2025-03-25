@@ -21,11 +21,11 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // First, get all leases that belong to this customer
+        // Use a more direct approach to get leases by customer_id
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
-          .eq('customer_id', customerId);
+          .filter('customer_id', 'eq', customerId);
           
         if (leasesError) {
           throw new Error(leasesError.message);
