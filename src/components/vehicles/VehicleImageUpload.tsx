@@ -4,6 +4,7 @@ import { Upload, X, Image, AlertCircle, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
 import { ensureVehicleImagesBucket } from '@/lib/vehicles/vehicle-storage';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VehicleImageUploadProps {
   onImageSelected: (file: File | null) => void;
@@ -21,23 +22,57 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [bucketReady, setBucketReady] = useState(false);
+  const [bucketStatus, setBucketStatus] = useState<string>('checking');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Ensure the vehicle-images bucket exists on component mount
     const checkBucket = async () => {
+      setBucketStatus('checking');
+      setIsLoading(true);
       try {
+        console.log('Checking vehicle-images bucket in VehicleImageUpload...');
         const ready = await ensureVehicleImagesBucket();
         setBucketReady(ready);
+        setBucketStatus(ready ? 'ready' : 'error');
+        
         if (!ready) {
           console.warn('Vehicle images bucket is not ready');
+          toast.error('Storage configuration issue', { 
+            description: 'Unable to configure image storage. Contact an administrator.' 
+          });
+        } else {
+          console.log('Vehicle images bucket is ready');
         }
       } catch (error) {
         console.error('Error checking vehicle images bucket:', error);
+        setBucketStatus('error');
+        toast.error('Storage configuration error', { 
+          description: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
+      } finally {
+        setIsLoading(false);
       }
     };
     
     checkBucket();
+    
+    // Also check that we can actually list the bucket to confirm permissions
+    const verifyBucketAccess = async () => {
+      try {
+        const { data, error } = await supabase.storage.from('vehicle-images').list();
+        if (error) {
+          console.warn('Could not list vehicle-images bucket:', error);
+          setBucketStatus('permissions-error');
+        } else {
+          console.log('Successfully listed vehicle-images bucket contents:', data);
+        }
+      } catch (err) {
+        console.error('Error verifying bucket access:', err);
+      }
+    };
+    
+    verifyBucketAccess();
   }, []);
 
   useEffect(() => {
@@ -186,6 +221,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
             variant="outline" 
             size="sm"
             onClick={handleButtonClick}
+            disabled={bucketStatus !== 'ready'}
           >
             <Upload className="h-4 w-4 mr-2" />
             Upload Image
@@ -194,9 +230,21 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
             JPG, PNG or WEBP (max. 5MB)
           </p>
           
-          {!bucketReady && (
+          {bucketStatus === 'checking' && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Checking storage configuration...
+            </p>
+          )}
+          
+          {bucketStatus === 'error' && (
             <p className="text-xs text-amber-500 mt-2">
-              Storage configuration is being set up. Try again shortly.
+              Storage configuration error. Contact an administrator.
+            </p>
+          )}
+          
+          {bucketStatus === 'permissions-error' && (
+            <p className="text-xs text-amber-500 mt-2">
+              Storage permissions issue. Contact an administrator.
             </p>
           )}
           
