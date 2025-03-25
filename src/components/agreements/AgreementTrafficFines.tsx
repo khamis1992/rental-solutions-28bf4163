@@ -53,12 +53,11 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
-        // Get the vehicle ID associated with this agreement using a subquery approach
-        // Include table name alias to avoid ambiguous column references
+        // Get the vehicle ID associated with this agreement
         const { data: leaseData, error: leaseError } = await supabase
-          .from('leases as l')
-          .select('l.vehicle_id')
-          .filter('l.id', 'eq', agreementId)
+          .from('leases')
+          .select('vehicle_id')
+          .eq('id', agreementId)
           .single();
         
         if (leaseError) {
@@ -75,22 +74,21 @@ export const AgreementTrafficFines = ({
 
         // Fetch traffic fines that are directly associated with this agreement
         const { data: directFines, error: directError } = await supabase
-          .from('traffic_fines as tf')
-          .select('tf.*')
-          .filter('tf.lease_id', 'eq', agreementId);
+          .from('traffic_fines')
+          .select('*')
+          .eq('lease_id', agreementId);
 
         if (directError) {
           console.error("Error fetching direct traffic fines:", directError);
         }
 
         // Fetch traffic fines for the vehicle during the rental period
-        // Use table alias to avoid ambiguous column references
         const { data: dateRangeFines, error: dateRangeError } = await supabase
-          .from('traffic_fines as tf')
-          .select('tf.*')
-          .filter('tf.vehicle_id', 'eq', leaseData.vehicle_id)
-          .gte('tf.violation_date', startDate.toISOString())
-          .lte('tf.violation_date', endDate.toISOString());
+          .from('traffic_fines')
+          .select('*')
+          .eq('vehicle_id', leaseData.vehicle_id)
+          .gte('violation_date', startDate.toISOString())
+          .lte('violation_date', endDate.toISOString());
 
         if (dateRangeError) {
           console.error("Error fetching date range traffic fines:", dateRangeError);

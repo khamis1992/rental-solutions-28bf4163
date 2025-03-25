@@ -21,11 +21,11 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Use a more direct approach to get leases by customer_id with table alias
+        // Get leases by customer_id without using aliases
         const { data: leases, error: leasesError } = await supabase
-          .from('leases as l')
-          .select('l.id')
-          .filter('l.customer_id', 'eq', customerId);
+          .from('leases')
+          .select('id')
+          .eq('customer_id', customerId);
           
         if (leasesError) {
           throw new Error(leasesError.message);
@@ -41,10 +41,10 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         
         // Then fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
-          .from('traffic_fines as tf')
-          .select('tf.*')
-          .in('tf.lease_id', leaseIds)
-          .order('tf.violation_date', { ascending: false });
+          .from('traffic_fines')
+          .select('*')
+          .in('lease_id', leaseIds)
+          .order('violation_date', { ascending: false });
           
         if (finesError) {
           throw new Error(finesError.message);
@@ -60,7 +60,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
           paymentStatus: fine.payment_status,
-          location: fine.location || '',
+          location: fine.fine_location || '',
           vehicleId: fine.vehicle_id,
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
