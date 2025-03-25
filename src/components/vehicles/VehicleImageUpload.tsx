@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, X, Image, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, X, Image, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
 import { ensureVehicleImagesBucket } from '@/lib/vehicles/vehicle-storage';
 import { supabase } from '@/integrations/supabase/client';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface VehicleImageUploadProps {
   onImageSelected: (file: File | null) => void;
@@ -39,7 +40,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         if (!ready) {
           console.warn('Vehicle images bucket is not ready');
           toast.error('Storage configuration issue', { 
-            description: 'Unable to configure image storage. Contact an administrator.' 
+            description: 'Unable to configure image storage. Check your Supabase configuration.' 
           });
         } else {
           console.log('Vehicle images bucket is ready');
@@ -64,6 +65,9 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         if (error) {
           console.warn('Could not list vehicle-images bucket:', error);
           setBucketStatus('permissions-error');
+          if (error.message.includes('policy') || error.message.includes('permission')) {
+            setErrorMessage('Storage permission error: Cannot access the storage bucket.');
+          }
         } else {
           console.log('Successfully listed vehicle-images bucket contents:', data);
         }
@@ -163,6 +167,27 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
     fileInputRef.current?.click();
   };
 
+  const handleRetryBucketSetup = async () => {
+    setBucketStatus('checking');
+    setIsLoading(true);
+    try {
+      const ready = await ensureVehicleImagesBucket();
+      setBucketReady(ready);
+      setBucketStatus(ready ? 'ready' : 'error');
+      
+      if (ready) {
+        toast.success('Storage configured successfully');
+      } else {
+        toast.error('Still having issues with storage configuration');
+      }
+    } catch (error) {
+      console.error('Error in retry bucket setup:', error);
+      setBucketStatus('error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div 
       className={`
@@ -212,43 +237,60 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         </div>
       ) : (
         <div className="py-6 flex flex-col items-center">
-          <Image className="h-12 w-12 text-muted-foreground mb-3" />
-          <p className="text-sm text-muted-foreground mb-2">
-            Drag & drop an image here, or click to select
-          </p>
-          <CustomButton 
-            type="button" 
-            variant="outline" 
-            size="sm"
-            onClick={handleButtonClick}
-            disabled={bucketStatus !== 'ready'}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Upload Image
-          </CustomButton>
-          <p className="text-xs text-muted-foreground mt-3">
-            JPG, PNG or WEBP (max. 5MB)
-          </p>
-          
-          {bucketStatus === 'checking' && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Checking storage configuration...
-            </p>
+          {(bucketStatus === 'error' || bucketStatus === 'permissions-error') ? (
+            <Alert variant="destructive" className="mb-4 text-left">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Storage Configuration Error</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">
+                  {bucketStatus === 'permissions-error' 
+                    ? 'Cannot access storage bucket due to permission issues.'
+                    : 'Unable to configure image storage. Contact an administrator.'}
+                </p>
+                <p className="text-xs mb-2">
+                  Check that your Supabase service role key is properly configured in .env file.
+                </p>
+                <div className="flex gap-2 mt-3">
+                  <CustomButton
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleRetryBucketSetup}
+                  >
+                    Retry
+                  </CustomButton>
+                </div>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              <Image className="h-12 w-12 text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground mb-2">
+                Drag & drop an image here, or click to select
+              </p>
+              <CustomButton 
+                type="button" 
+                variant="outline" 
+                size="sm"
+                onClick={handleButtonClick}
+                disabled={bucketStatus !== 'ready'}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Image
+              </CustomButton>
+              <p className="text-xs text-muted-foreground mt-3">
+                JPG, PNG or WEBP (max. 5MB)
+              </p>
+              
+              {bucketStatus === 'checking' && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Checking storage configuration...
+                </p>
+              )}
+            </>
           )}
           
-          {bucketStatus === 'error' && (
-            <p className="text-xs text-amber-500 mt-2">
-              Storage configuration error. Contact an administrator.
-            </p>
-          )}
-          
-          {bucketStatus === 'permissions-error' && (
-            <p className="text-xs text-amber-500 mt-2">
-              Storage permissions issue. Contact an administrator.
-            </p>
-          )}
-          
-          {errorMessage && (
+          {errorMessage && !['error', 'permissions-error'].includes(bucketStatus) && (
             <div className="mt-3 flex items-center text-red-500 text-sm">
               <AlertCircle className="h-4 w-4 mr-1" />
               {errorMessage}

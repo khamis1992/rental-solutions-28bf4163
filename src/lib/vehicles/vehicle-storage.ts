@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { createClient } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 
 // Ensure the vehicle-images bucket exists
 export async function ensureVehicleImagesBucket(): Promise<boolean> {
@@ -16,6 +17,9 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
     
     if (listError) {
       console.error('Error listing buckets:', listError);
+      if (listError.message.includes('Storage service') || listError.message.includes('permission')) {
+        console.warn('Storage API access error, likely a permissions issue');
+      }
       return false;
     }
     
@@ -34,6 +38,20 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
           
         if (!createError) {
           console.log('Successfully created vehicle-images bucket with standard client');
+          
+          // Set bucket public
+          try {
+            const { error: policyError } = await supabase.storage
+              .from('vehicle-images')
+              .getPublicUrl('test.txt');
+              
+            if (policyError) {
+              console.warn('Cannot access public URL, might need to set policies:', policyError);
+            }
+          } catch (e) {
+            console.warn('Error testing bucket access:', e);
+          }
+          
           return true;
         }
         
@@ -63,20 +81,30 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
           
           if (serviceError) {
             console.error('Error creating bucket with service role:', serviceError);
+            
+            // Specific error for policy-related issues
+            if (serviceError.message.includes('policy') || serviceError.message.includes('permission')) {
+              toast.error('Storage permission error', { 
+                description: 'Cannot create storage bucket due to insufficient permissions.'
+              });
+            }
+            
             return false;
           }
           
           console.log('Successfully created vehicle-images bucket with service role key');
           
-          // Set RLS policy to allow public access to the bucket
-          // Note: In production, you might want more restrictive policies
+          // Try to set public access policy
           try {
-            const { error: policyError } = await serviceClient.storage
+            // Set RLS policy to allow public access to the bucket
+            const { data: policyData, error: policyError } = await serviceClient.storage
               .from('vehicle-images')
-              .createSignedUrl('test.txt', 3600);
+              .getPublicUrl('test.txt');
               
             if (policyError) {
               console.warn('Failed to test bucket access:', policyError);
+            } else {
+              console.log('Bucket is publicly accessible:', policyData);
             }
           } catch (policyErr) {
             console.warn('Error testing bucket policies:', policyErr);
@@ -89,14 +117,42 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
         }
       } else {
         console.error('No service role key available to create bucket');
+        toast.error('Missing configuration', { 
+          description: 'Service role key is not configured. Check your .env file.'
+        });
         return false;
       }
     }
     
     console.log('vehicle-images bucket already exists');
-    return true;
+    
+    // Verify that the bucket is accessible
+    try {
+      const { data: files, error: accessError } = await supabase.storage
+        .from('vehicle-images')
+        .list();
+        
+      if (accessError) {
+        console.warn('Cannot access vehicle-images bucket:', accessError);
+        if (accessError.message.includes('policy') || accessError.message.includes('permission')) {
+          toast.error('Storage access error', { 
+            description: 'Cannot access storage bucket due to insufficient permissions.'
+          });
+        }
+        return false;
+      }
+      
+      console.log('Successfully accessed vehicle-images bucket, found', files?.length, 'files');
+      return true;
+    } catch (accessErr) {
+      console.error('Error testing bucket access:', accessErr);
+      return false;
+    }
   } catch (error) {
     console.error('Error ensuring vehicle images bucket exists:', error);
+    toast.error('Storage configuration error', { 
+      description: error instanceof Error ? error.message : 'Unknown error occurred'
+    });
     return false;
   }
 }
@@ -133,6 +189,12 @@ export async function uploadVehicleImage(file: File, id: string): Promise<string
   
   if (error) {
     console.error('Upload error details:', error);
+    
+    // More specific error messages based on error type
+    if (error.message.includes('policy') || error.message.includes('permission')) {
+      throw new Error(`Permission denied: You don't have access to upload files to this bucket.`);
+    }
+    
     throw new Error(`Error uploading image: ${error.message}`);
   }
   
