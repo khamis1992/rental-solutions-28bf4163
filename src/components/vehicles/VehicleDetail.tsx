@@ -14,7 +14,6 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
-import { ColorAdjustedImage } from '@/components/vehicles/ColorAdjustedImage';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -255,15 +254,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-        <ColorAdjustedImage 
-          src={vehicleImageUrl || defaultCarImage}
-          alt={`${vehicle.make} ${vehicle.model}`}
-          vehicle={vehicle}
-          className="w-full h-full object-cover"
+        <img 
+          src={vehicleImageUrl || defaultCarImage} 
+          alt={`${vehicle.make} ${vehicle.model}`} 
+          className="w-full h-full object-cover" 
           onError={e => {
             console.log('Detail image failed to load, using fallback');
-            setVehicleImageUrl(defaultCarImage);
-          }}
+            e.currentTarget.src = defaultCarImage;
+          }} 
         />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-20">

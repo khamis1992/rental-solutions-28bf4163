@@ -1,4 +1,3 @@
-
 // Vehicle status enum from Supabase
 export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
@@ -111,7 +110,6 @@ export interface VehicleFilterParams {
   vehicle_type_id?: string; 
   location?: string;
   year?: number;
-  color?: string; // Added color filter parameter
   [key: string]: string | number | undefined;
 }
 
