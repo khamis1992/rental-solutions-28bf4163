@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -49,8 +50,9 @@ const VehicleCard = ({
   // Default image for cars
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
-  // New T77 image path
+  // Image paths
   const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
+  const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
   
   // Custom image logic by make/model
   let displayImageUrl = '';
@@ -62,8 +64,11 @@ const VehicleCard = ({
     console.log('Vehicle make/model:', makeLower, modelLower);
     
     if (modelLower.includes('t77')) {
-      displayImageUrl = t77Image; // Use the new uploaded T77 image
-      console.log('Using new T77 image');
+      displayImageUrl = t77Image; // Use the T77 image
+      console.log('Using T77 image');
+    } else if (makeLower.includes('gac')) {
+      displayImageUrl = gacImage; // Use the new GAC image
+      console.log('Using GAC image');
     } else if (makeLower.includes('mg')) {
       displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
       console.log('Using custom MG image');
