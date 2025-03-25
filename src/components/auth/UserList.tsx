@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -47,6 +48,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface UserData {
   id: string;
@@ -73,6 +82,8 @@ const UserList = () => {
     managers: 0,
     users: 0
   });
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -171,6 +182,11 @@ const UserList = () => {
     }
   };
 
+  const openPermissionDialog = (user: UserData) => {
+    setSelectedUser(user);
+    setShowPermissionDialog(true);
+  };
+
   const filteredUsers = users.filter(user => {
     if (roleFilter !== "all" && user.role !== roleFilter) return false;
     if (statusFilter !== "all" && user.status !== statusFilter) return false;
@@ -265,6 +281,11 @@ const UserList = () => {
                 onClick={() => toast.info(`User details: ${user.full_name}`)}
               >
                 View details
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => openPermissionDialog(user)}
+              >
+                Manage Permissions
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Change Role</DropdownMenuLabel>
@@ -498,6 +519,112 @@ const UserList = () => {
           </Button>
         </div>
       </div>
+
+      {selectedUser && (
+        <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Manage User Permissions</DialogTitle>
+              <DialogDescription>
+                Configure permissions for {selectedUser.full_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-4">
+                <div className="grid grid-cols-5 font-medium">
+                  <div>Feature</div>
+                  <div className="text-center">View</div>
+                  <div className="text-center">Create</div>
+                  <div className="text-center">Edit</div>
+                  <div className="text-center">Delete</div>
+                </div>
+                
+                <div className="grid grid-cols-5 items-center border-t pt-4">
+                  <div className="font-medium">Vehicles</div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={true} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-5 items-center border-t pt-4">
+                  <div className="font-medium">Customers</div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={true} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-5 items-center border-t pt-4">
+                  <div className="font-medium">Agreements</div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={true} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-5 items-center border-t pt-4">
+                  <div className="font-medium">Financials</div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                  <div className="text-center">
+                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
+                  </div>
+                </div>
+              </div>
+              {selectedUser.role !== 'admin' && (
+                <p className="mt-4 text-sm text-amber-600">
+                  Note: Only admins can modify permissions. Change this user's role to admin to enable permission editing.
+                </p>
+              )}
+            </div>
+            <DialogFooter>
+              <Button type="button" onClick={() => setShowPermissionDialog(false)}>
+                Close
+              </Button>
+              {selectedUser.role === 'admin' && (
+                <Button type="button" variant="default" onClick={() => {
+                  toast.success("Permissions updated successfully");
+                  setShowPermissionDialog(false);
+                }}>
+                  Save Changes
+                </Button>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
