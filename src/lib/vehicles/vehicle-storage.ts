@@ -41,13 +41,11 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
           
           // Set bucket public
           try {
-            const { error: policyError } = await supabase.storage
+            const publicUrlResponse = await supabase.storage
               .from('vehicle-images')
               .getPublicUrl('test.txt');
               
-            if (policyError) {
-              console.warn('Cannot access public URL, might need to set policies:', policyError);
-            }
+            console.log('Bucket public access test:', publicUrlResponse);
           } catch (e) {
             console.warn('Error testing bucket access:', e);
           }
@@ -97,15 +95,11 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
           // Try to set public access policy
           try {
             // Set RLS policy to allow public access to the bucket
-            const { data: policyData, error: policyError } = await serviceClient.storage
+            const publicUrlResponse = await serviceClient.storage
               .from('vehicle-images')
               .getPublicUrl('test.txt');
               
-            if (policyError) {
-              console.warn('Failed to test bucket access:', policyError);
-            } else {
-              console.log('Bucket is publicly accessible:', policyData);
-            }
+            console.log('Bucket public access test:', publicUrlResponse);
           } catch (policyErr) {
             console.warn('Error testing bucket policies:', policyErr);
           }
@@ -198,5 +192,6 @@ export async function uploadVehicleImage(file: File, id: string): Promise<string
     throw new Error(`Error uploading image: ${error.message}`);
   }
   
-  return getImagePublicUrl('vehicle-images', filePath);
+  const { data } = supabase.storage.from('vehicle-images').getPublicUrl(filePath);
+  return data.publicUrl;
 }

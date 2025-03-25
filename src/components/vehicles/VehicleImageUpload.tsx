@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, X, Image, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
-import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
 import { ensureVehicleImagesBucket } from '@/lib/vehicles/vehicle-storage';
 import { supabase } from '@/integrations/supabase/client';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import StorageConfigAlert from './image-upload/StorageConfigAlert';
+import ImagePreview from './image-upload/ImagePreview';
+import UploadPlaceholder from './image-upload/UploadPlaceholder';
+import UploadLoader from './image-upload/UploadLoader';
 
 interface VehicleImageUploadProps {
   onImageSelected: (file: File | null) => void;
@@ -28,54 +29,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
 
   useEffect(() => {
     // Ensure the vehicle-images bucket exists on component mount
-    const checkBucket = async () => {
-      setBucketStatus('checking');
-      setIsLoading(true);
-      try {
-        console.log('Checking vehicle-images bucket in VehicleImageUpload...');
-        const ready = await ensureVehicleImagesBucket();
-        setBucketReady(ready);
-        setBucketStatus(ready ? 'ready' : 'error');
-        
-        if (!ready) {
-          console.warn('Vehicle images bucket is not ready');
-          toast.error('Storage configuration issue', { 
-            description: 'Unable to configure image storage. Check your Supabase configuration.' 
-          });
-        } else {
-          console.log('Vehicle images bucket is ready');
-        }
-      } catch (error) {
-        console.error('Error checking vehicle images bucket:', error);
-        setBucketStatus('error');
-        toast.error('Storage configuration error', { 
-          description: error instanceof Error ? error.message : 'Unknown error occurred'
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     checkBucket();
-    
-    // Also check that we can actually list the bucket to confirm permissions
-    const verifyBucketAccess = async () => {
-      try {
-        const { data, error } = await supabase.storage.from('vehicle-images').list();
-        if (error) {
-          console.warn('Could not list vehicle-images bucket:', error);
-          setBucketStatus('permissions-error');
-          if (error.message.includes('policy') || error.message.includes('permission')) {
-            setErrorMessage('Storage permission error: Cannot access the storage bucket.');
-          }
-        } else {
-          console.log('Successfully listed vehicle-images bucket contents:', data);
-        }
-      } catch (err) {
-        console.error('Error verifying bucket access:', err);
-      }
-    };
-    
     verifyBucketAccess();
   }, []);
 
@@ -85,6 +39,51 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       setPreviewUrl(initialImageUrl);
     }
   }, [initialImageUrl]);
+
+  const checkBucket = async () => {
+    setBucketStatus('checking');
+    setIsLoading(true);
+    try {
+      console.log('Checking vehicle-images bucket in VehicleImageUpload...');
+      const ready = await ensureVehicleImagesBucket();
+      setBucketReady(ready);
+      setBucketStatus(ready ? 'ready' : 'error');
+      
+      if (!ready) {
+        console.warn('Vehicle images bucket is not ready');
+        toast.error('Storage configuration issue', { 
+          description: 'Unable to configure image storage. Check your Supabase configuration.' 
+        });
+      } else {
+        console.log('Vehicle images bucket is ready');
+      }
+    } catch (error) {
+      console.error('Error checking vehicle images bucket:', error);
+      setBucketStatus('error');
+      toast.error('Storage configuration error', { 
+        description: error instanceof Error ? error.message : 'Unknown error occurred'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+    
+  const verifyBucketAccess = async () => {
+    try {
+      const { data, error } = await supabase.storage.from('vehicle-images').list();
+      if (error) {
+        console.warn('Could not list vehicle-images bucket:', error);
+        setBucketStatus('permissions-error');
+        if (error.message.includes('policy') || error.message.includes('permission')) {
+          setErrorMessage('Storage permission error: Cannot access the storage bucket.');
+        }
+      } else {
+        console.log('Successfully listed vehicle-images bucket contents:', data);
+      }
+    } catch (err) {
+      console.error('Error verifying bucket access:', err);
+    }
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -209,92 +208,27 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       />
       
       {isLoading ? (
-        <div className="py-12 flex flex-col items-center">
-          <Loader2 className="h-12 w-12 text-primary animate-spin mb-3" />
-          <p className="text-sm text-muted-foreground">Processing image...</p>
-        </div>
+        <UploadLoader />
       ) : previewUrl ? (
-        <div className="relative">
-          <img 
-            src={previewUrl} 
-            alt="Vehicle preview" 
-            className="mx-auto max-h-64 rounded-md object-contain"
-            onError={(e) => {
-              console.error('Failed to load image:', previewUrl);
-              e.currentTarget.src = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
-            }}
-          />
-          <CustomButton
-            type="button"
-            size="sm"
-            variant="destructive"
-            className="absolute top-2 right-2 h-8 w-8 p-0"
-            onClick={handleRemoveImage}
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Remove image</span>
-          </CustomButton>
-        </div>
+        <ImagePreview 
+          imageUrl={previewUrl} 
+          onRemove={handleRemoveImage} 
+        />
       ) : (
         <div className="py-6 flex flex-col items-center">
           {(bucketStatus === 'error' || bucketStatus === 'permissions-error') ? (
-            <Alert variant="destructive" className="mb-4 text-left">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Storage Configuration Error</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">
-                  {bucketStatus === 'permissions-error' 
-                    ? 'Cannot access storage bucket due to permission issues.'
-                    : 'Unable to configure image storage. Contact an administrator.'}
-                </p>
-                <p className="text-xs mb-2">
-                  Check that your Supabase service role key is properly configured in .env file.
-                </p>
-                <div className="flex gap-2 mt-3">
-                  <CustomButton
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRetryBucketSetup}
-                  >
-                    Retry
-                  </CustomButton>
-                </div>
-              </AlertDescription>
-            </Alert>
+            <StorageConfigAlert 
+              bucketStatus={bucketStatus}
+              errorMessage={errorMessage}
+              onRetry={handleRetryBucketSetup}
+            />
           ) : (
-            <>
-              <Image className="h-12 w-12 text-muted-foreground mb-3" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Drag & drop an image here, or click to select
-              </p>
-              <CustomButton 
-                type="button" 
-                variant="outline" 
-                size="sm"
-                onClick={handleButtonClick}
-                disabled={bucketStatus !== 'ready'}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Upload Image
-              </CustomButton>
-              <p className="text-xs text-muted-foreground mt-3">
-                JPG, PNG or WEBP (max. 5MB)
-              </p>
-              
-              {bucketStatus === 'checking' && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Checking storage configuration...
-                </p>
-              )}
-            </>
-          )}
-          
-          {errorMessage && !['error', 'permissions-error'].includes(bucketStatus) && (
-            <div className="mt-3 flex items-center text-red-500 text-sm">
-              <AlertCircle className="h-4 w-4 mr-1" />
-              {errorMessage}
-            </div>
+            <UploadPlaceholder
+              bucketStatus={bucketStatus}
+              errorMessage={errorMessage}
+              isChecking={bucketStatus === 'checking'}
+              onClick={handleButtonClick}
+            />
           )}
         </div>
       )}
