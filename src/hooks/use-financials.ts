@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
@@ -23,6 +22,9 @@ export interface FinancialTransaction {
   vehicleId?: string;
   customerId?: string;
   attachmentUrl?: string;
+  isRecurring?: boolean;
+  recurringInterval?: string;
+  nextPaymentDate?: Date;
 }
 
 export interface FinancialSummary {
@@ -41,6 +43,15 @@ export function useFinancials() {
     dateFrom: '',
     dateTo: '',
     searchQuery: '',
+  });
+
+  // New state for expenses tab
+  const [expenseFilters, setExpenseFilters] = useState({
+    category: '',
+    dateFrom: '',
+    dateTo: '',
+    searchQuery: '',
+    recurringOnly: false,
   });
 
   // Initialize system checks on mount
@@ -101,7 +112,7 @@ export function useFinancials() {
             date: new Date(payment.payment_date),
             amount: payment.amount || 0,
             description: payment.description || 'Rental Payment',
-            type: payment.type?.toLowerCase() === 'expense' ? 'expense' as TransactionType : 'income' as TransactionType,
+            type: payment.type?.toLowerCase() === 'expense' ? 'expense' : 'income' as TransactionType,
             category: payment.type === 'Expense' ? 'Operational' : 'Rental',
             status: payment.status?.toLowerCase() as TransactionStatusType || 'completed',
             reference: payment.reference || '',
@@ -240,6 +251,77 @@ export function useFinancials() {
           pendingPayments: 0,
           unpaidInvoices: 0
         };
+      }
+    }
+  );
+
+  // Query specifically for expenses
+  const { 
+    data: expenses = [], 
+    isLoading: isLoadingExpenses, 
+    refetch: refetchExpenses 
+  } = useApiQuery<FinancialTransaction[]>(
+    ['financialExpenses', JSON.stringify(expenseFilters)],
+    async () => {
+      try {
+        // Fetch actual transactions from unified_payments table - only expenses
+        const { data: expenseData, error: expenseError } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('type', 'Expense');
+
+        if (expenseError) {
+          console.error('Error fetching expense data:', expenseError);
+          throw expenseError;
+        }
+
+        // Format expenses data
+        const formattedExpenses: FinancialTransaction[] = (expenseData || []).map(expense => ({
+          id: expense.id,
+          date: new Date(expense.payment_date || expense.created_at),
+          amount: expense.amount || 0,
+          description: expense.description || 'Expense',
+          type: 'expense' as TransactionType,
+          category: expense.category || 'Other',
+          status: expense.status?.toLowerCase() as TransactionStatusType || 'completed',
+          reference: expense.reference || '',
+          paymentMethod: expense.payment_method || 'Cash',
+          isRecurring: expense.is_recurring || false,
+          recurringInterval: expense.recurring_interval || undefined,
+          nextPaymentDate: expense.next_payment_date ? new Date(expense.next_payment_date) : undefined
+        }));
+
+        // Filter expenses based on applied filters
+        let filtered = formattedExpenses;
+        
+        if (expenseFilters.category && expenseFilters.category !== 'all_categories') {
+          filtered = filtered.filter(e => e.category === expenseFilters.category);
+        }
+        
+        if (expenseFilters.dateFrom) {
+          filtered = filtered.filter(e => e.date >= new Date(expenseFilters.dateFrom));
+        }
+        
+        if (expenseFilters.dateTo) {
+          filtered = filtered.filter(e => e.date <= new Date(expenseFilters.dateTo));
+        }
+        
+        if (expenseFilters.searchQuery) {
+          const query = expenseFilters.searchQuery.toLowerCase();
+          filtered = filtered.filter(e => 
+            e.description.toLowerCase().includes(query) ||
+            e.category.toLowerCase().includes(query)
+          );
+        }
+        
+        if (expenseFilters.recurringOnly) {
+          filtered = filtered.filter(e => e.isRecurring === true);
+        }
+        
+        return filtered;
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+        return [];
       }
     }
   );
@@ -440,6 +522,170 @@ export function useFinancials() {
     }
   );
 
+  // Add expense mutation
+  const addExpenseMutation = useApiMutation<
+    FinancialTransaction,
+    unknown,
+    Omit<FinancialTransaction, 'id'>
+  >(
+    async (expenseData) => {
+      // Convert next payment date if present
+      const nextPaymentDate = expenseData.nextPaymentDate
+        ? expenseData.nextPaymentDate.toISOString()
+        : null;
+
+      // Insert new expense into unified_payments table
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .insert({
+          payment_date: expenseData.date.toISOString(),
+          amount: expenseData.amount,
+          description: expenseData.description,
+          type: 'Expense', // Always 'Expense' for this mutation
+          category: expenseData.category,
+          status: expenseData.status,
+          reference: expenseData.reference,
+          payment_method: expenseData.paymentMethod,
+          is_recurring: expenseData.isRecurring || false,
+          recurring_interval: expenseData.recurringInterval,
+          next_payment_date: nextPaymentDate
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding expense:', error);
+        throw error;
+      }
+
+      // Format returned data to match our component expectations
+      return {
+        id: data.id,
+        date: new Date(data.payment_date),
+        amount: data.amount,
+        description: data.description,
+        type: 'expense',
+        category: data.category || '',
+        status: data.status as TransactionStatusType,
+        reference: data.reference,
+        paymentMethod: data.payment_method,
+        isRecurring: data.is_recurring || false,
+        recurringInterval: data.recurring_interval,
+        nextPaymentDate: data.next_payment_date ? new Date(data.next_payment_date) : undefined
+      };
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: 'Expense added',
+          description: 'Expense has been added successfully.'
+        });
+        refetchExpenses();
+        refetchSummary();
+      }
+    }
+  );
+
+  // Update expense mutation
+  const updateExpenseMutation = useApiMutation<
+    FinancialTransaction,
+    unknown,
+    { id: string; data: Partial<FinancialTransaction> }
+  >(
+    async ({ id, data }) => {
+      // Prepare data for update
+      const updateData: any = {};
+      
+      if (data.date) updateData.payment_date = data.date.toISOString();
+      if (data.amount !== undefined) updateData.amount = data.amount;
+      if (data.description) updateData.description = data.description;
+      if (data.category) updateData.category = data.category;
+      if (data.status) updateData.status = data.status;
+      if (data.reference !== undefined) updateData.reference = data.reference;
+      if (data.paymentMethod) updateData.payment_method = data.paymentMethod;
+      if (data.isRecurring !== undefined) updateData.is_recurring = data.isRecurring;
+      if (data.recurringInterval) updateData.recurring_interval = data.recurringInterval;
+      if (data.nextPaymentDate) updateData.next_payment_date = data.nextPaymentDate.toISOString();
+      
+      // If isRecurring is set to false, clear the related fields
+      if (data.isRecurring === false) {
+        updateData.recurring_interval = null;
+        updateData.next_payment_date = null;
+      }
+
+      // Update the expense
+      const { data: updatedData, error } = await supabase
+        .from('unified_payments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating expense:', error);
+        throw error;
+      }
+
+      // Format returned data
+      return {
+        id: updatedData.id,
+        date: new Date(updatedData.payment_date),
+        amount: updatedData.amount,
+        description: updatedData.description,
+        type: 'expense',
+        category: updatedData.category || '',
+        status: updatedData.status as TransactionStatusType,
+        reference: updatedData.reference,
+        paymentMethod: updatedData.payment_method,
+        isRecurring: updatedData.is_recurring || false,
+        recurringInterval: updatedData.recurring_interval,
+        nextPaymentDate: updatedData.next_payment_date ? new Date(updatedData.next_payment_date) : undefined
+      };
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: 'Expense updated',
+          description: 'Expense has been updated successfully.'
+        });
+        refetchExpenses();
+        refetchSummary();
+      }
+    }
+  );
+
+  // Delete expense mutation
+  const deleteExpenseMutation = useApiMutation<
+    string,
+    unknown,
+    string
+  >(
+    async (id) => {
+      const { error } = await supabase
+        .from('unified_payments')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting expense:', error);
+        throw error;
+      }
+      
+      return id;
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: 'Expense deleted',
+          description: 'Expense has been deleted successfully.'
+        });
+        refetchExpenses();
+        refetchSummary();
+      }
+    }
+  );
+
+  // Add expenses-related exports
   return {
     transactions,
     isLoadingTransactions,
@@ -450,6 +696,16 @@ export function useFinancials() {
     addTransaction: addTransactionMutation.mutate,
     updateTransaction: updateTransactionMutation.mutate,
     deleteTransaction: deleteTransactionMutation.mutate,
+    // New expenses functionality
+    expenses,
+    isLoadingExpenses,
+    expenseFilters,
+    setExpenseFilters,
+    addExpense: addExpenseMutation.mutate,
+    updateExpense: updateExpenseMutation.mutate,
+    deleteExpense: deleteExpenseMutation.mutate,
+    // Recurring expenses
+    recurringExpenses: expenses.filter(e => e.isRecurring === true),
     systemDate: SYSTEM_DATE
   };
 }

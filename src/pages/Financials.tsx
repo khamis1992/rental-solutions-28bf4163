@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { BarChart4, Plus, FileText, Download, Car } from 'lucide-react';
+import { BarChart4, Plus, FileText, Download, Car, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import FinancialSummary from '@/components/financials/FinancialSummary';
@@ -14,6 +14,9 @@ import CarInstallmentContracts from '@/components/financials/car-installments/Ca
 import { useFinancials, FinancialTransaction } from '@/hooks/use-financials';
 import { useToast } from '@/hooks/use-toast';
 import { checkAndGenerateMonthlyPayments, forceCheckAllAgreementsForPayments } from '@/lib/supabase';
+import ExpensesList from '@/components/financials/ExpensesList';
+import RecurringExpensesSummary from '@/components/financials/RecurringExpensesSummary';
+import ExpenseDialog from '@/components/financials/ExpenseDialog';
 
 const Financials = () => {
   const { toast } = useToast();
@@ -27,6 +30,15 @@ const Financials = () => {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    // New expense-related props
+    expenses,
+    isLoadingExpenses,
+    expenseFilters,
+    setExpenseFilters,
+    addExpense,
+    updateExpense,
+    deleteExpense,
+    recurringExpenses,
     systemDate
   } = useFinancials();
 
@@ -34,6 +46,11 @@ const Financials = () => {
   const [currentTransaction, setCurrentTransaction] = useState<FinancialTransaction | undefined>(undefined);
   const [dialogTitle, setDialogTitle] = useState('Add Transaction');
   const [activeTab, setActiveTab] = useState("transactions");
+  
+  // For expenses dialog
+  const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const [currentExpense, setCurrentExpense] = useState<FinancialTransaction | undefined>(undefined);
+  const [expenseDialogTitle, setExpenseDialogTitle] = useState('Add Expense');
 
   // Check for monthly payments on page load
   useEffect(() => {
@@ -83,6 +100,45 @@ const Financials = () => {
       });
     } else {
       addTransaction(data as Omit<FinancialTransaction, 'id'>);
+    }
+  };
+
+  // Expense handlers
+  const handleAddExpense = () => {
+    setCurrentExpense(undefined);
+    setExpenseDialogTitle('Add Expense');
+    setIsExpenseDialogOpen(true);
+  };
+
+  const handleEditExpense = (id: string) => {
+    const expense = expenses.find(e => e.id === id);
+    if (expense) {
+      setCurrentExpense(expense);
+      setExpenseDialogTitle('Edit Expense');
+      setIsExpenseDialogOpen(true);
+    }
+  };
+
+  const handleDeleteExpense = (id: string) => {
+    if (window.confirm('Are you sure you want to delete this expense?')) {
+      deleteExpense(id);
+    }
+  };
+
+  const handleExpenseSubmit = (data: Omit<FinancialTransaction, 'id'>) => {
+    // Always set type to expense for this dialog
+    const expenseData = {
+      ...data,
+      type: 'expense' as const
+    };
+    
+    if (currentExpense) {
+      updateExpense({ 
+        id: currentExpense.id, 
+        data: expenseData as Partial<FinancialTransaction> 
+      });
+    } else {
+      addExpense(expenseData as Omit<FinancialTransaction, 'id'>);
     }
   };
 
@@ -154,10 +210,17 @@ const Financials = () => {
               <Download className="h-4 w-4 mr-2" />
               Export Data
             </Button>
-            <Button onClick={handleAddTransaction}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Transaction
-            </Button>
+            {activeTab === "transactions" ? (
+              <Button onClick={handleAddTransaction}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Transaction
+              </Button>
+            ) : activeTab === "expenses" ? (
+              <Button onClick={handleAddExpense}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Expense
+              </Button>
+            ) : null}
           </>
         }
       />
@@ -176,6 +239,10 @@ const Financials = () => {
         >
           <TabsList className="mb-4">
             <TabsTrigger value="transactions">Transactions</TabsTrigger>
+            <TabsTrigger value="expenses">
+              <Upload className="h-4 w-4 mr-2" />
+              Expenses
+            </TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="installments">
               <Car className="h-4 w-4 mr-2" />
@@ -193,6 +260,28 @@ const Financials = () => {
               filters={filters}
               setFilters={setFilters}
             />
+          </TabsContent>
+          
+          <TabsContent value="expenses" className="space-y-6">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+              <div className="xl:col-span-2">
+                <ExpensesList
+                  expenses={expenses}
+                  isLoading={isLoadingExpenses}
+                  onAddExpense={handleAddExpense}
+                  onEditExpense={handleEditExpense}
+                  onDeleteExpense={handleDeleteExpense}
+                  filters={expenseFilters}
+                  setFilters={setExpenseFilters}
+                />
+              </div>
+              <div className="xl:col-span-1">
+                <RecurringExpensesSummary
+                  recurringExpenses={recurringExpenses}
+                  isLoading={isLoadingExpenses}
+                />
+              </div>
+            </div>
           </TabsContent>
           
           <TabsContent value="analytics" className="space-y-6">
@@ -213,6 +302,14 @@ const Financials = () => {
           onSubmit={handleTransactionSubmit}
           transaction={currentTransaction}
           title={dialogTitle}
+        />
+
+        <ExpenseDialog
+          open={isExpenseDialogOpen}
+          onOpenChange={setIsExpenseDialogOpen}
+          onSubmit={handleExpenseSubmit}
+          expense={currentExpense}
+          title={expenseDialogTitle}
         />
       </div>
     </PageContainer>
