@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -81,7 +80,6 @@ const UserList = () => {
   }, []);
 
   useEffect(() => {
-    // Update stats when users change
     if (users.length > 0) {
       const stats = {
         total: users.length,
@@ -101,7 +99,8 @@ const UserList = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from("profiles")
-        .select("*");
+        .select("*")
+        .not('role', 'eq', 'customer');
       
       if (error) throw error;
       
@@ -172,7 +171,6 @@ const UserList = () => {
     }
   };
 
-  // Apply filters from select components
   const filteredUsers = users.filter(user => {
     if (roleFilter !== "all" && user.role !== roleFilter) return false;
     if (statusFilter !== "all" && user.status !== statusFilter) return false;
@@ -332,7 +330,6 @@ const UserList = () => {
 
   return (
     <div className="space-y-6">
-      {/* User Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -392,7 +389,6 @@ const UserList = () => {
         </Card>
       </div>
       
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="flex-1">
           <div className="relative">
@@ -436,7 +432,6 @@ const UserList = () => {
         </div>
       </div>
       
-      {/* Users Table */}
       <div className="border rounded-md">
         <Table>
           <TableHeader>
@@ -480,7 +475,6 @@ const UserList = () => {
         </Table>
       </div>
       
-      {/* Pagination Controls */}
       <div className="flex items-center justify-between py-4">
         <div className="flex-1 text-sm text-muted-foreground">
           Showing {table.getRowModel().rows.length} of {filteredUsers.length} users
