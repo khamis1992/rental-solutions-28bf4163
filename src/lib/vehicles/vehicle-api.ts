@@ -26,21 +26,29 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     .select('*, vehicle_types(*)');
   
   if (filters) {
-    // Manually apply filters to avoid deep type instantiation
-    const filterKeys = Object.keys(filters) as Array<keyof VehicleFilterParams>;
-    
-    for (const key of filterKeys) {
-      const value = filters[key];
-      if (value !== undefined && value !== null && value !== '' && value !== 'any') {
-        // Special case for status == 'reserved'
-        if (key === 'status' && value === 'reserved') {
-          query = query.eq(key, 'reserve');
-        } 
-        // Apply regular equality filter for all other cases
-        else {
-          query = query.eq(key as string, value);
-        }
+    // Use a simple for loop with explicit string keys to avoid deep type instantiation
+    if (filters.status) {
+      if (filters.status === 'reserved') {
+        query = query.eq('status', 'reserve');
+      } else {
+        query = query.eq('status', filters.status);
       }
+    }
+    
+    if (filters.make) {
+      query = query.eq('make', filters.make);
+    }
+    
+    if (filters.vehicle_type_id) {
+      query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+    }
+    
+    if (filters.location) {
+      query = query.eq('location', filters.location);
+    }
+    
+    if (filters.year) {
+      query = query.eq('year', filters.year);
     }
   }
   
