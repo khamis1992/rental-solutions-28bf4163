@@ -41,6 +41,7 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
           
           // Set bucket public
           try {
+            // Fixed TS error: getPublicUrl returns { data: { publicUrl: string } } without error property
             const publicUrlResponse = await supabase.storage
               .from('vehicle-images')
               .getPublicUrl('test.txt');
@@ -94,7 +95,7 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
           
           // Try to set public access policy
           try {
-            // Set RLS policy to allow public access to the bucket
+            // Fixed TS error: getPublicUrl returns { data: { publicUrl: string } } without error property
             const publicUrlResponse = await serviceClient.storage
               .from('vehicle-images')
               .getPublicUrl('test.txt');
@@ -154,6 +155,7 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
 // Get public URL for an image
 export function getImagePublicUrl(bucket: string, path: string): string {
   try {
+    // Fixed TS error: getPublicUrl returns { data: { publicUrl: string } } without error property
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
     return data.publicUrl;
   } catch (error) {
@@ -192,6 +194,7 @@ export async function uploadVehicleImage(file: File, id: string): Promise<string
     throw new Error(`Error uploading image: ${error.message}`);
   }
   
+  // Fixed TS error: getPublicUrl returns { data: { publicUrl: string } } without error property
   const { data } = supabase.storage.from('vehicle-images').getPublicUrl(filePath);
   return data.publicUrl;
 }
