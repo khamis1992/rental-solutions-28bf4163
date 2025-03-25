@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,12 +55,17 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     const makeLower = (vehicle.make || '').toString().toLowerCase();
     const modelLower = (vehicle.model || '').toString().toLowerCase();
     
+    console.log('Vehicle detail make/model:', makeLower, modelLower);
+    
     if (modelLower.includes('t77')) {
       displayImageUrl = t77Image;
+      console.log('Using T77 image in detail');
     } else if (makeLower.includes('gac')) {
       displayImageUrl = gacImage;
-    } else if (makeLower.includes('mg')) {
+      console.log('Using GAC image in detail');
+    } else if (makeLower === 'mg' || makeLower.startsWith('mg ')) {
       displayImageUrl = mgImage;
+      console.log('Using MG image in detail:', mgImage);
     } else if (vehicle.imageUrl) {
       displayImageUrl = vehicle.imageUrl;
     }

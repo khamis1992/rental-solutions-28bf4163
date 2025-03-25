@@ -70,9 +70,9 @@ const VehicleCard = ({
     } else if (makeLower.includes('gac')) {
       displayImageUrl = gacImage; // Use the GAC image
       console.log('Using GAC image');
-    } else if (makeLower.includes('mg')) {
-      displayImageUrl = mgImage; // Use the new MG image
-      console.log('Using MG image');
+    } else if (makeLower === 'mg' || makeLower.startsWith('mg ')) {
+      displayImageUrl = mgImage; // Use the MG image
+      console.log('Using MG image:', mgImage);
     } else if (imageUrl) {
       displayImageUrl = imageUrl;
     } else {
