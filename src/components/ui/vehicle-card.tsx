@@ -53,6 +53,7 @@ const VehicleCard = ({
   // Image paths
   const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
   const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
+  const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
   
   // Custom image logic by make/model
   let displayImageUrl = '';
@@ -67,11 +68,11 @@ const VehicleCard = ({
       displayImageUrl = t77Image; // Use the T77 image
       console.log('Using T77 image');
     } else if (makeLower.includes('gac')) {
-      displayImageUrl = gacImage; // Use the new GAC image
+      displayImageUrl = gacImage; // Use the GAC image
       console.log('Using GAC image');
     } else if (makeLower.includes('mg')) {
-      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
-      console.log('Using custom MG image');
+      displayImageUrl = mgImage; // Use the new MG image
+      console.log('Using MG image');
     } else if (imageUrl) {
       displayImageUrl = imageUrl;
     } else {

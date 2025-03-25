@@ -47,6 +47,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
   const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
+  const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
 
   let displayImageUrl = defaultCarImage;
   try {
@@ -58,7 +59,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     } else if (makeLower.includes('gac')) {
       displayImageUrl = gacImage;
     } else if (makeLower.includes('mg')) {
-      displayImageUrl = '/lovable-uploads/24b2beed-65f3-42be-a4ad-c24610112f5d.png';
+      displayImageUrl = mgImage;
     } else if (vehicle.imageUrl) {
       displayImageUrl = vehicle.imageUrl;
     }
