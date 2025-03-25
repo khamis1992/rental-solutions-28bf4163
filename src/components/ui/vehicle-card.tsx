@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -50,14 +49,13 @@ const VehicleCard = ({
   // Default image for cars
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
-  // Updated T77 image path
-  const t77Image = '/lovable-uploads/32900e30-d61f-4057-8601-bc451101312c.png';
+  // New T77 image path
+  const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
   
   // Custom image logic by make/model
   let displayImageUrl = '';
   
   try {
-    // Try to determine vehicle type for custom image
     const makeLower = (make || '').toString().toLowerCase();
     const modelLower = (model || '').toString().toLowerCase();
     

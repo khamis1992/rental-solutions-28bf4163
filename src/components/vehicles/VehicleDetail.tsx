@@ -93,7 +93,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
-  const t77Image = '/lovable-uploads/32900e30-d61f-4057-8601-bc451101312c.png';
+  const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
   let displayImageUrl = defaultCarImage;
   try {
     const makeLower = (vehicle.make || '').toString().toLowerCase();
