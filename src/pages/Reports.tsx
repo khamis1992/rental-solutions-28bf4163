@@ -17,6 +17,11 @@ const Reports = () => {
   return (
     <PageContainer title="Reports & Analytics" description="Comprehensive reports and analytics for your rental business">
       <div className="flex items-center mb-6">
+        <img 
+          src="/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png" 
+          alt="Alaraf Car Rental" 
+          className="h-12 mr-4" 
+        />
         <SectionHeader 
           title="Generate Reports" 
           description="Select a report type to view detailed analytics and insights"
@@ -56,6 +61,14 @@ const Reports = () => {
           </Tabs>
         </CardContent>
       </Card>
+      
+      <div className="mt-8 text-center">
+        <img 
+          src="/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png" 
+          alt="Alaraf Car Rental Footer" 
+          className="h-8 mx-auto"
+        />
+      </div>
     </PageContainer>
   );
 };
