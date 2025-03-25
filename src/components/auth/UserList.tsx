@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -47,6 +46,7 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
+    updateTarekToAdmin();
   }, []);
 
   const fetchUsers = async () => {
@@ -64,6 +64,24 @@ const UserList = () => {
       toast.error("Failed to load users");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateTarekToAdmin = async () => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: "admin" })
+        .eq("email", "tareklaribi25914@gmail.com");
+      
+      if (error) throw error;
+      
+      toast.success("Tarek's account has been set as admin");
+      
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error updating user role:", error.message);
+      toast.error("Failed to update user role");
     }
   };
 
