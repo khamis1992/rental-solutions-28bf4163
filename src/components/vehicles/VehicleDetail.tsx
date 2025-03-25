@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
+import { getVehicleImageByPrefix } from '@/lib/vehicles/vehicle-storage';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -35,6 +35,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   });
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
+  const [vehicleImageUrl, setVehicleImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
+  
   const {
     getMaintenanceByVehicleId
   } = useMaintenance();
@@ -46,80 +49,99 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   };
 
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
-  const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
-  const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
-  const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
-  const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
-  const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
-  const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
-  const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
-
-  let displayImageUrl = defaultCarImage;
-  try {
-    // Normalize make and model for consistent comparison (convert to lowercase)
-    const makeLower = (vehicle.make || '').toString().toLowerCase().trim();
-    const modelLower = (vehicle.model || '').toString().toLowerCase().trim();
-    
-    console.log('Vehicle detail make/model:', makeLower, modelLower);
-    
-    // Check for B70 in model name
-    if (modelLower.includes('b70') || modelLower === 'b70') {
-      displayImageUrl = b70Image;
-      console.log('Using B70 image in detail');
-    }
-    // Check for T33 in model name
-    else if (modelLower.includes('t33') || modelLower === 't33') {
-      displayImageUrl = t33Image;
-      console.log('Using T33 image in detail');
-    }
-    // Check for T77 in model name
-    else if (modelLower.includes('t77') || modelLower === 't77') {
-      displayImageUrl = t77Image;
-      console.log('Using T77 image in detail');
-    } 
-    // Check for GAC GS3 specifically
-    else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
-      displayImageUrl = gs3Image;
-      console.log('Using GAC GS3 image in detail');
-    }
-    // Check for other GS3 models (regardless of manufacturer)
-    else if (modelLower.includes('gs3') || modelLower === 'gs3') {
-      displayImageUrl = gs3Image;
-      console.log('Using GS3 image in detail');
-    }
-    // Check for other GAC models
-    else if (makeLower.includes('gac')) {
-      displayImageUrl = gacImage;
-      console.log('Using generic GAC image in detail');
-    } 
-    // MG handling - check both make and model
-    else if (
-      makeLower === 'mg' || 
-      makeLower.startsWith('mg ') || 
-      modelLower.startsWith('mg')
-    ) {
-      // Specific check for MG5
-      if (
-        modelLower.includes('5') || 
-        modelLower.includes('mg5') || 
-        makeLower.includes('mg5') ||
-        (makeLower === 'mg' && modelLower === '5')
-      ) {
-        displayImageUrl = mg5Image;
-        console.log('Using MG5 specific image in detail:', mg5Image);
-      } else {
-        displayImageUrl = mgImage;
-        console.log('Using generic MG image in detail:', mgImage);
+  
+  useEffect(() => {
+    async function fetchVehicleImage() {
+      setImageLoading(true);
+      
+      try {
+        if (vehicle.imageUrl || vehicle.image_url) {
+          setVehicleImageUrl(vehicle.imageUrl || vehicle.image_url);
+          setImageLoading(false);
+          return;
+        }
+        
+        const imageUrl = await getVehicleImageByPrefix(vehicle.id);
+        if (imageUrl) {
+          setVehicleImageUrl(imageUrl);
+        } else {
+          fallbackToModelImages();
+        }
+      } catch (error) {
+        console.error('Error fetching vehicle image:', error);
+        fallbackToModelImages();
+      } finally {
+        setImageLoading(false);
       }
-    } 
-    // Use provided imageUrl if available
-    else if (vehicle.imageUrl) {
-      displayImageUrl = vehicle.imageUrl;
     }
-  } catch (error) {
-    console.error('Error setting vehicle detail image:', error);
-    // Fallback already set to defaultCarImage
-  }
+    
+    fetchVehicleImage();
+  }, [vehicle.id, vehicle.imageUrl, vehicle.image_url]);
+  
+  const fallbackToModelImages = () => {
+    const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
+    const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
+    const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
+    const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
+    const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
+    const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
+    const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
+    
+    try {
+      const makeLower = (vehicle.make || '').toString().toLowerCase().trim();
+      const modelLower = (vehicle.model || '').toString().toLowerCase().trim();
+      
+      console.log('Vehicle detail make/model:', makeLower, modelLower);
+      
+      if (modelLower.includes('b70') || modelLower === 'b70') {
+        setVehicleImageUrl(b70Image);
+        console.log('Using B70 image in detail');
+      }
+      else if (modelLower.includes('t33') || modelLower === 't33') {
+        setVehicleImageUrl(t33Image);
+        console.log('Using T33 image in detail');
+      }
+      else if (modelLower.includes('t77') || modelLower === 't77') {
+        setVehicleImageUrl(t77Image);
+        console.log('Using T77 image in detail');
+      } 
+      else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
+        setVehicleImageUrl(gs3Image);
+        console.log('Using GAC GS3 image in detail');
+      }
+      else if (modelLower.includes('gs3') || modelLower === 'gs3') {
+        setVehicleImageUrl(gs3Image);
+        console.log('Using GS3 image in detail');
+      }
+      else if (makeLower.includes('gac')) {
+        setVehicleImageUrl(gacImage);
+        console.log('Using generic GAC image in detail');
+      } 
+      else if (
+        makeLower === 'mg' || 
+        makeLower.startsWith('mg ') || 
+        modelLower.startsWith('mg')
+      ) {
+        if (
+          modelLower.includes('5') || 
+          modelLower.includes('mg5') || 
+          makeLower.includes('mg5') ||
+          (makeLower === 'mg' && modelLower === '5')
+        ) {
+          setVehicleImageUrl(mg5Image);
+          console.log('Using MG5 specific image in detail:', mg5Image);
+        } else {
+          setVehicleImageUrl(mgImage);
+          console.log('Using generic MG image in detail:', mgImage);
+        }
+      } else {
+        setVehicleImageUrl(defaultCarImage);
+      }
+    } catch (error) {
+      console.error('Error setting vehicle detail image:', error);
+      setVehicleImageUrl(defaultCarImage);
+    }
+  };
 
   const hasInsurance = !!vehicle.insurance_company;
   const insuranceExpiry = vehicle.insurance_expiry ? parseISO(vehicle.insurance_expiry) : null;
@@ -210,10 +232,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-        <img src={displayImageUrl} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-full object-cover" onError={e => {
-        console.log('Detail image failed to load, using fallback');
-        e.currentTarget.src = defaultCarImage;
-      }} />
+        <img 
+          src={vehicleImageUrl || defaultCarImage} 
+          alt={`${vehicle.make} ${vehicle.model}`} 
+          className="w-full h-full object-cover" 
+          onError={e => {
+            console.log('Detail image failed to load, using fallback');
+            e.currentTarget.src = defaultCarImage;
+          }} 
+        />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-20">
           <div className="flex items-center justify-between">
