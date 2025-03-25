@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -6,9 +7,11 @@ import {
   useReactTable, 
   SortingState,
   getSortedRowModel,
-  getPaginationRowModel
+  getPaginationRowModel,
+  ColumnFiltersState,
+  getFilteredRowModel
 } from "@tanstack/react-table";
-import { CheckCircle, Clock, XCircle, MoreHorizontal, UserCog, User, Shield } from "lucide-react";
+import { CheckCircle, Clock, XCircle, MoreHorizontal, UserCog, User, Shield, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -29,6 +32,22 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 interface UserData {
   id: string;
@@ -43,11 +62,39 @@ const UserList = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [userStats, setUserStats] = useState({
+    total: 0,
+    active: 0,
+    pending: 0,
+    inactive: 0,
+    admins: 0,
+    managers: 0,
+    users: 0
+  });
 
   useEffect(() => {
     fetchUsers();
     updateTarekToAdmin();
   }, []);
+
+  useEffect(() => {
+    // Update stats when users change
+    if (users.length > 0) {
+      const stats = {
+        total: users.length,
+        active: users.filter(user => user.status === 'active').length,
+        pending: users.filter(user => user.status === 'pending_review').length,
+        inactive: users.filter(user => user.status === 'inactive').length,
+        admins: users.filter(user => user.role === 'admin').length,
+        managers: users.filter(user => user.role === 'manager').length,
+        users: users.filter(user => user.role === 'user').length
+      };
+      setUserStats(stats);
+    }
+  }, [users]);
 
   const fetchUsers = async () => {
     try {
@@ -125,14 +172,28 @@ const UserList = () => {
     }
   };
 
+  // Apply filters from select components
+  const filteredUsers = users.filter(user => {
+    if (roleFilter !== "all" && user.role !== roleFilter) return false;
+    if (statusFilter !== "all" && user.status !== statusFilter) return false;
+    return true;
+  });
+
   const columns: ColumnDef<UserData>[] = [
     {
       accessorKey: "full_name",
       header: "Name",
+      cell: ({ row }) => {
+        const value = row.getValue("full_name") as string;
+        return <div className="font-medium">{value || "N/A"}</div>;
+      },
     },
     {
       accessorKey: "email",
       header: "Email",
+      cell: ({ row }) => {
+        return <div className="text-sm text-muted-foreground">{row.getValue("email")}</div>;
+      },
     },
     {
       accessorKey: "role",
@@ -173,7 +234,7 @@ const UserList = () => {
             ) : (
               <XCircle className="h-3 w-3 mr-1" />
             )}
-            <span className="capitalize">{status.replace('_', ' ')}</span>
+            <span className="capitalize">{status ? status.replace('_', ' ') : 'N/A'}</span>
           </Badge>
         );
       },
@@ -182,7 +243,8 @@ const UserList = () => {
       accessorKey: "created_at",
       header: "Joined",
       cell: ({ row }) => {
-        return new Date(row.getValue("created_at")).toLocaleDateString();
+        const date = row.getValue("created_at") as string;
+        return date ? new Date(date).toLocaleDateString() : 'N/A';
       },
     },
     {
@@ -254,26 +316,127 @@ const UserList = () => {
   ];
 
   const table = useReactTable({
-    data: users,
+    data: filteredUsers,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     state: {
       sorting,
+      columnFilters,
     },
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-bold">Users</h2>
-        <Button onClick={fetchUsers} disabled={loading}>
-          {loading ? "Loading..." : "Refresh"}
-        </Button>
+    <div className="space-y-6">
+      {/* User Stats Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Total Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.total}</div>
+            <div className="mt-2">
+              <Progress value={100} className="h-2" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Active Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.active}</div>
+            <div className="mt-2">
+              <Progress 
+                value={userStats.total ? (userStats.active / userStats.total) * 100 : 0} 
+                className="h-2" 
+                indicatorClassName="bg-green-500"
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Pending Approval</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.pending}</div>
+            <div className="mt-2">
+              <Progress 
+                value={userStats.total ? (userStats.pending / userStats.total) * 100 : 0} 
+                className="h-2" 
+                indicatorClassName="bg-yellow-500"
+              />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base font-medium">Admins/Managers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{userStats.admins + userStats.managers}</div>
+            <div className="mt-2">
+              <Progress 
+                value={userStats.total ? ((userStats.admins + userStats.managers) / userStats.total) * 100 : 0} 
+                className="h-2" 
+                indicatorClassName="bg-blue-500"
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search users..."
+              className="pl-8"
+              value={(table.getColumn("full_name")?.getFilterValue() as string) ?? ""}
+              onChange={(e) => table.getColumn("full_name")?.setFilterValue(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="user">User</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="pending_review">Pending</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Button variant="outline" size="icon" onClick={fetchUsers} disabled={loading}>
+            <Filter className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      
+      {/* Users Table */}
       <div className="border rounded-md">
         <Table>
           <TableHeader>
@@ -318,23 +481,28 @@ const UserList = () => {
       </div>
       
       {/* Pagination Controls */}
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+      <div className="flex items-center justify-between py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          Showing {table.getRowModel().rows.length} of {filteredUsers.length} users
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            Next
+          </Button>
+        </div>
       </div>
     </div>
   );

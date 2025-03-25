@@ -19,8 +19,8 @@ if (typeof window !== 'undefined') {
   console.error = function(...args) {
     // Filter out the specific error about relationships in schema cache
     if (args[0] && typeof args[0] === 'string' && 
-        args[0].includes('Could not find a relationship between') && 
-        args[0].includes('in the schema cache')) {
+        (args[0].includes('Could not find a relationship between') && 
+        args[0].includes('in the schema cache'))) {
       return; // Suppress this specific error
     }
     // Pass all other errors to the original console.error
