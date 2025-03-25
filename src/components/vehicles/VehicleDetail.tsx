@@ -49,6 +49,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
   const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
   const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
+  const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
 
   let displayImageUrl = defaultCarImage;
   try {
@@ -64,8 +65,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       displayImageUrl = gacImage;
       console.log('Using GAC image in detail');
     } else if (makeLower === 'mg' || makeLower.startsWith('mg ')) {
-      displayImageUrl = mgImage;
-      console.log('Using MG image in detail:', mgImage);
+      // Check if it's specifically an MG5
+      if (modelLower.includes('5') || modelLower.includes('mg5')) {
+        displayImageUrl = mg5Image; // Use the MG5 specific image
+        console.log('Using MG5 specific image in detail:', mg5Image);
+      } else {
+        displayImageUrl = mgImage; // Use the generic MG image
+        console.log('Using generic MG image in detail:', mgImage);
+      }
     } else if (vehicle.imageUrl) {
       displayImageUrl = vehicle.imageUrl;
     }
