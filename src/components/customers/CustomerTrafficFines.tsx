@@ -11,6 +11,26 @@ interface CustomerTrafficFinesProps {
   customerId: string;
 }
 
+// Define types for Supabase query results
+interface LeaseResult {
+  id: string;
+}
+
+interface TrafficFineResult {
+  id: string;
+  violation_number: string;
+  license_plate: string;
+  vehicle_model?: string;
+  violation_date: string;
+  fine_amount: number;
+  violation_charge: string;
+  payment_status: string;
+  fine_location?: string;
+  vehicle_id?: string;
+  payment_date?: string;
+  lease_id?: string;
+}
+
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +57,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         }
         
         // Extract the lease IDs
-        const leaseIds = leases.map(lease => lease.id);
+        const leaseIds = (leases as LeaseResult[]).map(lease => lease.id);
         
         // Then fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
@@ -51,7 +71,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         }
         
         // Transform the data to match the TrafficFine interface
-        const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => ({
+        const formattedFines: TrafficFine[] = (trafficFines as TrafficFineResult[] || []).map(fine => ({
           id: fine.id,
           violationNumber: fine.violation_number,
           licensePlate: fine.license_plate,

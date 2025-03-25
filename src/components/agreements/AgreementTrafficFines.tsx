@@ -22,6 +22,24 @@ type TrafficFine = {
   vehicle_id?: string;
 };
 
+// Define interfaces for Supabase query results
+interface LeaseResult {
+  vehicle_id: string;
+}
+
+interface TrafficFineResult {
+  id: string;
+  violation_number: string;
+  license_plate: string;
+  violation_date: string;
+  fine_amount: number;
+  violation_charge: string;
+  payment_status: TrafficFineStatusType;
+  fine_location?: string;
+  lease_id?: string;
+  vehicle_id?: string;
+}
+
 interface AgreementTrafficFinesProps {
   agreementId: string;
   startDate: Date;
@@ -66,7 +84,7 @@ export const AgreementTrafficFines = ({
           return;
         }
 
-        if (!leaseData?.vehicle_id) {
+        if (!(leaseData as LeaseResult)?.vehicle_id) {
           console.error("No vehicle associated with this agreement");
           setIsLoading(false);
           return;
@@ -86,7 +104,7 @@ export const AgreementTrafficFines = ({
         const { data: dateRangeFines, error: dateRangeError } = await supabase
           .from('traffic_fines')
           .select('*')
-          .eq('vehicle_id', leaseData.vehicle_id)
+          .eq('vehicle_id', (leaseData as LeaseResult).vehicle_id)
           .gte('violation_date', startDate.toISOString())
           .lte('violation_date', endDate.toISOString());
 
@@ -102,7 +120,7 @@ export const AgreementTrafficFines = ({
         
         if (directFines && directFines.length > 0) {
           // Transform data from snake_case to camelCase
-          allFines = directFines.map(fine => ({
+          allFines = (directFines as TrafficFineResult[]).map(fine => ({
             id: fine.id,
             violationNumber: fine.violation_number,
             licensePlate: fine.license_plate,
@@ -118,7 +136,7 @@ export const AgreementTrafficFines = ({
         
         if (dateRangeFines && dateRangeFines.length > 0) {
           // Transform data from snake_case to camelCase
-          const transformedDateRangeFines = dateRangeFines.map(fine => ({
+          const transformedDateRangeFines = (dateRangeFines as TrafficFineResult[]).map(fine => ({
             id: fine.id,
             violationNumber: fine.violation_number,
             licensePlate: fine.license_plate,
