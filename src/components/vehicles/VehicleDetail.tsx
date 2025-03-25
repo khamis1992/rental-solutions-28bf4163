@@ -50,7 +50,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
   const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
   const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
-  const gs3Image = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+  const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png'; // Updated GS3 image
   const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
   const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
 
@@ -81,6 +81,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
       displayImageUrl = gs3Image;
       console.log('Using GAC GS3 image in detail');
+    }
+    // Check for other GS3 models (regardless of manufacturer)
+    else if (modelLower.includes('gs3') || modelLower === 'gs3') {
+      displayImageUrl = gs3Image;
+      console.log('Using GS3 image in detail');
     }
     // Check for other GAC models
     else if (makeLower.includes('gac')) {

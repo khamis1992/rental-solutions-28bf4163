@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -47,60 +46,53 @@ const VehicleCard = ({
     retired: 'bg-gray-100 text-gray-800'
   };
 
-  // Default image for cars
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
-  // Image paths
   const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
   const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
   const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
   const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
-  const gs3Image = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+  const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
   const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
   const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
   
-  // Custom image logic by make/model
   let displayImageUrl = '';
   
   try {
-    // Normalize make and model for consistent comparison (convert to lowercase)
     const makeLower = (make || '').toString().toLowerCase().trim();
     const modelLower = (model || '').toString().toLowerCase().trim();
     
     console.log('Vehicle card make/model:', makeLower, modelLower);
     
-    // Check for B70 in model name
     if (modelLower.includes('b70') || modelLower === 'b70') {
       displayImageUrl = b70Image;
       console.log('Using B70 image');
     }
-    // Check for T33 in model name
     else if (modelLower.includes('t33') || modelLower === 't33') {
       displayImageUrl = t33Image;
       console.log('Using T33 image');
     }
-    // Check for T77 in model name
     else if (modelLower.includes('t77') || modelLower === 't77') {
       displayImageUrl = t77Image;
       console.log('Using T77 image');
     } 
-    // Check for GAC GS3 specifically
     else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
       displayImageUrl = gs3Image;
       console.log('Using GAC GS3 image');
     }
-    // Check for other GAC models
+    else if (modelLower.includes('gs3') || modelLower === 'gs3') {
+      displayImageUrl = gs3Image;
+      console.log('Using GS3 image');
+    }
     else if (makeLower.includes('gac')) {
       displayImageUrl = gacImage;
       console.log('Using generic GAC image');
     } 
-    // MG handling - check both make and model
     else if (
       makeLower === 'mg' || 
       makeLower.startsWith('mg ') || 
       modelLower.startsWith('mg')
     ) {
-      // Specific check for MG5
       if (
         modelLower.includes('5') || 
         modelLower.includes('mg5') || 
@@ -114,11 +106,9 @@ const VehicleCard = ({
         console.log('Using generic MG image:', mgImage);
       }
     } 
-    // Use provided imageUrl if available
     else if (imageUrl) {
       displayImageUrl = imageUrl;
     } 
-    // Fallback to default image
     else {
       displayImageUrl = defaultCarImage;
     }
@@ -141,7 +131,6 @@ const VehicleCard = ({
           className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
           onError={(e) => {
             console.log('Image failed to load, using fallback:', e.currentTarget.src);
-            // Fallback to default image if loading fails
             e.currentTarget.src = defaultCarImage;
           }}
         />
