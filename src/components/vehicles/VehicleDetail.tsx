@@ -13,7 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
-import { getVehicleImageByPrefix } from '@/lib/vehicles/vehicle-storage';
+import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -55,6 +55,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       setImageLoading(true);
       
       try {
+        if (vehicle.model && vehicle.model.toLowerCase().includes('b70')) {
+          const modelImage = await getModelSpecificImage(vehicle.model);
+          if (modelImage) {
+            setVehicleImageUrl(modelImage);
+            setImageLoading(false);
+            console.log('Using B70 model specific image from storage');
+            return;
+          }
+        }
+        
         if (vehicle.imageUrl || vehicle.image_url) {
           setVehicleImageUrl(vehicle.imageUrl || vehicle.image_url);
           setImageLoading(false);
@@ -64,9 +74,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         const imageUrl = await getVehicleImageByPrefix(vehicle.id);
         if (imageUrl) {
           setVehicleImageUrl(imageUrl);
-        } else {
-          fallbackToModelImages();
+          setImageLoading(false);
+          return;
         }
+
+        fallbackToModelImages();
       } catch (error) {
         console.error('Error fetching vehicle image:', error);
         fallbackToModelImages();
@@ -76,7 +88,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     }
     
     fetchVehicleImage();
-  }, [vehicle.id, vehicle.imageUrl, vehicle.image_url]);
+  }, [vehicle.id, vehicle.imageUrl, vehicle.image_url, vehicle.model]);
   
   const fallbackToModelImages = () => {
     const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';

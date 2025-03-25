@@ -127,3 +127,43 @@ export async function getVehicleImageByPrefix(idPrefix: string): Promise<string 
     return null;
   }
 }
+
+// Get specific model image from storage (for B70 or other models)
+export async function getModelSpecificImage(model: string): Promise<string | null> {
+  const modelLower = (model || '').toString().toLowerCase().trim();
+  
+  // For now, we only implement this for B70 specifically
+  if (modelLower.includes('b70') || modelLower === 'b70') {
+    try {
+      // Query the storage for any files with 'b70' in the name
+      const { data, error } = await supabase.storage
+        .from('vehicle-images')
+        .list('', {
+          search: 'b70'
+        });
+      
+      if (error) {
+        console.error('Error searching for B70 image:', error);
+        return null;
+      }
+      
+      // Find B70 specific images
+      const b70Images = data.filter(item => 
+        item.name.toLowerCase().includes('b70') && 
+        !item.name.includes('-') // Exclude vehicle-specific images that contain hyphens
+      );
+      
+      if (b70Images.length > 0) {
+        return getImagePublicUrl('vehicle-images', b70Images[0].name);
+      }
+      
+      // Fallback to the public image if not in storage
+      return '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
+    } catch (error) {
+      console.error('Error getting B70 model image:', error);
+      return null;
+    }
+  }
+  
+  return null;
+}

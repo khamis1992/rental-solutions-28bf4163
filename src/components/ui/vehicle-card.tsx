@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { CircleUser, Calendar, MapPin, Fuel, Activity } from 'lucide-react';
 import { CustomButton } from './custom-button';
 import { VehicleStatus } from '@/types/vehicle';
-import { getVehicleImageByPrefix } from '@/lib/vehicles/vehicle-storage';
+import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 
 interface VehicleCardProps {
   id: string;
@@ -57,12 +58,24 @@ const VehicleCard = ({
       setIsImageLoading(true);
       
       try {
+        // First, check if we have a specific model image for B70
+        if (model && model.toLowerCase().includes('b70')) {
+          const modelImage = await getModelSpecificImage(model);
+          if (modelImage) {
+            setActualImageUrl(modelImage);
+            setIsImageLoading(false);
+            return;
+          }
+        }
+        
+        // Then check if we have a direct URL
         if (imageUrl && imageUrl.startsWith('http')) {
           setActualImageUrl(imageUrl);
           setIsImageLoading(false);
           return;
         }
         
+        // Then try to get an image by vehicle ID
         const storageImage = await getVehicleImageByPrefix(id);
         if (storageImage) {
           setActualImageUrl(storageImage);
@@ -70,6 +83,7 @@ const VehicleCard = ({
           return;
         }
         
+        // Finally, fall back to model-specific images
         fallbackToModelImages();
       } catch (error) {
         console.error('Error loading vehicle image:', error);
