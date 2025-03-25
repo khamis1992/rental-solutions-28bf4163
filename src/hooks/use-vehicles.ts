@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -45,7 +46,7 @@ export const useVehicles = () => {
               const tempId = crypto.randomUUID();
               imageUrl = await uploadVehicleImage(formData.image, tempId);
             } catch (error) {
-              console.error('Error uploading image to Supabase storage:', error);
+              console.error('Error uploading image:', error);
               toast.error('Failed to upload image', {
                 description: error instanceof Error ? error.message : 'Unknown error occurred',
               });
@@ -77,7 +78,6 @@ export const useVehicles = () => {
           
           if (imageUrl && formData.image) {
             try {
-              // Update the image with the permanent vehicle ID
               const newImageUrl = await uploadVehicleImage(formData.image, data.id);
               
               // Update with the final image URL using the actual vehicle ID
@@ -121,7 +121,7 @@ export const useVehicles = () => {
             try {
               imageUrl = await uploadVehicleImage(data.image, id);
             } catch (error) {
-              console.error('Error uploading image to Supabase storage:', error);
+              console.error('Error uploading image:', error);
               toast.error('Failed to upload image', {
                 description: error instanceof Error ? error.message : 'Unknown error occurred',
               });
@@ -183,21 +183,16 @@ export const useVehicles = () => {
           
           await deleteVehicle(id);
           
-          if (vehicle && vehicle.image_url && vehicle.image_url.includes('supabase.co')) {
+          if (vehicle && vehicle.image_url) {
             try {
-              // Parse the URL to extract the filename
-              const url = new URL(vehicle.image_url);
-              const pathParts = url.pathname.split('/');
-              const fileName = pathParts[pathParts.length - 1];
+              const urlParts = vehicle.image_url.split('/');
+              const fileName = urlParts[urlParts.length - 1];
               
-              // Delete the file from Supabase storage
               await supabase.storage
                 .from('vehicle-images')
                 .remove([fileName]);
-                
-              console.log('Deleted vehicle image from Supabase storage:', fileName);
             } catch (storageError) {
-              console.error('Failed to delete vehicle image from Supabase storage:', storageError);
+              console.error('Failed to delete vehicle image:', storageError);
             }
           }
           

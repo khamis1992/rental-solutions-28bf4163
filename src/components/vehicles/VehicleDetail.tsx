@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -55,44 +56,49 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
 
   let displayImageUrl = defaultCarImage;
   try {
+    // Normalize make and model for consistent comparison (convert to lowercase)
     const makeLower = (vehicle.make || '').toString().toLowerCase().trim();
     const modelLower = (vehicle.model || '').toString().toLowerCase().trim();
     
     console.log('Vehicle detail make/model:', makeLower, modelLower);
     
-    if (vehicle.imageUrl && (vehicle.imageUrl.includes('storage.googleapis.com') || vehicle.imageUrl?.includes('supabase.co'))) {
-      displayImageUrl = vehicle.imageUrl;
-      console.log('Using Supabase storage image in detail:', vehicle.imageUrl);
-    }
-    else if (modelLower.includes('b70') || modelLower === 'b70') {
+    // Check for B70 in model name
+    if (modelLower.includes('b70') || modelLower === 'b70') {
       displayImageUrl = b70Image;
       console.log('Using B70 image in detail');
     }
+    // Check for T33 in model name
     else if (modelLower.includes('t33') || modelLower === 't33') {
       displayImageUrl = t33Image;
       console.log('Using T33 image in detail');
     }
+    // Check for T77 in model name
     else if (modelLower.includes('t77') || modelLower === 't77') {
       displayImageUrl = t77Image;
       console.log('Using T77 image in detail');
     } 
+    // Check for GAC GS3 specifically
     else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
       displayImageUrl = gs3Image;
       console.log('Using GAC GS3 image in detail');
     }
+    // Check for other GS3 models (regardless of manufacturer)
     else if (modelLower.includes('gs3') || modelLower === 'gs3') {
       displayImageUrl = gs3Image;
       console.log('Using GS3 image in detail');
     }
+    // Check for other GAC models
     else if (makeLower.includes('gac')) {
       displayImageUrl = gacImage;
       console.log('Using generic GAC image in detail');
     } 
+    // MG handling - check both make and model
     else if (
       makeLower === 'mg' || 
       makeLower.startsWith('mg ') || 
       modelLower.startsWith('mg')
     ) {
+      // Specific check for MG5
       if (
         modelLower.includes('5') || 
         modelLower.includes('mg5') || 
@@ -106,11 +112,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         console.log('Using generic MG image in detail:', mgImage);
       }
     } 
+    // Use provided imageUrl if available
     else if (vehicle.imageUrl) {
       displayImageUrl = vehicle.imageUrl;
     }
   } catch (error) {
     console.error('Error setting vehicle detail image:', error);
+    // Fallback already set to defaultCarImage
   }
 
   const hasInsurance = !!vehicle.insurance_company;

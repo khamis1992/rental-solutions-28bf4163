@@ -9,44 +9,51 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { ensureVehicleImagesBucket } from '@/lib/vehicles/vehicle-storage';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bucketError, setBucketError] = useState<string | null>(null);
-  const [checkingBucket, setCheckingBucket] = useState(false);
   
   const { useVehicle, useUpdate } = useVehicles();
   const { data: vehicle, isLoading, error } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
   
   // Check if bucket exists and create it if needed
-  const checkVehicleImagesBucket = async () => {
+  const ensureVehicleImagesBucket = async () => {
     try {
-      setCheckingBucket(true);
-      const bucketReady = await ensureVehicleImagesBucket();
+      // Check if bucket exists
+      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
-      if (!bucketReady) {
-        setBucketError('Failed to prepare storage for vehicle images. Check your Supabase configuration.');
-        toast.error('Storage bucket issue', { 
-          description: 'Failed to prepare storage for vehicle images. Check your Supabase configuration.'
-        });
-        setCheckingBucket(false);
+      if (listError) {
+        console.error('Error listing buckets:', listError);
+        setBucketError(`Error checking storage buckets: ${listError.message}`);
         return false;
       }
       
-      setBucketError(null);
-      setCheckingBucket(false);
+      const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
+      
+      if (!bucketExists) {
+        // Create the bucket
+        const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
+          public: true,
+          fileSizeLimit: 10485760, // 10MB
+        });
+        
+        if (createError) {
+          console.error('Error creating bucket:', createError);
+          setBucketError(`Error creating storage bucket: ${createError.message}`);
+          return false;
+        }
+        
+        toast.success('Vehicle images storage bucket created successfully');
+      }
+      
       return true;
     } catch (error) {
       console.error('Error ensuring vehicle images bucket exists:', error);
       setBucketError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      toast.error('Storage error', {
-        description: error instanceof Error ? error.message : 'Unknown error checking storage'
-      });
-      setCheckingBucket(false);
       return false;
     }
   };
@@ -55,8 +62,9 @@ const EditVehicle = () => {
     if (id) {
       // If there's an image, ensure the bucket exists first
       if (formData.image) {
-        const bucketReady = await checkVehicleImagesBucket();
+        const bucketReady = await ensureVehicleImagesBucket();
         if (!bucketReady) {
+          toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
           return;
         }
       }
@@ -129,37 +137,11 @@ const EditVehicle = () => {
         }
       />
       
-      {bucketError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertOctagon className="h-4 w-4" />
-          <AlertTitle>Storage Configuration Error</AlertTitle>
-          <AlertDescription>
-            <p>{bucketError}</p>
-            <p className="text-sm mt-2">
-              Please check your Supabase configuration and ensure that the VITE_SUPABASE_SERVICE_ROLE_KEY 
-              is properly set in your .env file.
-            </p>
-            <div className="mt-3">
-              <CustomButton
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={checkVehicleImagesBucket}
-                disabled={checkingBucket}
-              >
-                {checkingBucket && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Retry Storage Configuration
-              </CustomButton>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
-      
       <div className="section-transition">
         <VehicleForm 
           initialData={vehicle}
           onSubmit={handleSubmit} 
-          isLoading={isUpdating || checkingBucket}
+          isLoading={isUpdating}
           isEditMode={true}
         />
       </div>
