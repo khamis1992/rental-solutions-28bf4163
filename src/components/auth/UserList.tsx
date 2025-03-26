@@ -10,7 +10,7 @@ import {
   ColumnFiltersState,
   getFilteredRowModel
 } from "@tanstack/react-table";
-import { CheckCircle, Clock, XCircle, MoreHorizontal, Search, Filter } from "lucide-react";
+import { CheckCircle, Clock, XCircle, MoreHorizontal, Search, Filter, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -55,6 +55,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -121,6 +131,11 @@ const UserList = () => {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
   const { profile } = useProfile();
   
   const form = useForm({
@@ -131,7 +146,6 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
-    updateAdminAccounts();
   }, []);
 
   useEffect(() => {
@@ -178,6 +192,119 @@ const UserList = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const deleteUser = async (userId: string) => {
+    try {
+      setDeletingUser(true);
+      
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+      
+      if (profileError) {
+        console.error("Error deleting user profile:", profileError);
+        throw profileError;
+      }
+      
+      setUsers(users.filter(user => user.id !== userId));
+      toast.success("User deleted successfully");
+      
+      setShowDeleteDialog(false);
+      setUserToDelete(null);
+    } catch (error: any) {
+      console.error("Error deleting user:", error.message);
+      toast.error("Failed to delete user: " + error.message);
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
+  const bulkDeleteUsersByEmail = async (email: string, excludeUserId: string) => {
+    try {
+      setBulkDeletingUsers(true);
+      
+      const usersToDelete = users.filter(user => 
+        user.email === email && user.id !== excludeUserId
+      );
+      
+      if (usersToDelete.length === 0) {
+        toast.info("No duplicate users found with this email");
+        return;
+      }
+      
+      for (const user of usersToDelete) {
+        const { error } = await supabase
+          .from("profiles")
+          .delete()
+          .eq("id", user.id);
+        
+        if (error) {
+          console.error(`Error deleting user ${user.id}:`, error);
+          throw error;
+        }
+      }
+      
+      await fetchUsers();
+      
+      toast.success(`Successfully deleted ${usersToDelete.length} duplicate user(s)`);
+      
+      setShowBulkDeleteDialog(false);
+    } catch (error: any) {
+      console.error("Error performing bulk deletion:", error.message);
+      toast.error("Failed to delete duplicate users: " + error.message);
+    } finally {
+      setBulkDeletingUsers(false);
+    }
+  };
+
+  const handleDeleteKhamis = async () => {
+    if (!profile) {
+      toast.error("Cannot delete users: Your profile is not loaded");
+      return;
+    }
+    
+    const khamisUsers = users.filter(user => 
+      user.email === "khamis-1992@hotmail.com"
+    );
+    
+    if (khamisUsers.length <= 1) {
+      toast.info("No duplicate users found with this email");
+      return;
+    }
+    
+    try {
+      setBulkDeletingUsers(true);
+      
+      for (const user of khamisUsers) {
+        if (user.id !== profile.id) {
+          const { error } = await supabase
+            .from("profiles")
+            .delete()
+            .eq("id", user.id);
+          
+          if (error) {
+            console.error(`Error deleting user ${user.id}:`, error);
+            throw error;
+          }
+        }
+      }
+      
+      await fetchUsers();
+      
+      toast.success(`Successfully deleted duplicate Khamis accounts`);
+    } catch (error: any) {
+      console.error("Error deleting duplicate Khamis accounts:", error.message);
+      toast.error("Failed to delete users: " + error.message);
+    } finally {
+      setBulkDeletingUsers(false);
+    }
+  };
+
+  const openDeleteDialog = (user: UserData) => {
+    setUserToDelete(user);
+    setShowDeleteDialog(true);
   };
 
   const updateAdminAccounts = async () => {
@@ -372,6 +499,7 @@ const UserList = () => {
       cell: ({ row }) => {
         const user = row.original;
         const currentUserProfile = profile?.id === user.id;
+        const isAdmin = profile?.role === "admin";
         
         return (
           <DropdownMenu>
@@ -386,7 +514,7 @@ const UserList = () => {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => openPermissionDialog(user)}
-                disabled={profile?.role !== "admin"}
+                disabled={!isAdmin}
               >
                 Manage Permissions
               </DropdownMenuItem>
@@ -394,21 +522,30 @@ const UserList = () => {
               <DropdownMenuLabel>Change Status</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "active")}
-                disabled={user.status === "active" || profile?.role !== "admin" || currentUserProfile}
+                disabled={user.status === "active" || !isAdmin || currentUserProfile}
               >
                 Set Active
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "pending_review")}
-                disabled={user.status === "pending_review" || profile?.role !== "admin" || currentUserProfile}
+                disabled={user.status === "pending_review" || !isAdmin || currentUserProfile}
               >
                 Set Pending
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "inactive")}
-                disabled={user.status === "inactive" || profile?.role !== "admin" || currentUserProfile}
+                disabled={user.status === "inactive" || !isAdmin || currentUserProfile}
               >
                 Set Inactive
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => openDeleteDialog(user)}
+                disabled={!isAdmin || currentUserProfile}
+                className="text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete User
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -493,7 +630,7 @@ const UserList = () => {
         </Card>
       </div>
       
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -533,6 +670,24 @@ const UserList = () => {
             <Filter className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button 
+          variant="destructive" 
+          size="sm" 
+          onClick={handleDeleteKhamis}
+          disabled={bulkDeletingUsers}
+        >
+          {bulkDeletingUsers ? (
+            <>Deleting...</>
+          ) : (
+            <>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Duplicate Khamis Accounts
+            </>
+          )}
+        </Button>
       </div>
       
       <div className="border rounded-md">
@@ -702,6 +857,58 @@ const UserList = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {userToDelete?.full_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingUser}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (userToDelete) deleteUser(userToDelete.id);
+              }}
+              disabled={deletingUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletingUser ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Duplicate Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="flex items-center mb-2 text-amber-600">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                <span>This will delete all duplicate users with the same email.</span>
+              </div>
+              <p>Are you sure you want to proceed? This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeletingUsers}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (profile) bulkDeleteUsersByEmail("khamis-1992@hotmail.com", profile.id);
+              }}
+              disabled={bulkDeletingUsers}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkDeletingUsers ? "Deleting..." : "Delete All Duplicates"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
