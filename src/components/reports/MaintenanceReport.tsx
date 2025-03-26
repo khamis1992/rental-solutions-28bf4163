@@ -56,11 +56,11 @@ const MaintenanceReport = () => {
     .slice(0, 5)
     .map(record => ({
       id: record.id,
-      date: new Date(record.scheduled_date).toISOString().split('T')[0],
+      date: record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : 'N/A',
       vehicle: record.vehicles ? `${record.vehicles.make} ${record.vehicles.model} (${record.vehicles.license_plate})` : 'Unknown Vehicle',
       type: record.maintenance_type || 'General Maintenance',
       status: record.status || 'scheduled',
-      technician: record.performed_by ? 'Staff' : 'External Service',
+      technician: record.performed_by ? record.performed_by : 'Not assigned',
       cost: record.cost || 0
     }));
 
@@ -85,71 +85,76 @@ const MaintenanceReport = () => {
     return <div className="flex justify-center items-center h-64">Loading maintenance data...</div>;
   }
 
+  // Show empty state when no data is available
+  if (maintenanceRecords.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <Wrench className="h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium">No maintenance records found</h3>
+        <p className="text-sm text-gray-500 mt-2">Add maintenance records to see analytics and reports.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Maintenance" 
           value={totalMaintenance.toString()} 
-          trend={-4}
-          trendLabel="vs last month"
           icon={Wrench}
           iconColor="text-blue-500"
         />
         <StatCard 
           title="Pending Maintenance" 
           value={pendingMaintenance.toString()} 
-          trend={-2}
-          trendLabel="vs last month"
           icon={AlertTriangle}
           iconColor="text-amber-500"
         />
         <StatCard 
           title="Avg Resolution Time" 
           value={`${avgResolutionTime.toFixed(1)} days`} 
-          trend={-0.5}
-          trendLabel="vs last month"
           icon={Clock}
           iconColor="text-green-500"
         />
         <StatCard 
           title="Maintenance Costs" 
           value={formatCurrency(totalCosts)} 
-          trend={6}
-          trendLabel="vs last month"
           icon={DollarSign}
           iconColor="text-red-500"
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Maintenance by Type</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={maintenanceByTypeData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
-                layout="vertical"
-              >
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                <XAxis type="number" axisLine={false} tickLine={false} />
-                <YAxis 
-                  dataKey="type" 
-                  type="category"
-                  axisLine={false}
-                  tickLine={false}
-                  width={150}
-                />
-                <Tooltip formatter={(value) => [`${value} incidents`, 'Count']} />
-                <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {maintenanceByTypeData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Maintenance by Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={maintenanceByTypeData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
+                  layout="vertical"
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <XAxis type="number" axisLine={false} tickLine={false} />
+                  <YAxis 
+                    dataKey="type" 
+                    type="category"
+                    axisLine={false}
+                    tickLine={false}
+                    width={150}
+                  />
+                  <Tooltip formatter={(value) => [`${value} incidents`, 'Count']} />
+                  <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -191,39 +196,40 @@ const MaintenanceReport = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Maintenance Cost by Vehicle</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={maintenanceCostByVehicleData}
-                margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis 
-                  dataKey="vehicle" 
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(value) => formatCurrency(value)}
-                />
-                <Tooltip formatter={(value, name) => {
-                  // Fix: Ensure value is a number before passing to formatCurrency
-                  const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
-                  return [formatCurrency(numValue), 'Maintenance Cost'];
-                }} />
-                <Bar dataKey="cost" fill="#f97316" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {maintenanceCostByVehicleData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Maintenance Cost by Vehicle</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={maintenanceCostByVehicleData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis 
+                    dataKey="vehicle" 
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => formatCurrency(value)}
+                  />
+                  <Tooltip formatter={(value, name) => {
+                    const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
+                    return [formatCurrency(numValue), 'Maintenance Cost'];
+                  }} />
+                  <Bar dataKey="cost" fill="#f97316" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
