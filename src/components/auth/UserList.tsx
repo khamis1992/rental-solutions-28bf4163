@@ -128,8 +128,6 @@ const UserList = () => {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
   const [saving, setSaving] = useState(false);
-  const [showRoleDialog, setShowRoleDialog] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string>("");
   const { profile } = useProfile();
 
   const form = useForm({
@@ -161,7 +159,6 @@ const UserList = () => {
   useEffect(() => {
     if (selectedUser) {
       form.setValue("role", selectedUser.role);
-      setSelectedRole(selectedUser.role);
       
       setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
     }
@@ -209,68 +206,32 @@ const UserList = () => {
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
-      console.log(`Attempting to update user ${userId} to role: ${newRole}`);
-      
-      const { data: userData, error: userCheckError } = await supabase
-        .from("profiles")
-        .select("id, role")
-        .eq("id", userId)
-        .single();
-        
-      if (userCheckError) {
-        console.error("Error checking user before update:", userCheckError);
-        throw new Error(`User check failed: ${userCheckError.message}`);
-      }
-      
-      if (!userData) {
-        throw new Error("User not found");
-      }
-      
-      console.log("Current user data:", userData);
-      
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({ role: newRole })
-        .eq("id", userId)
-        .select();
+        .eq("id", userId);
       
-      if (error) {
-        console.error("Supabase error updating role:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      if (!data || data.length === 0) {
-        console.error("No data returned after update");
-        throw new Error("Update operation did not modify any rows");
-      }
-      
-      console.log("Update response:", data);
-      
-      setUsers(prevUsers => 
-        prevUsers.map(user => 
-          user.id === userId ? { ...user, role: newRole } : user
-        )
-      );
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, role: newRole } : user
+      ));
       
       toast({
         title: "Success",
         description: `User role updated to ${newRole}`,
         variant: "default"
       });
-      
-      return { success: true, data };
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
       toast({
         title: "Error",
-        description: `Failed to update user role: ${error.message}`,
+        description: "Failed to update user role",
         variant: "destructive"
       });
-      
-      return { success: false, error };
     }
   };
-
+  
   const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
     try {
       const { error } = await supabase
@@ -304,44 +265,6 @@ const UserList = () => {
     setShowPermissionDialog(true);
   };
 
-  const openRoleDialog = (user: UserData) => {
-    setSelectedUser(user);
-    setSelectedRole(user.role);
-    setShowRoleDialog(true);
-  };
-
-  const saveRoleChange = async () => {
-    if (!selectedUser || !selectedRole) return;
-    
-    setSaving(true);
-    try {
-      if (selectedRole !== selectedUser.role) {
-        const result = await handleUpdateUserRole(selectedUser.id, selectedRole);
-        
-        if (result.success) {
-          toast({
-            title: "Success",
-            description: `User role updated to ${selectedRole}`,
-            variant: "default"
-          });
-          setShowRoleDialog(false);
-          fetchUsers();
-        }
-      } else {
-        setShowRoleDialog(false);
-      }
-    } catch (error: any) {
-      console.error("Error saving role change:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to save role change",
-        variant: "destructive"
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const savePermissions = async () => {
     if (!selectedUser || !userPermissions) return;
     
@@ -350,8 +273,7 @@ const UserList = () => {
       const newRole = form.getValues("role");
       
       if (newRole !== selectedUser.role) {
-        const result = await handleUpdateUserRole(selectedUser.id, newRole);
-        console.log("Role update result:", result);
+        await handleUpdateUserRole(selectedUser.id, newRole);
       }
       
       toast({
@@ -412,18 +334,7 @@ const UserList = () => {
       header: "Name",
       cell: ({ row }) => {
         const value = row.getValue("full_name") as string;
-        const user = row.original;
-        const isDisabled = isCurrentUser(user.id) || profile?.role !== "admin";
-        
-        return (
-          <button 
-            className={`font-medium hover:underline focus:outline-none ${isDisabled ? 'cursor-default' : 'cursor-pointer'}`}
-            onClick={() => !isDisabled && openRoleDialog(user)}
-            disabled={isDisabled}
-          >
-            {value || "N/A"}
-          </button>
-        );
+        return <div className="font-medium">{value || "N/A"}</div>;
       },
     },
     {
@@ -460,8 +371,8 @@ const UserList = () => {
         return (
           <Badge 
             variant={
-              status === "active" ? "default" : 
-              status === "pending_review" ? "default" : 
+              status === "active" ? "success" : 
+              status === "pending_review" ? "warning" : 
               "destructive"
             }
           >
@@ -569,39 +480,6 @@ const UserList = () => {
       columnFilters,
     },
   });
-
-  const debugTestRoleUpdate = async (userId: string, newRole: string) => {
-    console.log("DIRECT TEST - Updating role", { userId, newRole });
-    
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId)
-        .select();
-        
-      console.log("DIRECT TEST RESULT:", { data, error });
-      
-      return { success: !error, data, error };
-    } catch (err) {
-      console.error("DIRECT TEST ERROR:", err);
-      return { success: false, error: err };
-    }
-  };
-
-  const executeRoleChange = async (userId: string, newRole: string) => {
-    console.log(`Role change requested: ${userId} to ${newRole}`);
-    
-    toast({
-      title: "Processing",
-      description: `Updating user to ${newRole}...`,
-      variant: "default"
-    });
-    
-    await handleUpdateUserRole(userId, newRole);
-    
-    await fetchUsers();
-  };
 
   return (
     <div className="space-y-6">
@@ -868,23 +746,6 @@ const UserList = () => {
                     : "Only admins can modify permissions."}
                 </p>
               )}
-
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-4 p-2 border border-gray-200 rounded text-xs">
-                  <p>Debug Info (Admin Only)</p>
-                  <p>User ID: {selectedUser.id}</p>
-                  <p>Current Role: {selectedUser.role}</p>
-                  <p>Form Role: {form.getValues('role')}</p>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="mt-2"
-                    onClick={() => debugTestRoleUpdate(selectedUser.id, form.getValues('role'))}
-                  >
-                    Direct Test Update
-                  </Button>
-                </div>
-              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowPermissionDialog(false)}>
@@ -894,60 +755,6 @@ const UserList = () => {
                 type="button" 
                 variant="default" 
                 onClick={savePermissions}
-                disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id) || saving}
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {selectedUser && (
-        <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Change User Role</DialogTitle>
-              <DialogDescription>
-                Update role for {selectedUser.full_name}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <div className="mb-4">
-                <FormLabel>Select Role</FormLabel>
-                <Select 
-                  onValueChange={setSelectedRole} 
-                  defaultValue={selectedUser.role}
-                  disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {process.env.NODE_ENV === 'development' && (
-                <div className="mt-4 p-2 border border-gray-200 rounded text-xs">
-                  <p>Debug Info (Admin Only)</p>
-                  <p>User ID: {selectedUser.id}</p>
-                  <p>Current Role: {selectedUser.role}</p>
-                  <p>Selected Role: {selectedRole}</p>
-                </div>
-              )}
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowRoleDialog(false)}>
-                Cancel
-              </Button>
-              <Button 
-                type="button" 
-                variant="default" 
-                onClick={saveRoleChange}
                 disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id) || saving}
               >
                 {saving ? "Saving..." : "Save Changes"}
