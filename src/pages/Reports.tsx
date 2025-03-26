@@ -13,12 +13,15 @@ import { FileText } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
+import { useMaintenance } from '@/hooks/use-maintenance';
 
 const Reports = () => {
   const [selectedTab, setSelectedTab] = useState('fleet');
   const { vehicles } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
+  const { useList } = useMaintenance();
+  const { data: maintenanceRecords = [] } = useList();
   
   const getReportData = () => {
     switch (selectedTab) {
@@ -44,13 +47,14 @@ const Reports = () => {
           created_at: customer.created_at
         }));
       case 'maintenance':
-        // Sample maintenance data (could be fetched from a hook in the future)
-        return Array(10).fill(0).map((_, i) => ({
-          id: i + 1,
-          vehicle: `Vehicle ${i + 1}`,
-          type: ['Oil Change', 'Tire Rotation', 'Brake Service'][i % 3],
-          date: new Date().toISOString(),
-          cost: Math.floor(100 + Math.random() * 500)
+        return maintenanceRecords.map(record => ({
+          id: record.id,
+          vehicle: record.vehicles ? `${record.vehicles.make} ${record.vehicles.model} (${record.vehicles.license_plate})` : 'Unknown Vehicle',
+          maintenance_type: record.maintenance_type || 'General Maintenance',
+          scheduled_date: record.scheduled_date,
+          status: record.status,
+          cost: record.cost || 0,
+          completion_date: record.completion_date
         }));
       default:
         return [];
