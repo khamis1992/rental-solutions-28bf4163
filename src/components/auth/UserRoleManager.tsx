@@ -23,7 +23,7 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
   const [isChanging, setIsChanging] = useState(false);
 
   const handleRoleChange = async (newRole: string) => {
-    if (newRole === currentRole || disabled) return;
+    if (newRole === role || disabled) return;
     
     try {
       setIsChanging(true);
@@ -60,7 +60,7 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
       )}
       
       <Select
-        value={role}
+        defaultValue={role}
         onValueChange={handleRoleChange}
         disabled={disabled || isChanging}
       >
