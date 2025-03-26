@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 
@@ -120,12 +119,15 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFont('helvetica', 'normal');
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
   
-  // Add footer logo
-  doc.addImage('/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png', 'PNG', pageWidth - 50, pageHeight - 25, 40, 15);
+  // Add footer logo - removed as per image example
+  // Only show the Arabic text image at the right side
+  doc.addImage('/lovable-uploads/d6cc5f20-2b4e-4882-a50c-2377f75ff46d.png', 'PNG', pageWidth - 80, pageHeight - 30, 70, 15);
   
-  // Add page number
-  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+  // Add page bottom elements with correct spacing/positioning
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
+  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
   doc.text(format(new Date(), 'yyyy-MM-dd'), pageWidth - 14, pageHeight - 10, { align: 'right' });
 };
 
