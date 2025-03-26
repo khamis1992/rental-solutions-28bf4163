@@ -144,7 +144,11 @@ const FleetReport = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
-                    tick={{ angle: -45, textAnchor: 'end', dominantBaseline: 'auto' }}
+                    tick={{ 
+                      transform: 'rotate(-45)',
+                      textAnchor: 'end',
+                      dominantBaseline: 'auto'
+                    }}
                     height={70}
                   />
                   <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
