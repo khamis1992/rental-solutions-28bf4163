@@ -7,7 +7,7 @@ import { toast } from "sonner";
 export interface Profile {
   id: string;
   full_name: string;
-  role: string;
+  role: "admin" | "manager" | "user" | "staff" | "customer" | string;
   email: string;
   status: "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
   created_at: string;

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -257,7 +256,6 @@ const UserList = () => {
 
   const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
     try {
-      // Fix the type issue by ensuring newStatus is one of the valid status values
       const validStatus = newStatus as "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
       
       const { error } = await supabase
@@ -358,18 +356,21 @@ const UserList = () => {
         const isSelf = isCurrentUser(user.id);
         
         return (
-          <div 
-            className={`font-medium ${isAdmin && !isSelf ? "cursor-pointer hover:text-primary hover:underline" : ""}`}
+          <button 
+            type="button"
+            className={`font-medium text-left ${isAdmin && !isSelf ? "cursor-pointer hover:text-primary hover:underline" : ""}`}
             onClick={() => {
               if (isAdmin && !isSelf) {
                 console.log("Name clicked for user:", user.full_name, user);
                 openQuickRoleDialog(user);
               }
             }}
+            disabled={!isAdmin || isSelf}
             title={isAdmin && !isSelf ? "Click to change role" : ""}
+            style={{ background: "transparent", border: "none", padding: 0, width: "100%" }}
           >
             {value || "N/A"}
-          </div>
+          </button>
         );
       },
     },
