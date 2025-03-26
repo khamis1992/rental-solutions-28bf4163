@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -6,6 +7,8 @@ import { Users, UserPlus, StarIcon, Repeat2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/use-customers';
+import { formatCurrency } from '@/lib/utils';
+
 const CustomerReport = () => {
   const {
     customers,
@@ -168,7 +171,7 @@ const CustomerReport = () => {
                       <CustomerStatusBadge status={customer.status} />
                     </TableCell>
                     <TableCell>{customer.totalRentals}</TableCell>
-                    <TableCell>${customer.totalSpent.toLocaleString()}</TableCell>
+                    <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
                     <TableCell>{customer.lastRental}</TableCell>
                     <TableCell>{customer.rating}/5</TableCell>
                   </TableRow>)}
