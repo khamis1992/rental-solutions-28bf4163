@@ -40,16 +40,17 @@ const FormField = <
   )
 }
 
+// Updated useFormField to handle the case when useFormContext returns null
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
-  const { getFieldState, formState } = useFormContext() || {}
+  const formContext = useFormContext()
 
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>")
   }
 
-  const fieldState = getFieldState ? getFieldState(fieldContext.name, formState) : {}
+  const fieldState = formContext?.getFieldState?.(fieldContext.name, formContext.formState) || {}
 
   const { id } = itemContext
 
@@ -59,7 +60,7 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    ...fieldState,
+    ...fieldState, // This includes error if available
   }
 }
 
@@ -89,7 +90,7 @@ const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField()
+  const { formItemId, error } = useFormField()
 
   return (
     <Label
