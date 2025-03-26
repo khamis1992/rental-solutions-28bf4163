@@ -44,9 +44,9 @@ const TrafficFinesList = () => {
   const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine } = useTrafficFines();
   
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
-    fine.violationNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    fine.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    fine.violationCharge.toLowerCase().includes(searchQuery.toLowerCase())
+    (fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (fine.licensePlate?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+    (fine.violationCharge?.toLowerCase() || '').includes(searchQuery.toLowerCase())
   ) : [];
 
   const handlePayFine = (id: string) => {
