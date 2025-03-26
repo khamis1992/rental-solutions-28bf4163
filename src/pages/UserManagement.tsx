@@ -10,6 +10,7 @@ import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomButton } from "@/components/ui/custom-button";
+import { toast } from "sonner";
 
 const UserManagement = () => {
   const { profile } = useProfile();
@@ -19,6 +20,7 @@ const UserManagement = () => {
   
   // If not admin, redirect to dashboard
   if (!isAdmin) {
+    toast.error("You don't have permission to access this page");
     return <Navigate to="/dashboard" replace />;
   }
   

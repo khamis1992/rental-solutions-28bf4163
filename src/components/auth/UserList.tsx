@@ -169,19 +169,24 @@ const UserList = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log("Fetching users from Supabase...");
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .not('role', 'eq', 'customer');
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error details:", error);
+        throw error;
+      }
       
+      console.log("Fetched users:", data);
       setUsers(data || []);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
       toast({
         title: "Error",
-        description: "Failed to load users",
+        description: "Failed to load users: " + error.message,
         variant: "destructive"
       });
     } finally {
@@ -196,7 +201,10 @@ const UserList = () => {
         .update({ role: "admin" })
         .eq("email", "tareklaribi25914@gmail.com");
       
-      if (tarekError) throw tarekError;
+      if (tarekError) {
+        console.error("Error updating Tarek's role:", tarekError);
+        throw tarekError;
+      }
       
       console.log("Tarek's account has been set as admin");
       
@@ -205,7 +213,10 @@ const UserList = () => {
         .update({ role: "admin" })
         .eq("email", "khamis-1992@hotmail.com");
       
-      if (khamisError) throw khamisError;
+      if (khamisError) {
+        console.error("Error updating Khamis's role:", khamisError);
+        throw khamisError;
+      }
       
       console.log("Khamis's account has been set as admin");
       
@@ -220,12 +231,17 @@ const UserList = () => {
       setChangingRole(true);
       console.log(`Updating user ${userId} to role ${newRole}`);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update({ role: newRole })
         .eq("id", userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Update role error details:", error);
+        throw error;
+      }
+      
+      console.log("Update role response:", data);
       
       setUsers(users.map(user => 
         user.id === userId ? { ...user, role: newRole } : user
