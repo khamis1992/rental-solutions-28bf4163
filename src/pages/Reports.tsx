@@ -56,7 +56,9 @@ const Reports = () => {
           scheduled_date: record.scheduled_date,
           status: record.status,
           cost: record.cost || 0,
-          completion_date: record.completion_date
+          completion_date: record.completion_date,
+          service_provider: record.service_provider || 'N/A',
+          notes: record.notes || 'N/A'
         }));
       default:
         return [];

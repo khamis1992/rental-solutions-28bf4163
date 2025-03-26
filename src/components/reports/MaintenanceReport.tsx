@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -8,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 
 const MaintenanceReport = () => {
   const { useList } = useMaintenance();
@@ -81,12 +81,35 @@ const MaintenanceReport = () => {
     cost: costByVehicle[vehicle]
   })).sort((a, b) => b.cost - a.cost).slice(0, 6);
 
+  // Prepare report data for download
+  const getReportData = () => {
+    return maintenanceRecords.map(record => ({
+      id: record.id,
+      maintenance_type: record.maintenance_type || 'General Maintenance',
+      scheduled_date: record.scheduled_date ? new Date(record.scheduled_date).toISOString().split('T')[0] : 'N/A',
+      completion_date: record.completion_date ? new Date(record.completion_date).toISOString().split('T')[0] : 'N/A',
+      status: record.status || 'scheduled',
+      cost: record.cost || 0,
+      vehicle: record.vehicles ? `${record.vehicles.make} ${record.vehicles.model} (${record.vehicles.license_plate})` : 'Unknown Vehicle',
+      service_provider: record.service_provider || 'N/A',
+      notes: record.notes || 'N/A'
+    }));
+  };
+
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading maintenance data...</div>;
   }
 
   return (
     <div className="space-y-8">
+      <div className="flex items-center mb-6">
+        <h2 className="text-xl font-bold">Maintenance Analytics Dashboard</h2>
+      </div>
+      
+      <div className="mb-6">
+        <ReportDownloadOptions reportType="maintenance" getReportData={getReportData} />
+      </div>
+      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Maintenance" 
@@ -214,7 +237,6 @@ const MaintenanceReport = () => {
                   tickFormatter={(value) => formatCurrency(value)}
                 />
                 <Tooltip formatter={(value, name) => {
-                  // Fix: Ensure value is a number before passing to formatCurrency
                   const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
                   return [formatCurrency(numValue), 'Maintenance Cost'];
                 }} />
