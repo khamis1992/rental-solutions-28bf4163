@@ -140,7 +140,7 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
-    updateTarekToAdmin();
+    updateAdminAccounts();
   }, []);
 
   useEffect(() => {
@@ -189,20 +189,29 @@ const UserList = () => {
     }
   };
 
-  const updateTarekToAdmin = async () => {
+  const updateAdminAccounts = async () => {
     try {
-      const { error } = await supabase
+      const { error: tarekError } = await supabase
         .from("profiles")
         .update({ role: "admin" })
         .eq("email", "tareklaribi25914@gmail.com");
       
-      if (error) throw error;
+      if (tarekError) throw tarekError;
       
       console.log("Tarek's account has been set as admin");
       
+      const { error: khamisError } = await supabase
+        .from("profiles")
+        .update({ role: "admin" })
+        .eq("email", "khamis-1992@hotmail.com");
+      
+      if (khamisError) throw khamisError;
+      
+      console.log("Khamis's account has been set as admin");
+      
       fetchUsers();
     } catch (error: any) {
-      console.error("Error updating user role:", error.message);
+      console.error("Error updating user roles:", error.message);
     }
   };
 
