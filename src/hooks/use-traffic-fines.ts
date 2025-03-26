@@ -65,10 +65,10 @@ export function useTrafficFines() {
         const processedFines: TrafficFine[] = [];
         
         for (const fine of data || []) {
-          // Collect all customerIds for a batch query later
           let customerName;
+          let customerId;
           
-          // Only attempt to get customer name if there's a customer to get
+          // Only attempt to get customer name if there's a lease to get
           if (fine.lease_id) {
             try {
               // First, get the customer_id from the lease
@@ -81,6 +81,9 @@ export function useTrafficFines() {
               if (leaseError) {
                 console.error('Error fetching lease:', leaseError);
               } else if (leaseData && leaseData.customer_id) {
+                // Store the customer ID
+                customerId = leaseData.customer_id;
+                
                 // Then get the customer name
                 const { data: customerData } = await supabase
                   .from('profiles')
@@ -109,7 +112,7 @@ export function useTrafficFines() {
             location: fine.fine_location, // Use fine_location field
             vehicleId: fine.vehicle_id,
             paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-            customerId: leaseData ? leaseData.customer_id : undefined,
+            customerId: customerId, // Use the customerId we retrieved
             customerName: customerName,
             leaseId: fine.lease_id
           });
