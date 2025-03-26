@@ -35,7 +35,7 @@ const ReportDownloadOptions = ({
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-2">
           
-          <span className="text-sm text-muted-foreground">Premium Car Rental Services</span>
+          
         </div>
         
         <div className="border-t pt-1 mb-2">
