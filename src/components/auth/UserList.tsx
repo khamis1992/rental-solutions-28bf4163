@@ -160,7 +160,6 @@ const UserList = () => {
     if (selectedUser) {
       form.setValue("role", selectedUser.role);
       
-      // Set initial permissions based on user role
       setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
     }
   }, [selectedUser, form]);
@@ -178,7 +177,11 @@ const UserList = () => {
       setUsers(data || []);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users");
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -217,7 +220,7 @@ const UserList = () => {
       toast({
         title: "Success",
         description: `User role updated to ${newRole}`,
-        variant: "success"
+        variant: "default"
       });
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
@@ -245,7 +248,7 @@ const UserList = () => {
       toast({
         title: "Success",
         description: `User status updated to ${newStatus}`,
-        variant: "success"
+        variant: "default"
       });
     } catch (error: any) {
       console.error("Error updating user status:", error.message);
@@ -269,22 +272,25 @@ const UserList = () => {
     try {
       const newRole = form.getValues("role");
       
-      // Update the user role
       if (newRole !== selectedUser.role) {
         await handleUpdateUserRole(selectedUser.id, newRole);
       }
       
-      // In a real application, we would save the custom permissions to a database
-      // For this demo, we're just showing the success toast
-      
-      toast.success("User permissions updated successfully");
+      toast({
+        title: "Success",
+        description: "User permissions updated successfully",
+        variant: "default"
+      });
       setShowPermissionDialog(false);
       
-      // Refresh the user list
       fetchUsers();
     } catch (error: any) {
       console.error("Error saving permissions:", error.message);
-      toast.error("Failed to save permissions");
+      toast({
+        title: "Error",
+        description: "Failed to save permissions",
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }
@@ -293,7 +299,6 @@ const UserList = () => {
   const handleRoleChange = (value: string) => {
     form.setValue("role", value);
     
-    // Update permissions based on the selected role
     setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
   };
 
