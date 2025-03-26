@@ -128,3 +128,48 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
   doc.text(format(new Date(), 'yyyy-MM-dd'), pageWidth - 14, pageHeight - 10, { align: 'right' });
 };
+
+/**
+ * Helper function to format currency (for consistency across reports)
+ * @param amount Amount to format as currency
+ * @param currency Currency code (default: QAR)
+ * @returns Formatted currency string
+ */
+export const formatReportCurrency = (amount: number, currency = 'QAR'): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2
+  }).format(amount);
+};
+
+/**
+ * Generate a complete PDF report with standard header and footer
+ * @param title Report title
+ * @param dateRange Date range for the report 
+ * @param contentGenerator Function that adds content to the document
+ * @returns PDF document
+ */
+export const generateStandardReport = (
+  title: string,
+  dateRange: { from: Date | undefined; to: Date | undefined },
+  contentGenerator: (doc: jsPDF, startY: number) => number
+): jsPDF => {
+  // Initialize the PDF document
+  const doc = new jsPDF();
+  
+  // Add header and get the Y position to start content
+  const startY = addReportHeader(doc, title, dateRange);
+  
+  // Add content using the provided generator function
+  contentGenerator(doc, startY);
+  
+  // Apply footer to all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addReportFooter(doc);
+  }
+  
+  return doc;
+};
