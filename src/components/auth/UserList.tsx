@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -223,7 +224,6 @@ const UserList = () => {
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
-      setChangingRole(true);
       console.log(`Updating user ${userId} to role ${newRole}`);
       
       const { data, error } = await supabase
@@ -243,13 +243,9 @@ const UserList = () => {
       ));
       
       toast.success(`User role updated to ${newRole}`);
-      
-      setShowQuickRoleDialog(false);
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
       toast.error("Failed to update user role: " + error.message);
-    } finally {
-      setChangingRole(false);
     }
   };
 
@@ -747,3 +743,4 @@ const UserList = () => {
 };
 
 export default UserList;
+
