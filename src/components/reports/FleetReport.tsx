@@ -50,30 +50,10 @@ const FleetReport = () => {
           <CardTitle>Fleet Utilization</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Vehicle</TableHead>
-                <TableHead>License Plate</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Utilization Rate</TableHead>
-                <TableHead>Revenue Generated</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockVehicleData.map((vehicle) => (
-                <TableRow key={vehicle.id}>
-                  <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
-                  <TableCell>{vehicle.licensePlate}</TableCell>
-                  <TableCell>
-                    <StatusBadge status={vehicle.status} />
-                  </TableCell>
-                  <TableCell>{vehicle.utilizationRate}%</TableCell>
-                  <TableCell>{formatCurrency(vehicle.revenueGenerated)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="text-center py-10 text-muted-foreground">
+            <p>No vehicle data available</p>
+            <p className="text-sm mt-2">Vehicle data will appear here when available</p>
+          </div>
         </CardContent>
       </Card>
 
@@ -82,28 +62,10 @@ const FleetReport = () => {
           <CardTitle>Fleet Performance by Vehicle Type</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Vehicle Type</TableHead>
-                <TableHead>Count</TableHead>
-                <TableHead>Avg. Daily Rate</TableHead>
-                <TableHead>Avg. Utilization</TableHead>
-                <TableHead>Total Revenue</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockTypePerformance.map((type) => (
-                <TableRow key={type.type}>
-                  <TableCell className="font-medium">{type.type}</TableCell>
-                  <TableCell>{type.count}</TableCell>
-                  <TableCell>{formatCurrency(type.avgDailyRate)}</TableCell>
-                  <TableCell>{type.avgUtilization}%</TableCell>
-                  <TableCell>{formatCurrency(type.totalRevenue)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="text-center py-10 text-muted-foreground">
+            <p>No performance data available</p>
+            <p className="text-sm mt-2">Performance data will appear here when available</p>
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -124,20 +86,5 @@ const StatusBadge = ({ status }: { status: string }) => {
     </Badge>
   );
 };
-
-const mockVehicleData = [
-  { id: 1, make: 'Toyota', model: 'Camry', licensePlate: 'ABC123', status: 'rented', utilizationRate: 87, revenueGenerated: 3250 },
-  { id: 2, make: 'Honda', model: 'Civic', licensePlate: 'XYZ789', status: 'available', utilizationRate: 72, revenueGenerated: 2840 },
-  { id: 3, make: 'Nissan', model: 'Altima', licensePlate: 'DEF456', status: 'rented', utilizationRate: 91, revenueGenerated: 3620 },
-  { id: 4, make: 'Ford', model: 'Escape', licensePlate: 'GHI789', status: 'maintenance', utilizationRate: 64, revenueGenerated: 2180 },
-  { id: 5, make: 'BMW', model: '3 Series', licensePlate: 'JKL012', status: 'rented', utilizationRate: 89, revenueGenerated: 5120 },
-];
-
-const mockTypePerformance = [
-  { type: 'Sedan', count: 42, avgDailyRate: 75, avgUtilization: 82, totalRevenue: 94500 },
-  { type: 'SUV', count: 28, avgDailyRate: 95, avgUtilization: 78, totalRevenue: 78200 },
-  { type: 'Luxury', count: 15, avgDailyRate: 150, avgUtilization: 68, totalRevenue: 45900 },
-  { type: 'Economy', count: 35, avgDailyRate: 60, avgUtilization: 91, totalRevenue: 67300 },
-];
 
 export default FleetReport;
