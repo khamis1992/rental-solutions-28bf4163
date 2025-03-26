@@ -5,6 +5,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Car, CircleDollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/utils';
 
 const FleetReport = () => {
   return (
@@ -28,7 +29,7 @@ const FleetReport = () => {
         />
         <StatCard 
           title="Average Daily Rate" 
-          value="$85" 
+          value={formatCurrency(85)} 
           trend={3}
           trendLabel="vs last month"
           icon={CircleDollarSign}
@@ -68,7 +69,7 @@ const FleetReport = () => {
                     <StatusBadge status={vehicle.status} />
                   </TableCell>
                   <TableCell>{vehicle.utilizationRate}%</TableCell>
-                  <TableCell>${vehicle.revenueGenerated.toLocaleString()}</TableCell>
+                  <TableCell>{formatCurrency(vehicle.revenueGenerated)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -96,9 +97,9 @@ const FleetReport = () => {
                 <TableRow key={type.type}>
                   <TableCell className="font-medium">{type.type}</TableCell>
                   <TableCell>{type.count}</TableCell>
-                  <TableCell>${type.avgDailyRate}</TableCell>
+                  <TableCell>{formatCurrency(type.avgDailyRate)}</TableCell>
                   <TableCell>{type.avgUtilization}%</TableCell>
-                  <TableCell>${type.totalRevenue.toLocaleString()}</TableCell>
+                  <TableCell>{formatCurrency(type.totalRevenue)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

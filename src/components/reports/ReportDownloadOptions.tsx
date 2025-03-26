@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -6,9 +7,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+
 interface ReportDownloadOptionsProps {
   reportType: string;
 }
+
 const ReportDownloadOptions = ({
   reportType
 }: ReportDownloadOptionsProps) => {
@@ -20,6 +23,7 @@ const ReportDownloadOptions = ({
     to: new Date()
   });
   const [fileFormat, setFileFormat] = useState('pdf');
+
   const handleDownload = () => {
     // This would be wired up to an actual download service
     console.log('Downloading report:', {
@@ -31,6 +35,7 @@ const ReportDownloadOptions = ({
       footerLogo: '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png' // Include footer logo in report generation
     });
   };
+
   return <div className="space-y-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-2">
@@ -86,4 +91,5 @@ const ReportDownloadOptions = ({
       </div>
     </div>;
 };
+
 export default ReportDownloadOptions;

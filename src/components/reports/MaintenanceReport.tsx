@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Wrench, AlertTriangle, Clock, DollarSign } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/utils';
 
 const MaintenanceReport = () => {
   return (
@@ -37,7 +38,7 @@ const MaintenanceReport = () => {
         />
         <StatCard 
           title="Maintenance Costs" 
-          value="$34,850" 
+          value={formatCurrency(34850)} 
           trend={6}
           trendLabel="vs last month"
           icon={DollarSign}
@@ -100,7 +101,7 @@ const MaintenanceReport = () => {
                     <MaintenanceStatusBadge status={maintenance.status} />
                   </TableCell>
                   <TableCell>{maintenance.technician}</TableCell>
-                  <TableCell className="text-right">${maintenance.cost.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(maintenance.cost)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -128,9 +129,9 @@ const MaintenanceReport = () => {
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tickFormatter={(value) => `$${value}`}
+                  tickFormatter={(value) => formatCurrency(value)}
                 />
-                <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, 'Maintenance Cost']} />
+                <Tooltip formatter={(value) => [formatCurrency(value), 'Maintenance Cost']} />
                 <Bar dataKey="cost" fill="#f97316" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
