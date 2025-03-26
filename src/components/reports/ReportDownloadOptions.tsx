@@ -81,7 +81,7 @@ const ReportDownloadOptions = ({
       </div>
       
       <div className="mt-6 pt-4 border-t flex flex-col items-center">
-        <p className="text-sm text-muted-foreground mb-1">© 2024 Alaraf Car Rental. All rights reserved.</p>
+        
         <img src="/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png" alt="Alaraf Car Rental Footer" className="h-6" />
       </div>
     </div>;
