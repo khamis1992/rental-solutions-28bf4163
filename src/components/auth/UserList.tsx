@@ -57,7 +57,7 @@ import {
 } from "@/components/ui/dialog";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Switch } from "@/components/ui/switch";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 
 interface UserData {
@@ -241,9 +241,42 @@ const UserList = () => {
     }
   };
 
+  const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status: newStatus })
+        .eq("id", userId);
+      
+      if (error) throw error;
+      
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, status: newStatus } : user
+      ));
+      
+      toast({
+        title: "Success",
+        description: `User status updated to ${newStatus}`,
+        variant: "default"
+      });
+    } catch (error: any) {
+      console.error("Error updating user status:", error.message);
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive"
+      });
+    }
+  };
+
   const openQuickRoleDialog = (user: UserData) => {
     setSelectedUser(user);
     setShowQuickRoleDialog(true);
+  };
+  
+  const openPermissionDialog = (user: UserData) => {
+    setSelectedUser(user);
+    setShowPermissionDialog(true);
   };
 
   const savePermissions = async () => {
@@ -655,33 +688,23 @@ const UserList = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <Form {...form}>
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem className="mb-4">
-                      <FormLabel>User Role</FormLabel>
-                      <Select 
-                        onValueChange={handleRoleChange} 
-                        defaultValue={selectedUser.role}
-                        disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-              </Form>
+              <div className="mb-4">
+                <Label htmlFor="role-select" className="mb-2 block">User Role</Label>
+                <Select 
+                  onValueChange={handleRoleChange} 
+                  defaultValue={selectedUser.role}
+                  disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                >
+                  <SelectTrigger id="role-select">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="user">User</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-5 font-medium">
@@ -769,8 +792,8 @@ const UserList = () => {
             <div className="py-4">
               <div className="space-y-4">
                 <div className="flex flex-col space-y-2">
-                  <FormLabel>Current Role: <span className="font-medium capitalize">{selectedUser.role}</span></FormLabel>
-                  <FormLabel>Select New Role:</FormLabel>
+                  <Label>Current Role: <span className="font-medium capitalize">{selectedUser.role}</span></Label>
+                  <Label>Select New Role:</Label>
                   <div className="flex flex-col space-y-2">
                     <Button
                       variant={selectedUser.role === "admin" ? "default" : "outline"}
