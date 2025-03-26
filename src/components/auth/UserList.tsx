@@ -282,6 +282,7 @@ const UserList = () => {
   };
 
   const openQuickRoleDialog = (user: UserData) => {
+    console.log("Opening quick role dialog for user:", user);
     setSelectedUser(user);
     setShowQuickRoleDialog(true);
   };
@@ -359,7 +360,12 @@ const UserList = () => {
         return (
           <div 
             className={`font-medium ${isAdmin && !isSelf ? "cursor-pointer hover:text-primary hover:underline" : ""}`}
-            onClick={() => isAdmin && !isSelf ? openQuickRoleDialog(user) : null}
+            onClick={() => {
+              if (isAdmin && !isSelf) {
+                console.log("Name clicked for user:", user.full_name, user);
+                openQuickRoleDialog(user);
+              }
+            }}
             title={isAdmin && !isSelf ? "Click to change role" : ""}
           >
             {value || "N/A"}

@@ -41,6 +41,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     try {
       setLoading(true);
+      console.log("Fetching profile for user:", user.id);
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -52,6 +53,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         throw error;
       }
       
+      console.log("Fetched profile:", data);
       setProfile(data);
     } catch (error: any) {
       console.error("Error fetching profile:", error.message);
