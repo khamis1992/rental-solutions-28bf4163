@@ -8,13 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 
-// Define interface for category totals
-interface CategoryTotal {
-  total: number;
-  income: number;
-  expense: number;
-}
-
 const FinancialReport = () => {
   const { 
     financialSummary, 
@@ -28,27 +21,30 @@ const FinancialReport = () => {
   }
 
   // Calculate category totals from real transaction data
-  const categoryTotals = transactions.reduce<Record<string, CategoryTotal>>((acc, transaction) => {
-    const category = transaction.category || 'Other';
-    if (!acc[category]) {
-      acc[category] = {
-        total: 0,
-        income: 0,
-        expense: 0
-      };
-    }
-    
-    const amount = transaction.amount || 0;
-    acc[category].total += amount;
-    
-    if (transaction.type === 'income') {
-      acc[category].income += amount;
-    } else {
-      acc[category].expense += amount;
-    }
-    
-    return acc;
-  }, {});
+  const categoryTotals = transactions.reduce<Record<string, { total: number; income: number; expense: number }>>(
+    (acc, transaction) => {
+      const category = transaction.category || 'Other';
+      if (!acc[category]) {
+        acc[category] = {
+          total: 0,
+          income: 0,
+          expense: 0
+        };
+      }
+      
+      const amount = transaction.amount || 0;
+      acc[category].total += amount;
+      
+      if (transaction.type === 'income') {
+        acc[category].income += amount;
+      } else {
+        acc[category].expense += amount;
+      }
+      
+      return acc;
+    }, 
+    {}
+  );
 
   const categoryAnalytics = Object.entries(categoryTotals).map(([category, data]) => ({
     category,
@@ -59,6 +55,17 @@ const FinancialReport = () => {
       ? ((data.income / financialSummary.totalIncome) * 100).toFixed(1) 
       : '0'
   }));
+
+  // Handle case when no data is available
+  if (!financialSummary || transactions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <CircleDollarSign className="h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium">No financial data available</h3>
+        <p className="text-sm text-gray-500 mt-2">Start tracking your finances to see analytics and reports.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
