@@ -9,6 +9,7 @@ import {
   FieldValues,
   FormProvider,
   useFormContext,
+  FieldError
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"
@@ -40,8 +41,17 @@ const FormField = <
   )
 }
 
-// Updated useFormField to handle the case when useFormContext returns null
-const useFormField = () => {
+// Define a return type for useFormField to include error
+type FormFieldState = {
+  id: string
+  name: string
+  formItemId: string
+  formDescriptionId: string
+  formMessageId: string
+  error?: FieldError
+}
+
+const useFormField = (): FormFieldState => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
   const formContext = useFormContext()
@@ -60,7 +70,7 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    ...fieldState, // This includes error if available
+    ...(fieldState as { error?: FieldError }), // Cast fieldState to include error property
   }
 }
 
@@ -90,7 +100,7 @@ const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
 >(({ className, ...props }, ref) => {
-  const { formItemId, error } = useFormField()
+  const { error, formItemId } = useFormField()
 
   return (
     <Label
