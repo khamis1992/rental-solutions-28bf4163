@@ -29,8 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
-import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -184,11 +184,7 @@ const UserList = () => {
       setUsers(data || []);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to load users: " + error.message,
-        variant: "destructive"
-      });
+      toast.error("Failed to load users: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -247,20 +243,12 @@ const UserList = () => {
         user.id === userId ? { ...user, role: newRole } : user
       ));
       
-      toast({
-        title: "Success",
-        description: `User role updated to ${newRole}`,
-        variant: "default"
-      });
+      toast.success(`User role updated to ${newRole}`);
       
       setShowQuickRoleDialog(false);
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to update user role: " + error.message,
-        variant: "destructive"
-      });
+      toast.error("Failed to update user role: " + error.message);
     } finally {
       setChangingRole(false);
     }
@@ -273,24 +261,19 @@ const UserList = () => {
         .update({ status: newStatus })
         .eq("id", userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Update status error details:", error);
+        throw error;
+      }
       
       setUsers(users.map(user => 
         user.id === userId ? { ...user, status: newStatus } : user
       ));
       
-      toast({
-        title: "Success",
-        description: `User status updated to ${newStatus}`,
-        variant: "default"
-      });
+      toast.success(`User status updated to ${newStatus}`);
     } catch (error: any) {
       console.error("Error updating user status:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to update user status",
-        variant: "destructive"
-      });
+      toast.error("Failed to update user status: " + error.message);
     }
   };
 
@@ -315,21 +298,13 @@ const UserList = () => {
         await handleUpdateUserRole(selectedUser.id, newRole);
       }
       
-      toast({
-        title: "Success",
-        description: "User permissions updated successfully",
-        variant: "default"
-      });
+      toast.success("User permissions updated successfully");
       setShowPermissionDialog(false);
       
       fetchUsers();
     } catch (error: any) {
       console.error("Error saving permissions:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to save permissions",
-        variant: "destructive"
-      });
+      toast.error("Failed to save permissions");
     } finally {
       setSaving(false);
     }

@@ -6,14 +6,26 @@ import { Users, UserPlus, Shield } from "lucide-react";
 import UserList from "@/components/auth/UserList";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomButton } from "@/components/ui/custom-button";
 import { toast } from "sonner";
 
 const UserManagement = () => {
-  const { profile } = useProfile();
+  const { profile, loading } = useProfile();
+  const navigate = useNavigate();
+  
+  // Show loading state while profile is loading
+  if (loading) {
+    return (
+      <PageContainer>
+        <div className="flex items-center justify-center h-64">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </PageContainer>
+    );
+  }
   
   // Check if user has admin role
   const isAdmin = profile?.role === "admin";
