@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -256,9 +257,12 @@ const UserList = () => {
 
   const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
     try {
+      // Fix the type issue by ensuring newStatus is one of the valid status values
+      const validStatus = newStatus as "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
+      
       const { error } = await supabase
         .from("profiles")
-        .update({ status: newStatus })
+        .update({ status: validStatus })
         .eq("id", userId);
       
       if (error) {
