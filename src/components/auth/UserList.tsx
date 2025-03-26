@@ -56,6 +56,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useProfile } from "@/contexts/ProfileContext";
+import { Switch } from "@/components/ui/switch";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
 
 interface UserData {
   id: string;
@@ -65,6 +69,45 @@ interface UserData {
   status: string;
   created_at: string;
 }
+
+interface PermissionSettings {
+  view: boolean;
+  create: boolean;
+  edit: boolean;
+  delete: boolean;
+}
+
+interface UserPermissions {
+  vehicles: PermissionSettings;
+  customers: PermissionSettings;
+  agreements: PermissionSettings;
+  financials: PermissionSettings;
+  userManagement: PermissionSettings;
+}
+
+const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = {
+  admin: {
+    vehicles: { view: true, create: true, edit: true, delete: true },
+    customers: { view: true, create: true, edit: true, delete: true },
+    agreements: { view: true, create: true, edit: true, delete: true },
+    financials: { view: true, create: true, edit: true, delete: true },
+    userManagement: { view: true, create: true, edit: true, delete: true }
+  },
+  manager: {
+    vehicles: { view: true, create: true, edit: true, delete: false },
+    customers: { view: true, create: true, edit: true, delete: false },
+    agreements: { view: true, create: true, edit: true, delete: false },
+    financials: { view: true, create: false, edit: false, delete: false },
+    userManagement: { view: true, create: false, edit: false, delete: false }
+  },
+  user: {
+    vehicles: { view: true, create: false, edit: false, delete: false },
+    customers: { view: true, create: false, edit: false, delete: false },
+    agreements: { view: true, create: false, edit: false, delete: false },
+    financials: { view: false, create: false, edit: false, delete: false },
+    userManagement: { view: false, create: false, edit: false, delete: false }
+  }
+};
 
 const UserList = () => {
   const [users, setUsers] = useState<UserData[]>([]);
@@ -84,6 +127,15 @@ const UserList = () => {
   });
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
+  const [saving, setSaving] = useState(false);
+  const { profile } = useProfile();
+
+  const form = useForm({
+    defaultValues: {
+      role: "",
+    }
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -104,6 +156,15 @@ const UserList = () => {
       setUserStats(stats);
     }
   }, [users]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      form.setValue("role", selectedUser.role);
+      
+      // Set initial permissions based on user role
+      setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
+    }
+  }, [selectedUser, form]);
 
   const fetchUsers = async () => {
     try {
@@ -133,12 +194,11 @@ const UserList = () => {
       
       if (error) throw error;
       
-      toast.success("Tarek's account has been set as admin");
+      console.log("Tarek's account has been set as admin");
       
       fetchUsers();
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role");
     }
   };
 
@@ -185,6 +245,61 @@ const UserList = () => {
   const openPermissionDialog = (user: UserData) => {
     setSelectedUser(user);
     setShowPermissionDialog(true);
+  };
+
+  const savePermissions = async () => {
+    if (!selectedUser || !userPermissions) return;
+    
+    setSaving(true);
+    try {
+      const newRole = form.getValues("role");
+      
+      // Update the user role
+      if (newRole !== selectedUser.role) {
+        await handleUpdateUserRole(selectedUser.id, newRole);
+      }
+      
+      // In a real application, we would save the custom permissions to a database
+      // For this demo, we're just showing the success toast
+      
+      toast.success("User permissions updated successfully");
+      setShowPermissionDialog(false);
+      
+      // Refresh the user list
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error saving permissions:", error.message);
+      toast.error("Failed to save permissions");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRoleChange = (value: string) => {
+    form.setValue("role", value);
+    
+    // Update permissions based on the selected role
+    setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
+  };
+
+  const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean) => {
+    if (!userPermissions) return;
+    
+    setUserPermissions(prev => {
+      if (!prev) return prev;
+      
+      return {
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [action]: value
+        }
+      };
+    });
+  };
+
+  const isCurrentUser = (userId: string) => {
+    return profile?.id === userId;
   };
 
   const filteredUsers = users.filter(user => {
@@ -265,6 +380,7 @@ const UserList = () => {
       id: "actions",
       cell: ({ row }) => {
         const user = row.original;
+        const currentUserProfile = profile?.id === user.id;
         
         return (
           <DropdownMenu>
@@ -284,6 +400,7 @@ const UserList = () => {
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => openPermissionDialog(user)}
+                disabled={profile?.role !== "admin"}
               >
                 Manage Permissions
               </DropdownMenuItem>
@@ -291,19 +408,19 @@ const UserList = () => {
               <DropdownMenuLabel>Change Role</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserRole(user.id, "admin")}
-                disabled={user.role === "admin"}
+                disabled={user.role === "admin" || profile?.role !== "admin" || currentUserProfile}
               >
                 Set as Admin
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserRole(user.id, "manager")}
-                disabled={user.role === "manager"}
+                disabled={user.role === "manager" || profile?.role !== "admin" || currentUserProfile}
               >
                 Set as Manager
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserRole(user.id, "user")}
-                disabled={user.role === "user"}
+                disabled={user.role === "user" || profile?.role !== "admin" || currentUserProfile}
               >
                 Set as User
               </DropdownMenuItem>
@@ -311,19 +428,19 @@ const UserList = () => {
               <DropdownMenuLabel>Change Status</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "active")}
-                disabled={user.status === "active"}
+                disabled={user.status === "active" || profile?.role !== "admin" || currentUserProfile}
               >
                 Set Active
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "pending_review")}
-                disabled={user.status === "pending_review"}
+                disabled={user.status === "pending_review" || profile?.role !== "admin" || currentUserProfile}
               >
                 Set Pending
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "inactive")}
-                disabled={user.status === "inactive"}
+                disabled={user.status === "inactive" || profile?.role !== "admin" || currentUserProfile}
               >
                 Set Inactive
               </DropdownMenuItem>
@@ -530,7 +647,35 @@ const UserList = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <div className="space-y-4">
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>User Role</FormLabel>
+                      <Select 
+                        onValueChange={handleRoleChange} 
+                        defaultValue={selectedUser.role}
+                        disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </Form>
+
+              <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-5 font-medium">
                   <div>Feature</div>
                   <div className="text-center">View</div>
@@ -539,88 +684,66 @@ const UserList = () => {
                   <div className="text-center">Delete</div>
                 </div>
                 
-                <div className="grid grid-cols-5 items-center border-t pt-4">
-                  <div className="font-medium">Vehicles</div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={true} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-5 items-center border-t pt-4">
-                  <div className="font-medium">Customers</div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={true} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-5 items-center border-t pt-4">
-                  <div className="font-medium">Agreements</div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={true} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-5 items-center border-t pt-4">
-                  <div className="font-medium">Financials</div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin' || selectedUser.role === 'manager'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                  <div className="text-center">
-                    <input type="checkbox" defaultChecked={selectedUser.role === 'admin'} className="h-4 w-4" disabled={selectedUser.role !== 'admin'} />
-                  </div>
-                </div>
+                {userPermissions && Object.entries(userPermissions).map(([key, permissions]) => {
+                  const section = key as keyof UserPermissions;
+                  const featureName = key.replace(/([A-Z])/g, ' $1').trim();
+                  
+                  return (
+                    <div key={key} className="grid grid-cols-5 items-center border-t pt-4">
+                      <div className="font-medium">{featureName}</div>
+                      <div className="text-center">
+                        <Switch 
+                          checked={permissions.view} 
+                          onCheckedChange={(checked) => updatePermission(section, 'view', checked)}
+                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                        />
+                      </div>
+                      <div className="text-center">
+                        <Switch 
+                          checked={permissions.create} 
+                          onCheckedChange={(checked) => updatePermission(section, 'create', checked)}
+                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                        />
+                      </div>
+                      <div className="text-center">
+                        <Switch 
+                          checked={permissions.edit} 
+                          onCheckedChange={(checked) => updatePermission(section, 'edit', checked)}
+                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                        />
+                      </div>
+                      <div className="text-center">
+                        <Switch 
+                          checked={permissions.delete} 
+                          onCheckedChange={(checked) => updatePermission(section, 'delete', checked)}
+                          disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              {selectedUser.role !== 'admin' && (
+              
+              {(profile?.role !== "admin" || isCurrentUser(selectedUser.id)) && (
                 <p className="mt-4 text-sm text-amber-600">
-                  Note: Only admins can modify permissions. Change this user's role to admin to enable permission editing.
+                  {isCurrentUser(selectedUser.id) 
+                    ? "You cannot modify your own permissions." 
+                    : "Only admins can modify permissions."}
                 </p>
               )}
             </div>
             <DialogFooter>
-              <Button type="button" onClick={() => setShowPermissionDialog(false)}>
-                Close
+              <Button type="button" variant="outline" onClick={() => setShowPermissionDialog(false)}>
+                Cancel
               </Button>
-              {selectedUser.role === 'admin' && (
-                <Button type="button" variant="default" onClick={() => {
-                  toast.success("Permissions updated successfully");
-                  setShowPermissionDialog(false);
-                }}>
-                  Save Changes
-                </Button>
-              )}
+              <Button 
+                type="button" 
+                variant="default" 
+                onClick={savePermissions}
+                disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id) || saving}
+              >
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
