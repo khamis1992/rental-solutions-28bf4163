@@ -44,6 +44,8 @@ const Reports = () => {
           phone: customer.phone,
           status: customer.status,
           driver_license: customer.driver_license,
+          nationality: customer.nationality || 'N/A',
+          address: customer.address || 'N/A',
           created_at: customer.created_at
         }));
       case 'maintenance':

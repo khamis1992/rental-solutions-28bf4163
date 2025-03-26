@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/use-customers';
 import { formatCurrency } from '@/lib/utils';
+import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 
 const CustomerReport = () => {
   const {
@@ -86,6 +87,22 @@ const CustomerReport = () => {
     value: Math.floor(totalCustomers * 0.1),
     color: '#8b5cf6'
   }];
+  
+  // Prepare report data for download
+  const getReportData = () => {
+    return customers.map(customer => ({
+      id: customer.id,
+      full_name: customer.full_name,
+      email: customer.email,
+      phone: customer.phone,
+      status: customer.status,
+      driver_license: customer.driver_license,
+      created_at: customer.created_at,
+      nationality: customer.nationality || 'N/A',
+      address: customer.address || 'N/A'
+    }));
+  };
+  
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading customer data...</div>;
   }
@@ -93,6 +110,10 @@ const CustomerReport = () => {
       <div className="flex items-center mb-6">
         
         <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
+      </div>
+      
+      <div className="mb-6">
+        <ReportDownloadOptions reportType="customers" getReportData={getReportData} />
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
