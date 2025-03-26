@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -31,7 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -215,10 +214,18 @@ const UserList = () => {
         user.id === userId ? { ...user, role: newRole } : user
       ));
       
-      toast.success(`User role updated to ${newRole}`);
+      toast({
+        title: "Success",
+        description: `User role updated to ${newRole}`,
+        variant: "success"
+      });
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role");
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive"
+      });
     }
   };
   
@@ -235,10 +242,18 @@ const UserList = () => {
         user.id === userId ? { ...user, status: newStatus } : user
       ));
       
-      toast.success(`User status updated to ${newStatus}`);
+      toast({
+        title: "Success",
+        description: `User status updated to ${newStatus}`,
+        variant: "success"
+      });
     } catch (error: any) {
       console.error("Error updating user status:", error.message);
-      toast.error("Failed to update user status");
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive"
+      });
     }
   };
 
@@ -393,11 +408,6 @@ const UserList = () => {
             <DropdownMenuContent align="end" className="z-50">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => toast.info(`User details: ${user.full_name}`)}
-              >
-                View details
-              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => openPermissionDialog(user)}
                 disabled={profile?.role !== "admin"}
