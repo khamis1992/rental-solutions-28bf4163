@@ -206,16 +206,51 @@ const UserList = () => {
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
-      const { error } = await supabase
+      console.log(`Attempting to update user ${userId} to role: ${newRole}`);
+      
+      // First, check if the user exists
+      const { data: userData, error: userCheckError } = await supabase
+        .from("profiles")
+        .select("id, role")
+        .eq("id", userId)
+        .single();
+        
+      if (userCheckError) {
+        console.error("Error checking user before update:", userCheckError);
+        throw new Error(`User check failed: ${userCheckError.message}`);
+      }
+      
+      if (!userData) {
+        throw new Error("User not found");
+      }
+      
+      console.log("Current user data:", userData);
+      
+      // Now update the role
+      const { data, error } = await supabase
         .from("profiles")
         .update({ role: newRole })
-        .eq("id", userId);
+        .eq("id", userId)
+        .select();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error updating role:", error);
+        throw error;
+      }
       
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
+      if (!data || data.length === 0) {
+        console.error("No data returned after update");
+        throw new Error("Update operation did not modify any rows");
+      }
+      
+      console.log("Update response:", data);
+      
+      // Update local state with the new role
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === userId ? { ...user, role: newRole } : user
+        )
+      );
       
       toast({
         title: "Success",
@@ -226,7 +261,7 @@ const UserList = () => {
       console.error("Error updating user role:", error.message);
       toast({
         title: "Error",
-        description: "Failed to update user role",
+        description: `Failed to update user role: ${error.message}`,
         variant: "destructive"
       });
     }
@@ -273,7 +308,8 @@ const UserList = () => {
       const newRole = form.getValues("role");
       
       if (newRole !== selectedUser.role) {
-        await handleUpdateUserRole(selectedUser.id, newRole);
+        const result = await handleUpdateUserRole(selectedUser.id, newRole);
+        console.log("Role update result:", result);
       }
       
       toast({
@@ -480,6 +516,39 @@ const UserList = () => {
       columnFilters,
     },
   });
+
+  const debugTestRoleUpdate = async (userId: string, newRole: string) => {
+    console.log("DIRECT TEST - Updating role", { userId, newRole });
+    
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", userId)
+        .select();
+        
+      console.log("DIRECT TEST RESULT:", { data, error });
+      
+      return { success: !error, data, error };
+    } catch (err) {
+      console.error("DIRECT TEST ERROR:", err);
+      return { success: false, error: err };
+    }
+  };
+
+  const executeRoleChange = async (userId: string, newRole: string) => {
+    console.log(`Role change requested: ${userId} to ${newRole}`);
+    
+    toast({
+      title: "Processing",
+      description: `Updating user to ${newRole}...`,
+      variant: "default"
+    });
+    
+    await handleUpdateUserRole(userId, newRole);
+    
+    await fetchUsers();
+  };
 
   return (
     <div className="space-y-6">
@@ -745,6 +814,23 @@ const UserList = () => {
                     ? "You cannot modify your own permissions." 
                     : "Only admins can modify permissions."}
                 </p>
+              )}
+
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-4 p-2 border border-gray-200 rounded text-xs">
+                  <p>Debug Info (Admin Only)</p>
+                  <p>User ID: {selectedUser.id}</p>
+                  <p>Current Role: {selectedUser.role}</p>
+                  <p>Form Role: {form.getValues('role')}</p>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="mt-2"
+                    onClick={() => debugTestRoleUpdate(selectedUser.id, form.getValues('role'))}
+                  >
+                    Direct Test Update
+                  </Button>
+                </div>
               )}
             </div>
             <DialogFooter>

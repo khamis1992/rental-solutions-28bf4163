@@ -1,8 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
-import { Users, UserPlus, Shield } from "lucide-react";
+import { Users, UserPlus, Shield, RefreshCw } from "lucide-react";
 import UserList from "@/components/auth/UserList";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/contexts/ProfileContext";
@@ -10,9 +10,12 @@ import { Navigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CustomButton } from "@/components/ui/custom-button";
+import { supabase } from "@/lib/supabase";
+import { toast } from "@/hooks/use-toast";
 
 const UserManagement = () => {
   const { profile } = useProfile();
+  const [refreshKey, setRefreshKey] = useState(0);
   
   // Check if user has admin role
   const isAdmin = profile?.role === "admin";
@@ -22,6 +25,17 @@ const UserManagement = () => {
     return <Navigate to="/dashboard" replace />;
   }
   
+  const refreshUserList = () => {
+    // Force a re-render of the UserList component
+    setRefreshKey(prev => prev + 1);
+    
+    toast({
+      title: "Refreshing",
+      description: "Refreshing user list...",
+      variant: "default"
+    });
+  };
+  
   return (
     <PageContainer>
       <SectionHeader
@@ -29,10 +43,16 @@ const UserManagement = () => {
         description="Manage system users, roles, and permissions"
         icon={Users}
         actions={
-          <CustomButton size="sm" variant="default">
-            <UserPlus className="h-4 w-4 mr-2" />
-            Invite User
-          </CustomButton>
+          <div className="flex space-x-2">
+            <CustomButton size="sm" variant="outline" onClick={refreshUserList}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </CustomButton>
+            <CustomButton size="sm" variant="default">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite User
+            </CustomButton>
+          </div>
         }
       />
       
@@ -49,7 +69,7 @@ const UserManagement = () => {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="users" className="mt-6">
-            <UserList />
+            <UserList key={refreshKey} />
           </TabsContent>
           <TabsContent value="permissions" className="mt-6">
             <Card>
