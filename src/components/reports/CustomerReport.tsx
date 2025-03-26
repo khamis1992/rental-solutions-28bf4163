@@ -11,7 +11,7 @@ import { useCustomers } from '@/hooks/use-customers';
 const CustomerReport = () => {
   const { customers, isLoading } = useCustomers();
   
-  // Calculate customer metrics
+  // Calculate customer metrics from real data
   const totalCustomers = customers.length;
   
   // Get customers created in the last 30 days
@@ -37,7 +37,7 @@ const CustomerReport = () => {
     { name: 'Pending Review', value: pendingCustomers, color: '#8b5cf6' },
   ].filter(segment => segment.value > 0);
   
-  // Get top customers (for demonstration, we'll sort by most recently created)
+  // Get most recent customers
   const topCustomers = [...customers]
     .sort((a, b) => {
       const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
@@ -45,26 +45,32 @@ const CustomerReport = () => {
       return dateB.getTime() - dateA.getTime();
     })
     .slice(0, 5)
-    .map((customer, index) => ({
+    .map(customer => ({
       id: customer.id,
       name: customer.full_name,
       status: customer.status || 'active',
-      totalRentals: Math.floor(Math.random() * 15) + 1, // Sample data as we don't have this info
-      totalSpent: Math.floor(Math.random() * 10000) + 1000, // Sample data
-      lastRental: customer.updated_at ? new Date(customer.updated_at).toISOString().split('T')[0] : 'N/A',
-      rating: (4 + Math.random()).toFixed(1),
+      email: customer.email,
+      phone: customer.phone,
+      driverLicense: customer.driver_license,
+      createdAt: customer.created_at ? new Date(customer.created_at).toISOString().split('T')[0] : 'N/A',
     }));
 
-  // Create rental duration data (sample data as we don't have this in our database)
-  const rentalDurationData = [
-    { name: '1-3 days', value: Math.floor(totalCustomers * 0.4), color: '#3b82f6' },
-    { name: '4-7 days', value: Math.floor(totalCustomers * 0.3), color: '#22c55e' },
-    { name: '8-14 days', value: Math.floor(totalCustomers * 0.2), color: '#f59e0b' },
-    { name: '15+ days', value: Math.floor(totalCustomers * 0.1), color: '#8b5cf6' },
-  ];
-
+  // Calculate retention rate (active customers as percentage of total)
+  const retentionRate = totalCustomers > 0 ? Math.round((activeCustomers / totalCustomers) * 100) : 0;
+  
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading customer data...</div>;
+  }
+
+  // Show empty state when no data is available
+  if (totalCustomers === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-center">
+        <Users className="h-12 w-12 text-gray-400 mb-4" />
+        <h3 className="text-lg font-medium">No customer data available</h3>
+        <p className="text-sm text-gray-500 mt-2">Add customers to see analytics and reports.</p>
+      </div>
+    );
   }
 
   return (
@@ -105,59 +111,25 @@ const CustomerReport = () => {
         />
         <StatCard 
           title="Retention Rate" 
-          value={`${Math.round((activeCustomers / (totalCustomers || 1)) * 100)}%`} 
-          trend={5}
-          trendLabel="vs last month"
+          value={`${retentionRate}%`} 
+          trend={0}
+          trendLabel="based on active customers"
           icon={Repeat2}
           iconColor="text-indigo-500"
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      {customerSegmentData.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Customer Segments</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="h-80 flex items-center justify-center">
-              {customerSegmentData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={customerSegmentData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={90}
-                      paddingAngle={5}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {customerSegmentData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} customers`, 'Count']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="text-center text-gray-500">No segment data available</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Rental Duration Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={rentalDurationData}
+                    data={customerSegmentData}
                     cx="50%"
                     cy="50%"
                     innerRadius={60}
@@ -166,22 +138,22 @@ const CustomerReport = () => {
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
-                    {rentalDurationData.map((entry, index) => (
+                    {customerSegmentData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => [`${value} rentals`, 'Count']} />
+                  <Tooltip formatter={(value) => [`${value} customers`, 'Count']} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
       <Card>
         <CardHeader>
-          <CardTitle>Top Customers</CardTitle>
+          <CardTitle>Recent Customers</CardTitle>
         </CardHeader>
         <CardContent>
           {topCustomers.length > 0 ? (
@@ -189,24 +161,22 @@ const CustomerReport = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Total Rentals</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Last Rental</TableHead>
-                  <TableHead>Rating</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {topCustomers.map((customer) => (
                   <TableRow key={customer.id}>
                     <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableCell>{customer.email || 'N/A'}</TableCell>
+                    <TableCell>{customer.phone || 'N/A'}</TableCell>
                     <TableCell>
                       <CustomerStatusBadge status={customer.status} />
                     </TableCell>
-                    <TableCell>{customer.totalRentals}</TableCell>
-                    <TableCell>${customer.totalSpent.toLocaleString()}</TableCell>
-                    <TableCell>{customer.lastRental}</TableCell>
-                    <TableCell>{customer.rating}/5</TableCell>
+                    <TableCell>{customer.createdAt}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
