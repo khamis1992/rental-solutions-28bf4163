@@ -14,7 +14,7 @@ const TrafficFines = () => {
   // Auto-assign unassigned fines when the page loads
   useEffect(() => {
     if (!isLoading && !initialAssignmentDone && trafficFines && trafficFines.length > 0) {
-      const unassignedFines = trafficFines.filter(fine => !fine.customerId);
+      const unassignedFines = trafficFines.filter(fine => !fine.customerId && !fine.leaseId);
       
       if (unassignedFines.length > 0) {
         toast.info(`Auto-assigning ${unassignedFines.length} unassigned traffic fines...`);
