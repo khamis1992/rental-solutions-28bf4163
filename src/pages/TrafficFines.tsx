@@ -40,12 +40,14 @@ const TrafficFines = () => {
           } else if (unassignedFines.length > 0) {
             toast.warning('No traffic fines could be automatically assigned');
           }
+          
+          setInitialAssignmentDone(true);
         };
         
         assignFines();
+      } else {
+        setInitialAssignmentDone(true);
       }
-      
-      setInitialAssignmentDone(true);
     }
   }, [isLoading, trafficFines, initialAssignmentDone, assignToCustomer]);
 
