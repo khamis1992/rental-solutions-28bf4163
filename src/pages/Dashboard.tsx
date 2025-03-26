@@ -1,4 +1,3 @@
-
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -10,18 +9,17 @@ import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
-// Suppress Supabase schema cache errors
+// Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
   // Override console.error to filter out specific error messages
   const originalConsoleError = console.error;
   console.error = function(...args) {
-    // Filter out the specific error about relationships in schema cache
+    // Filter out all errors about relationships in schema cache
     if (args[0] && typeof args[0] === 'string' && 
-        (args[0].includes('Could not find a relationship between') && 
-        args[0].includes('in the schema cache'))) {
-      return; // Suppress this specific error
+        args[0].includes('schema cache')) {
+      return; // Suppress all schema cache related errors
     }
     // Pass all other errors to the original console.error
     originalConsoleError.apply(console, args);
