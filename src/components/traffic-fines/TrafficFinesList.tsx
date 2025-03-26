@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -25,7 +24,6 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { format } from 'date-fns';
 import { 
   AlertTriangle, 
   Car, 
@@ -40,6 +38,7 @@ import {
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
@@ -50,31 +49,26 @@ const TrafficFinesList = () => {
   const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
   
-  // Filter traffic fines based on search query
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
     ((fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.licensePlate?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.violationCharge?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
   ) : [];
 
-  // Calculate statistics for the cards
   const assignedFines = filteredFines.filter(fine => fine.customerId);
   const unassignedFines = filteredFines.filter(fine => !fine.customerId);
   
   const assignedFinesAmount = assignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
   const unassignedFinesAmount = unassignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
 
-  // Handle paying a fine
   const handlePayFine = (id: string) => {
     payTrafficFine({ id });
   };
 
-  // Handle disputing a fine
   const handleDisputeFine = (id: string) => {
     disputeTrafficFine({ id });
   };
 
-  // Auto-assign fines to customers
   const handleAutoAssignFines = async () => {
     try {
       setAssigningFines(true);
@@ -87,10 +81,8 @@ const TrafficFinesList = () => {
       const pendingFines = filteredFines.filter(fine => !fine.customerId);
 
       for (const fine of pendingFines) {
-        // Only process fines with license plates
         if (!fine.licensePlate) continue;
 
-        // Try to assign by finding a lease with this vehicle
         try {
           await assignToCustomer({ id: fine.id });
           assignedCount++;
@@ -140,7 +132,6 @@ const TrafficFinesList = () => {
 
   return (
     <div className="space-y-6">
-      {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard 
           title="Total Traffic Fines"
@@ -235,7 +226,7 @@ const TrafficFinesList = () => {
                       </TableCell>
                       <TableCell>{fine.licensePlate}</TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {format(fine.violationDate, 'MMM d, yyyy')}
+                        {formatDate(fine.violationDate)}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{fine.location || 'N/A'}</TableCell>
                       <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>

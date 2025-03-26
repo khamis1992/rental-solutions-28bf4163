@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useTrafficFines, TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, Check, Clock } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -126,7 +127,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           <TableRow key={fine.id}>
             <TableCell className="font-medium">{fine.violationNumber}</TableCell>
             <TableCell>{fine.licensePlate}</TableCell>
-            <TableCell>{fine.violationDate.toLocaleDateString()}</TableCell>
+            <TableCell>{formatDate(fine.violationDate)}</TableCell>
             <TableCell>{fine.violationCharge}</TableCell>
             <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
             <TableCell>
