@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Shield, UserCog } from "lucide-react";
 import { 
   Select, 
@@ -22,23 +22,32 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
   const [role, setRole] = useState<string>(currentRole);
   const [isChanging, setIsChanging] = useState(false);
 
+  // Update the role state when currentRole prop changes
+  useEffect(() => {
+    setRole(currentRole);
+  }, [currentRole]);
+
   const handleRoleChange = async (newRole: string) => {
     if (newRole === role || disabled) return;
     
     try {
       setIsChanging(true);
-      console.log(`Updating user ${userId} to role ${newRole}`);
+      console.log(`Attempting to update user ${userId} from role ${role} to ${newRole}`);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update({ role: newRole })
-        .eq("id", userId);
+        .eq("id", userId)
+        .select("role");
       
       if (error) {
         console.error("Update role error details:", error);
         throw error;
       }
       
+      console.log("Update response:", data);
+      
+      // Only update the local role state if the server update succeeded
       setRole(newRole);
       toast.success(`${fullName}'s role updated to ${newRole}`);
     } catch (error: any) {
@@ -60,7 +69,7 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
       )}
       
       <Select
-        defaultValue={role}
+        value={role}
         onValueChange={handleRoleChange}
         disabled={disabled || isChanging}
       >
