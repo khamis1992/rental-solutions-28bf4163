@@ -240,38 +240,10 @@ const UserList = () => {
       setChangingRole(false);
     }
   };
-  
-  const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ status: newStatus })
-        .eq("id", userId);
-      
-      if (error) throw error;
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, status: newStatus } : user
-      ));
-      
-      toast({
-        title: "Success",
-        description: `User status updated to ${newStatus}`,
-        variant: "default"
-      });
-    } catch (error: any) {
-      console.error("Error updating user status:", error.message);
-      toast({
-        title: "Error",
-        description: "Failed to update user status",
-        variant: "destructive"
-      });
-    }
-  };
 
-  const openPermissionDialog = (user: UserData) => {
+  const openQuickRoleDialog = (user: UserData) => {
     setSelectedUser(user);
-    setShowPermissionDialog(true);
+    setShowQuickRoleDialog(true);
   };
 
   const savePermissions = async () => {
