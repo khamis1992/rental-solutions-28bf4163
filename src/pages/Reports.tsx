@@ -98,6 +98,9 @@ const Reports = () => {
           </Tabs>
         </CardContent>
       </Card>
+      
+      <div className="mt-8 text-center">
+      </div>
     </PageContainer>;
 };
 
