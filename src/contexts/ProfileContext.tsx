@@ -9,7 +9,7 @@ export interface Profile {
   full_name: string;
   role: string;
   email: string;
-  status: string;
+  status: "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
   created_at: string;
   updated_at: string;
 }
