@@ -129,6 +129,8 @@ const UserList = () => {
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
   const [saving, setSaving] = useState(false);
   const { profile } = useProfile();
+  const [showQuickRoleDialog, setShowQuickRoleDialog] = useState(false);
+  const [changingRole, setChangingRole] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -206,6 +208,9 @@ const UserList = () => {
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
+      setChangingRole(true);
+      console.log(`Updating user ${userId} to role ${newRole}`);
+      
       const { error } = await supabase
         .from("profiles")
         .update({ role: newRole })
@@ -222,13 +227,17 @@ const UserList = () => {
         description: `User role updated to ${newRole}`,
         variant: "default"
       });
+      
+      setShowQuickRoleDialog(false);
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
       toast({
         title: "Error",
-        description: "Failed to update user role",
+        description: "Failed to update user role: " + error.message,
         variant: "destructive"
       });
+    } finally {
+      setChangingRole(false);
     }
   };
   
@@ -334,7 +343,19 @@ const UserList = () => {
       header: "Name",
       cell: ({ row }) => {
         const value = row.getValue("full_name") as string;
-        return <div className="font-medium">{value || "N/A"}</div>;
+        const user = row.original;
+        const isAdmin = profile?.role === "admin";
+        const isSelf = isCurrentUser(user.id);
+        
+        return (
+          <div 
+            className={`font-medium ${isAdmin && !isSelf ? "cursor-pointer hover:text-primary hover:underline" : ""}`}
+            onClick={() => isAdmin && !isSelf ? openQuickRoleDialog(user) : null}
+            title={isAdmin && !isSelf ? "Click to change role" : ""}
+          >
+            {value || "N/A"}
+          </div>
+        );
       },
     },
     {
@@ -758,6 +779,66 @@ const UserList = () => {
                 disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id) || saving}
               >
                 {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {selectedUser && (
+        <Dialog open={showQuickRoleDialog} onOpenChange={setShowQuickRoleDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Change User Role</DialogTitle>
+              <DialogDescription>
+                Update role for {selectedUser.full_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <FormLabel>Current Role: <span className="font-medium capitalize">{selectedUser.role}</span></FormLabel>
+                  <FormLabel>Select New Role:</FormLabel>
+                  <div className="flex flex-col space-y-2">
+                    <Button
+                      variant={selectedUser.role === "admin" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => handleUpdateUserRole(selectedUser.id, "admin")}
+                      disabled={changingRole || selectedUser.role === "admin"}
+                    >
+                      <Shield className="h-4 w-4 mr-2 text-primary" />
+                      Admin
+                    </Button>
+                    <Button
+                      variant={selectedUser.role === "manager" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => handleUpdateUserRole(selectedUser.id, "manager")}
+                      disabled={changingRole || selectedUser.role === "manager"}
+                    >
+                      <UserCog className="h-4 w-4 mr-2 text-blue-500" />
+                      Manager
+                    </Button>
+                    <Button
+                      variant={selectedUser.role === "user" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => handleUpdateUserRole(selectedUser.id, "user")}
+                      disabled={changingRole || selectedUser.role === "user"}
+                    >
+                      <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                      User
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowQuickRoleDialog(false)}
+                disabled={changingRole}
+              >
+                Cancel
               </Button>
             </DialogFooter>
           </DialogContent>
