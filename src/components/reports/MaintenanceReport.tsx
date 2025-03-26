@@ -13,7 +13,7 @@ const MaintenanceReport = () => {
   const { useList } = useMaintenance();
   const { data: maintenanceRecords = [], isLoading } = useList();
 
-  // Calculate maintenance metrics
+  // Calculate maintenance metrics from real data
   const totalMaintenance = maintenanceRecords.length;
   const pendingMaintenance = maintenanceRecords.filter(record => 
     record.status === 'scheduled' || record.status === 'in_progress'
