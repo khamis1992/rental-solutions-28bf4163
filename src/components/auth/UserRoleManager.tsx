@@ -1,7 +1,6 @@
 
 import React, { useState } from "react";
-import { Shield, UserCog, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Shield, UserCog } from "lucide-react";
 import { 
   Select, 
   SelectContent, 
@@ -56,10 +55,8 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
     <div className="flex items-center space-x-2">
       {role === "admin" ? (
         <Shield className="h-4 w-4 text-primary" />
-      ) : role === "manager" ? (
-        <UserCog className="h-4 w-4 text-blue-500" />
       ) : (
-        <User className="h-4 w-4 text-muted-foreground" />
+        <UserCog className="h-4 w-4 text-blue-500" />
       )}
       
       <Select
@@ -77,16 +74,10 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
               <span>Admin</span>
             </div>
           </SelectItem>
-          <SelectItem value="manager" className="flex items-center">
+          <SelectItem value="staff" className="flex items-center">
             <div className="flex items-center">
               <UserCog className="h-4 w-4 mr-2 text-blue-500" />
-              <span>Manager</span>
-            </div>
-          </SelectItem>
-          <SelectItem value="user" className="flex items-center">
-            <div className="flex items-center">
-              <User className="h-4 w-4 mr-2 text-muted-foreground" />
-              <span>User</span>
+              <span>Staff</span>
             </div>
           </SelectItem>
         </SelectContent>

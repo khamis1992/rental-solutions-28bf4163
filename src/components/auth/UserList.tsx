@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -11,7 +10,7 @@ import {
   ColumnFiltersState,
   getFilteredRowModel
 } from "@tanstack/react-table";
-import { CheckCircle, Clock, XCircle, MoreHorizontal, UserCog, User, Shield, Search, Filter } from "lucide-react";
+import { CheckCircle, Clock, XCircle, MoreHorizontal, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -94,18 +93,11 @@ const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = {
     financials: { view: true, create: true, edit: true, delete: true },
     userManagement: { view: true, create: true, edit: true, delete: true }
   },
-  manager: {
+  staff: {
     vehicles: { view: true, create: true, edit: true, delete: false },
     customers: { view: true, create: true, edit: true, delete: false },
     agreements: { view: true, create: true, edit: true, delete: false },
     financials: { view: true, create: false, edit: false, delete: false },
-    userManagement: { view: true, create: false, edit: false, delete: false }
-  },
-  user: {
-    vehicles: { view: true, create: false, edit: false, delete: false },
-    customers: { view: true, create: false, edit: false, delete: false },
-    agreements: { view: true, create: false, edit: false, delete: false },
-    financials: { view: false, create: false, edit: false, delete: false },
     userManagement: { view: false, create: false, edit: false, delete: false }
   }
 };
@@ -123,8 +115,7 @@ const UserList = () => {
     pending: 0,
     inactive: 0,
     admins: 0,
-    managers: 0,
-    users: 0
+    staff: 0
   });
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
@@ -151,8 +142,7 @@ const UserList = () => {
         pending: users.filter(user => user.status === 'pending_review').length,
         inactive: users.filter(user => user.status === 'inactive').length,
         admins: users.filter(user => user.role === 'admin').length,
-        managers: users.filter(user => user.role === 'manager').length,
-        users: users.filter(user => user.role === 'user').length
+        staff: users.filter(user => user.role === 'staff').length
       };
       setUserStats(stats);
     }
@@ -162,7 +152,7 @@ const UserList = () => {
     if (selectedUser) {
       form.setValue("role", selectedUser.role);
       
-      setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
+      setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
     }
   }, [selectedUser, form]);
 
@@ -222,33 +212,6 @@ const UserList = () => {
     }
   };
 
-  const handleUpdateUserRole = async (userId: string, newRole: string) => {
-    try {
-      console.log(`Updating user ${userId} to role ${newRole}`);
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId);
-      
-      if (error) {
-        console.error("Update role error details:", error);
-        throw error;
-      }
-      
-      console.log("Update role response:", data);
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
-      
-      toast.success(`User role updated to ${newRole}`);
-    } catch (error: any) {
-      console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role: " + error.message);
-    }
-  };
-
   const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
     try {
       const validStatus = newStatus as "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
@@ -287,7 +250,10 @@ const UserList = () => {
       const newRole = form.getValues("role");
       
       if (newRole !== selectedUser.role) {
-        await handleUpdateUserRole(selectedUser.id, newRole);
+        await supabase
+          .from("profiles")
+          .update({ role: newRole })
+          .eq("id", selectedUser.id);
       }
       
       toast.success("User permissions updated successfully");
@@ -305,7 +271,7 @@ const UserList = () => {
   const handleRoleChange = (value: string) => {
     form.setValue("role", value);
     
-    setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
+    setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
   };
 
   const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean) => {
@@ -512,13 +478,13 @@ const UserList = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Admins/Managers</CardTitle>
+            <CardTitle className="text-base font-medium">Admins/Staff</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userStats.admins + userStats.managers}</div>
+            <div className="text-2xl font-bold">{userStats.admins + userStats.staff}</div>
             <div className="mt-2">
               <Progress 
-                value={userStats.total ? ((userStats.admins + userStats.managers) / userStats.total) * 100 : 0} 
+                value={userStats.total ? ((userStats.admins + userStats.staff) / userStats.total) * 100 : 0} 
                 className="h-2" 
                 indicatorClassName="bg-blue-500"
               />
@@ -547,8 +513,7 @@ const UserList = () => {
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="staff">Staff</SelectItem>
             </SelectContent>
           </Select>
           
@@ -659,8 +624,7 @@ const UserList = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -743,4 +707,3 @@ const UserList = () => {
 };
 
 export default UserList;
-
