@@ -23,7 +23,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Step 1: First find all leases associated with this customer
+        // Step 1: First find all leases associated with this customer using explicit join
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
@@ -65,8 +65,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          // Instead of directly accessing vehicle_model which doesn't exist in the database,
-          // we'll set it to undefined as per the interface
           vehicleModel: undefined,
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,

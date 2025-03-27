@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,10 +83,14 @@ export function useTrafficFines() {
           // Get all lease IDs
           const leaseIds = finesWithLease.map(fine => fine.leaseId).filter(Boolean);
           
-          // Get all the lease data in one query
-          const { data: leases, error: leaseError } = await supabase
+          // Get all the lease data in one query with explicit join to profiles
+          const { data: leaseCustomers, error: leaseError } = await supabase
             .from('leases')
-            .select('id, customer_id')
+            .select(`
+              id,
+              customer_id,
+              profiles!inner(id, full_name)
+            `)
             .in('id', leaseIds);
             
           if (leaseError) {
@@ -96,47 +99,27 @@ export function useTrafficFines() {
           }
           
           // Create a map for faster lookups
-          const leaseCustomerMap = new Map();
-          leases?.forEach(lease => {
-            if (lease.customer_id) {
-              leaseCustomerMap.set(lease.id, lease.customer_id);
+          const customerDetailsMap = new Map();
+          leaseCustomers?.forEach(lease => {
+            if (lease.customer_id && lease.profiles) {
+              customerDetailsMap.set(lease.id, {
+                customerId: lease.customer_id,
+                // @ts-ignore - we know profiles is an object and has full_name
+                customerName: lease.profiles.full_name
+              });
             }
           });
           
-          // Get all unique customer IDs
-          const customerIds = Array.from(new Set(
-            leases?.map(lease => lease.customer_id).filter(Boolean) || []
-          ));
-          
-          // If we have customer IDs, fetch their details
-          if (customerIds.length > 0) {
-            const { data: customers, error: customerError } = await supabase
-              .from('profiles')
-              .select('id, full_name')
-              .in('id', customerIds);
-              
-            if (customerError) {
-              console.error('Error fetching customer data:', customerError);
-              return processedFines; // Return what we have so far
-            }
-            
-            // Create a customer lookup map
-            const customerMap = new Map();
-            customers?.forEach(customer => {
-              customerMap.set(customer.id, customer.full_name);
-            });
-            
-            // Now enrich the fines with customer information
-            processedFines.forEach(fine => {
-              if (fine.leaseId) {
-                const customerId = leaseCustomerMap.get(fine.leaseId);
-                if (customerId) {
-                  fine.customerId = customerId;
-                  fine.customerName = customerMap.get(customerId);
-                }
+          // Now enrich the fines with customer information
+          processedFines.forEach(fine => {
+            if (fine.leaseId) {
+              const customerDetails = customerDetailsMap.get(fine.leaseId);
+              if (customerDetails) {
+                fine.customerId = customerDetails.customerId;
+                fine.customerName = customerDetails.customerName;
               }
-            });
-          }
+            }
+          });
         }
         
         return processedFines;
@@ -396,10 +379,15 @@ export function useTrafficFines() {
         
         console.log(`Looking for active lease at violation date: ${violationDate.toISOString()}`);
         
-        // Step 3: Find the active lease for this vehicle on the violation date
-        const { data: lease, error: leaseError } = await supabase
+        // Step 3: Find the active lease for this vehicle on the violation date with explicit join to profiles
+        const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select('id, customer_id, agreement_number')
+          .select(`
+            id, 
+            customer_id, 
+            agreement_number,
+            profiles!inner(id, full_name)
+          `)
           .eq('vehicle_id', vehicle.id)
           .lte('start_date', violationDate.toISOString())
           .gte('end_date', violationDate.toISOString())
@@ -410,33 +398,21 @@ export function useTrafficFines() {
           throw leaseError;
         }
         
-        if (!lease) {
+        if (!leaseData) {
           throw new Error(`No active lease found for this vehicle on ${violationDate.toDateString()}`);
         }
         
-        console.log(`Found lease ID: ${lease.id}, customer ID: ${lease.customer_id} for agreement: ${lease.agreement_number}`);
+        console.log(`Found lease ID: ${leaseData.id}, customer ID: ${leaseData.customer_id} for agreement: ${leaseData.agreement_number}`);
         
-        // Step 4: Get the customer details
-        const { data: customer, error: customerError } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('id', lease.customer_id)
-          .single();
-          
-        if (customerError) {
-          console.error('Error finding customer:', customerError);
-          throw customerError;
-        }
-        
-        if (!customer) {
-          throw new Error(`Customer not found for ID: ${lease.customer_id}`);
-        }
+        // Get the customer name from the profiles data
+        // @ts-ignore - we know profiles has full_name
+        const customerName = leaseData.profiles.full_name;
         
         // Step 5: Update the traffic fine with the lease and vehicle info
         const { data: updatedFine, error: updateError } = await supabase
           .from('traffic_fines')
           .update({
-            lease_id: lease.id,
+            lease_id: leaseData.id,
             vehicle_id: vehicle.id,
             assignment_status: 'assigned'
           })
@@ -453,7 +429,7 @@ export function useTrafficFines() {
           throw new Error('Failed to update traffic fine');
         }
         
-        console.log(`Successfully assigned fine ID: ${id} to customer: ${customer.full_name}`);
+        console.log(`Successfully assigned fine ID: ${id} to customer: ${customerName}`);
         
         // Return the updated fine with customer info
         return {
@@ -468,8 +444,8 @@ export function useTrafficFines() {
           location: updatedFine.fine_location,
           vehicleId: updatedFine.vehicle_id,
           paymentDate: updatedFine.payment_date ? new Date(updatedFine.payment_date) : undefined,
-          customerId: lease.customer_id,
-          customerName: customer.full_name,
+          customerId: leaseData.customer_id,
+          customerName: customerName,
           leaseId: updatedFine.lease_id
         };
       } catch (error) {
