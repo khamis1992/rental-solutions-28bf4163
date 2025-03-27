@@ -359,7 +359,14 @@ export function useTrafficFines() {
   >(
     async ({ id }) => {
       try {
-        // Step 1: Get traffic fine details
+        // Input validation
+        if (!id) {
+          throw new Error('Invalid traffic fine ID');
+        }
+        
+        console.log(`Starting assignment process for fine ID: ${id}`);
+        
+        // Step 1: Get traffic fine details with robust error handling
         const { data: fine, error: fineError } = await supabase
           .from('traffic_fines')
           .select('license_plate, violation_date, fine_location, fine_amount, violation_charge, violation_number')
@@ -368,87 +375,96 @@ export function useTrafficFines() {
           
         if (fineError) {
           console.error('Error fetching traffic fine:', fineError);
-          throw fineError;
+          throw new Error(`Could not retrieve traffic fine: ${fineError.message}`);
         }
         
         if (!fine) {
           throw new Error('Traffic fine not found');
         }
         
+        // Data validation
         if (!fine.license_plate) {
-          throw new Error('Cannot assign fine without a license plate');
+          throw new Error('Cannot assign fine: Missing license plate information');
         }
         
-        console.log(`Attempting to assign fine for license plate: ${fine.license_plate}`);
+        if (!fine.violation_date) {
+          throw new Error('Cannot assign fine: Missing violation date');
+        }
         
-        // Step 2: Find the vehicle by license plate
+        console.log(`Attempting to assign fine for license plate: ${fine.license_plate} on date: ${fine.violation_date}`);
+        
+        // Step 2: Find the vehicle by license plate using explicit query
         const { data: vehicle, error: vehicleError } = await supabase
           .from('vehicles')
-          .select('id')
+          .select('id, make, model')
           .eq('license_plate', fine.license_plate)
           .single();
           
         if (vehicleError) {
           console.error('Error finding vehicle:', vehicleError);
-          throw vehicleError;
+          throw new Error(`Vehicle lookup failed: ${vehicleError.message}`);
         }
         
         if (!vehicle) {
           throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
         }
         
-        console.log(`Found vehicle ID: ${vehicle.id} for license plate: ${fine.license_plate}`);
+        console.log(`Found vehicle: ${vehicle.make} ${vehicle.model} (ID: ${vehicle.id}) for license plate: ${fine.license_plate}`);
         
         const violationDate = new Date(fine.violation_date);
         
         console.log(`Looking for active lease at violation date: ${violationDate.toISOString()}`);
         
-        // Step 3: Find the active lease for this vehicle on the violation date
-        // Avoid the implicit join that was causing the error
+        // Step 3: Find the active lease for this vehicle on the violation date using explicit join
+        // This avoids relying on implicit relationships that were causing the error
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select('id, customer_id, agreement_number')
+          .select('id, customer_id, agreement_number, start_date, end_date')
           .eq('vehicle_id', vehicle.id)
           .lte('start_date', violationDate.toISOString())
-          .gte('end_date', violationDate.toISOString())
-          .single();
+          .gte('end_date', violationDate.toISOString());
           
         if (leaseError) {
           console.error('Error finding lease:', leaseError);
-          throw leaseError;
+          throw new Error(`Lease lookup failed: ${leaseError.message}`);
         }
         
-        if (!leaseData) {
-          throw new Error(`No active lease found for this vehicle on ${violationDate.toDateString()}`);
+        if (!leaseData || leaseData.length === 0) {
+          throw new Error(`No active lease found for vehicle ${vehicle.make} ${vehicle.model} on ${violationDate.toDateString()}`);
         }
         
-        if (!leaseData.customer_id) {
-          throw new Error(`Lease found but has no associated customer ID`);
+        // In case there are multiple leases (which shouldn't happen with proper data), take the first one
+        const lease = leaseData[0];
+        
+        if (!lease.customer_id) {
+          throw new Error(`Lease #${lease.agreement_number} found but has no associated customer ID`);
         }
         
-        console.log(`Found lease ID: ${leaseData.id}, customer ID: ${leaseData.customer_id} for agreement: ${leaseData.agreement_number}`);
+        console.log(`Found lease ID: ${lease.id}, customer ID: ${lease.customer_id} for agreement: ${lease.agreement_number}`);
         
-        // Step 4: Get customer details
+        // Step 4: Get customer details with explicit query
         const { data: customer, error: customerError } = await supabase
           .from('profiles')
-          .select('id, full_name')
-          .eq('id', leaseData.customer_id)
+          .select('id, full_name, email')
+          .eq('id', lease.customer_id)
           .single();
         
         if (customerError) {
           console.error('Error fetching customer details:', customerError);
-          throw customerError;
+          throw new Error(`Customer lookup failed: ${customerError.message}`);
         }
         
         if (!customer) {
-          throw new Error(`Customer with ID ${leaseData.customer_id} not found`);
+          throw new Error(`Customer with ID ${lease.customer_id} not found`);
         }
+        
+        console.log(`Found customer: ${customer.full_name} (ID: ${customer.id})`);
         
         // Step 5: Update the traffic fine with the lease and vehicle info
         const { data: updatedFine, error: updateError } = await supabase
           .from('traffic_fines')
           .update({
-            lease_id: leaseData.id,
+            lease_id: lease.id,
             vehicle_id: vehicle.id,
             assignment_status: 'assigned'
           })
@@ -458,11 +474,11 @@ export function useTrafficFines() {
           
         if (updateError) {
           console.error('Error updating traffic fine:', updateError);
-          throw updateError;
+          throw new Error(`Failed to update traffic fine: ${updateError.message}`);
         }
         
         if (!updatedFine) {
-          throw new Error('Failed to update traffic fine');
+          throw new Error('Failed to update traffic fine record');
         }
         
         console.log(`Successfully assigned fine ID: ${id} to customer: ${customer.full_name}`);
@@ -472,7 +488,7 @@ export function useTrafficFines() {
           id: updatedFine.id,
           violationNumber: updatedFine.violation_number,
           licensePlate: updatedFine.license_plate,
-          vehicleModel: undefined,
+          vehicleModel: `${vehicle.make} ${vehicle.model}`,
           violationDate: new Date(updatedFine.violation_date),
           fineAmount: updatedFine.fine_amount,
           violationCharge: updatedFine.violation_charge,
@@ -486,7 +502,21 @@ export function useTrafficFines() {
         };
       } catch (error) {
         console.error('Error in assignToCustomer:', error);
-        throw error;
+        // Enhanced error reporting with contextual information
+        const errorMessage = error instanceof Error 
+          ? error.message 
+          : 'Failed to assign fine to customer';
+          
+        // Surface more specific error messages based on error context
+        if (errorMessage.includes('license plate')) {
+          throw new Error(`Assignment failed: ${errorMessage}. Check if the license plate is correctly entered.`);
+        } else if (errorMessage.includes('lease')) {
+          throw new Error(`Assignment failed: ${errorMessage}. Verify there is an active rental agreement for this vehicle on the violation date.`);
+        } else if (errorMessage.includes('customer')) {
+          throw new Error(`Assignment failed: ${errorMessage}. Ensure the customer record exists and is properly linked.`);
+        } else {
+          throw new Error(`Fine assignment failed: ${errorMessage}`);
+        }
       }
     },
     {
