@@ -7,29 +7,10 @@ import { AlertTriangle, Check, Clock } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
-}
-
-// Define types for Supabase query results
-interface LeaseResult {
-  id: string;
-}
-
-interface TrafficFineResult {
-  id: string;
-  violation_number: string;
-  license_plate: string;
-  vehicle_model?: string;
-  violation_date: string;
-  fine_amount: number;
-  violation_charge: string;
-  payment_status: string;
-  fine_location?: string;
-  vehicle_id?: string;
-  payment_date?: string;
-  lease_id?: string;
 }
 
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
@@ -42,25 +23,29 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Get leases by customer_id without using aliases
+        // Get leases for this customer
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
           .eq('customer_id', customerId);
           
         if (leasesError) {
+          console.error("Error fetching customer leases:", leasesError);
           throw new Error(leasesError.message);
         }
         
+        // If customer has no leases, return empty array
         if (!leases || leases.length === 0) {
+          console.log(`No leases found for customer ${customerId}`);
           setFines([]);
           return;
         }
         
         // Extract the lease IDs
-        const leaseIds = (leases as LeaseResult[]).map(lease => lease.id);
+        const leaseIds = leases.map(lease => lease.id);
+        console.log(`Found ${leaseIds.length} leases for customer ${customerId}`, leaseIds);
         
-        // Then fetch traffic fines associated with these lease IDs
+        // Fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
           .from('traffic_fines')
           .select('*')
@@ -68,13 +53,16 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           .order('violation_date', { ascending: false });
           
         if (finesError) {
+          console.error("Error fetching traffic fines:", finesError);
           throw new Error(finesError.message);
         }
         
+        console.log(`Found ${trafficFines?.length || 0} traffic fines`);
+        
         // Transform the data to match the TrafficFine interface
-        const formattedFines: TrafficFine[] = (trafficFines as TrafficFineResult[] || []).map(fine => ({
+        const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => ({
           id: fine.id,
-          violationNumber: fine.violation_number,
+          violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
           vehicleModel: fine.vehicle_model,
           violationDate: new Date(fine.violation_date),
@@ -83,13 +71,16 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           paymentStatus: fine.payment_status as TrafficFineStatusType,
           location: fine.fine_location || '',
           vehicleId: fine.vehicle_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
+          customerId: customerId,
+          leaseId: fine.lease_id
         }));
         
         setFines(formattedFines);
       } catch (err) {
         console.error('Error fetching traffic fines:', err);
-        setError('Failed to load traffic fines');
+        setError(err instanceof Error ? err.message : 'Failed to load traffic fines');
+        toast.error('Failed to load traffic fines');
       } finally {
         setLoading(false);
       }
