@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Car, User, CreditCard, Wrench, AlertTriangle } from 'lucide-react';
