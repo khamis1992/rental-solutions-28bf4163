@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -265,35 +266,46 @@ const UserList = () => {
       return;
     }
     
-    const khamisUsers = users.filter(user => 
-      user.email === "khamis-1992@hotmail.com"
-    );
-    
-    if (khamisUsers.length <= 1) {
-      toast.info("No duplicate users found with this email");
-      return;
-    }
-    
     try {
       setBulkDeletingUsers(true);
+      console.log("Starting deletion of duplicate Khamis accounts");
       
-      for (const user of khamisUsers) {
-        if (user.id !== profile.id) {
-          const { error } = await supabase
-            .from("profiles")
-            .delete()
-            .eq("id", user.id);
-          
-          if (error) {
-            console.error(`Error deleting user ${user.id}:`, error);
-            throw error;
-          }
-        }
+      // Find all Khamis accounts except the current user's account
+      const khamisUsers = users.filter(user => 
+        user.email === "khamis-1992@hotmail.com" && user.id !== profile.id
+      );
+      
+      console.log(`Found ${khamisUsers.length} duplicate Khamis accounts to delete`);
+      
+      if (khamisUsers.length === 0) {
+        toast.info("No duplicate users found with this email");
+        setBulkDeletingUsers(false);
+        return;
       }
       
+      // Loop through and delete each duplicate account
+      const deletionPromises = khamisUsers.map(async (user) => {
+        console.log(`Attempting to delete user ${user.id}`);
+        const { error } = await supabase
+          .from("profiles")
+          .delete()
+          .eq("id", user.id);
+        
+        if (error) {
+          console.error(`Error deleting user ${user.id}:`, error);
+          throw error;
+        }
+        console.log(`Successfully deleted user ${user.id}`);
+        return user.id;
+      });
+      
+      // Wait for all deletions to complete
+      await Promise.all(deletionPromises);
+      
+      // Refresh user list
       await fetchUsers();
       
-      toast.success(`Successfully deleted duplicate Khamis accounts`);
+      toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);
     } catch (error: any) {
       console.error("Error deleting duplicate Khamis accounts:", error.message);
       toast.error("Failed to delete users: " + error.message);
