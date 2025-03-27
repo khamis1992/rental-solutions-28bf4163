@@ -2,15 +2,20 @@
 import React, { useEffect, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Activity } from 'lucide-react';
 import TrafficFinesList from '@/components/traffic-fines/TrafficFinesList';
+import TrafficFinesMonitoring from '@/components/traffic-fines/TrafficFinesMonitoring';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { toast } from 'sonner';
+import { monitorTrafficFineAssignment } from '@/utils/monitoring-utils';
+import { supabase } from '@/integrations/supabase/client';
 
 const TrafficFines = () => {
   const { trafficFines, isLoading, assignToCustomer } = useTrafficFines();
   const [initialAssignmentDone, setInitialAssignmentDone] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [activeTab, setActiveTab] = useState('fines');
   
   // Auto-assign unassigned fines when the page loads
   useEffect(() => {
@@ -37,9 +42,27 @@ const TrafficFines = () => {
               
               console.log(`Attempting to assign fine ${fine.id} with license plate ${fine.licensePlate}`);
               await assignToCustomer({ id: fine.id });
+              
+              // Monitor successful assignment
+              monitorTrafficFineAssignment({
+                success: true,
+                fineId: fine.id,
+                message: 'Fine assigned successfully',
+                data: { licensePlate: fine.licensePlate }
+              }, supabase);
+              
               assignedCount++;
             } catch (error) {
               console.error(`Failed to assign fine ${fine.id}:`, error);
+              
+              // Monitor failed assignment
+              monitorTrafficFineAssignment({
+                success: false,
+                fineId: fine.id,
+                message: error instanceof Error ? error.message : 'Unknown error',
+                data: { licensePlate: fine.licensePlate }
+              }, supabase);
+              
               failedCount++;
             }
           }
@@ -76,9 +99,26 @@ const TrafficFines = () => {
         icon={AlertTriangle}
       />
       
-      <div className="space-y-6">
-        <TrafficFinesList isAutoAssigning={isAssigning} />
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="fines">
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Traffic Fines
+          </TabsTrigger>
+          <TabsTrigger value="monitoring">
+            <Activity className="mr-2 h-4 w-4" />
+            System Monitoring
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="fines" className="space-y-6">
+          <TrafficFinesList isAutoAssigning={isAssigning} />
+        </TabsContent>
+        
+        <TabsContent value="monitoring" className="space-y-6">
+          <TrafficFinesMonitoring />
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 };
