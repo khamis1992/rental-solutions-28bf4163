@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Table, 
   TableBody, 
@@ -42,11 +43,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
 
-interface TrafficFinesListProps {
-  isAutoAssigning?: boolean;
-}
-
-const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
+const TrafficFinesList = () => {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
@@ -74,50 +72,36 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
   const handleAutoAssignFines = async () => {
     try {
       setAssigningFines(true);
-      toast.info("Auto-assigning fines", {
+      toast({
+        title: "Auto-assigning fines",
         description: "Please wait while fines are assigned to customers..."
       });
 
       let assignedCount = 0;
-      let failedCount = 0;
       const pendingFines = filteredFines.filter(fine => !fine.customerId);
 
-      if (pendingFines.length === 0) {
-        toast.info("No unassigned fines to process");
-        setAssigningFines(false);
-        return;
-      }
-
-      console.log(`Attempting to auto-assign ${pendingFines.length} fines`);
-
       for (const fine of pendingFines) {
-        if (!fine.licensePlate) {
-          console.log(`Skipping fine ${fine.id} - missing license plate`);
-          continue;
-        }
+        if (!fine.licensePlate) continue;
 
         try {
-          console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
           await assignToCustomer({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
-          failedCount++;
         }
       }
 
-      if (assignedCount > 0) {
-        toast.success(`Successfully assigned ${assignedCount} out of ${pendingFines.length} fines to customers`);
-      } else {
-        toast.warning("No fines could be assigned to customers");
-      }
-
-      if (failedCount > 0) {
-        toast.error(`Failed to assign ${failedCount} fines`);
-      }
-    } catch (error: any) {
+      toast({
+        title: "Assignment complete",
+        description: `Successfully assigned ${assignedCount} out of ${pendingFines.length} fines to customers.`
+      });
+    } catch (error) {
       console.error("Auto-assignment error:", error);
-      toast.error("There was an error assigning fines to customers: " + (error.message || "Unknown error"));
+      toast({
+        title: "Assignment failed",
+        description: "There was an error assigning fines to customers.",
+        variant: "destructive"
+      });
     } finally {
       setAssigningFines(false);
     }
@@ -185,11 +169,11 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
               <Button 
                 className="w-full md:w-auto"
                 onClick={handleAutoAssignFines}
-                disabled={assigningFines || isAutoAssigning}
+                disabled={assigningFines}
                 variant="secondary"
               >
                 <UserCheck className="mr-2 h-4 w-4" /> 
-                {(assigningFines || isAutoAssigning) ? "Assigning..." : "Auto-Assign"}
+                {assigningFines ? "Assigning..." : "Auto-Assign"}
               </Button>
               <Button className="w-full md:w-auto">
                 <Plus className="mr-2 h-4 w-4" /> Add Fine
@@ -225,10 +209,10 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading || isAutoAssigning ? (
+                {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                      {isAutoAssigning ? "Auto-assigning traffic fines..." : "Loading traffic fines..."}
+                      Loading traffic fines...
                     </TableCell>
                   </TableRow>
                 ) : filteredFines.length > 0 ? (
@@ -251,11 +235,6 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                       </TableCell>
                       <TableCell>
                         {getCustomerAssignmentStatus(fine)}
-                        {fine.customerName && (
-                          <div className="text-xs text-muted-foreground mt-1 truncate max-w-[120px]">
-                            {fine.customerName}
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
