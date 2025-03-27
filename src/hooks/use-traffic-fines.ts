@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,61 +59,86 @@ export function useTrafficFines() {
 
         if (error) throw error;
 
-        const processedFines: TrafficFine[] = [];
+        // Process the traffic fines first before trying to fetch customer data
+        const processedFines: TrafficFine[] = (data || []).map(fine => ({
+          id: fine.id,
+          violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
+          licensePlate: fine.license_plate,
+          vehicleModel: undefined,
+          violationDate: new Date(fine.violation_date),
+          fineAmount: fine.fine_amount,
+          violationCharge: fine.violation_charge,
+          paymentStatus: (fine.payment_status || 'pending') as TrafficFineStatusType,
+          location: fine.fine_location,
+          vehicleId: fine.vehicle_id,
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
+          customerId: undefined,
+          customerName: undefined,
+          leaseId: fine.lease_id
+        }));
         
-        for (const fine of data || []) {
-          let customerName;
-          let customerId;
+        // Now enhance the fines with customer information where available
+        const processedFinesWithCustomerInfo = [...processedFines];
+        
+        // Process only fines with lease_id
+        const finesWithLease = processedFines.filter(fine => fine.leaseId);
+        
+        if (finesWithLease.length > 0) {
+          // Get all lease IDs
+          const leaseIds = finesWithLease.map(fine => fine.leaseId);
           
-          if (fine.lease_id) {
-            try {
-              const { data: leaseData, error: leaseError } = await supabase
-                .from('leases')
-                .select('customer_id')
-                .eq('id', fine.lease_id)
-                .maybeSingle();
-              
-              if (leaseError) {
-                console.error('Error fetching lease data:', leaseError);
-              } else if (leaseData && leaseData.customer_id) {
-                customerId = leaseData.customer_id;
-                
-                const { data: customerData, error: customerError } = await supabase
-                  .from('profiles')
-                  .select('full_name')
-                  .eq('id', leaseData.customer_id)
-                  .maybeSingle();
-                  
-                if (customerError) {
-                  console.error('Error fetching customer data:', customerError);
-                } else if (customerData) {
-                  customerName = customerData.full_name;
-                }
+          // Fetch all leases in one query
+          const { data: leasesData, error: leasesError } = await supabase
+            .from('leases')
+            .select('id, customer_id')
+            .in('id', leaseIds);
+            
+          if (leasesError) {
+            console.error('Error fetching lease data:', leasesError);
+          } else {
+            // Create a map of lease_id to customer_id for quick lookups
+            const leaseToCustomerMap = new Map();
+            leasesData?.forEach(lease => {
+              if (lease.customer_id) {
+                leaseToCustomerMap.set(lease.id, lease.customer_id);
               }
-            } catch (err) {
-              console.error('Error processing customer data:', err);
+            });
+            
+            // Get all unique customer IDs
+            const customerIds = [...new Set(leasesData?.map(lease => lease.customer_id).filter(Boolean))];
+            
+            if (customerIds.length > 0) {
+              // Fetch all customer profiles in one query
+              const { data: customersData, error: customersError } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .in('id', customerIds);
+                
+              if (customersError) {
+                console.error('Error fetching customer data:', customersError);
+              } else {
+                // Create a map of customer_id to full_name for quick lookups
+                const customerMap = new Map();
+                customersData?.forEach(customer => {
+                  customerMap.set(customer.id, customer.full_name);
+                });
+                
+                // Update the processed fines with customer info
+                processedFinesWithCustomerInfo.forEach(fine => {
+                  if (fine.leaseId) {
+                    const customerId = leaseToCustomerMap.get(fine.leaseId);
+                    if (customerId) {
+                      fine.customerId = customerId;
+                      fine.customerName = customerMap.get(customerId);
+                    }
+                  }
+                });
+              }
             }
           }
-
-          processedFines.push({
-            id: fine.id,
-            violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
-            licensePlate: fine.license_plate,
-            vehicleModel: undefined,
-            violationDate: new Date(fine.violation_date),
-            fineAmount: fine.fine_amount,
-            violationCharge: fine.violation_charge,
-            paymentStatus: (fine.payment_status || 'pending') as TrafficFineStatusType,
-            location: fine.fine_location,
-            vehicleId: fine.vehicle_id,
-            paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-            customerId: customerId,
-            customerName: customerName,
-            leaseId: fine.lease_id
-          });
         }
         
-        return processedFines;
+        return processedFinesWithCustomerInfo;
       } catch (error) {
         console.error('Error fetching traffic fines:', error);
         return [];
@@ -139,7 +165,7 @@ export function useTrafficFines() {
 
       if (error) throw error;
       
-      const processedFine: TrafficFine = {
+      return {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
@@ -155,34 +181,6 @@ export function useTrafficFines() {
         customerId: undefined,
         customerName: undefined
       };
-      
-      if (data.lease_id) {
-        try {
-          const { data: leaseData } = await supabase
-            .from('leases')
-            .select('customer_id')
-            .eq('id', data.lease_id)
-            .single();
-            
-          if (leaseData && leaseData.customer_id) {
-            processedFine.customerId = leaseData.customer_id;
-            
-            const { data: customerData } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', leaseData.customer_id)
-              .single();
-              
-            if (customerData) {
-              processedFine.customerName = customerData.full_name;
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching customer data:', err);
-        }
-      }
-      
-      return processedFine;
     },
     {
       onSuccess: () => {
@@ -218,7 +216,7 @@ export function useTrafficFines() {
 
       if (error) throw error;
       
-      const processedFine: TrafficFine = {
+      return {
         id: responseData.id,
         violationNumber: responseData.violation_number,
         licensePlate: responseData.license_plate,
@@ -234,34 +232,6 @@ export function useTrafficFines() {
         customerId: undefined,
         customerName: undefined
       };
-      
-      if (responseData.lease_id) {
-        try {
-          const { data: leaseData } = await supabase
-            .from('leases')
-            .select('customer_id')
-            .eq('id', responseData.lease_id)
-            .single();
-            
-          if (leaseData && leaseData.customer_id) {
-            processedFine.customerId = leaseData.customer_id;
-            
-            const { data: customerData } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', leaseData.customer_id)
-              .single();
-              
-            if (customerData) {
-              processedFine.customerName = customerData.full_name;
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching customer data:', err);
-        }
-      }
-      
-      return processedFine;
     },
     {
       onSuccess: () => {
@@ -307,7 +277,7 @@ export function useTrafficFines() {
         
       if (error) throw error;
       
-      const processedFine: TrafficFine = {
+      return {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
@@ -323,34 +293,6 @@ export function useTrafficFines() {
         customerId: undefined,
         customerName: undefined
       };
-      
-      if (data.lease_id) {
-        try {
-          const { data: leaseData } = await supabase
-            .from('leases')
-            .select('customer_id')
-            .eq('id', data.lease_id)
-            .single();
-            
-          if (leaseData && leaseData.customer_id) {
-            processedFine.customerId = leaseData.customer_id;
-            
-            const { data: customerData } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', leaseData.customer_id)
-              .single();
-              
-            if (customerData) {
-              processedFine.customerName = customerData.full_name;
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching customer data:', err);
-        }
-      }
-      
-      return processedFine;
     },
     {
       onSuccess: () => {
@@ -377,7 +319,7 @@ export function useTrafficFines() {
         
       if (error) throw error;
       
-      const processedFine: TrafficFine = {
+      return {
         id: data.id,
         violationNumber: data.violation_number,
         licensePlate: data.license_plate,
@@ -393,34 +335,6 @@ export function useTrafficFines() {
         customerId: undefined,
         customerName: undefined
       };
-      
-      if (data.lease_id) {
-        try {
-          const { data: leaseData } = await supabase
-            .from('leases')
-            .select('customer_id')
-            .eq('id', data.lease_id)
-            .single();
-            
-          if (leaseData && leaseData.customer_id) {
-            processedFine.customerId = leaseData.customer_id;
-            
-            const { data: customerData } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('id', leaseData.customer_id)
-              .single();
-              
-            if (customerData) {
-              processedFine.customerName = customerData.full_name;
-            }
-          }
-        } catch (err) {
-          console.error('Error fetching customer data:', err);
-        }
-      }
-      
-      return processedFine;
     },
     {
       onSuccess: () => {
@@ -436,120 +350,131 @@ export function useTrafficFines() {
     { id: string }
   >(
     async ({ id }) => {
-      const { data: fine, error: fineError } = await supabase
-        .from('traffic_fines')
-        .select('license_plate, violation_date, fine_location, fine_amount, violation_charge, violation_number')
-        .eq('id', id)
-        .maybeSingle();
+      try {
+        // Step 1: Get traffic fine details
+        const { data: fine, error: fineError } = await supabase
+          .from('traffic_fines')
+          .select('license_plate, violation_date, fine_location, fine_amount, violation_charge, violation_number')
+          .eq('id', id)
+          .single();
+          
+        if (fineError) {
+          console.error('Error fetching traffic fine:', fineError);
+          throw fineError;
+        }
         
-      if (fineError) {
-        console.error('Error fetching traffic fine:', fineError);
-        throw fineError;
-      }
-      
-      if (!fine) {
-        throw new Error('Traffic fine not found');
-      }
-      
-      if (!fine.license_plate) {
-        throw new Error('Cannot assign fine without a license plate');
-      }
-      
-      console.log(`Attempting to assign fine for license plate: ${fine.license_plate}`);
-      
-      const { data: vehicle, error: vehicleError } = await supabase
-        .from('vehicles')
-        .select('id')
-        .eq('license_plate', fine.license_plate)
-        .maybeSingle();
+        if (!fine) {
+          throw new Error('Traffic fine not found');
+        }
         
-      if (vehicleError) {
-        console.error('Error finding vehicle:', vehicleError);
-        throw vehicleError;
-      }
-      
-      if (!vehicle) {
-        throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
-      }
-      
-      console.log(`Found vehicle ID: ${vehicle.id} for license plate: ${fine.license_plate}`);
-      
-      const violationDate = new Date(fine.violation_date);
-      
-      console.log(`Looking for active lease at violation date: ${violationDate.toISOString()}`);
-      
-      const { data: lease, error: leaseError } = await supabase
-        .from('leases')
-        .select('id, customer_id, agreement_number')
-        .eq('vehicle_id', vehicle.id)
-        .lte('start_date', violationDate.toISOString())
-        .gte('end_date', violationDate.toISOString())
-        .maybeSingle();
+        if (!fine.license_plate) {
+          throw new Error('Cannot assign fine without a license plate');
+        }
         
-      if (leaseError) {
-        console.error('Error finding lease:', leaseError);
-        throw leaseError;
-      }
-      
-      if (!lease) {
-        throw new Error(`No active lease found for this vehicle on ${violationDate.toDateString()}`);
-      }
-      
-      console.log(`Found lease ID: ${lease.id}, customer ID: ${lease.customer_id} for agreement: ${lease.agreement_number}`);
-      
-      const { data: customer, error: customerError } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', lease.customer_id)
-        .maybeSingle();
+        console.log(`Attempting to assign fine for license plate: ${fine.license_plate}`);
         
-      if (customerError) {
-        console.error('Error finding customer:', customerError);
-        throw customerError;
-      }
-      
-      if (!customer) {
-        throw new Error(`Customer not found for ID: ${lease.customer_id}`);
-      }
-      
-      const { data: updatedFine, error: updateError } = await supabase
-        .from('traffic_fines')
-        .update({
-          lease_id: lease.id,
-          vehicle_id: vehicle.id,
-          assignment_status: 'assigned'
-        })
-        .eq('id', id)
-        .select()
-        .maybeSingle();
+        // Step 2: Find the vehicle by license plate
+        const { data: vehicle, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('id')
+          .eq('license_plate', fine.license_plate)
+          .single();
+          
+        if (vehicleError) {
+          console.error('Error finding vehicle:', vehicleError);
+          throw vehicleError;
+        }
         
-      if (updateError) {
-        console.error('Error updating traffic fine:', updateError);
-        throw updateError;
+        if (!vehicle) {
+          throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
+        }
+        
+        console.log(`Found vehicle ID: ${vehicle.id} for license plate: ${fine.license_plate}`);
+        
+        const violationDate = new Date(fine.violation_date);
+        
+        console.log(`Looking for active lease at violation date: ${violationDate.toISOString()}`);
+        
+        // Step 3: Find the active lease for this vehicle on the violation date
+        const { data: lease, error: leaseError } = await supabase
+          .from('leases')
+          .select('id, customer_id, agreement_number')
+          .eq('vehicle_id', vehicle.id)
+          .lte('start_date', violationDate.toISOString())
+          .gte('end_date', violationDate.toISOString())
+          .single();
+          
+        if (leaseError) {
+          console.error('Error finding lease:', leaseError);
+          throw leaseError;
+        }
+        
+        if (!lease) {
+          throw new Error(`No active lease found for this vehicle on ${violationDate.toDateString()}`);
+        }
+        
+        console.log(`Found lease ID: ${lease.id}, customer ID: ${lease.customer_id} for agreement: ${lease.agreement_number}`);
+        
+        // Step 4: Get the customer details
+        const { data: customer, error: customerError } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', lease.customer_id)
+          .single();
+          
+        if (customerError) {
+          console.error('Error finding customer:', customerError);
+          throw customerError;
+        }
+        
+        if (!customer) {
+          throw new Error(`Customer not found for ID: ${lease.customer_id}`);
+        }
+        
+        // Step 5: Update the traffic fine with the lease and vehicle info
+        const { data: updatedFine, error: updateError } = await supabase
+          .from('traffic_fines')
+          .update({
+            lease_id: lease.id,
+            vehicle_id: vehicle.id,
+            assignment_status: 'assigned'
+          })
+          .eq('id', id)
+          .select()
+          .single();
+          
+        if (updateError) {
+          console.error('Error updating traffic fine:', updateError);
+          throw updateError;
+        }
+        
+        if (!updatedFine) {
+          throw new Error('Failed to update traffic fine');
+        }
+        
+        console.log(`Successfully assigned fine ID: ${id} to customer: ${customer.full_name}`);
+        
+        // Return the updated fine with customer info
+        return {
+          id: updatedFine.id,
+          violationNumber: updatedFine.violation_number,
+          licensePlate: updatedFine.license_plate,
+          vehicleModel: undefined,
+          violationDate: new Date(updatedFine.violation_date),
+          fineAmount: updatedFine.fine_amount,
+          violationCharge: updatedFine.violation_charge,
+          paymentStatus: updatedFine.payment_status as TrafficFineStatusType,
+          location: updatedFine.fine_location,
+          vehicleId: updatedFine.vehicle_id,
+          paymentDate: updatedFine.payment_date ? new Date(updatedFine.payment_date) : undefined,
+          customerId: lease.customer_id,
+          customerName: customer.full_name,
+          leaseId: updatedFine.lease_id
+        };
+      } catch (error) {
+        console.error('Error in assignToCustomer:', error);
+        throw error;
       }
-      
-      if (!updatedFine) {
-        throw new Error('Failed to update traffic fine');
-      }
-      
-      console.log(`Successfully assigned fine ID: ${id} to customer: ${customer.full_name}`);
-      
-      return {
-        id: updatedFine.id,
-        violationNumber: updatedFine.violation_number,
-        licensePlate: updatedFine.license_plate,
-        vehicleModel: undefined,
-        violationDate: new Date(updatedFine.violation_date),
-        fineAmount: updatedFine.fine_amount,
-        violationCharge: updatedFine.violation_charge,
-        paymentStatus: updatedFine.payment_status as TrafficFineStatusType,
-        location: updatedFine.fine_location,
-        vehicleId: updatedFine.vehicle_id,
-        paymentDate: updatedFine.payment_date ? new Date(updatedFine.payment_date) : undefined,
-        customerId: lease.customer_id,
-        customerName: customer.full_name,
-        leaseId: updatedFine.lease_id
-      };
     },
     {
       onSuccess: (data) => {

@@ -1,12 +1,12 @@
 
 import { useState, useEffect } from 'react';
-import { useTrafficFines, TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
+import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, Check, Clock } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface CustomerTrafficFinesProps {
