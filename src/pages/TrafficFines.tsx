@@ -1,122 +1,63 @@
 
-import React, { useEffect, useState } from 'react';
-import PageContainer from '@/components/layout/PageContainer';
-import { SectionHeader } from '@/components/ui/section-header';
-import { AlertTriangle, Activity } from 'lucide-react';
-import TrafficFinesList from '@/components/traffic-fines/TrafficFinesList';
-import TrafficFinesMonitoring from '@/components/traffic-fines/TrafficFinesMonitoring';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { toast } from 'sonner';
-import { monitorTrafficFineAssignment } from '@/utils/monitoring-utils';
-import { supabase } from '@/integrations/supabase/client';
+import React, { useState } from "react";
+import PageContainer from "@/components/layout/PageContainer";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertTriangle, BarChart2, FileText } from "lucide-react";
+import TrafficFinesList from "@/components/fines/TrafficFinesList";
+import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 
 const TrafficFines = () => {
-  const { trafficFines, isLoading, assignToCustomer } = useTrafficFines();
-  const [initialAssignmentDone, setInitialAssignmentDone] = useState(false);
-  const [isAssigning, setIsAssigning] = useState(false);
-  const [activeTab, setActiveTab] = useState('fines');
+  const [activeTab, setActiveTab] = useState("list");
   
-  // Auto-assign unassigned fines when the page loads
-  useEffect(() => {
-    // Only run auto-assignment if we have traffic fines data, haven't run it yet, and aren't currently loading
-    if (!isLoading && !initialAssignmentDone && trafficFines && trafficFines.length > 0) {
-      const unassignedFines = trafficFines.filter(fine => !fine.customerId && !fine.leaseId);
-      
-      if (unassignedFines.length > 0) {
-        const assignFines = async () => {
-          setIsAssigning(true);
-          toast.info(`Auto-assigning ${unassignedFines.length} unassigned traffic fines...`);
-          
-          // Process fines one by one to avoid overwhelming the API
-          let assignedCount = 0;
-          let failedCount = 0;
-          
-          for (const fine of unassignedFines) {
-            try {
-              // Only process fines with license plates
-              if (!fine.licensePlate) {
-                console.log(`Skipping fine ${fine.id} - missing license plate`);
-                continue;
-              }
-              
-              console.log(`Attempting to assign fine ${fine.id} with license plate ${fine.licensePlate}`);
-              await assignToCustomer({ id: fine.id });
-              
-              // Monitor successful assignment
-              monitorTrafficFineAssignment({
-                success: true,
-                fineId: fine.id,
-                message: 'Fine assigned successfully',
-                data: { licensePlate: fine.licensePlate }
-              }, supabase);
-              
-              assignedCount++;
-            } catch (error) {
-              console.error(`Failed to assign fine ${fine.id}:`, error);
-              
-              // Monitor failed assignment
-              monitorTrafficFineAssignment({
-                success: false,
-                fineId: fine.id,
-                message: error instanceof Error ? error.message : 'Unknown error',
-                data: { licensePlate: fine.licensePlate }
-              }, supabase);
-              
-              failedCount++;
-            }
-          }
-          
-          if (assignedCount > 0) {
-            toast.success(`Successfully assigned ${assignedCount} traffic fines to customers`);
-          } else if (unassignedFines.length > 0) {
-            toast.warning('No traffic fines could be automatically assigned');
-          }
-          
-          if (failedCount > 0) {
-            toast.error(`Failed to assign ${failedCount} traffic fines`);
-          }
-          
-          setInitialAssignmentDone(true);
-          setIsAssigning(false);
-        };
-        
-        assignFines();
-      } else {
-        setInitialAssignmentDone(true);
-      }
-    }
-  }, [isLoading, trafficFines, initialAssignmentDone, assignToCustomer]);
+  const handleAddFine = () => {
+    setActiveTab("add");
+  };
+  
+  const handleFineSaved = () => {
+    setActiveTab("list");
+  };
 
   return (
-    <PageContainer
-      title="Traffic Fines Management"
-      description="Manage and track traffic fines for your fleet"
-    >
+    <PageContainer>
       <SectionHeader
-        title="Traffic Fines"
-        description="View, pay, and dispute traffic fines for vehicles in your fleet"
+        title="Traffic Fines Management"
+        description="Record, track, and manage traffic violations"
         icon={AlertTriangle}
       />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="fines">
-            <AlertTriangle className="mr-2 h-4 w-4" />
-            Traffic Fines
+        <TabsList className="grid grid-cols-1 md:grid-cols-3 w-full">
+          <TabsTrigger value="list" className="flex items-center">
+            <FileText className="h-4 w-4 mr-2" />
+            Fines List
           </TabsTrigger>
-          <TabsTrigger value="monitoring">
-            <Activity className="mr-2 h-4 w-4" />
-            System Monitoring
+          <TabsTrigger value="add" className="flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Record New Fine
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center">
+            <BarChart2 className="h-4 w-4 mr-2" />
+            Fine Analytics
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="fines" className="space-y-6">
-          <TrafficFinesList isAutoAssigning={isAssigning} />
+        <TabsContent value="list" className="space-y-6">
+          <TrafficFinesList onAddFine={handleAddFine} />
         </TabsContent>
         
-        <TabsContent value="monitoring" className="space-y-6">
-          <TrafficFinesMonitoring />
+        <TabsContent value="add" className="space-y-6">
+          <TrafficFineEntry onFineSaved={handleFineSaved} />
+        </TabsContent>
+        
+        <TabsContent value="reports" className="space-y-6">
+          <div className="bg-amber-50 border border-amber-200 rounded-md p-6 flex flex-col items-center justify-center space-y-4">
+            <BarChart2 className="h-12 w-12 text-amber-500" />
+            <h3 className="text-lg font-medium text-amber-800">Traffic Fine Analytics Coming Soon</h3>
+            <p className="text-amber-700 text-center max-w-md">
+              Advanced analytics and reporting features for traffic fines are under development and will be available in the next update.
+            </p>
+          </div>
         </TabsContent>
       </Tabs>
     </PageContainer>
