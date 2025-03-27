@@ -65,7 +65,9 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          vehicleModel: fine.vehicle_model,
+          // Instead of directly accessing vehicle_model which doesn't exist in the database,
+          // we'll set it to undefined as per the interface
+          vehicleModel: undefined,
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
