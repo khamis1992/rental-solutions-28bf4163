@@ -23,7 +23,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Get leases for this customer
+        // Step 1: First find all leases associated with this customer
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
@@ -38,6 +38,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         if (!leases || leases.length === 0) {
           console.log(`No leases found for customer ${customerId}`);
           setFines([]);
+          setLoading(false);
           return;
         }
         
@@ -45,7 +46,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         const leaseIds = leases.map(lease => lease.id);
         console.log(`Found ${leaseIds.length} leases for customer ${customerId}`, leaseIds);
         
-        // Fetch traffic fines associated with these lease IDs
+        // Step 2: Fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
           .from('traffic_fines')
           .select('*')

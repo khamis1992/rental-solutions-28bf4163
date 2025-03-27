@@ -59,7 +59,7 @@ export function useTrafficFines() {
 
         if (error) throw error;
 
-        // Process the traffic fines first before trying to fetch customer data
+        // First process the traffic fines to get basic data
         const processedFines: TrafficFine[] = (data || []).map(fine => ({
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
@@ -77,68 +77,69 @@ export function useTrafficFines() {
           leaseId: fine.lease_id
         }));
         
-        // Now enhance the fines with customer information where available
-        const processedFinesWithCustomerInfo = [...processedFines];
-        
-        // Process only fines with lease_id
+        // Only enrich with customer data if we have fines with lease IDs
         const finesWithLease = processedFines.filter(fine => fine.leaseId);
         
         if (finesWithLease.length > 0) {
           // Get all lease IDs
-          const leaseIds = finesWithLease.map(fine => fine.leaseId);
+          const leaseIds = finesWithLease.map(fine => fine.leaseId).filter(Boolean);
           
-          // Fetch all leases in one query
-          const { data: leasesData, error: leasesError } = await supabase
+          // Get all the lease data in one query
+          const { data: leases, error: leaseError } = await supabase
             .from('leases')
             .select('id, customer_id')
             .in('id', leaseIds);
             
-          if (leasesError) {
-            console.error('Error fetching lease data:', leasesError);
-          } else {
-            // Create a map of lease_id to customer_id for quick lookups
-            const leaseToCustomerMap = new Map();
-            leasesData?.forEach(lease => {
-              if (lease.customer_id) {
-                leaseToCustomerMap.set(lease.id, lease.customer_id);
-              }
+          if (leaseError) {
+            console.error('Error fetching lease data:', leaseError);
+            return processedFines; // Return what we have so far
+          }
+          
+          // Create a map for faster lookups
+          const leaseCustomerMap = new Map();
+          leases?.forEach(lease => {
+            if (lease.customer_id) {
+              leaseCustomerMap.set(lease.id, lease.customer_id);
+            }
+          });
+          
+          // Get all unique customer IDs
+          const customerIds = Array.from(new Set(
+            leases?.map(lease => lease.customer_id).filter(Boolean) || []
+          ));
+          
+          // If we have customer IDs, fetch their details
+          if (customerIds.length > 0) {
+            const { data: customers, error: customerError } = await supabase
+              .from('profiles')
+              .select('id, full_name')
+              .in('id', customerIds);
+              
+            if (customerError) {
+              console.error('Error fetching customer data:', customerError);
+              return processedFines; // Return what we have so far
+            }
+            
+            // Create a customer lookup map
+            const customerMap = new Map();
+            customers?.forEach(customer => {
+              customerMap.set(customer.id, customer.full_name);
             });
             
-            // Get all unique customer IDs
-            const customerIds = [...new Set(leasesData?.map(lease => lease.customer_id).filter(Boolean))];
-            
-            if (customerIds.length > 0) {
-              // Fetch all customer profiles in one query
-              const { data: customersData, error: customersError } = await supabase
-                .from('profiles')
-                .select('id, full_name')
-                .in('id', customerIds);
-                
-              if (customersError) {
-                console.error('Error fetching customer data:', customersError);
-              } else {
-                // Create a map of customer_id to full_name for quick lookups
-                const customerMap = new Map();
-                customersData?.forEach(customer => {
-                  customerMap.set(customer.id, customer.full_name);
-                });
-                
-                // Update the processed fines with customer info
-                processedFinesWithCustomerInfo.forEach(fine => {
-                  if (fine.leaseId) {
-                    const customerId = leaseToCustomerMap.get(fine.leaseId);
-                    if (customerId) {
-                      fine.customerId = customerId;
-                      fine.customerName = customerMap.get(customerId);
-                    }
-                  }
-                });
+            // Now enrich the fines with customer information
+            processedFines.forEach(fine => {
+              if (fine.leaseId) {
+                const customerId = leaseCustomerMap.get(fine.leaseId);
+                if (customerId) {
+                  fine.customerId = customerId;
+                  fine.customerName = customerMap.get(customerId);
+                }
               }
-            }
+            });
           }
         }
         
-        return processedFinesWithCustomerInfo;
+        return processedFines;
       } catch (error) {
         console.error('Error fetching traffic fines:', error);
         return [];
