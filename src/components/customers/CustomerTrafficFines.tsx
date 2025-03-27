@@ -23,7 +23,12 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Step 1: First find all leases associated with this customer using explicit join
+        if (!customerId) {
+          throw new Error("Invalid customer ID");
+        }
+        
+        // Step 1: First find all leases associated with this customer using explicit join syntax
+        // This avoids the "relationship not found" error by not relying on implicit joins
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
@@ -49,7 +54,19 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         // Step 2: Fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
           .from('traffic_fines')
-          .select('*')
+          .select(`
+            id,
+            violation_number,
+            license_plate,
+            violation_date,
+            fine_amount,
+            violation_charge,
+            payment_status,
+            fine_location,
+            vehicle_id,
+            lease_id,
+            payment_date
+          `)
           .in('lease_id', leaseIds)
           .order('violation_date', { ascending: false });
           
