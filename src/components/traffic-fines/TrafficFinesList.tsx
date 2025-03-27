@@ -1,6 +1,4 @@
-
 import React, { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
 import { 
   Table, 
   TableBody, 
@@ -49,7 +47,6 @@ interface TrafficFinesListProps {
 }
 
 const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
-  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
@@ -77,8 +74,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
   const handleAutoAssignFines = async () => {
     try {
       setAssigningFines(true);
-      toast({
-        title: "Auto-assigning fines",
+      toast.info("Auto-assigning fines", {
         description: "Please wait while fines are assigned to customers..."
       });
 
