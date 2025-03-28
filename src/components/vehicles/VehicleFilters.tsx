@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import {
   Select,
@@ -139,7 +138,9 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
           {vehicleTypes?.map(type => (
-            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+            <SelectItem key={type.id} value={type.id || "unknown-type"}>
+              {type.name}
+            </SelectItem>
           ))}
         </SelectContent>
       </Select>

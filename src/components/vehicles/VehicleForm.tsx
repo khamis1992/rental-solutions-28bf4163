@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -351,7 +350,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
                         {vehicleTypes && vehicleTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
+                          <SelectItem key={type.id} value={type.id || "unknown-type"}>
                             {type.name} ({type.size})
                           </SelectItem>
                         ))}

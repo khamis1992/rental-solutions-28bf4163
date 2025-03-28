@@ -117,7 +117,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                           ))
                         ) : (
                           // Add fallback item if no vehicles are available
-                          <SelectItem value="no-vehicles">No vehicles available</SelectItem>
+                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

@@ -57,7 +57,6 @@ export const MaintenanceList = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState('');
   
-  // Fetch maintenance records when component mounts
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
@@ -109,8 +108,6 @@ export const MaintenanceList = () => {
   };
   
   const handleBulkDelete = () => {
-    // Implement bulk delete logic using remove.mutate instead
-    // This is a placeholder for the proper implementation
     console.log("Bulk delete functionality is not implemented");
   };
   
@@ -119,7 +116,6 @@ export const MaintenanceList = () => {
       setIsLoading(true);
       const records = await getAllRecords();
       
-      // Filter the records based on search term
       const filteredRecords = records.filter(record => 
         record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         record.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -252,7 +248,7 @@ export const MaintenanceList = () => {
             <SelectContent>
               <SelectItem value="">All Vehicles</SelectItem>
               {vehicles?.map(vehicle => (
-                <SelectItem key={vehicle.id} value={vehicle.id}>
+                <SelectItem key={vehicle.id} value={vehicle.id || "unknown-id"}>
                   {vehicle.make} {vehicle.model} ({vehicle.license_plate})
                 </SelectItem>
               ))}
