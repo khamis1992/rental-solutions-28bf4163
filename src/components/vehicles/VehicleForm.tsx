@@ -348,7 +348,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">None</SelectItem>
+                        <SelectItem value="no-type-selected">None</SelectItem>
                         {vehicleTypes && vehicleTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id || "unknown-type"}>
                             {type.name} ({type.size})

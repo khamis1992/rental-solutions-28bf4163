@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
@@ -55,8 +54,8 @@ export const MaintenanceList = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [vehicleFilter, setVehicleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all-statuses');
+  const [vehicleFilter, setVehicleFilter] = useState('all-vehicles');
   
   useEffect(() => {
     const fetchMaintenance = async () => {
@@ -144,11 +143,11 @@ export const MaintenanceList = () => {
         );
       }
       
-      if (statusFilter) {
+      if (statusFilter && statusFilter !== 'all-statuses') {
         filteredRecords = filteredRecords.filter(record => record.status === statusFilter);
       }
       
-      if (vehicleFilter) {
+      if (vehicleFilter && vehicleFilter !== 'all-vehicles') {
         filteredRecords = filteredRecords.filter(record => record.vehicle_id === vehicleFilter);
       }
       
@@ -162,8 +161,8 @@ export const MaintenanceList = () => {
   
   const clearFilters = async () => {
     setSearchTerm('');
-    setStatusFilter('');
-    setVehicleFilter('');
+    setStatusFilter('all-statuses');
+    setVehicleFilter('all-vehicles');
     
     try {
       setIsLoading(true);
@@ -234,7 +233,7 @@ export const MaintenanceList = () => {
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all-statuses">All Statuses</SelectItem>
               <SelectItem value={MaintenanceStatus.SCHEDULED}>Scheduled</SelectItem>
               <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
               <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
@@ -247,7 +246,7 @@ export const MaintenanceList = () => {
               <SelectValue placeholder="Filter by vehicle" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Vehicles</SelectItem>
+              <SelectItem value="all-vehicles">All Vehicles</SelectItem>
               {vehicles?.map(vehicle => (
                 vehicle.id ? (
                   <SelectItem key={vehicle.id} value={vehicle.id}>
