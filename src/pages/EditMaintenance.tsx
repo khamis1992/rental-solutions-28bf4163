@@ -12,13 +12,13 @@ import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/mai
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAllRecords, update } = useMaintenance();
+  const { getAllRecords, update, useOne } = useMaintenance();
   const [maintenance, setMaintenance] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch maintenance record
+  // Fetch maintenance record using the useOne hook when available, or the direct method
   useEffect(() => {
     const fetchMaintenance = async () => {
       if (!id) return;
@@ -29,8 +29,10 @@ const EditMaintenance = () => {
         const record = records.find(r => r.id === id);
         
         if (record) {
+          console.log("Found maintenance record:", record);
           setMaintenance(record);
         } else {
+          console.error("Maintenance record not found for ID:", id);
           setError('Maintenance record not found');
         }
       } catch (err) {
@@ -49,7 +51,7 @@ const EditMaintenance = () => {
     if (Object.values(MaintenanceType).includes(typeString as any)) {
       return typeString as keyof typeof MaintenanceType;
     }
-    return 'REGULAR_INSPECTION';
+    return MaintenanceType.REGULAR_INSPECTION;
   };
 
   // Convert string status to enum
@@ -58,26 +60,31 @@ const EditMaintenance = () => {
     if (validStatus.includes(statusString)) {
       return statusString as "scheduled" | "in_progress" | "completed" | "cancelled";
     }
-    return 'scheduled';
+    return MaintenanceStatus.SCHEDULED;
   };
 
   const handleSubmit = async (formData: any) => {
     if (!id) return;
     
+    console.log("Form submitted with data:", formData);
     setIsSubmitting(true);
     setError(null);
     
     try {
       // Ensure types match what's expected in the backend
-      const updatedData = {
+      const preparedData = {
         ...formData,
         maintenance_type: mapStringToMaintenanceType(formData.maintenance_type),
         status: mapStringToMaintenanceStatus(formData.status),
+        // Ensure cost is a number
+        cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
+      
+      console.log("Prepared data for update:", preparedData);
       
       await update.mutateAsync({ 
         id, 
-        data: updatedData 
+        data: preparedData 
       });
       
       navigate('/maintenance');
@@ -119,7 +126,12 @@ const EditMaintenance = () => {
     ...maintenance,
     maintenance_type: mapStringToMaintenanceType(maintenance.maintenance_type),
     status: mapStringToMaintenanceStatus(maintenance.status),
+    // Convert string dates to Date objects
+    scheduled_date: maintenance.scheduled_date ? new Date(maintenance.scheduled_date) : new Date(),
+    completion_date: maintenance.completion_date ? new Date(maintenance.completion_date) : undefined,
   };
+
+  console.log("Prepared maintenance record for form:", formattedMaintenance);
 
   return (
     <PageContainer 

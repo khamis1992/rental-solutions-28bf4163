@@ -9,17 +9,17 @@ export type MaintenanceRecord = {
   id: string;
   vehicle_id: string;
   description: string;
-  maintenance_type: string;
+  maintenance_type: keyof typeof MaintenanceType;
   status: "scheduled" | "in_progress" | "completed" | "cancelled";
   scheduled_date: string;
-  completed_date: string;
+  completed_date?: string;
   cost: number;
-  service_type: string;
-  performed_by: string;
-  notes: string;
+  service_type?: string;
+  performed_by?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
-  category_id: string;
+  category_id?: string;
   // Fields expected by the UI components
   invoice_number?: string;
   service_provider?: string;
@@ -44,7 +44,7 @@ export function useMaintenance() {
           .order('created_at', { ascending: false });
         
         if (error) throw error;
-        return data || [];
+        return data ? data.map(formatMaintenanceData) : [];
       },
       
       getById: async (id: string) => {
@@ -55,30 +55,48 @@ export function useMaintenance() {
           .single();
         
         if (error) throw error;
-        return data;
+        return formatMaintenanceData(data);
       },
       
       create: async (maintenanceData: any) => {
+        // Ensure data format matches what Supabase expects
+        const formattedData = {
+          ...maintenanceData,
+          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
+          completion_date: maintenanceData.completion_date?.toISOString(),
+          // Map UI fields to database fields if needed
+          performed_by: maintenanceData.service_provider,
+        };
+        
         const { data, error } = await supabase
           .from('maintenance')
-          .insert(maintenanceData)
+          .insert(formattedData)
           .select()
           .single();
         
         if (error) throw error;
-        return data;
+        return formatMaintenanceData(data);
       },
       
       update: async (id: string, maintenanceData: any) => {
+        // Ensure data format matches what Supabase expects
+        const formattedData = {
+          ...maintenanceData,
+          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
+          completion_date: maintenanceData.completion_date?.toISOString(),
+          // Map UI fields to database fields if needed
+          performed_by: maintenanceData.service_provider,
+        };
+        
         const { data, error } = await supabase
           .from('maintenance')
-          .update(maintenanceData)
+          .update(formattedData)
           .eq('id', id)
           .select()
           .single();
         
         if (error) throw error;
-        return data;
+        return formatMaintenanceData(data);
       },
       
       delete: async (id: string) => {
@@ -93,13 +111,18 @@ export function useMaintenance() {
   );
 
   // Utility function to convert API responses to expected format
-  const formatMaintenanceData = (data: MaintenanceRecord): MaintenanceRecord => {
+  const formatMaintenanceData = (data: any): MaintenanceRecord => {
+    if (!data) return {} as MaintenanceRecord;
+    
     // Ensure properties expected by UI components
     return {
       ...data,
+      maintenance_type: data.maintenance_type as keyof typeof MaintenanceType,
+      status: data.status as "scheduled" | "in_progress" | "completed" | "cancelled",
       service_provider: data.service_provider || data.performed_by || '',
       invoice_number: data.invoice_number || '',
       odometer_reading: data.odometer_reading || 0,
+      cost: typeof data.cost === 'number' ? data.cost : parseFloat(data.cost) || 0,
     };
   };
 
@@ -131,13 +154,18 @@ export function useMaintenance() {
 
   // Get all maintenance records without React Query (for components that need direct Promise)
   const getAllRecords = async (): Promise<MaintenanceRecord[]> => {
-    const { data, error } = await supabase
-      .from('maintenance')
-      .select('*, vehicles(*)')
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    return (data || []).map(formatMaintenanceData);
+    try {
+      const { data, error } = await supabase
+        .from('maintenance')
+        .select('*, vehicles(*)')
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return (data || []).map(formatMaintenanceData);
+    } catch (err) {
+      console.error('Error fetching maintenance records:', err);
+      throw err;
+    }
   };
 
   return {

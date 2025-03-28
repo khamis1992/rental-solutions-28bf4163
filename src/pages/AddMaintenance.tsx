@@ -19,7 +19,7 @@ const AddMaintenance = () => {
     if (Object.values(MaintenanceType).includes(type as any)) {
       return type as keyof typeof MaintenanceType;
     }
-    return 'REGULAR_INSPECTION';
+    return MaintenanceType.REGULAR_INSPECTION;
   };
   
   // Ensure the status is a valid enum value
@@ -28,22 +28,28 @@ const AddMaintenance = () => {
     if (validStatus.includes(status)) {
       return status as "scheduled" | "in_progress" | "completed" | "cancelled";
     }
-    return 'scheduled';
+    return MaintenanceStatus.SCHEDULED;
   };
 
   const handleSubmit = async (formData: any) => {
+    console.log("Form submitted with data:", formData);
+    
     setIsSubmitting(true);
     setError(null);
     
     try {
-      // Validate and convert form data to ensure correct types
-      const validatedData = {
+      // Convert dates to ISO strings for API
+      const preparedData = {
         ...formData,
         maintenance_type: validateMaintenanceType(formData.maintenance_type),
         status: validateMaintenanceStatus(formData.status),
+        // Ensure cost is a number
+        cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
       
-      await create.mutateAsync(validatedData);
+      console.log("Prepared data for submission:", preparedData);
+      
+      await create.mutateAsync(preparedData);
       navigate('/maintenance');
     } catch (err) {
       console.error('Error creating maintenance record:', err);

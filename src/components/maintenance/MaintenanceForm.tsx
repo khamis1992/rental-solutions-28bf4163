@@ -51,8 +51,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
       vehicle_id: initialData?.vehicle_id || '',
-      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || 'REGULAR_INSPECTION',
-      status: (initialData?.status as "scheduled" | "in_progress" | "completed" | "cancelled") || 'scheduled',
+      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || MaintenanceType.REGULAR_INSPECTION,
+      status: (initialData?.status as "scheduled" | "in_progress" | "completed" | "cancelled") || MaintenanceStatus.SCHEDULED,
       scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
       completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
       description: initialData?.description || '',
@@ -108,21 +108,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       <SelectContent>
                         {vehiclesList.length > 0 ? (
                           vehiclesList.map(vehicle => (
-                            vehicle.id ? (
+                            vehicle && vehicle.id ? (
                               <SelectItem 
                                 key={vehicle.id} 
                                 value={vehicle.id}
                               >
                                 {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
                               </SelectItem>
-                            ) : (
-                              <SelectItem key="unknown-vehicle" value="unknown-vehicle">
-                                Unknown Vehicle
-                              </SelectItem>
-                            )
+                            ) : null
                           ))
                         ) : (
-                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
+                          <SelectItem value="loading">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

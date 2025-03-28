@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
@@ -249,15 +248,11 @@ export const MaintenanceList = () => {
             <SelectContent>
               <SelectItem value="all-vehicles">All Vehicles</SelectItem>
               {vehicles?.map(vehicle => (
-                vehicle.id ? (
+                vehicle && vehicle.id ? (
                   <SelectItem key={vehicle.id} value={vehicle.id}>
                     {vehicle.make} {vehicle.model} ({vehicle.license_plate})
                   </SelectItem>
-                ) : (
-                  <SelectItem key="unknown-vehicle" value="unknown-vehicle">
-                    Unknown Vehicle
-                  </SelectItem>
-                )
+                ) : null
               ))}
             </SelectContent>
           </Select>
@@ -351,7 +346,7 @@ export const MaintenanceList = () => {
                       <TableCell>
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {format(new Date(record.scheduled_date), 'MMM d, yyyy')}
+                          {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'Not scheduled'}
                         </div>
                       </TableCell>
                       <TableCell>
