@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -180,10 +179,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={MaintenanceStatus.SCHEDULED}>Scheduled</SelectItem>
-                        <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
-                        <SelectItem value={MaintenanceStatus.CANCELLED}>Cancelled</SelectItem>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

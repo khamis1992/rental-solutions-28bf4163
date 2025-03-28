@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -64,7 +63,6 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
     setLoading(true);
     
     try {
-      // Validate the license plate first
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
         .select('id, license_plate')
@@ -72,18 +70,15 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
         .single();
       
       if (vehicleError) {
-        // If no vehicle found, show an error
         toast.error(`No vehicle found with license plate ${fineData.licensePlate}`);
         setLoading(false);
         return;
       }
       
-      // For now, just simulate saving the data
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       toast.success("Traffic fine recorded successfully");
       
-      // Reset the form
       setFineData({
         violationDate: new Date(),
         licensePlate: "",
@@ -95,7 +90,6 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
         paymentStatus: "pending",
       });
       
-      // Call the callback if provided
       if (onFineSaved) {
         onFineSaved();
       }
