@@ -79,6 +79,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   // Make sure vehicles has a default value if it's undefined
   const vehiclesList = vehicles || [];
 
+  // Check if there are any vehicles available
+  const hasVehicles = vehiclesList.length > 0 && vehiclesList.some(v => v && v.id);
+
   return (
     <Card>
       <CardHeader>
@@ -97,7 +100,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Vehicle</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      defaultValue={field.value || undefined}
                       disabled={isLoadingVehicles}
                     >
                       <FormControl>
@@ -106,7 +109,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehiclesList.length > 0 ? (
+                        {hasVehicles ? (
                           vehiclesList.map(vehicle => (
                             vehicle && vehicle.id ? (
                               <SelectItem 
@@ -118,7 +121,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             ) : null
                           ))
                         ) : (
-                          <SelectItem value="no-vehicles">No vehicles available</SelectItem>
+                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
@@ -136,7 +139,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Maintenance Type</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      defaultValue={field.value || MaintenanceType.REGULAR_INSPECTION}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -168,7 +171,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Status</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      defaultValue={field.value || MaintenanceStatus.SCHEDULED}
                     >
                       <FormControl>
                         <SelectTrigger>

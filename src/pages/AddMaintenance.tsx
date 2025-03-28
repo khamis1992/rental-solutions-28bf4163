@@ -40,15 +40,19 @@ const AddMaintenance = () => {
     setError(null);
     
     try {
-      // Convert dates to ISO strings for API
+      // Convert dates to ISO strings for API and ensure valid values for enum fields
       const preparedData = {
         ...formData,
-        maintenance_type: validateMaintenanceType(formData.maintenance_type),
-        status: validateMaintenanceStatus(formData.status),
+        // Ensure these fields are never empty strings
+        maintenance_type: validateMaintenanceType(formData.maintenance_type || MaintenanceType.REGULAR_INSPECTION),
+        status: validateMaintenanceStatus(formData.status || MaintenanceStatus.SCHEDULED),
+        // Ensure vehicle_id is never empty
+        vehicle_id: formData.vehicle_id || null,
         // Ensure cost is a number
         cost: typeof formData.cost === 'number' ? formData.cost : parseFloat(formData.cost) || 0,
       };
       
+      // Log the data we're about to submit to help debug any issues
       console.log("Prepared data for submission:", preparedData);
       
       await create.mutateAsync(preparedData);

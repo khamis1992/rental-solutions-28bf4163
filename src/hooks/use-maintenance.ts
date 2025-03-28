@@ -66,6 +66,9 @@ export function useMaintenance() {
           completion_date: maintenanceData.completion_date?.toISOString(),
           // Map UI fields to database fields if needed
           performed_by: maintenanceData.service_provider,
+          // Ensure maintenance_type and status are never empty strings
+          maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
+          status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
         };
         
         const { data, error } = await supabase
@@ -86,6 +89,9 @@ export function useMaintenance() {
           completion_date: maintenanceData.completion_date?.toISOString(),
           // Map UI fields to database fields if needed
           performed_by: maintenanceData.service_provider,
+          // Ensure maintenance_type and status are never empty strings
+          maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
+          status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
         };
         
         const { data, error } = await supabase
@@ -110,9 +116,22 @@ export function useMaintenance() {
     }
   );
 
-  // Utility function to convert API responses to expected format
+  // Utility function to convert API responses to expected format with safe default values
   const formatMaintenanceData = (data: any): MaintenanceRecord => {
-    if (!data) return {} as MaintenanceRecord;
+    if (!data) {
+      console.warn("Received null or undefined data in formatMaintenanceData");
+      return {
+        id: "",
+        vehicle_id: "",
+        description: "",
+        maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+        status: MaintenanceStatus.SCHEDULED,
+        scheduled_date: new Date().toISOString(),
+        cost: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as MaintenanceRecord;
+    }
     
     // Ensure required properties have valid defaults to prevent errors
     return {

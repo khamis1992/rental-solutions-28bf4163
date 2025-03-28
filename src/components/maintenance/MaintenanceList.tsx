@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
@@ -141,17 +140,17 @@ export const MaintenanceList = () => {
       
       if (searchTerm) {
         filteredRecords = filteredRecords.filter(record => 
-          record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
+          record?.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record?.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
       
       if (statusFilter && statusFilter !== 'all-statuses') {
-        filteredRecords = filteredRecords.filter(record => record.status === statusFilter);
+        filteredRecords = filteredRecords.filter(record => record?.status === statusFilter);
       }
       
       if (vehicleFilter && vehicleFilter !== 'all-vehicles') {
-        filteredRecords = filteredRecords.filter(record => record.vehicle_id === vehicleFilter);
+        filteredRecords = filteredRecords.filter(record => record?.vehicle_id === vehicleFilter);
       }
       
       setMaintenanceRecords(filteredRecords);
@@ -199,7 +198,7 @@ export const MaintenanceList = () => {
   
   const getVehicleName = (vehicleId) => {
     if (!vehicles) return 'Loading...';
-    const vehicle = vehicles.find(v => v.id === vehicleId);
+    const vehicle = vehicles.find(v => v?.id === vehicleId);
     return vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unknown Vehicle';
   };
   
@@ -250,7 +249,7 @@ export const MaintenanceList = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all-vehicles">All Vehicles</SelectItem>
-              {vehicles?.map(vehicle => (
+              {vehicles && vehicles.map(vehicle => (
                 vehicle && vehicle.id ? (
                   <SelectItem key={vehicle.id} value={vehicle.id}>
                     {vehicle.make} {vehicle.model} ({vehicle.license_plate})
