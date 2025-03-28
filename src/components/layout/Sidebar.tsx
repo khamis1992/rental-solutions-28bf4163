@@ -92,24 +92,20 @@ const Sidebar = () => {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
 
-  // Determine if a path is active
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
-  // Determine if a group has any active child
   const hasActiveChild = (paths: string[]) => {
     return paths.some(path => isActive(path));
   };
 
-  // Toggle sidebar
   const toggleSidebar = () => {
     setExpanded(!expanded);
   };
 
   return (
     <>
-      {/* Mobile sidebar toggle button */}
       <Button
         variant="outline"
         size="icon"
@@ -119,7 +115,6 @@ const Sidebar = () => {
         {expanded ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
       </Button>
 
-      {/* Sidebar */}
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col border-r bg-background transition-all duration-300 ease-in-out",
@@ -127,7 +122,6 @@ const Sidebar = () => {
           expanded ? "" : "md:px-2 md:py-4"
         )}
       >
-        {/* Desktop sidebar toggle button */}
         <Button
           variant="ghost"
           size="icon"
@@ -137,7 +131,6 @@ const Sidebar = () => {
           {expanded ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
         </Button>
 
-        {/* Sidebar Header */}
         <div className={cn(
           "flex h-16 items-center border-b px-4",
           expanded ? "" : "md:justify-center"
@@ -151,13 +144,11 @@ const Sidebar = () => {
           )}
         </div>
 
-        {/* Sidebar Content */}
         <div className={cn(
           "flex-1 overflow-auto py-4 px-4",
           expanded ? "" : "md:px-2"
         )}>
           <nav className="flex flex-col gap-1">
-            {/* Dashboard */}
             {(expanded || !expanded && window.innerWidth >= 768) && (
               <>
                 <NavLink
@@ -167,7 +158,6 @@ const Sidebar = () => {
                   isActive={isActive('/dashboard')}
                 />
 
-                {/* Main Navigation Links */}
                 <NavLink
                   to="/vehicles"
                   icon={<Car className="h-4 w-4" />}
@@ -224,7 +214,6 @@ const Sidebar = () => {
                   isActive={isActive('/reports')}
                 />
 
-                {/* Settings Group */}
                 <NavGroup 
                   label="Settings" 
                   icon={<Settings className="h-4 w-4" />}
@@ -264,7 +253,6 @@ const Sidebar = () => {
                   </Link>
                 </NavGroup>
 
-                {/* If not expanded, show plain settings links */}
                 {!expanded && (
                   <>
                     <NavLink
@@ -294,7 +282,6 @@ const Sidebar = () => {
           </nav>
         </div>
 
-        {/* Sidebar Footer */}
         <div className={cn(
           "mt-auto border-t py-4 px-4",
           expanded ? "" : "md:px-2 md:flex md:justify-center"
@@ -302,7 +289,7 @@ const Sidebar = () => {
           {expanded ? (
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={profile?.image || ""} />
+                <AvatarImage src={profile?.avatar_url || ""} />
                 <AvatarFallback>{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
@@ -325,7 +312,6 @@ const Sidebar = () => {
         </div>
       </div>
 
-      {/* Overlay for mobile */}
       {expanded && (
         <div
           className="md:hidden fixed inset-0 z-30 bg-background/80 backdrop-blur-sm"
