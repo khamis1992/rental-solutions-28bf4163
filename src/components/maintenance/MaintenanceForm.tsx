@@ -104,8 +104,11 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </FormControl>
                       <SelectContent>
                         {vehicles?.map(vehicle => (
-                          <SelectItem key={vehicle.id} value={vehicle.id || "no-id"}>
-                            {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
+                          <SelectItem 
+                            key={vehicle.id} 
+                            value={vehicle.id || "default-vehicle-id"}
+                          >
+                            {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -132,9 +135,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.values(MaintenanceType).map((type) => (
-                          <SelectItem key={type} value={type || "no-type"}>
-                            {formatMaintenanceType(type)}
+                        {Object.entries(MaintenanceType).map(([key, value]) => (
+                          <SelectItem 
+                            key={key} 
+                            value={value}
+                          >
+                            {formatMaintenanceType(value)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -202,6 +208,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                           onSelect={field.onChange}
                           disabled={(date) => date < new Date("1900-01-01")}
                           initialFocus
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -241,6 +248,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             onSelect={field.onChange}
                             disabled={(date) => date < new Date("1900-01-01")}
                             initialFocus
+                            className="pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>

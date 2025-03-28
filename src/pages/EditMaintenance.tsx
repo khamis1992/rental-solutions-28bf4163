@@ -85,38 +85,34 @@ const EditMaintenance = () => {
     );
   }
   
-  // Map the uppercase API maintenance type to lowercase form values
+  // Map the API maintenance type to the form value
   const mapMaintenanceType = (type: string): keyof typeof MaintenanceType => {
-    // Define the mapping from API values (usually uppercase) to form values (lowercase)
-    const typeMapping: Record<string, keyof typeof MaintenanceType> = {
-      'OIL_CHANGE': MaintenanceType.OIL_CHANGE,
-      'TIRE_REPLACEMENT': MaintenanceType.TIRE_REPLACEMENT,
-      'BRAKE_SERVICE': MaintenanceType.BRAKE_SERVICE,
-      'REGULAR_INSPECTION': MaintenanceType.REGULAR_INSPECTION,
-      'ENGINE_REPAIR': MaintenanceType.ENGINE_REPAIR,
-      'TRANSMISSION_SERVICE': MaintenanceType.TRANSMISSION_SERVICE,
-      'ELECTRICAL_REPAIR': MaintenanceType.ELECTRICAL_REPAIR,
-      'BODY_REPAIR': MaintenanceType.BODY_REPAIR,
-      'AIR_CONDITIONING': MaintenanceType.AIR_CONDITIONING,
-      'OTHER': MaintenanceType.OTHER
-    };
+    // Handle uppercase values
+    if (type === 'OIL_CHANGE') return MaintenanceType.OIL_CHANGE;
+    if (type === 'TIRE_REPLACEMENT') return MaintenanceType.TIRE_REPLACEMENT;
+    if (type === 'BRAKE_SERVICE') return MaintenanceType.BRAKE_SERVICE;
+    if (type === 'REGULAR_INSPECTION') return MaintenanceType.REGULAR_INSPECTION;
+    if (type === 'ENGINE_REPAIR') return MaintenanceType.ENGINE_REPAIR;
+    if (type === 'TRANSMISSION_SERVICE') return MaintenanceType.TRANSMISSION_SERVICE;
+    if (type === 'ELECTRICAL_REPAIR') return MaintenanceType.ELECTRICAL_REPAIR;
+    if (type === 'BODY_REPAIR') return MaintenanceType.BODY_REPAIR;
+    if (type === 'AIR_CONDITIONING') return MaintenanceType.AIR_CONDITIONING;
+    if (type === 'OTHER') return MaintenanceType.OTHER;
     
-    // For already lowercase values, create a reverse mapping
-    const lowercaseTypeMapping: Record<string, keyof typeof MaintenanceType> = {
-      'oil_change': MaintenanceType.OIL_CHANGE,
-      'tire_replacement': MaintenanceType.TIRE_REPLACEMENT,
-      'brake_service': MaintenanceType.BRAKE_SERVICE,
-      'regular_inspection': MaintenanceType.REGULAR_INSPECTION,
-      'engine_repair': MaintenanceType.ENGINE_REPAIR,
-      'transmission_service': MaintenanceType.TRANSMISSION_SERVICE,
-      'electrical_repair': MaintenanceType.ELECTRICAL_REPAIR,
-      'body_repair': MaintenanceType.BODY_REPAIR,
-      'air_conditioning': MaintenanceType.AIR_CONDITIONING,
-      'other': MaintenanceType.OTHER
-    };
+    // Handle lowercase values
+    if (type === 'oil_change') return MaintenanceType.OIL_CHANGE;
+    if (type === 'tire_replacement') return MaintenanceType.TIRE_REPLACEMENT;
+    if (type === 'brake_service') return MaintenanceType.BRAKE_SERVICE;
+    if (type === 'regular_inspection') return MaintenanceType.REGULAR_INSPECTION;
+    if (type === 'engine_repair') return MaintenanceType.ENGINE_REPAIR;
+    if (type === 'transmission_service') return MaintenanceType.TRANSMISSION_SERVICE;
+    if (type === 'electrical_repair') return MaintenanceType.ELECTRICAL_REPAIR;
+    if (type === 'body_repair') return MaintenanceType.BODY_REPAIR;
+    if (type === 'air_conditioning') return MaintenanceType.AIR_CONDITIONING;
+    if (type === 'other') return MaintenanceType.OTHER;
     
-    // Return the mapped value; use uppercase mapping first, then lowercase, or default to 'OTHER'
-    return typeMapping[type] || lowercaseTypeMapping[type] || MaintenanceType.OTHER;
+    // Default fallback value
+    return MaintenanceType.REGULAR_INSPECTION;
   };
   
   // Convert API maintenance data to form compatible data
@@ -128,7 +124,7 @@ const EditMaintenance = () => {
     // Map fields to expected names
     service_provider: maintenance.service_provider || maintenance.performed_by,
     // Map maintenance_type to lowercase value expected by the form
-    maintenance_type: mapMaintenanceType(maintenance.maintenance_type),
+    maintenance_type: mapMaintenanceType(maintenance.maintenance_type || ''),
     // Ensure created_at is handled properly
     created_at: maintenance.created_at ? new Date(maintenance.created_at) : undefined,
     updated_at: maintenance.updated_at ? new Date(maintenance.updated_at) : undefined
