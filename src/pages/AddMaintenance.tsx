@@ -23,11 +23,11 @@ const AddMaintenance = () => {
   };
   
   // Ensure the status is a valid enum value
-  const validateMaintenanceStatus = (status: string): keyof typeof MaintenanceStatus => {
+  const validateMaintenanceStatus = (status: string): string => {
     if (Object.values(MaintenanceStatus).includes(status as any)) {
-      return status as keyof typeof MaintenanceStatus;
+      return status;
     }
-    return 'SCHEDULED';
+    return MaintenanceStatus.SCHEDULED;
   };
 
   const handleSubmit = async (formData: any) => {

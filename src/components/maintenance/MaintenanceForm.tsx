@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -52,7 +51,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     defaultValues: {
       vehicle_id: initialData?.vehicle_id || '',
       maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || 'REGULAR_INSPECTION',
-      status: (initialData?.status as keyof typeof MaintenanceStatus) || 'scheduled',
+      status: initialData?.status || MaintenanceStatus.SCHEDULED,
       scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
       completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
       description: initialData?.description || '',
