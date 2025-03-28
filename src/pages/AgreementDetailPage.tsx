@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,8 +7,9 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { initializeSystem, forceCheckAllAgreementsForPayments, forceGeneratePaymentsForMissingMonths, supabase } from '@/lib/supabase';
-import { differenceInMonths } from 'date-fns';
+import { useAgreementInitialization } from '@/hooks/use-agreement-initialization';
+import { useAgreementPayments } from '@/hooks/use-agreement-payments';
+import { useSpecialAgreementHandler } from '@/hooks/use-special-agreement-handler';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,136 +17,45 @@ const AgreementDetailPage = () => {
   const { getAgreement, deleteAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const paymentGenerationAttemptedRef = useRef(false);
-  const [contractAmount, setContractAmount] = useState<number | null>(null);
-  const [rentAmount, setRentAmount] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // System initialization - only happens once
+  const { isInitialized } = useAgreementInitialization();
+  
+  // Payments and related data - depends on system initialization
+  const { 
+    payments, 
+    isLoadingPayments, 
+    rentAmount, 
+    contractAmount,
+    fetchPayments
+  } = useAgreementPayments({
+    agreementId: id || '',
+    isInitialized,
+    refreshTrigger
+  });
+  
+  // Special agreement handling (for MR202462) - only runs once after initialization
+  useSpecialAgreementHandler(id, agreement?.agreement_number, isInitialized);
+
+  // Function to manually refresh the agreement data
   const refreshAgreementData = () => {
-    // Increment refresh trigger to force a refresh
+    console.log("Refreshing agreement data...");
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // First effect: Handle system initialization only once
-  useEffect(() => {
-    const performInitialization = async () => {
-      if (!isInitialized) {
-        try {
-          await initializeSystem();
-          console.log("System initialized, checking for payments");
-          setIsInitialized(true);
-        } catch (error) {
-          console.error("Error initializing system:", error);
-        }
-      }
-    };
-
-    performInitialization();
-  }, [isInitialized]);
-
-  // Second effect: Handle data fetching separately
+  // Fetch agreement data - separated from other data fetching operations
   useEffect(() => {
     const fetchAgreement = async () => {
-      if (!id) return;
+      if (!id || !isInitialized) return;
       
       setIsLoading(true);
       try {
-        // First get the agreement
+        // Get the agreement
         const data = await getAgreement(id);
         
         if (data) {
-          // Get the rent_amount directly from the leases table
-          try {
-            const { data: leaseData, error: leaseError } = await supabase
-              .from("leases")
-              .select("rent_amount")
-              .eq("id", id)
-              .single();
-            
-            if (!leaseError && leaseData && leaseData.rent_amount) {
-              // If we have a rent_amount from leases table, update the agreement object
-              data.total_amount = leaseData.rent_amount;
-              setRentAmount(leaseData.rent_amount);
-              console.log("Updated agreement total_amount with rent_amount:", leaseData.rent_amount);
-              
-              // Calculate contract amount = rent_amount * duration in months
-              if (data.start_date && data.end_date) {
-                const durationMonths = differenceInMonths(new Date(data.end_date), new Date(data.start_date));
-                const calculatedContractAmount = leaseData.rent_amount * (durationMonths || 1);
-                setContractAmount(calculatedContractAmount);
-                console.log(`Contract duration: ${durationMonths} months, Contract amount: ${calculatedContractAmount}`);
-              }
-            }
-          } catch (err) {
-            console.error("Error fetching lease rent amount:", err);
-          }
-          
           setAgreement(data);
-          
-          // For any agreement, check for missing monthly payments - but only attempt once
-          if (data.status === 'active' && !paymentGenerationAttemptedRef.current) {
-            console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
-            paymentGenerationAttemptedRef.current = true;
-            
-            // Force check all agreements for current month payments
-            const allResult = await forceCheckAllAgreementsForPayments();
-            if (allResult.success) {
-              console.log("Payment check completed:", allResult);
-              if (allResult.generated > 0) {
-                toast.success(`Generated ${allResult.generated} new payments for active agreements`);
-              }
-            }
-            
-            // Special handling for agreement with MR202462 number
-            if (data.agreement_number === 'MR202462') {
-              console.log(`Special check for agreement ${data.agreement_number} to catch up missing payments`);
-              
-              // Create explicit date objects for the date range
-              // August 3, 2024 to March 22, 2025
-              const lastKnownPaymentDate = new Date(2024, 7, 3); // Month is 0-indexed (7 = August)
-              const currentSystemDate = new Date(2025, 2, 22); // 2 = March, 22 = day
-              
-              console.log(`Looking for missing payments between ${lastKnownPaymentDate.toISOString()} and ${currentSystemDate.toISOString()}`);
-              
-              // Get the actual rent amount to use for generating payments
-              let rentAmount = data.total_amount;
-              try {
-                const { data: leaseData } = await supabase
-                  .from("leases")
-                  .select("rent_amount")
-                  .eq("id", id)
-                  .single();
-                
-                if (leaseData && leaseData.rent_amount) {
-                  rentAmount = leaseData.rent_amount;
-                  setRentAmount(leaseData.rent_amount);
-                  console.log(`Using rent_amount from leases table: ${rentAmount}`);
-                }
-              } catch (err) {
-                console.error("Error fetching rent amount for missing payments:", err);
-              }
-              
-              // Generate payments for each month in the date range
-              const missingResult = await forceGeneratePaymentsForMissingMonths(
-                data.id,
-                rentAmount,
-                lastKnownPaymentDate,
-                currentSystemDate
-              );
-              
-              if (missingResult.success) {
-                console.log("Missing payments check completed:", missingResult);
-                if (missingResult.generated > 0) {
-                  toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
-                } else {
-                  console.log("No missing payments were generated, all months might be covered already");
-                }
-              } else {
-                console.error("Failed to generate missing payments:", missingResult);
-              }
-            }
-          }
         } else {
           toast.error("Agreement not found");
           navigate("/agreements");
@@ -158,10 +68,7 @@ const AgreementDetailPage = () => {
       }
     };
 
-    // Only fetch if we have an ID and the system is initialized or we have a refresh trigger
-    if (id && (isInitialized || refreshTrigger > 0)) {
-      fetchAgreement();
-    }
+    fetchAgreement();
   }, [id, getAgreement, navigate, isInitialized, refreshTrigger]);
 
   const handleDelete = async (agreementId: string) => {
@@ -173,6 +80,12 @@ const AgreementDetailPage = () => {
       console.error("Error deleting agreement:", error);
       toast.error("Failed to delete agreement");
     }
+  };
+
+  // Handle payment deleted event - only refresh payments, not everything
+  const handlePaymentDeleted = () => {
+    console.log("Payment deleted, refreshing payment data only");
+    fetchPayments();
   };
 
   return (
@@ -196,7 +109,10 @@ const AgreementDetailPage = () => {
           onDelete={handleDelete}
           contractAmount={contractAmount}
           rentAmount={rentAmount}
-          onPaymentDeleted={refreshAgreementData}
+          payments={payments}
+          isLoadingPayments={isLoadingPayments}
+          onPaymentDeleted={handlePaymentDeleted}
+          onDataRefresh={refreshAgreementData}
         />
       ) : (
         <div className="text-center py-12">
