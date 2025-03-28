@@ -85,9 +85,9 @@ const EditMaintenance = () => {
     );
   }
   
-  // Map the uppercase maintenance type to lowercase and vice versa
+  // Map the uppercase API maintenance type to lowercase form values
   const mapMaintenanceType = (type: string): keyof typeof MaintenanceType => {
-    // Create a mapping between uppercase keys and lowercase values
+    // Define the mapping from API values (usually uppercase) to form values (lowercase)
     const typeMapping: Record<string, keyof typeof MaintenanceType> = {
       'OIL_CHANGE': 'oil_change',
       'TIRE_REPLACEMENT': 'tire_replacement',
@@ -101,8 +101,22 @@ const EditMaintenance = () => {
       'OTHER': 'other'
     };
     
-    // Return the mapped value or default to 'other' if not found
-    return typeMapping[type] || 'other';
+    // For already lowercase values, create a reverse mapping
+    const lowercaseTypeMapping: Record<string, keyof typeof MaintenanceType> = {
+      'oil_change': 'oil_change',
+      'tire_replacement': 'tire_replacement',
+      'brake_service': 'brake_service',
+      'regular_inspection': 'regular_inspection',
+      'engine_repair': 'engine_repair',
+      'transmission_service': 'transmission_service',
+      'electrical_repair': 'electrical_repair',
+      'body_repair': 'body_repair',
+      'air_conditioning': 'air_conditioning',
+      'other': 'other'
+    };
+    
+    // Return the mapped value; use uppercase mapping first, then lowercase, or default to 'other'
+    return typeMapping[type] || lowercaseTypeMapping[type] || 'other';
   };
   
   // Convert API maintenance data to form compatible data
