@@ -133,18 +133,29 @@ export function useMaintenance() {
       } as MaintenanceRecord;
     }
     
+    // Validate maintenance_type to ensure it's a valid enum value
+    const isValidMaintenanceType = Object.values(MaintenanceType).includes(data.maintenance_type as any);
+    const safeMaintenanceType = isValidMaintenanceType 
+      ? data.maintenance_type 
+      : MaintenanceType.REGULAR_INSPECTION;
+    
+    // Validate status to ensure it's a valid enum value
+    const validStatuses = ["scheduled", "in_progress", "completed", "cancelled"];
+    const isValidStatus = validStatuses.includes(data.status);
+    const safeStatus = isValidStatus ? data.status : MaintenanceStatus.SCHEDULED;
+    
     // Ensure required properties have valid defaults to prevent errors
     return {
       ...data,
       id: data.id || '',
       vehicle_id: data.vehicle_id || '',
-      maintenance_type: data.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
-      status: data.status || MaintenanceStatus.SCHEDULED,
+      maintenance_type: safeMaintenanceType,
+      status: safeStatus,
       description: data.description || '',
       scheduled_date: data.scheduled_date || new Date().toISOString(),
       service_provider: data.service_provider || data.performed_by || '',
       invoice_number: data.invoice_number || '',
-      odometer_reading: data.odometer_reading || 0,
+      odometer_reading: typeof data.odometer_reading === 'number' ? data.odometer_reading : 0,
       cost: typeof data.cost === 'number' ? data.cost : parseFloat(data.cost) || 0,
       created_at: data.created_at || new Date().toISOString(),
       updated_at: data.updated_at || new Date().toISOString(),

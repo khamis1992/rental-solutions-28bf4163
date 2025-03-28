@@ -113,24 +113,6 @@ export const MaintenanceList = () => {
     console.log("Bulk delete functionality is not implemented");
   };
   
-  const handleSearch = async (searchTerm) => {
-    try {
-      setIsLoading(true);
-      const records = await getAllRecords();
-      
-      const filteredRecords = records.filter(record => 
-        record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        record.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      
-      setMaintenanceRecords(filteredRecords);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   const applyFilters = async () => {
     try {
       setIsLoading(true);
@@ -178,6 +160,7 @@ export const MaintenanceList = () => {
   };
   
   const formatMaintenanceType = (type) => {
+    if (!type) return 'Unknown';
     return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
   
@@ -202,6 +185,18 @@ export const MaintenanceList = () => {
     return vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unknown Vehicle';
   };
   
+  const getValidVehicleOptions = () => {
+    if (!vehicles || !Array.isArray(vehicles)) return [];
+    
+    return vehicles.filter(vehicle => 
+      vehicle && 
+      vehicle.id &&
+      vehicle.make && 
+      vehicle.model && 
+      vehicle.license_plate
+    );
+  };
+  
   if (error) {
     return (
       <Alert variant="destructive">
@@ -213,6 +208,8 @@ export const MaintenanceList = () => {
       </Alert>
     );
   }
+
+  const validVehicleOptions = getValidVehicleOptions();
   
   return (
     <div className="space-y-4">
@@ -249,12 +246,10 @@ export const MaintenanceList = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all-vehicles">All Vehicles</SelectItem>
-              {vehicles && vehicles.map(vehicle => (
-                vehicle && vehicle.id ? (
-                  <SelectItem key={vehicle.id} value={vehicle.id}>
-                    {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                  </SelectItem>
-                ) : null
+              {validVehicleOptions.map(vehicle => (
+                <SelectItem key={vehicle.id} value={vehicle.id}>
+                  {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -328,8 +323,10 @@ export const MaintenanceList = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {maintenanceRecords.map(record => (
-                    record && record.id ? (
+                  {maintenanceRecords.map(record => {
+                    if (!record || !record.id) return null;
+                    
+                    return (
                       <TableRow key={record.id}>
                         <TableCell>
                           <Checkbox 
@@ -354,7 +351,7 @@ export const MaintenanceList = () => {
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusBadgeClass(record.status)}>
-                            {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                            {record.status ? record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Unknown'}
                           </Badge>
                         </TableCell>
                         <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
@@ -377,8 +374,8 @@ export const MaintenanceList = () => {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : null
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

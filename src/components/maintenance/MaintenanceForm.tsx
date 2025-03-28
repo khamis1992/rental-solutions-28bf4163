@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,6 +69,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   // Format the maintenance type value
   const formatMaintenanceType = (type: string) => {
+    if (!type) return 'Unknown Type';
     return type
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
@@ -79,8 +79,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   // Make sure vehicles has a default value if it's undefined
   const vehiclesList = vehicles || [];
 
+  // Filter out invalid vehicle data to prevent select errors
+  const validVehicles = vehiclesList.filter(vehicle => 
+    vehicle && 
+    vehicle.id && 
+    vehicle.make && 
+    vehicle.model && 
+    vehicle.license_plate
+  );
+
   // Check if there are any vehicles available
-  const hasVehicles = vehiclesList.length > 0 && vehiclesList.some(v => v && v.id);
+  const hasVehicles = validVehicles.length > 0;
 
   return (
     <Card>
@@ -110,15 +119,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </FormControl>
                       <SelectContent>
                         {hasVehicles ? (
-                          vehiclesList.map(vehicle => (
-                            vehicle && vehicle.id ? (
-                              <SelectItem 
-                                key={vehicle.id} 
-                                value={vehicle.id}
-                              >
-                                {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
-                              </SelectItem>
-                            ) : null
+                          validVehicles.map(vehicle => (
+                            <SelectItem 
+                              key={vehicle.id} 
+                              value={vehicle.id}
+                            >
+                              {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
+                            </SelectItem>
                           ))
                         ) : (
                           <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
