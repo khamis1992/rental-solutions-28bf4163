@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -18,6 +18,7 @@ const AgreementDetailPage = () => {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const fetchAttemptedRef = useRef(false);
 
   // System initialization - only happens once
   const { isInitialized } = useAgreementInitialization();
@@ -47,9 +48,11 @@ const AgreementDetailPage = () => {
   // Fetch agreement data - separated from other data fetching operations
   useEffect(() => {
     const fetchAgreement = async () => {
-      if (!id || !isInitialized) return;
+      if (!id || !isInitialized || fetchAttemptedRef.current) return;
       
+      fetchAttemptedRef.current = true;
       setIsLoading(true);
+      
       try {
         // Get the agreement
         const data = await getAgreement(id);
@@ -69,7 +72,31 @@ const AgreementDetailPage = () => {
     };
 
     fetchAgreement();
-  }, [id, getAgreement, navigate, isInitialized, refreshTrigger]);
+    
+    // Cleanup function
+    return () => {
+      // Reset fetch attempted when the component is unmounted or id changes
+      if (id) fetchAttemptedRef.current = false;
+    };
+  }, [id, getAgreement, navigate, isInitialized]);
+
+  // Handle refresh trigger separately to avoid loading state issues
+  useEffect(() => {
+    if (refreshTrigger > 0 && id && isInitialized) {
+      const refreshData = async () => {
+        try {
+          const data = await getAgreement(id);
+          if (data) {
+            setAgreement(data);
+          }
+        } catch (error) {
+          console.error("Error refreshing agreement:", error);
+        }
+      };
+      
+      refreshData();
+    }
+  }, [refreshTrigger, id, getAgreement, isInitialized]);
 
   const handleDelete = async (agreementId: string) => {
     try {

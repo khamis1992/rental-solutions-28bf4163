@@ -5,13 +5,15 @@ import { initializeSystem } from '@/lib/supabase';
 export function useAgreementInitialization() {
   const [isInitialized, setIsInitialized] = useState(false);
   const initializationAttemptedRef = useRef(false);
+  const initializingRef = useRef(false);
 
   useEffect(() => {
     const performInitialization = async () => {
-      // Only attempt initialization once
-      if (initializationAttemptedRef.current) return;
+      // Return immediately if initialization is already in progress or has been attempted
+      if (initializationAttemptedRef.current || initializingRef.current) return;
       
       initializationAttemptedRef.current = true;
+      initializingRef.current = true;
       
       try {
         await initializeSystem();
@@ -21,6 +23,8 @@ export function useAgreementInitialization() {
         console.error("Error initializing system:", error);
         // Still mark as initialized to prevent endless retry attempts
         setIsInitialized(true);
+      } finally {
+        initializingRef.current = false;
       }
     };
 

@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { differenceInMonths } from 'date-fns';
@@ -20,10 +20,11 @@ export function useAgreementPayments({
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [rentAmount, setRentAmount] = useState<number | null>(null);
   const [contractAmount, setContractAmount] = useState<number | null>(null);
+  const fetchingRef = useRef(false);
 
   // Fetch rent amount separately - no dependencies on other API calls
   const fetchRentAmount = useCallback(async () => {
-    if (!agreementId) return;
+    if (!agreementId || fetchingRef.current) return;
     
     try {
       const { data, error } = await supabase
@@ -62,8 +63,9 @@ export function useAgreementPayments({
 
   // Fetch payments - separate from other data fetching
   const fetchPayments = useCallback(async () => {
-    if (!agreementId) return;
+    if (!agreementId || fetchingRef.current) return;
     
+    fetchingRef.current = true;
     setIsLoadingPayments(true);
     try {
       console.log("Fetching payments for agreement:", agreementId);
@@ -102,18 +104,28 @@ export function useAgreementPayments({
       toast.error("Failed to load payment history");
     } finally {
       setIsLoadingPayments(false);
+      fetchingRef.current = false;
     }
   }, [agreementId]);
 
-  // Main effect to fetch both rent amount and payments
+  // Main effect to fetch both rent amount and payments - protect against re-renders
   useEffect(() => {
-    if (isInitialized && agreementId) {
-      // First get the rent amount
-      fetchRentAmount();
-      
-      // Then fetch the payments
-      fetchPayments();
-    }
+    const fetchData = async () => {
+      if (isInitialized && agreementId && !fetchingRef.current) {
+        // First get the rent amount
+        await fetchRentAmount();
+        
+        // Then fetch the payments
+        await fetchPayments();
+      }
+    };
+    
+    fetchData();
+    
+    // Cleanup function
+    return () => {
+      fetchingRef.current = false;
+    };
   }, [agreementId, isInitialized, fetchRentAmount, fetchPayments, refreshTrigger]);
 
   return {
