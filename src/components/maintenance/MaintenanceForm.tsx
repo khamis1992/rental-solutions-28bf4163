@@ -51,8 +51,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
       vehicle_id: initialData?.vehicle_id || '',
-      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || MaintenanceType.REGULAR_INSPECTION,
-      status: (initialData?.status as keyof typeof MaintenanceStatus) || MaintenanceStatus.SCHEDULED,
+      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || 'REGULAR_INSPECTION',
+      status: (initialData?.status as MaintenanceStatus['SCHEDULED']) || 'scheduled',
       scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
       completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
       description: initialData?.description || '',
@@ -116,13 +116,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                                 {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
                               </SelectItem>
                             ) : (
-                              <SelectItem key="unknown-vehicle" value="unknown-vehicle">
+                              <SelectItem key="unknown-vehicle" value="unknown">
                                 Unknown Vehicle
                               </SelectItem>
                             )
                           ))
                         ) : (
-                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
+                          <SelectItem value="no-vehicles">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

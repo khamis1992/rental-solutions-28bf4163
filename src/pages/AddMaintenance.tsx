@@ -27,7 +27,7 @@ const AddMaintenance = () => {
     if (Object.values(MaintenanceStatus).includes(status as any)) {
       return status as keyof typeof MaintenanceStatus;
     }
-    return 'scheduled';
+    return 'SCHEDULED';
   };
 
   const handleSubmit = async (formData: any) => {
