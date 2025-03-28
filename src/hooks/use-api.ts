@@ -1,7 +1,7 @@
 
 import { toast } from '@/hooks/use-toast';
 import { PostgrestError } from '@supabase/supabase-js';
-import { useMutation, useQuery, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
+import { useMutation, useQuery, UseQueryOptions, UseMutationOptions, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 /**
  * Standard error handler for API calls.
@@ -81,7 +81,7 @@ export function useApiQuery<TData>(
   queryKey: unknown[],
   queryFn: () => Promise<TData>,
   options?: Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>
-) {
+): UseQueryResult<TData, Error> {
   return useQuery({
     queryKey,
     queryFn: async () => {
@@ -107,7 +107,7 @@ export function useApiMutation<TData, TVariables>(
     onSettled?: (data: TData | undefined, error: Error | null, variables: TVariables) => void;
     successMessage?: string;
   }
-) {
+): UseMutationResult<TData, Error, TVariables, unknown> {
   return useMutation({
     mutationFn: async (variables) => {
       try {

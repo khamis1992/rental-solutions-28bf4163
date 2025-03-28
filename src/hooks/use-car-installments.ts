@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase } from '@/integrations/supabase/client';
@@ -174,7 +173,6 @@ export function useCarInstallments() {
   // Create a new contract
   const createContractMutation = useApiMutation<
     CarInstallmentContract,
-    unknown,
     Omit<CarInstallmentContract, 'id' | 'created_at' | 'updated_at'>
   >(
     async (contractData) => {
@@ -226,18 +224,24 @@ export function useCarInstallments() {
   // Add a payment to a contract
   const addPaymentMutation = useApiMutation<
     CarInstallmentPayment,
-    unknown,
     Omit<CarInstallmentPayment, 'id' | 'created_at' | 'updated_at'>
   >(
     async (paymentData) => {
       try {
+        const paymentToInsert = {
+          contract_id: paymentData.contract_id,
+          cheque_number: paymentData.cheque_number,
+          drawee_bank: paymentData.drawee_bank,
+          amount: paymentData.amount,
+          payment_date: paymentData.payment_date,
+          status: paymentData.status || 'pending',
+          paid_amount: 0,
+          remaining_amount: paymentData.amount
+        };
+        
         const { data, error } = await supabase
           .from('car_installment_payments')
-          .insert({
-            ...paymentData,
-            paid_amount: 0,
-            remaining_amount: paymentData.amount
-          })
+          .insert(paymentToInsert)
           .select()
           .single();
           
@@ -264,7 +268,6 @@ export function useCarInstallments() {
   // Update a payment
   const updatePaymentMutation = useApiMutation<
     CarInstallmentPayment,
-    unknown,
     { id: string; data: Partial<CarInstallmentPayment> }
   >(
     async ({ id, data }) => {
@@ -299,7 +302,6 @@ export function useCarInstallments() {
   // Record a payment (partial or full)
   const recordPaymentMutation = useApiMutation<
     CarInstallmentPayment,
-    unknown,
     { id: string; amountPaid: number }
   >(
     async ({ id, amountPaid }) => {
@@ -399,7 +401,6 @@ export function useCarInstallments() {
   // Import multiple payments
   const importPaymentsMutation = useApiMutation<
     { success: boolean; count: number },
-    unknown,
     { contractId: string; payments: ImportedPayment[] }
   >(
     async ({ contractId, payments }) => {

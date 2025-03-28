@@ -89,7 +89,7 @@ export function useTrafficFines() {
         
         if (finesWithLease.length > 0) {
           // Get all lease IDs
-          const leaseIds = finesWithLease.map(fine => fine.leaseId).filter(Boolean);
+          const leaseIds = finesWithLease.map(fine => fine.leaseId).filter(Boolean) as string[];
           
           // Get all the lease data in one query using explicit joins
           // This avoids the "relationship not found" error
@@ -104,7 +104,7 @@ export function useTrafficFines() {
           }
           
           // Create a map of lease IDs to customer IDs
-          const leaseToCustomerMap = new Map();
+          const leaseToCustomerMap = new Map<string, string>();
           leaseData?.forEach(lease => {
             if (lease.customer_id) {
               leaseToCustomerMap.set(lease.id, lease.customer_id);
@@ -130,7 +130,11 @@ export function useTrafficFines() {
           }
           
           // Create a map for faster lookups
-          const customerDetailsMap = new Map();
+          const customerDetailsMap = new Map<string, {
+            customerId: string;
+            customerName: string;
+          }>();
+          
           customerData?.forEach(customer => {
             customerDetailsMap.set(customer.id, {
               customerId: customer.id,
@@ -177,7 +181,7 @@ export function useTrafficFines() {
     }
   );
 
-  const createTrafficFineMutation = useApiMutation<TrafficFine, unknown, Omit<TrafficFine, 'id'>>(
+  const createTrafficFineMutation = useApiMutation<TrafficFine, Omit<TrafficFine, 'id'>>(
     async (fineData) => {
       try {
         // Log operation
@@ -242,7 +246,6 @@ export function useTrafficFines() {
 
   const updateTrafficFineMutation = useApiMutation<
     TrafficFine, 
-    unknown, 
     { id: string; data: Partial<TrafficFine> }
   >(
     async ({ id, data }) => {
@@ -310,7 +313,7 @@ export function useTrafficFines() {
     }
   );
 
-  const deleteTrafficFineMutation = useApiMutation<string, unknown, string>(
+  const deleteTrafficFineMutation = useApiMutation<string, string>(
     async (id) => {
       try {
         // Log operation
@@ -349,7 +352,6 @@ export function useTrafficFines() {
 
   const payTrafficFineMutation = useApiMutation<
     TrafficFine,
-    unknown,
     { id: string; paymentDetails?: any }
   >(
     async ({ id }) => {
@@ -411,7 +413,6 @@ export function useTrafficFines() {
 
   const disputeTrafficFineMutation = useApiMutation<
     TrafficFine,
-    unknown,
     { id: string; disputeDetails?: any }
   >(
     async ({ id }) => {
@@ -472,7 +473,6 @@ export function useTrafficFines() {
 
   const assignToCustomerMutation = useApiMutation<
     TrafficFine,
-    unknown,
     { id: string }
   >(
     async ({ id }) => {

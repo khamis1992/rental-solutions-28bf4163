@@ -12,17 +12,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { useOne, useUpdate } = useMaintenance();
+  const { getById, update } = useMaintenance();
   const [error, setError] = useState<string | null>(null);
   
-  const { data: maintenance, isLoading: isLoadingMaintenance, error: fetchError } = useOne(id as string);
-  
-  const updateMutation = useUpdate;
+  const { data: maintenance, isLoading: isLoadingMaintenance, error: fetchError } = getById(id as string);
   
   const handleUpdate = (formData: any) => {
     if (!id) return;
     
-    updateMutation.mutate({ 
+    update.mutate({ 
       id, 
       data: formData 
     }, {
@@ -79,7 +77,7 @@ const EditMaintenance = () => {
       <MaintenanceForm 
         initialData={maintenance}
         onSubmit={handleUpdate}
-        isLoading={updateMutation.isPending}
+        isLoading={update.isPending}
         isEditMode={true}
         submitLabel="Update Maintenance"
       />
