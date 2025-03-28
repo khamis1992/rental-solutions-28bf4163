@@ -1699,6 +1699,51 @@ export type Database = {
           },
         ]
       }
+      customer_import_logs: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          error_count: number | null
+          errors: Json | null
+          file_name: string
+          id: string
+          mapping_used: Json | null
+          original_file_name: string | null
+          processed_count: number | null
+          row_count: number | null
+          status: Database["public"]["Enums"]["import_progress_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          error_count?: number | null
+          errors?: Json | null
+          file_name: string
+          id?: string
+          mapping_used?: Json | null
+          original_file_name?: string | null
+          processed_count?: number | null
+          row_count?: number | null
+          status?: Database["public"]["Enums"]["import_progress_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          error_count?: number | null
+          errors?: Json | null
+          file_name?: string
+          id?: string
+          mapping_used?: Json | null
+          original_file_name?: string | null
+          processed_count?: number | null
+          row_count?: number | null
+          status?: Database["public"]["Enums"]["import_progress_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       customer_notes: {
         Row: {
           created_at: string
@@ -3821,6 +3866,13 @@ export type Database = {
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_leases_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leases_template_id_fkey"
             columns: ["template_id"]
@@ -9475,6 +9527,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_leases_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "unified_payments_lease_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
@@ -9526,6 +9585,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_leases_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "unified_payments_invoice_id_fkey"
             columns: ["invoice_id"]
@@ -10063,6 +10129,7 @@ export type Database = {
         | "legal_notice"
         | "insurance_renewal"
       geofence_type: "circle" | "polygon"
+      import_progress_status: "pending" | "processing" | "completed" | "failed"
       import_source_type: "csv" | "manual" | "api" | "bulk_upload"
       import_status: "pending" | "processing" | "completed" | "failed"
       import_status_type:
