@@ -43,7 +43,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       <StatCard
         title="Total Income"
         value={formatCurrency(summary.totalIncome)}
-        description="Revenue from car rentals"
+        description="All time revenue"
         icon={TrendingUp}
         iconColor="text-green-500"
       />
@@ -51,7 +51,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       <StatCard
         title="Total Expenses"
         value={formatCurrency(summary.totalExpenses)}
-        description="Car installments and operational costs"
+        description="All time expenses"
         icon={TrendingDown}
         iconColor="text-red-500"
       />
@@ -59,15 +59,17 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       <StatCard
         title="Net Revenue"
         value={formatCurrency(summary.netRevenue)}
-        description="Income after expenses"
+        description="Total profit"
         icon={DollarSign}
         iconColor="text-blue-500"
+        trend={5}
+        trendLabel="vs last month"
       />
       
       <StatCard
         title="Pending Payments"
         value={formatCurrency(summary.pendingPayments)}
-        description="Upcoming rental payments"
+        description="Awaiting processing"
         icon={Clock}
         iconColor="text-amber-500"
       />

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Card, 
@@ -25,8 +26,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { MoreVertical, Plus, FileText, Search, Download, Eye } from 'lucide-react';
-import { formatDate } from '@/lib/date-utils';
+import { format } from 'date-fns';
 
+// Mock data for demonstration
 const MOCK_DOCUMENTS = [
   { 
     id: '1', 
@@ -132,7 +134,7 @@ const LegalDocuments = () => {
                       </TableCell>
                       <TableCell className="hidden md:table-cell capitalize">{doc.category}</TableCell>
                       <TableCell className="hidden md:table-cell capitalize">{doc.type}</TableCell>
-                      <TableCell className="hidden md:table-cell">{formatDate(doc.lastUpdated)}</TableCell>
+                      <TableCell className="hidden md:table-cell">{format(doc.lastUpdated, 'MMM d, yyyy')}</TableCell>
                       <TableCell>
                         <Badge 
                           variant={

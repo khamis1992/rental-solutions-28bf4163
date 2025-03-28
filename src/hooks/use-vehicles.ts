@@ -2,14 +2,97 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
-import { 
-  fetchVehicles, fetchVehicleById, fetchVehicleTypes, 
-  insertVehicle, updateVehicle, deleteVehicle, fetchVehicleWithTypes 
-} from '@/lib/vehicles/vehicle-api';
-import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
-import { supabase } from '@/integrations/supabase/client';
-import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
+import { supabase, formatVehicleForDisplay, getImagePublicUrl, ensureVehicleImagesBucket } from '@/lib/supabase';
+import { Vehicle, VehicleType, VehicleFormData, VehicleFilterParams } from '@/types/vehicle';
+
+const fetchVehicles = async (filters?: VehicleFilterParams) => {
+  let query = supabase.from('vehicles')
+    .select('*, vehicle_types(*)');
+  
+  if (filters) {
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '' && value !== 'any') {
+        query = query.eq(key, value);
+      }
+    });
+  }
+  
+  const { data, error } = await query.order('created_at', { ascending: false });
+  
+  if (error) {
+    throw new Error(`Error fetching vehicles: ${error.message}`);
+  }
+  
+  return data.map((vehicle: any) => {
+    const vehicleWithType = {
+      ...vehicle,
+      vehicleType: vehicle.vehicle_types
+    };
+    delete vehicleWithType.vehicle_types;
+    
+    return formatVehicleForDisplay(vehicleWithType);
+  });
+};
+
+const fetchVehicleById = async (id: string) => {
+  const { data, error } = await supabase
+    .from('vehicles')
+    .select('*, vehicle_types(*)')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
+  }
+  
+  const vehicleWithType = {
+    ...data,
+    vehicleType: data.vehicle_types
+  };
+  delete vehicleWithType.vehicle_types;
+  
+  return formatVehicleForDisplay(vehicleWithType);
+};
+
+const fetchVehicleTypes = async () => {
+  const { data, error } = await supabase
+    .from('vehicle_types')
+    .select('*')
+    .eq('is_active', true)
+    .order('name');
+  
+  if (error) {
+    throw new Error(`Error fetching vehicle types: ${error.message}`);
+  }
+  
+  return data;
+};
+
+const uploadVehicleImage = async (file: File, id: string): Promise<string> => {
+  const bucketReady = await ensureVehicleImagesBucket();
+  
+  if (!bucketReady) {
+    throw new Error('Failed to ensure vehicle-images bucket exists. Please contact an administrator.');
+  }
+  
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${id}-${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`;
+  
+  const { error } = await supabase.storage
+    .from('vehicle-images')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true,
+    });
+  
+  if (error) {
+    console.error('Upload error details:', error);
+    throw new Error(`Error uploading image: ${error.message}`);
+  }
+  
+  return getImagePublicUrl('vehicle-images', filePath);
+};
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
@@ -39,7 +122,7 @@ export const useVehicles = () => {
     
     useCreate: () => {
       return useMutation({
-        mutationFn: async (formData: VehicleFormData): Promise<Vehicle> => {
+        mutationFn: async (formData: VehicleFormData) => {
           let imageUrl = null;
           if (formData.image) {
             try {
@@ -54,33 +137,38 @@ export const useVehicles = () => {
             }
           }
           
-          // Build vehicle data object for insertion
-          const vehicleData: VehicleInsertData = {
+          const vehicleData = {
             make: formData.make,
             model: formData.model,
             year: formData.year,
             license_plate: formData.license_plate,
             vin: formData.vin,
-            color: formData.color || null,
+            color: formData.color,
+            status: formData.status || 'available',
             mileage: formData.mileage || 0,
-            description: formData.description || null,
-            location: formData.location || null,
-            insurance_company: formData.insurance_company || null,
-            insurance_expiry: formData.insurance_expiry || null,
-            rent_amount: formData.rent_amount || null,
+            description: formData.description,
+            location: formData.location,
+            insurance_company: formData.insurance_company,
+            insurance_expiry: formData.insurance_expiry,
+            rent_amount: formData.rent_amount,
             vehicle_type_id: formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id,
             image_url: imageUrl,
-            status: formData.status ? mapToDBStatus(formData.status) : 'available',
           };
           
-          // Insert new vehicle
-          const data = await insertVehicle(vehicleData);
+          const { data, error } = await supabase
+            .from('vehicles')
+            .insert(vehicleData)
+            .select()
+            .single();
+          
+          if (error) {
+            throw new Error(`Error creating vehicle: ${error.message}`);
+          }
           
           if (imageUrl && formData.image) {
             try {
               const newImageUrl = await uploadVehicleImage(formData.image, data.id);
               
-              // Update with the final image URL using the actual vehicle ID
               await supabase
                 .from('vehicles')
                 .update({ image_url: newImageUrl })
@@ -92,14 +180,7 @@ export const useVehicles = () => {
             }
           }
           
-          // Get the complete vehicle data with vehicle_types
-          try {
-            const completeData = await fetchVehicleWithTypes(data.id);
-            return mapDatabaseRecordToVehicle(completeData);
-          } catch (fetchError) {
-            console.error('Error fetching complete vehicle data:', fetchError);
-            return mapDatabaseRecordToVehicle(data);
-          }
+          return data;
         },
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -115,7 +196,7 @@ export const useVehicles = () => {
     
     useUpdate: () => {
       return useMutation({
-        mutationFn: async ({ id, data }: { id: string; data: VehicleFormData }): Promise<Vehicle> => {
+        mutationFn: async ({ id, data }: { id: string; data: VehicleFormData }) => {
           let imageUrl = null;
           if (data.image) {
             try {
@@ -129,20 +210,17 @@ export const useVehicles = () => {
             }
           }
           
-          // Build an update object for Supabase
-          const vehicleData: VehicleUpdateData = {};
+          const vehicleData: Record<string, any> = {
+            make: data.make,
+            model: data.model,
+            year: data.year,
+            license_plate: data.license_plate,
+            vin: data.vin,
+            status: data.status,
+            mileage: data.mileage,
+          };
           
-          // Required fields
-          if (data.make !== undefined) vehicleData.make = data.make;
-          if (data.model !== undefined) vehicleData.model = data.model;
-          if (data.year !== undefined) vehicleData.year = data.year;
-          if (data.license_plate !== undefined) vehicleData.license_plate = data.license_plate;
-          if (data.vin !== undefined) vehicleData.vin = data.vin;
-          
-          // Optional fields
           if (data.color !== undefined) vehicleData.color = data.color;
-          if (data.status !== undefined) vehicleData.status = mapToDBStatus(data.status);
-          if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
           if (data.description !== undefined) vehicleData.description = data.description;
           if (data.location !== undefined) vehicleData.location = data.location;
           if (data.insurance_company !== undefined) vehicleData.insurance_company = data.insurance_company;
@@ -155,9 +233,24 @@ export const useVehicles = () => {
           
           if (imageUrl) vehicleData.image_url = imageUrl;
           
-          // Update the vehicle
-          const updatedVehicle = await updateVehicle(id, vehicleData);
-          return mapDatabaseRecordToVehicle(updatedVehicle);
+          const { data: updatedVehicle, error } = await supabase
+            .from('vehicles')
+            .update(vehicleData)
+            .eq('id', id)
+            .select('*, vehicle_types(*)')
+            .single();
+          
+          if (error) {
+            throw new Error(`Error updating vehicle: ${error.message}`);
+          }
+          
+          const vehicleWithType = {
+            ...updatedVehicle,
+            vehicleType: updatedVehicle.vehicle_types
+          };
+          delete vehicleWithType.vehicle_types;
+          
+          return formatVehicleForDisplay(vehicleWithType);
         },
         onSuccess: (_, variables) => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
@@ -174,14 +267,21 @@ export const useVehicles = () => {
     
     useDelete: () => {
       return useMutation({
-        mutationFn: async (id: string): Promise<string> => {
+        mutationFn: async (id: string) => {
           const { data: vehicle } = await supabase
             .from('vehicles')
             .select('image_url')
             .eq('id', id)
             .single();
           
-          await deleteVehicle(id);
+          const { error } = await supabase
+            .from('vehicles')
+            .delete()
+            .eq('id', id);
+          
+          if (error) {
+            throw new Error(`Error deleting vehicle: ${error.message}`);
+          }
           
           if (vehicle && vehicle.image_url) {
             try {

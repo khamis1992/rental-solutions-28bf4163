@@ -2,16 +2,12 @@
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Gavel, FileText } from 'lucide-react';
-import CustomerLegalObligations from '@/components/legal/CustomerLegalObligations';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Gavel } from 'lucide-react';
+import LegalDocuments from '@/components/legal/LegalDocuments';
+import ComplianceTracking from '@/components/legal/ComplianceTracking';
 
 const Legal = () => {
-  const handleTabChange = (value: string) => {
-    // This ensures we don't refresh the page when changing tabs
-    console.log(`Tab changed to: ${value}`);
-  };
-
   return (
     <PageContainer
       title="Legal Management"
@@ -23,16 +19,18 @@ const Legal = () => {
         icon={Gavel}
       />
       
-      <Tabs defaultValue="obligations" className="space-y-4" onValueChange={handleTabChange}>
-        <TabsList>
-          <TabsTrigger value="obligations">
-            <FileText className="h-4 w-4 mr-2" />
-            Obligations
-          </TabsTrigger>
+      <Tabs defaultValue="documents" className="w-full">
+        <TabsList className="grid w-full md:w-auto grid-cols-2 mb-8">
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="compliance">Compliance</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="obligations" className="space-y-4">
-          <CustomerLegalObligations />
+        <TabsContent value="documents" className="mt-0">
+          <LegalDocuments />
+        </TabsContent>
+        
+        <TabsContent value="compliance" className="mt-0">
+          <ComplianceTracking />
         </TabsContent>
       </Tabs>
     </PageContainer>

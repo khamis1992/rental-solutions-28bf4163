@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft, AlertOctagon, Loader2 } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -8,97 +8,22 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [bucketError, setBucketError] = useState<string | null>(null);
-  const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
   
   const { useVehicle, useUpdate } = useVehicles();
   const { data: vehicle, isLoading, error } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
   
-  useEffect(() => {
-    async function checkForModelImage() {
-      if (vehicle?.model && vehicle.model.toLowerCase().includes('b70')) {
-        const imageUrl = await getModelSpecificImage(vehicle.model);
-        setModelSpecificImage(imageUrl);
-      }
-    }
-    
-    if (vehicle) {
-      checkForModelImage();
-    }
-  }, [vehicle]);
-  
-  // Check if bucket exists and create it if needed
-  const ensureVehicleImagesBucket = async () => {
-    try {
-      // Check if bucket exists
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-      
-      if (listError) {
-        console.error('Error listing buckets:', listError);
-        setBucketError(`Error checking storage buckets: ${listError.message}`);
-        return false;
-      }
-      
-      const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
-      
-      if (!bucketExists) {
-        // Create the bucket
-        const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
-          public: true,
-          fileSizeLimit: 10485760, // 10MB
-        });
-        
-        if (createError) {
-          console.error('Error creating bucket:', createError);
-          setBucketError(`Error creating storage bucket: ${createError.message}`);
-          return false;
-        }
-        
-        toast.success('Vehicle images storage bucket created successfully');
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error ensuring vehicle images bucket exists:', error);
-      setBucketError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      return false;
-    }
-  };
-  
-  const handleSubmit = async (formData: any) => {
+  const handleSubmit = (formData: any) => {
     if (id) {
-      // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
-      if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
-        // We don't need to upload an image, as we'll use the model-specific one
-        console.log('Using model-specific B70 image');
-      } 
-      // If there's an image, ensure the bucket exists first
-      else if (formData.image) {
-        const bucketReady = await ensureVehicleImagesBucket();
-        if (!bucketReady) {
-          toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
-          return;
-        }
-      }
-      
       updateVehicle(
         { id, data: formData },
         {
           onSuccess: () => {
             navigate(`/vehicles/${id}`);
-          },
-          onError: (error) => {
-            toast.error('Failed to update vehicle', {
-              description: error instanceof Error ? error.message : 'Unknown error occurred',
-            });
           }
         }
       );

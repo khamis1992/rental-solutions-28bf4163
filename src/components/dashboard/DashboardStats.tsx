@@ -20,7 +20,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         description={`Available: ${stats.vehicleStats.available}`}
         icon={Car}
         iconColor="text-blue-500"
-        trend={5.2}
+        trend={5.2}  // This would require historical data comparison
         trendLabel="vs last month"
       />
       

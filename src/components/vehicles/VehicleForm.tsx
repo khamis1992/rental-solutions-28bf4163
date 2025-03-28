@@ -27,6 +27,7 @@ import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
+// Schema for form validation
 const vehicleSchema = z.object({
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
@@ -44,6 +45,7 @@ const vehicleSchema = z.object({
   vehicle_type_id: z.string().optional(),
 });
 
+// Make sure the schema matches VehicleFormData
 type VehicleFormSchema = z.infer<typeof vehicleSchema>;
 
 interface VehicleFormProps {
@@ -59,6 +61,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isLoading = false,
   isEditMode = false,
 }) => {
+  // Setup form with validation
   const form = useForm<VehicleFormSchema>({
     resolver: zodResolver(vehicleSchema),
     defaultValues: {
@@ -79,12 +82,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     },
   });
 
+  // Get vehicle types for the dropdown
   const { useVehicleTypes } = useVehicles();
   const { data: vehicleTypes, isLoading: isLoadingTypes } = useVehicleTypes();
   
+  // State for the selected image file
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
   const handleFormSubmit = (formValues: VehicleFormSchema) => {
+    // Combine form data with selected image and ensure all required fields are present
     const formData: VehicleFormData = {
       make: formValues.make,
       model: formValues.model,
@@ -114,6 +120,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)}>
           <CardContent className="space-y-6">
+            {/* Vehicle Image */}
             <div className="mb-6">
               <FormLabel className="mb-2 block">Vehicle Image</FormLabel>
               <VehicleImageUpload 
@@ -123,6 +130,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Basic Information */}
               <FormField
                 control={form.control}
                 name="make"
@@ -350,7 +358,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       </FormControl>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        {vehicleTypes && vehicleTypes.map((type) => (
+                        {vehicleTypes && vehicleTypes.map((type: VehicleType) => (
                           <SelectItem key={type.id} value={type.id}>
                             {type.name} ({type.size})
                           </SelectItem>

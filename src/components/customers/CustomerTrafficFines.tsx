@@ -1,8 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useTrafficFines, TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
+import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
-import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, Check, Clock } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -10,26 +9,6 @@ import { supabase } from '@/lib/supabase';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
-}
-
-// Define types for Supabase query results
-interface LeaseResult {
-  id: string;
-}
-
-interface TrafficFineResult {
-  id: string;
-  violation_number: string;
-  license_plate: string;
-  vehicle_model?: string;
-  violation_date: string;
-  fine_amount: number;
-  violation_charge: string;
-  payment_status: string;
-  fine_location?: string;
-  vehicle_id?: string;
-  payment_date?: string;
-  lease_id?: string;
 }
 
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
@@ -42,7 +21,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Get leases by customer_id without using aliases
+        // First, get all leases that belong to this customer
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
@@ -58,7 +37,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         }
         
         // Extract the lease IDs
-        const leaseIds = (leases as LeaseResult[]).map(lease => lease.id);
+        const leaseIds = leases.map(lease => lease.id);
         
         // Then fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
@@ -72,7 +51,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         }
         
         // Transform the data to match the TrafficFine interface
-        const formattedFines: TrafficFine[] = (trafficFines as TrafficFineResult[] || []).map(fine => ({
+        const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => ({
           id: fine.id,
           violationNumber: fine.violation_number,
           licensePlate: fine.license_plate,
@@ -80,8 +59,8 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status as TrafficFineStatusType,
-          location: fine.fine_location || '',
+          paymentStatus: fine.payment_status,
+          location: fine.location || '',
           vehicleId: fine.vehicle_id,
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
@@ -103,7 +82,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   }
 
   if (error) {
-    return <div className="py-4 text-center text-muted-foreground">{error}</div>;
+    return <div className="py-4 text-center text-destructive">{error}</div>;
   }
 
   if (fines.length === 0) {
@@ -127,7 +106,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           <TableRow key={fine.id}>
             <TableCell className="font-medium">{fine.violationNumber}</TableCell>
             <TableCell>{fine.licensePlate}</TableCell>
-            <TableCell>{formatDate(fine.violationDate)}</TableCell>
+            <TableCell>{fine.violationDate.toLocaleDateString()}</TableCell>
             <TableCell>{fine.violationCharge}</TableCell>
             <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
             <TableCell>

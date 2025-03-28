@@ -20,7 +20,7 @@ const Index = () => {
       <div className="container flex flex-col items-center justify-center min-h-screen py-12 space-y-10">
         <div className="space-y-4 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl">
-            Rental Solutions
+            Auto Rent Manager
           </h1>
           <p className="max-w-[600px] text-muted-foreground text-xl">
             A comprehensive fleet management system for rental companies.

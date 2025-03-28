@@ -1,148 +1,207 @@
 
-import React, { useEffect, useState } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import React, { useState, useEffect } from 'react';
+import { Filter, X } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { CustomButton } from '@/components/ui/custom-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { VehicleFilterParams, VehicleStatus, VehicleType } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 
 export interface VehicleFilterValues {
-  status: string;
-  make: string;
-  location: string;
-  year: string;
-  category: string;
+  status?: VehicleStatus;
+  make?: string;
+  category?: string;
+  location?: string;
+  year?: number | null;
+  [key: string]: string | number | null | undefined; // Add index signature to allow dynamic property assignment
 }
 
 interface VehicleFiltersProps {
   onFilterChange: (filters: VehicleFilterValues) => void;
-  initialValues?: VehicleFilterValues;
+  makes?: string[];
+  locations?: string[];
   className?: string;
 }
 
-const VehicleFilters: React.FC<VehicleFiltersProps> = ({ 
-  onFilterChange, 
-  initialValues = {
-    status: 'all',
-    make: 'all',
-    location: 'all',
-    year: 'all',
-    category: 'all'
-  },
-  className 
+const VehicleFilters: React.FC<VehicleFiltersProps> = ({
+  onFilterChange,
+  makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'Nissan', 'BMW'],
+  locations = ['Main Office', 'Downtown Branch', 'Airport Location', 'Service Center', 'North Branch', 'City Center'],
+  className,
 }) => {
-  const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
-  const { useVehicleTypes, useList } = useVehicles();
+  const [filters, setFilters] = useState<VehicleFilterValues>({});
+  const [expanded, setExpanded] = useState(false);
+  const { useVehicleTypes } = useVehicles();
+  const { data: vehicleTypes, isLoading: isLoadingTypes } = useVehicleTypes();
   
-  const { data: vehicleTypes } = useVehicleTypes();
+  const { useList } = useVehicles();
   const { data: vehicles } = useList();
   
+  const [uniqueMakes, setUniqueMakes] = useState<string[]>(makes);
+  const [uniqueLocations, setUniqueLocations] = useState<string[]>(locations);
+  
   useEffect(() => {
-    setFilters(initialValues);
-  }, [initialValues]);
+    if (vehicles && vehicles.length > 0) {
+      const extractedMakes = Array.from(
+        new Set(vehicles.map(v => v.make).filter(Boolean))
+      );
+      if (extractedMakes.length > 0) {
+        setUniqueMakes(extractedMakes);
+      }
+      
+      const extractedLocations = Array.from(
+        new Set(vehicles.map(v => v.location).filter(Boolean))
+      );
+      if (extractedLocations.length > 0) {
+        setUniqueLocations(extractedLocations);
+      }
+    }
+  }, [vehicles]);
   
-  const uniqueMakes = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.make) || [])
-  ).sort();
-  
-  const uniqueLocations = Array.from(
-    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location) || [])
-  ).sort();
-  
-  const uniqueYears = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.year?.toString()) || [])
-  ).sort((a, b) => parseInt(b) - parseInt(a));
-  
-  const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
-    const newFilters = { ...filters, [key]: value };
+  const updateFilters = (key: keyof VehicleFilterValues, value: string | number | undefined | null) => {
+    const newFilters = { ...filters };
+    
+    if (value !== undefined && value !== null && value !== '') {
+      // With the index signature added above, this assignment is now type-safe
+      newFilters[key] = value;
+    } else {
+      delete newFilters[key];
+    }
+    
     setFilters(newFilters);
     onFilterChange(newFilters);
   };
   
+  const clearFilters = () => {
+    setFilters({});
+    onFilterChange({});
+  };
+  
+  const activeFilterCount = Object.keys(filters).length;
+  
   return (
-    <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4", className)}>
-      <Select
-        value={filters.status}
-        onValueChange={(value) => handleFilterChange('status', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Statuses" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          <SelectItem value="available">Available</SelectItem>
-          <SelectItem value="rented">Rented Out</SelectItem>
-          <SelectItem value="maintenance">In Maintenance</SelectItem>
-          <SelectItem value="reserved">Reserved</SelectItem>
-          <SelectItem value="police_station">At Police Station</SelectItem>
-          <SelectItem value="accident">In Accident</SelectItem>
-          <SelectItem value="stolen">Reported Stolen</SelectItem>
-        </SelectContent>
-      </Select>
+    <div className={className}>
+      <div className="flex items-center justify-between mb-4">
+        <CustomButton 
+          size="sm" 
+          variant="outline"
+          onClick={() => setExpanded(!expanded)}
+        >
+          <Filter className="h-4 w-4 mr-2" />
+          Filters
+          {activeFilterCount > 0 && (
+            <Badge className="ml-2 bg-primary" variant="default">
+              {activeFilterCount}
+            </Badge>
+          )}
+        </CustomButton>
+        
+        {activeFilterCount > 0 && (
+          <CustomButton 
+            size="sm" 
+            variant="ghost" 
+            onClick={clearFilters}
+          >
+            <X className="h-4 w-4 mr-2" />
+            Clear All
+          </CustomButton>
+        )}
+      </div>
       
-      <Select
-        value={filters.make}
-        onValueChange={(value) => handleFilterChange('make', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Makes" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Makes</SelectItem>
-          {uniqueMakes.map(make => (
-            <SelectItem key={make} value={make}>{make}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Select
-        value={filters.location}
-        onValueChange={(value) => handleFilterChange('location', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Locations" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Locations</SelectItem>
-          {uniqueLocations.map(location => (
-            <SelectItem key={location} value={location}>{location}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Select
-        value={filters.year}
-        onValueChange={(value) => handleFilterChange('year', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Years" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Years</SelectItem>
-          {uniqueYears.map(year => (
-            <SelectItem key={year} value={year}>{year}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Select
-        value={filters.category}
-        onValueChange={(value) => handleFilterChange('category', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Categories" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
-          {vehicleTypes?.map(type => (
-            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {expanded && (
+        <Card className="mb-6 animate-in fade-in-0 zoom-in-95 slide-in-from-top-5 duration-300">
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="status-filter">Status</Label>
+                <Select 
+                  onValueChange={(value) => updateFilters('status', value || undefined)}
+                  value={filters.status || ''}
+                >
+                  <SelectTrigger id="status-filter">
+                    <SelectValue placeholder="Any status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all_status">Any status</SelectItem>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="rented">Rented</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="retired">Retired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="make-filter">Make</Label>
+                <Select 
+                  onValueChange={(value) => updateFilters('make', value || undefined)}
+                  value={filters.make || ''}
+                >
+                  <SelectTrigger id="make-filter">
+                    <SelectValue placeholder="Any make" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all_make">Any make</SelectItem>
+                    {uniqueMakes.map((make) => (
+                      <SelectItem key={make} value={make}>{make}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="type-filter">Vehicle Type</Label>
+                <Select 
+                  onValueChange={(value) => updateFilters('category', value || undefined)}
+                  value={filters.category || ''}
+                >
+                  <SelectTrigger id="type-filter">
+                    <SelectValue placeholder="Any type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all_type">Any type</SelectItem>
+                    {vehicleTypes && vehicleTypes.map((type: VehicleType) => (
+                      <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="location-filter">Location</Label>
+                <Select 
+                  onValueChange={(value) => updateFilters('location', value || undefined)}
+                  value={filters.location || ''}
+                >
+                  <SelectTrigger id="location-filter">
+                    <SelectValue placeholder="Any location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all_location">Any location</SelectItem>
+                    {uniqueLocations.map((location) => (
+                      <SelectItem key={location} value={location}>{location}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="year-filter">Year</Label>
+                <Input 
+                  id="year-filter"
+                  type="number" 
+                  placeholder="Any year"
+                  value={filters.year || ''}
+                  onChange={(e) => updateFilters('year', e.target.value ? parseInt(e.target.value) : undefined)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

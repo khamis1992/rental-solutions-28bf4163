@@ -14,7 +14,7 @@ import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
-import { generatePdfDocument } from "@/utils/agreementUtils"
+import { generateAgreementText } from "@/utils/agreementUtils"
 
 interface AgreementDetailProps {
   agreement: Agreement
@@ -69,18 +69,12 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   }, [agreement]);
 
   const handleEdit = () => {
-    if (agreement && agreement.id) {
-      console.log(`Navigating to edit agreement: /agreements/edit/${agreement.id}`);
-      navigate(`/agreements/edit/${agreement.id}`);
-      toast.info("Editing agreement " + agreement.agreement_number);
-    } else {
-      toast.error("Cannot edit: Agreement ID is missing");
-    }
+    navigate(`/agreements/edit/${agreement.id}`)
   }
 
   const handleDelete = () => {
-    if (onDelete && agreement.id) {
-      onDelete(agreement.id);
+    if (onDelete) {
+      onDelete(agreement.id)
     }
   }
 
@@ -91,20 +85,23 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const handleDownloadAgreement = async () => {
     setIsGeneratingPdf(true);
     try {
-      console.log("Generating PDF for agreement:", agreement);
+      const agreementText = await generateAgreementText(agreement);
       
-      toast.info("Preparing agreement PDF document...");
+      const blob = new Blob([agreementText], { type: 'text/plain' });
       
-      const success = await generatePdfDocument(agreement);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Agreement_${agreement.agreement_number}.txt`;
       
-      if (success) {
-        toast.success("Agreement downloaded as PDF");
-      } else {
-        toast.error("Failed to generate PDF document");
-      }
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success("Agreement downloaded successfully");
     } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF document: " + (error instanceof Error ? error.message : String(error)));
+      console.error("Error generating agreement:", error);
+      toast.error("Failed to generate agreement document");
     } finally {
       setIsGeneratingPdf(false);
     }
@@ -351,7 +348,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 disabled={isGeneratingPdf}
               >
                 <Download className="mr-2 h-4 w-4" />
-                {isGeneratingPdf ? "Generating..." : "Download PDF"}
+                {isGeneratingPdf ? "Generating..." : "Download"}
               </Button>
               <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                 <DialogTrigger asChild>

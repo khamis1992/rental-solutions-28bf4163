@@ -47,22 +47,13 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         return;
       }
       
-      try {
-        // Create preview URL
-        const url = URL.createObjectURL(file);
-        setPreviewUrl(url);
-        
-        // Pass the file back to parent component
-        onImageSelected(file);
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error creating object URL:', error);
-        setErrorMessage('Failed to process image');
-        toast.error('Image processing failed', { 
-          description: error instanceof Error ? error.message : 'Unknown error occurred'
-        });
-        setIsLoading(false);
-      }
+      // Create preview URL
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      
+      // Pass the file back to parent component
+      onImageSelected(file);
+      setIsLoading(false);
     } else {
       setIsLoading(false);
     }

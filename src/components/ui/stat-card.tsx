@@ -29,10 +29,10 @@ const StatCard = ({
     <Card className={cn("overflow-hidden card-transition", className)}>
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
-          <div className="flex-1 min-w-0">
+          <div>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-bold mt-2 tracking-tight truncate">{value}</h3>
-            {description && <p className="text-sm text-muted-foreground mt-1 truncate">{description}</p>}
+            <h3 className="text-2xl font-bold mt-2 tracking-tight">{value}</h3>
+            {description && <p className="text-sm text-muted-foreground mt-1">{description}</p>}
             
             {trend !== undefined && (
               <div className="flex items-center mt-2">
@@ -49,7 +49,7 @@ const StatCard = ({
           
           {Icon && (
             <div className={cn(
-              "p-3 rounded-full shrink-0 ml-3",
+              "p-3 rounded-full",
               "bg-primary/10",
               iconColor
             )}>

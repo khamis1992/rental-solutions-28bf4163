@@ -40,15 +40,15 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { title: 'Customers', path: '/customers', icon: Users, roles: ['admin', 'staff'] },
+  { title: 'Customers', path: '/customers', icon: Users, roles: ['admin', 'manager'] },
   { title: 'Agreements', path: '/agreements', icon: FileText },
   { title: 'Vehicles', path: '/vehicles', icon: Car },
   { title: 'Maintenance', path: '/maintenance', icon: Wrench },
   { title: 'Traffic Fines', path: '/fines', icon: AlertTriangle },
-  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin'] },
-  { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin'] },
-  { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin'] },
-  { title: 'User Management', path: '/user-management', icon: UserPlus, roles: ['admin'] },
+  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin', 'manager'] },
+  { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin', 'manager'] },
+  { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin', 'manager'] },
+  { title: 'User Management', path: '/users', icon: UserPlus, roles: ['admin'] },
 ];
 
 const Sidebar = () => {
@@ -58,7 +58,7 @@ const Sidebar = () => {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
 
-  const userRole = profile?.role || 'staff';
+  const userRole = profile?.role || 'user';
   
   const filteredNavItems = navItems.filter(item => 
     !item.roles || item.roles.includes(userRole)
@@ -83,7 +83,7 @@ const Sidebar = () => {
     >
       <div className="h-16 flex items-center px-4 justify-between border-b border-sidebar-border/50">
         {!collapsed && (
-          <div className="font-bold text-lg">Rental Solutions</div>
+          <div className="font-bold text-lg">Auto Rent Pro</div>
         )}
         <button 
           onClick={() => setCollapsed(!collapsed)}
