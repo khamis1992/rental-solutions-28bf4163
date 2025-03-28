@@ -27,19 +27,21 @@ const AgreementDetailPage = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // Initialize system only once
   useEffect(() => {
-    if (!id || !isInitialized) {
+    if (!isInitialized) {
       // Initialize the system to check for payment generation (only once)
       initializeSystem().then(() => {
         console.log("System initialized, checking for payments");
         setIsInitialized(true);
       });
     }
-  }, [id, isInitialized]);
+  }, [isInitialized]);
 
+  // Fetch agreement data in a separate effect to prevent loops
   useEffect(() => {
     const fetchAgreement = async () => {
-      if (!id) return;
+      if (!id || !isInitialized) return;
       
       setIsLoading(true);
       try {
@@ -75,19 +77,20 @@ const AgreementDetailPage = () => {
           
           setAgreement(data);
           
-          // For any agreement, check for missing monthly payments
+          // For any agreement, check for missing monthly payments - but only once
           if (data.status === 'active' && !paymentGenerationAttempted) {
             console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
             setPaymentGenerationAttempted(true);
             
             // Force check all agreements for current month payments
-            const allResult = await forceCheckAllAgreementsForPayments();
-            if (allResult.success) {
-              console.log("Payment check completed:", allResult);
-              if (allResult.generated > 0) {
-                toast.success(`Generated ${allResult.generated} new payments for active agreements`);
+            forceCheckAllAgreementsForPayments().then(allResult => {
+              if (allResult.success) {
+                console.log("Payment check completed:", allResult);
+                if (allResult.generated > 0) {
+                  toast.success(`Generated ${allResult.generated} new payments for active agreements`);
+                }
               }
-            }
+            });
             
             // Special handling for agreement with MR202462 number
             if (data.agreement_number === 'MR202462') {
@@ -111,7 +114,6 @@ const AgreementDetailPage = () => {
                 
                 if (leaseData && leaseData.rent_amount) {
                   rentAmount = leaseData.rent_amount;
-                  setRentAmount(leaseData.rent_amount);
                   console.log(`Using rent_amount from leases table: ${rentAmount}`);
                 }
               } catch (err) {
@@ -119,23 +121,23 @@ const AgreementDetailPage = () => {
               }
               
               // Generate payments for each month in the date range
-              const missingResult = await forceGeneratePaymentsForMissingMonths(
+              forceGeneratePaymentsForMissingMonths(
                 data.id,
                 rentAmount,
                 lastKnownPaymentDate,
                 currentSystemDate
-              );
-              
-              if (missingResult.success) {
-                console.log("Missing payments check completed:", missingResult);
-                if (missingResult.generated > 0) {
-                  toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
+              ).then(missingResult => {
+                if (missingResult.success) {
+                  console.log("Missing payments check completed:", missingResult);
+                  if (missingResult.generated > 0) {
+                    toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
+                  } else {
+                    console.log("No missing payments were generated, all months might be covered already");
+                  }
                 } else {
-                  console.log("No missing payments were generated, all months might be covered already");
+                  console.error("Failed to generate missing payments:", missingResult);
                 }
-              } else {
-                console.error("Failed to generate missing payments:", missingResult);
-              }
+              });
             }
           }
         } else {
