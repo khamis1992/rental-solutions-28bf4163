@@ -23,11 +23,12 @@ const AddMaintenance = () => {
   };
   
   // Ensure the status is a valid enum value
-  const validateMaintenanceStatus = (status: string): keyof typeof MaintenanceStatus => {
-    if (Object.values(MaintenanceStatus).includes(status as any)) {
-      return status as keyof typeof MaintenanceStatus;
+  const validateMaintenanceStatus = (status: string): "scheduled" | "in_progress" | "completed" | "cancelled" => {
+    const validStatus = ["scheduled", "in_progress", "completed", "cancelled"];
+    if (validStatus.includes(status)) {
+      return status as "scheduled" | "in_progress" | "completed" | "cancelled";
     }
-    return 'SCHEDULED';
+    return 'scheduled';
   };
 
   const handleSubmit = async (formData: any) => {

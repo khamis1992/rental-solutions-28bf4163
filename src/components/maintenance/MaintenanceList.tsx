@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
@@ -234,10 +235,10 @@ export const MaintenanceList = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all-statuses">All Statuses</SelectItem>
-              <SelectItem value={MaintenanceStatus.SCHEDULED}>Scheduled</SelectItem>
-              <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
-              <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
-              <SelectItem value={MaintenanceStatus.CANCELLED}>Cancelled</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
           

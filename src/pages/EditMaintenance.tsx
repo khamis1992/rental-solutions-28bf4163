@@ -53,11 +53,12 @@ const EditMaintenance = () => {
   };
 
   // Convert string status to enum
-  const mapStringToMaintenanceStatus = (statusString: string): keyof typeof MaintenanceStatus => {
-    if (Object.values(MaintenanceStatus).includes(statusString as any)) {
-      return statusString as keyof typeof MaintenanceStatus;
+  const mapStringToMaintenanceStatus = (statusString: string): "scheduled" | "in_progress" | "completed" | "cancelled" => {
+    const validStatus = ["scheduled", "in_progress", "completed", "cancelled"];
+    if (validStatus.includes(statusString)) {
+      return statusString as "scheduled" | "in_progress" | "completed" | "cancelled";
     }
-    return 'SCHEDULED';
+    return 'scheduled';
   };
 
   const handleSubmit = async (formData: any) => {
