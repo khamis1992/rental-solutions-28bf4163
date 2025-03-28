@@ -8,11 +8,11 @@ export function useAgreementInitialization() {
   const initializingRef = useRef(false);
 
   useEffect(() => {
-    // Cleanup function to prevent memory leaks
+    // Prevent memory leaks with cleanup
     let isMounted = true;
     
     const performInitialization = async () => {
-      // Return immediately if initialization is already in progress or has been attempted
+      // Prevent multiple initializations using refs
       if (initializationAttemptedRef.current || initializingRef.current) return;
       
       initializationAttemptedRef.current = true;
