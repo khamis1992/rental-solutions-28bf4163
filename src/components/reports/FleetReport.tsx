@@ -6,82 +6,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Car, CircleDollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
-import { useFleetReport } from '@/hooks/use-fleet-report';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const FleetReport = () => {
-  const { 
-    vehicles, 
-    fleetStats, 
-    vehiclesByType, 
-    isLoading,
-    error
-  } = useFleetReport();
-
-  if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array(4).fill(0).map((_, i) => (
-            <div key={i} className="h-32 bg-gray-100 animate-pulse rounded-lg" />
-          ))}
-        </div>
-        <Card>
-          <CardHeader>
-            <div className="h-7 w-48 bg-gray-100 animate-pulse rounded" />
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gray-100 animate-pulse rounded" />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-8">
-        <Card className="p-6">
-          <div className="text-center text-red-500">
-            <p>Error loading fleet data</p>
-            <p className="text-sm mt-2">{String(error)}</p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Vehicles" 
-          value={fleetStats.totalVehicles.toString()} 
-          trend={5} // This would come from comparing with previous period
+          value="124" 
+          trend={5}
           trendLabel="vs last month"
           icon={Car}
           iconColor="text-blue-500"
         />
         <StatCard 
           title="Active Rentals" 
-          value={fleetStats.activeRentals.toString()} 
-          trend={12} // This would come from comparing with previous period
+          value="83" 
+          trend={12}
           trendLabel="vs last month"
           icon={TrendingUp}
           iconColor="text-green-500"
         />
         <StatCard 
           title="Average Daily Rate" 
-          value={formatCurrency(fleetStats.averageDailyRate)} 
-          trend={3} // This would come from comparing with previous period
+          value={formatCurrency(85)} 
+          trend={3}
           trendLabel="vs last month"
           icon={CircleDollarSign}
           iconColor="text-indigo-500"
         />
         <StatCard 
           title="Maintenance Required" 
-          value={fleetStats.maintenanceRequired.toString()} 
-          trend={-2} // This would come from comparing with previous period
+          value="7" 
+          trend={-2}
           trendLabel="vs last month"
           icon={AlertTriangle}
           iconColor="text-amber-500"
@@ -93,35 +50,30 @@ const FleetReport = () => {
           <CardTitle>Fleet Utilization</CardTitle>
         </CardHeader>
         <CardContent>
-          {vehicles.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>License Plate</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Daily Rate</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>License Plate</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Utilization Rate</TableHead>
+                <TableHead>Revenue Generated</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {mockVehicleData.map((vehicle) => (
+                <TableRow key={vehicle.id}>
+                  <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
+                  <TableCell>{vehicle.licensePlate}</TableCell>
+                  <TableCell>
+                    <StatusBadge status={vehicle.status} />
+                  </TableCell>
+                  <TableCell>{vehicle.utilizationRate}%</TableCell>
+                  <TableCell>{formatCurrency(vehicle.revenueGenerated)}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vehicles.slice(0, 5).map((vehicle) => (
-                  <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
-                    <TableCell>{vehicle.license_plate}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={vehicle.status || 'available'} />
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(vehicle.dailyRate || 0)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground">
-              <p>No vehicle data available</p>
-              <p className="text-sm mt-2">Vehicle data will appear here when available</p>
-            </div>
-          )}
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 
@@ -130,51 +82,28 @@ const FleetReport = () => {
           <CardTitle>Fleet Performance by Vehicle Type</CardTitle>
         </CardHeader>
         <CardContent>
-          {vehiclesByType.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={vehiclesByType.map(type => ({
-                    name: type.type,
-                    count: type.count,
-                    avgRate: type.avgDailyRate
-                  }))}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    tick={{ 
-                      transform: 'rotate(-45)',
-                      textAnchor: 'end',
-                      dominantBaseline: 'auto'
-                    }}
-                    height={70}
-                  />
-                  <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                  <YAxis 
-                    yAxisId="right" 
-                    orientation="right" 
-                    stroke="#82ca9d"
-                    tickFormatter={(value) => formatCurrency(value)}
-                  />
-                  <Tooltip formatter={(value, name) => {
-                    if (name === 'avgRate') {
-                      return [formatCurrency(Number(value)), 'Avg Daily Rate'];
-                    }
-                    return [value, name === 'count' ? 'Count' : name];
-                  }} />
-                  <Bar dataKey="count" fill="#8884d8" yAxisId="left" name="Vehicle Count" />
-                  <Bar dataKey="avgRate" fill="#82ca9d" yAxisId="right" name="Avg Daily Rate" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground">
-              <p>No performance data available</p>
-              <p className="text-sm mt-2">Performance data will appear here when available</p>
-            </div>
-          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Vehicle Type</TableHead>
+                <TableHead>Count</TableHead>
+                <TableHead>Avg. Daily Rate</TableHead>
+                <TableHead>Avg. Utilization</TableHead>
+                <TableHead>Total Revenue</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {mockTypePerformance.map((type) => (
+                <TableRow key={type.type}>
+                  <TableCell className="font-medium">{type.type}</TableCell>
+                  <TableCell>{type.count}</TableCell>
+                  <TableCell>{formatCurrency(type.avgDailyRate)}</TableCell>
+                  <TableCell>{type.avgUtilization}%</TableCell>
+                  <TableCell>{formatCurrency(type.totalRevenue)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
@@ -187,7 +116,6 @@ const StatusBadge = ({ status }: { status: string }) => {
     'rented': 'bg-blue-100 text-blue-800',
     'maintenance': 'bg-amber-100 text-amber-800',
     'repair': 'bg-red-100 text-red-800',
-    'reserved': 'bg-purple-100 text-purple-800',
   };
 
   return (
@@ -196,5 +124,20 @@ const StatusBadge = ({ status }: { status: string }) => {
     </Badge>
   );
 };
+
+const mockVehicleData = [
+  { id: 1, make: 'Toyota', model: 'Camry', licensePlate: 'ABC123', status: 'rented', utilizationRate: 87, revenueGenerated: 3250 },
+  { id: 2, make: 'Honda', model: 'Civic', licensePlate: 'XYZ789', status: 'available', utilizationRate: 72, revenueGenerated: 2840 },
+  { id: 3, make: 'Nissan', model: 'Altima', licensePlate: 'DEF456', status: 'rented', utilizationRate: 91, revenueGenerated: 3620 },
+  { id: 4, make: 'Ford', model: 'Escape', licensePlate: 'GHI789', status: 'maintenance', utilizationRate: 64, revenueGenerated: 2180 },
+  { id: 5, make: 'BMW', model: '3 Series', licensePlate: 'JKL012', status: 'rented', utilizationRate: 89, revenueGenerated: 5120 },
+];
+
+const mockTypePerformance = [
+  { type: 'Sedan', count: 42, avgDailyRate: 75, avgUtilization: 82, totalRevenue: 94500 },
+  { type: 'SUV', count: 28, avgDailyRate: 95, avgUtilization: 78, totalRevenue: 78200 },
+  { type: 'Luxury', count: 15, avgDailyRate: 150, avgUtilization: 68, totalRevenue: 45900 },
+  { type: 'Economy', count: 35, avgDailyRate: 60, avgUtilization: 91, totalRevenue: 67300 },
+];
 
 export default FleetReport;

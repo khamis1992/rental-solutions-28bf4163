@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,53 +9,8 @@ import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 import { SectionHeader } from '@/components/ui/section-header';
 import { FileText } from 'lucide-react';
-import { useFleetReport } from '@/hooks/use-fleet-report';
-import { useFinancials } from '@/hooks/use-financials';
-
 const Reports = () => {
   const [selectedTab, setSelectedTab] = useState('fleet');
-  const { vehicles } = useFleetReport();
-  const { transactions } = useFinancials();
-  
-  // Sample data for customer and maintenance reports
-  const customerData = Array(10).fill(0).map((_, i) => ({
-    id: i + 1,
-    name: `Customer ${i + 1}`,
-    email: `customer${i + 1}@example.com`,
-    phone: `+974-${Math.floor(1000000 + Math.random() * 9000000)}`,
-    rentals: Math.floor(1 + Math.random() * 10)
-  }));
-  
-  const maintenanceData = Array(10).fill(0).map((_, i) => ({
-    id: i + 1,
-    vehicle: `Vehicle ${i + 1}`,
-    type: ['Oil Change', 'Tire Rotation', 'Brake Service'][i % 3],
-    date: new Date().toISOString(),
-    cost: Math.floor(100 + Math.random() * 500)
-  }));
-  
-  const getReportData = () => {
-    switch (selectedTab) {
-      case 'fleet':
-        return vehicles.map(v => ({
-          make: v.make,
-          model: v.model,
-          year: v.year,
-          license_plate: v.license_plate,
-          status: v.status,
-          daily_rate: v.dailyRate
-        }));
-      case 'financial':
-        return transactions;
-      case 'customers':
-        return customerData;
-      case 'maintenance':
-        return maintenanceData;
-      default:
-        return [];
-    }
-  };
-
   return <PageContainer title="Reports & Analytics" description="Comprehensive reports and analytics for your rental business">
       <div className="flex items-center mb-6">
         
@@ -74,7 +28,7 @@ const Reports = () => {
             </TabsList>
             
             <div className="mb-6">
-              <ReportDownloadOptions reportType={selectedTab} getReportData={getReportData} />
+              <ReportDownloadOptions reportType={selectedTab} />
             </div>
             
             <TabsContent value="fleet" className="mt-0">

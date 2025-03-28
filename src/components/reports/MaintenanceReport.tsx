@@ -131,11 +131,7 @@ const MaintenanceReport = () => {
                   tickLine={false}
                   tickFormatter={(value) => formatCurrency(value)}
                 />
-                <Tooltip formatter={(value, name) => {
-                  // Fix: Ensure value is a number before passing to formatCurrency
-                  const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
-                  return [formatCurrency(numValue), 'Maintenance Cost'];
-                }} />
+                <Tooltip formatter={(value) => [formatCurrency(value), 'Maintenance Cost']} />
                 <Bar dataKey="cost" fill="#f97316" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
