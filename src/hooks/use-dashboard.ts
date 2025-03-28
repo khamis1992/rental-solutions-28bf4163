@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
+import { startMeasure } from '@/utils/performance-monitoring';
 
 export interface DashboardStats {
   vehicleStats: {
@@ -61,10 +62,13 @@ export function useDashboardData() {
   const statsQuery = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: async (): Promise<DashboardStats> => {
+      const endMeasure = startMeasure('api:dashboard.stats');
       try {
+        const endVehiclesFetch = startMeasure('api:dashboard.stats.vehicles');
         const { data: vehicles, error: vehiclesError } = await supabase
           .from('vehicles')
           .select('id, status');
+        endVehiclesFetch();
 
         if (vehiclesError) throw vehiclesError;
 
@@ -72,39 +76,41 @@ export function useDashboardData() {
         const firstDayCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const firstDayLastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
         
+        const endCurrentMonthPaymentsFetch = startMeasure('api:dashboard.stats.currentMonthPayments');
         const { data: currentMonthPayments, error: paymentsError } = await supabase
           .from('payments')
           .select('amount')
           .gte('payment_date', firstDayCurrentMonth.toISOString());
+        endCurrentMonthPaymentsFetch();
           
         if (paymentsError) throw paymentsError;
         
+        const endLastMonthPaymentsFetch = startMeasure('api:dashboard.stats.lastMonthPayments');
         const { data: lastMonthPayments, error: lastMonthError } = await supabase
           .from('payments')
           .select('amount')
           .gte('payment_date', firstDayLastMonth.toISOString())
           .lt('payment_date', firstDayCurrentMonth.toISOString());
+        endLastMonthPaymentsFetch();
           
         if (lastMonthError) throw lastMonthError;
         
+        const endCustomersFetch = startMeasure('api:dashboard.stats.customers');
         const { data: customers, error: customersError } = await supabase
           .from('profiles')
           .select('id')
           .eq('role', 'customer');
+        endCustomersFetch();
           
         if (customersError) throw customersError;
         
+        const endAgreementsFetch = startMeasure('api:dashboard.stats.agreements');
         const { data: agreements, error: agreementsError } = await supabase
           .from('leases')
           .select('id, status, customer_id');
+        endAgreementsFetch();
           
         if (agreementsError) throw agreementsError;
-        
-        const activeCustomerIds = new Set(
-          agreements
-            .filter(a => a.status === 'active')
-            .map(a => a.customer_id)
-        );
         
         const statusCounts = vehicles.reduce((acc: Record<string, number>, vehicle) => {
           const status = vehicle.status || 'available';
@@ -135,7 +141,13 @@ export function useDashboardData() {
           revenueGrowth: parseFloat(revenueGrowth.toFixed(1))
         };
         
-        return {
+        const activeCustomerIds = new Set(
+          agreements
+            .filter(a => a.status === 'active')
+            .map(a => a.customer_id)
+        );
+        
+        const result: DashboardStats = {
           vehicleStats,
           financialStats,
           customerStats: {
@@ -148,7 +160,11 @@ export function useDashboardData() {
             growth: -2.5
           }
         };
+        
+        endMeasure();
+        return result;
       } catch (error) {
+        endMeasure();
         handleApiError(error);
         throw error;
       }
@@ -158,6 +174,7 @@ export function useDashboardData() {
   const revenueQuery = useQuery({
     queryKey: ['dashboard', 'revenue'],
     queryFn: async () => {
+      const endMeasure = startMeasure('api:dashboard.revenue');
       try {
         const currentDate = new Date();
         const eightMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 7, 1);
@@ -182,11 +199,15 @@ export function useDashboardData() {
           return acc;
         }, {});
         
-        return Object.entries(monthlyData).map(([name, revenue]) => ({
+        const result = Object.entries(monthlyData).map(([name, revenue]) => ({
           name,
           revenue
         }));
+        
+        endMeasure();
+        return result;
       } catch (error) {
+        endMeasure();
         handleApiError(error);
         throw error;
       }
@@ -196,6 +217,7 @@ export function useDashboardData() {
   const activityQuery = useQuery({
     queryKey: ['dashboard', 'activity'],
     queryFn: async (): Promise<RecentActivity[]> => {
+      const endMeasure = startMeasure('api:dashboard.activity');
       try {
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
@@ -285,6 +307,7 @@ export function useDashboardData() {
           return timeA - timeB;
         }).slice(0, 5);
       } catch (error) {
+        endMeasure();
         handleApiError(error);
         return [];
       }

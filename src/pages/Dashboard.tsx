@@ -1,3 +1,4 @@
+
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -10,6 +11,8 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { usePerformance } from '@/hooks/use-performance';
+import { startMeasure } from '@/utils/performance-monitoring';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -27,10 +30,16 @@ if (typeof window !== 'undefined') {
 }
 
 const Dashboard = () => {
+  // Add performance tracking for the entire component
+  usePerformance('Dashboard');
+  
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   
   const handleRefresh = () => {
+    const endMeasure = startMeasure('dashboard:refresh');
     window.location.reload();
+    // The endMeasure will never be called due to page reload,
+    // but in real scenarios we'd want to measure the time until data is refreshed
   };
 
   return (

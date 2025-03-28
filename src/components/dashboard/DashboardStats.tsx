@@ -4,12 +4,16 @@ import { Car, DollarSign, Users, FileText } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
 import { formatCurrency } from '@/lib/utils';
+import { usePerformance } from '@/hooks/use-performance';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
 }
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
+  // Add performance tracking
+  usePerformance('DashboardStats', [stats]);
+  
   if (!stats) return null;
   
   return (
