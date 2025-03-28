@@ -24,3 +24,27 @@ export const customerSearchSchema = z.object({
 });
 
 export type CustomerSearch = z.infer<typeof customerSearchSchema>;
+
+// CSV field names for customer import
+export const customerCSVFields = [
+  'Full Name',
+  'Email',
+  'Phone',
+  'Driver License',
+  'Nationality',
+  'Address',
+  'Status',
+  'Notes'
+];
+
+// Map from CSV column names to customer schema field names
+export const customerCSVMap: Record<string, keyof Customer> = {
+  'Full Name': 'full_name',
+  'Email': 'email',
+  'Phone': 'phone',
+  'Driver License': 'driver_license',
+  'Nationality': 'nationality',
+  'Address': 'address',
+  'Status': 'status',
+  'Notes': 'notes'
+};

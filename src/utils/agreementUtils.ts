@@ -1,8 +1,62 @@
+
 import { Agreement } from "@/lib/validation-schemas/agreement";
 import { processAgreementTemplate } from "@/lib/validation-schemas/agreement";
 import { supabase } from "@/lib/supabase";
 import { createClient } from '@supabase/supabase-js';
 import { getAgreementTemplateUrl } from './templateUtils';
+import { jsPDF } from "jspdf";
+
+/**
+ * Generate PDF document from agreement data
+ */
+export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
+  try {
+    console.log("Starting PDF generation for agreement:", agreement.id);
+    
+    // First, ensure the agreements bucket exists
+    const bucketResult = await ensureAgreementsBucketExists();
+    if (!bucketResult) {
+      console.warn("Could not ensure agreements bucket exists, using fallback template");
+    }
+    
+    // Get the template text
+    const agreementText = await generateAgreementText(agreement);
+    console.log("Generated agreement text length:", agreementText.length);
+    
+    // Debug: Show first 100 chars to check if variables were replaced
+    console.log("First 100 chars of agreement text:", agreementText.substring(0, 100));
+    
+    // Create PDF document with proper formatting
+    const doc = new jsPDF();
+    
+    // Set font and size
+    doc.setFont("helvetica");
+    doc.setFontSize(10);
+    
+    // Add title
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("VEHICLE RENTAL AGREEMENT", 105, 20, { align: "center" });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
+    // Split text into lines that fit the PDF page width
+    const textLines = doc.splitTextToSize(agreementText, 180);
+    
+    // Add text to the PDF starting below the title
+    doc.text(textLines, 15, 30);
+    
+    // Save the PDF with a descriptive filename
+    const filename = `Agreement_${agreement.agreement_number || agreement.id}.pdf`;
+    doc.save(filename);
+    
+    console.log("PDF generation completed successfully");
+    return true;
+  } catch (error) {
+    console.error("Error in generatePdfDocument:", error);
+    return false;
+  }
+};
 
 /**
  * Generate the agreement text by processing the template with agreement data
@@ -16,7 +70,7 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
     
     if (templateText) {
       console.log("Successfully retrieved template from storage");
-      return processAgreementTemplate(templateText, agreement);
+      return processAgreementText(templateText, agreement);
     }
     
     // Fall back to database template if storage fails
@@ -25,16 +79,139 @@ export const generateAgreementText = async (agreement: Agreement): Promise<strin
     
     if (dbTemplate) {
       console.log("Successfully retrieved template from database");
-      return processAgreementTemplate(dbTemplate, agreement);
+      return processAgreementText(dbTemplate, agreement);
     }
     
     // If both storage and database fail, use default template
     console.log("No templates found, using default template");
+    
+    // Attempt to create and upload a default template for future use
+    await createAndUploadDefaultTemplate();
+    
     return generateDefaultAgreementText(agreement);
   } catch (error) {
     console.error("Error generating agreement text:", error);
     return generateDefaultAgreementText(agreement); // Fallback to default
   }
+};
+
+/**
+ * Process agreement template text with actual data
+ */
+const processAgreementText = (templateText: string, agreement: Agreement): string => {
+  console.log("Processing agreement template with data");
+  
+  let processedText = templateText;
+  
+  // Safely access nested data with fallbacks
+  const customerData = agreement.customers || {};
+  const vehicleData = agreement.vehicles || {};
+  
+  // Format dates for better readability
+  const startDate = agreement.start_date ? new Date(agreement.start_date).toLocaleDateString() : 'N/A';
+  const endDate = agreement.end_date ? new Date(agreement.end_date).toLocaleDateString() : 'N/A';
+  const currentDate = new Date().toLocaleDateString();
+  
+  console.log("Formatting data for template:", {
+    agreementNumber: agreement.agreement_number,
+    customerName: customerData.full_name,
+    vehicleInfo: `${vehicleData.make} ${vehicleData.model}`,
+    startDate,
+    endDate
+  });
+  
+  // Enhanced replacement with multiple format options for maximum compatibility
+  
+  // Agreement data replacements
+  processedText = processedText
+    // Agreement number - multiple formats
+    .replace(/\{\{agreement\.agreement_number\}\}/g, agreement.agreement_number || '')
+    .replace(/\{\{agreement_number\}\}/g, agreement.agreement_number || '')
+    .replace(/\{\{AGREEMENT_NUMBER\}\}/g, agreement.agreement_number || '')
+    
+    // Dates - multiple formats
+    .replace(/\{\{agreement\.start_date\}\}/g, startDate)
+    .replace(/\{\{start_date\}\}/g, startDate)
+    .replace(/\{\{START_DATE\}\}/g, startDate)
+    .replace(/\{\{agreement\.end_date\}\}/g, endDate)
+    .replace(/\{\{end_date\}\}/g, endDate)
+    .replace(/\{\{END_DATE\}\}/g, endDate)
+    .replace(/\{\{current_date\}\}/g, currentDate)
+    .replace(/\{\{CURRENT_DATE\}\}/g, currentDate)
+    
+    // Financial terms - multiple formats
+    .replace(/\{\{agreement\.total_amount\}\}/g, (agreement.total_amount || 0).toString())
+    .replace(/\{\{total_amount\}\}/g, (agreement.total_amount || 0).toString())
+    .replace(/\{\{TOTAL_AMOUNT\}\}/g, (agreement.total_amount || 0).toString())
+    .replace(/\{\{agreement\.deposit_amount\}\}/g, (agreement.deposit_amount || 0).toString())
+    .replace(/\{\{deposit_amount\}\}/g, (agreement.deposit_amount || 0).toString())
+    .replace(/\{\{DEPOSIT_AMOUNT\}\}/g, (agreement.deposit_amount || 0).toString());
+  
+  // Customer data replacements
+  processedText = processedText
+    .replace(/\{\{customer\.full_name\}\}/g, customerData.full_name || 'N/A')
+    .replace(/\{\{CUSTOMER_NAME\}\}/g, customerData.full_name || 'N/A')
+    .replace(/\{\{customer\.email\}\}/g, customerData.email || 'N/A')
+    .replace(/\{\{CUSTOMER_EMAIL\}\}/g, customerData.email || 'N/A')
+    .replace(/\{\{customer\.phone\}\}/g, customerData.phone || 'N/A')
+    .replace(/\{\{customer\.phone_number\}\}/g, customerData.phone || 'N/A')
+    .replace(/\{\{CUSTOMER_PHONE\}\}/g, customerData.phone || 'N/A')
+    .replace(/\{\{customer\.driver_license\}\}/g, customerData.driver_license || 'N/A')
+    .replace(/\{\{CUSTOMER_LICENSE\}\}/g, customerData.driver_license || 'N/A')
+    .replace(/\{\{customer\.nationality\}\}/g, customerData.nationality || 'N/A')
+    .replace(/\{\{CUSTOMER_NATIONALITY\}\}/g, customerData.nationality || 'N/A')
+    .replace(/\{\{customer\.address\}\}/g, customerData.address || 'N/A')
+    .replace(/\{\{CUSTOMER_ADDRESS\}\}/g, customerData.address || 'N/A');
+  
+  // Vehicle data replacements
+  processedText = processedText
+    .replace(/\{\{vehicle\.make\}\}/g, vehicleData.make || 'N/A')
+    .replace(/\{\{VEHICLE_MAKE\}\}/g, vehicleData.make || 'N/A')
+    .replace(/\{\{vehicle\.model\}\}/g, vehicleData.model || 'N/A')
+    .replace(/\{\{VEHICLE_MODEL\}\}/g, vehicleData.model || 'N/A')
+    .replace(/\{\{vehicle\.year\}\}/g, vehicleData.year?.toString() || 'N/A')
+    .replace(/\{\{VEHICLE_YEAR\}\}/g, vehicleData.year?.toString() || 'N/A')
+    .replace(/\{\{vehicle\.color\}\}/g, vehicleData.color || 'N/A')
+    .replace(/\{\{VEHICLE_COLOR\}\}/g, vehicleData.color || 'N/A')
+    .replace(/\{\{vehicle\.license_plate\}\}/g, vehicleData.license_plate || 'N/A')
+    .replace(/\{\{VEHICLE_PLATE\}\}/g, vehicleData.license_plate || 'N/A')
+    .replace(/\{\{vehicle\.vin\}\}/g, vehicleData.vin || 'N/A')
+    .replace(/\{\{VEHICLE_VIN\}\}/g, vehicleData.vin || 'N/A');
+  
+  // Additional variant format replacements for all fields (without dots, underscores, etc.)
+  processedText = processedText
+    // Common alternative formats without dot notation
+    .replace(/\{\{agreementNumber\}\}/g, agreement.agreement_number || '')
+    .replace(/\{\{startDate\}\}/g, startDate)
+    .replace(/\{\{endDate\}\}/g, endDate)
+    .replace(/\{\{totalAmount\}\}/g, (agreement.total_amount || 0).toString())
+    .replace(/\{\{depositAmount\}\}/g, (agreement.deposit_amount || 0).toString())
+    
+    // Customer alternative formats
+    .replace(/\{\{customerName\}\}/g, customerData.full_name || 'N/A')
+    .replace(/\{\{customerEmail\}\}/g, customerData.email || 'N/A')
+    .replace(/\{\{customerPhone\}\}/g, customerData.phone || 'N/A')
+    .replace(/\{\{customerLicense\}\}/g, customerData.driver_license || 'N/A')
+    .replace(/\{\{customerNationality\}\}/g, customerData.nationality || 'N/A')
+    .replace(/\{\{customerAddress\}\}/g, customerData.address || 'N/A')
+    
+    // Vehicle alternative formats
+    .replace(/\{\{vehicleMake\}\}/g, vehicleData.make || 'N/A')
+    .replace(/\{\{vehicleModel\}\}/g, vehicleData.model || 'N/A')
+    .replace(/\{\{vehicleYear\}\}/g, vehicleData.year?.toString() || 'N/A')
+    .replace(/\{\{vehicleColor\}\}/g, vehicleData.color || 'N/A')
+    .replace(/\{\{vehiclePlate\}\}/g, vehicleData.license_plate || 'N/A')
+    .replace(/\{\{vehicleVin\}\}/g, vehicleData.vin || 'N/A');
+  
+  console.log("Template processing completed");
+  
+  // Check for any remaining template variables and log them for debugging
+  const remainingVariables = processedText.match(/\{\{.*?\}\}/g);
+  if (remainingVariables && remainingVariables.length > 0) {
+    console.warn("Unprocessed template variables:", remainingVariables);
+  }
+  
+  return processedText;
 };
 
 /**
@@ -45,15 +222,15 @@ const generateDefaultAgreementText = (agreement: Agreement): string => {
   const vehicleData = agreement.vehicles;
   
   // Format dates
-  const startDate = new Date(agreement.start_date).toLocaleDateString();
-  const endDate = new Date(agreement.end_date).toLocaleDateString();
+  const startDate = agreement.start_date ? new Date(agreement.start_date).toLocaleDateString() : 'N/A';
+  const endDate = agreement.end_date ? new Date(agreement.end_date).toLocaleDateString() : 'N/A';
   const currentDate = new Date().toLocaleDateString();
   
   return `
 VEHICLE RENTAL AGREEMENT
 =======================
 
-Agreement Number: ${agreement.agreement_number}
+Agreement Number: ${agreement.agreement_number || ''}
 Date: ${currentDate}
 
 PARTIES
@@ -78,9 +255,9 @@ AGREEMENT TERMS
 --------------
 Start Date: ${startDate}
 End Date: ${endDate}
-Rent Amount: ${agreement.total_amount / 12} QAR per month
+Rent Amount: ${agreement.total_amount ? (agreement.total_amount / 12).toFixed(2) : '0.00'} QAR per month
 Security Deposit: ${agreement.deposit_amount || 0} QAR
-Total Contract Value: ${agreement.total_amount} QAR
+Total Contract Value: ${agreement.total_amount || 0} QAR
 
 TERMS AND CONDITIONS
 -------------------
@@ -102,21 +279,28 @@ Lessee: ______________________     Date: _____________
  * Helper function to download agreement as PDF
  */
 export const downloadAgreementAsPdf = async (agreement: Agreement): Promise<void> => {
-  // This is a placeholder - in a real implementation, you would use
-  // a library like jsPDF to convert the agreement text to PDF
-  alert("PDF generation would happen here. This requires additional libraries.");
-  
-  // Example implementation with jsPDF would look like:
-  /*
-  import { jsPDF } from "jspdf";
-  
-  const agreementText = await generateAgreementText(agreement);
-  const doc = new jsPDF();
-  
-  doc.setFontSize(12);
-  doc.text(agreementText, 10, 10);
-  doc.save(`agreement_${agreement.agreement_number}.pdf`);
-  */
+  try {
+    const agreementText = await generateAgreementText(agreement);
+    
+    // Create new PDF document
+    const doc = new jsPDF();
+    
+    // Set properties
+    doc.setFont("helvetica");
+    doc.setFontSize(10);
+    
+    // Split the text into lines that fit in the PDF
+    const textLines = doc.splitTextToSize(agreementText, 180);
+    
+    // Add text to the PDF
+    doc.text(textLines, 15, 15);
+    
+    // Save the PDF
+    doc.save(`agreement_${agreement.agreement_number}.pdf`);
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    throw new Error("Failed to generate PDF document");
+  }
 };
 
 /**
@@ -708,65 +892,70 @@ export const diagnosisTemplateAccess = async (): Promise<{
       errors
     };
   } catch (error) {
-    errors.push({ location: "diagnosis", error });
+    console.error("Error in diagnosisTemplateAccess:", error);
+    errors.push({ location: "diagnosis_function", error });
     return {
-      storageAccess: false,
-      databaseAccess: false,
-      bucketExists: false,
-      templateExists: false,
-      templateContent: null,
+      storageAccess,
+      databaseAccess,
+      bucketExists,
+      templateExists,
+      templateContent,
       errors
     };
   }
 };
 
 /**
- * Try to get template from storage bucket
+ * Get template from storage
  */
 async function getTemplateFromStorage(): Promise<string | null> {
   try {
-    console.log("Attempting to get template from storage bucket");
+    console.log("Attempting to get template from storage");
     
-    // First check if the bucket exists
+    // First check if bucket exists
     const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
     
     if (bucketsError) {
-      console.error("Error listing storage buckets:", bucketsError);
+      console.error("Error checking buckets:", bucketsError);
       return null;
     }
     
-    const bucketExists = buckets?.some(bucket => bucket.name === 'agreements');
-    if (!bucketExists) {
-      console.log("The 'agreements' bucket does not exist");
-      
-      // Try to create the bucket using service role
-      const created = await createAgreementsBucketAndTemplate();
-      if (!created) {
-        return null;
-      }
+    if (!buckets?.some(bucket => bucket.name === 'agreements')) {
+      console.log("Agreements bucket does not exist");
+      return null;
     }
     
-    // Try to download the template file - check multiple filename formats
-    console.log("Attempting to download template from storage");
+    // Try to download the template document from the agreements bucket
+    // Primary filename is agreement_template.docx (with underscore)
+    const primaryFileName = 'agreement_template.docx';
     
-    // Try with various possible filenames, prioritizing the underscore version
-    const fileOptions = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
+    // Try primary filename first
+    const { data: primaryData, error: primaryError } = await supabase.storage
+      .from('agreements')
+      .download(primaryFileName);
+      
+    if (!primaryError && primaryData) {
+      console.log(`Successfully downloaded template '${primaryFileName}'`);
+      return await primaryData.text();
+    }
     
-    for (const filename of fileOptions) {
-      console.log(`Trying to download template: ${filename}`);
-      const { data: fileData, error: downloadError } = await supabase.storage
+    // If primary fails, try alternatives
+    console.log(`Primary template not found, trying alternatives`);
+    const alternativeNames = ['agreement temp.docx', 'agreement_temp.docx', 'agreement temp'];
+    
+    for (const name of alternativeNames) {
+      console.log(`Trying to download template '${name}'`);
+      const { data, error } = await supabase.storage
         .from('agreements')
-        .download(filename);
+        .download(name);
         
-      if (!downloadError && fileData) {
-        console.log(`Successfully downloaded template: ${filename}`);
-        return await fileData.text();
+      if (!error && data) {
+        console.log(`Successfully downloaded alternative template '${name}'`);
+        return await data.text();
       }
-      
-      console.log(`Error or no data for ${filename}:`, downloadError);
     }
     
-    console.log("Could not find any template file");
+    console.log("No templates found in storage");
     return null;
   } catch (error) {
     console.error("Error getting template from storage:", error);
@@ -775,58 +964,120 @@ async function getTemplateFromStorage(): Promise<string | null> {
 }
 
 /**
- * Try to get template from database
+ * Get template from database
  */
 async function getTemplateFromDatabase(): Promise<string | null> {
   try {
     console.log("Attempting to get template from database");
     
-    // First check if the template table exists
-    const { data: tableExists, error: tableError } = await supabase
+    // Check if the table exists first
+    const { data: tableInfo, error: tableError } = await supabase
       .from("agreement_templates")
-      .select('id')
+      .select("*")
       .limit(1);
       
-    if (tableError || !tableExists || tableExists.length === 0) {
-      console.log("Agreement templates table may not exist or is empty:", tableError);
+    if (tableError) {
+      console.error("Error accessing agreement_templates table:", tableError);
       return null;
     }
     
-    // Try to get the active template
-    const { data: template, error: templateError } = await supabase
-      .from("agreement_templates")
-      .select('content')
-      .eq('is_active', true)
-      .maybeSingle();
-      
-    if (templateError) {
-      console.error("Error fetching template from database:", templateError);
+    if (!tableInfo || tableInfo.length === 0) {
+      console.log("No templates found in database");
       return null;
     }
     
-    if (!template || !template.content) {
-      console.log("No active template found in database");
-      
-      // Try any template as fallback
-      const { data: anyTemplate, error: anyError } = await supabase
-        .from("agreement_templates")
-        .select('content')
-        .limit(1)
-        .maybeSingle();
-        
-      if (anyError || !anyTemplate || !anyTemplate.content) {
-        console.log("No templates found in database at all");
-        return null;
+    // Determine which field contains the template content
+    let contentField = null;
+    const sampleRecord = tableInfo[0];
+    const possibleContentFields = ['content', 'template_content', 'text', 'template_text', 'body'];
+    
+    for (const field of possibleContentFields) {
+      if (field in sampleRecord && typeof sampleRecord[field] === 'string') {
+        contentField = field;
+        break;
       }
-      
-      console.log("Found non-active template in database");
-      return anyTemplate.content;
     }
     
-    console.log("Successfully retrieved active template from database");
-    return template.content;
+    if (!contentField) {
+      console.error("Could not determine content field in template table");
+      return null;
+    }
+    
+    // Get the most recent template
+    const { data, error } = await supabase
+      .from("agreement_templates")
+      .select(`id, ${contentField}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    if (error) {
+      console.error("Error fetching template content:", error);
+      return null;
+    }
+    
+    if (!data || !data[contentField]) {
+      console.log("No template content found in database");
+      return null;
+    }
+    
+    return data[contentField];
   } catch (error) {
     console.error("Error getting template from database:", error);
     return null;
   }
 }
+
+/**
+ * Create and upload a default template
+ */
+async function createAndUploadDefaultTemplate(): Promise<boolean> {
+  try {
+    return await createAgreementsBucketAndTemplate();
+  } catch (error) {
+    console.error("Error creating/uploading default template:", error);
+    return false;
+  }
+}
+
+/**
+ * Ensure agreements bucket exists
+ */
+async function ensureAgreementsBucketExists(): Promise<boolean> {
+  try {
+    console.log("Ensuring agreements bucket exists");
+    
+    // Check if bucket exists
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      console.error("Error checking buckets:", bucketsError);
+      return false;
+    }
+    
+    if (buckets?.some(bucket => bucket.name === 'agreements')) {
+      console.log("Agreements bucket already exists");
+      return true;
+    }
+    
+    // Create bucket if it doesn't exist
+    console.log("Agreements bucket does not exist, creating it");
+    
+    const { error: createError } = await supabase.storage.createBucket('agreements', {
+      public: true,
+      fileSizeLimit: 10485760, // 10MB
+    });
+    
+    if (createError) {
+      console.error("Error creating agreements bucket:", createError);
+      return false;
+    }
+    
+    console.log("Agreements bucket created successfully");
+    return true;
+  } catch (error) {
+    console.error("Error ensuring agreements bucket exists:", error);
+    return false;
+  }
+}
+

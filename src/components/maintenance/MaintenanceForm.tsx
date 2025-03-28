@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,7 +35,7 @@ interface MaintenanceFormProps {
   onSubmit: (data: MaintenanceFormSchema) => void;
   isLoading?: boolean;
   isEditMode?: boolean;
-  submitLabel?: string; // Add the submitLabel prop
+  submitLabel?: string;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
@@ -44,17 +43,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   onSubmit,
   isLoading = false,
   isEditMode = false,
-  submitLabel, // Add it to the destructured props
+  submitLabel,
 }) => {
   // Setup form with validation
   const form = useForm<MaintenanceFormSchema>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
       vehicle_id: initialData?.vehicle_id || '',
-      maintenance_type: (initialData?.maintenance_type as any) || MaintenanceType.REGULAR_INSPECTION,
-      status: (initialData?.status as any) || MaintenanceStatus.SCHEDULED,
-      scheduled_date: initialData?.scheduled_date || new Date(),
-      completion_date: initialData?.completion_date,
+      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || 'REGULAR_INSPECTION',
+      status: initialData?.status || MaintenanceStatus.SCHEDULED,
+      scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
+      completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
       description: initialData?.description || '',
       cost: initialData?.cost || 0,
       service_provider: initialData?.service_provider || '',
@@ -75,6 +74,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
+
+  // Make sure vehicles has a default value if it's undefined
+  const vehiclesList = vehicles || [];
 
   return (
     <Card>
@@ -103,11 +105,24 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehicles?.map(vehicle => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
-                          </SelectItem>
-                        ))}
+                        {vehiclesList.length > 0 ? (
+                          vehiclesList.map(vehicle => (
+                            vehicle.id ? (
+                              <SelectItem 
+                                key={vehicle.id} 
+                                value={vehicle.id}
+                              >
+                                {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
+                              </SelectItem>
+                            ) : (
+                              <SelectItem key="unknown-vehicle" value="unknown-vehicle">
+                                Unknown Vehicle
+                              </SelectItem>
+                            )
+                          ))
+                        ) : (
+                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -132,9 +147,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.values(MaintenanceType).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {formatMaintenanceType(type)}
+                        {Object.entries(MaintenanceType).map(([key, value]) => (
+                          <SelectItem 
+                            key={key} 
+                            value={value}
+                          >
+                            {formatMaintenanceType(value)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -202,6 +220,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                           onSelect={field.onChange}
                           disabled={(date) => date < new Date("1900-01-01")}
                           initialFocus
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -241,6 +260,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             onSelect={field.onChange}
                             disabled={(date) => date < new Date("1900-01-01")}
                             initialFocus
+                            className="pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>

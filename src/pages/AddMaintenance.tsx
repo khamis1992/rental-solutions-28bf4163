@@ -1,65 +1,73 @@
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import PageContainer from '@/components/layout/PageContainer';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MaintenanceForm from '@/components/maintenance/MaintenanceForm';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { createEmptyMaintenance } from '@/lib/validation-schemas/maintenance';
-import type { Maintenance } from '@/lib/validation-schemas/maintenance';
-import { useToast } from '@/hooks/use-toast';
+import PageContainer from '@/components/layout/PageContainer';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const { useCreate } = useMaintenance();
-  const { mutate: createMaintenance, isPending } = useCreate();
-  const [initialData, setInitialData] = useState(createEmptyMaintenance());
-
-  useEffect(() => {
-    // Check if there's a vehicleId in the URL params and pre-select it
-    const params = new URLSearchParams(location.search);
-    const vehicleId = params.get('vehicleId');
-    
-    if (vehicleId) {
-      setInitialData(prev => ({
-        ...prev,
-        vehicle_id: vehicleId
-      }));
+  const { create } = useMaintenance();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Ensure the maintenance type is a valid enum value
+  const validateMaintenanceType = (type: string): keyof typeof MaintenanceType => {
+    if (Object.values(MaintenanceType).includes(type as any)) {
+      return type as keyof typeof MaintenanceType;
     }
-  }, [location.search]);
+    return 'REGULAR_INSPECTION';
+  };
+  
+  // Ensure the status is a valid enum value
+  const validateMaintenanceStatus = (status: string): string => {
+    if (Object.values(MaintenanceStatus).includes(status as any)) {
+      return status;
+    }
+    return MaintenanceStatus.SCHEDULED;
+  };
 
-  const handleSubmit = (data: Omit<Maintenance, 'id'>) => {
-    console.log("Submitting maintenance record:", data);
-    createMaintenance(data, {
-      onSuccess: () => {
-        toast({
-          title: "Success",
-          description: "Maintenance record created successfully",
-        });
-        navigate('/maintenance');
-      },
-      onError: (error) => {
-        console.error("Error creating maintenance record:", error);
-        toast({
-          title: "Error",
-          description: "Failed to create maintenance record",
-          variant: "destructive",
-        });
-      }
-    });
+  const handleSubmit = async (formData: any) => {
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      // Validate and convert form data to ensure correct types
+      const validatedData = {
+        ...formData,
+        maintenance_type: validateMaintenanceType(formData.maintenance_type),
+        status: validateMaintenanceStatus(formData.status),
+      };
+      
+      await create.mutateAsync(validatedData);
+      navigate('/maintenance');
+    } catch (err) {
+      console.error('Error creating maintenance record:', err);
+      setError('Failed to create maintenance record. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <PageContainer
-      title="Add Maintenance Record"
-      description="Create a new vehicle maintenance record"
-      backLink="/maintenance"
+    <PageContainer 
+      title="Add Maintenance Record" 
+      description="Create a new maintenance record for a vehicle"
     >
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <MaintenanceForm
-        initialData={initialData}
         onSubmit={handleSubmit}
-        isLoading={isPending}
+        isLoading={isSubmitting}
       />
     </PageContainer>
   );

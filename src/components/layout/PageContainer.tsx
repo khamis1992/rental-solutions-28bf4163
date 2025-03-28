@@ -11,6 +11,8 @@ interface PageContainerProps {
   title?: string;
   description?: string;
   backLink?: string;
+  actions?: React.ReactNode;
+  systemDate?: Date;
 }
 
 const PageContainer: React.FC<PageContainerProps> = ({ 
@@ -18,7 +20,9 @@ const PageContainer: React.FC<PageContainerProps> = ({
   className,
   title,
   description,
-  backLink
+  backLink,
+  actions,
+  systemDate = new Date(2025, 2, 24) // Default to March 24, 2025
 }) => {
   return (
     <div className="min-h-screen pl-64 w-full">
@@ -34,12 +38,16 @@ const PageContainer: React.FC<PageContainerProps> = ({
           </Link>
         )}
         
-        {(title || description) && (
-          <div className="mb-6">
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
             {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
             {description && <p className="text-muted-foreground mt-1">{description}</p>}
+            <p className="text-xs text-muted-foreground mt-1">System Date: {systemDate.toLocaleDateString()}</p>
           </div>
-        )}
+          {actions && (
+            <div className="mt-4 sm:mt-0">{actions}</div>
+          )}
+        </div>
         
         {children}
       </main>

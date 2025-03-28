@@ -9,19 +9,21 @@ import { Trash2, Edit, FileText, Download } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
-import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
-import { generateAgreementText } from "@/utils/agreementUtils"
+import { generatePdfDocument } from "@/utils/agreementUtils"
 
 interface AgreementDetailProps {
   agreement: Agreement
   onDelete?: (id: string) => void
   contractAmount?: number | null
   rentAmount?: number | null
+  payments: Payment[]
+  isLoadingPayments: boolean
   onPaymentDeleted?: () => void
+  onDataRefresh?: () => void
 }
 
 const getStatusColor = (status: string) => {
@@ -48,13 +50,13 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   onDelete,
   contractAmount,
   rentAmount,
-  onPaymentDeleted
+  payments,
+  isLoadingPayments,
+  onPaymentDeleted,
+  onDataRefresh
 }) => {
   const navigate = useNavigate()
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [isLoadingPayments, setIsLoadingPayments] = useState(true)
-  const [localRentAmount, setLocalRentAmount] = useState<number | null>(rentAmount)
   const [durationMonths, setDurationMonths] = useState<number>(0)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
@@ -69,12 +71,18 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   }, [agreement]);
 
   const handleEdit = () => {
-    navigate(`/agreements/edit/${agreement.id}`)
+    if (agreement && agreement.id) {
+      console.log(`Navigating to edit agreement: /agreements/edit/${agreement.id}`);
+      navigate(`/agreements/edit/${agreement.id}`);
+      toast.info("Editing agreement " + agreement.agreement_number);
+    } else {
+      toast.error("Cannot edit: Agreement ID is missing");
+    }
   }
 
   const handleDelete = () => {
-    if (onDelete) {
-      onDelete(agreement.id)
+    if (onDelete && agreement.id) {
+      onDelete(agreement.id);
     }
   }
 
@@ -85,119 +93,31 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const handleDownloadAgreement = async () => {
     setIsGeneratingPdf(true);
     try {
-      const agreementText = await generateAgreementText(agreement);
+      console.log("Generating PDF for agreement:", agreement);
       
-      const blob = new Blob([agreementText], { type: 'text/plain' });
+      toast.info("Preparing agreement PDF document...");
       
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Agreement_${agreement.agreement_number}.txt`;
+      const success = await generatePdfDocument(agreement);
       
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success("Agreement downloaded successfully");
+      if (success) {
+        toast.success("Agreement downloaded as PDF");
+      } else {
+        toast.error("Failed to generate PDF document");
+      }
     } catch (error) {
-      console.error("Error generating agreement:", error);
-      toast.error("Failed to generate agreement document");
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF document: " + (error instanceof Error ? error.message : String(error)));
     } finally {
       setIsGeneratingPdf(false);
     }
   };
 
-  const fetchRentAmount = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("leases")
-        .select("rent_amount")
-        .eq("id", agreement.id)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching rent amount:", error);
-        return;
-      }
-      
-      if (data && data.rent_amount) {
-        setLocalRentAmount(data.rent_amount);
-        console.log("Fetched rent amount:", data.rent_amount);
-      }
-    } catch (error) {
-      console.error("Error fetching rent amount:", error);
+  const handlePaymentComplete = () => {
+    setIsPaymentDialogOpen(false);
+    if (onDataRefresh) {
+      onDataRefresh();
     }
-  }, [agreement.id]);
-
-  const fetchPayments = useCallback(async () => {
-    setIsLoadingPayments(true)
-    try {
-      console.log("Fetching payments for agreement:", agreement.id);
-      
-      const { data: unifiedPayments, error: unifiedError } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', agreement.id)
-        .order('payment_date', { ascending: false });
-      
-      if (unifiedError) {
-        console.error("Error fetching unified payments:", unifiedError);
-        throw unifiedError;
-      }
-      
-      console.log("Raw payments data:", unifiedPayments);
-      
-      const formattedPayments = (unifiedPayments || []).map(payment => ({
-        id: payment.id,
-        amount: payment.amount,
-        payment_date: payment.payment_date,
-        payment_method: payment.payment_method || 'cash',
-        reference_number: payment.transaction_id,
-        notes: payment.description,
-        type: payment.type,
-        status: payment.status,
-        late_fine_amount: payment.late_fine_amount,
-        days_overdue: payment.days_overdue,
-        lease_id: payment.lease_id
-      }));
-      
-      setPayments(formattedPayments);
-      console.log("Formatted payments set:", formattedPayments);
-      
-      if (formattedPayments.length > 0 && localRentAmount) {
-        const incorrectPayments = formattedPayments.filter(p => 
-          p.amount > localRentAmount * 5 && 
-          p.notes && 
-          p.notes.includes("Monthly rent payment")
-        );
-        
-        if (incorrectPayments.length > 0) {
-          console.warn(`Found ${incorrectPayments.length} payments with potentially incorrect amounts:`, 
-            incorrectPayments.map(p => ({ id: p.id, amount: p.amount, notes: p.notes }))
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching payments:", error);
-      toast.error("Failed to load payment history");
-    } finally {
-      setIsLoadingPayments(false);
-    }
-  }, [agreement.id, localRentAmount]);
-
-  useEffect(() => {
-    const initializeAndFetch = async () => {
-      await initializeSystem();
-      
-      if (rentAmount === null || rentAmount === undefined) {
-        await fetchRentAmount();
-      }
-      
-      await fetchPayments();
-    };
-    
-    initializeAndFetch();
-  }, [agreement.id, fetchPayments, fetchRentAmount, rentAmount]);
+  };
 
   return (
     <div className="space-y-8">
@@ -299,12 +219,12 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               <div className="space-y-4">
                 <div>
                   <p className="font-medium">Monthly Rent Amount</p>
-                  <p className="text-lg font-bold">{formatCurrency(localRentAmount || agreement.total_amount)}</p>
+                  <p className="text-lg font-bold">{formatCurrency(rentAmount || agreement.total_amount)}</p>
                 </div>
                 <div>
                   <p className="font-medium">Total Contract Amount</p>
                   <p className="text-lg font-bold">
-                    {formatCurrency(contractAmount || (localRentAmount ? localRentAmount * durationMonths : agreement.total_amount * durationMonths))}
+                    {formatCurrency(contractAmount || (rentAmount ? rentAmount * durationMonths : agreement.total_amount * durationMonths))}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     (Monthly rent × {durationMonths} {durationMonths === 1 ? 'month' : 'months'})
@@ -348,7 +268,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 disabled={isGeneratingPdf}
               >
                 <Download className="mr-2 h-4 w-4" />
-                {isGeneratingPdf ? "Generating..." : "Download"}
+                {isGeneratingPdf ? "Generating..." : "Download PDF"}
               </Button>
               <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
                 <DialogTrigger asChild>
@@ -365,11 +285,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                   </DialogHeader>
                   <PaymentEntryForm 
                     agreementId={agreement.id} 
-                    onPaymentComplete={() => {
-                      setIsPaymentDialogOpen(false);
-                      fetchPayments();
-                    }} 
-                    defaultAmount={localRentAmount}
+                    onPaymentComplete={handlePaymentComplete} 
+                    defaultAmount={rentAmount}
                   />
                 </DialogContent>
               </Dialog>
@@ -402,7 +319,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
           <PaymentHistory 
             payments={payments} 
             isLoading={isLoadingPayments} 
-            rentAmount={localRentAmount}
+            rentAmount={rentAmount}
             onPaymentDeleted={onPaymentDeleted}
             leaseStartDate={agreement.start_date}
             leaseEndDate={agreement.end_date}
