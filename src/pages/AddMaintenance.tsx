@@ -15,19 +15,19 @@ const AddMaintenance = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Ensure the maintenance type is a valid enum value
-  const validateMaintenanceType = (type: string): string => {
+  const validateMaintenanceType = (type: string): keyof typeof MaintenanceType => {
     if (Object.values(MaintenanceType).includes(type as any)) {
-      return type;
+      return type as keyof typeof MaintenanceType;
     }
-    return MaintenanceType.OTHER;
+    return 'REGULAR_INSPECTION';
   };
   
   // Ensure the status is a valid enum value
-  const validateMaintenanceStatus = (status: string): string => {
+  const validateMaintenanceStatus = (status: string): keyof typeof MaintenanceStatus => {
     if (Object.values(MaintenanceStatus).includes(status as any)) {
-      return status;
+      return status as keyof typeof MaintenanceStatus;
     }
-    return MaintenanceStatus.SCHEDULED;
+    return 'scheduled';
   };
 
   const handleSubmit = async (formData: any) => {

@@ -45,19 +45,19 @@ const EditMaintenance = () => {
   }, [id, getAllRecords]);
 
   // Convert string maintenance type to enum
-  const mapStringToMaintenanceType = (typeString: string): string => {
+  const mapStringToMaintenanceType = (typeString: string): keyof typeof MaintenanceType => {
     if (Object.values(MaintenanceType).includes(typeString as any)) {
-      return typeString;
+      return typeString as keyof typeof MaintenanceType;
     }
-    return MaintenanceType.OTHER;
+    return 'REGULAR_INSPECTION';
   };
 
   // Convert string status to enum
-  const mapStringToMaintenanceStatus = (statusString: string): string => {
+  const mapStringToMaintenanceStatus = (statusString: string): keyof typeof MaintenanceStatus => {
     if (Object.values(MaintenanceStatus).includes(statusString as any)) {
-      return statusString;
+      return statusString as keyof typeof MaintenanceStatus;
     }
-    return MaintenanceStatus.SCHEDULED;
+    return 'scheduled';
   };
 
   const handleSubmit = async (formData: any) => {

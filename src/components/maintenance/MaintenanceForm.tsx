@@ -51,8 +51,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
       vehicle_id: initialData?.vehicle_id || '',
-      maintenance_type: initialData?.maintenance_type as string || MaintenanceType.REGULAR_INSPECTION,
-      status: initialData?.status as string || MaintenanceStatus.SCHEDULED,
+      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || MaintenanceType.REGULAR_INSPECTION,
+      status: (initialData?.status as keyof typeof MaintenanceStatus) || MaintenanceStatus.SCHEDULED,
       scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
       completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
       description: initialData?.description || '',
