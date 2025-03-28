@@ -12,16 +12,28 @@ import { SectionHeader } from '@/components/ui/section-header';
 import { FileText } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
-import { useCustomers } from '@/hooks/use-customers';
-import { useMaintenance } from '@/hooks/use-maintenance';
 
 const Reports = () => {
   const [selectedTab, setSelectedTab] = useState('fleet');
   const { vehicles } = useFleetReport();
   const { transactions } = useFinancials();
-  const { customers } = useCustomers();
-  const { useList } = useMaintenance();
-  const { data: maintenanceRecords = [] } = useList();
+  
+  // Sample data for customer and maintenance reports
+  const customerData = Array(10).fill(0).map((_, i) => ({
+    id: i + 1,
+    name: `Customer ${i + 1}`,
+    email: `customer${i + 1}@example.com`,
+    phone: `+974-${Math.floor(1000000 + Math.random() * 9000000)}`,
+    rentals: Math.floor(1 + Math.random() * 10)
+  }));
+  
+  const maintenanceData = Array(10).fill(0).map((_, i) => ({
+    id: i + 1,
+    vehicle: `Vehicle ${i + 1}`,
+    type: ['Oil Change', 'Tire Rotation', 'Brake Service'][i % 3],
+    date: new Date().toISOString(),
+    cost: Math.floor(100 + Math.random() * 500)
+  }));
   
   const getReportData = () => {
     switch (selectedTab) {
@@ -37,29 +49,9 @@ const Reports = () => {
       case 'financial':
         return transactions;
       case 'customers':
-        return customers.map(customer => ({
-          id: customer.id,
-          full_name: customer.full_name,
-          email: customer.email,
-          phone: customer.phone,
-          status: customer.status,
-          driver_license: customer.driver_license,
-          nationality: customer.nationality || 'N/A',
-          address: customer.address || 'N/A',
-          created_at: customer.created_at
-        }));
+        return customerData;
       case 'maintenance':
-        return maintenanceRecords.map(record => ({
-          id: record.id,
-          vehicle: record.vehicles ? `${record.vehicles.make} ${record.vehicles.model} (${record.vehicles.license_plate})` : 'Unknown Vehicle',
-          maintenance_type: record.maintenance_type || 'General Maintenance',
-          scheduled_date: record.scheduled_date,
-          status: record.status,
-          cost: record.cost || 0,
-          completion_date: record.completion_date,
-          service_provider: record.service_provider || 'N/A',
-          notes: record.notes || 'N/A'
-        }));
+        return maintenanceData;
       default:
         return [];
     }
@@ -67,6 +59,7 @@ const Reports = () => {
 
   return <PageContainer title="Reports & Analytics" description="Comprehensive reports and analytics for your rental business">
       <div className="flex items-center mb-6">
+        
         <SectionHeader title="Generate Reports" description="Select a report type to view detailed analytics and insights" icon={FileText} />
       </div>
       
@@ -104,8 +97,8 @@ const Reports = () => {
       </Card>
       
       <div className="mt-8 text-center">
+        
       </div>
     </PageContainer>;
 };
-
 export default Reports;
