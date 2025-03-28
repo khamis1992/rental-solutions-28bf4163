@@ -19,8 +19,8 @@ import PerformanceMonitor from './pages/PerformanceMonitor';
 function App() {
   return (
     <div className="app">
-      <PerformanceProvider>
-        <Router>
+      <Router>
+        <PerformanceProvider>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -39,8 +39,8 @@ function App() {
             {/* Add the new performance route */}
             <Route path="/performance" element={<PerformanceMonitor />} />
           </Routes>
-        </Router>
-      </PerformanceProvider>
+        </PerformanceProvider>
+      </Router>
     </div>
   );
 }
