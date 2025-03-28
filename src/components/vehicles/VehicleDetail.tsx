@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -393,7 +394,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Rental Agreements</CardTitle>
-            
+            <CustomButton size="sm" variant="outline" onClick={handleCreateAgreement}>
+              <FileText className="h-4 w-4 mr-2" />
+              New Agreement
+            </CustomButton>
           </div>
           
           {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
@@ -442,6 +446,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
             </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
               No rental agreements found for this vehicle.
             </div>}
+        </div>
         
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
@@ -496,3 +501,4 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       </CardContent>
     </Card>;
 };
+
