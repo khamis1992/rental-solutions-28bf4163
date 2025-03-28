@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import {
   Select,
@@ -93,7 +94,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Makes</SelectItem>
           {uniqueMakes.map(make => (
-            <SelectItem key={make} value={make}>{make}</SelectItem>
+            make ? <SelectItem key={make} value={make}>{make}</SelectItem> : null
           ))}
         </SelectContent>
       </Select>
@@ -108,7 +109,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Locations</SelectItem>
           {uniqueLocations.map(location => (
-            <SelectItem key={location} value={location}>{location}</SelectItem>
+            location ? <SelectItem key={location} value={location}>{location}</SelectItem> : null
           ))}
         </SelectContent>
       </Select>
@@ -123,7 +124,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Years</SelectItem>
           {uniqueYears.map(year => (
-            <SelectItem key={year} value={year}>{year}</SelectItem>
+            year ? <SelectItem key={year} value={year}>{year}</SelectItem> : null
           ))}
         </SelectContent>
       </Select>
@@ -138,9 +139,11 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
           {vehicleTypes?.map(type => (
-            <SelectItem key={type.id} value={type.id || "unknown-type"}>
-              {type.name}
-            </SelectItem>
+            type.id ? (
+              <SelectItem key={type.id} value={type.id}>
+                {type.name}
+              </SelectItem>
+            ) : null
           ))}
         </SelectContent>
       </Select>

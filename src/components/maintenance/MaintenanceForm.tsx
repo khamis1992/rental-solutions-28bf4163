@@ -51,10 +51,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
       vehicle_id: initialData?.vehicle_id || '',
-      maintenance_type: (initialData?.maintenance_type as any) || MaintenanceType.REGULAR_INSPECTION,
-      status: (initialData?.status as any) || MaintenanceStatus.SCHEDULED,
-      scheduled_date: initialData?.scheduled_date || new Date(),
-      completion_date: initialData?.completion_date,
+      maintenance_type: (initialData?.maintenance_type as MaintenanceType) || MaintenanceType.REGULAR_INSPECTION,
+      status: (initialData?.status as MaintenanceStatus) || MaintenanceStatus.SCHEDULED,
+      scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
+      completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
       description: initialData?.description || '',
       cost: initialData?.cost || 0,
       service_provider: initialData?.service_provider || '',
@@ -108,15 +108,16 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       <SelectContent>
                         {vehiclesList.length > 0 ? (
                           vehiclesList.map(vehicle => (
-                            <SelectItem 
-                              key={vehicle.id} 
-                              value={vehicle.id || "default-vehicle-id"}
-                            >
-                              {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
-                            </SelectItem>
+                            vehicle.id ? (
+                              <SelectItem 
+                                key={vehicle.id} 
+                                value={vehicle.id}
+                              >
+                                {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
+                              </SelectItem>
+                            ) : null
                           ))
                         ) : (
-                          // Add fallback item if no vehicles are available
                           <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
