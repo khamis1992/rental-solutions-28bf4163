@@ -1,4 +1,5 @@
-import { useApiMutation, useApiQuery, useCrudApi } from './use-api';
+
+import { useApiMutation, useApiQuery } from './use-api';
 import { useState } from 'react';
 import { useToast } from './use-toast';
 import { MaintenanceStatus, MaintenanceStatusType } from '@/lib/validation-schemas/maintenance';
@@ -48,13 +49,9 @@ export function useMaintenance() {
     dateTo: '',
   });
 
-  // Use the CRUD API helper from use-api.ts
-  const crudApi = useCrudApi<any>('maintenance');
-
-  // When using filters in a query, map the status to the proper type
-  const { data: maintenanceRecords, isLoading, refetch } = useApiQuery(
-    ['maintenance', JSON.stringify(filters)],
-    async () => {
+  // Define CRUD endpoints
+  const maintenanceEndpoints = {
+    getAll: async () => {
       try {
         let query = supabase.from('maintenance').select('*');
         
@@ -96,8 +93,94 @@ export function useMaintenance() {
         console.error('Error in maintenance query:', error);
         return [];
       }
+    },
+    getById: async (id: string) => {
+      try {
+        const { data, error } = await supabase
+          .from('maintenance')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        return normalizeMaintenanceRecord(data);
+      } catch (error) {
+        console.error('Error fetching maintenance by ID:', error);
+        throw error;
+      }
+    },
+    create: async (data: any) => {
+      try {
+        const { data: newRecord, error } = await supabase
+          .from('maintenance')
+          .insert(data)
+          .select()
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        return normalizeMaintenanceRecord(newRecord);
+      } catch (error) {
+        console.error('Error creating maintenance record:', error);
+        throw error;
+      }
+    },
+    update: async (id: string, data: any) => {
+      try {
+        const { data: updatedRecord, error } = await supabase
+          .from('maintenance')
+          .update(data)
+          .eq('id', id)
+          .select()
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        return normalizeMaintenanceRecord(updatedRecord);
+      } catch (error) {
+        console.error('Error updating maintenance record:', error);
+        throw error;
+      }
+    },
+    delete: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('maintenance')
+          .delete()
+          .eq('id', id);
+        
+        if (error) {
+          throw error;
+        }
+      } catch (error) {
+        console.error('Error deleting maintenance record:', error);
+        throw error;
+      }
     }
-  );
+  };
+
+  // Use the CRUD API helper from use-api.ts
+  const crudApi = {
+    getAll: useApiQuery(['maintenance', JSON.stringify(filters)], maintenanceEndpoints.getAll),
+    getById: (id: string) => useApiQuery(['maintenance', id], () => maintenanceEndpoints.getById(id)),
+    create: useApiMutation(maintenanceEndpoints.create, { 
+      successMessage: 'Maintenance record created successfully' 
+    }),
+    update: useApiMutation(
+      ({ id, data }: { id: string; data: any }) => maintenanceEndpoints.update(id, data),
+      { successMessage: 'Maintenance record updated successfully' }
+    ),
+    remove: useApiMutation(maintenanceEndpoints.delete, { 
+      successMessage: 'Maintenance record deleted successfully' 
+    })
+  };
 
   // Create a direct method to fetch maintenance by vehicle ID
   const getMaintenanceByVehicleId = async (vehicleId: string) => {
@@ -190,18 +273,8 @@ export function useMaintenance() {
 
   // Wrap the useOne hook to properly handle date fields and field normalization
   const useOneWithNormalization = (id?: string) => {
-    const result = crudApi.useItem(id);
-    
-    // If we have data, normalize it to ensure consistency
-    if (result.data) {
-      const normalizedData = normalizeMaintenanceRecord(result.data);
-      return {
-        ...result,
-        data: normalizedData
-      };
-    }
-    
-    return result;
+    if (!id) return { data: undefined, isLoading: false, error: null };
+    return crudApi.getById(id);
   };
 
   // Function to delete all maintenance records, handling foreign key constraints
@@ -279,11 +352,11 @@ export function useMaintenance() {
   // Return both the basic state and the CRUD operations
   return {
     // Basic state
-    maintenanceRecords,
-    isLoading,
+    maintenanceRecords: crudApi.getAll.data,
+    isLoading: crudApi.getAll.isLoading,
     filters,
     setFilters,
-    refetch,
+    refetch: crudApi.getAll.refetch,
     
     // Direct methods
     getMaintenanceByVehicleId,
@@ -292,8 +365,8 @@ export function useMaintenance() {
     // CRUD operations
     useList: useCustomList,
     useOne: useOneWithNormalization,
-    useCreate: crudApi.useCreate,
-    useUpdate: crudApi.useUpdate,
-    useDelete: crudApi.useDelete
+    useCreate: crudApi.create,
+    useUpdate: crudApi.update,
+    useDelete: crudApi.remove
   };
 }

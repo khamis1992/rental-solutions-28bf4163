@@ -1,7 +1,7 @@
 
 import { toast } from '@/hooks/use-toast';
 import { PostgrestError } from '@supabase/supabase-js';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, UseQueryOptions } from '@tanstack/react-query';
 
 /**
  * Standard error handler for API calls.
@@ -80,14 +80,7 @@ export function handleApiSuccess(message: string): void {
 export function useApiQuery<TData>(
   queryKey: unknown[],
   queryFn: () => Promise<TData>,
-  options?: {
-    onSuccess?: (data: TData) => void;
-    onSettled?: (data: TData | undefined, error: Error | null) => void;
-    enabled?: boolean;
-    retry?: boolean | number;
-    refetchInterval?: number | false;
-    staleTime?: number;
-  }
+  options?: Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>
 ) {
   return useQuery({
     queryKey,
@@ -172,6 +165,12 @@ export function useCrudApi<TData, TInsert, TUpdate = Partial<TInsert>>(
     getById,
     create,
     update,
-    remove
+    remove,
+    // Add these aliases for compatibility with existing code
+    useOne: getById,
+    useCreate: create,
+    useUpdate: update,
+    useDelete: remove,
+    useList: (filter?: any) => getAll // Simplified for compatibility
   };
 }

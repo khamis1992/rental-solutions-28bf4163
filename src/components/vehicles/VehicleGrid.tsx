@@ -106,7 +106,8 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
           fuelLevel={undefined}
           mileage={vehicle.mileage || 0}
           onSelect={() => handleSelect(vehicle.id)}
-          dailyRate={vehicle.dailyRate || vehicle.rent_amount || 0}
+          // Remove the dailyRate prop or ensure it's properly typed in VehicleCardProps
+          rentAmount={vehicle.rent_amount || 0}
         />
       ))}
     </div>
