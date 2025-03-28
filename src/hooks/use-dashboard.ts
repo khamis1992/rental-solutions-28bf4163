@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -45,7 +46,7 @@ interface MaintenanceWithRelations {
   id: string;
   created_at: string;
   vehicle_id: string;
-  maintenance_type: string;
+  type: string;
   vehicles: { make: string; model: string; license_plate: string } | null;
 }
 
@@ -226,7 +227,7 @@ export function useDashboardData() {
             id, 
             created_at, 
             vehicle_id, 
-            maintenance_type, 
+            type, 
             vehicles:vehicle_id(make, model, license_plate)
           `)
           .order('created_at', { ascending: false })
@@ -274,7 +275,7 @@ export function useDashboardData() {
             id: typedItem.id,
             type: 'maintenance',
             title: 'Maintenance Scheduled',
-            description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${typedItem.maintenance_type}`,
+            description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${typedItem.type}`,
             time: getTimeAgo(new Date(typedItem.created_at))
           });
         });

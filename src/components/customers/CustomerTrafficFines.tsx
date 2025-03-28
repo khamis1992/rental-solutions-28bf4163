@@ -3,15 +3,12 @@ import { useState, useEffect } from 'react';
 import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
-import { AlertTriangle, CheckCircle, Clock, X, HelpCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, X } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { validateDataConsistency, logOperation } from '@/utils/monitoring-utils';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -21,7 +18,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [validationResults, setValidationResults] = useState<any>(null);
 
   useEffect(() => {
     const fetchTrafficFines = async () => {
@@ -31,9 +27,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         if (!customerId) {
           throw new Error("Invalid customer ID");
         }
-        
-        // Log operation start
-        logOperation('fetchCustomerTrafficFines', 'success', { customerId });
         
         // Step 1: First find all leases associated with this customer using explicit join syntax
         const { data: leases, error: leasesError } = await supabase
@@ -152,15 +145,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         console.error('Error fetching traffic fines:', err);
         const errorMessage = err instanceof Error ? err.message : 'Failed to load traffic fines';
         setError(errorMessage);
-        
-        // Log error
-        logOperation(
-          'fetchCustomerTrafficFines',
-          'error',
-          { customerId },
-          errorMessage
-        );
-        
         toast.error('Failed to load traffic fines', {
           description: errorMessage
         });
@@ -184,32 +168,6 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
     }
   };
 
-  const validateFineData = async (fineId: string) => {
-    try {
-      const results = await validateDataConsistency('trafficFine', fineId, supabase);
-      setValidationResults(results);
-      
-      if (results.isValid) {
-        toast.success('Data validation successful', {
-          description: 'All relationships are valid'
-        });
-      } else {
-        toast.error('Data validation failed', {
-          description: `Found ${results.inconsistencies.length} issues`
-        });
-      }
-    } catch (error) {
-      console.error('Validation error:', error);
-      toast.error('Validation failed', {
-        description: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  };
-
-  const clearValidation = () => {
-    setValidationResults(null);
-  };
-
   if (loading) {
     return <div className="py-4 text-center text-muted-foreground">Loading traffic fines...</div>;
   }
@@ -229,90 +187,36 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   }
 
   return (
-    <div className="space-y-4">
-      {validationResults && (
-        <Alert 
-          variant={validationResults.isValid ? "default" : "destructive"}
-          className="mb-4"
-        >
-          <AlertTitle>
-            {validationResults.isValid ? 'Validation Successful' : 'Validation Issues Found'}
-          </AlertTitle>
-          <AlertDescription>
-            {validationResults.isValid ? (
-              <p>All data relationships are valid.</p>
-            ) : (
-              <div>
-                <p className="mb-2">The following issues were found:</p>
-                <ul className="list-disc pl-5">
-                  {validationResults.inconsistencies.map((issue: string, i: number) => (
-                    <li key={i}>{issue}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="mt-2" 
-              onClick={clearValidation}
-            >
-              Dismiss
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Violation #</TableHead>
-            <TableHead>Vehicle</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Violation</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-[50px]"></TableHead>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Violation #</TableHead>
+          <TableHead>Vehicle</TableHead>
+          <TableHead>Date</TableHead>
+          <TableHead>Violation</TableHead>
+          <TableHead>Amount</TableHead>
+          <TableHead>Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {fines.map((fine) => (
+          <TableRow key={fine.id}>
+            <TableCell className="font-medium">{fine.violationNumber}</TableCell>
+            <TableCell>
+              {fine.licensePlate}
+              {fine.vehicleModel && (
+                <div className="text-xs text-muted-foreground">{fine.vehicleModel}</div>
+              )}
+            </TableCell>
+            <TableCell>{formatDate(fine.violationDate)}</TableCell>
+            <TableCell>{fine.violationCharge}</TableCell>
+            <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
+            <TableCell>
+              {getStatusBadge(fine.paymentStatus)}
+            </TableCell>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {fines.map((fine) => (
-            <TableRow key={fine.id}>
-              <TableCell className="font-medium">{fine.violationNumber}</TableCell>
-              <TableCell>
-                {fine.licensePlate}
-                {fine.vehicleModel && (
-                  <div className="text-xs text-muted-foreground">{fine.vehicleModel}</div>
-                )}
-              </TableCell>
-              <TableCell>{formatDate(fine.violationDate)}</TableCell>
-              <TableCell>{fine.violationCharge}</TableCell>
-              <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
-              <TableCell>
-                {getStatusBadge(fine.paymentStatus)}
-              </TableCell>
-              <TableCell>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => validateFineData(fine.id)}
-                      >
-                        <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Validate data relationships</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
