@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,8 +7,8 @@ import {
   Home,
   Car,
   Users,
-  FileContract,
-  Tool,
+  FileText, // Instead of FileContract which is not available
+  Wrench, // Instead of Tool which is not available
   Settings,
   LogOut,
   BarChart2,
@@ -185,14 +184,14 @@ const Sidebar = () => {
 
                 <NavLink
                   to="/agreements"
-                  icon={<FileContract className="h-4 w-4" />}
+                  icon={<FileText className="h-4 w-4" />}
                   label="Agreements"
                   isActive={isActive('/agreements')}
                 />
 
                 <NavLink
                   to="/maintenance"
-                  icon={<Tool className="h-4 w-4" />}
+                  icon={<Wrench className="h-4 w-4" />}
                   label="Maintenance"
                   isActive={isActive('/maintenance')}
                 />
@@ -226,46 +225,44 @@ const Sidebar = () => {
                 />
 
                 {/* Settings Group */}
-                {expanded && (
-                  <NavGroup 
-                    label="Settings" 
-                    icon={<Settings className="h-4 w-4" />}
-                    defaultOpen={hasActiveChild(['/settings', '/user-management', '/settings/system'])}
+                <NavGroup 
+                  label="Settings" 
+                  icon={<Settings className="h-4 w-4" />}
+                  defaultOpen={hasActiveChild(['/settings', '/user-management', '/settings/system'])}
+                >
+                  <Link
+                    to="/settings"
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-accent",
+                      isActive('/settings') && !isActive('/settings/system') ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                    )}
                   >
-                    <Link
-                      to="/settings"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-accent",
-                        isActive('/settings') && !isActive('/settings/system') ? "bg-accent text-accent-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      <UserCog className="h-4 w-4" />
-                      <span>User Settings</span>
-                    </Link>
-                    
-                    <Link
-                      to="/settings/system"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-accent",
-                        isActive('/settings/system') ? "bg-accent text-accent-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      <Sliders className="h-4 w-4" />
-                      <span>System Settings</span>
-                    </Link>
-                    
-                    <Link
-                      to="/user-management"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-accent",
-                        isActive('/user-management') ? "bg-accent text-accent-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      <Users className="h-4 w-4" />
-                      <span>User Management</span>
-                    </Link>
-                  </NavGroup>
-                )}
+                    <UserCog className="h-4 w-4" />
+                    <span>User Settings</span>
+                  </Link>
+                  
+                  <Link
+                    to="/settings/system"
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-accent",
+                      isActive('/settings/system') ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    <Sliders className="h-4 w-4" />
+                    <span>System Settings</span>
+                  </Link>
+                  
+                  <Link
+                    to="/user-management"
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all hover:bg-accent",
+                      isActive('/user-management') ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+                    )}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>User Management</span>
+                  </Link>
+                </NavGroup>
 
                 {/* If not expanded, show plain settings links */}
                 {!expanded && (
@@ -305,7 +302,7 @@ const Sidebar = () => {
           {expanded ? (
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={profile?.avatar_url || ""} />
+                <AvatarImage src={profile?.image || ""} />
                 <AvatarFallback>{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
