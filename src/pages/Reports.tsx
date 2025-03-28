@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -91,8 +92,8 @@ const Reports = () => {
           scheduled_date: record.scheduled_date,
           status: record.status,
           cost: record.cost || 0,
-          completion_date: record.completion_date,
-          service_provider: record.service_provider || 'N/A',
+          completion_date: record.completed_date,
+          service_provider: record.service_provider || record.performed_by || 'N/A',
           notes: record.notes || 'N/A'
         }));
       case 'legal':
