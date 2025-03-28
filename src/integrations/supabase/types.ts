@@ -3867,6 +3867,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_leases_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leases_template_id_fkey"
             columns: ["template_id"]
             isOneToOne: false
@@ -9520,6 +9527,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_leases_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "unified_payments_lease_id_fkey"
             columns: ["agreement_id"]
             isOneToOne: false
@@ -9571,6 +9585,13 @@ export type Database = {
           updated_at: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_leases_customer"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "unified_payments_invoice_id_fkey"
             columns: ["invoice_id"]

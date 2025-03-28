@@ -1,3 +1,4 @@
+
 import { useApiMutation, useApiQuery, useCrudApi } from './use-api';
 import { useState } from 'react';
 import { useToast } from './use-toast';
@@ -127,7 +128,25 @@ export function useMaintenance() {
       ['maintenance-list', JSON.stringify(customFilters)],
       async () => {
         try {
-          let query = supabase.from('maintenance').select('*');
+          // Use explicit column selection to avoid type/maintenance_type confusion
+          let query = supabase.from('maintenance').select(`
+            id,
+            vehicle_id,
+            status,
+            scheduled_date,
+            completion_date,
+            maintenance_type,
+            service_type,
+            description,
+            cost,
+            service_provider,
+            invoice_number,
+            odometer_reading,
+            notes,
+            created_at,
+            updated_at,
+            vehicles(*)
+          `);
           
           if (customFilters) {
             // Handle vehicle_id filtering
@@ -151,7 +170,7 @@ export function useMaintenance() {
               query = query.lte('scheduled_date', dateTo.toISOString());
             }
             
-            // Handle maintenance type filtering
+            // Handle maintenance type filtering - now using maintenance_type explicitly
             if (customFilters.maintenance_type) {
               query = query.eq('maintenance_type', customFilters.maintenance_type);
             }
