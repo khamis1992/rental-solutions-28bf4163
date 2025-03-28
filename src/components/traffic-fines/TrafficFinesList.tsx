@@ -82,8 +82,10 @@ const TrafficFinesList = () => {
 
         // Try to assign by finding a lease with this vehicle
         try {
-          await assignToCustomer({ id: fine.id });
-          assignedCount++;
+          const result = await assignToCustomer({ id: fine.id });
+          if (result) {
+            assignedCount++;
+          }
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
         }

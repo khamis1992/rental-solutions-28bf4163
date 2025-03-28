@@ -14,7 +14,7 @@ const TrafficFines = () => {
   // Auto-assign unassigned fines when the page loads
   useEffect(() => {
     if (!isLoading && !initialAssignmentDone && trafficFines && trafficFines.length > 0) {
-      const unassignedFines = trafficFines.filter(fine => !fine.customerId && !fine.leaseId);
+      const unassignedFines = trafficFines.filter(fine => !fine.customerId);
       
       if (unassignedFines.length > 0) {
         toast.info(`Auto-assigning ${unassignedFines.length} unassigned traffic fines...`);
@@ -40,14 +40,12 @@ const TrafficFines = () => {
           } else if (unassignedFines.length > 0) {
             toast.warning('No traffic fines could be automatically assigned');
           }
-          
-          setInitialAssignmentDone(true);
         };
         
         assignFines();
-      } else {
-        setInitialAssignmentDone(true);
       }
+      
+      setInitialAssignmentDone(true);
     }
   }, [isLoading, trafficFines, initialAssignmentDone, assignToCustomer]);
 
