@@ -11,6 +11,9 @@ export function useSpecialAgreementHandler(
   const paymentGenerationAttemptedRef = useRef(false);
   
   useEffect(() => {
+    let isMounted = true;
+    
+    // Only run once when component mounts and initialization is complete
     const handleSpecialAgreement = async () => {
       if (!agreementId || !agreementNumber || !isInitialized || paymentGenerationAttemptedRef.current) {
         return;
@@ -21,7 +24,7 @@ export function useSpecialAgreementHandler(
       try {
         // Force check all agreements for current month payments
         const allResult = await forceCheckAllAgreementsForPayments();
-        if (allResult.success) {
+        if (allResult.success && isMounted) {
           console.log("Payment check completed:", allResult);
           if (allResult.generated > 0) {
             toast.success(`Generated ${allResult.generated} new payments for active agreements`);
@@ -29,7 +32,7 @@ export function useSpecialAgreementHandler(
         }
         
         // Special handling for agreement with MR202462 number
-        if (agreementNumber === 'MR202462') {
+        if (agreementNumber === 'MR202462' && isMounted) {
           console.log(`Special check for agreement ${agreementNumber} to catch up missing payments`);
           
           // Create explicit date objects for the date range
@@ -61,23 +64,25 @@ export function useSpecialAgreementHandler(
             return;
           }
           
-          // Generate payments for each month in the date range
-          const missingResult = await forceGeneratePaymentsForMissingMonths(
-            agreementId,
-            rentAmount,
-            lastKnownPaymentDate,
-            currentSystemDate
-          );
-          
-          if (missingResult.success) {
-            console.log("Missing payments check completed:", missingResult);
-            if (missingResult.generated > 0) {
-              toast.success(`Generated ${missingResult.generated} missing monthly payments for ${agreementNumber}`);
-            } else {
-              console.log("No missing payments were generated, all months might be covered already");
+          if (isMounted) {
+            // Generate payments for each month in the date range
+            const missingResult = await forceGeneratePaymentsForMissingMonths(
+              agreementId,
+              rentAmount,
+              lastKnownPaymentDate,
+              currentSystemDate
+            );
+            
+            if (missingResult.success && isMounted) {
+              console.log("Missing payments check completed:", missingResult);
+              if (missingResult.generated > 0) {
+                toast.success(`Generated ${missingResult.generated} missing monthly payments for ${agreementNumber}`);
+              } else {
+                console.log("No missing payments were generated, all months might be covered already");
+              }
+            } else if (isMounted) {
+              console.error("Failed to generate missing payments:", missingResult);
             }
-          } else {
-            console.error("Failed to generate missing payments:", missingResult);
           }
         }
       } catch (error) {
@@ -86,5 +91,10 @@ export function useSpecialAgreementHandler(
     };
 
     handleSpecialAgreement();
-  }, [agreementId, agreementNumber, isInitialized]); // These deps are needed but won't cause refresh loops now
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, [agreementId, agreementNumber, isInitialized]); 
 }

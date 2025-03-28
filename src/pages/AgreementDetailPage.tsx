@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -31,7 +31,7 @@ const AgreementDetailPage = () => {
     contractAmount,
     fetchPayments
   } = useAgreementPayments({
-    agreementId: id || '',
+    agreementId: id,
     isInitialized,
     refreshTrigger
   });
@@ -40,13 +40,15 @@ const AgreementDetailPage = () => {
   useSpecialAgreementHandler(id, agreement?.agreement_number, isInitialized);
 
   // Function to manually refresh the agreement data
-  const refreshAgreementData = () => {
+  const refreshAgreementData = useCallback(() => {
     console.log("Refreshing agreement data...");
     setRefreshTrigger(prev => prev + 1);
-  };
+  }, []);
 
   // Fetch agreement data - separated from other data fetching operations
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchAgreement = async () => {
       if (!id || !isInitialized || fetchAttemptedRef.current) return;
       
@@ -57,17 +59,21 @@ const AgreementDetailPage = () => {
         // Get the agreement
         const data = await getAgreement(id);
         
-        if (data) {
+        if (data && isMounted) {
           setAgreement(data);
-        } else {
+        } else if (isMounted) {
           toast.error("Agreement not found");
           navigate("/agreements");
         }
       } catch (error) {
         console.error("Error fetching agreement:", error);
-        toast.error("Failed to load agreement details");
+        if (isMounted) {
+          toast.error("Failed to load agreement details");
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -75,18 +81,19 @@ const AgreementDetailPage = () => {
     
     // Cleanup function
     return () => {
-      // Reset fetch attempted when the component is unmounted or id changes
-      if (id) fetchAttemptedRef.current = false;
+      isMounted = false;
     };
   }, [id, getAgreement, navigate, isInitialized]);
 
   // Handle refresh trigger separately to avoid loading state issues
   useEffect(() => {
+    let isMounted = true;
+    
     if (refreshTrigger > 0 && id && isInitialized) {
       const refreshData = async () => {
         try {
           const data = await getAgreement(id);
-          if (data) {
+          if (data && isMounted) {
             setAgreement(data);
           }
         } catch (error) {
@@ -96,6 +103,10 @@ const AgreementDetailPage = () => {
       
       refreshData();
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [refreshTrigger, id, getAgreement, isInitialized]);
 
   const handleDelete = async (agreementId: string) => {
@@ -110,10 +121,10 @@ const AgreementDetailPage = () => {
   };
 
   // Handle payment deleted event - only refresh payments, not everything
-  const handlePaymentDeleted = () => {
+  const handlePaymentDeleted = useCallback(() => {
     console.log("Payment deleted, refreshing payment data only");
     fetchPayments();
-  };
+  }, [fetchPayments]);
 
   return (
     <PageContainer

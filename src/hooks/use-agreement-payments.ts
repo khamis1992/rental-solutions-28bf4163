@@ -6,7 +6,7 @@ import { differenceInMonths } from 'date-fns';
 import { Payment } from '@/components/agreements/PaymentHistory';
 
 interface UseAgreementPaymentsProps {
-  agreementId: string;
+  agreementId: string | undefined;
   isInitialized: boolean;
   refreshTrigger: number;
 }
@@ -24,7 +24,7 @@ export function useAgreementPayments({
 
   // Fetch rent amount separately - no dependencies on other API calls
   const fetchRentAmount = useCallback(async () => {
-    if (!agreementId || fetchingRef.current) return;
+    if (!agreementId || !isInitialized || fetchingRef.current) return;
     
     try {
       const { data, error } = await supabase
@@ -59,11 +59,11 @@ export function useAgreementPayments({
     } catch (error) {
       console.error("Error fetching rent amount:", error);
     }
-  }, [agreementId]);
+  }, [agreementId, isInitialized]);
 
   // Fetch payments - separate from other data fetching
   const fetchPayments = useCallback(async () => {
-    if (!agreementId || fetchingRef.current) return;
+    if (!agreementId || !isInitialized || fetchingRef.current) return;
     
     fetchingRef.current = true;
     setIsLoadingPayments(true);
@@ -106,17 +106,25 @@ export function useAgreementPayments({
       setIsLoadingPayments(false);
       fetchingRef.current = false;
     }
-  }, [agreementId]);
+  }, [agreementId, isInitialized]);
 
   // Main effect to fetch both rent amount and payments - protect against re-renders
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchData = async () => {
       if (isInitialized && agreementId && !fetchingRef.current) {
-        // First get the rent amount
-        await fetchRentAmount();
-        
-        // Then fetch the payments
-        await fetchPayments();
+        try {
+          // First get the rent amount
+          await fetchRentAmount();
+          
+          // Then fetch the payments
+          if (isMounted) {
+            await fetchPayments();
+          }
+        } catch (error) {
+          console.error("Error in payment data fetching:", error);
+        }
       }
     };
     
@@ -124,6 +132,7 @@ export function useAgreementPayments({
     
     // Cleanup function
     return () => {
+      isMounted = false;
       fetchingRef.current = false;
     };
   }, [agreementId, isInitialized, fetchRentAmount, fetchPayments, refreshTrigger]);

@@ -1,3 +1,4 @@
+
 # Rental Agreements System Documentation
 
 ## Overview
@@ -86,6 +87,26 @@ const updateAgreement = useApiMutation(
   }
 )
 ```
+
+### Specialized Hooks for Agreement Page
+1. **useAgreementInitialization** (`src/hooks/use-agreement-initialization.ts`)
+   - Handles system initialization on first load
+   - Prevents multiple initialization attempts
+
+2. **useAgreementPayments** (`src/hooks/use-agreement-payments.ts`)
+   - Fetches and manages payment data for an agreement
+   - Calculates rent amounts and contract values
+
+3. **useSpecialAgreementHandler** (`src/hooks/use-special-agreement-handler.ts`)
+   - Handles special cases for specific agreements
+   - Manages payment generation for missing periods
+
+### Performance Optimization
+To prevent excessive re-renders and API calls:
+- Use `useRef` to track fetch attempts and states
+- Implement proper cleanup in useEffect hooks
+- Add proper dependency arrays to useEffect and useCallback hooks
+- Use the `isMounted` pattern to prevent state updates after unmount
 
 ### API Endpoints
 Agreement data is managed through Supabase with these key operations:
@@ -181,6 +202,15 @@ const { data, error } = await supabase.rpc('update_agreement_status', {
 });
 ```
 
+### Issue: Agreement Page Refreshing Continuously
+**Cause**: Circular dependencies in hooks, improper cleanup, or infinite re-renders.
+**Fix**:
+1. Use proper cleanup in useEffect hooks with the isMounted pattern
+2. Ensure fetch operations are properly guarded with refs
+3. Isolate special agreement handling logic
+4. Use proper dependency arrays for useEffect and useCallback
+5. Implement manual refresh mechanism instead of automatic refresh
+
 ### Issue: Payment Records Not Showing
 **Cause**: Payment association to lease may be missing or incorrect.
 **Fix**:
@@ -261,80 +291,3 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
   return processedTemplate;
 };
 ```
-
-## Search Optimization
-
-The system includes specialized search functionality for license plates and agreement numbers:
-
-```typescript
-// Helper for license plate matching
-export const doesLicensePlateMatchNumeric = (
-  plate: string, 
-  searchPattern: string
-): boolean => {
-  // Various matching strategies for better user experience
-}
-```
-
-## Testing and Validation
-
-Key agreement workflows have validation rules:
-
-```typescript
-// Agreement validation schema
-export const agreementSchema = z.object({
-  id: z.string(),
-  customer_id: z.string(),
-  vehicle_id: z.string(),
-  start_date: z.date(),
-  end_date: z.date(),
-  status: z.enum([/* status values */]),
-  // ... other fields
-});
-```
-
-## Pending Features and Enhancements
-
-1. **Automatic Late Fee Application**:
-   - System to automatically calculate and apply late fees
-   - Configurable grace periods and fee structures
-
-2. **Payment Receipt Generation**:
-   - Automatic PDF receipt generation for payments
-   - Email distribution of receipts
-
-3. **Agreement Extension Process**:
-   - Streamlined workflow for extending existing agreements
-   - Recalculation of payment schedules
-
-4. **Early Termination Handling**:
-   - Rules for calculating early termination fees
-   - Refund processing for prepaid amounts
-
-## Troubleshooting Flow
-
-When diagnosing issues with agreements:
-
-1. Verify the agreement exists and has correct IDs
-2. Check related vehicle and customer records
-3. Examine payment records for the agreement
-4. Verify document generation status
-5. Check status transition history
-6. Review any transaction logs for errors
-
-## Configuration Options
-
-Agreement settings can be customized:
-
-```typescript
-// Default configuration parameters
-const agreementConfig = {
-  defaultLateFee: 120.0, // Daily late fee amount
-  securityDepositMultiplier: 1.0, // Multiplier of monthly rent
-  minRentalDuration: 7, // Minimum rental period in days
-  paymentGracePeriod: 3, // Days after due date before late fee
-  documentRetentionPeriod: 365 // Days to retain documents
-};
-```
-
-These parameters influence agreement calculation, payment scheduling, and document handling throughout the system.
