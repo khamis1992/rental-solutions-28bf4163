@@ -29,8 +29,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { toast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -57,9 +57,8 @@ import {
 } from "@/components/ui/dialog";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { UserRoleManager } from "./UserRoleManager";
 
 interface UserData {
   id: string;
@@ -130,7 +129,9 @@ const UserList = () => {
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
   const [saving, setSaving] = useState(false);
   const { profile } = useProfile();
-  
+  const [showQuickRoleDialog, setShowQuickRoleDialog] = useState(false);
+  const [changingRole, setChangingRole] = useState(false);
+
   const form = useForm({
     defaultValues: {
       role: "",
@@ -139,7 +140,7 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
-    updateAdminAccounts();
+    updateTarekToAdmin();
   }, []);
 
   useEffect(() => {
@@ -168,56 +169,40 @@ const UserList = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      console.log("Fetching users from Supabase...");
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .not('role', 'eq', 'customer');
       
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log("Fetched users:", data);
       setUsers(data || []);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users: " + error.message);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const updateAdminAccounts = async () => {
+  const updateTarekToAdmin = async () => {
     try {
-      const { error: tarekError } = await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({ role: "admin" })
         .eq("email", "tareklaribi25914@gmail.com");
       
-      if (tarekError) {
-        console.error("Error updating Tarek's role:", tarekError);
-        throw tarekError;
-      }
+      if (error) throw error;
       
       console.log("Tarek's account has been set as admin");
       
-      const { error: khamisError } = await supabase
-        .from("profiles")
-        .update({ role: "admin" })
-        .eq("email", "khamis-1992@hotmail.com");
-      
-      if (khamisError) {
-        console.error("Error updating Khamis's role:", khamisError);
-        throw khamisError;
-      }
-      
-      console.log("Khamis's account has been set as admin");
-      
       fetchUsers();
     } catch (error: any) {
-      console.error("Error updating user roles:", error.message);
+      console.error("Error updating user role:", error.message);
     }
   };
 
@@ -226,55 +211,61 @@ const UserList = () => {
       setChangingRole(true);
       console.log(`Updating user ${userId} to role ${newRole}`);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({ role: newRole })
         .eq("id", userId);
       
-      if (error) {
-        console.error("Update role error details:", error);
-        throw error;
-      }
-      
-      console.log("Update role response:", data);
+      if (error) throw error;
       
       setUsers(users.map(user => 
         user.id === userId ? { ...user, role: newRole } : user
       ));
       
-      toast.success(`User role updated to ${newRole}`);
+      toast({
+        title: "Success",
+        description: `User role updated to ${newRole}`,
+        variant: "default"
+      });
       
       setShowQuickRoleDialog(false);
     } catch (error: any) {
       console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role: " + error.message);
+      toast({
+        title: "Error",
+        description: "Failed to update user role: " + error.message,
+        variant: "destructive"
+      });
     } finally {
       setChangingRole(false);
     }
   };
-
+  
   const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
     try {
-      const validStatus = newStatus as "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
-      
       const { error } = await supabase
         .from("profiles")
-        .update({ status: validStatus })
+        .update({ status: newStatus })
         .eq("id", userId);
       
-      if (error) {
-        console.error("Update status error details:", error);
-        throw error;
-      }
+      if (error) throw error;
       
       setUsers(users.map(user => 
         user.id === userId ? { ...user, status: newStatus } : user
       ));
       
-      toast.success(`User status updated to ${newStatus}`);
+      toast({
+        title: "Success",
+        description: `User status updated to ${newStatus}`,
+        variant: "default"
+      });
     } catch (error: any) {
       console.error("Error updating user status:", error.message);
-      toast.error("Failed to update user status: " + error.message);
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive"
+      });
     }
   };
 
@@ -294,13 +285,21 @@ const UserList = () => {
         await handleUpdateUserRole(selectedUser.id, newRole);
       }
       
-      toast.success("User permissions updated successfully");
+      toast({
+        title: "Success",
+        description: "User permissions updated successfully",
+        variant: "default"
+      });
       setShowPermissionDialog(false);
       
       fetchUsers();
     } catch (error: any) {
       console.error("Error saving permissions:", error.message);
-      toast.error("Failed to save permissions");
+      toast({
+        title: "Error",
+        description: "Failed to save permissions",
+        variant: "destructive"
+      });
     } finally {
       setSaving(false);
     }
@@ -344,7 +343,19 @@ const UserList = () => {
       header: "Name",
       cell: ({ row }) => {
         const value = row.getValue("full_name") as string;
-        return <div className="font-medium">{value || "N/A"}</div>;
+        const user = row.original;
+        const isAdmin = profile?.role === "admin";
+        const isSelf = isCurrentUser(user.id);
+        
+        return (
+          <div 
+            className={`font-medium ${isAdmin && !isSelf ? "cursor-pointer hover:text-primary hover:underline" : ""}`}
+            onClick={() => isAdmin && !isSelf ? openQuickRoleDialog(user) : null}
+            title={isAdmin && !isSelf ? "Click to change role" : ""}
+          >
+            {value || "N/A"}
+          </div>
+        );
       },
     },
     {
@@ -358,17 +369,18 @@ const UserList = () => {
       accessorKey: "role",
       header: "Role",
       cell: ({ row }) => {
-        const user = row.original;
-        const isAdmin = profile?.role === "admin";
-        const isSelf = isCurrentUser(user.id);
-        
+        const role = row.getValue("role") as string;
         return (
-          <UserRoleManager 
-            userId={user.id}
-            currentRole={user.role}
-            fullName={user.full_name}
-            disabled={!isAdmin || isSelf}
-          />
+          <div className="flex items-center">
+            {role === "admin" ? (
+              <Shield className="h-4 w-4 mr-2 text-primary" />
+            ) : role === "manager" ? (
+              <UserCog className="h-4 w-4 mr-2 text-blue-500" />
+            ) : (
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+            )}
+            <span className="capitalize">{role || "user"}</span>
+          </div>
         );
       },
     },
@@ -427,6 +439,26 @@ const UserList = () => {
                 disabled={profile?.role !== "admin"}
               >
                 Manage Permissions
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Change Role</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => handleUpdateUserRole(user.id, "admin")}
+                disabled={user.role === "admin" || profile?.role !== "admin" || currentUserProfile}
+              >
+                Set as Admin
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleUpdateUserRole(user.id, "manager")}
+                disabled={user.role === "manager" || profile?.role !== "admin" || currentUserProfile}
+              >
+                Set as Manager
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleUpdateUserRole(user.id, "user")}
+                disabled={user.role === "user" || profile?.role !== "admin" || currentUserProfile}
+              >
+                Set as User
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Change Status</DropdownMenuLabel>
@@ -651,23 +683,33 @@ const UserList = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <div className="mb-4">
-                <Label htmlFor="role-select" className="mb-2 block">User Role</Label>
-                <Select 
-                  onValueChange={handleRoleChange} 
-                  defaultValue={selectedUser.role}
-                  disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                >
-                  <SelectTrigger id="role-select">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem className="mb-4">
+                      <FormLabel>User Role</FormLabel>
+                      <Select 
+                        onValueChange={handleRoleChange} 
+                        defaultValue={selectedUser.role}
+                        disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="manager">Manager</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </Form>
 
               <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-5 font-medium">
@@ -737,6 +779,66 @@ const UserList = () => {
                 disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id) || saving}
               >
                 {saving ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {selectedUser && (
+        <Dialog open={showQuickRoleDialog} onOpenChange={setShowQuickRoleDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Change User Role</DialogTitle>
+              <DialogDescription>
+                Update role for {selectedUser.full_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <div className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <FormLabel>Current Role: <span className="font-medium capitalize">{selectedUser.role}</span></FormLabel>
+                  <FormLabel>Select New Role:</FormLabel>
+                  <div className="flex flex-col space-y-2">
+                    <Button
+                      variant={selectedUser.role === "admin" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => handleUpdateUserRole(selectedUser.id, "admin")}
+                      disabled={changingRole || selectedUser.role === "admin"}
+                    >
+                      <Shield className="h-4 w-4 mr-2 text-primary" />
+                      Admin
+                    </Button>
+                    <Button
+                      variant={selectedUser.role === "manager" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => handleUpdateUserRole(selectedUser.id, "manager")}
+                      disabled={changingRole || selectedUser.role === "manager"}
+                    >
+                      <UserCog className="h-4 w-4 mr-2 text-blue-500" />
+                      Manager
+                    </Button>
+                    <Button
+                      variant={selectedUser.role === "user" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => handleUpdateUserRole(selectedUser.id, "user")}
+                      disabled={changingRole || selectedUser.role === "user"}
+                    >
+                      <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                      User
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setShowQuickRoleDialog(false)}
+                disabled={changingRole}
+              >
+                Cancel
               </Button>
             </DialogFooter>
           </DialogContent>
