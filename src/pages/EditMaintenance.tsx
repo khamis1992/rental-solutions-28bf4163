@@ -85,8 +85,27 @@ const EditMaintenance = () => {
     );
   }
   
-  // Convert API maintenance data to form compatible data 
-  // Ensure maintenance_type is properly typed to match the allowed enum values
+  // Map the uppercase maintenance type to lowercase
+  const mapMaintenanceType = (type: string): keyof typeof MaintenanceType => {
+    // Create a mapping between uppercase keys and lowercase values
+    const typeMapping: Record<string, keyof typeof MaintenanceType> = {
+      'OIL_CHANGE': 'oil_change',
+      'TIRE_REPLACEMENT': 'tire_replacement',
+      'BRAKE_SERVICE': 'brake_service',
+      'REGULAR_INSPECTION': 'regular_inspection',
+      'ENGINE_REPAIR': 'engine_repair',
+      'TRANSMISSION_SERVICE': 'transmission_service',
+      'ELECTRICAL_REPAIR': 'electrical_repair',
+      'BODY_REPAIR': 'body_repair',
+      'AIR_CONDITIONING': 'air_conditioning',
+      'OTHER': 'other'
+    };
+    
+    // Return the mapped value or default to 'other' if not found
+    return typeMapping[type] || 'other';
+  };
+  
+  // Convert API maintenance data to form compatible data
   const formData = {
     ...maintenance,
     // Convert string dates to Date objects for the form
@@ -94,8 +113,8 @@ const EditMaintenance = () => {
     completion_date: maintenance.completed_date ? new Date(maintenance.completed_date) : undefined,
     // Map fields to expected names
     service_provider: maintenance.service_provider || maintenance.performed_by,
-    // Convert maintenance_type to one of the allowed enum values
-    maintenance_type: maintenance.maintenance_type as keyof typeof MaintenanceType,
+    // Map maintenance_type to lowercase value expected by the form
+    maintenance_type: mapMaintenanceType(maintenance.maintenance_type),
     // Ensure created_at is handled properly
     created_at: maintenance.created_at ? new Date(maintenance.created_at) : undefined,
     updated_at: maintenance.updated_at ? new Date(maintenance.updated_at) : undefined
