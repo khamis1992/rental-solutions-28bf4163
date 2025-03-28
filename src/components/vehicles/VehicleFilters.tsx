@@ -46,20 +46,16 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   }, [initialValues]);
   
   const uniqueMakes = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.make || 'unknown') || [])
+    new Set(vehicles?.map(vehicle => vehicle.make) || [])
   ).sort();
   
   const uniqueLocations = Array.from(
-    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location || 'unknown') || [])
+    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location) || [])
   ).sort();
   
   const uniqueYears = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.year?.toString() || 'unknown') || [])
-  ).sort((a, b) => {
-    if (a === 'unknown') return 1;
-    if (b === 'unknown') return -1;
-    return parseInt(b) - parseInt(a);
-  });
+    new Set(vehicles?.map(vehicle => vehicle.year?.toString()) || [])
+  ).sort((a, b) => parseInt(b) - parseInt(a));
   
   const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -143,15 +139,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Categories</SelectItem>
           {vehicleTypes?.map(type => (
-            type.id ? (
-              <SelectItem key={type.id} value={type.id}>
-                {type.name}
-              </SelectItem>
-            ) : (
-              <SelectItem key="unknown-type" value="unknown-type">
-                Unknown Type
-              </SelectItem>
-            )
+            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
           ))}
         </SelectContent>
       </Select>

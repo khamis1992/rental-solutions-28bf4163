@@ -3,19 +3,20 @@ import { z } from "zod";
 
 // Define maintenance types
 export const MaintenanceType = {
-  OIL_CHANGE: "OIL_CHANGE",
-  TIRE_REPLACEMENT: "TIRE_REPLACEMENT",
-  BRAKE_SERVICE: "BRAKE_SERVICE",
-  REGULAR_INSPECTION: "REGULAR_INSPECTION",
-  ENGINE_REPAIR: "ENGINE_REPAIR",
-  TRANSMISSION_SERVICE: "TRANSMISSION_SERVICE",
-  ELECTRICAL_REPAIR: "ELECTRICAL_REPAIR",
-  BODY_REPAIR: "BODY_REPAIR",
-  AIR_CONDITIONING: "AIR_CONDITIONING",
-  OTHER: "OTHER"
+  OIL_CHANGE: "oil_change",
+  TIRE_REPLACEMENT: "tire_replacement",
+  BRAKE_SERVICE: "brake_service",
+  REGULAR_INSPECTION: "regular_inspection",
+  ENGINE_REPAIR: "engine_repair",
+  TRANSMISSION_SERVICE: "transmission_service",
+  ELECTRICAL_REPAIR: "electrical_repair",
+  BODY_REPAIR: "body_repair",
+  AIR_CONDITIONING: "air_conditioning",
+  OTHER: "other"
 } as const;
 
 // Define maintenance statuses - lowercase values for frontend schema
+// but DB uses uppercase values
 export const MaintenanceStatus = {
   SCHEDULED: "scheduled",
   IN_PROGRESS: "in_progress",
