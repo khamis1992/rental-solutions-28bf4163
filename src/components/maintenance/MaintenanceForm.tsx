@@ -115,13 +115,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                                 {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
                               </SelectItem>
                             ) : (
-                              <SelectItem key="unknown-vehicle" value="unknown">
+                              <SelectItem key="unknown-vehicle" value="unknown-vehicle">
                                 Unknown Vehicle
                               </SelectItem>
                             )
                           ))
                         ) : (
-                          <SelectItem value="no-vehicles">No vehicles available</SelectItem>
+                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
