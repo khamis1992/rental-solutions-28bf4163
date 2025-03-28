@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useLegal } from '@/hooks/use-legal';
+import { useLegalDocuments, useComplianceItems } from '@/hooks/use-legal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
@@ -28,7 +28,9 @@ const MOCK_CASE_DATA = [
 const LegalReport = () => {
   const [reportType, setReportType] = useState('compliance');
   const [timeRange, setTimeRange] = useState('6months');
-  const { isLoading } = useLegal?.() || { isLoading: false };
+  const { documents, loading: docsLoading } = useLegalDocuments();
+  const { items, loading: itemsLoading } = useComplianceItems();
+  const isLoading = docsLoading || itemsLoading;
 
   if (isLoading) {
     return (

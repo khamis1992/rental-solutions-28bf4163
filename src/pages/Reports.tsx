@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,6 +21,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 
 const Reports = () => {
+  const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('fleet');
   const { vehicles } = useFleetReport();
   const { transactions } = useFinancials();
