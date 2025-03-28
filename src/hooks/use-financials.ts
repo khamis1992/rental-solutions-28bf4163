@@ -332,6 +332,7 @@ export function useFinancials() {
   // Add transaction mutation
   const addTransactionMutation = useApiMutation<
     FinancialTransaction,
+    unknown,
     Omit<FinancialTransaction, 'id'>
   >(
     async (transactionData) => {
@@ -390,10 +391,11 @@ export function useFinancials() {
   // Update transaction mutation
   const updateTransactionMutation = useApiMutation<
     FinancialTransaction,
+    unknown,
     { id: string; data: Partial<FinancialTransaction> }
   >(
     async ({ id, data }) => {
-      if (typeof id === 'string' && id.startsWith('inst-')) {
+      if (id.startsWith('inst-')) {
         // Handle installment update
         const actualId = id.replace('inst-', '');
         const { data: updatedData, error } = await supabase
@@ -485,10 +487,11 @@ export function useFinancials() {
   // Delete transaction mutation
   const deleteTransactionMutation = useApiMutation<
     string,
+    unknown,
     string
   >(
     async (id) => {
-      if (typeof id === 'string' && id.startsWith('inst-')) {
+      if (id.startsWith('inst-')) {
         // Handle installment deletion
         const actualId = id.replace('inst-', '');
         const { error } = await supabase
@@ -529,6 +532,7 @@ export function useFinancials() {
   // Add expense mutation
   const addExpenseMutation = useApiMutation<
     FinancialTransaction,
+    unknown,
     Omit<FinancialTransaction, 'id'>
   >(
     async (expenseData) => {
@@ -593,6 +597,7 @@ export function useFinancials() {
   // Update expense mutation
   const updateExpenseMutation = useApiMutation<
     FinancialTransaction,
+    unknown,
     { id: string; data: Partial<FinancialTransaction> }
   >(
     async ({ id, data }) => {
@@ -661,6 +666,7 @@ export function useFinancials() {
   // Delete expense mutation
   const deleteExpenseMutation = useApiMutation<
     string,
+    unknown,
     string
   >(
     async (id) => {

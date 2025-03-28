@@ -1,105 +1,124 @@
 /**
- * Utility functions for monitoring system operations
+ * Monitoring utilities for tracking system operations and detecting issues
  */
-import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'sonner';
 
-// In-memory storage for operation logs (would be replaced with proper DB storage in production)
-let operationLogs: {
-  id: string;
-  timestamp: string;
+type OperationStatus = 'success' | 'warning' | 'error';
+
+interface OperationLogEntry {
   operation: string;
-  status: 'success' | 'warning' | 'error';
-  details: any;
+  status: OperationStatus;
+  timestamp: Date;
+  details?: any;
   errorMessage?: string;
-}[] = [];
+}
+
+// In-memory log for tracking recent operations
+const operationLog: OperationLogEntry[] = [];
+const MAX_LOG_ENTRIES = 100;
 
 /**
- * Log an operation for monitoring purposes
+ * Log an operation with relevant details for monitoring
  */
 export const logOperation = (
-  operation: string,
-  status: 'success' | 'warning' | 'error',
-  details: any,
+  operation: string, 
+  status: OperationStatus, 
+  details?: any, 
   errorMessage?: string
 ) => {
-  const logEntry = {
-    id: uuidv4(),
-    timestamp: new Date().toISOString(),
+  // Create log entry
+  const entry: OperationLogEntry = {
     operation,
     status,
+    timestamp: new Date(),
     details,
     errorMessage
   };
   
-  operationLogs.unshift(logEntry); // Add to beginning for chronological order
-  
-  // Keep only the last 100 logs to prevent memory issues
-  if (operationLogs.length > 100) {
-    operationLogs = operationLogs.slice(0, 100);
+  // Add to memory log (keeping most recent entries)
+  operationLog.unshift(entry);
+  if (operationLog.length > MAX_LOG_ENTRIES) {
+    operationLog.pop();
   }
   
-  // In a real production system, this would send to a logging service
-  console.log(`[${status.toUpperCase()}] ${operation}:`, details, errorMessage || '');
+  // Log to console for debugging
+  if (status === 'error') {
+    console.error(`Operation error: ${operation}`, { details, error: errorMessage });
+  } else if (status === 'warning') {
+    console.warn(`Operation warning: ${operation}`, { details });
+  } else {
+    console.log(`Operation: ${operation}`, { details });
+  }
   
-  return logEntry.id;
-};
+  // Store in localStorage for persistence across refreshes
+  try {
+    const storageKey = 'operation_metrics';
+    // Only store errors and warnings for persistence
+    if (status !== 'success') {
+      const storedMetrics = localStorage.getItem(storageKey);
+      const metrics = storedMetrics ? JSON.parse(storedMetrics) : [];
+      
+      // Add new entry, keep only last 20 non-success entries
+      metrics.unshift({
+        operation,
+        status,
+        timestamp: entry.timestamp.toISOString(),
+        errorMessage
+      });
+      
+      if (metrics.length > 20) metrics.length = 20;
+      localStorage.setItem(storageKey, JSON.stringify(metrics));
+    }
+  } catch (e) {
+    // Fail silently if localStorage is not available
+    console.warn('Failed to store operation metrics in localStorage', e);
+  }
+}
 
 /**
- * Get recent operations for monitoring display
+ * Get recent operation logs
  */
 export const getRecentOperations = () => {
-  return [...operationLogs];
+  return [...operationLog];
 };
 
 /**
- * Get operation metrics (counts by status)
+ * Get operation metrics summary
  */
 export const getOperationMetrics = () => {
+  const last24Hours = new Date();
+  last24Hours.setHours(last24Hours.getHours() - 24);
+  
+  const recentOperations = operationLog.filter(
+    entry => entry.timestamp > last24Hours
+  );
+  
   return {
-    total: operationLogs.length,
-    success: operationLogs.filter(log => log.status === 'success').length,
-    warnings: operationLogs.filter(log => log.status === 'warning').length,
-    errors: operationLogs.filter(log => log.status === 'error').length
+    total: recentOperations.length,
+    success: recentOperations.filter(entry => entry.status === 'success').length,
+    warnings: recentOperations.filter(entry => entry.status === 'warning').length,
+    errors: recentOperations.filter(entry => entry.status === 'error').length,
+    errorRate: recentOperations.length > 0 
+      ? (recentOperations.filter(entry => entry.status === 'error').length / recentOperations.length)
+      : 0
   };
 };
 
 /**
- * Clear operation logs (for testing or reset)
+ * Clear all operation logs
  */
 export const clearOperationLogs = () => {
-  operationLogs = [];
-};
-
-/**
- * Monitor traffic fine assignment
- */
-export const monitorTrafficFineAssignment = (
-  data: {
-    success: boolean;
-    fineId: string;
-    message: string;
-    data: any | null;
-  },
-  supabaseClient: any
-) => {
-  // Log the assignment operation
-  logOperation(
-    'trafficFineAssignment', 
-    data.success ? 'success' : 'error',
-    { fineId: data.fineId },
-    data.success ? undefined : data.message
-  );
-  
-  // In a real system, we would store this in the database
-  // For now, just log it to console
-  console.log('Traffic fine assignment monitored:', data);
-  
-  // Return the operation ID for reference
-  return uuidv4();
+  operationLog.length = 0;
+  try {
+    localStorage.removeItem('operation_metrics');
+  } catch (e) {
+    // Fail silently
+  }
 };
 
 /**
  * Validate data consistency between related entities
+ * Returns validation results with any inconsistencies found
  */
 export const validateDataConsistency = async (
   entityType: 'trafficFine' | 'lease' | 'vehicle' | 'customer',
@@ -107,125 +126,149 @@ export const validateDataConsistency = async (
   supabaseClient: any
 ) => {
   const results = {
-    isValid: false,
-    entityType,
-    entityId,
+    isValid: true,
     inconsistencies: [] as string[],
-    validRelationships: [] as string[]
+    relatedEntities: {} as Record<string, any>
   };
   
   try {
-    switch (entityType) {
-      case 'trafficFine': {
-        // Get the traffic fine
-        const { data: fine, error: fineError } = await supabaseClient
-          .from('traffic_fines')
-          .select('*')
-          .eq('id', entityId)
-          .single();
-          
-        if (fineError) {
-          results.inconsistencies.push(`Traffic fine not found: ${fineError.message}`);
-          break;
-        }
+    if (entityType === 'trafficFine') {
+      // Get traffic fine details
+      const { data: fine, error: fineError } = await supabaseClient
+        .from('traffic_fines')
+        .select('*')
+        .eq('id', entityId)
+        .single();
         
-        // Check if license plate exists
-        if (!fine.license_plate) {
-          results.inconsistencies.push('Traffic fine has no license plate');
-        } else {
-          results.validRelationships.push('License plate exists');
-        }
-        
-        // Check if vehicle exists
-        if (fine.vehicle_id) {
-          const { data: vehicle, error: vehicleError } = await supabaseClient
-            .from('vehicles')
-            .select('id, license_plate')
-            .eq('id', fine.vehicle_id)
-            .single();
-            
-          if (vehicleError) {
-            results.inconsistencies.push(`Referenced vehicle not found: ${vehicleError.message}`);
-          } else {
-            results.validRelationships.push(`Vehicle relationship valid: ${vehicle.license_plate}`);
-            
-            // Check if license plates match
-            if (vehicle.license_plate !== fine.license_plate) {
-              results.inconsistencies.push(`License plate mismatch: Fine has ${fine.license_plate}, vehicle has ${vehicle.license_plate}`);
-            }
-          }
-        }
-        
-        // Check if lease exists
-        if (fine.lease_id) {
-          const { data: lease, error: leaseError } = await supabaseClient
-            .from('leases')
-            .select('id, customer_id, vehicle_id')
-            .eq('id', fine.lease_id)
-            .single();
-            
-          if (leaseError) {
-            results.inconsistencies.push(`Referenced lease not found: ${leaseError.message}`);
-          } else {
-            results.validRelationships.push('Lease relationship valid');
-            
-            // Check if vehicle IDs match
-            if (fine.vehicle_id && lease.vehicle_id !== fine.vehicle_id) {
-              results.inconsistencies.push(`Vehicle ID mismatch: Fine has ${fine.vehicle_id}, lease has ${lease.vehicle_id}`);
-            }
-            
-            // Check if customer exists
-            if (lease.customer_id) {
-              const { data: customer, error: customerError } = await supabaseClient
-                .from('profiles')
-                .select('id')
-                .eq('id', lease.customer_id)
-                .single();
-                
-              if (customerError) {
-                results.inconsistencies.push(`Referenced customer not found: ${customerError.message}`);
-              } else {
-                results.validRelationships.push('Customer relationship valid');
-              }
-            } else {
-              results.inconsistencies.push('Lease has no customer ID');
-            }
-          }
-        }
-        
-        break;
+      if (fineError || !fine) {
+        results.isValid = false;
+        results.inconsistencies.push(`Traffic fine not found: ${entityId}`);
+        return results;
       }
       
-      // Add other entity types validation as needed
+      results.relatedEntities.trafficFine = fine;
       
-      default:
-        results.inconsistencies.push(`Unsupported entity type: ${entityType}`);
+      // Validate lease relationship if present
+      if (fine.lease_id) {
+        const { data: lease, error: leaseError } = await supabaseClient
+          .from('leases')
+          .select('*')
+          .eq('id', fine.lease_id)
+          .single();
+          
+        if (leaseError || !lease) {
+          results.isValid = false;
+          results.inconsistencies.push(`Lease referenced by traffic fine not found: ${fine.lease_id}`);
+        } else {
+          results.relatedEntities.lease = lease;
+          
+          // Validate vehicle relationship
+          if (fine.vehicle_id && lease.vehicle_id && fine.vehicle_id !== lease.vehicle_id) {
+            results.isValid = false;
+            results.inconsistencies.push(
+              `Vehicle ID mismatch: Traffic fine references ${fine.vehicle_id}, but lease references ${lease.vehicle_id}`
+            );
+          }
+          
+          // Validate customer exists
+          if (lease.customer_id) {
+            const { data: customer, error: customerError } = await supabaseClient
+              .from('profiles')
+              .select('*')
+              .eq('id', lease.customer_id)
+              .single();
+              
+            if (customerError || !customer) {
+              results.isValid = false;
+              results.inconsistencies.push(`Customer referenced by lease not found: ${lease.customer_id}`);
+            } else {
+              results.relatedEntities.customer = customer;
+            }
+          } else {
+            results.isValid = false;
+            results.inconsistencies.push('Lease has no associated customer');
+          }
+        }
+      }
+      
+      // Validate vehicle relationship if present
+      if (fine.vehicle_id) {
+        const { data: vehicle, error: vehicleError } = await supabaseClient
+          .from('vehicles')
+          .select('*')
+          .eq('id', fine.vehicle_id)
+          .single();
+          
+        if (vehicleError || !vehicle) {
+          results.isValid = false;
+          results.inconsistencies.push(`Vehicle referenced by traffic fine not found: ${fine.vehicle_id}`);
+        } else {
+          results.relatedEntities.vehicle = vehicle;
+          
+          // Check license plate consistency
+          if (fine.license_plate && vehicle.license_plate && 
+              fine.license_plate.toLowerCase() !== vehicle.license_plate.toLowerCase()) {
+            results.isValid = false;
+            results.inconsistencies.push(
+              `License plate mismatch: Traffic fine has ${fine.license_plate}, but vehicle has ${vehicle.license_plate}`
+            );
+          }
+        }
+      }
     }
     
-    // Determine overall validity
-    results.isValid = results.inconsistencies.length === 0;
+    // Add validation for other entity types as needed
     
-    // Log the validation operation
-    logOperation(
-      'dataValidation',
-      results.isValid ? 'success' : 'warning',
-      { entityType, entityId },
-      results.isValid ? undefined : `Found ${results.inconsistencies.length} inconsistencies`
-    );
-    
-    return results;
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    results.inconsistencies.push(`Validation error: ${errorMessage}`);
-    
-    // Log the error
-    logOperation(
-      'dataValidation',
-      'error',
-      { entityType, entityId },
-      errorMessage
-    );
-    
-    return results;
+    results.isValid = false;
+    results.inconsistencies.push(`Validation error: ${error instanceof Error ? error.message : String(error)}`);
   }
+  
+  return results;
+};
+
+/**
+ * Monitor and report on assignment operations
+ */
+export const monitorTrafficFineAssignment = (
+  result: { success: boolean; fineId: string; message: string; data?: any },
+  supabaseClient: any
+) => {
+  // Log the operation
+  logOperation(
+    'trafficFineAssignment',
+    result.success ? 'success' : 'error',
+    { fineId: result.fineId },
+    result.success ? undefined : result.message
+  );
+  
+  // Get metrics
+  const metrics = getOperationMetrics();
+  
+  // Alert if error rate is high
+  if (metrics.errorRate > 0.2 && metrics.total >= 5) {
+    toast.error('Traffic fine assignments are failing at a high rate', {
+      description: 'Please check the system logs and database relationships',
+      duration: 8000,
+    });
+  }
+  
+  // If this operation failed, validate data consistency
+  if (!result.success) {
+    setTimeout(async () => {
+      const validationResults = await validateDataConsistency('trafficFine', result.fineId, supabaseClient);
+      
+      if (!validationResults.isValid) {
+        console.error('Data consistency issues found:', validationResults.inconsistencies);
+        logOperation(
+          'dataConsistencyCheck',
+          'error',
+          { entityType: 'trafficFine', entityId: result.fineId },
+          validationResults.inconsistencies.join('; ')
+        );
+      }
+    }, 100);
+  }
+  
+  return result;
 };

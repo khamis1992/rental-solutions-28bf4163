@@ -39,11 +39,8 @@ const FinancialReport = () => {
     }
     
     const amount = transaction.amount || 0;
-    
-    // Update total
     acc[category].total += amount;
     
-    // Update income or expense based on transaction type
     if (transaction.type === 'income') {
       acc[category].income += amount;
     } else {
