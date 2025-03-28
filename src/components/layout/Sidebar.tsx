@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -290,7 +289,7 @@ const Sidebar = () => {
           {expanded ? (
             <div className="flex items-center gap-3">
               <Avatar className="h-8 w-8">
-                <AvatarImage src={profile?.contract_document_url || ""} />
+                <AvatarImage src="" />
                 <AvatarFallback>{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
