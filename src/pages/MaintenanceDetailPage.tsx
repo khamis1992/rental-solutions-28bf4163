@@ -10,6 +10,7 @@ import { Pencil, Trash2, Calendar, Car, ClipboardList, CreditCard, MapPin, User,
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
 
 const MaintenanceDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -80,6 +81,27 @@ const MaintenanceDetailPage = () => {
     });
   };
 
+  // Fetch vehicle details since they might not be included in the maintenance record
+  const [vehicleDetails, setVehicleDetails] = useState<any>(null);
+  
+  React.useEffect(() => {
+    const fetchVehicleDetails = async () => {
+      if (maintenance?.vehicle_id) {
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('*')
+          .eq('id', maintenance.vehicle_id)
+          .single();
+        
+        if (!error && data) {
+          setVehicleDetails(data);
+        }
+      }
+    };
+
+    fetchVehicleDetails();
+  }, [maintenance?.vehicle_id]);
+
   const getStatusBadgeClass = (status: string) => {
     switch (status) {
       case 'scheduled': return 'bg-blue-100 text-blue-800';
@@ -129,10 +151,10 @@ const MaintenanceDetailPage = () => {
                 <Clock className="h-4 w-4 mr-1" />
                 Created: {formatDate(maintenance.created_at)}
               </div>
-              {maintenance.status === 'completed' && maintenance.completion_date && (
+              {maintenance.status === 'completed' && maintenance.completed_date && (
                 <div className="text-muted-foreground text-sm flex items-center justify-end mt-1">
                   <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
-                  Completed: {formatDate(maintenance.completion_date)}
+                  Completed: {formatDate(maintenance.completed_date)}
                 </div>
               )}
             </div>
@@ -153,7 +175,12 @@ const MaintenanceDetailPage = () => {
                   <Car className="h-4 w-4 mr-2" />
                   Vehicle
                 </h3>
-                <p className="text-muted-foreground">{maintenance.vehicles?.make} {maintenance.vehicles?.model} ({maintenance.vehicles?.license_plate}) </p>
+                <p className="text-muted-foreground">
+                  {vehicleDetails ? 
+                    `${vehicleDetails.make} ${vehicleDetails.model} (${vehicleDetails.license_plate})` : 
+                    `Vehicle ID: ${maintenance.vehicle_id}`
+                  }
+                </p>
               </div>
               <div>
                 <h3 className="font-medium flex items-center">
@@ -181,7 +208,7 @@ const MaintenanceDetailPage = () => {
                   Service Provider
                 </h3>
                 <p className="text-muted-foreground">
-                  {maintenance.service_provider || 'Not specified'}
+                  {maintenance.service_provider || maintenance.performed_by || 'Not specified'}
                 </p>
               </div>
               <div>

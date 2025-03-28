@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -26,8 +25,21 @@ const Reports = () => {
   const { vehicles } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
-  const { useList } = useMaintenance();
-  const { data: maintenanceRecords = [] } = useList();
+  const { getAllRecords } = useMaintenance();
+  const [maintenanceData, setMaintenanceData] = useState([]);
+  
+  useEffect(() => {
+    const fetchMaintenance = async () => {
+      try {
+        const data = await getAllRecords();
+        setMaintenanceData(data || []);
+      } catch (error) {
+        console.error("Error fetching maintenance data:", error);
+      }
+    };
+    
+    fetchMaintenance();
+  }, []);
   
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -72,7 +84,7 @@ const Reports = () => {
           created_at: customer.created_at
         }));
       case 'maintenance':
-        return maintenanceRecords.map(record => ({
+        return maintenanceData.map(record => ({
           id: record.id,
           vehicle: record.vehicles ? `${record.vehicles.make} ${record.vehicles.model} (${record.vehicles.license_plate})` : 'Unknown Vehicle',
           maintenance_type: record.maintenance_type || 'General Maintenance',

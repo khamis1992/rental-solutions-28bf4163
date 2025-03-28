@@ -8,21 +8,34 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PageContainer from '@/components/layout/PageContainer';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getById, update } = useMaintenance();
+  const { useOne, useUpdate } = useMaintenance();
   const [error, setError] = useState<string | null>(null);
   
-  const { data: maintenance, isLoading: isLoadingMaintenance, error: fetchError } = getById(id as string);
+  const { data: maintenance, isLoading: isLoadingMaintenance, error: fetchError } = useOne(id as string);
+  const updateMutation = useUpdate;
   
   const handleUpdate = (formData: any) => {
     if (!id) return;
     
-    update.mutate({ 
+    // Convert dates to strings before submitting to API
+    const formattedData = {
+      ...formData,
+      scheduled_date: formData.scheduled_date instanceof Date 
+        ? formData.scheduled_date.toISOString() 
+        : formData.scheduled_date,
+      completion_date: formData.completion_date instanceof Date 
+        ? formData.completion_date.toISOString() 
+        : formData.completion_date,
+    };
+    
+    updateMutation.mutate({ 
       id, 
-      data: formData 
+      data: formattedData 
     }, {
       onSuccess: () => {
         navigate(`/maintenance/${id}`);
@@ -64,6 +77,16 @@ const EditMaintenance = () => {
     );
   }
   
+  // Convert API maintenance data to form compatible data
+  const formData = {
+    ...maintenance,
+    // Convert string dates to Date objects for the form
+    scheduled_date: maintenance.scheduled_date ? new Date(maintenance.scheduled_date) : new Date(),
+    completion_date: maintenance.completed_date ? new Date(maintenance.completed_date) : undefined,
+    // Map fields to expected names
+    service_provider: maintenance.service_provider || maintenance.performed_by,
+  };
+  
   return (
     <PageContainer title="Edit Maintenance Record" backLink={`/maintenance/${id}`}>
       {error && (
@@ -75,9 +98,9 @@ const EditMaintenance = () => {
       )}
       
       <MaintenanceForm 
-        initialData={maintenance}
+        initialData={formData}
         onSubmit={handleUpdate}
-        isLoading={update.isPending}
+        isLoading={updateMutation.isPending}
         isEditMode={true}
         submitLabel="Update Maintenance"
       />
