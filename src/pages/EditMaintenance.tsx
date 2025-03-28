@@ -17,12 +17,12 @@ const EditMaintenance = () => {
   
   const { data: maintenance, isLoading: isLoadingMaintenance, error: fetchError } = useOne(id as string);
   
-  const { mutate: updateMaintenance, isPending: isUpdating } = useUpdate();
+  const updateMutation = useUpdate;
   
   const handleUpdate = (formData: any) => {
     if (!id) return;
     
-    updateMaintenance({ 
+    updateMutation.mutate({ 
       id, 
       data: formData 
     }, {
@@ -79,7 +79,7 @@ const EditMaintenance = () => {
       <MaintenanceForm 
         initialData={maintenance}
         onSubmit={handleUpdate}
-        isLoading={isUpdating}
+        isLoading={updateMutation.isPending}
         isEditMode={true}
         submitLabel="Update Maintenance"
       />

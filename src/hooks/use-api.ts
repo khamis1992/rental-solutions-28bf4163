@@ -1,7 +1,7 @@
 
 import { toast } from '@/hooks/use-toast';
 import { PostgrestError } from '@supabase/supabase-js';
-import { useMutation, useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useMutation, useQuery, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
 
 /**
  * Standard error handler for API calls.
@@ -121,7 +121,9 @@ export function useApiMutation<TData, TVariables>(
         throw error;
       }
     },
-    ...options
+    onSuccess: options?.onSuccess,
+    onError: options?.onError,
+    onSettled: options?.onSettled
   });
 }
 
@@ -167,10 +169,10 @@ export function useCrudApi<TData, TInsert, TUpdate = Partial<TInsert>>(
     update,
     remove,
     // Add these aliases for compatibility with existing code
+    useList: getAll, 
     useOne: getById,
     useCreate: create,
     useUpdate: update,
-    useDelete: remove,
-    useList: (filter?: any) => getAll // Simplified for compatibility
+    useDelete: remove
   };
 }

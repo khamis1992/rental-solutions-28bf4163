@@ -166,21 +166,27 @@ export function useMaintenance() {
     }
   };
 
-  // Use the CRUD API helper from use-api.ts
-  const crudApi = {
-    getAll: useApiQuery(['maintenance', JSON.stringify(filters)], maintenanceEndpoints.getAll),
-    getById: (id: string) => useApiQuery(['maintenance', id], () => maintenanceEndpoints.getById(id)),
-    create: useApiMutation(maintenanceEndpoints.create, { 
-      successMessage: 'Maintenance record created successfully' 
-    }),
-    update: useApiMutation(
-      ({ id, data }: { id: string; data: any }) => maintenanceEndpoints.update(id, data),
-      { successMessage: 'Maintenance record updated successfully' }
-    ),
-    remove: useApiMutation(maintenanceEndpoints.delete, { 
-      successMessage: 'Maintenance record deleted successfully' 
-    })
-  };
+  // Set up the query for maintenance records
+  const getAllQuery = useApiQuery<any[]>(['maintenance', JSON.stringify(filters)], maintenanceEndpoints.getAll);
+
+  // Create a function to create a query for a specific maintenance record
+  const getById = (id: string) => useApiQuery(['maintenance', id], () => maintenanceEndpoints.getById(id));
+  
+  // Set up mutations
+  const createMutation = useApiMutation<any, any>(
+    maintenanceEndpoints.create,
+    { successMessage: 'Maintenance record created successfully' }
+  );
+  
+  const updateMutation = useApiMutation<any, { id: string; data: any }>(
+    ({ id, data }) => maintenanceEndpoints.update(id, data),
+    { successMessage: 'Maintenance record updated successfully' }
+  );
+  
+  const deleteMutation = useApiMutation<void, string>(
+    maintenanceEndpoints.delete,
+    { successMessage: 'Maintenance record deleted successfully' }
+  );
 
   // Create a direct method to fetch maintenance by vehicle ID
   const getMaintenanceByVehicleId = async (vehicleId: string) => {
@@ -196,7 +202,6 @@ export function useMaintenance() {
         return [];
       }
       
-      // Normalize all records to ensure consistent format
       return data?.map(normalizeMaintenanceRecord) || [];
     } catch (error) {
       console.error('Error in getMaintenanceByVehicleId:', error);
@@ -271,12 +276,6 @@ export function useMaintenance() {
     );
   };
 
-  // Wrap the useOne hook to properly handle date fields and field normalization
-  const useOneWithNormalization = (id?: string) => {
-    if (!id) return { data: undefined, isLoading: false, error: null };
-    return crudApi.getById(id);
-  };
-
   // Function to delete all maintenance records, handling foreign key constraints
   const deleteAllRecords = async () => {
     try {
@@ -349,24 +348,23 @@ export function useMaintenance() {
     }
   };
 
-  // Return both the basic state and the CRUD operations
   return {
     // Basic state
-    maintenanceRecords: crudApi.getAll.data,
-    isLoading: crudApi.getAll.isLoading,
+    maintenanceRecords: getAllQuery.data,
+    isLoading: getAllQuery.isLoading,
     filters,
     setFilters,
-    refetch: crudApi.getAll.refetch,
+    refetch: getAllQuery.refetch,
     
     // Direct methods
     getMaintenanceByVehicleId,
     deleteAllRecords,
     
-    // CRUD operations
+    // CRUD operations with standardized naming pattern
     useList: useCustomList,
-    useOne: useOneWithNormalization,
-    useCreate: crudApi.create,
-    useUpdate: crudApi.update,
-    useDelete: crudApi.remove
+    useOne: getById,
+    useCreate: createMutation,
+    useUpdate: updateMutation,
+    useDelete: deleteMutation
   };
 }

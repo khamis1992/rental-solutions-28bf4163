@@ -13,7 +13,7 @@ const AddMaintenance = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { useCreate } = useMaintenance();
-  const { mutate: createMaintenance, isPending } = useCreate();
+  const createMutation = useCreate;
   const [initialData, setInitialData] = useState(createEmptyMaintenance());
 
   useEffect(() => {
@@ -31,7 +31,7 @@ const AddMaintenance = () => {
 
   const handleSubmit = (data: Omit<Maintenance, 'id'>) => {
     console.log("Submitting maintenance record:", data);
-    createMaintenance(data, {
+    createMutation.mutate(data, {
       onSuccess: () => {
         toast({
           title: "Success",
@@ -59,7 +59,7 @@ const AddMaintenance = () => {
       <MaintenanceForm
         initialData={initialData}
         onSubmit={handleSubmit}
-        isLoading={isPending}
+        isLoading={createMutation.isPending}
       />
     </PageContainer>
   );
