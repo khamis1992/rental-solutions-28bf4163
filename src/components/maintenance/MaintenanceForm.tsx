@@ -76,6 +76,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       .join(' ');
   };
 
+  // Make sure vehicles has a default value if it's undefined
+  const vehiclesList = vehicles || [];
+
   return (
     <Card>
       <CardHeader>
@@ -103,14 +106,19 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehicles?.map(vehicle => (
-                          <SelectItem 
-                            key={vehicle.id} 
-                            value={vehicle.id || "default-vehicle-id"}
-                          >
-                            {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
-                          </SelectItem>
-                        ))}
+                        {vehiclesList.length > 0 ? (
+                          vehiclesList.map(vehicle => (
+                            <SelectItem 
+                              key={vehicle.id} 
+                              value={vehicle.id || "default-vehicle-id"}
+                            >
+                              {`${vehicle.make || 'Unknown'} ${vehicle.model || 'Model'} (${vehicle.license_plate || 'No Plate'})`}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          // Add fallback item if no vehicles are available
+                          <SelectItem value="no-vehicles">No vehicles available</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
