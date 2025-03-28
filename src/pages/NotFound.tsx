@@ -26,16 +26,16 @@ const NotFound = () => {
           
           <div className="flex flex-col space-y-3">
             <Button asChild variant="default">
-              <Link to="/dashboard" className="flex items-center justify-center">
+              <Link to="/" className="flex items-center justify-center">
                 <Home className="mr-2 h-4 w-4" />
                 Go to Dashboard
               </Link>
             </Button>
             
             <Button asChild variant="outline">
-              <Link to="/" className="flex items-center justify-center">
+              <Link to="/agreements" className="flex items-center justify-center">
                 <ChevronLeft className="mr-2 h-4 w-4" />
-                Back to Home
+                Back to Agreements
               </Link>
             </Button>
           </div>

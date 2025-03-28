@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -47,7 +48,7 @@ const navItems: NavItem[] = [
   { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin', 'manager'] },
   { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin', 'manager'] },
   { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin', 'manager'] },
-  { title: 'User Management', path: '/user-management', icon: UserPlus, roles: ['admin'] },
+  { title: 'User Management', path: '/users', icon: UserPlus, roles: ['admin'] },
 ];
 
 const Sidebar = () => {

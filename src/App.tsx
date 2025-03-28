@@ -133,7 +133,7 @@ const App = () => {
                           {/* User Management Routes */}
                           <Route path="/settings" element={<UserSettings />} />
                           <Route 
-                            path="/user-management" 
+                            path="/users" 
                             element={
                               <ProtectedRoute roles={["admin"]}>
                                 <UserManagement />
@@ -141,10 +141,8 @@ const App = () => {
                             } 
                           />
                           
-                          {/* Unauthorized Route */}
-                          <Route path="/unauthorized" element={<NotFound />} />
+                          {/* Add other module routes here */}
                           
-                          {/* Catch-all route for 404 */}
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </>

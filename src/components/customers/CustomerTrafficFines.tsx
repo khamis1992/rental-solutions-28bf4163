@@ -102,7 +102,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   }
 
   if (error) {
-    return <div className="py-4 text-center text-muted-foreground">{error}</div>;
+    return <div className="py-4 text-center text-destructive">{error}</div>;
   }
 
   if (fines.length === 0) {

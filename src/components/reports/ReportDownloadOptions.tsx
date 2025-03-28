@@ -12,15 +12,10 @@ interface ReportDownloadOptionsProps {
   reportType: string;
 }
 
-const ReportDownloadOptions = ({
-  reportType
-}: ReportDownloadOptionsProps) => {
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+const ReportDownloadOptions = ({ reportType }: ReportDownloadOptionsProps) => {
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: new Date(),
-    to: new Date()
+    to: new Date(),
   });
   const [fileFormat, setFileFormat] = useState('pdf');
 
@@ -30,17 +25,24 @@ const ReportDownloadOptions = ({
       type: reportType,
       dateRange,
       format: fileFormat,
-      logo: '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png',
-      // Include logo in report generation
-      footerLogo: '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png' // Include footer logo in report generation
+      logo: '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', // Include logo in report generation
+      footerLogo: '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png', // Include footer logo in report generation
     });
   };
 
-  return <div className="space-y-4">
+  return (
+    <div className="space-y-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          
-          
+          <div className="flex items-center">
+            <img 
+              src="/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png" 
+              alt="Alaraf Car Rental" 
+              className="h-10 mr-4" 
+            />
+            <h3 className="text-lg font-semibold">Alaraf Car Rental</h3>
+          </div>
+          <span className="text-sm text-muted-foreground">Premium Car Rental Services</span>
         </div>
         
         <div className="border-t pt-1 mb-2">
@@ -52,16 +54,37 @@ const ReportDownloadOptions = ({
         <div className="flex-1">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !dateRange && "text-muted-foreground"
+                )}
+              >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? dateRange.to ? <>
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
                       {format(dateRange.from, "LLL dd, y")} -{" "}
                       {format(dateRange.to, "LLL dd, y")}
-                    </> : format(dateRange.from, "LLL dd, y") : <span>Pick a date range</span>}
+                    </>
+                  ) : (
+                    format(dateRange.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Pick a date range</span>
+                )}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange as any} onSelect={range => setDateRange(range as any)} numberOfMonths={2} />
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange as any}
+                onSelect={(range) => setDateRange(range as any)}
+                numberOfMonths={2}
+              />
             </PopoverContent>
           </Popover>
         </div>
@@ -86,10 +109,15 @@ const ReportDownloadOptions = ({
       </div>
       
       <div className="mt-6 pt-4 border-t flex flex-col items-center">
-        
-        <img src="/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png" alt="Alaraf Car Rental Footer" className="h-6" />
+        <p className="text-sm text-muted-foreground mb-1">© 2024 Alaraf Car Rental. All rights reserved.</p>
+        <img 
+          src="/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png" 
+          alt="Alaraf Car Rental Footer" 
+          className="h-6" 
+        />
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default ReportDownloadOptions;
