@@ -118,7 +118,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             ) : null
                           ))
                         ) : (
-                          <SelectItem value="loading">No vehicles available</SelectItem>
+                          <SelectItem value="no-vehicles">No vehicles available</SelectItem>
                         )}
                       </SelectContent>
                     </Select>

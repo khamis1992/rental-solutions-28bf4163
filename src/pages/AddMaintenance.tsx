@@ -7,10 +7,12 @@ import PageContainer from '@/components/layout/PageContainer';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
+import { useToast } from '@/hooks/use-toast';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
   const { create } = useMaintenance();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -50,6 +52,13 @@ const AddMaintenance = () => {
       console.log("Prepared data for submission:", preparedData);
       
       await create.mutateAsync(preparedData);
+      
+      toast({
+        title: "Success",
+        description: "Maintenance record created successfully",
+        variant: "default"
+      });
+      
       navigate('/maintenance');
     } catch (err) {
       console.error('Error creating maintenance record:', err);

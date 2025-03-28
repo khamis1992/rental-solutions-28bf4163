@@ -8,17 +8,19 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PageContainer from '@/components/layout/PageContainer';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
+import { useToast } from '@/hooks/use-toast';
 
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAllRecords, update, useOne } = useMaintenance();
+  const { getAllRecords, update } = useMaintenance();
+  const { toast } = useToast();
   const [maintenance, setMaintenance] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch maintenance record using the useOne hook when available, or the direct method
+  // Fetch maintenance record
   useEffect(() => {
     const fetchMaintenance = async () => {
       if (!id) return;
@@ -87,6 +89,12 @@ const EditMaintenance = () => {
         data: preparedData 
       });
       
+      toast({
+        title: "Success",
+        description: "Maintenance record updated successfully",
+        variant: "default"
+      });
+      
       navigate('/maintenance');
     } catch (err) {
       console.error('Error updating maintenance record:', err);
@@ -138,6 +146,14 @@ const EditMaintenance = () => {
       title="Edit Maintenance Record" 
       description="Update maintenance record details"
     >
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       <MaintenanceForm
         initialData={formattedMaintenance}
         onSubmit={handleSubmit}
