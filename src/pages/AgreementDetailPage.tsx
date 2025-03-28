@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -17,7 +17,7 @@ const AgreementDetailPage = () => {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [paymentGenerationAttempted, setPaymentGenerationAttempted] = useState(false);
+  const paymentGenerationAttemptedRef = useRef(false);
   const [contractAmount, setContractAmount] = useState<number | null>(null);
   const [rentAmount, setRentAmount] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -27,16 +27,24 @@ const AgreementDetailPage = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  // First effect: Handle system initialization only once
   useEffect(() => {
-    if (!id || !isInitialized) {
-      // Initialize the system to check for payment generation (only once)
-      initializeSystem().then(() => {
-        console.log("System initialized, checking for payments");
-        setIsInitialized(true);
-      });
-    }
-  }, [id, isInitialized]);
+    const performInitialization = async () => {
+      if (!isInitialized) {
+        try {
+          await initializeSystem();
+          console.log("System initialized, checking for payments");
+          setIsInitialized(true);
+        } catch (error) {
+          console.error("Error initializing system:", error);
+        }
+      }
+    };
 
+    performInitialization();
+  }, [isInitialized]);
+
+  // Second effect: Handle data fetching separately
   useEffect(() => {
     const fetchAgreement = async () => {
       if (!id) return;
@@ -75,10 +83,10 @@ const AgreementDetailPage = () => {
           
           setAgreement(data);
           
-          // For any agreement, check for missing monthly payments
-          if (data.status === 'active' && !paymentGenerationAttempted) {
+          // For any agreement, check for missing monthly payments - but only attempt once
+          if (data.status === 'active' && !paymentGenerationAttemptedRef.current) {
             console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
-            setPaymentGenerationAttempted(true);
+            paymentGenerationAttemptedRef.current = true;
             
             // Force check all agreements for current month payments
             const allResult = await forceCheckAllAgreementsForPayments();
@@ -150,11 +158,11 @@ const AgreementDetailPage = () => {
       }
     };
 
-    // Only fetch agreement data when needed (on load or manual refresh)
+    // Only fetch if we have an ID and the system is initialized or we have a refresh trigger
     if (id && (isInitialized || refreshTrigger > 0)) {
       fetchAgreement();
     }
-  }, [id, getAgreement, navigate, isInitialized, paymentGenerationAttempted, refreshTrigger]);
+  }, [id, getAgreement, navigate, isInitialized, refreshTrigger]);
 
   const handleDelete = async (agreementId: string) => {
     try {
