@@ -2,6 +2,7 @@
 /**
  * Performance monitoring utility for tracking and analyzing application performance
  */
+import React from 'react';
 
 // Performance metric types
 export interface PerformanceMetric {
@@ -91,11 +92,12 @@ export const clearMetrics = () => {
 
 /**
  * Track a React component render time using a useEffect hook
+ * Note: This function is provided for backward compatibility but React hooks should be used directly in components
  */
 export const useComponentPerformance = (componentName: string, metadata?: Record<string, any>) => {
-  const endMeasure = startMeasure(`component:${componentName}`, metadata);
-  
+  // This needs to be used inside a React component
   React.useEffect(() => {
+    const endMeasure = startMeasure(`component:${componentName}`, metadata);
     return endMeasure;
   }, []);
 };

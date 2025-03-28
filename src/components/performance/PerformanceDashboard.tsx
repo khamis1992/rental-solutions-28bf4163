@@ -144,6 +144,14 @@ const PerformanceDashboard: React.FC = () => {
     }));
   }, [metrics]);
 
+  // Helper function to safely format tooltip values
+  const formatTooltipValue = (value: any) => {
+    if (typeof value === 'number') {
+      return `${value.toFixed(2)}ms`;
+    }
+    return value;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -253,7 +261,9 @@ const PerformanceDashboard: React.FC = () => {
                         cy="50%"
                         outerRadius={80}
                         fill="#8884d8"
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        label={({ name, percent }: any) => 
+                          `${name}: ${((percent as number) * 100).toFixed(0)}%`
+                        }
                       >
                         {metricTypeDistribution.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -282,7 +292,9 @@ const PerformanceDashboard: React.FC = () => {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" domain={[0, 'auto']} />
                       <YAxis dataKey="name" type="category" width={100} />
-                      <Tooltip formatter={(value) => [`${value.toFixed(2)}ms`, 'Average Time']} />
+                      <Tooltip formatter={(value: any) => 
+                        typeof value === 'number' ? [`${value.toFixed(2)}ms`, 'Average Time'] : [value, 'Average Time']
+                      } />
                       <Legend />
                       <Bar dataKey="average" fill="#8884d8" name="Average Time (ms)" />
                     </BarChart>
@@ -310,7 +322,9 @@ const PerformanceDashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" domain={[0, 'auto']} />
                     <YAxis dataKey="name" type="category" width={100} />
-                    <Tooltip formatter={(value) => [`${value.toFixed(2)}ms`, 'Average Time']} />
+                    <Tooltip formatter={(value: any) => 
+                      typeof value === 'number' ? [`${value.toFixed(2)}ms`, 'Average Time'] : [value, 'Average Time']
+                    } />
                     <Bar dataKey="average" fill="#00C49F" name="Average Load Time (ms)" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -336,7 +350,9 @@ const PerformanceDashboard: React.FC = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis type="number" domain={[0, 'auto']} />
                     <YAxis dataKey="name" type="category" width={100} />
-                    <Tooltip formatter={(value) => [`${value.toFixed(2)}ms`, 'Average Time']} />
+                    <Tooltip formatter={(value: any) => 
+                      typeof value === 'number' ? [`${value.toFixed(2)}ms`, 'Average Time'] : [value, 'Average Time']
+                    } />
                     <Bar dataKey="average" fill="#FFBB28" name="Average Render Time (ms)" />
                   </BarChart>
                 </ResponsiveContainer>
@@ -361,7 +377,9 @@ const PerformanceDashboard: React.FC = () => {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" domain={[0, 'auto']} />
                       <YAxis dataKey="name" type="category" width={100} />
-                      <Tooltip formatter={(value) => [`${value.toFixed(2)}ms`, 'Average Time']} />
+                      <Tooltip formatter={(value: any) => 
+                        typeof value === 'number' ? [`${value.toFixed(2)}ms`, 'Average Time'] : [value, 'Average Time']
+                      } />
                       <Bar dataKey="average" fill="#FF8042" name="Average Response Time (ms)" />
                     </BarChart>
                   </ResponsiveContainer>
