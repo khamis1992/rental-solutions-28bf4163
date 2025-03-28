@@ -1,6 +1,5 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
-import { formatDate } from '@/lib/date-utils';
 
 /**
  * Generates a CSV string from an array of objects
@@ -91,15 +90,15 @@ export const addReportHeader = (
   doc.setFont('helvetica', 'bold');
   doc.text(title, pageWidth / 2, 40, { align: 'center' });
   
-  // Add date range with updated format
+  // Add date range
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  const fromDate = dateRange.from ? formatDate(dateRange.from) : '';
-  const toDate = dateRange.to ? formatDate(dateRange.to) : '';
+  const fromDate = dateRange.from ? format(dateRange.from, 'LLL dd, y') : '';
+  const toDate = dateRange.to ? format(dateRange.to, 'LLL dd, y') : '';
   doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 50, { align: 'center' });
   
-  // Add date of generation with updated format
-  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 55, { align: 'center' });
+  // Add date of generation
+  doc.text(`Generated on: ${format(new Date(), 'LLL dd, y')}`, pageWidth / 2, 55, { align: 'center' });
   
   return 65; // Return next Y position
 };
@@ -129,7 +128,7 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFont('helvetica', 'normal');
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
   doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 10, { align: 'right' });
+  doc.text(format(new Date(), 'yyyy-MM-dd'), pageWidth - 14, pageHeight - 10, { align: 'right' });
 };
 
 /**

@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
-import { formatDate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 import { TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { toast } from "sonner";
 
@@ -206,7 +206,7 @@ export const AgreementTrafficFines = ({
                 <div className="space-y-1">
                   <p className="font-medium text-sm">Violation #{fine.violationNumber}</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDate(new Date(fine.violationDate))}
+                    {format(new Date(fine.violationDate), "PPP")}
                     {fine.location && ` at ${fine.location}`}
                   </p>
                   <p className="text-sm text-muted-foreground">{fine.violationCharge}</p>

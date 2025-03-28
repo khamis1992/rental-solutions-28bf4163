@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -24,6 +25,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import { format } from 'date-fns';
 import { 
   AlertTriangle, 
   Car, 
@@ -32,16 +34,12 @@ import {
   Plus, 
   Search, 
   X,
-  UserCheck,
-  DollarSign,
-  Users,
+  UserCheck
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
-import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { StatCard } from '@/components/ui/stat-card';
 
 const TrafficFinesList = () => {
   const { toast } = useToast();
@@ -49,26 +47,24 @@ const TrafficFinesList = () => {
   const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
   
+  // Filter traffic fines based on search query
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
     ((fine.violationNumber?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.licensePlate?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
     (fine.violationCharge?.toLowerCase() || '').includes(searchQuery.toLowerCase()))
   ) : [];
 
-  const assignedFines = filteredFines.filter(fine => fine.customerId);
-  const unassignedFines = filteredFines.filter(fine => !fine.customerId);
-  
-  const assignedFinesAmount = assignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
-  const unassignedFinesAmount = unassignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
-
+  // Handle paying a fine
   const handlePayFine = (id: string) => {
     payTrafficFine({ id });
   };
 
+  // Handle disputing a fine
   const handleDisputeFine = (id: string) => {
     disputeTrafficFine({ id });
   };
 
+  // Auto-assign fines to customers
   const handleAutoAssignFines = async () => {
     try {
       setAssigningFines(true);
@@ -81,8 +77,10 @@ const TrafficFinesList = () => {
       const pendingFines = filteredFines.filter(fine => !fine.customerId);
 
       for (const fine of pendingFines) {
+        // Only process fines with license plates
         if (!fine.licensePlate) continue;
 
+        // Try to assign by finding a lease with this vehicle
         try {
           await assignToCustomer({ id: fine.id });
           assignedCount++;
@@ -131,155 +129,129 @@ const TrafficFinesList = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard 
-          title="Total Traffic Fines"
-          value={filteredFines.length.toString()}
-          description="Total number of traffic fines in the system"
-          icon={AlertTriangle}
-          iconColor="text-amber-500"
-        />
-        <StatCard 
-          title="Assigned Fines"
-          value={assignedFines.length.toString()}
-          description={`Total amount: ${formatCurrency(assignedFinesAmount)}`}
-          icon={UserCheck}
-          iconColor="text-blue-500"
-        />
-        <StatCard 
-          title="Unassigned Fines"
-          value={unassignedFines.length.toString()}
-          description={`Total amount: ${formatCurrency(unassignedFinesAmount)}`}
-          icon={Users}
-          iconColor="text-red-500"
-        />
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div>
-              <CardTitle>Traffic Fines</CardTitle>
-              <CardDescription>
-                Manage and track traffic fines for your vehicles
-              </CardDescription>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button 
-                className="w-full md:w-auto"
-                onClick={handleAutoAssignFines}
-                disabled={assigningFines}
-                variant="secondary"
-              >
-                <UserCheck className="mr-2 h-4 w-4" /> 
-                {assigningFines ? "Assigning..." : "Auto-Assign"}
-              </Button>
-              <Button className="w-full md:w-auto">
-                <Plus className="mr-2 h-4 w-4" /> Add Fine
-              </Button>
-            </div>
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <CardTitle>Traffic Fines</CardTitle>
+            <CardDescription>
+              Manage and track traffic fines for your vehicles
+            </CardDescription>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by violation number, license plate, or charge..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              className="w-full md:w-auto"
+              onClick={handleAutoAssignFines}
+              disabled={assigningFines}
+              variant="secondary"
+            >
+              <UserCheck className="mr-2 h-4 w-4" /> 
+              {assigningFines ? "Assigning..." : "Auto-Assign"}
+            </Button>
+            <Button className="w-full md:w-auto">
+              <Plus className="mr-2 h-4 w-4" /> Add Fine
+            </Button>
           </div>
-          
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center space-x-2 mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by violation number, license plate, or charge..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+        
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Violation #</TableHead>
+                <TableHead>License Plate</TableHead>
+                <TableHead className="hidden md:table-cell">Violation Date</TableHead>
+                <TableHead className="hidden md:table-cell">Location</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
                 <TableRow>
-                  <TableHead>Violation #</TableHead>
-                  <TableHead>License Plate</TableHead>
-                  <TableHead className="hidden md:table-cell">Violation Date</TableHead>
-                  <TableHead className="hidden md:table-cell">Location</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    Loading traffic fines...
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
-                      Loading traffic fines...
+              ) : filteredFines.length > 0 ? (
+                filteredFines.map((fine) => (
+                  <TableRow key={fine.id}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center">
+                        <AlertTriangle className="mr-2 h-4 w-4 text-warning" />
+                        {fine.violationNumber}
+                      </div>
+                    </TableCell>
+                    <TableCell>{fine.licensePlate}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {format(fine.violationDate, 'MMM d, yyyy')}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{fine.location || 'N/A'}</TableCell>
+                    <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
+                    <TableCell>
+                      {getStatusBadge(fine.paymentStatus)}
+                    </TableCell>
+                    <TableCell>
+                      {getCustomerAssignmentStatus(fine)}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={() => handlePayFine(fine.id)}
+                            disabled={fine.paymentStatus === 'paid'}
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" /> Pay Fine
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleDisputeFine(fine.id)}
+                            disabled={fine.paymentStatus === 'disputed'}
+                          >
+                            <X className="mr-2 h-4 w-4" /> Dispute Fine
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => assignToCustomer({ id: fine.id })}
+                            disabled={!!fine.customerId}
+                          >
+                            <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                ) : filteredFines.length > 0 ? (
-                  filteredFines.map((fine) => (
-                    <TableRow key={fine.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center">
-                          <AlertTriangle className="mr-2 h-4 w-4 text-warning" />
-                          {fine.violationNumber}
-                        </div>
-                      </TableCell>
-                      <TableCell>{fine.licensePlate}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {formatDate(fine.violationDate)}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{fine.location || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
-                      <TableCell>
-                        {getStatusBadge(fine.paymentStatus)}
-                      </TableCell>
-                      <TableCell>
-                        {getCustomerAssignmentStatus(fine)}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem 
-                              onClick={() => handlePayFine(fine.id)}
-                              disabled={fine.paymentStatus === 'paid'}
-                            >
-                              <CheckCircle className="mr-2 h-4 w-4" /> Pay Fine
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => handleDisputeFine(fine.id)}
-                              disabled={fine.paymentStatus === 'disputed'}
-                            >
-                              <X className="mr-2 h-4 w-4" /> Dispute Fine
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => assignToCustomer({ id: fine.id })}
-                              disabled={!!fine.customerId}
-                            >
-                              <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={8} className="h-24 text-center">
-                      {searchQuery ? "No matching traffic fines found." : "No traffic fines found."}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    {searchQuery ? "No matching traffic fines found." : "No traffic fines found."}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
