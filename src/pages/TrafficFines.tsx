@@ -10,37 +10,28 @@ import { toast } from 'sonner';
 const TrafficFines = () => {
   const { trafficFines, isLoading, assignToCustomer } = useTrafficFines();
   const [initialAssignmentDone, setInitialAssignmentDone] = useState(false);
-  const [isAssigning, setIsAssigning] = useState(false);
   
   // Auto-assign unassigned fines when the page loads
   useEffect(() => {
-    // Only run auto-assignment if we have traffic fines data, haven't run it yet, and aren't currently loading
     if (!isLoading && !initialAssignmentDone && trafficFines && trafficFines.length > 0) {
       const unassignedFines = trafficFines.filter(fine => !fine.customerId && !fine.leaseId);
       
       if (unassignedFines.length > 0) {
+        toast.info(`Auto-assigning ${unassignedFines.length} unassigned traffic fines...`);
+        
+        // Process fines one by one to avoid overwhelming the API
+        let assignedCount = 0;
+        
         const assignFines = async () => {
-          setIsAssigning(true);
-          toast.info(`Auto-assigning ${unassignedFines.length} unassigned traffic fines...`);
-          
-          // Process fines one by one to avoid overwhelming the API
-          let assignedCount = 0;
-          let failedCount = 0;
-          
           for (const fine of unassignedFines) {
             try {
               // Only process fines with license plates
-              if (!fine.licensePlate) {
-                console.log(`Skipping fine ${fine.id} - missing license plate`);
-                continue;
-              }
+              if (!fine.licensePlate) continue;
               
-              console.log(`Attempting to assign fine ${fine.id} with license plate ${fine.licensePlate}`);
               await assignToCustomer({ id: fine.id });
               assignedCount++;
             } catch (error) {
               console.error(`Failed to assign fine ${fine.id}:`, error);
-              failedCount++;
             }
           }
           
@@ -50,12 +41,7 @@ const TrafficFines = () => {
             toast.warning('No traffic fines could be automatically assigned');
           }
           
-          if (failedCount > 0) {
-            toast.error(`Failed to assign ${failedCount} traffic fines`);
-          }
-          
           setInitialAssignmentDone(true);
-          setIsAssigning(false);
         };
         
         assignFines();
@@ -77,7 +63,7 @@ const TrafficFines = () => {
       />
       
       <div className="space-y-6">
-        <TrafficFinesList isAutoAssigning={isAssigning} />
+        <TrafficFinesList />
       </div>
     </PageContainer>
   );

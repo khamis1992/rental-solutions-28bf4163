@@ -1,16 +1,35 @@
 
 import { useState, useEffect } from 'react';
-import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
+import { useTrafficFines, TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, Check, Clock } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
+}
+
+// Define types for Supabase query results
+interface LeaseResult {
+  id: string;
+}
+
+interface TrafficFineResult {
+  id: string;
+  violation_number: string;
+  license_plate: string;
+  vehicle_model?: string;
+  violation_date: string;
+  fine_amount: number;
+  violation_charge: string;
+  payment_status: string;
+  fine_location?: string;
+  vehicle_id?: string;
+  payment_date?: string;
+  lease_id?: string;
 }
 
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
@@ -23,30 +42,25 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       try {
         setLoading(true);
         
-        // Step 1: First find all leases associated with this customer
+        // Get leases by customer_id without using aliases
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
           .eq('customer_id', customerId);
           
         if (leasesError) {
-          console.error("Error fetching customer leases:", leasesError);
           throw new Error(leasesError.message);
         }
         
-        // If customer has no leases, return empty array
         if (!leases || leases.length === 0) {
-          console.log(`No leases found for customer ${customerId}`);
           setFines([]);
-          setLoading(false);
           return;
         }
         
         // Extract the lease IDs
-        const leaseIds = leases.map(lease => lease.id);
-        console.log(`Found ${leaseIds.length} leases for customer ${customerId}`, leaseIds);
+        const leaseIds = (leases as LeaseResult[]).map(lease => lease.id);
         
-        // Step 2: Fetch traffic fines associated with these lease IDs
+        // Then fetch traffic fines associated with these lease IDs
         const { data: trafficFines, error: finesError } = await supabase
           .from('traffic_fines')
           .select('*')
@@ -54,36 +68,28 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           .order('violation_date', { ascending: false });
           
         if (finesError) {
-          console.error("Error fetching traffic fines:", finesError);
           throw new Error(finesError.message);
         }
         
-        console.log(`Found ${trafficFines?.length || 0} traffic fines`);
-        
         // Transform the data to match the TrafficFine interface
-        const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => ({
+        const formattedFines: TrafficFine[] = (trafficFines as TrafficFineResult[] || []).map(fine => ({
           id: fine.id,
-          violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
+          violationNumber: fine.violation_number,
           licensePlate: fine.license_plate,
-          // Instead of directly accessing vehicle_model which doesn't exist in the database,
-          // we'll set it to undefined as per the interface
-          vehicleModel: undefined,
+          vehicleModel: fine.vehicle_model,
           violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
           paymentStatus: fine.payment_status as TrafficFineStatusType,
           location: fine.fine_location || '',
           vehicleId: fine.vehicle_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-          customerId: customerId,
-          leaseId: fine.lease_id
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
         
         setFines(formattedFines);
       } catch (err) {
         console.error('Error fetching traffic fines:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load traffic fines');
-        toast.error('Failed to load traffic fines');
+        setError('Failed to load traffic fines');
       } finally {
         setLoading(false);
       }
