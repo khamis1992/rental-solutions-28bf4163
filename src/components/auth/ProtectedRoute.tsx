@@ -29,7 +29,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
 
   // Role-based access control (if roles are specified)
   if (roles && roles.length > 0) {
-    const userRole = profile?.role || 'staff';
+    const userRole = profile?.role || 'user';
     if (!roles.includes(userRole)) {
       return <Navigate to="/unauthorized" replace />;
     }

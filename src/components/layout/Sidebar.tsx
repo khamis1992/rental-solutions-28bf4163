@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -40,14 +39,14 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { title: 'Customers', path: '/customers', icon: Users, roles: ['admin', 'staff'] },
+  { title: 'Customers', path: '/customers', icon: Users, roles: ['admin', 'manager'] },
   { title: 'Agreements', path: '/agreements', icon: FileText },
   { title: 'Vehicles', path: '/vehicles', icon: Car },
   { title: 'Maintenance', path: '/maintenance', icon: Wrench },
   { title: 'Traffic Fines', path: '/fines', icon: AlertTriangle },
-  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin'] },
-  { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin'] },
-  { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin'] },
+  { title: 'Financials', path: '/financials', icon: BarChart4, roles: ['admin', 'manager'] },
+  { title: 'Legal', path: '/legal', icon: Gavel, roles: ['admin', 'manager'] },
+  { title: 'Reports', path: '/reports', icon: PieChart, roles: ['admin', 'manager'] },
   { title: 'User Management', path: '/user-management', icon: UserPlus, roles: ['admin'] },
 ];
 
@@ -58,7 +57,7 @@ const Sidebar = () => {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
 
-  const userRole = profile?.role || 'staff';
+  const userRole = profile?.role || 'user';
   
   const filteredNavItems = navItems.filter(item => 
     !item.roles || item.roles.includes(userRole)

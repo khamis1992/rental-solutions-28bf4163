@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
-import { Shield, UserCog } from "lucide-react";
+import { Shield, UserCog, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { 
   Select, 
   SelectContent, 
@@ -23,7 +24,7 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
   const [isChanging, setIsChanging] = useState(false);
 
   const handleRoleChange = async (newRole: string) => {
-    if (newRole === role || disabled) return;
+    if (newRole === currentRole || disabled) return;
     
     try {
       setIsChanging(true);
@@ -55,12 +56,14 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
     <div className="flex items-center space-x-2">
       {role === "admin" ? (
         <Shield className="h-4 w-4 text-primary" />
-      ) : (
+      ) : role === "manager" ? (
         <UserCog className="h-4 w-4 text-blue-500" />
+      ) : (
+        <User className="h-4 w-4 text-muted-foreground" />
       )}
       
       <Select
-        defaultValue={role}
+        value={role}
         onValueChange={handleRoleChange}
         disabled={disabled || isChanging}
       >
@@ -74,10 +77,16 @@ export const UserRoleManager = ({ userId, currentRole, fullName, disabled = fals
               <span>Admin</span>
             </div>
           </SelectItem>
-          <SelectItem value="staff" className="flex items-center">
+          <SelectItem value="manager" className="flex items-center">
             <div className="flex items-center">
               <UserCog className="h-4 w-4 mr-2 text-blue-500" />
-              <span>Staff</span>
+              <span>Manager</span>
+            </div>
+          </SelectItem>
+          <SelectItem value="user" className="flex items-center">
+            <div className="flex items-center">
+              <User className="h-4 w-4 mr-2 text-muted-foreground" />
+              <span>User</span>
             </div>
           </SelectItem>
         </SelectContent>
