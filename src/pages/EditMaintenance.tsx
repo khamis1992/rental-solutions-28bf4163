@@ -89,34 +89,34 @@ const EditMaintenance = () => {
   const mapMaintenanceType = (type: string): keyof typeof MaintenanceType => {
     // Define the mapping from API values (usually uppercase) to form values (lowercase)
     const typeMapping: Record<string, keyof typeof MaintenanceType> = {
-      'OIL_CHANGE': 'oil_change',
-      'TIRE_REPLACEMENT': 'tire_replacement',
-      'BRAKE_SERVICE': 'brake_service',
-      'REGULAR_INSPECTION': 'regular_inspection',
-      'ENGINE_REPAIR': 'engine_repair',
-      'TRANSMISSION_SERVICE': 'transmission_service',
-      'ELECTRICAL_REPAIR': 'electrical_repair',
-      'BODY_REPAIR': 'body_repair',
-      'AIR_CONDITIONING': 'air_conditioning',
-      'OTHER': 'other'
+      'OIL_CHANGE': MaintenanceType.OIL_CHANGE,
+      'TIRE_REPLACEMENT': MaintenanceType.TIRE_REPLACEMENT,
+      'BRAKE_SERVICE': MaintenanceType.BRAKE_SERVICE,
+      'REGULAR_INSPECTION': MaintenanceType.REGULAR_INSPECTION,
+      'ENGINE_REPAIR': MaintenanceType.ENGINE_REPAIR,
+      'TRANSMISSION_SERVICE': MaintenanceType.TRANSMISSION_SERVICE,
+      'ELECTRICAL_REPAIR': MaintenanceType.ELECTRICAL_REPAIR,
+      'BODY_REPAIR': MaintenanceType.BODY_REPAIR,
+      'AIR_CONDITIONING': MaintenanceType.AIR_CONDITIONING,
+      'OTHER': MaintenanceType.OTHER
     };
     
     // For already lowercase values, create a reverse mapping
     const lowercaseTypeMapping: Record<string, keyof typeof MaintenanceType> = {
-      'oil_change': 'oil_change',
-      'tire_replacement': 'tire_replacement',
-      'brake_service': 'brake_service',
-      'regular_inspection': 'regular_inspection',
-      'engine_repair': 'engine_repair',
-      'transmission_service': 'transmission_service',
-      'electrical_repair': 'electrical_repair',
-      'body_repair': 'body_repair',
-      'air_conditioning': 'air_conditioning',
-      'other': 'other'
+      'oil_change': MaintenanceType.OIL_CHANGE,
+      'tire_replacement': MaintenanceType.TIRE_REPLACEMENT,
+      'brake_service': MaintenanceType.BRAKE_SERVICE,
+      'regular_inspection': MaintenanceType.REGULAR_INSPECTION,
+      'engine_repair': MaintenanceType.ENGINE_REPAIR,
+      'transmission_service': MaintenanceType.TRANSMISSION_SERVICE,
+      'electrical_repair': MaintenanceType.ELECTRICAL_REPAIR,
+      'body_repair': MaintenanceType.BODY_REPAIR,
+      'air_conditioning': MaintenanceType.AIR_CONDITIONING,
+      'other': MaintenanceType.OTHER
     };
     
-    // Return the mapped value; use uppercase mapping first, then lowercase, or default to 'other'
-    return typeMapping[type] || lowercaseTypeMapping[type] || 'other';
+    // Return the mapped value; use uppercase mapping first, then lowercase, or default to 'OTHER'
+    return typeMapping[type] || lowercaseTypeMapping[type] || MaintenanceType.OTHER;
   };
   
   // Convert API maintenance data to form compatible data

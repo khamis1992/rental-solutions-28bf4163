@@ -36,7 +36,7 @@ interface MaintenanceFormProps {
   onSubmit: (data: MaintenanceFormSchema) => void;
   isLoading?: boolean;
   isEditMode?: boolean;
-  submitLabel?: string; // Add the submitLabel prop
+  submitLabel?: string;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
@@ -44,7 +44,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   onSubmit,
   isLoading = false,
   isEditMode = false,
-  submitLabel, // Add it to the destructured props
+  submitLabel,
 }) => {
   // Setup form with validation
   const form = useForm<MaintenanceFormSchema>({
@@ -104,7 +104,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </FormControl>
                       <SelectContent>
                         {vehicles?.map(vehicle => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
+                          <SelectItem key={vehicle.id} value={vehicle.id || "no-id"}>
                             {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
                           </SelectItem>
                         ))}
@@ -133,7 +133,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </FormControl>
                       <SelectContent>
                         {Object.values(MaintenanceType).map((type) => (
-                          <SelectItem key={type} value={type}>
+                          <SelectItem key={type} value={type || "no-type"}>
                             {formatMaintenanceType(type)}
                           </SelectItem>
                         ))}
