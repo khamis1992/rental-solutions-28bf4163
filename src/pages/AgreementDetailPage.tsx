@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -27,11 +28,16 @@ const AgreementDetailPage = () => {
   };
 
   useEffect(() => {
-    // Initialize the system to check for payment generation
-    initializeSystem().then(() => {
-      console.log("System initialized, checking for payments");
-    });
+    if (!id || !isInitialized) {
+      // Initialize the system to check for payment generation (only once)
+      initializeSystem().then(() => {
+        console.log("System initialized, checking for payments");
+        setIsInitialized(true);
+      });
+    }
+  }, [id, isInitialized]);
 
+  useEffect(() => {
     const fetchAgreement = async () => {
       if (!id) return;
       
@@ -141,25 +147,11 @@ const AgreementDetailPage = () => {
         toast.error("Failed to load agreement details");
       } finally {
         setIsLoading(false);
-        setIsInitialized(true);
       }
     };
 
-    // Helper function to determine if this is the first time we're viewing an agreement this month
-    const isNewMonth = () => {
-      const lastCheck = localStorage.getItem('lastMonthlyPaymentCheck');
-      const currentMonth = new Date(2025, 2, 22).getMonth(); // Use March 2025
-      const currentYear = new Date(2025, 2, 22).getFullYear(); // Use 2025
-      const monthYearString = `${currentMonth}-${currentYear}`;
-      
-      if (lastCheck !== monthYearString) {
-        localStorage.setItem('lastMonthlyPaymentCheck', monthYearString);
-        return true;
-      }
-      return false;
-    };
-
-    if (!isInitialized || refreshTrigger > 0) {
+    // Only fetch agreement data when needed (on load or manual refresh)
+    if (id && (isInitialized || refreshTrigger > 0)) {
       fetchAgreement();
     }
   }, [id, getAgreement, navigate, isInitialized, paymentGenerationAttempted, refreshTrigger]);
