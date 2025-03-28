@@ -119,7 +119,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handlePayFine = async (id: string) => {
     try {
-      await payTrafficFine({ id });
+      await payTrafficFine.mutate({ id });
       toast.success("Fine marked as paid successfully");
     } catch (error) {
       console.error("Error paying fine:", error);
@@ -131,7 +131,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handleDisputeFine = async (id: string) => {
     try {
-      await disputeTrafficFine({ id });
+      await disputeTrafficFine.mutate({ id });
       toast.success("Fine marked as disputed successfully");
     } catch (error) {
       console.error("Error disputing fine:", error);
@@ -168,7 +168,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer({ id: fine.id });
+          await assignToCustomer.mutate({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -232,7 +232,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   const renderDataValidationWarning = () => {
     if (!dataValidation.valid && dataValidation.issues.length > 0) {
       return (
-        <Alert variant="warning" className="mb-4">
+        <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Data Validation Issues</AlertTitle>
           <AlertDescription>
@@ -401,7 +401,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => assignToCustomer({ id: fine.id })}
+                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
                               <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer

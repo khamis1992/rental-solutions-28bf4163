@@ -85,7 +85,7 @@ const EditMaintenance = () => {
     );
   }
   
-  // Map the uppercase maintenance type to lowercase
+  // Map the uppercase maintenance type to lowercase and vice versa
   const mapMaintenanceType = (type: string): keyof typeof MaintenanceType => {
     // Create a mapping between uppercase keys and lowercase values
     const typeMapping: Record<string, keyof typeof MaintenanceType> = {

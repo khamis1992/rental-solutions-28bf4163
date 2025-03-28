@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -64,11 +65,11 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
   const unassignedFinesAmount = unassignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
 
   const handlePayFine = (id: string) => {
-    payTrafficFine({ id });
+    payTrafficFine.mutate({ id });
   };
 
   const handleDisputeFine = (id: string) => {
-    disputeTrafficFine({ id });
+    disputeTrafficFine.mutate({ id });
   };
 
   const handleAutoAssignFines = async () => {
@@ -98,7 +99,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer({ id: fine.id });
+          await assignToCustomer.mutate({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -278,7 +279,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => assignToCustomer({ id: fine.id })}
+                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
                               <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
