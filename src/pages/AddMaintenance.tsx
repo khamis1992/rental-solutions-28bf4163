@@ -15,17 +15,17 @@ const AddMaintenance = () => {
   const [error, setError] = useState<string | null>(null);
   
   // Ensure the maintenance type is a valid enum value
-  const validateMaintenanceType = (type: string): MaintenanceType => {
-    if (Object.values(MaintenanceType).includes(type as MaintenanceType)) {
-      return type as MaintenanceType;
+  const validateMaintenanceType = (type: string): string => {
+    if (Object.values(MaintenanceType).includes(type as any)) {
+      return type;
     }
     return MaintenanceType.OTHER;
   };
   
   // Ensure the status is a valid enum value
-  const validateMaintenanceStatus = (status: string): MaintenanceStatus => {
-    if (Object.values(MaintenanceStatus).includes(status as MaintenanceStatus)) {
-      return status as MaintenanceStatus;
+  const validateMaintenanceStatus = (status: string): string => {
+    if (Object.values(MaintenanceStatus).includes(status as any)) {
+      return status;
     }
     return MaintenanceStatus.SCHEDULED;
   };

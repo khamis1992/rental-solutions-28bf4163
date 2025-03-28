@@ -46,16 +46,20 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   }, [initialValues]);
   
   const uniqueMakes = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.make) || [])
+    new Set(vehicles?.map(vehicle => vehicle.make || 'unknown') || [])
   ).sort();
   
   const uniqueLocations = Array.from(
-    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location) || [])
+    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location || 'unknown') || [])
   ).sort();
   
   const uniqueYears = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.year?.toString()) || [])
-  ).sort((a, b) => parseInt(b) - parseInt(a));
+    new Set(vehicles?.map(vehicle => vehicle.year?.toString() || 'unknown') || [])
+  ).sort((a, b) => {
+    if (a === 'unknown') return 1;
+    if (b === 'unknown') return -1;
+    return parseInt(b) - parseInt(a);
+  });
   
   const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
     const newFilters = { ...filters, [key]: value };
@@ -94,7 +98,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Makes</SelectItem>
           {uniqueMakes.map(make => (
-            make ? <SelectItem key={make} value={make}>{make}</SelectItem> : null
+            <SelectItem key={make} value={make}>{make}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -109,7 +113,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Locations</SelectItem>
           {uniqueLocations.map(location => (
-            location ? <SelectItem key={location} value={location}>{location}</SelectItem> : null
+            <SelectItem key={location} value={location}>{location}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -124,7 +128,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         <SelectContent>
           <SelectItem value="all">All Years</SelectItem>
           {uniqueYears.map(year => (
-            year ? <SelectItem key={year} value={year}>{year}</SelectItem> : null
+            <SelectItem key={year} value={year}>{year}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -143,7 +147,11 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
               <SelectItem key={type.id} value={type.id}>
                 {type.name}
               </SelectItem>
-            ) : null
+            ) : (
+              <SelectItem key="unknown-type" value="unknown-type">
+                Unknown Type
+              </SelectItem>
+            )
           ))}
         </SelectContent>
       </Select>

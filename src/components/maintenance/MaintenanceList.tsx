@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
@@ -248,9 +249,15 @@ export const MaintenanceList = () => {
             <SelectContent>
               <SelectItem value="">All Vehicles</SelectItem>
               {vehicles?.map(vehicle => (
-                <SelectItem key={vehicle.id} value={vehicle.id || "unknown-id"}>
-                  {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                </SelectItem>
+                vehicle.id ? (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                    {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                  </SelectItem>
+                ) : (
+                  <SelectItem key="unknown-vehicle" value="unknown-vehicle">
+                    Unknown Vehicle
+                  </SelectItem>
+                )
               ))}
             </SelectContent>
           </Select>

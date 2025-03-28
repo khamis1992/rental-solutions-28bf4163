@@ -12,34 +12,53 @@ import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/mai
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { useDetail, update } = useMaintenance();
+  const { getAllRecords, update } = useMaintenance();
+  const [maintenance, setMaintenance] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch maintenance record
+  useEffect(() => {
+    const fetchMaintenance = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const records = await getAllRecords();
+        const record = records.find(r => r.id === id);
+        
+        if (record) {
+          setMaintenance(record);
+        } else {
+          setError('Maintenance record not found');
+        }
+      } catch (err) {
+        console.error('Error fetching maintenance record:', err);
+        setError('Failed to load maintenance record');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMaintenance();
+  }, [id, getAllRecords]);
+
   // Convert string maintenance type to enum
-  const mapStringToMaintenanceType = (typeString: string): MaintenanceType => {
-    if (Object.values(MaintenanceType).includes(typeString as MaintenanceType)) {
-      return typeString as MaintenanceType;
+  const mapStringToMaintenanceType = (typeString: string): string => {
+    if (Object.values(MaintenanceType).includes(typeString as any)) {
+      return typeString;
     }
     return MaintenanceType.OTHER;
   };
 
   // Convert string status to enum
-  const mapStringToMaintenanceStatus = (statusString: string): MaintenanceStatus => {
-    if (Object.values(MaintenanceStatus).includes(statusString as MaintenanceStatus)) {
-      return statusString as MaintenanceStatus;
+  const mapStringToMaintenanceStatus = (statusString: string): string => {
+    if (Object.values(MaintenanceStatus).includes(statusString as any)) {
+      return statusString;
     }
     return MaintenanceStatus.SCHEDULED;
   };
-
-  // Fetch the maintenance record details
-  const { data: maintenance, isLoading, error: fetchError } = useDetail(id);
-  
-  useEffect(() => {
-    if (fetchError) {
-      setError('Failed to load maintenance record');
-    }
-  }, [fetchError]);
 
   const handleSubmit = async (formData: any) => {
     if (!id) return;

@@ -150,13 +150,14 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                 Violation Type <span className="text-red-500">*</span>
               </Label>
               <Select 
-                value={fineData.violationType} 
+                value={fineData.violationType || "select-type"} 
                 onValueChange={(value) => handleSelectChange("violationType", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select violation type" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="select-type" disabled>Select violation type</SelectItem>
                   {violationTypes.map((type) => (
                     <SelectItem key={type.value} value={type.value}>
                       {type.label}
