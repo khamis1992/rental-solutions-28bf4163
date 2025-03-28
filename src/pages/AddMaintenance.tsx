@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,6 +6,7 @@ import { useMaintenance } from '@/hooks/use-maintenance';
 import { createEmptyMaintenance } from '@/lib/validation-schemas/maintenance';
 import type { Maintenance } from '@/lib/validation-schemas/maintenance';
 import { useToast } from '@/hooks/use-toast';
+import type { MaintenanceRecord } from '@/hooks/use-maintenance';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
@@ -28,9 +28,28 @@ const AddMaintenance = () => {
     }
   }, [location.search]);
 
-  const handleSubmit = (data: Omit<Maintenance, 'id'>) => {
-    console.log("Submitting maintenance record:", data);
-    create.mutate(data, {
+  const handleSubmit = (formData: Omit<Maintenance, 'id'>) => {
+    console.log("Submitting maintenance record:", formData);
+    
+    // Convert to the format expected by the API
+    const apiData: Omit<MaintenanceRecord, 'id' | 'created_at' | 'updated_at'> = {
+      vehicle_id: formData.vehicle_id,
+      maintenance_type: formData.maintenance_type,
+      status: formData.status,
+      description: formData.description || '',
+      cost: formData.cost || 0,
+      scheduled_date: formData.scheduled_date.toISOString(),
+      completed_date: formData.completion_date ? formData.completion_date.toISOString() : null,
+      performed_by: formData.service_provider || '',
+      notes: formData.notes || '',
+      service_type: formData.maintenance_type, // Using maintenance_type as service_type
+      category_id: null,
+      // Other required fields with default values
+      invoice_number: formData.invoice_number || '',
+      odometer_reading: formData.odometer_reading || 0
+    };
+    
+    create.mutate(apiData, {
       onSuccess: () => {
         toast({
           title: "Success",

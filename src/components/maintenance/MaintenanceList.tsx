@@ -41,6 +41,7 @@ export const MaintenanceList = () => {
   const { 
     getAll,
     remove,
+    getAllRecords
   } = useMaintenance();
   const { useList: useVehicleList } = useVehicles();
   const { data: vehicles } = useVehicleList();
@@ -61,7 +62,7 @@ export const MaintenanceList = () => {
     const fetchMaintenance = async () => {
       try {
         setIsLoading(true);
-        const records = await getAll.fetchQuery();
+        const records = await getAllRecords();
         setMaintenanceRecords(records || []);
       } catch (err) {
         setError(err);
@@ -116,7 +117,7 @@ export const MaintenanceList = () => {
   const handleSearch = async (searchTerm) => {
     try {
       setIsLoading(true);
-      const records = await getAll.fetchQuery();
+      const records = await getAllRecords();
       
       // Filter the records based on search term
       const filteredRecords = records.filter(record => 
@@ -135,7 +136,7 @@ export const MaintenanceList = () => {
   const applyFilters = async () => {
     try {
       setIsLoading(true);
-      const records = await getAll.fetchQuery();
+      const records = await getAllRecords();
       
       let filteredRecords = records;
       
@@ -169,7 +170,7 @@ export const MaintenanceList = () => {
     
     try {
       setIsLoading(true);
-      const records = await getAll.fetchQuery();
+      const records = await getAllRecords();
       setMaintenanceRecords(records || []);
     } catch (err) {
       setError(err);

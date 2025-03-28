@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -177,7 +178,12 @@ const MaintenanceReport = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [`$${value.toFixed(2)}`, 'Cost']} />
+                    <Tooltip 
+                      formatter={(value) => {
+                        // Ensure value is a number before calling toFixed
+                        return [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Cost'];
+                      }} 
+                    />
                     <Legend />
                     <Bar dataKey="cost" fill="#82ca9d" name="Total Cost" />
                   </BarChart>

@@ -31,6 +31,14 @@ const EditMaintenance = () => {
       completion_date: formData.completion_date instanceof Date 
         ? formData.completion_date.toISOString() 
         : formData.completion_date,
+      // Map to fields expected by API
+      performed_by: formData.service_provider,
+      completed_date: formData.completion_date instanceof Date 
+        ? formData.completion_date.toISOString() 
+        : formData.completion_date,
+      // Add any other required fields
+      service_type: formData.maintenance_type,
+      category_id: formData.category_id || null
     };
     
     updateMutation.mutate({ 
@@ -85,6 +93,9 @@ const EditMaintenance = () => {
     completion_date: maintenance.completed_date ? new Date(maintenance.completed_date) : undefined,
     // Map fields to expected names
     service_provider: maintenance.service_provider || maintenance.performed_by,
+    // Ensure created_at is handled properly
+    created_at: maintenance.created_at ? new Date(maintenance.created_at) : undefined,
+    updated_at: maintenance.updated_at ? new Date(maintenance.updated_at) : undefined
   };
   
   return (
