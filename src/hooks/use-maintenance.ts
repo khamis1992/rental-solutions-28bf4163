@@ -114,15 +114,22 @@ export function useMaintenance() {
   const formatMaintenanceData = (data: any): MaintenanceRecord => {
     if (!data) return {} as MaintenanceRecord;
     
-    // Ensure properties expected by UI components
+    // Ensure required properties have valid defaults to prevent errors
     return {
       ...data,
-      maintenance_type: data.maintenance_type as keyof typeof MaintenanceType,
-      status: data.status as "scheduled" | "in_progress" | "completed" | "cancelled",
+      id: data.id || '',
+      vehicle_id: data.vehicle_id || '',
+      maintenance_type: data.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
+      status: data.status || MaintenanceStatus.SCHEDULED,
+      description: data.description || '',
+      scheduled_date: data.scheduled_date || new Date().toISOString(),
       service_provider: data.service_provider || data.performed_by || '',
       invoice_number: data.invoice_number || '',
       odometer_reading: data.odometer_reading || 0,
       cost: typeof data.cost === 'number' ? data.cost : parseFloat(data.cost) || 0,
+      created_at: data.created_at || new Date().toISOString(),
+      updated_at: data.updated_at || new Date().toISOString(),
+      vehicles: data.vehicles || null
     };
   };
 
@@ -161,6 +168,7 @@ export function useMaintenance() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
+      console.log("Raw maintenance data:", data);
       return (data || []).map(formatMaintenanceData);
     } catch (err) {
       console.error('Error fetching maintenance records:', err);

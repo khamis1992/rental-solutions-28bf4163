@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
@@ -62,8 +63,10 @@ export const MaintenanceList = () => {
       try {
         setIsLoading(true);
         const records = await getAllRecords();
+        console.log("Fetched maintenance records:", records);
         setMaintenanceRecords(records || []);
       } catch (err) {
+        console.error("Error fetching maintenance records:", err);
         setError(err);
       } finally {
         setIsLoading(false);
@@ -327,53 +330,55 @@ export const MaintenanceList = () => {
                 </TableHeader>
                 <TableBody>
                   {maintenanceRecords.map(record => (
-                    <TableRow key={record.id}>
-                      <TableCell>
-                        <Checkbox 
-                          checked={selectedRecords.includes(record.id)}
-                          onCheckedChange={() => handleSelectRecord(record.id)}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatMaintenanceType(record.maintenance_type)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {getVehicleName(record.vehicle_id)}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'Not scheduled'}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusBadgeClass(record.status)}>
-                          {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => navigate(`/maintenance/${record.id}`)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(record.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                    record && record.id ? (
+                      <TableRow key={record.id}>
+                        <TableCell>
+                          <Checkbox 
+                            checked={selectedRecords.includes(record.id)}
+                            onCheckedChange={() => handleSelectRecord(record.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatMaintenanceType(record.maintenance_type || 'unknown')}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Car className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {getVehicleName(record.vehicle_id)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'Not scheduled'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusBadgeClass(record.status)}>
+                            {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/maintenance/${record.id}`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(record.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ) : null
                   ))}
                 </TableBody>
               </Table>
