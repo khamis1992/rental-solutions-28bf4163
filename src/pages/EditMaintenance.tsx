@@ -85,7 +85,8 @@ const EditMaintenance = () => {
     );
   }
   
-  // Convert API maintenance data to form compatible data
+  // Convert API maintenance data to form compatible data 
+  // Ensure maintenance_type is properly typed to match the allowed enum values
   const formData = {
     ...maintenance,
     // Convert string dates to Date objects for the form
@@ -93,6 +94,8 @@ const EditMaintenance = () => {
     completion_date: maintenance.completed_date ? new Date(maintenance.completed_date) : undefined,
     // Map fields to expected names
     service_provider: maintenance.service_provider || maintenance.performed_by,
+    // Convert maintenance_type to one of the allowed enum values
+    maintenance_type: maintenance.maintenance_type as keyof typeof MaintenanceType,
     // Ensure created_at is handled properly
     created_at: maintenance.created_at ? new Date(maintenance.created_at) : undefined,
     updated_at: maintenance.updated_at ? new Date(maintenance.updated_at) : undefined
