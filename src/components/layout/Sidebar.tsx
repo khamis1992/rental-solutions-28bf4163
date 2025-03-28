@@ -7,8 +7,8 @@ import {
   Home,
   Car,
   Users,
-  FileText,
-  Wrench,
+  FileText, // Instead of FileContract which is not available
+  Wrench, // Instead of Tool which is not available
   Settings,
   LogOut,
   BarChart2,
@@ -20,8 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
   UserCog,
-  Sliders,
-  Activity
+  Sliders
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -213,13 +212,6 @@ const Sidebar = () => {
                   icon={<BarChart2 className="h-4 w-4" />}
                   label="Reports"
                   isActive={isActive('/reports')}
-                />
-                
-                <NavLink
-                  to="/performance"
-                  icon={<Activity className="h-4 w-4" />}
-                  label="Performance"
-                  isActive={isActive('/performance')}
                 />
 
                 <NavGroup 
