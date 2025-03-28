@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -21,6 +21,9 @@ const AgreementDetailPage = () => {
   const [contractAmount, setContractAmount] = useState<number | null>(null);
   const [rentAmount, setRentAmount] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Use refs to track mounting state
+  const isMounted = useRef(true);
 
   const refreshAgreementData = useCallback(() => {
     // Increment refresh trigger to force a refresh
@@ -29,24 +32,26 @@ const AgreementDetailPage = () => {
 
   // Initialize system only once when component mounts
   useEffect(() => {
-    let isMounted = true;
-    
+    // Set up cleanup function first
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  // Handle system initialization separately
+  useEffect(() => {
     if (!isInitialized) {
       // Initialize the system to check for payment generation (only once)
       initializeSystem().then(() => {
-        if (isMounted) {
+        if (isMounted.current) {
           console.log("System initialized, checking for payments");
           setIsInitialized(true);
         }
       });
     }
-    
-    return () => {
-      isMounted = false;
-    };
   }, [isInitialized]);
 
-  // Function to fetch rent amount
+  // Function to fetch rent amount - memoize to prevent recreation on each render
   const fetchRentAmount = useCallback(async (agreementId: string) => {
     try {
       const { data, error } = await supabase
@@ -85,43 +90,44 @@ const AgreementDetailPage = () => {
     console.log(`Looking for missing payments between ${lastKnownPaymentDate.toISOString()} and ${currentSystemDate.toISOString()}`);
     
     // Generate payments for each month in the date range
-    await forceGeneratePaymentsForMissingMonths(
+    const missingResult = await forceGeneratePaymentsForMissingMonths(
       agreementData.id,
       rentAmt,
       lastKnownPaymentDate,
       currentSystemDate
-    ).then(missingResult => {
-      if (missingResult.success) {
-        console.log("Missing payments check completed:", missingResult);
-        if (missingResult.generated > 0) {
-          toast.success(`Generated ${missingResult.generated} missing monthly payments for ${agreementData.agreement_number}`);
-        } else {
-          console.log("No missing payments were generated, all months might be covered already");
-        }
+    );
+    
+    if (missingResult.success && isMounted.current) {
+      console.log("Missing payments check completed:", missingResult);
+      if (missingResult.generated > 0) {
+        toast.success(`Generated ${missingResult.generated} missing monthly payments for ${agreementData.agreement_number}`);
       } else {
-        console.error("Failed to generate missing payments:", missingResult);
+        console.log("No missing payments were generated, all months might be covered already");
       }
-    });
+    } else if (!missingResult.success) {
+      console.error("Failed to generate missing payments:", missingResult);
+    }
   }, []);
 
-  // Fetch agreement data in a separate effect to prevent loops
+  // Fetch agreement data
   useEffect(() => {
-    let isMounted = true;
+    // Skip if we don't have the necessary data yet
+    if (!id || !isInitialized) return;
+    
+    let isActive = true;
     
     const fetchAgreement = async () => {
-      if (!id || !isInitialized) return;
-      
       setIsLoading(true);
       try {
         // First get the agreement
         const data = await getAgreement(id);
         
-        if (!data || !isMounted) return;
+        if (!data || !isActive) return;
         
         // Get the rent_amount directly from the leases table
         const leaseRentAmount = await fetchRentAmount(id);
         
-        if (leaseRentAmount && isMounted) {
+        if (leaseRentAmount && isActive) {
           // If we have a rent_amount from leases table, update the agreement object
           data.total_amount = leaseRentAmount;
           setRentAmount(leaseRentAmount);
@@ -136,60 +142,57 @@ const AgreementDetailPage = () => {
           }
         }
         
-        if (isMounted) {
+        if (isActive) {
           setAgreement(data);
         }
         
         // For any agreement, check for missing monthly payments - but only once
-        if (data.status === 'active' && !paymentGenerationAttempted && isMounted) {
+        if (data.status === 'active' && !paymentGenerationAttempted && isActive) {
           console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
           setPaymentGenerationAttempted(true);
           
           // Force check all agreements for current month payments
-          await forceCheckAllAgreementsForPayments().then(allResult => {
-            if (isMounted && allResult.success) {
-              console.log("Payment check completed:", allResult);
-              if (allResult.generated > 0) {
-                toast.success(`Generated ${allResult.generated} new payments for active agreements`);
-              }
+          const allResult = await forceCheckAllAgreementsForPayments();
+          
+          if (isActive && allResult.success) {
+            console.log("Payment check completed:", allResult);
+            if (allResult.generated > 0) {
+              toast.success(`Generated ${allResult.generated} new payments for active agreements`);
             }
-          });
+          }
           
           // Special handling for agreement with MR202462 number
-          if (isMounted && leaseRentAmount) {
+          if (isActive && leaseRentAmount) {
             await handleSpecialAgreementPayments(data, leaseRentAmount);
           }
         }
       } catch (error) {
-        if (isMounted) {
+        if (isActive) {
           console.error("Error fetching agreement:", error);
           toast.error("Failed to load agreement details");
           navigate("/agreements");
         }
       } finally {
-        if (isMounted) {
+        if (isActive) {
           setIsLoading(false);
         }
       }
     };
 
     // Only fetch agreement data when needed (on load or manual refresh)
-    if (id && (isInitialized || refreshTrigger > 0)) {
-      fetchAgreement();
-    }
+    fetchAgreement();
     
     return () => {
-      isMounted = false;
+      isActive = false;
     };
   }, [
     id, 
     getAgreement, 
     navigate, 
     isInitialized, 
-    paymentGenerationAttempted, 
-    refreshTrigger, 
     fetchRentAmount,
-    handleSpecialAgreementPayments
+    handleSpecialAgreementPayments,
+    refreshTrigger
   ]);
 
   const handleDelete = async (agreementId: string) => {

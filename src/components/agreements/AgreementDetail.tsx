@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -10,7 +9,7 @@ import { Trash2, Edit, FileText, Download } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
 import { supabase, initializeSystem } from "@/lib/supabase"
@@ -58,8 +57,15 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const [localRentAmount, setLocalRentAmount] = useState<number | null>(rentAmount)
   const [durationMonths, setDurationMonths] = useState<number>(0)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  
+  const isMounted = useRef(true);
 
-  // Calculate duration months once when agreement changes
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   useEffect(() => {
     if (agreement.start_date && agreement.end_date) {
       const months = differenceInMonths(
@@ -70,7 +76,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     }
   }, [agreement.start_date, agreement.end_date]);
 
-  // Update localRentAmount when rentAmount prop changes
   useEffect(() => {
     if (rentAmount !== null && rentAmount !== undefined) {
       setLocalRentAmount(rentAmount);
@@ -163,6 +168,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       
       console.log("Raw payments data:", unifiedPayments);
       
+      if (!isMounted.current) return;
+      
       const formattedPayments = (unifiedPayments || []).map(payment => ({
         id: payment.id,
         amount: payment.amount,
@@ -182,7 +189,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       
       if (formattedPayments.length > 0 && localRentAmount) {
         const incorrectPayments = formattedPayments.filter(p => 
-          p.amount > localRentAmount * 5 && 
+          p.amount > (localRentAmount || 0) * 5 && 
           p.notes && 
           p.notes.includes("Monthly rent payment")
         );
@@ -195,42 +202,43 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
       }
     } catch (error) {
       console.error("Error fetching payments:", error);
-      toast.error("Failed to load payment history");
+      if (isMounted.current) {
+        toast.error("Failed to load payment history");
+      }
     } finally {
-      setIsLoadingPayments(false);
+      if (isMounted.current) {
+        setIsLoadingPayments(false);
+      }
     }
   }, [agreement.id, localRentAmount]);
 
-  // Initialize and fetch data once when component mounts
   useEffect(() => {
-    let isMounted = true;
+    let isActive = true;
     
     const initializeAndFetch = async () => {
       await initializeSystem();
       
-      if (isMounted) {
-        if (rentAmount === null || rentAmount === undefined) {
-          await fetchRentAmount();
-        }
-        
-        await fetchPayments();
+      if (!isActive) return;
+      
+      if (rentAmount === null || rentAmount === undefined) {
+        await fetchRentAmount();
       }
+      
+      await fetchPayments();
     };
     
     initializeAndFetch();
     
-    // Cleanup function to prevent setting state on unmounted component
     return () => {
-      isMounted = false;
+      isActive = false;
     };
   }, [agreement.id, fetchPayments, fetchRentAmount, rentAmount]);
 
-  // Handle payment deleted event
   useEffect(() => {
-    if (onPaymentDeleted) {
+    if (onPaymentDeleted && agreement.id) {
       fetchPayments();
     }
-  }, [onPaymentDeleted, fetchPayments]);
+  }, [onPaymentDeleted, fetchPayments, agreement.id]);
 
   return (
     <div className="space-y-8">
@@ -436,7 +444,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
             payments={payments} 
             isLoading={isLoadingPayments} 
             rentAmount={localRentAmount}
-            onPaymentDeleted={() => fetchPayments()}
+            onPaymentDeleted={fetchPayments}
             leaseStartDate={agreement.start_date}
             leaseEndDate={agreement.end_date}
           />
