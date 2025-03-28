@@ -1,338 +1,382 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from '@/components/ui/card';
-import { CustomButton } from '@/components/ui/custom-button';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Search, 
-  Plus, 
-  Calendar, 
-  Wrench,
-  Filter,
-  X,
-  Trash2
-} from 'lucide-react';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { MaintenanceStatus, MaintenanceType, type MaintenanceFilters, type MaintenanceStatusType } from '@/lib/validation-schemas/maintenance';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Pencil, Trash2, Plus, Search, Filter, Calendar, Car, Wrench, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { Skeleton } from '@/components/ui/skeleton';
-import { DateRange } from 'react-day-picker';
-import { useToast } from '@/hooks/use-toast';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-
-const formatMaintenanceType = (type: string | null | undefined) => {
-  if (!type) return "Unknown";
-  
-  return type
-    .split('_')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-};
-
-const getStatusBadge = (status: string) => {
-  const statusLower = status?.toLowerCase();
-  
-  switch (statusLower) {
-    case 'scheduled':
-      return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-300">Scheduled</Badge>;
-    case 'in_progress':
-      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100 border-yellow-300">In Progress</Badge>;
-    case 'completed':
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-300">Completed</Badge>;
-    case 'cancelled':
-      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-300">Cancelled</Badge>;
-    default:
-      return <Badge>{status || 'Unknown'}</Badge>;
-  }
-};
+import { useVehicles } from '@/hooks/use-vehicles';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const MaintenanceList = () => {
+  const { 
+    getAll,
+    remove,
+    getAllRecords
+  } = useMaintenance();
+  const { useList: useVehicleList } = useVehicles();
+  const { data: vehicles } = useVehicleList();
   const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const [page, setPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<MaintenanceStatusType | undefined>(undefined);
-  const [vehicleFilter, setVehicleFilter] = useState<string | undefined>(undefined);
-  const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState<string | undefined>(undefined);
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const itemsPerPage = 10;
-
-  const { useList, deleteAllRecords } = useMaintenance();
-
+  
+  const [maintenanceRecords, setMaintenanceRecords] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedRecords, setSelectedRecords] = useState([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [vehicleFilter, setVehicleFilter] = useState('');
+  
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const vehicleId = params.get('vehicleId');
-    if (vehicleId) {
-      setVehicleFilter(vehicleId);
+    const fetchMaintenance = async () => {
+      try {
+        setIsLoading(true);
+        const records = await getAllRecords();
+        setMaintenanceRecords(records || []);
+      } catch (err) {
+        setError(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMaintenance();
+  }, []);
+  
+  const handleSelectRecord = (id) => {
+    if (selectedRecords.includes(id)) {
+      setSelectedRecords(selectedRecords.filter(recordId => recordId !== id));
+    } else {
+      setSelectedRecords([...selectedRecords, id]);
     }
-  }, [location.search]);
-
-  const filters: MaintenanceFilters = {
-    query: searchQuery,
-    status: statusFilter,
-    vehicle_id: vehicleFilter,
-    maintenance_type: maintenanceTypeFilter,
-    date_from: dateRange?.from,
-    date_to: dateRange?.to,
   };
-
-  const { data: maintenanceRecords, isLoading, error, refetch } = useList(filters);
-
-  useEffect(() => {
-    if (error) {
-      console.error("Maintenance list error:", error);
-      toast({
-        title: "Error loading maintenance records",
-        description: "Please try again or contact support",
-        variant: "destructive",
+  
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedRecords(maintenanceRecords.map(record => record.id));
+    } else {
+      setSelectedRecords([]);
+    }
+  };
+  
+  const handleDelete = (id) => {
+    setRecordToDelete(id);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  const confirmDelete = () => {
+    if (recordToDelete) {
+      remove.mutate(recordToDelete, {
+        onSuccess: () => {
+          setMaintenanceRecords(maintenanceRecords.filter(record => record.id !== recordToDelete));
+          setSelectedRecords(selectedRecords.filter(id => id !== recordToDelete));
+        }
       });
     }
-  }, [error, toast]);
-
-  const totalItems = maintenanceRecords?.length || 0;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  const handleRowClick = (id: string) => {
-    navigate(`/maintenance/${id}`);
+    setIsDeleteDialogOpen(false);
+    setRecordToDelete(null);
   };
-
-  const startIndex = (page - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const displayedRecords = maintenanceRecords?.slice(startIndex, endIndex) || [];
-
-  const formatDate = (date: Date) => {
-    return format(date, 'MMM d, yyyy');
+  
+  const handleBulkDelete = () => {
+    console.log("Bulk delete functionality is not implemented");
   };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setStatusFilter(undefined);
-    setVehicleFilter(undefined);
-    setMaintenanceTypeFilter(undefined);
-    setDateRange(undefined);
-  };
-
-  const handleDeleteAllRecords = async () => {
-    const success = await deleteAllRecords();
-    if (success) {
-      refetch();
-      setDeleteDialogOpen(false);
+  
+  const handleSearch = async (searchTerm) => {
+    try {
+      setIsLoading(true);
+      const records = await getAllRecords();
+      
+      const filteredRecords = records.filter(record => 
+        record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        record.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      
+      setMaintenanceRecords(filteredRecords);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
     }
   };
-
+  
+  const applyFilters = async () => {
+    try {
+      setIsLoading(true);
+      const records = await getAllRecords();
+      
+      let filteredRecords = records;
+      
+      if (searchTerm) {
+        filteredRecords = filteredRecords.filter(record => 
+          record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          record.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+      
+      if (statusFilter) {
+        filteredRecords = filteredRecords.filter(record => record.status === statusFilter);
+      }
+      
+      if (vehicleFilter) {
+        filteredRecords = filteredRecords.filter(record => record.vehicle_id === vehicleFilter);
+      }
+      
+      setMaintenanceRecords(filteredRecords);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const clearFilters = async () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setVehicleFilter('');
+    
+    try {
+      setIsLoading(true);
+      const records = await getAllRecords();
+      setMaintenanceRecords(records || []);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const formatMaintenanceType = (type) => {
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  };
+  
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case MaintenanceStatus.SCHEDULED:
+        return 'bg-blue-100 text-blue-800';
+      case MaintenanceStatus.IN_PROGRESS:
+        return 'bg-yellow-100 text-yellow-800';
+      case MaintenanceStatus.COMPLETED:
+        return 'bg-green-100 text-green-800';
+      case MaintenanceStatus.CANCELLED:
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  const getVehicleName = (vehicleId) => {
+    if (!vehicles) return 'Loading...';
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    return vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unknown Vehicle';
+  };
+  
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {error instanceof Error ? error.message : 'Failed to load maintenance records'}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
   return (
-    <>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search maintenance..."
+              className="pl-8 w-[250px]"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value={MaintenanceStatus.SCHEDULED}>Scheduled</SelectItem>
+              <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
+              <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
+              <SelectItem value={MaintenanceStatus.CANCELLED}>Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+            <SelectTrigger className="w-[220px]">
+              <SelectValue placeholder="Filter by vehicle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Vehicles</SelectItem>
+              {vehicles?.map(vehicle => (
+                vehicle.id ? (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                    {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                  </SelectItem>
+                ) : (
+                  <SelectItem key="unknown-vehicle" value="unknown-vehicle">
+                    Unknown Vehicle
+                  </SelectItem>
+                )
+              ))}
+            </SelectContent>
+          </Select>
+          
+          <Button variant="outline" size="sm" onClick={applyFilters}>
+            <Filter className="h-4 w-4 mr-2" />
+            Apply Filters
+          </Button>
+          
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear
+          </Button>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {selectedRecords.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleBulkDelete}>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected ({selectedRecords.length})
+            </Button>
+          )}
+          
+          <Button onClick={() => navigate('/maintenance/add')}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Maintenance
+          </Button>
+        </div>
+      </div>
+      
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-            <div>
-              <CardTitle>Maintenance Records</CardTitle>
-              <CardDescription>
-                View and manage vehicle maintenance records.
-              </CardDescription>
-            </div>
-            <div className="flex items-center space-x-2 mt-2 md:mt-0">
-              <CustomButton 
-                variant="destructive" 
-                onClick={() => setDeleteDialogOpen(true)}
-                className="mr-2"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete All Records
-              </CustomButton>
-            </div>
-          </div>
+          <CardTitle>Maintenance Records</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-4">
-            <div className="col-span-1 md:col-span-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search records..."
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <CustomButton variant="outline" className="h-9 ml-auto">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <span>Filters</span>
-                </CustomButton>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium leading-none mb-2">Status</h4>
-                    <Select 
-                      onValueChange={(value) => {
-                        if (value === "") {
-                          setStatusFilter(undefined);
-                        } else {
-                          setStatusFilter(value as MaintenanceStatusType);
-                        }
-                      }} 
-                      value={statusFilter || ""}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={MaintenanceStatus.SCHEDULED}>Scheduled</SelectItem>
-                        <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
-                        <SelectItem value={MaintenanceStatus.CANCELLED}>Cancelled</SelectItem>
-                        <SelectItem value="">Clear</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium leading-none mb-2">Maintenance Type</h4>
-                    <Select onValueChange={setMaintenanceTypeFilter} defaultValue={maintenanceTypeFilter}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.values(MaintenanceType).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {formatMaintenanceType(type)}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value={undefined}>Clear</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium leading-none mb-2">Date Range</h4>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <CustomButton
-                          variant={"outline"}
-                          className={
-                            "w-full justify-start text-left font-normal" +
-                            (dateRange?.from
-                              ? "pl-3"
-                              : "text-muted-foreground")
-                          }
-                        >
-                          <Calendar className="mr-2 h-4 w-4" />
-                          {dateRange?.from ? (
-                            format(dateRange.from, "yyyy-MM-dd") +
-                            " - " +
-                            format(dateRange.to || dateRange.from, "yyyy-MM-dd")
-                          ) : (
-                            <span>Pick a date range</span>
-                          )}
-                        </CustomButton>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          initialFocus
-                          mode="range"
-                          defaultMonth={dateRange?.from}
-                          selected={dateRange}
-                          onSelect={setDateRange}
-                          numberOfMonths={2}
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  <CustomButton variant="secondary" className="w-full" onClick={clearFilters}>
-                    Clear All Filters
-                    <X className="ml-2 h-4 w-4" />
-                  </CustomButton>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            <CustomButton onClick={() => navigate('/maintenance/add')} className="col-span-1 md:col-span-1">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Record
-            </CustomButton>
-          </div>
-
           {isLoading ? (
-            <div className="mt-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="grid grid-cols-6 gap-4 py-2">
-                  <Skeleton className="h-4 col-span-1" />
-                  <Skeleton className="h-4 col-span-1" />
-                  <Skeleton className="h-4 col-span-1" />
-                  <Skeleton className="h-4 col-span-1" />
-                  <Skeleton className="h-4 col-span-1" />
-                  <Skeleton className="h-4 col-span-1" />
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map((_, index) => (
+                <div key={index} className="flex items-center space-x-4">
+                  <Skeleton className="h-4 w-4" />
+                  <Skeleton className="h-12 w-full" />
                 </div>
               ))}
             </div>
-          ) : error ? (
-            <p className="text-red-500 mt-4">Error: {error instanceof Error ? error.message : 'An unknown error occurred'}</p>
-          ) : displayedRecords.length === 0 && !isLoading ? (
-            <div className="mt-4 p-8 border rounded-md text-center">
-              <p className="text-muted-foreground mb-4">No maintenance records found.</p>
-              <CustomButton onClick={() => navigate('/maintenance/add')}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Your First Maintenance Record
-              </CustomButton>
+          ) : maintenanceRecords.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Wrench className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <h3 className="text-lg font-medium mb-2">No Maintenance Records</h3>
+              <p>No maintenance records found. Add your first maintenance record to get started.</p>
+              <Button className="mt-4" onClick={() => navigate('/maintenance/add')}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Maintenance
+              </Button>
             </div>
           ) : (
-            <div className="mt-4 overflow-x-auto">
+            <div className="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        onCheckedChange={handleSelectAll}
+                        checked={selectedRecords.length === maintenanceRecords.length && maintenanceRecords.length > 0}
+                      />
+                    </TableHead>
                     <TableHead>Type</TableHead>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Date</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Scheduled Date</TableHead>
-                    <TableHead>Service Provider</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {displayedRecords.map((record) => (
-                    <TableRow key={record.id} onClick={() => handleRowClick(record.id)} className="cursor-pointer hover:bg-muted">
-                      <TableCell>{formatMaintenanceType(record.maintenance_type)}</TableCell>
-                      <TableCell>{getStatusBadge(record.status)}</TableCell>
-                      <TableCell>{formatDate(new Date(record.scheduled_date))}</TableCell>
-                      <TableCell>{record.service_provider || 'N/A'}</TableCell>
+                  {maintenanceRecords.map(record => (
+                    <TableRow key={record.id}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={selectedRecords.includes(record.id)}
+                          onCheckedChange={() => handleSelectRecord(record.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatMaintenanceType(record.maintenance_type)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Car className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {getVehicleName(record.vehicle_id)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                          {format(new Date(record.scheduled_date), 'MMM d, yyyy')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusBadgeClass(record.status)}>
+                          {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                        </Badge>
+                      </TableCell>
                       <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
                       <TableCell className="text-right">
-                        <CustomButton size="sm" onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/maintenance/edit/${record.id}`);
-                        }}>
-                          <Wrench className="mr-2 h-4 w-4" />
-                          Edit
-                        </CustomButton>
+                        <div className="flex justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => navigate(`/maintenance/${record.id}`)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(record.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -340,53 +384,25 @@ export const MaintenanceList = () => {
               </Table>
             </div>
           )}
-
-          {totalItems > 0 && (
-            <div className="flex items-center justify-between mt-4">
-              <p className="text-sm text-muted-foreground">
-                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} records
-              </p>
-              <div className="flex items-center space-x-2">
-                <CustomButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page - 1)}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="mr-2 h-4 w-4" />
-                  Previous
-                </CustomButton>
-                <CustomButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage(page + 1)}
-                  disabled={page === totalPages}
-                >
-                  Next
-                  <ChevronRight className="ml-2 h-4 w-4" />
-                </CustomButton>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete All Maintenance Records</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete all maintenance records from the system.
+              This action cannot be undone. This will permanently delete the maintenance record.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteAllRecords} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete All
+            <AlertDialogAction onClick={confirmDelete}>
+              {remove.isPending ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 };

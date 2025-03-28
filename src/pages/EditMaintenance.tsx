@@ -1,87 +1,135 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useMaintenance } from '@/hooks/use-maintenance';
 import MaintenanceForm from '@/components/maintenance/MaintenanceForm';
-import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PageContainer from '@/components/layout/PageContainer';
-import { useMaintenance } from '@/hooks/use-maintenance';
-import { Skeleton } from '@/components/ui/skeleton';
+import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { useOne, useUpdate } = useMaintenance();
+  const { getAllRecords, update } = useMaintenance();
+  const [maintenance, setMaintenance] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  const { data: maintenance, isLoading: isLoadingMaintenance, error: fetchError } = useOne(id as string);
-  
-  const { mutate: updateMaintenance, isPending: isUpdating } = useUpdate();
-  
-  const handleUpdate = (formData: any) => {
+
+  // Fetch maintenance record
+  useEffect(() => {
+    const fetchMaintenance = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const records = await getAllRecords();
+        const record = records.find(r => r.id === id);
+        
+        if (record) {
+          setMaintenance(record);
+        } else {
+          setError('Maintenance record not found');
+        }
+      } catch (err) {
+        console.error('Error fetching maintenance record:', err);
+        setError('Failed to load maintenance record');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchMaintenance();
+  }, [id, getAllRecords]);
+
+  // Convert string maintenance type to enum
+  const mapStringToMaintenanceType = (typeString: string): keyof typeof MaintenanceType => {
+    if (Object.values(MaintenanceType).includes(typeString as any)) {
+      return typeString as keyof typeof MaintenanceType;
+    }
+    return 'REGULAR_INSPECTION';
+  };
+
+  // Convert string status to enum
+  const mapStringToMaintenanceStatus = (statusString: string): keyof typeof MaintenanceStatus => {
+    if (Object.values(MaintenanceStatus).includes(statusString as any)) {
+      return statusString as keyof typeof MaintenanceStatus;
+    }
+    return 'SCHEDULED';
+  };
+
+  const handleSubmit = async (formData: any) => {
     if (!id) return;
     
-    updateMaintenance({ 
-      id, 
-      data: formData 
-    }, {
-      onSuccess: () => {
-        navigate(`/maintenance/${id}`);
-      },
-      onError: (error: any) => {
-        setError(error.message || 'Failed to update maintenance record');
-      }
-    });
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      // Ensure types match what's expected in the backend
+      const updatedData = {
+        ...formData,
+        maintenance_type: mapStringToMaintenanceType(formData.maintenance_type),
+        status: mapStringToMaintenanceStatus(formData.status),
+      };
+      
+      await update.mutateAsync({ 
+        id, 
+        data: updatedData 
+      });
+      
+      navigate('/maintenance');
+    } catch (err) {
+      console.error('Error updating maintenance record:', err);
+      setError('Failed to update maintenance record. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
-  if (isLoadingMaintenance) {
+
+  if (isLoading) {
     return (
-      <PageContainer title="Edit Maintenance Record" backLink={`/maintenance/${id}`}>
+      <PageContainer title="Edit Maintenance Record" description="Loading maintenance details...">
         <div className="space-y-4">
           <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-12 w-32" />
+          <Skeleton className="h-72 w-full" />
         </div>
       </PageContainer>
     );
   }
-  
-  if (fetchError || !maintenance) {
+
+  if (error || !maintenance) {
     return (
-      <PageContainer title="Edit Maintenance Record" backLink="/maintenance">
+      <PageContainer title="Edit Maintenance Record" description="Error loading maintenance details">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {fetchError ? String(fetchError) : 'Maintenance record not found'}
+            {error || 'Unable to load maintenance record'}
           </AlertDescription>
         </Alert>
-        <Button className="mt-4" onClick={() => navigate('/maintenance')}>
-          Back to Maintenance
-        </Button>
       </PageContainer>
     );
   }
-  
+
+  // Prepare the data for the form, ensuring correct types
+  const formattedMaintenance = {
+    ...maintenance,
+    maintenance_type: mapStringToMaintenanceType(maintenance.maintenance_type),
+    status: mapStringToMaintenanceStatus(maintenance.status),
+  };
+
   return (
-    <PageContainer title="Edit Maintenance Record" backLink={`/maintenance/${id}`}>
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      
-      <MaintenanceForm 
-        initialData={maintenance}
-        onSubmit={handleUpdate}
-        isLoading={isUpdating}
+    <PageContainer 
+      title="Edit Maintenance Record" 
+      description="Update maintenance record details"
+    >
+      <MaintenanceForm
+        initialData={formattedMaintenance}
+        onSubmit={handleSubmit}
+        isLoading={isSubmitting}
         isEditMode={true}
-        submitLabel="Update Maintenance"
       />
     </PageContainer>
   );
