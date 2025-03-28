@@ -1,165 +1,83 @@
 
-# Mock Data Replacement Plan: Fleet Management System
+# Mock Data Replacement Plan
 
 ## Executive Summary
-This document outlines a comprehensive strategy for replacing mock data with real data in our Fleet Management System. This transition is crucial for ensuring system reliability, data accuracy, and enabling effective decision-making. The plan includes a phased approach to minimize disruption while maintaining system functionality.
+This document outlines the strategy and implementation plan for transitioning from mock data to real data in our Fleet Management System. The plan includes a phased approach to minimize disruption while ensuring data integrity and system stability.
 
 ## Current State Assessment
+- **Mock Data Components**: Vehicle data, customer profiles, maintenance records, payment history, and reports currently use mock data.
+- **API Integration**: Several components are already using API calls but with mock data responses.
+- **UI Components**: All UI components are built to handle the data format from the mock services.
 
-### Identified Mock Data Components
-1. **Dashboard Statistics**
-   - Vehicle counts and availability metrics
-   - Financial statistics (revenue, growth)
-   - Customer statistics (active users, growth)
-   - Agreement statistics (active agreements)
-
-2. **Financial Reports**
-   - Income and expense categorization
-   - Trend calculations
-   - Transaction history
-
-3. **Fleet Reports**
-   - Vehicle utilization metrics
-   - Performance statistics by vehicle type
-   - Maintenance requirements
-
-4. **Legal & Compliance**
-   - Legal documents repository
-   - Compliance items and deadlines
-
-### Data Dependencies
-- Vehicle data → Agreements → Financials → Reports
-- Customer data → Agreements → Financials → Reports
-- Transaction data → Financial Reports
-- Maintenance records → Fleet Reports
+## Data Dependencies
+1. Vehicle data is foundational and needed by most other components
+2. Customer profiles are referenced by leases, payments, and communications
+3. Lease agreements link vehicles to customers and generate financial transactions
+4. Maintenance records reference vehicles and sometimes vendors
+5. Reports depend on all other data sources
 
 ## Implementation Strategy
 
-### Phase 1: Data Preparation & Core Entities (Week 1-2)
-1. **Data Audit**
-   - Validate database schema alignment with application needs
-   - Identify data quality issues and gaps
-   - Create data migration scripts if needed
+### Phase 1: Data Preparation & Core Entities ✅
+- [x] **Database Schema Validation**: Ensure the database schema matches our requirements
+- [x] **Core Entities Setup**: Setup vehicles, customers, maintenance records in the database
+- [x] **Data Relationships**: Establish proper relationships between entities
+- [x] **Error Handling**: Implement robust error handling for API requests
+- [x] **Real-time Updates**: Ensure real-time updates for vehicle status changes
 
-2. **Vehicle Management**
-   - Replace mock vehicle listings with database records
-   - Implement real-time status updates
-   - Connect vehicle types to actual vehicles
+### Phase 2: Transactional Data & Relationships
+- [ ] **Lease Agreements**: Connect vehicles to customers through lease agreements
+- [ ] **Payment Processing**: Implement real payment data handling
+- [ ] **Maintenance Scheduling**: Connect maintenance records to vehicles and service providers
+- [ ] **Financial Calculations**: Ensure financial calculations are accurate with real data
 
-3. **Customer Management**
-   - Replace mock customer data with real records
-   - Implement proper relationship with agreements
+### Phase 3: Reporting & Analytics
+- [ ] **Dashboard Updates**: Reconfigure dashboards to use real-time data
+- [ ] **Report Generation**: Update report generation logic to query actual database
+- [ ] **Performance Optimization**: Add caching for frequently accessed reports
+- [ ] **Historical Data**: Implement strategies for handling historical data
 
-### Phase 2: Transactional Data & Relationships (Week 3-4)
-1. **Agreements Management**
-   - Connect agreements to real vehicles and customers
-   - Implement actual payment history
-   - Replace mock status tracking with real-time updates
-
-2. **Financial Transactions**
-   - Replace mock financial data with actual transactions
-   - Implement proper categorization
-   - Connect expenses to vehicles and agreements
-
-3. **Maintenance Records**
-   - Replace mock maintenance history with actual records
-   - Implement scheduled maintenance tracking
-   - Connect maintenance to vehicles
-
-### Phase 3: Reporting & Analytics (Week 5-6)
-1. **Dashboard Statistics**
-   - Recalculate metrics from real data
-   - Implement real-time updates
-   - Add trend calculations from historical data
-
-2. **Financial Reports**
-   - Generate reports from actual transaction data
-   - Implement filtering and date range selection
-   - Add export capabilities
-
-3. **Fleet Reports**
-   - Calculate actual utilization metrics
-   - Implement performance analytics
-   - Add predictive maintenance calculations
-
-### Phase 4: Advanced Features & Testing (Week 7-8)
-1. **Legal & Compliance**
-   - Replace mock legal documents with actual records
-   - Implement compliance deadline tracking
-   - Connect legal obligations to vehicles and agreements
-
-2. **System-wide Integration Testing**
-   - Verify data consistency across all modules
-   - Performance testing with real data volumes
-   - User acceptance testing
+### Phase 4: Advanced Features & Testing
+- [ ] **Notifications**: Configure notification system to work with real data events
+- [ ] **Search Functionality**: Optimize search for real database structure
+- [ ] **End-to-end Testing**: Comprehensive testing with real data
+- [ ] **Performance Tuning**: Final performance optimization
 
 ## Technical Implementation Details
 
-### Data Access Layer Modifications
-1. **API Hooks Standardization**
-   - Implement consistent error handling
-   - Add proper loading states
-   - Enable client-side caching for performance
+### Database Integration
+- Use Supabase for database storage and realtime updates
+- Implement proper indexing for frequent queries
+- Setup foreign key constraints for data integrity
 
-2. **Real-time Updates**
-   - Implement subscription-based updates for critical data
-   - Add optimistic UI updates for better UX
-   - Implement proper conflict resolution
+### API Layer
+- Migrate from mock API handlers to real API calls
+- Implement proper error handling and retry logic
+- Add request validation for all API endpoints
 
-3. **Data Transformation**
-   - Create mapping functions for database to UI models
-   - Implement proper data validation
-   - Add type safety throughout the application
-
-### UI Component Updates
-1. **Loading States**
-   - Add skeleton loaders for all data-dependent components
-   - Implement proper error states
-   - Add empty states for components with no data
-
-2. **Pagination & Filtering**
-   - Implement server-side pagination for large datasets
-   - Add proper filtering capabilities
-   - Improve sorting functionality
+### Frontend Components
+- Update components to handle loading states gracefully
+- Implement error boundaries for API failures
+- Add data validation to form submissions
 
 ## Risk Assessment & Mitigation
-
-| Risk | Probability | Impact | Mitigation Strategy |
-|------|------------|--------|---------------------|
-| Performance degradation with real data volume | Medium | High | Implement pagination, optimize queries, add caching |
-| Data inconsistency across modules | Medium | High | Implement data validation, add data integrity checks |
-| UI issues with real data edge cases | High | Medium | Add comprehensive unit tests, implement proper error boundaries |
-| Calculation errors in reports | Medium | High | Add validation with known outcomes, implement audit trails |
+- **Data Loss Risk**: Implement regular backups and transaction logging
+- **Performance Impact**: Gradually roll out changes and monitor performance
+- **UI Inconsistencies**: Comprehensive testing of all UI components with real data
+- **Downtime Concerns**: Implement changes during off-peak hours
 
 ## Success Metrics
-1. **System Reliability**
-   - Zero data-related crashes after migration
-   - Response time within 300ms for all operations
-
-2. **Data Accuracy**
-   - 100% match between database records and UI display
-   - Financial calculations accurate to the cent
-
-3. **User Experience**
-   - No increase in loading times for key screens
-   - Reduction in reported data discrepancies
+- All components function correctly with real data
+- System performance meets or exceeds previous benchmarks
+- Reduced error rates in data processing
+- Positive user feedback on system reliability
 
 ## Rollback Plan
-In case of critical issues:
-1. Identify affected components
-2. Temporarily revert to mock data for those components
-3. Fix underlying data issues
-4. Re-implement real data with fixes
+- Maintain dual capability to use mock or real data during transition
+- Document all changes with version control
+- Prepare quick-rollback scripts for critical failures
 
 ## Maintenance & Future Improvements
-1. **Data Quality Monitoring**
-   - Implement automated data audits
-   - Add anomaly detection
-
-2. **Performance Optimization**
-   - Regular query optimization
-   - Caching strategy refinement
-
-3. **Feature Expansion**
-   - Enhanced reporting capabilities
-   - Advanced analytics and predictions
+- Regularly audit data quality and integrity
+- Plan for periodic schema evolution
+- Document all data structures and relationships
