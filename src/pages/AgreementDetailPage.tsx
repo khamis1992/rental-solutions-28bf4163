@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -22,24 +22,92 @@ const AgreementDetailPage = () => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const refreshAgreementData = () => {
+  const refreshAgreementData = useCallback(() => {
     // Increment refresh trigger to force a refresh
     setRefreshTrigger(prev => prev + 1);
-  };
+  }, []);
 
-  // Initialize system only once
+  // Initialize system only once when component mounts
   useEffect(() => {
+    let isMounted = true;
+    
     if (!isInitialized) {
       // Initialize the system to check for payment generation (only once)
       initializeSystem().then(() => {
-        console.log("System initialized, checking for payments");
-        setIsInitialized(true);
+        if (isMounted) {
+          console.log("System initialized, checking for payments");
+          setIsInitialized(true);
+        }
       });
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [isInitialized]);
+
+  // Function to fetch rent amount
+  const fetchRentAmount = useCallback(async (agreementId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("leases")
+        .select("rent_amount")
+        .eq("id", agreementId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching rent amount:", error);
+        return null;
+      }
+      
+      if (data && data.rent_amount) {
+        console.log("Fetched rent amount:", data.rent_amount);
+        return data.rent_amount;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error in fetchRentAmount:", error);
+      return null;
+    }
+  }, []);
+
+  // Function to handle special payments for agreement MR202462
+  const handleSpecialAgreementPayments = useCallback(async (agreementData: Agreement, rentAmt: number) => {
+    if (agreementData.agreement_number !== 'MR202462') return;
+    
+    console.log(`Special check for agreement ${agreementData.agreement_number} to catch up missing payments`);
+    
+    // Create explicit date objects for the date range
+    // August 3, 2024 to March 22, 2025
+    const lastKnownPaymentDate = new Date(2024, 7, 3); // Month is 0-indexed (7 = August)
+    const currentSystemDate = new Date(2025, 2, 22); // 2 = March, 22 = day
+    
+    console.log(`Looking for missing payments between ${lastKnownPaymentDate.toISOString()} and ${currentSystemDate.toISOString()}`);
+    
+    // Generate payments for each month in the date range
+    await forceGeneratePaymentsForMissingMonths(
+      agreementData.id,
+      rentAmt,
+      lastKnownPaymentDate,
+      currentSystemDate
+    ).then(missingResult => {
+      if (missingResult.success) {
+        console.log("Missing payments check completed:", missingResult);
+        if (missingResult.generated > 0) {
+          toast.success(`Generated ${missingResult.generated} missing monthly payments for ${agreementData.agreement_number}`);
+        } else {
+          console.log("No missing payments were generated, all months might be covered already");
+        }
+      } else {
+        console.error("Failed to generate missing payments:", missingResult);
+      }
+    });
+  }, []);
 
   // Fetch agreement data in a separate effect to prevent loops
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchAgreement = async () => {
       if (!id || !isInitialized) return;
       
@@ -48,107 +116,60 @@ const AgreementDetailPage = () => {
         // First get the agreement
         const data = await getAgreement(id);
         
-        if (data) {
-          // Get the rent_amount directly from the leases table
-          try {
-            const { data: leaseData, error: leaseError } = await supabase
-              .from("leases")
-              .select("rent_amount")
-              .eq("id", id)
-              .single();
-            
-            if (!leaseError && leaseData && leaseData.rent_amount) {
-              // If we have a rent_amount from leases table, update the agreement object
-              data.total_amount = leaseData.rent_amount;
-              setRentAmount(leaseData.rent_amount);
-              console.log("Updated agreement total_amount with rent_amount:", leaseData.rent_amount);
-              
-              // Calculate contract amount = rent_amount * duration in months
-              if (data.start_date && data.end_date) {
-                const durationMonths = differenceInMonths(new Date(data.end_date), new Date(data.start_date));
-                const calculatedContractAmount = leaseData.rent_amount * (durationMonths || 1);
-                setContractAmount(calculatedContractAmount);
-                console.log(`Contract duration: ${durationMonths} months, Contract amount: ${calculatedContractAmount}`);
-              }
-            }
-          } catch (err) {
-            console.error("Error fetching lease rent amount:", err);
-          }
+        if (!data || !isMounted) return;
+        
+        // Get the rent_amount directly from the leases table
+        const leaseRentAmount = await fetchRentAmount(id);
+        
+        if (leaseRentAmount && isMounted) {
+          // If we have a rent_amount from leases table, update the agreement object
+          data.total_amount = leaseRentAmount;
+          setRentAmount(leaseRentAmount);
+          console.log("Updated agreement total_amount with rent_amount:", leaseRentAmount);
           
+          // Calculate contract amount = rent_amount * duration in months
+          if (data.start_date && data.end_date) {
+            const durationMonths = differenceInMonths(new Date(data.end_date), new Date(data.start_date));
+            const calculatedContractAmount = leaseRentAmount * (durationMonths || 1);
+            setContractAmount(calculatedContractAmount);
+            console.log(`Contract duration: ${durationMonths} months, Contract amount: ${calculatedContractAmount}`);
+          }
+        }
+        
+        if (isMounted) {
           setAgreement(data);
+        }
+        
+        // For any agreement, check for missing monthly payments - but only once
+        if (data.status === 'active' && !paymentGenerationAttempted && isMounted) {
+          console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
+          setPaymentGenerationAttempted(true);
           
-          // For any agreement, check for missing monthly payments - but only once
-          if (data.status === 'active' && !paymentGenerationAttempted) {
-            console.log(`Checking for missing payments for agreement ${data.agreement_number}...`);
-            setPaymentGenerationAttempted(true);
-            
-            // Force check all agreements for current month payments
-            forceCheckAllAgreementsForPayments().then(allResult => {
-              if (allResult.success) {
-                console.log("Payment check completed:", allResult);
-                if (allResult.generated > 0) {
-                  toast.success(`Generated ${allResult.generated} new payments for active agreements`);
-                }
+          // Force check all agreements for current month payments
+          await forceCheckAllAgreementsForPayments().then(allResult => {
+            if (isMounted && allResult.success) {
+              console.log("Payment check completed:", allResult);
+              if (allResult.generated > 0) {
+                toast.success(`Generated ${allResult.generated} new payments for active agreements`);
               }
-            });
-            
-            // Special handling for agreement with MR202462 number
-            if (data.agreement_number === 'MR202462') {
-              console.log(`Special check for agreement ${data.agreement_number} to catch up missing payments`);
-              
-              // Create explicit date objects for the date range
-              // August 3, 2024 to March 22, 2025
-              const lastKnownPaymentDate = new Date(2024, 7, 3); // Month is 0-indexed (7 = August)
-              const currentSystemDate = new Date(2025, 2, 22); // 2 = March, 22 = day
-              
-              console.log(`Looking for missing payments between ${lastKnownPaymentDate.toISOString()} and ${currentSystemDate.toISOString()}`);
-              
-              // Get the actual rent amount to use for generating payments
-              let rentAmount = data.total_amount;
-              try {
-                const { data: leaseData } = await supabase
-                  .from("leases")
-                  .select("rent_amount")
-                  .eq("id", id)
-                  .single();
-                
-                if (leaseData && leaseData.rent_amount) {
-                  rentAmount = leaseData.rent_amount;
-                  console.log(`Using rent_amount from leases table: ${rentAmount}`);
-                }
-              } catch (err) {
-                console.error("Error fetching rent amount for missing payments:", err);
-              }
-              
-              // Generate payments for each month in the date range
-              forceGeneratePaymentsForMissingMonths(
-                data.id,
-                rentAmount,
-                lastKnownPaymentDate,
-                currentSystemDate
-              ).then(missingResult => {
-                if (missingResult.success) {
-                  console.log("Missing payments check completed:", missingResult);
-                  if (missingResult.generated > 0) {
-                    toast.success(`Generated ${missingResult.generated} missing monthly payments for ${data.agreement_number}`);
-                  } else {
-                    console.log("No missing payments were generated, all months might be covered already");
-                  }
-                } else {
-                  console.error("Failed to generate missing payments:", missingResult);
-                }
-              });
             }
+          });
+          
+          // Special handling for agreement with MR202462 number
+          if (isMounted && leaseRentAmount) {
+            await handleSpecialAgreementPayments(data, leaseRentAmount);
           }
-        } else {
-          toast.error("Agreement not found");
-          navigate("/agreements");
         }
       } catch (error) {
-        console.error("Error fetching agreement:", error);
-        toast.error("Failed to load agreement details");
+        if (isMounted) {
+          console.error("Error fetching agreement:", error);
+          toast.error("Failed to load agreement details");
+          navigate("/agreements");
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -156,7 +177,20 @@ const AgreementDetailPage = () => {
     if (id && (isInitialized || refreshTrigger > 0)) {
       fetchAgreement();
     }
-  }, [id, getAgreement, navigate, isInitialized, paymentGenerationAttempted, refreshTrigger]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    id, 
+    getAgreement, 
+    navigate, 
+    isInitialized, 
+    paymentGenerationAttempted, 
+    refreshTrigger, 
+    fetchRentAmount,
+    handleSpecialAgreementPayments
+  ]);
 
   const handleDelete = async (agreementId: string) => {
     try {
