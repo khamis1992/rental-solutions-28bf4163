@@ -97,7 +97,16 @@ export const useComponentPerformance = (componentName: string, metadata?: Record
   // This needs to be used inside a React component
   useEffect(() => {
     const endMeasure = startMeasure(`component:${componentName}`, metadata);
-    return endMeasure;
+    return () => {
+      endMeasure();
+    };
+  }, []);
+  
+  // For measuring unmount performance
+  useEffect(() => {
+    return () => {
+      startMeasure(`component:${componentName}:unmount`, metadata)();
+    };
   }, []);
 };
 

@@ -15,32 +15,38 @@ import AddVehicle from './pages/AddVehicle';
 import EditVehicle from './pages/EditVehicle';
 import { PerformanceProvider } from '@/contexts/PerformanceContext';
 import PerformanceMonitor from './pages/PerformanceMonitor';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create a client
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <div className="app">
-      <Router>
-        <PerformanceProvider>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/vehicles" element={<Vehicles />} />
-            <Route path="/vehicles/add" element={<AddVehicle />} />
-            <Route path="/vehicles/:id" element={<VehicleDetails />} />
-            <Route path="/vehicles/:id/edit" element={<EditVehicle />} />
-            <Route path="/customers" element={<Customers />} />
-            <Route path="/agreements" element={<Agreements />} />
-            <Route path="/maintenance" element={<Maintenance />} />
-            <Route path="/financials" element={<Financials />} />
-            <Route path="/legal" element={<Legal />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/user-management" element={<UserManagement />} />
-            
-            {/* Add the new performance route */}
-            <Route path="/performance" element={<PerformanceMonitor />} />
-          </Routes>
-        </PerformanceProvider>
-      </Router>
+      <QueryClientProvider client={queryClient}>
+        <Router>
+          <PerformanceProvider>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/vehicles" element={<Vehicles />} />
+              <Route path="/vehicles/add" element={<AddVehicle />} />
+              <Route path="/vehicles/:id" element={<VehicleDetails />} />
+              <Route path="/vehicles/:id/edit" element={<EditVehicle />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/agreements" element={<Agreements />} />
+              <Route path="/maintenance" element={<Maintenance />} />
+              <Route path="/financials" element={<Financials />} />
+              <Route path="/legal" element={<Legal />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/user-management" element={<UserManagement />} />
+              
+              {/* Add the new performance route */}
+              <Route path="/performance" element={<PerformanceMonitor />} />
+            </Routes>
+          </PerformanceProvider>
+        </Router>
+      </QueryClientProvider>
     </div>
   );
 }
