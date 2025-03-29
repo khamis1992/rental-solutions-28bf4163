@@ -19,7 +19,7 @@ const Financials = () => {
       />
       
       <Tabs defaultValue="dashboard" className="space-y-6">
-        <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-1 md:grid-cols-5 w-full">
           <TabsTrigger value="dashboard" className="flex items-center">
             <BarChartBig className="h-4 w-4 mr-2" />
             Financial Dashboard
