@@ -44,12 +44,12 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     let isActive = true;
 
     const loadRentAmount = async () => {
-      if (!agreementId || (hasInitiallyFetched.current && rentAmount !== null)) return;
+      if (!agreementId) return;
       
       // Get the rent_amount directly from the leases table
       const leaseRentAmount = await fetchRentAmount(agreementId);
       
-      if (leaseRentAmount && isActive) {
+      if (leaseRentAmount !== null && isActive) {
         // Set the rent amount state
         setRentAmount(leaseRentAmount);
         hasInitiallyFetched.current = true;
@@ -67,12 +67,14 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       }
     };
     
-    loadRentAmount();
+    if (!hasInitiallyFetched.current) {
+      loadRentAmount();
+    }
     
     return () => {
       isActive = false;
     };
-  }, [agreementId, agreement?.start_date, agreement?.end_date, fetchRentAmount, rentAmount]);
+  }, [agreementId, agreement?.start_date, agreement?.end_date, fetchRentAmount]);
 
   return { rentAmount, contractAmount };
 };

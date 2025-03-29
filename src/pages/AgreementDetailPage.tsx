@@ -22,10 +22,6 @@ const AgreementDetailPage = () => {
   const isMounted = useRef(true);
   const dataFetchAttempted = useRef(false);
 
-  // Custom hooks for specific functionality - only call when agreement is available
-  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
-  const { refreshTrigger, refreshAgreementData } = usePaymentGeneration(agreement, id);
-
   // Fetch agreement data
   const fetchAgreementData = useCallback(async () => {
     if (!id || !isMounted.current || dataFetchAttempted.current) return;
@@ -34,8 +30,7 @@ const AgreementDetailPage = () => {
     dataFetchAttempted.current = true;
     
     try {
-      // Skip complex initialization that's causing errors
-      // Just fetch the agreement data directly
+      console.log("Fetching agreement details for ID:", id);
       const data = await getAgreement(id);
       
       if (!isMounted.current) {
@@ -49,6 +44,7 @@ const AgreementDetailPage = () => {
       }
       
       setAgreement(data);
+      console.log("Agreement data fetched successfully:", data);
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching agreement:", error);
@@ -69,9 +65,14 @@ const AgreementDetailPage = () => {
     };
   }, [fetchAgreementData]);
 
+  // Custom hooks for specific functionality - only call when agreement is available
+  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
+  const { refreshTrigger, refreshAgreementData } = usePaymentGeneration(agreement, id);
+
   // Handle refreshing data when needed
   useEffect(() => {
     if (refreshTrigger > 0 && id && isMounted.current) {
+      dataFetchAttempted.current = false; // Reset to allow re-fetching
       fetchAgreementData();
     }
   }, [refreshTrigger, id, fetchAgreementData]);

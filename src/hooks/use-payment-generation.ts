@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
 import { forceCheckAllAgreementsForPayments, forceGeneratePaymentsForMissingMonths } from '@/lib/supabase';
@@ -54,53 +54,5 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     }
   }, []);
 
-  // Handle payment generation for active agreements
-  useEffect(() => {
-    // Skip if we don't have the necessary data yet or already attempted or processing
-    if (!agreement || !agreementId || paymentGenerationAttempted.current || isProcessing.current) return;
-    
-    let isActive = true;
-    
-    const generatePayments = async () => {
-      try {
-        isProcessing.current = true;
-        paymentGenerationAttempted.current = true;
-        
-        if (agreement.status === 'active') {
-          console.log(`Checking for missing payments for agreement ${agreement.agreement_number}...`);
-          
-          // Force check all agreements for current month payments (only once)
-          const allResult = await forceCheckAllAgreementsForPayments();
-          
-          if (!isActive) return;
-          
-          if (allResult.success) {
-            console.log("Payment check completed:", allResult);
-            if (allResult.generated > 0) {
-              toast.success(`Generated ${allResult.generated} new payments for active agreements`);
-            }
-          }
-          
-          // Special handling for agreement with MR202462 number
-          if (agreement.agreement_number === 'MR202462' && agreement.total_amount) {
-            await handleSpecialAgreementPayments(agreement, agreement.total_amount);
-          }
-        }
-      } catch (error) {
-        console.error("Error generating payments:", error);
-      } finally {
-        if (isActive) {
-          isProcessing.current = false;
-        }
-      }
-    };
-    
-    generatePayments();
-    
-    return () => {
-      isActive = false;
-    };
-  }, [agreement, agreementId, handleSpecialAgreementPayments]);
-
-  return { refreshTrigger, refreshAgreementData };
+  return { refreshTrigger, refreshAgreementData, handleSpecialAgreementPayments };
 };
