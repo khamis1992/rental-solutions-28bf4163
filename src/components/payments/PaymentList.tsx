@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Check, X } from 'lucide-react';

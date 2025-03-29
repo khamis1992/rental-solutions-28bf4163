@@ -28,7 +28,13 @@ const AgreementDetailPage = () => {
     try {
       setIsLoading(true);
       const data = await getAgreement(id);
-      setAgreement(data);
+      
+      if (data) {
+        console.log("Fetched agreement data:", data);
+        setAgreement(data);
+      } else {
+        console.log("No agreement data found for ID:", id);
+      }
     } catch (error) {
       console.error('Error fetching agreement:', error);
       toast.error('Failed to load agreement details');
