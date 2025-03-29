@@ -2,14 +2,12 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
-import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { toast } from "sonner";
-
-// Define types for traffic fines
-type TrafficFineStatusType = 'paid' | 'pending' | 'disputed';
 
 type TrafficFine = {
   id: string;
@@ -73,14 +71,6 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
-        // Convert params to actual dates if they aren't already
-        const startDateObj = startDate instanceof Date ? startDate : new Date(startDate);
-        const endDateObj = endDate instanceof Date ? endDate : new Date(endDate);
-        
-        // Ensure dates are properly formatted for Supabase query
-        const formattedStartDate = startDateObj.toISOString();
-        const formattedEndDate = endDateObj.toISOString();
-      
         // Get the vehicle ID associated with this agreement
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
@@ -115,8 +105,8 @@ export const AgreementTrafficFines = ({
           .from('traffic_fines')
           .select('*')
           .eq('vehicle_id', (leaseData as LeaseResult).vehicle_id)
-          .gte('violation_date', formattedStartDate)
-          .lte('violation_date', formattedEndDate);
+          .gte('violation_date', startDate.toISOString())
+          .lte('violation_date', endDate.toISOString());
 
         if (dateRangeError) {
           console.error("Error fetching date range traffic fines:", dateRangeError);
@@ -216,7 +206,7 @@ export const AgreementTrafficFines = ({
                 <div className="space-y-1">
                   <p className="font-medium text-sm">Violation #{fine.violationNumber}</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(fine.violationDate), "PP")}
+                    {format(new Date(fine.violationDate), "PPP")}
                     {fine.location && ` at ${fine.location}`}
                   </p>
                   <p className="text-sm text-muted-foreground">{fine.violationCharge}</p>
@@ -238,4 +228,4 @@ export const AgreementTrafficFines = ({
       </CardContent>
     </Card>
   );
-};
+}

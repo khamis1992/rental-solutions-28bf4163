@@ -4,15 +4,12 @@ import { Car, DollarSign, Users, FileText } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
 import { formatCurrency } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
 }
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
-  const navigate = useNavigate();
-  
   if (!stats) return null;
   
   return (
@@ -23,11 +20,8 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         description={`Available: ${stats.vehicleStats.available}`}
         icon={Car}
         iconColor="text-blue-500"
-        trend={stats.vehicleStats.available > 0 ? 
-          Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0}
-        trendLabel="availability rate"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/vehicles')}
+        trend={5.2}
+        trendLabel="vs last month"
       />
       
       <StatCard
@@ -38,20 +32,16 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         iconColor="text-green-500"
         trend={stats.financialStats.revenueGrowth}
         trendLabel="vs last month"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/financials')}
       />
       
       <StatCard
         title="Active Customers"
         value={stats.customerStats.active.toString()}
-        description={`Total: ${stats.customerStats.total}`}
+        description="With active rentals"
         icon={Users}
         iconColor="text-violet-500"
         trend={stats.customerStats.growth}
         trendLabel="vs last month"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/customers')}
       />
       
       <StatCard
@@ -62,8 +52,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         iconColor="text-amber-500"
         trend={stats.agreementStats.growth}
         trendLabel="vs last month"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/agreements')}
       />
     </div>
   );

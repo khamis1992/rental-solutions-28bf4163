@@ -75,10 +75,10 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({
       type: transaction?.type || 'income',
       amount: transaction?.amount || 0,
       description: transaction?.description || '',
-      category: transaction?.category || 'default-category',
+      category: transaction?.category || '',
       date: transaction?.date ? new Date(transaction.date) : new Date(),
       reference: transaction?.reference || '',
-      paymentMethod: transaction?.paymentMethod || 'cash',
+      paymentMethod: transaction?.paymentMethod || '',
       status: transaction?.status || 'completed',
     },
   });

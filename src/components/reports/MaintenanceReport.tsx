@@ -1,211 +1,191 @@
 
-import React, { useEffect, useState } from 'react';
-import { useMaintenance } from '@/hooks/use-maintenance';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MaintenanceType, MaintenanceStatus } from '@/lib/validation-schemas/maintenance';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { StatCard } from '@/components/ui/stat-card';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Wrench, AlertTriangle, Clock, DollarSign } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { formatCurrency } from '@/lib/utils';
 
 const MaintenanceReport = () => {
-  const { getAllRecords } = useMaintenance();
-  const [maintenanceData, setMaintenanceData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const data = await getAllRecords();
-        setMaintenanceData(data || []);
-      } catch (err) {
-        setError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, []);
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard 
+          title="Total Maintenance" 
+          value="156" 
+          trend={-4}
+          trendLabel="vs last month"
+          icon={Wrench}
+          iconColor="text-blue-500"
+        />
+        <StatCard 
+          title="Pending Maintenance" 
+          value="7" 
+          trend={-2}
+          trendLabel="vs last month"
+          icon={AlertTriangle}
+          iconColor="text-amber-500"
+        />
+        <StatCard 
+          title="Avg Resolution Time" 
+          value="2.3 days" 
+          trend={-0.5}
+          trendLabel="vs last month"
+          icon={Clock}
+          iconColor="text-green-500"
+        />
+        <StatCard 
+          title="Maintenance Costs" 
+          value={formatCurrency(34850)} 
+          trend={6}
+          trendLabel="vs last month"
+          icon={DollarSign}
+          iconColor="text-red-500"
+        />
+      </div>
 
-  if (isLoading) {
-    return (
       <Card>
         <CardHeader>
-          <CardTitle>
-            <Skeleton className="h-8 w-64" />
-          </CardTitle>
+          <CardTitle>Maintenance by Type</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={maintenanceByTypeData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
+                layout="vertical"
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                <XAxis type="number" axisLine={false} tickLine={false} />
+                <YAxis 
+                  dataKey="type" 
+                  type="category"
+                  axisLine={false}
+                  tickLine={false}
+                  width={150}
+                />
+                <Tooltip formatter={(value) => [`${value} incidents`, 'Count']} />
+                <Bar dataKey="count" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </CardContent>
       </Card>
-    );
-  }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          Failed to load maintenance data. Please try again later.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Maintenance History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Vehicle</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Technician</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentMaintenanceData.map((maintenance) => (
+                <TableRow key={maintenance.id}>
+                  <TableCell>{maintenance.date}</TableCell>
+                  <TableCell className="font-medium">{maintenance.vehicle}</TableCell>
+                  <TableCell>{maintenance.type}</TableCell>
+                  <TableCell>
+                    <MaintenanceStatusBadge status={maintenance.status} />
+                  </TableCell>
+                  <TableCell>{maintenance.technician}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(maintenance.cost)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
-  // Process data for status chart
-  const statusData = Object.values(MaintenanceStatus).map(status => {
-    const count = maintenanceData.filter(item => item.status === status).length;
-    return {
-      name: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      value: count
-    };
-  }).filter(item => item.value > 0);
-
-  // Process data for maintenance type chart
-  const typeData = Object.values(MaintenanceType).map(type => {
-    const count = maintenanceData.filter(item => item.maintenance_type === type).length;
-    return {
-      name: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      count: count
-    };
-  }).filter(item => item.count > 0);
-
-  // Calculate cost by maintenance type
-  const costByType = Object.values(MaintenanceType).map(type => {
-    const records = maintenanceData.filter(item => item.maintenance_type === type);
-    const totalCost = records.reduce((sum, item) => sum + (item.cost || 0), 0);
-    return {
-      name: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      cost: totalCost
-    };
-  }).filter(item => item.cost > 0);
-
-  // Colors for pie chart
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Maintenance Analysis</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="status">
-          <TabsList className="mb-4">
-            <TabsTrigger value="status">Status Distribution</TabsTrigger>
-            <TabsTrigger value="type">Maintenance Types</TabsTrigger>
-            <TabsTrigger value="cost">Cost Analysis</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="status" className="space-y-4">
-            <div className="h-[300px]">
-              {statusData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => [`${value} records`, 'Count']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No maintenance data available
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="type" className="space-y-4">
-            <div className="h-[300px]">
-              {typeData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={typeData}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#8884d8" name="Number of Records" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No maintenance data available
-                </div>
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="cost" className="space-y-4">
-            <div className="h-[300px]">
-              {costByType.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={costByType}
-                    margin={{
-                      top: 5,
-                      right: 30,
-                      left: 20,
-                      bottom: 5,
-                    }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip 
-                      formatter={(value) => {
-                        // Ensure value is a number before calling toFixed
-                        return [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Cost'];
-                      }} 
-                    />
-                    <Legend />
-                    <Bar dataKey="cost" fill="#82ca9d" name="Total Cost" />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No cost data available
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-        
-        <div className="mt-4 text-sm text-muted-foreground">
-          Total Records: {maintenanceData.length} | 
-          Completed: {maintenanceData.filter(item => item.status === MaintenanceStatus.COMPLETED).length} | 
-          In Progress: {maintenanceData.filter(item => item.status === MaintenanceStatus.IN_PROGRESS).length} | 
-          Scheduled: {maintenanceData.filter(item => item.status === MaintenanceStatus.SCHEDULED).length}
-        </div>
-      </CardContent>
-    </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Maintenance Cost by Vehicle</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={maintenanceCostByVehicleData}
+                margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis 
+                  dataKey="vehicle" 
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tickFormatter={(value) => formatCurrency(value)}
+                />
+                <Tooltip formatter={(value, name) => {
+                  // Fix: Ensure value is a number before passing to formatCurrency
+                  const numValue = typeof value === 'string' ? parseFloat(value) : Number(value);
+                  return [formatCurrency(numValue), 'Maintenance Cost'];
+                }} />
+                <Bar dataKey="cost" fill="#f97316" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
+
+const MaintenanceStatusBadge = ({ status }: { status: string }) => {
+  const variants: Record<string, string> = {
+    'completed': 'bg-green-100 text-green-800',
+    'in progress': 'bg-blue-100 text-blue-800',
+    'scheduled': 'bg-purple-100 text-purple-800',
+    'pending': 'bg-amber-100 text-amber-800',
+  };
+
+  return (
+    <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
+      {status}
+    </Badge>
+  );
+};
+
+const maintenanceByTypeData = [
+  { type: 'Regular Service', count: 62 },
+  { type: 'Tire Replacement', count: 38 },
+  { type: 'Oil Change', count: 47 },
+  { type: 'Battery Replacement', count: 15 },
+  { type: 'Brake Service', count: 28 },
+  { type: 'Engine Repair', count: 8 },
+  { type: 'Air Conditioning', count: 12 },
+];
+
+const recentMaintenanceData = [
+  { id: 1, date: '2023-08-14', vehicle: 'Toyota Camry (ABC123)', type: 'Oil Change', status: 'completed', technician: 'John Doe', cost: 95 },
+  { id: 2, date: '2023-08-13', vehicle: 'Honda Civic (XYZ789)', type: 'Tire Replacement', status: 'completed', technician: 'Mike Smith', cost: 420 },
+  { id: 3, date: '2023-08-12', vehicle: 'Ford Escape (GHI789)', type: 'Engine Repair', status: 'in progress', technician: 'Sarah Johnson', cost: 850 },
+  { id: 4, date: '2023-08-10', vehicle: 'Nissan Altima (DEF456)', type: 'Regular Service', status: 'completed', technician: 'John Doe', cost: 210 },
+  { id: 5, date: '2023-08-09', vehicle: 'BMW 3 Series (JKL012)', type: 'Battery Replacement', status: 'completed', technician: 'Mike Smith', cost: 180 },
+];
+
+const maintenanceCostByVehicleData = [
+  { vehicle: 'Toyota Camry', cost: 780 },
+  { vehicle: 'Honda Civic', cost: 620 },
+  { vehicle: 'Ford Escape', cost: 1280 },
+  { vehicle: 'Nissan Altima', cost: 540 },
+  { vehicle: 'BMW 3 Series', cost: 1450 },
+  { vehicle: 'Audi A4', cost: 1680 },
+];
 
 export default MaintenanceReport;

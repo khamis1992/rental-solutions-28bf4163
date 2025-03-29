@@ -13,7 +13,6 @@ interface StatCardProps {
   trend?: number;
   trendLabel?: string;
   className?: string;
-  onClick?: () => void;
 }
 
 const StatCard = ({
@@ -25,16 +24,9 @@ const StatCard = ({
   trend,
   trendLabel,
   className,
-  onClick,
 }: StatCardProps) => {
   return (
-    <Card 
-      className={cn("overflow-hidden card-transition", 
-        onClick ? "hover:bg-accent/5" : "", 
-        className
-      )}
-      onClick={onClick}
-    >
+    <Card className={cn("overflow-hidden card-transition", className)}>
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">
@@ -46,9 +38,7 @@ const StatCard = ({
               <div className="flex items-center mt-2">
                 <span className={cn(
                   "text-xs font-medium px-2 py-0.5 rounded-full",
-                  trend > 0 ? "bg-green-100 text-green-700" : 
-                  trend < 0 ? "bg-red-100 text-red-700" : 
-                  "bg-gray-100 text-gray-700"
+                  trend > 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
                 )}>
                   {trend > 0 ? '+' : ''}{trend}%
                 </span>

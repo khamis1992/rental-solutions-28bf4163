@@ -9,16 +9,13 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { jsPDF } from 'jspdf';
-import { addReportHeader, addReportFooter, downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
-  getReportData?: () => Record<string, any>[];
 }
 
 const ReportDownloadOptions = ({
-  reportType,
-  getReportData = () => []
+  reportType
 }: ReportDownloadOptionsProps) => {
   const [dateRange, setDateRange] = useState<{
     from: Date | undefined;
@@ -35,73 +32,84 @@ const ReportDownloadOptions = ({
     try {
       setIsGenerating(true);
       
-      // Get data for the report
-      const reportData = getReportData();
+      // Log report generation info
+      console.log('Downloading report:', {
+        type: reportType,
+        dateRange,
+        format: fileFormat,
+        logo: '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png',
+        footerLogo: '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png'
+      });
       
-      // Format title based on report type
-      const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+      // Create a PDF document
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
       
-      // Generate report based on file format
-      if (fileFormat === 'pdf') {
-        // Use the standardized report generator instead of creating a PDF directly
-        const doc = generateStandardReport(
-          title,
-          dateRange,
-          (doc, startY) => {
-            // Add content based on report type
-            let yPos = startY;
-            
-            // Add summary section heading
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Report Summary:', 14, yPos);
-            yPos += 10;
-            
-            // Add content specific to each report type
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            
-            switch (reportType) {
-              case 'fleet':
-                doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
-                doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
-                doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
-                break;
-              case 'financial':
-                doc.text('• Revenue Summary', 20, yPos); yPos += 10;
-                doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                doc.text('• Profit Margin', 20, yPos); yPos += 10;
-                doc.text('• Financial Projections', 20, yPos); yPos += 10;
-                break;
-              case 'customers':
-                doc.text('• Customer Demographics', 20, yPos); yPos += 10;
-                doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
-                doc.text('• Top Customers', 20, yPos); yPos += 10;
-                break;
-              case 'maintenance':
-                doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
-                doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Maintenance History', 20, yPos); yPos += 10;
-                break;
-              default:
-                doc.text('No data available for this report type.', 20, yPos);
-            }
-            
-            return yPos; // Return the final y position
-          }
-        );
-        
-        // Save the PDF
-        doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-      } else if (fileFormat === 'excel') {
-        downloadExcel(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-      } else if (fileFormat === 'csv') {
-        downloadCSV(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      // Add company logo and header
+      doc.addImage('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'PNG', 14, 10, 40, 15);
+      
+      // Add title
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`, pageWidth / 2, 30, { align: 'center' });
+      
+      // Add date range
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const fromDate = dateRange.from ? format(dateRange.from, 'LLL dd, y') : '';
+      const toDate = dateRange.to ? format(dateRange.to, 'LLL dd, y') : '';
+      doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 40, { align: 'center' });
+      
+      // Add date of generation
+      doc.text(`Generated on: ${format(new Date(), 'LLL dd, y')}`, pageWidth / 2, 45, { align: 'center' });
+      
+      // Add content based on report type
+      doc.setFontSize(12);
+      doc.text('Report Summary:', 14, 60);
+      
+      let yPos = 70;
+      
+      switch (reportType) {
+        case 'fleet':
+          doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
+          doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
+          doc.text('• Active Rentals', 20, yPos); yPos += 10;
+          doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
+          doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
+          break;
+        case 'financial':
+          doc.text('• Revenue Summary', 20, yPos); yPos += 10;
+          doc.text('• Expense Analysis', 20, yPos); yPos += 10;
+          doc.text('• Profit Margin', 20, yPos); yPos += 10;
+          doc.text('• Financial Projections', 20, yPos); yPos += 10;
+          break;
+        case 'customers':
+          doc.text('• Customer Demographics', 20, yPos); yPos += 10;
+          doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
+          doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
+          doc.text('• Top Customers', 20, yPos); yPos += 10;
+          break;
+        case 'maintenance':
+          doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
+          doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
+          doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
+          doc.text('• Maintenance History', 20, yPos); yPos += 10;
+          break;
+        default:
+          doc.text('No data available for this report type.', 20, yPos);
       }
+      
+      // Add footer
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.setFontSize(10);
+      doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 30, { align: 'center' });
+      doc.text('CONFIDENTIAL', 14, pageHeight - 20);
+      
+      // Add footer logo
+      doc.addImage('/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png', 'PNG', pageWidth - 50, pageHeight - 25, 40, 15);
+      
+      // Save the PDF with a dynamic filename
+      doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.${fileFormat}`);
       
       // Show success toast notification
       toast({
