@@ -123,18 +123,30 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
 };
 
 // Function to diagnose template access
-export const diagnosisTemplateAccess = async (): Promise<{exists: boolean; accessible: boolean}> => {
+export const diagnosisTemplateAccess = async (): Promise<{
+  exists: boolean; 
+  accessible: boolean;
+  bucketExists: boolean;
+  templateExists: boolean;
+  errors: string[];
+}> => {
   try {
     // This is a placeholder function that would diagnose template access
     return {
       exists: true,
-      accessible: true
+      accessible: true,
+      bucketExists: true,
+      templateExists: true,
+      errors: []
     };
   } catch (error) {
     console.error("Error diagnosing template access:", error);
     return {
       exists: false,
-      accessible: false
+      accessible: false,
+      bucketExists: false,
+      templateExists: false,
+      errors: [error instanceof Error ? error.message : String(error)]
     };
   }
 };
