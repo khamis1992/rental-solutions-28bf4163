@@ -1,3 +1,4 @@
+
 // Vehicle status enum from Supabase
 export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 

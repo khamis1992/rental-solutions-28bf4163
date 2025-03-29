@@ -1,299 +1,224 @@
-import { useApiMutation, useApiQuery, useCrudApi } from './use-api';
-import { useState } from 'react';
-import { useToast } from './use-toast';
-import { MaintenanceStatus, MaintenanceStatusType } from '@/lib/validation-schemas/maintenance';
+
 import { supabase } from '@/integrations/supabase/client';
+import { useCrudApi } from './use-api';
+import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
+import { UseQueryResult } from '@tanstack/react-query';
 
-// Function to map frontend status to database status
-const mapStatusToDb = (status: string | undefined): MaintenanceStatusType | undefined => {
-  if (!status || status === 'all') return undefined;
-  
-  // Ensure we're only returning valid status types
-  const validStatuses: MaintenanceStatusType[] = [
-    MaintenanceStatus.SCHEDULED,
-    MaintenanceStatus.IN_PROGRESS, 
-    MaintenanceStatus.COMPLETED, 
-    MaintenanceStatus.CANCELLED
-  ];
-  
-  return validStatuses.includes(status as MaintenanceStatusType) 
-    ? (status as MaintenanceStatusType) 
-    : undefined;
-};
-
-// Helper to ensure all required fields are present in the maintenance record
-const normalizeMaintenanceRecord = (record: any) => {
-  if (!record) return null;
-  
-  return {
-    ...record,
-    service_provider: record.service_provider || null,
-    invoice_number: record.invoice_number || null,
-    notes: record.notes || null,
-    description: record.description || null,
-    // Ensure dates are properly formatted or null
-    scheduled_date: record.scheduled_date || null,
-    completion_date: record.completion_date || null,
-    created_at: record.created_at || null,
-    updated_at: record.updated_at || null
+// Define the Maintenance type that matches the actual database schema
+export type MaintenanceRecord = {
+  id: string;
+  vehicle_id: string;
+  description: string;
+  maintenance_type: keyof typeof MaintenanceType;
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
+  scheduled_date: string;
+  completed_date?: string;
+  cost: number;
+  service_type?: string;
+  performed_by?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  category_id?: string;
+  // Fields expected by the UI components
+  invoice_number?: string;
+  service_provider?: string;
+  odometer_reading?: number;
+  vehicles?: {
+    id: string;
+    make: string;
+    model: string;
+    license_plate: string;
+    image_url?: string;
   };
 };
 
 export function useMaintenance() {
-  const { toast } = useToast();
-  const [filters, setFilters] = useState({
-    vehicleId: '',
-    status: '',
-    dateFrom: '',
-    dateTo: '',
-  });
-
-  // Use the CRUD API helper from use-api.ts
-  const crudApi = useCrudApi<any>('maintenance');
-
-  // When using filters in a query, map the status to the proper type
-  const { data: maintenanceRecords, isLoading, refetch } = useApiQuery(
-    ['maintenance', JSON.stringify(filters)],
-    async () => {
-      try {
-        let query = supabase.from('maintenance').select('*');
+  const maintenanceApi = useCrudApi<MaintenanceRecord, Omit<MaintenanceRecord, 'id' | 'created_at' | 'updated_at'>>(
+    'maintenance',
+    {
+      getAll: async () => {
+        const { data, error } = await supabase
+          .from('maintenance')
+          .select('*, vehicles(*)')
+          .order('created_at', { ascending: false });
         
-        // Apply filters if provided
-        if (filters.vehicleId) {
-          query = query.eq('vehicle_id', filters.vehicleId);
-        }
+        if (error) throw error;
+        return data ? data.map(formatMaintenanceData) : [];
+      },
+      
+      getById: async (id: string) => {
+        const { data, error } = await supabase
+          .from('maintenance')
+          .select('*, vehicles(*)')
+          .eq('id', id)
+          .single();
         
-        if (filters.status) {
-          const dbStatus = mapStatusToDb(filters.status);
-          if (dbStatus) {
-            query = query.eq('status', dbStatus);
-          }
-        }
+        if (error) throw error;
+        return formatMaintenanceData(data);
+      },
+      
+      create: async (maintenanceData: any) => {
+        // Ensure data format matches what Supabase expects
+        const formattedData = {
+          ...maintenanceData,
+          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
+          completion_date: maintenanceData.completion_date?.toISOString(),
+          // Map UI fields to database fields if needed
+          performed_by: maintenanceData.service_provider,
+          // Ensure maintenance_type and status are never empty strings
+          maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
+          status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
+        };
         
-        if (filters.dateFrom) {
-          query = query.gte('scheduled_date', filters.dateFrom);
-        }
+        const { data, error } = await supabase
+          .from('maintenance')
+          .insert(formattedData)
+          .select()
+          .single();
         
-        if (filters.dateTo) {
-          query = query.lte('scheduled_date', filters.dateTo);
-        }
+        if (error) throw error;
+        return formatMaintenanceData(data);
+      },
+      
+      update: async (id: string, maintenanceData: any) => {
+        // Ensure data format matches what Supabase expects
+        const formattedData = {
+          ...maintenanceData,
+          scheduled_date: maintenanceData.scheduled_date?.toISOString(),
+          completion_date: maintenanceData.completion_date?.toISOString(),
+          // Map UI fields to database fields if needed
+          performed_by: maintenanceData.service_provider,
+          // Ensure maintenance_type and status are never empty strings
+          maintenance_type: maintenanceData.maintenance_type || MaintenanceType.REGULAR_INSPECTION,
+          status: maintenanceData.status || MaintenanceStatus.SCHEDULED,
+        };
         
-        const { data, error } = await query.order('scheduled_date', { ascending: false });
+        const { data, error } = await supabase
+          .from('maintenance')
+          .update(formattedData)
+          .eq('id', id)
+          .select()
+          .single();
         
-        if (error) {
-          console.error('Error fetching maintenance records:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load maintenance records",
-            variant: "destructive"
-          });
-          return [];
-        }
+        if (error) throw error;
+        return formatMaintenanceData(data);
+      },
+      
+      delete: async (id: string) => {
+        const { error } = await supabase
+          .from('maintenance')
+          .delete()
+          .eq('id', id);
         
-        // Normalize all records to ensure consistent format
-        return data?.map(normalizeMaintenanceRecord) || [];
-      } catch (error) {
-        console.error('Error in maintenance query:', error);
-        return [];
+        if (error) throw error;
       }
     }
   );
 
-  // Create a direct method to fetch maintenance by vehicle ID
-  const getMaintenanceByVehicleId = async (vehicleId: string) => {
+  // Utility function to convert API responses to expected format with safe default values
+  const formatMaintenanceData = (data: any): MaintenanceRecord => {
+    if (!data) {
+      console.warn("Received null or undefined data in formatMaintenanceData");
+      return {
+        id: "",
+        vehicle_id: "",
+        description: "",
+        maintenance_type: MaintenanceType.REGULAR_INSPECTION,
+        status: MaintenanceStatus.SCHEDULED,
+        scheduled_date: new Date().toISOString(),
+        cost: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as MaintenanceRecord;
+    }
+    
+    // Validate maintenance_type to ensure it's a valid enum value
+    const isValidMaintenanceType = Object.values(MaintenanceType).includes(data.maintenance_type as any);
+    const safeMaintenanceType = isValidMaintenanceType 
+      ? data.maintenance_type 
+      : MaintenanceType.REGULAR_INSPECTION;
+    
+    // Validate status to ensure it's a valid enum value
+    const validStatuses = ["scheduled", "in_progress", "completed", "cancelled"];
+    const isValidStatus = validStatuses.includes(data.status);
+    const safeStatus = isValidStatus ? data.status : MaintenanceStatus.SCHEDULED;
+    
+    // Ensure required properties have valid defaults to prevent errors
+    return {
+      ...data,
+      id: data.id || '',
+      vehicle_id: data.vehicle_id || '',
+      maintenance_type: safeMaintenanceType,
+      status: safeStatus,
+      description: data.description || '',
+      scheduled_date: data.scheduled_date || new Date().toISOString(),
+      service_provider: data.service_provider || data.performed_by || '',
+      invoice_number: data.invoice_number || '',
+      odometer_reading: typeof data.odometer_reading === 'number' ? data.odometer_reading : 0,
+      cost: typeof data.cost === 'number' ? data.cost : parseFloat(data.cost) || 0,
+      created_at: data.created_at || new Date().toISOString(),
+      updated_at: data.updated_at || new Date().toISOString(),
+      vehicles: data.vehicles || null
+    };
+  };
+
+  const getByVehicleId = async (vehicleId: string): Promise<MaintenanceRecord[]> => {
+    const { data, error } = await supabase
+      .from('maintenance')
+      .select('*')
+      .eq('vehicle_id', vehicleId)
+      .order('scheduled_date', { ascending: false });
+    
+    if (error) throw error;
+    return (data || []).map(formatMaintenanceData);
+  };
+  
+  const getMaintenanceStatistics = async (vehicleId?: string) => {
+    let query = supabase
+      .from('maintenance')
+      .select('status, count', { count: 'exact' });
+    
+    if (vehicleId) {
+      query = query.eq('vehicle_id', vehicleId);
+    }
+    
+    const { count, error } = await query;
+    
+    if (error) throw error;
+    return { totalRecords: count || 0 };
+  };
+
+  // Get all maintenance records without React Query (for components that need direct Promise)
+  const getAllRecords = async (): Promise<MaintenanceRecord[]> => {
     try {
       const { data, error } = await supabase
         .from('maintenance')
-        .select('*')
-        .eq('vehicle_id', vehicleId)
-        .order('scheduled_date', { ascending: false });
+        .select('*, vehicles(*)')
+        .order('created_at', { ascending: false });
       
-      if (error) {
-        console.error('Error fetching vehicle maintenance:', error);
-        return [];
-      }
-      
-      // Normalize all records to ensure consistent format
-      return data?.map(normalizeMaintenanceRecord) || [];
-    } catch (error) {
-      console.error('Error in getMaintenanceByVehicleId:', error);
-      return [];
+      if (error) throw error;
+      console.log("Raw maintenance data:", data);
+      return (data || []).map(formatMaintenanceData);
+    } catch (err) {
+      console.error('Error fetching maintenance records:', err);
+      throw err;
     }
   };
 
-  // Create a custom useList function that addresses the ambiguous column issue
-  const useCustomList = (customFilters?: any) => {
-    return useApiQuery(
-      ['maintenance-list', JSON.stringify(customFilters)],
-      async () => {
-        try {
-          let query = supabase.from('maintenance').select('*');
-          
-          if (customFilters) {
-            // Handle vehicle_id filtering
-            if (customFilters.vehicle_id) {
-              query = query.eq('vehicle_id', customFilters.vehicle_id);
-            }
-            
-            // Handle status filtering
-            if (customFilters.status) {
-              query = query.eq('status', customFilters.status);
-            }
-            
-            // Handle date range filtering
-            if (customFilters.date_from) {
-              const dateFrom = new Date(customFilters.date_from);
-              query = query.gte('scheduled_date', dateFrom.toISOString());
-            }
-            
-            if (customFilters.date_to) {
-              const dateTo = new Date(customFilters.date_to);
-              query = query.lte('scheduled_date', dateTo.toISOString());
-            }
-            
-            // Handle maintenance type filtering
-            if (customFilters.maintenance_type) {
-              query = query.eq('maintenance_type', customFilters.maintenance_type);
-            }
-            
-            // Handle text search across multiple fields
-            if (customFilters.query) {
-              const searchTerm = `%${customFilters.query}%`;
-              query = query.or(`description.ilike.${searchTerm}`);
-            }
-          }
-          
-          // Order by scheduled date, newest first
-          const { data, error } = await query.order('scheduled_date', { ascending: false });
-          
-          if (error) {
-            console.error('Error fetching maintenance records in useCustomList:', error);
-            toast({
-              title: "Error",
-              description: "Failed to load maintenance records",
-              variant: "destructive"
-            });
-            return [];
-          }
-          
-          // Normalize all records to ensure consistent format 
-          const normalizedData = data?.map(normalizeMaintenanceRecord) || [];
-          
-          return normalizedData;
-        } catch (error) {
-          console.error('Error in useCustomList query:', error);
-          return [];
-        }
-      }
-    );
-  };
-
-  // Wrap the useOne hook to properly handle date fields and field normalization
-  const useOneWithNormalization = (id?: string) => {
-    const result = crudApi.useItem(id);
-    
-    // If we have data, normalize it to ensure consistency
-    if (result.data) {
-      const normalizedData = normalizeMaintenanceRecord(result.data);
-      return {
-        ...result,
-        data: normalizedData
-      };
-    }
-    
-    return result;
-  };
-
-  // Function to delete all maintenance records, handling foreign key constraints
-  const deleteAllRecords = async () => {
-    try {
-      // First, check if there are any vehicle inspections referencing maintenance records
-      const { data: inspections, error: inspectionError } = await supabase
-        .from('vehicle_inspections')
-        .select('maintenance_id')
-        .not('maintenance_id', 'is', null);
-      
-      if (inspectionError) {
-        console.error('Error checking vehicle inspections:', inspectionError);
-        toast({
-          title: "Error",
-          description: "Failed to check related inspection records",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      // If there are related inspections, we need to handle them first
-      if (inspections && inspections.length > 0) {
-        // First, update the vehicle_inspections to remove the maintenance_id references
-        const { error: updateError } = await supabase
-          .from('vehicle_inspections')
-          .update({ maintenance_id: null })
-          .not('maintenance_id', 'is', null);
-        
-        if (updateError) {
-          console.error('Error updating vehicle inspections:', updateError);
-          toast({
-            title: "Error",
-            description: "Failed to update related inspection records",
-            variant: "destructive"
-          });
-          return false;
-        }
-      }
-      
-      // Now we can safely delete all maintenance records
-      const { error } = await supabase
-        .from('maintenance')
-        .delete()
-        .filter('id', 'not.is', null);
-      
-      if (error) {
-        console.error('Error deleting all maintenance records:', error);
-        toast({
-          title: "Error",
-          description: "Failed to delete maintenance records",
-          variant: "destructive"
-        });
-        return false;
-      }
-      
-      toast({
-        title: "Success",
-        description: "All maintenance records have been deleted",
-        variant: "default"
-      });
-      
-      return true;
-    } catch (error) {
-      console.error('Error in deleteAllRecords:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive"
-      });
-      return false;
-    }
-  };
-
-  // Return both the basic state and the CRUD operations
   return {
-    // Basic state
-    maintenanceRecords,
-    isLoading,
-    filters,
-    setFilters,
-    refetch,
-    
-    // Direct methods
-    getMaintenanceByVehicleId,
-    deleteAllRecords,
-    
-    // CRUD operations
-    useList: useCustomList,
-    useOne: useOneWithNormalization,
-    useCreate: crudApi.useCreate,
-    useUpdate: crudApi.useUpdate,
-    useDelete: crudApi.useDelete
+    ...maintenanceApi,
+    getByVehicleId,
+    getMaintenanceStatistics,
+    // Add the direct Promise-based methods for components that need them
+    getAllRecords,
+    // Use the same name that some components expect
+    getMaintenanceByVehicleId: getByVehicleId,
+    // Add the aliases that are being used in components
+    useList: maintenanceApi.getAll,
+    useOne: maintenanceApi.getById,
+    useCreate: maintenanceApi.create, 
+    useUpdate: maintenanceApi.update,
+    useDelete: maintenanceApi.remove
   };
 }

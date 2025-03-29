@@ -14,6 +14,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { toast } from 'sonner';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -39,7 +40,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   const [imageLoading, setImageLoading] = useState(true);
   
   const {
-    getMaintenanceByVehicleId
+    getByVehicleId
   } = useMaintenance();
   const statusColors = {
     available: 'bg-green-100 text-green-800',
@@ -188,6 +189,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   };
 
   const handleViewAgreement = (id: string) => {
+    if (!id) {
+      console.error("Attempted to navigate to agreement with no ID");
+      toast.error("Unable to view agreement: Missing ID");
+      return;
+    }
+    
+    console.log(`Navigating to agreement: /agreements/${id}`);
     navigate(`/agreements/${id}`);
   };
 
@@ -199,7 +207,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     const fetchMaintenance = async () => {
       setIsLoadingMaintenance(true);
       try {
-        const records = await getMaintenanceByVehicleId(vehicle.id);
+        const records = await getByVehicleId(vehicle.id);
         setMaintenanceRecords(records);
       } catch (error) {
         console.error("Error fetching maintenance records:", error);
@@ -210,7 +218,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     if (vehicle.id) {
       fetchMaintenance();
     }
-  }, [vehicle.id, getMaintenanceByVehicleId]);
+  }, [vehicle.id, getByVehicleId]);
 
   const formatMaintenanceType = (type: string) => {
     return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
@@ -393,7 +401,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Rental Agreements</CardTitle>
-            
+            <CustomButton size="sm" variant="outline" onClick={handleCreateAgreement}>
+              <FileText className="h-4 w-4 mr-2" />
+              New Agreement
+            </CustomButton>
           </div>
           
           {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
@@ -497,4 +508,3 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       </CardContent>
     </Card>;
 };
-

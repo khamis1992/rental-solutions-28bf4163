@@ -2,6 +2,7 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useProfile } from "@/contexts/ProfileContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,9 +11,10 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   const { user, loading, session } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
   const location = useLocation();
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -27,7 +29,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
 
   // Role-based access control (if roles are specified)
   if (roles && roles.length > 0) {
-    const userRole = (user.user_metadata?.role || 'user') as string;
+    const userRole = profile?.role || 'staff';
     if (!roles.includes(userRole)) {
       return <Navigate to="/unauthorized" replace />;
     }

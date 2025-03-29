@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { CustomerObligation } from './CustomerLegalObligations';
 import { fetchLegalObligations } from './LegalObligationsService';
@@ -9,6 +8,7 @@ import { FileDown, FileText, AlertTriangle, RefreshCw, CreditCard } from 'lucide
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/date-utils';
 
 interface LegalObligationsTabProps {
   customerId: string;
@@ -19,7 +19,6 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch obligations for this specific customer
   useEffect(() => {
     const loadObligations = async () => {
       setLoading(true);
@@ -30,7 +29,6 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
           setError(result.error);
           toast.error('Error loading legal obligations');
         } else {
-          // Filter obligations for this customer only
           const customerObligations = result.obligations.filter(
             obligation => obligation.customerId === customerId
           );
@@ -47,7 +45,6 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     loadObligations();
   }, [customerId]);
 
-  // Get the urgency badge with appropriate styling
   const getUrgencyBadge = (urgency: string) => {
     switch (urgency) {
       case 'critical':
@@ -62,10 +59,8 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
     }
   };
 
-  // Handle payment processing
   const handleProcessPayment = (obligation: CustomerObligation) => {
     toast.info(`Processing payment for ${obligation.description}...`);
-    // In a real implementation, this would redirect to the payment handling page
   };
 
   if (loading) {
@@ -143,7 +138,7 @@ const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId })
                       )}
                     </div>
                     <div>
-                      <span className="font-medium">Due Date:</span> {obligation.dueDate.toLocaleDateString()}
+                      <span className="font-medium">Due Date:</span> {formatDate(obligation.dueDate)}
                     </div>
                     <div>
                       <span className="font-medium">Days Overdue:</span> {obligation.daysOverdue}
