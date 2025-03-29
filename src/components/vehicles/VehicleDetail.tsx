@@ -14,6 +14,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { toast } from 'sonner';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
