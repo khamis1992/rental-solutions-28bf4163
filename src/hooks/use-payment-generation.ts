@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,7 +12,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
-  // Custom function for handling special agreement payments if needed
+  // Custom function for handling special agreement payments - can be empty unless needed
   const handleSpecialAgreementPayments = useCallback(async (agreement: Agreement, rentAmount: number) => {
     if (!agreement || !rentAmount) return;
     
