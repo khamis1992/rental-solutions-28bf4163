@@ -1,31 +1,25 @@
-
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export class NotificationService {
-  static async initialize() {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    
-    if (finalStatus !== 'granted') {
-      return false;
-    }
+  static async requestPermissions() {
+    const { status } = await Notifications.requestPermissionsAsync();
+    return status === 'granted';
+  }
 
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-      });
-    }
+  static async scheduleNotification(title: string, body: string, trigger = null) {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title,
+        body,
+      },
+      trigger: trigger || null,
+    });
+  }
 
-    return true;
+  static async cancelAllNotifications() {
+    await Notifications.cancelAllScheduledNotificationsAsync();
   }
 
   static async subscribeToUpdates() {
@@ -37,7 +31,7 @@ export class NotificationService {
         schema: 'public',
         table: 'maintenance_records'
       }, async (payload) => {
-        await this.showNotification('Maintenance Update', 
+        await this.scheduleNotification('Maintenance Update',
           `Maintenance record ${payload.eventType}: ${payload.new?.description}`);
       })
       .subscribe();
@@ -49,21 +43,11 @@ export class NotificationService {
         schema: 'public',
         table: 'agreements'
       }, async (payload) => {
-        await this.showNotification('Agreement Update',
+        await this.scheduleNotification('Agreement Update',
           `Agreement ${payload.eventType}: ${payload.new?.agreement_number}`);
       })
       .subscribe();
 
     return [maintenanceSubscription, agreementSubscription];
-  }
-
-  static async showNotification(title: string, body: string) {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title,
-        body,
-      },
-      trigger: null,
-    });
   }
 }
