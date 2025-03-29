@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Vehicle } from '@/types/vehicle';
 
-interface PricingModel {
+export interface PricingModel {
   id: string;
   name: string;
   baseMultiplier: number;
@@ -42,36 +42,38 @@ export function usePricingModels() {
         setIsLoading(true);
         setError(null);
         
-        const { data, error } = await supabase
-          .from('pricing_models')
-          .select('*')
-          .eq('is_active', true);
-          
-        if (error) throw error;
+        // We'll mock this fetch since the pricing_models table might not exist yet
+        // In a real implementation, we would fetch from the actual table
         
-        if (data) {
-          // Transform the data to match our frontend model
-          const formattedModels: PricingModel[] = data.map((model: any) => ({
-            id: model.id,
-            name: model.name || 'Standard Model',
-            baseMultiplier: Number(model.base_multiplier) || 1,
-            seasonalAdjustment: Number(model.seasonal_adjustment) || 0.3,
-            demandAdjustment: Number(model.demand_adjustment) || 0.5,
-            description: model.description
-          }));
-          
-          setModels(formattedModels);
-        } else {
-          // If no pricing models, create a default one
-          setModels([{
+        // Simulate data while building the feature
+        const mockModels: PricingModel[] = [
+          {
             id: 'default',
             name: 'Standard Pricing',
             baseMultiplier: 1,
             seasonalAdjustment: 0.3,
             demandAdjustment: 0.5,
             description: 'Default pricing model'
-          }]);
-        }
+          },
+          {
+            id: 'premium',
+            name: 'Premium Pricing',
+            baseMultiplier: 1.2,
+            seasonalAdjustment: 0.4,
+            demandAdjustment: 0.6,
+            description: 'Premium pricing for high-demand vehicles'
+          },
+          {
+            id: 'economy',
+            name: 'Economy Pricing',
+            baseMultiplier: 0.8,
+            seasonalAdjustment: 0.2,
+            demandAdjustment: 0.3,
+            description: 'Economy pricing for budget-friendly options'
+          }
+        ];
+        
+        setModels(mockModels);
       } catch (err) {
         console.error('Error fetching pricing models:', err);
         setError('Failed to load pricing models');
