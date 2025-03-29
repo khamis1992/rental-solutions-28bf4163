@@ -28,6 +28,7 @@ export function AgreementDetail({
   onPaymentDeleted,
   onDataRefresh
 }: AgreementDetailProps) {
+  const { price: dynamicPrice } = useDynamicPricing(agreement?.vehicle_id || '');
   const navigate = useNavigate();
   
   const handleDelete = useCallback((id: string) => {
