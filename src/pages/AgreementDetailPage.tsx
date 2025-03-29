@@ -53,7 +53,25 @@ const AgreementDetailPage = () => {
         return;
       }
       
-      console.log("Agreement data fetched successfully:", JSON.stringify(data, null, 2));
+      console.log("Agreement data fetched successfully:", data);
+      
+      // Ensure dates are properly converted to Date objects
+      if (data.start_date && !(data.start_date instanceof Date)) {
+        try {
+          data.start_date = new Date(data.start_date);
+        } catch (e) {
+          console.error("Error converting start_date to Date object:", e);
+        }
+      }
+      
+      if (data.end_date && !(data.end_date instanceof Date)) {
+        try {
+          data.end_date = new Date(data.end_date);
+        } catch (e) {
+          console.error("Error converting end_date to Date object:", e);
+        }
+      }
+      
       setAgreement(data);
       setIsLoading(false);
     } catch (error) {
@@ -110,7 +128,7 @@ const AgreementDetailPage = () => {
 
   useEffect(() => {
     // Additional debugging useEffect that runs on state updates
-    console.log("Current state:", {
+    console.log("AgreementDetailPage current state:", {
       agreementLoaded: !!agreement,
       isLoading,
       hasError: !!initializationError,
@@ -126,7 +144,13 @@ const AgreementDetailPage = () => {
         agreement_number: agreement.agreement_number,
         hasCustomerData: !!agreement.customers,
         hasVehicleData: !!agreement.vehicles,
-        status: agreement.status
+        status: agreement.status,
+        dates: {
+          start: agreement.start_date,
+          end: agreement.end_date,
+          startIsDate: agreement.start_date instanceof Date,
+          endIsDate: agreement.end_date instanceof Date
+        }
       });
     }
   }, [agreement, isLoading, initializationError, rentAmount, contractAmount, refreshTrigger, id]);

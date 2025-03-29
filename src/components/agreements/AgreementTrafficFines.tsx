@@ -71,12 +71,22 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
-        // Ensure dates are properly formatted for Supabase query
-        const formattedStartDate = startDate instanceof Date ? 
-          startDate.toISOString() : new Date(startDate).toISOString();
+        console.log("AgreementTrafficFines - processing dates:", {
+          startDate: startDate instanceof Date ? startDate.toISOString() : startDate,
+          endDate: endDate instanceof Date ? endDate.toISOString() : endDate,
+          startDateType: typeof startDate,
+          endDateType: typeof endDate,
+          isStartDateObj: startDate instanceof Date,
+          isEndDateObj: endDate instanceof Date
+        });
         
-        const formattedEndDate = endDate instanceof Date ? 
-          endDate.toISOString() : new Date(endDate).toISOString();
+        // Convert params to actual dates if they aren't already
+        const startDateObj = startDate instanceof Date ? startDate : new Date(startDate);
+        const endDateObj = endDate instanceof Date ? endDate : new Date(endDate);
+        
+        // Ensure dates are properly formatted for Supabase query
+        const formattedStartDate = startDateObj.toISOString();
+        const formattedEndDate = endDateObj.toISOString();
       
         // Get the vehicle ID associated with this agreement
         const { data: leaseData, error: leaseError } = await supabase

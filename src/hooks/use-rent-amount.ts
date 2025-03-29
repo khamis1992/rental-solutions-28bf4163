@@ -77,20 +77,25 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         
         // Calculate contract amount if we have agreement dates
         if (agreement?.start_date && agreement?.end_date) {
-          // Ensure we're working with JS Date objects
-          const startDate = agreement.start_date instanceof Date 
-            ? agreement.start_date 
-            : new Date(agreement.start_date);
-          
-          const endDate = agreement.end_date instanceof Date
-            ? agreement.end_date
-            : new Date(agreement.end_date);
-          
-          const durationMonths = differenceInMonths(endDate, startDate);
-          const calculatedContractAmount = leaseRentAmount * (durationMonths > 0 ? durationMonths : 1);
-          
-          console.log(`Contract duration: ${durationMonths} months, Contract amount: ${calculatedContractAmount}`);
-          setContractAmount(calculatedContractAmount);
+          try {
+            // Ensure we're working with JS Date objects
+            const startDate = new Date(agreement.start_date instanceof Date 
+              ? agreement.start_date 
+              : agreement.start_date.toString());
+            
+            const endDate = new Date(agreement.end_date instanceof Date
+              ? agreement.end_date
+              : agreement.end_date.toString());
+            
+            const durationMonths = differenceInMonths(endDate, startDate);
+            const finalDuration = durationMonths > 0 ? durationMonths : 1;
+            const calculatedContractAmount = leaseRentAmount * finalDuration;
+            
+            console.log(`Contract duration: ${finalDuration} months, Contract amount: ${calculatedContractAmount}`);
+            setContractAmount(calculatedContractAmount);
+          } catch (err) {
+            console.error("Error calculating contract amount:", err);
+          }
         } else {
           console.log("Agreement dates not available for contract amount calculation");
         }
@@ -114,18 +119,23 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       setRentAmount(agreement.total_amount);
       
       if (agreement.start_date && agreement.end_date) {
-        // Ensure we're working with JS Date objects
-        const startDate = agreement.start_date instanceof Date 
-          ? agreement.start_date 
-          : new Date(agreement.start_date);
-        
-        const endDate = agreement.end_date instanceof Date
-          ? agreement.end_date
-          : new Date(agreement.end_date);
+        try {
+          // Ensure we're working with JS Date objects
+          const startDate = new Date(agreement.start_date instanceof Date 
+            ? agreement.start_date 
+            : agreement.start_date.toString());
           
-        const durationMonths = differenceInMonths(endDate, startDate);
-        const calculatedContractAmount = agreement.total_amount * (durationMonths > 0 ? durationMonths : 1);
-        setContractAmount(calculatedContractAmount);
+          const endDate = new Date(agreement.end_date instanceof Date
+            ? agreement.end_date
+            : agreement.end_date.toString());
+            
+          const durationMonths = differenceInMonths(endDate, startDate);
+          const finalDuration = durationMonths > 0 ? durationMonths : 1;
+          const calculatedContractAmount = agreement.total_amount * finalDuration;
+          setContractAmount(calculatedContractAmount);
+        } catch (err) {
+          console.error("Error calculating contract amount from total_amount:", err);
+        }
       }
     }
   }, [agreement, rentAmount]);
@@ -140,8 +150,8 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       agreementDates: agreement ? {
         startDate: agreement.start_date,
         endDate: agreement.end_date,
-        isStartDate: agreement.start_date instanceof Date,
-        isEndDate: agreement.end_date instanceof Date
+        isStartDateDate: agreement.start_date instanceof Date,
+        isEndDateDate: agreement.end_date instanceof Date
       } : null
     });
   }, [rentAmount, contractAmount, agreementId, agreement]);
