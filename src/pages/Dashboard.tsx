@@ -10,6 +10,9 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { Tabs, TabsList, TabsTrigger } from '@chakra-ui/react'; // Assumed import location. Adjust as needed.
+import QuickActions from '@/components/dashboard/QuickActions'; // Assumed import location. Adjust as needed.
+
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -28,7 +31,7 @@ if (typeof window !== 'undefined') {
 
 const Dashboard = () => {
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
-  
+
   const handleRefresh = () => {
     window.location.reload();
   };
@@ -46,7 +49,14 @@ const Dashboard = () => {
           </CustomButton>
         }
       />
-      
+      <QuickActions />
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="fleet">Fleet</TabsTrigger>
+          <TabsTrigger value="financial">Financial</TabsTrigger>
+        </TabsList>
+
       <div className="space-y-6">
         {isLoading ? (
           <>
@@ -56,15 +66,15 @@ const Dashboard = () => {
               <Skeleton className="h-32" />
               <Skeleton className="h-32" />
             </div>
-            
+
             <div className="grid grid-cols-1 gap-6">
               <Skeleton className="h-96" />
             </div>
-            
+
             <div className="grid grid-cols-1 gap-6">
               <Skeleton className="h-96" />
             </div>
-            
+
             <Skeleton className="h-96" />
           </>
         ) : isError ? (
@@ -75,17 +85,17 @@ const Dashboard = () => {
         ) : (
           <>
             <DashboardStats stats={stats} />
-            
+
             {/* Vehicle Status chart - now after the stats */}
             <div className="grid grid-cols-1 gap-6 section-transition">
               <VehicleStatusChart data={stats?.vehicleStats} />
             </div>
-            
+
             {/* Revenue chart now below the Vehicle Status */}
             <div className="grid grid-cols-1 gap-6 section-transition">
               <RevenueChart data={revenue} fullWidth={true} />
             </div>
-            
+
             <RecentActivity activities={activity} />
           </>
         )}
