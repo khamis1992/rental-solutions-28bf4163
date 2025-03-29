@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/lib/supabase';
 import { differenceInMonths } from 'date-fns';
@@ -7,9 +7,14 @@ import { differenceInMonths } from 'date-fns';
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
   const [contractAmount, setContractAmount] = useState<number | null>(null);
+  const fetchInProgress = useRef(false);
+  const hasInitiallyFetched = useRef(false);
 
   // Function to fetch rent amount - memoize to prevent recreation on each render
   const fetchRentAmount = useCallback(async (agreementId: string) => {
+    if (fetchInProgress.current) return null;
+    fetchInProgress.current = true;
+    
     try {
       const { data, error } = await supabase
         .from("leases")
@@ -30,6 +35,8 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     } catch (error) {
       console.error("Error in fetchRentAmount:", error);
       return null;
+    } finally {
+      fetchInProgress.current = false;
     }
   }, []);
 
@@ -37,7 +44,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     let isActive = true;
 
     const loadRentAmount = async () => {
-      if (!agreementId) return;
+      if (!agreementId || (hasInitiallyFetched.current && rentAmount !== null)) return;
       
       // Get the rent_amount directly from the leases table
       const leaseRentAmount = await fetchRentAmount(agreementId);
@@ -45,6 +52,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       if (leaseRentAmount && isActive) {
         // Set the rent amount state
         setRentAmount(leaseRentAmount);
+        hasInitiallyFetched.current = true;
         
         // Calculate contract amount if we have agreement dates
         if (agreement?.start_date && agreement?.end_date) {
@@ -64,7 +72,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     return () => {
       isActive = false;
     };
-  }, [agreementId, agreement?.start_date, agreement?.end_date, fetchRentAmount]);
+  }, [agreementId, agreement?.start_date, agreement?.end_date, fetchRentAmount, rentAmount]);
 
   return { rentAmount, contractAmount };
 };

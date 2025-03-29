@@ -7,7 +7,6 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { initializeSystem } from '@/lib/supabase';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 
@@ -17,66 +16,65 @@ const AgreementDetailPage = () => {
   const { getAgreement, deleteAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [initializationError, setInitializationError] = useState<Error | null>(null);
   
-  // Use refs to track mounting state
+  // Use refs to track component lifecycle
   const isMounted = useRef(true);
-  const initializationComplete = useRef(false);
+  const dataFetchAttempted = useRef(false);
 
-  // Custom hooks for specific functionality
+  // Custom hooks for specific functionality - only call when agreement is available
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   const { refreshTrigger, refreshAgreementData } = usePaymentGeneration(agreement, id);
 
   // Fetch agreement data
-  useEffect(() => {
-    if (!id) return;
+  const fetchAgreementData = useCallback(async () => {
+    if (!id || !isMounted.current || dataFetchAttempted.current) return;
     
-    let isActive = true;
     setIsLoading(true);
+    dataFetchAttempted.current = true;
     
-    const fetchAgreementData = async () => {
-      try {
-        // Make sure system is initialized first (only once per session)
-        if (!initializationComplete.current) {
-          await initializeSystem();
-          if (isActive) {
-            initializationComplete.current = true;
-          }
-        }
-        
-        // Then fetch agreement data
-        const data = await getAgreement(id);
-        
-        if (!isActive || !data) {
-          return;
-        }
-        
-        setAgreement(data);
-      } catch (error) {
-        if (isActive) {
-          console.error("Error fetching agreement:", error);
-          toast.error("Failed to load agreement details");
-          navigate("/agreements");
-        }
-      } finally {
-        if (isActive) {
-          setIsLoading(false);
-        }
+    try {
+      // Skip complex initialization that's causing errors
+      // Just fetch the agreement data directly
+      const data = await getAgreement(id);
+      
+      if (!isMounted.current) {
+        return;
       }
-    };
+      
+      if (!data) {
+        console.log("No agreement data found for ID:", id);
+        setIsLoading(false);
+        return;
+      }
+      
+      setAgreement(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching agreement:", error);
+      if (isMounted.current) {
+        setInitializationError(error instanceof Error ? error : new Error('Unknown error'));
+        setIsLoading(false);
+        toast.error("Failed to load agreement details");
+      }
+    }
+  }, [id, getAgreement]);
 
+  // Initial data fetch
+  useEffect(() => {
     fetchAgreementData();
     
     return () => {
-      isActive = false;
-    };
-  }, [id, getAgreement, navigate, refreshTrigger]);
-
-  // Set up cleanup function for component unmount
-  useEffect(() => {
-    return () => {
       isMounted.current = false;
     };
-  }, []);
+  }, [fetchAgreementData]);
+
+  // Handle refreshing data when needed
+  useEffect(() => {
+    if (refreshTrigger > 0 && id && isMounted.current) {
+      fetchAgreementData();
+    }
+  }, [refreshTrigger, id, fetchAgreementData]);
 
   const handleDelete = async (agreementId: string) => {
     try {
@@ -88,6 +86,33 @@ const AgreementDetailPage = () => {
       toast.error("Failed to delete agreement");
     }
   };
+
+  if (initializationError) {
+    return (
+      <PageContainer
+        title="Agreement Details"
+        description="View and manage rental agreement details"
+        backLink="/agreements"
+      >
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold mb-2 text-red-600">Error loading agreement</h3>
+          <p className="text-muted-foreground">
+            {initializationError.message}
+          </p>
+          <button 
+            onClick={() => {
+              dataFetchAttempted.current = false;
+              setInitializationError(null);
+              fetchAgreementData();
+            }}
+            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer

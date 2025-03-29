@@ -8,6 +8,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const fetchInProgress = useRef(false);
+  const isInitialFetch = useRef(true);
   
   const fetchPayments = useCallback(async () => {
     if (!agreementId || fetchInProgress.current) return;
@@ -67,12 +68,13 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
     } finally {
       setIsLoadingPayments(false);
       fetchInProgress.current = false;
+      isInitialFetch.current = false;
     }
   }, [agreementId, rentAmount]);
 
   useEffect(() => {
-    const shouldFetch = agreementId && !fetchInProgress.current;
-    if (shouldFetch) {
+    // Only fetch if we have an agreement ID and either it's the initial fetch or manually triggered
+    if (agreementId && (isInitialFetch.current || !fetchInProgress.current)) {
       fetchPayments();
     }
     
