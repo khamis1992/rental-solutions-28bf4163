@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { differenceInMonths } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -24,7 +24,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         .from("leases")
         .select("rent_amount, total_amount")
         .eq("id", agreementId)
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error("Error fetching rent amount:", error);

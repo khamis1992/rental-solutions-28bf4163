@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Payment } from '@/components/agreements/PaymentHistory';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 export const usePayments = (agreementId: string | undefined, rentAmount: number | null) => {

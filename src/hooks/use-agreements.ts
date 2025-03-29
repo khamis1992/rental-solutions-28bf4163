@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface SearchParams {
@@ -58,7 +58,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             .from('profiles')
             .select('id, full_name, email, phone_number, driver_license, nationality, address')
             .eq('id', data.customer_id)
-            .single();
+            .maybeSingle();
             
           if (customerError) {
             console.error("Error fetching customer:", customerError);
@@ -80,7 +80,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             .from('vehicles')
             .select('id, make, model, license_plate, image_url, year, color, vin')
             .eq('id', data.vehicle_id)
-            .single();
+            .maybeSingle();
             
           if (vehicleError) {
             console.error("Error fetching vehicle:", vehicleError);
