@@ -35,9 +35,30 @@ export function AgreementDetail({
     onDelete(id);
   }, [onDelete]);
 
+  const { plans, calculateLateFee, calculateDynamicDeposit } = usePaymentPlans(agreement?.id || '');
+  
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
+
+  const handleLateFeeCalculation = async () => {
+    if (!agreement) return;
+    const daysLate = differenceInDays(new Date(), new Date(agreement.end_date));
+    const lateFee = await calculateLateFee(daysLate, agreement.rent_amount);
+    // Update agreement with late fee
+  };
+
+  const handleDepositCalculation = async () => {
+    if (!agreement?.vehicle_id) return;
+    const { data: vehicle } = await supabase
+      .from('vehicles')
+      .select('value')
+      .eq('id', agreement.vehicle_id)
+      .single();
+    
+    const deposit = await calculateDynamicDeposit(vehicle?.value || 0, customerScore);
+    // Update agreement with calculated deposit
+  };
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
