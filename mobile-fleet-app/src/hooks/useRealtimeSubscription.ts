@@ -1,35 +1,21 @@
-
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { NotificationService } from '../services/NotificationService';
 
-export function useRealtimeSubscription(table: string, filter?: any) {
-  const [data, setData] = useState<any[]>([]);
-
+export const useRealtimeSubscription = () => {
   useEffect(() => {
-    const subscription = supabase
-      .channel('public:' + table)
-      .on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
-        // Handle different types of changes
-        switch (payload.eventType) {
-          case 'INSERT':
-            setData((current) => [...current, payload.new]);
-            break;
-          case 'UPDATE':
-            setData((current) =>
-              current.map((item) => (item.id === payload.new.id ? payload.new : item))
-            );
-            break;
-          case 'DELETE':
-            setData((current) => current.filter((item) => item.id !== payload.old.id));
-            break;
-        }
-      })
-      .subscribe();
+    const setupSubscriptions = async () => {
+      const subscriptions = await NotificationService.subscribeToUpdates();
 
-    return () => {
-      subscription.unsubscribe();
+      return () => {
+        subscriptions.forEach(subscription => {
+          if (subscription && subscription.unsubscribe) {
+            subscription.unsubscribe();
+          }
+        });
+      };
     };
-  }, [table]);
 
-  return data;
-}
+    setupSubscriptions();
+  }, []);
+};

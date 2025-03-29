@@ -1,72 +1,82 @@
 
 import React, { useState } from 'react';
-import { View, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '../lib/supabase';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SyncService } from '../services/SyncService';
 
-export default function DocumentUpload() {
+export const DocumentUpload = () => {
   const [uploading, setUploading] = useState(false);
 
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*',
-        copyToCacheDirectory: true,
+        type: ['application/pdf', 'application/msword', 
+               'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        copyToCacheDirectory: true
       });
 
-      if (result.assets && result.assets[0]) {
-        const file = result.assets[0];
-        await uploadDocument(file);
+      if (result.type === 'success') {
+        await handleUpload(result);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Error picking document:', err);
     }
   };
 
-  const uploadDocument = async (file: DocumentPicker.DocumentPickerAsset) => {
+  const handleUpload = async (document) => {
     try {
       setUploading(true);
-      const response = await fetch(file.uri);
-      const blob = await response.blob();
+      const fileName = `${Date.now()}-${document.name}`;
       
-      const fileName = `${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage
-        .from('documents')
-        .upload(fileName, blob);
-
-      if (error) throw error;
-      
-      // Cache the document reference locally
-      const documents = JSON.parse(await AsyncStorage.getItem('cached_documents') || '[]');
-      documents.push({ name: file.name, path: fileName });
-      await AsyncStorage.setItem('cached_documents', JSON.stringify(documents));
-      
+      if (navigator.onLine) {
+        const { data, error } = await supabase.storage
+          .from('documents')
+          .upload(fileName, document);
+          
+        if (error) throw error;
+      } else {
+        // Store for offline sync
+        await SyncService.saveOfflineData('offline_documents', {
+          path: fileName,
+          data: document,
+          pendingUpload: true
+        });
+      }
     } catch (error) {
-      console.error(error);
+      console.error('Error uploading document:', error);
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <View>
+    <View style={styles.container}>
       <TouchableOpacity 
+        style={styles.button} 
         onPress={pickDocument}
-        style={{ 
-          backgroundColor: '#4CAF50',
-          padding: 15,
-          borderRadius: 5,
-          alignItems: 'center'
-        }}
         disabled={uploading}
       >
-        {uploading ? (
-          <ActivityIndicator color="#ffffff" />
-        ) : (
-          <Text style={{ color: '#ffffff' }}>Upload Document</Text>
-        )}
+        <Text style={styles.buttonText}>
+          {uploading ? 'Uploading...' : 'Upload Document'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+  },
+  button: {
+    backgroundColor: '#0284c7',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+  },
+});

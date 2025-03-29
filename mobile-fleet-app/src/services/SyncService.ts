@@ -1,7 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
-export class SyncService {
+export import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+import { supabase } from '../lib/supabase';
+
+class SyncService {
   static async saveOfflineData(key: string, data: any) {
     try {
       await AsyncStorage.setItem(key, JSON.stringify(data));

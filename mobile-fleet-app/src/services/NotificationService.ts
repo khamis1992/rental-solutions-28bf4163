@@ -2,7 +2,11 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 
-export class NotificationService {
+export import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
+import { supabase } from '../lib/supabase';
+
+class NotificationService {
   static async requestPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
     return status === 'granted';
