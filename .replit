@@ -16,6 +16,7 @@ localPort = 8081
 externalPort = 8081
 
 [workflows]
+runButton = "Start Mobile App"
 
 [[workflows.workflow]]
 name = "Start Mobile App"
