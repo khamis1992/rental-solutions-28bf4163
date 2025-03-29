@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -10,7 +9,6 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,11 +18,7 @@ const AgreementDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Get rent amount from the hook
-  const { rentAmount } = useRentAmount(agreement, id);
-  
-  // Use the payment generation hook
-  const { refreshAgreementData } = usePaymentGeneration(agreement, id);
+  const { rentAmount, contractAmount } = useRentAmount(id || '');
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -32,13 +26,7 @@ const AgreementDetailPage = () => {
     try {
       setIsLoading(true);
       const data = await getAgreement(id);
-      
-      if (data) {
-        console.log("Fetched agreement data:", data);
-        setAgreement(data);
-      } else {
-        console.log("No agreement data found for ID:", id);
-      }
+      setAgreement(data);
     } catch (error) {
       console.error('Error fetching agreement:', error);
       toast.error('Failed to load agreement details');
@@ -70,7 +58,7 @@ const AgreementDetailPage = () => {
     }
   };
 
-  const handleRefreshData = () => {
+  const refreshAgreementData = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -93,8 +81,9 @@ const AgreementDetailPage = () => {
         <AgreementDetail 
           agreement={agreement}
           onDelete={handleDelete}
+          contractAmount={contractAmount}
           rentAmount={rentAmount}
-          onPaymentDeleted={handleRefreshData}
+          onPaymentDeleted={refreshAgreementData}
         />
       ) : (
         <div className="text-center py-12">
