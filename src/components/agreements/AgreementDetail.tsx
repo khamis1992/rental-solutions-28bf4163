@@ -7,19 +7,24 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PaymentList } from '@/components/payments/PaymentList';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { AgreementTrafficFines } from './AgreementTrafficFines';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
   onDelete: (id: string) => void;
   rentAmount: number | null;
+  contractAmount: number | null;
   onPaymentDeleted: () => void;
+  onDataRefresh: () => void;
 }
 
 export function AgreementDetail({ 
   agreement, 
   onDelete, 
   rentAmount,
-  onPaymentDeleted
+  contractAmount,
+  onPaymentDeleted,
+  onDataRefresh
 }: AgreementDetailProps) {
   const navigate = useNavigate();
   
@@ -41,26 +46,28 @@ export function AgreementDetail({
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Agreement {agreement.agreement_number}</h2>
           <p className="text-muted-foreground">
             Created on {format(new Date(agreement.created_at), 'PPP')}
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" onClick={handlePrint}>
+        <div className="flex items-center gap-4 mt-4 sm:mt-0">
+          <Button variant="outline" onClick={handlePrint} className="print:hidden">
             Print
           </Button>
           <Button 
             variant="default" 
             onClick={() => navigate(`/agreements/${agreement.id}/edit`)}
+            className="print:hidden"
           >
             Edit
           </Button>
           <Button 
             variant="destructive"
             onClick={() => handleDelete(agreement.id)}
+            className="print:hidden"
           >
             Delete
           </Button>
@@ -87,6 +94,18 @@ export function AgreementDetail({
                 <p className="font-medium">Driver License</p>
                 <p>{agreement.customers?.driver_license}</p>
               </div>
+              {agreement.customers?.email && (
+                <div>
+                  <p className="font-medium">Email</p>
+                  <p>{agreement.customers.email}</p>
+                </div>
+              )}
+              {agreement.customers?.nationality && (
+                <div>
+                  <p className="font-medium">Nationality</p>
+                  <p>{agreement.customers.nationality}</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -110,6 +129,12 @@ export function AgreementDetail({
                 <p className="font-medium">VIN</p>
                 <p>{agreement.vehicles?.vin}</p>
               </div>
+              {agreement.vehicles?.color && (
+                <div>
+                  <p className="font-medium">Color</p>
+                  <p>{agreement.vehicles.color}</p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -133,6 +158,12 @@ export function AgreementDetail({
                 <p className="font-medium">Status</p>
                 <p className="capitalize">{agreement.status}</p>
               </div>
+              {agreement.deposit_amount > 0 && (
+                <div>
+                  <p className="font-medium">Security Deposit</p>
+                  <p>QAR {agreement.deposit_amount}</p>
+                </div>
+              )}
             </div>
             <div className="space-y-4">
               <div>
@@ -141,8 +172,14 @@ export function AgreementDetail({
               </div>
               <div>
                 <p className="font-medium">Total Contract Amount</p>
-                <p>QAR {agreement.total_amount}</p>
+                <p>QAR {contractAmount || agreement.total_amount}</p>
               </div>
+              {agreement.notes && (
+                <div>
+                  <p className="font-medium">Notes</p>
+                  <p className="whitespace-pre-wrap">{agreement.notes}</p>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -160,6 +197,15 @@ export function AgreementDetail({
           />
         </CardContent>
       </Card>
+
+      {/* Traffic Fines Section */}
+      {agreement.start_date && agreement.end_date && (
+        <AgreementTrafficFines
+          agreementId={agreement.id}
+          startDate={new Date(agreement.start_date)}
+          endDate={new Date(agreement.end_date)}
+        />
+      )}
     </div>
   );
 }

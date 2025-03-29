@@ -20,7 +20,7 @@ const AgreementDetailPage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Pass the agreement object directly and the ID as a fallback
-  const { rentAmount } = useRentAmount(agreement, id);
+  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -84,7 +84,9 @@ const AgreementDetailPage = () => {
           agreement={agreement}
           onDelete={handleDelete}
           rentAmount={rentAmount}
+          contractAmount={contractAmount}
           onPaymentDeleted={refreshAgreementData}
+          onDataRefresh={refreshAgreementData}
         />
       ) : (
         <div className="text-center py-12">

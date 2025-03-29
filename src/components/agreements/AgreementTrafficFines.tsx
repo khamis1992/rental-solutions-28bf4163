@@ -4,10 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCurrency } from "@/lib/utils";
-import { formatDate } from "@/lib/date-utils";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { toast } from "sonner";
+
+// Define types for traffic fines
+type TrafficFineStatusType = 'paid' | 'pending' | 'disputed';
 
 type TrafficFine = {
   id: string;
@@ -56,6 +58,11 @@ const getStatusColor = (status: string) => {
     default:
       return "bg-red-500 text-white border-red-600";
   }
+};
+
+// Helper function to format dates without depending on external utility
+const formatDate = (date: Date): string => {
+  return format(date, 'PPP');
 };
 
 export const AgreementTrafficFines = ({ 
@@ -245,4 +252,4 @@ export const AgreementTrafficFines = ({
       </CardContent>
     </Card>
   );
-}
+};

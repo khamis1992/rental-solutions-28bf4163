@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Check, X } from 'lucide-react';
@@ -10,6 +9,21 @@ import { usePayments } from '@/hooks/use-payments';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+
+// Define the Payment type to match what's used in usePayments
+export interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  reference_number?: string;
+  notes?: string;
+  type: string;
+  status: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  lease_id: string;
+}
 
 interface PaymentListProps {
   agreementId: string;
