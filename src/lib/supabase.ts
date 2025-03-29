@@ -173,23 +173,24 @@ export const forceCheckAllAgreementsForPayments = async () => {
 };
 
 // Helper function to check and generate monthly payments
-export const checkAndGenerateMonthlyPayments = async (agreementId: string, amount: number) => {
+export const checkAndGenerateMonthlyPayments = async (agreementId?: string, amount?: number) => {
   try {
-    if (!agreementId || !amount) {
-      console.error("Missing required parameters for checkAndGenerateMonthlyPayments");
-      return { success: false, error: "Missing agreementId or amount" };
+    if (agreementId && amount) {
+      console.log(`Checking monthly payments for agreement ${agreementId} with amount ${amount}`);
+      const today = new Date();
+      const result = await generateMonthlyPayment(
+        supabase,
+        agreementId,
+        amount,
+        today.getMonth(),
+        today.getFullYear()
+      );
+      
+      return result;
+    } else {
+      console.log("No specific agreement provided, checking all agreements");
+      return await forceCheckAllAgreementsForPayments();
     }
-    
-    const today = new Date();
-    const result = await generateMonthlyPayment(
-      supabase,
-      agreementId,
-      amount,
-      today.getMonth(),
-      today.getFullYear()
-    );
-    
-    return result;
   } catch (error) {
     console.error("Error in checkAndGenerateMonthlyPayments:", error);
     return { success: false, error };

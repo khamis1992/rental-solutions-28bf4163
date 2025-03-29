@@ -5,8 +5,13 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
-export const useAgreements = (initialFilters = {}) => {
-  const [searchParams, setSearchParams] = useState(initialFilters);
+interface SearchParams {
+  query?: string;
+  status?: string;
+}
+
+export const useAgreements = (initialFilters: SearchParams = {}) => {
+  const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
 
   // Get agreement by ID

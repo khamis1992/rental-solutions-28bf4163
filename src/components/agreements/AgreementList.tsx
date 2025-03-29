@@ -64,6 +64,11 @@ import {
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+interface SearchParams {
+  query?: string;
+  status?: string;
+}
+
 export function AgreementList() {
   const { 
     agreements, 
@@ -365,7 +370,7 @@ export function AgreementList() {
             </TooltipProvider>
           </div>
           <Select
-            value={searchParams.status}
+            value={searchParams.status || 'all'}
             onValueChange={(value) => setSearchParams({...searchParams, status: value})}
           >
             <SelectTrigger className="w-[180px]">
@@ -393,7 +398,7 @@ export function AgreementList() {
         <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
         </Alert>
       )}
       
@@ -484,7 +489,7 @@ export function AgreementList() {
                 <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
-                    <p>No agreements found. {searchQuery || searchParams.status !== 'all' ? 
+                    <p>No agreements found. {searchQuery || (searchParams.status && searchParams.status !== 'all') ? 
                       'Try adjusting your filters or search terms.' : 
                       'Add your first agreement using the button above.'}</p>
                     {searchQuery && (

@@ -54,6 +54,7 @@ export function useFinancials() {
   });
 
   useEffect(() => {
+    // Check for monthly payments without specific agreement
     checkAndGenerateMonthlyPayments().then((result) => {
       console.log("Monthly payment check completed:", result);
     });
@@ -64,6 +65,7 @@ export function useFinancials() {
     if (!lastCheck || lastCheck !== today) {
       localStorage.setItem('lastPaymentCheck', today);
       
+      // Run daily payment check for all agreements
       checkAndGenerateMonthlyPayments().then((result) => {
         console.log("Daily payment check completed:", result);
       });
