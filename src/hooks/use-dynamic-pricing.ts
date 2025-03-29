@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { supabase } from '@/lib/supabase';
 
 interface PricingFactors {
   seasonalMultiplier: number;
@@ -9,22 +9,19 @@ interface PricingFactors {
 }
 
 export function useDynamicPricing(vehicleId: string) {
-  const { supabase } = useSupabase();
   const [price, setPrice] = useState<number>(0);
 
   const calculateDemandMultiplier = async () => {
-    const { data: activeRentals } = await supabase
+    const { data: activeRentals, count: activeCount } = await supabase
       .from('agreements')
-      .select('id')
-      .eq('status', 'active')
-      .count();
+      .select('id', { count: 'exact' })
+      .eq('status', 'active');
 
-    const totalVehicles = await supabase
+    const { count: totalVehicles } = await supabase
       .from('vehicles')
-      .select('id')
-      .count();
+      .select('id', { count: 'exact' });
 
-    const utilization = (activeRentals || 0) / (totalVehicles || 1);
+    const utilization = (activeCount || 0) / (totalVehicles || 1);
     return 1 + (utilization * 0.5); // Up to 50% increase based on demand
   };
 

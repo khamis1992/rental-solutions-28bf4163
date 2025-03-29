@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, differenceInMonths } from 'date-fns';
+import { format, differenceInMonths, differenceInDays } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,10 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
+import { useDynamicPricing } from '@/hooks/use-dynamic-pricing';
+import { usePaymentPlans } from '@/hooks/use-payment-plans';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -44,7 +48,8 @@ export function AgreementDetail({
   const handleLateFeeCalculation = async () => {
     if (!agreement) return;
     const daysLate = differenceInDays(new Date(), new Date(agreement.end_date));
-    const lateFee = await calculateLateFee(daysLate, agreement.rent_amount);
+    // Use the actual amount field from agreement based on your data model
+    const lateFee = await calculateLateFee(daysLate, agreement.total_amount || 0);
     
     try {
       const { data, error } = await supabase
@@ -72,6 +77,8 @@ export function AgreementDetail({
       .eq('id', agreement.vehicle_id)
       .single();
     
+    // Using a default customer score as it's not defined in the component
+    const customerScore = 80; // Default good score
     const deposit = await calculateDynamicDeposit(vehicle?.value || 0, customerScore);
     // Update agreement with calculated deposit
   };
