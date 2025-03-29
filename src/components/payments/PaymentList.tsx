@@ -111,7 +111,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
             {payments.map((payment) => (
               <TableRow key={payment.id}>
                 <TableCell>{formatDate(payment.payment_date)}</TableCell>
-                <TableCell>{payment.notes || 'Payment'}</TableCell>
+                <TableCell>{payment.notes || payment.description || 'Payment'}</TableCell>
                 <TableCell className="capitalize">{payment.status}</TableCell>
                 <TableCell className="text-right">QAR {payment.amount.toFixed(2)}</TableCell>
                 <TableCell className="text-center">
