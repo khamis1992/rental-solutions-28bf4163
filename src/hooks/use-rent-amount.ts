@@ -77,8 +77,14 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         
         // Calculate contract amount if we have agreement dates
         if (agreement?.start_date && agreement?.end_date) {
-          const startDate = new Date(agreement.start_date);
-          const endDate = new Date(agreement.end_date);
+          // Ensure we're working with JS Date objects
+          const startDate = agreement.start_date instanceof Date 
+            ? agreement.start_date 
+            : new Date(agreement.start_date);
+          
+          const endDate = agreement.end_date instanceof Date
+            ? agreement.end_date
+            : new Date(agreement.end_date);
           
           const durationMonths = differenceInMonths(endDate, startDate);
           const calculatedContractAmount = leaseRentAmount * (durationMonths > 0 ? durationMonths : 1);
@@ -108,10 +114,16 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       setRentAmount(agreement.total_amount);
       
       if (agreement.start_date && agreement.end_date) {
-        const durationMonths = differenceInMonths(
-          new Date(agreement.end_date), 
-          new Date(agreement.start_date)
-        );
+        // Ensure we're working with JS Date objects
+        const startDate = agreement.start_date instanceof Date 
+          ? agreement.start_date 
+          : new Date(agreement.start_date);
+        
+        const endDate = agreement.end_date instanceof Date
+          ? agreement.end_date
+          : new Date(agreement.end_date);
+          
+        const durationMonths = differenceInMonths(endDate, startDate);
         const calculatedContractAmount = agreement.total_amount * (durationMonths > 0 ? durationMonths : 1);
         setContractAmount(calculatedContractAmount);
       }
@@ -124,7 +136,13 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       rentAmount, 
       contractAmount, 
       agreementId,
-      hasAgreement: !!agreement
+      hasAgreement: !!agreement,
+      agreementDates: agreement ? {
+        startDate: agreement.start_date,
+        endDate: agreement.end_date,
+        isStartDate: agreement.start_date instanceof Date,
+        isEndDate: agreement.end_date instanceof Date
+      } : null
     });
   }, [rentAmount, contractAmount, agreementId, agreement]);
 

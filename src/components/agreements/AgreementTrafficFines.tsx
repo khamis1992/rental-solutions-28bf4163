@@ -71,6 +71,13 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
+        // Ensure dates are properly formatted for Supabase query
+        const formattedStartDate = startDate instanceof Date ? 
+          startDate.toISOString() : new Date(startDate).toISOString();
+        
+        const formattedEndDate = endDate instanceof Date ? 
+          endDate.toISOString() : new Date(endDate).toISOString();
+      
         // Get the vehicle ID associated with this agreement
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
@@ -105,8 +112,8 @@ export const AgreementTrafficFines = ({
           .from('traffic_fines')
           .select('*')
           .eq('vehicle_id', (leaseData as LeaseResult).vehicle_id)
-          .gte('violation_date', startDate.toISOString())
-          .lte('violation_date', endDate.toISOString());
+          .gte('violation_date', formattedStartDate)
+          .lte('violation_date', formattedEndDate);
 
         if (dateRangeError) {
           console.error("Error fetching date range traffic fines:", dateRangeError);

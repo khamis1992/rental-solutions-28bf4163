@@ -62,10 +62,16 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
 
   useEffect(() => {
     if (agreement.start_date && agreement.end_date) {
-      const months = differenceInMonths(
-        new Date(agreement.end_date),
-        new Date(agreement.start_date)
-      );
+      // Ensure we're working with JS Date objects
+      const startDate = agreement.start_date instanceof Date 
+        ? agreement.start_date 
+        : new Date(agreement.start_date);
+      
+      const endDate = agreement.end_date instanceof Date
+        ? agreement.end_date
+        : new Date(agreement.end_date);
+        
+      const months = differenceInMonths(endDate, startDate);
       setDurationMonths(months > 0 ? months : 1);
     }
   }, [agreement.start_date, agreement.end_date]);
@@ -336,14 +342,14 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         <div className="md:col-span-2">
           <AgreementTrafficFines 
             agreementId={agreement.id}
-            startDate={agreement.start_date}
-            endDate={agreement.end_date}
+            startDate={agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date)}
+            endDate={agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date)}
           />
         </div>
       </div>
     </div>
   )
-}
+};
 
 interface AgreementDetailProps {
   agreement: Agreement
