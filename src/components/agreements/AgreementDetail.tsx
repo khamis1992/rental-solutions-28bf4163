@@ -1,14 +1,12 @@
+
 import React from 'react';
-import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
+import { differenceInMonths, format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { differenceInMonths } from 'date-fns';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { PaymentHistory } from "./PaymentHistory";
-
+import { formatCurrency } from '@/lib/utils';
 
 interface AgreementDetailProps {
   agreement: Agreement;
@@ -18,7 +16,13 @@ interface AgreementDetailProps {
   onPaymentDeleted: () => void;
 }
 
-export function AgreementDetail({ agreement, onDelete, contractAmount, rentAmount, onPaymentDeleted }: AgreementDetailProps) {
+export function AgreementDetail({ 
+  agreement, 
+  onDelete, 
+  contractAmount, 
+  rentAmount, 
+  onPaymentDeleted 
+}: AgreementDetailProps) {
   const navigate = useNavigate();
 
   if (!agreement) {
@@ -62,20 +66,21 @@ export function AgreementDetail({ agreement, onDelete, contractAmount, rentAmoun
         <Card>
           <CardHeader>
             <CardTitle>Customer Information</CardTitle>
-            <CardDescription>Customer details and contact information</CardDescription>
+            <CardDescription>Details about the customer</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <p className="font-medium">Name</p>
-                <p>{agreement.customers?.full_name}</p>
+                <p>{agreement.customers?.full_name || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">Phone</p>
+                <p className="font-medium">Contact</p>
                 <p>{agreement.customers?.phone_number || 'N/A'}</p>
+                <p>{agreement.customers?.email || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">License</p>
+                <p className="font-medium">Driver License</p>
                 <p>{agreement.customers?.driver_license || 'N/A'}</p>
               </div>
             </div>
@@ -84,76 +89,63 @@ export function AgreementDetail({ agreement, onDelete, contractAmount, rentAmoun
 
         <Card>
           <CardHeader>
-            <CardTitle>Vehicle Details</CardTitle>
-            <CardDescription>Vehicle information and specifications</CardDescription>
+            <CardTitle>Vehicle Information</CardTitle>
+            <CardDescription>Details about the rented vehicle</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
-                <p className="font-medium">Make & Model</p>
-                <p>{agreement.vehicles?.make} {agreement.vehicles?.model}</p>
+                <p className="font-medium">Vehicle</p>
+                <p>{agreement.vehicles?.year} {agreement.vehicles?.make} {agreement.vehicles?.model}</p>
               </div>
               <div>
                 <p className="font-medium">License Plate</p>
-                <p>{agreement.vehicles?.license_plate}</p>
+                <p>{agreement.vehicles?.license_plate || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">Year</p>
-                <p>{agreement.vehicles?.year}</p>
-              </div>
-              <div>
-                <p className="font-medium">Color</p>
-                <p>{agreement.vehicles?.color}</p>
+                <p className="font-medium">VIN</p>
+                <p>{agreement.vehicles?.vin || 'N/A'}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Rental Terms</CardTitle>
             <CardDescription>Rental terms and payment information</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Rental Period</p>
-                <p>
-                  {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Duration: {durationMonths} {durationMonths === 1 ? 'month' : 'months'}
-                </p>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium">Rental Period</p>
+                  <p>
+                    {format(new Date(agreement.start_date), "PPP")} to{" "}
+                    {format(new Date(agreement.end_date), "PPP")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Duration: {durationMonths} {durationMonths === 1 ? 'month' : 'months'}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Monthly Rent</p>
+                  <p>{rentAmount ? formatCurrency(rentAmount) : 'N/A'}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">Monthly Rent</p>
-                <p>{rentAmount ? `QAR ${rentAmount.toLocaleString()}` : 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Total Contract Amount</p>
-                <p>{contractAmount ? `QAR ${contractAmount.toLocaleString()}` : 'Calculating...'}</p>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium">Total Contract Amount</p>
+                  <p>{contractAmount ? formatCurrency(contractAmount) : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Agreement Status</p>
+                  <p className="capitalize">{agreement.status}</p>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        <div className="md:col-span-2">
-          <AgreementTrafficFines 
-            agreementId={agreement.id}
-            startDate={agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date)}
-            endDate={agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date)}
-          />
-        </div>
-        <div className="md:col-span-2">
-          <PaymentHistory 
-            payments={[]} 
-            isLoading={false} 
-            rentAmount={rentAmount}
-            onPaymentDeleted={onPaymentDeleted}
-            leaseStartDate={agreement.start_date}
-            leaseEndDate={agreement.end_date}
-          />
-        </div>
       </div>
     </div>
   );
