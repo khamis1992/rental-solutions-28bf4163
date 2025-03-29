@@ -318,7 +318,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
     staleTime: 30000, // Cache data for 30 seconds
-    cacheTime: 60000, // Keep unused data in cache for 1 minute
+    gcTime: 60000, // Keep unused data in cache for 1 minute
   });
 
   return {
