@@ -155,7 +155,7 @@ export function AgreementDetail({
                 <p className="font-medium">Status</p>
                 <p className="capitalize">{agreement.status}</p>
               </div>
-              {agreement.daily_late_fee && (
+              {agreement.daily_late_fee !== undefined && agreement.daily_late_fee > 0 && (
                 <div>
                   <p className="font-medium">Daily Late Fee</p>
                   <p>QAR {agreement.daily_late_fee}</p>
