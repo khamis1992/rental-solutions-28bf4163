@@ -1,14 +1,30 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Car, User, CreditCard, Wrench, AlertTriangle } from 'lucide-react';
+import { Car, User, CreditCard, Wrench, AlertTriangle, Clock } from 'lucide-react';
 import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
+import { useNavigate } from 'react-router-dom';
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
 }
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
+  const navigate = useNavigate();
+
+  const handleActivityClick = (activity: RecentActivityType) => {
+    // Navigate to the relevant page based on activity type
+    if (activity.type === 'rental' || activity.type === 'return') {
+      navigate(`/agreements/${activity.id}`);
+    } else if (activity.type === 'payment') {
+      navigate(`/financials`);
+    } else if (activity.type === 'maintenance') {
+      navigate(`/maintenance/${activity.id}`);
+    } else if (activity.type === 'fine') {
+      navigate(`/fines`);
+    }
+  };
+
   return (
     <Card className="col-span-4 card-transition">
       <CardHeader>
@@ -22,7 +38,11 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
         ) : (
           <div className="space-y-5">
             {activities.map((activity) => (
-              <div key={activity.id} className="flex items-start">
+              <div 
+                key={activity.id} 
+                className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
+                onClick={() => handleActivityClick(activity)}
+              >
                 <div className={`p-2 rounded-full ${getActivityColor(activity.type)} mr-4`}>
                   {getActivityIcon(activity.type)}
                 </div>
@@ -45,8 +65,9 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
 const getActivityIcon = (type: string) => {
   switch (type) {
     case 'rental':
-    case 'return':
       return <Car className="h-5 w-5" />;
+    case 'return':
+      return <Clock className="h-5 w-5" />;
     case 'payment':
       return <CreditCard className="h-5 w-5" />;
     case 'maintenance':

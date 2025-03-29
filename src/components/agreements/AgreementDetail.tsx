@@ -1,206 +1,44 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { useNavigate } from "react-router-dom"
-import { formatCurrency } from "@/lib/utils"
-import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
-import { Badge } from "@/components/ui/badge"
-import { format, differenceInMonths } from "date-fns"
-import { Trash2, Edit, FileText, Download } from "lucide-react"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { toast } from "sonner"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useState, useEffect, useCallback } from "react"
-import { PaymentEntryForm } from "./PaymentEntryForm"
-import { Payment, PaymentHistory } from "./PaymentHistory"
-import { supabase, initializeSystem } from "@/lib/supabase"
-import { AgreementTrafficFines } from "./AgreementTrafficFines"
-import { generatePdfDocument } from "@/utils/agreementUtils"
+
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PaymentList } from '@/components/payments/PaymentList';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { FilePenLine, Printer, Trash2 } from 'lucide-react';
 
 interface AgreementDetailProps {
-  agreement: Agreement
-  onDelete?: (id: string) => void
-  contractAmount?: number | null
-  rentAmount?: number | null
-  onPaymentDeleted?: () => void
+  agreement: Agreement | null;
+  onDelete: (id: string) => void;
+  rentAmount: number | null;
+  onPaymentDeleted: () => void;
 }
 
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case AgreementStatus.ACTIVE:
-      return "bg-green-500"
-    case AgreementStatus.EXPIRED:
-      return "bg-gray-500"
-    case AgreementStatus.CANCELLED:
-      return "bg-red-500"
-    case AgreementStatus.DRAFT:
-      return "bg-yellow-500"
-    case AgreementStatus.PENDING:
-      return "bg-blue-500"
-    case AgreementStatus.CLOSED:
-      return "bg-purple-500"
-    default:
-      return "bg-gray-500"
-  }
-}
-
-export const AgreementDetail: React.FC<AgreementDetailProps> = ({ 
+export function AgreementDetail({ 
   agreement, 
-  onDelete,
-  contractAmount,
+  onDelete, 
   rentAmount,
   onPaymentDeleted
-}) => {
-  const navigate = useNavigate()
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
-  const [payments, setPayments] = useState<Payment[]>([])
-  const [isLoadingPayments, setIsLoadingPayments] = useState(true)
-  const [localRentAmount, setLocalRentAmount] = useState<number | null>(rentAmount)
-  const [durationMonths, setDurationMonths] = useState<number>(0)
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+}: AgreementDetailProps) {
+  const navigate = useNavigate();
+  
+  const handleDelete = useCallback((id: string) => {
+    onDelete(id);
+  }, [onDelete]);
 
-  useEffect(() => {
-    if (agreement.start_date && agreement.end_date) {
-      const months = differenceInMonths(
-        new Date(agreement.end_date),
-        new Date(agreement.start_date)
-      );
-      setDurationMonths(months > 0 ? months : 1);
-    }
-  }, [agreement]);
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
 
-  const handleEdit = () => {
-    if (agreement && agreement.id) {
-      console.log(`Navigating to edit agreement: /agreements/edit/${agreement.id}`);
-      navigate(`/agreements/edit/${agreement.id}`);
-      toast.info("Editing agreement " + agreement.agreement_number);
-    } else {
-      toast.error("Cannot edit: Agreement ID is missing");
-    }
+  if (!agreement) {
+    return (
+      <Alert>
+        <AlertDescription>Agreement details not available.</AlertDescription>
+      </Alert>
+    );
   }
-
-  const handleDelete = () => {
-    if (onDelete && agreement.id) {
-      onDelete(agreement.id);
-    }
-  }
-
-  const handlePrintAgreement = () => {
-    toast.info("Print functionality will be implemented in a future update")
-  }
-
-  const handleDownloadAgreement = async () => {
-    setIsGeneratingPdf(true);
-    try {
-      console.log("Generating PDF for agreement:", agreement);
-      
-      toast.info("Preparing agreement PDF document...");
-      
-      const success = await generatePdfDocument(agreement);
-      
-      if (success) {
-        toast.success("Agreement downloaded as PDF");
-      } else {
-        toast.error("Failed to generate PDF document");
-      }
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF document: " + (error instanceof Error ? error.message : String(error)));
-    } finally {
-      setIsGeneratingPdf(false);
-    }
-  };
-
-  const fetchRentAmount = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("leases")
-        .select("rent_amount")
-        .eq("id", agreement.id)
-        .single();
-      
-      if (error) {
-        console.error("Error fetching rent amount:", error);
-        return;
-      }
-      
-      if (data && data.rent_amount) {
-        setLocalRentAmount(data.rent_amount);
-        console.log("Fetched rent amount:", data.rent_amount);
-      }
-    } catch (error) {
-      console.error("Error fetching rent amount:", error);
-    }
-  }, [agreement.id]);
-
-  const fetchPayments = useCallback(async () => {
-    setIsLoadingPayments(true)
-    try {
-      console.log("Fetching payments for agreement:", agreement.id);
-      
-      const { data: unifiedPayments, error: unifiedError } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', agreement.id)
-        .order('payment_date', { ascending: false });
-      
-      if (unifiedError) {
-        console.error("Error fetching unified payments:", unifiedError);
-        throw unifiedError;
-      }
-      
-      console.log("Raw payments data:", unifiedPayments);
-      
-      const formattedPayments = (unifiedPayments || []).map(payment => ({
-        id: payment.id,
-        amount: payment.amount,
-        payment_date: payment.payment_date,
-        payment_method: payment.payment_method || 'cash',
-        reference_number: payment.transaction_id,
-        notes: payment.description,
-        type: payment.type,
-        status: payment.status,
-        late_fine_amount: payment.late_fine_amount,
-        days_overdue: payment.days_overdue,
-        lease_id: payment.lease_id
-      }));
-      
-      setPayments(formattedPayments);
-      console.log("Formatted payments set:", formattedPayments);
-      
-      if (formattedPayments.length > 0 && localRentAmount) {
-        const incorrectPayments = formattedPayments.filter(p => 
-          p.amount > localRentAmount * 5 && 
-          p.notes && 
-          p.notes.includes("Monthly rent payment")
-        );
-        
-        if (incorrectPayments.length > 0) {
-          console.warn(`Found ${incorrectPayments.length} payments with potentially incorrect amounts:`, 
-            incorrectPayments.map(p => ({ id: p.id, amount: p.amount, notes: p.notes }))
-          );
-        }
-      }
-    } catch (error) {
-      console.error("Error fetching payments:", error);
-      toast.error("Failed to load payment history");
-    } finally {
-      setIsLoadingPayments(false);
-    }
-  }, [agreement.id, localRentAmount]);
-
-  useEffect(() => {
-    const initializeAndFetch = async () => {
-      await initializeSystem();
-      
-      if (rentAmount === null || rentAmount === undefined) {
-        await fetchRentAmount();
-      }
-      
-      await fetchPayments();
-    };
-    
-    initializeAndFetch();
-  }, [agreement.id, fetchPayments, fetchRentAmount, rentAmount]);
 
   return (
     <div className="space-y-8">
@@ -208,13 +46,28 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Agreement {agreement.agreement_number}</h2>
           <p className="text-muted-foreground">
-            Created on {format(new Date(agreement.created_at || new Date()), "PPP")}
+            Created on {format(new Date(agreement.created_at || new Date()), 'PPP')}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge className={getStatusColor(agreement.status)}>
-            {agreement.status.toUpperCase()}
-          </Badge>
+        <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" />
+            Print
+          </Button>
+          <Button 
+            variant="default" 
+            onClick={() => navigate(`/agreements/${agreement.id}/edit`)}
+          >
+            <FilePenLine className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+          <Button 
+            variant="destructive"
+            onClick={() => handleDelete(agreement.id)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
+          </Button>
         </div>
       </div>
 
@@ -222,204 +75,137 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         <Card>
           <CardHeader>
             <CardTitle>Customer Information</CardTitle>
-            <CardDescription>Details about the customer</CardDescription>
+            <CardDescription>Customer contact details</CardDescription>
           </CardHeader>
           <CardContent>
-            {agreement.customers ? (
-              <div className="space-y-2">
-                <div>
-                  <p className="font-medium">Name</p>
-                  <p>{agreement.customers.full_name || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Email</p>
-                  <p>{agreement.customers.email || "N/A"}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Phone</p>
-                  <p>{agreement.customers.phone || "N/A"}</p>
-                </div>
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">Name</p>
+                <p>{agreement.customers?.full_name || 'N/A'}</p>
               </div>
-            ) : (
-              <p className="text-muted-foreground">No customer information available</p>
-            )}
+              <div>
+                <p className="font-medium">Phone</p>
+                <p>{agreement.customers?.phone_number || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="font-medium">Driver License</p>
+                <p>{agreement.customers?.driver_license || 'N/A'}</p>
+              </div>
+              {agreement.customers?.nationality && (
+                <div>
+                  <p className="font-medium">Nationality</p>
+                  <p>{agreement.customers.nationality}</p>
+                </div>
+              )}
+              {agreement.customers?.address && (
+                <div>
+                  <p className="font-medium">Address</p>
+                  <p>{agreement.customers.address}</p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
             <CardTitle>Vehicle Information</CardTitle>
-            <CardDescription>Details about the rented vehicle</CardDescription>
+            <CardDescription>Vehicle details and specifications</CardDescription>
           </CardHeader>
           <CardContent>
-            {agreement.vehicles ? (
-              <div className="space-y-2">
-                <div>
-                  <p className="font-medium">Vehicle</p>
-                  <p>{agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.year})</p>
-                </div>
-                <div>
-                  <p className="font-medium">License Plate</p>
-                  <p>{agreement.vehicles.license_plate || "N/A"}</p>
-                </div>
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">Vehicle</p>
+                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year})</p>
+              </div>
+              <div>
+                <p className="font-medium">License Plate</p>
+                <p>{agreement.vehicles?.license_plate || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="font-medium">VIN</p>
+                <p>{agreement.vehicles?.vin || 'N/A'}</p>
+              </div>
+              {agreement.vehicles?.color && (
                 <div>
                   <p className="font-medium">Color</p>
-                  <p>{agreement.vehicles.color || "N/A"}</p>
+                  <p>{agreement.vehicles.color}</p>
                 </div>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">No vehicle information available</p>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
+      </div>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Agreement Details</CardTitle>
-            <CardDescription>Rental terms and payment information</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <div>
-                  <p className="font-medium">Rental Period</p>
-                  <p>
-                    {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Duration: {durationMonths} {durationMonths === 1 ? 'month' : 'months'}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium">Additional Drivers</p>
-                  <p>
-                    {agreement.additional_drivers && agreement.additional_drivers.length > 0
-                      ? agreement.additional_drivers.join(", ")
-                      : "None"}
-                  </p>
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Rental Terms</CardTitle>
+          <CardDescription>Rental terms and payment information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">Rental Period</p>
+                <p>
+                  {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
+                </p>
               </div>
-              <div className="space-y-4">
+              <div>
+                <p className="font-medium">Status</p>
+                <p className="capitalize">{agreement.status}</p>
+              </div>
+              {agreement.daily_late_fee !== undefined && agreement.daily_late_fee > 0 && (
                 <div>
-                  <p className="font-medium">Monthly Rent Amount</p>
-                  <p className="text-lg font-bold">{formatCurrency(localRentAmount || agreement.total_amount)}</p>
+                  <p className="font-medium">Daily Late Fee</p>
+                  <p>QAR {agreement.daily_late_fee}</p>
                 </div>
-                <div>
-                  <p className="font-medium">Total Contract Amount</p>
-                  <p className="text-lg font-bold">
-                    {formatCurrency(contractAmount || (localRentAmount ? localRentAmount * durationMonths : agreement.total_amount * durationMonths))}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    (Monthly rent × {durationMonths} {durationMonths === 1 ? 'month' : 'months'})
-                  </p>
-                </div>
+              )}
+            </div>
+            <div className="space-y-4">
+              <div>
+                <p className="font-medium">Monthly Rent</p>
+                <p>{rentAmount ? `QAR ${rentAmount}` : 'Not set'}</p>
+              </div>
+              <div>
+                <p className="font-medium">Total Contract Amount</p>
+                <p>QAR {agreement.total_amount}</p>
+              </div>
+              {agreement.deposit_amount && agreement.deposit_amount > 0 && (
                 <div>
                   <p className="font-medium">Deposit Amount</p>
-                  <p>{formatCurrency(agreement.deposit_amount || 0)}</p>
+                  <p>QAR {agreement.deposit_amount}</p>
                 </div>
-                <div>
-                  <p className="font-medium">Terms Accepted</p>
-                  <p>{agreement.terms_accepted ? "Yes" : "No"}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Signature</p>
-                  <p>{agreement.signature_url ? "Signed" : "Not signed"}</p>
-                </div>
-              </div>
+              )}
             </div>
-            
-            {agreement.notes && (
-              <div className="mt-6">
-                <p className="font-medium">Notes</p>
-                <p className="whitespace-pre-line">{agreement.notes}</p>
-              </div>
-            )}
-          </CardContent>
-          <CardFooter className="flex justify-between flex-wrap gap-2">
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" onClick={handleEdit}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button variant="outline" onClick={handlePrintAgreement}>
-                <FileText className="mr-2 h-4 w-4" />
-                Print
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleDownloadAgreement}
-                disabled={isGeneratingPdf}
-              >
-                <Download className="mr-2 h-4 w-4" />
-                {isGeneratingPdf ? "Generating..." : "Download PDF"}
-              </Button>
-              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="default">
-                    Record Payment
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Record New Payment</DialogTitle>
-                    <DialogDescription>
-                      Enter the payment details for agreement {agreement.agreement_number}
-                    </DialogDescription>
-                  </DialogHeader>
-                  <PaymentEntryForm 
-                    agreementId={agreement.id} 
-                    onPaymentComplete={() => {
-                      setIsPaymentDialogOpen(false);
-                      fetchPayments();
-                    }} 
-                    defaultAmount={localRentAmount}
-                  />
-                </DialogContent>
-              </Dialog>
-            </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the
-                    agreement and remove the data from our servers.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </CardFooter>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        <div className="md:col-span-2">
-          <PaymentHistory 
-            payments={payments} 
-            isLoading={isLoadingPayments} 
-            rentAmount={localRentAmount}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payments</CardTitle>
+          <CardDescription>Payment history and transactions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PaymentList 
+            agreementId={agreement.id} 
             onPaymentDeleted={onPaymentDeleted}
-            leaseStartDate={agreement.start_date}
-            leaseEndDate={agreement.end_date}
           />
-        </div>
+        </CardContent>
+      </Card>
 
-        <div className="md:col-span-2">
-          <AgreementTrafficFines 
-            agreementId={agreement.id}
-            startDate={agreement.start_date}
-            endDate={agreement.end_date}
-          />
-        </div>
-      </div>
+      {agreement.notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+            <CardDescription>Additional information about this agreement</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="whitespace-pre-line">{agreement.notes}</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
-  )
+  );
 }

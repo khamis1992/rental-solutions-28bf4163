@@ -4,15 +4,30 @@ import { VehicleCard } from '@/components/ui/vehicle-card';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
+import { useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
   filter?: VehicleFilterParams;
+  showAdd?: boolean;
 }
 
-const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter }) => {
+const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, showAdd = true }) => {
   const { useList } = useVehicles();
   const { data: vehicles, isLoading, error } = useList(filter);
+  const navigate = useNavigate();
+  
+  // Handle navigation to vehicle details
+  const handleSelect = (id: string) => {
+    if (onSelectVehicle) {
+      onSelectVehicle(id);
+    } else {
+      navigate(`/vehicles/${id}`);
+    }
+  };
 
   // Loading state
   if (isLoading) {
@@ -43,10 +58,13 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter }) =>
   // Error state
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">
-        <h3 className="text-lg font-semibold">Error Loading Vehicles</h3>
-        <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
-      </div>
+      <Card className="p-6 bg-red-50 border-red-200">
+        <div className="flex items-center space-x-2 text-red-700">
+          <AlertCircle className="h-5 w-5" />
+          <h3 className="text-lg font-semibold">Error Loading Vehicles</h3>
+        </div>
+        <p className="mt-2">{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
+      </Card>
     );
   }
 
@@ -55,7 +73,19 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter }) =>
     return (
       <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
         <h3 className="text-lg font-semibold mb-2">No Vehicles Found</h3>
-        <p>No vehicles match your current criteria.</p>
+        <p className="mb-4">No vehicles match your current criteria.</p>
+        {showAdd && (
+          <button 
+            onClick={() => navigate('/vehicles/add')}
+            className={cn(
+              "inline-flex items-center justify-center rounded-md text-sm font-medium",
+              "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+              "h-9 px-4 py-2"
+            )}
+          >
+            Add New Vehicle
+          </button>
+        )}
       </div>
     );
   }
@@ -72,10 +102,10 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter }) =>
           licensePlate={vehicle.license_plate}
           status={vehicle.status || 'available'}
           imageUrl={vehicle.image_url || ''}
-          location={vehicle.location}
+          location={vehicle.location || 'Not specified'}
           fuelLevel={undefined}
-          mileage={vehicle.mileage}
-          onSelect={onSelectVehicle}
+          mileage={vehicle.mileage || 0}
+          onSelect={() => handleSelect(vehicle.id)}
         />
       ))}
     </div>

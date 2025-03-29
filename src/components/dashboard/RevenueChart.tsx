@@ -10,6 +10,33 @@ interface RevenueChartProps {
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
+  // Ensure we have data to display, showing at least the last 6 months
+  const ensureCompleteData = (inputData: { name: string; revenue: number }[]) => {
+    if (!inputData || inputData.length === 0) return [];
+    
+    // List of expected months (last 6 months)
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(month.toLocaleString('default', { month: 'short' }));
+    }
+    
+    // Create a map of existing data
+    const dataMap: Record<string, number> = {};
+    inputData.forEach(item => {
+      dataMap[item.name] = item.revenue;
+    });
+    
+    // Ensure all months have data
+    return months.map(month => ({
+      name: month,
+      revenue: dataMap[month] || 0
+    }));
+  };
+  
+  const completeData = ensureCompleteData(data);
+
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
       <CardHeader className="pb-0">
@@ -19,7 +46,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
         <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={data}
+              data={completeData}
               margin={{
                 top: 20,
                 right: 30,

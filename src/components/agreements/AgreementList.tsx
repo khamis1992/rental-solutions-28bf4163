@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ColumnDef, 
   flexRender, 
@@ -65,6 +64,11 @@ import {
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+interface SearchParams {
+  query?: string;
+  status?: string;
+}
+
 export function AgreementList() {
   const { 
     agreements, 
@@ -83,6 +87,7 @@ export function AgreementList() {
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
   const [searchTip, setSearchTip] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -95,7 +100,6 @@ export function AgreementList() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
   
-  // Reset searching state when results come in
   useEffect(() => {
     if (isSearching && !isLoading) {
       setIsSearching(false);
@@ -103,7 +107,6 @@ export function AgreementList() {
   }, [isLoading, agreements]);
   
   useEffect(() => {
-    // Show search tip for numeric searches that return no results
     const isNumericSearch = /^\d{2,}$/.test(searchQuery);
     const shouldShowTip = isNumericSearch && (!agreements || agreements.length === 0) && !isLoading;
     setSearchTip(shouldShowTip);
@@ -132,6 +135,11 @@ export function AgreementList() {
           <Link 
             to={`/agreements/${row.original.id}`}
             className="font-medium text-primary hover:underline"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("Navigating to agreement detail:", row.original.id);
+              navigate(`/agreements/${row.original.id}`);
+            }}
           >
             {row.getValue("agreement_number")}
           </Link>
@@ -362,7 +370,7 @@ export function AgreementList() {
             </TooltipProvider>
           </div>
           <Select
-            value={searchParams.status}
+            value={searchParams.status || 'all'}
             onValueChange={(value) => setSearchParams({...searchParams, status: value})}
           >
             <SelectTrigger className="w-[180px]">
@@ -390,7 +398,7 @@ export function AgreementList() {
         <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
         </Alert>
       )}
       
@@ -481,7 +489,7 @@ export function AgreementList() {
                 <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
-                    <p>No agreements found. {searchQuery || searchParams.status !== 'all' ? 
+                    <p>No agreements found. {searchQuery || (searchParams.status && searchParams.status !== 'all') ? 
                       'Try adjusting your filters or search terms.' : 
                       'Add your first agreement using the button above.'}</p>
                     {searchQuery && (

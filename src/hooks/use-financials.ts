@@ -1,10 +1,9 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
-// Define the current system date as March 24, 2025
 const SYSTEM_DATE = new Date(2025, 2, 24);
 
 export type TransactionType = 'income' | 'expense';
@@ -23,6 +22,9 @@ export interface FinancialTransaction {
   vehicleId?: string;
   customerId?: string;
   attachmentUrl?: string;
+  isRecurring?: boolean;
+  recurringInterval?: string;
+  nextPaymentDate?: Date;
 }
 
 export interface FinancialSummary {
@@ -43,28 +45,33 @@ export function useFinancials() {
     searchQuery: '',
   });
 
-  // Initialize system checks on mount
+  const [expenseFilters, setExpenseFilters] = useState({
+    category: '',
+    dateFrom: '',
+    dateTo: '',
+    searchQuery: '',
+    recurringOnly: false,
+  });
+
   useEffect(() => {
-    // Check for monthly payments on each hook instantiation
+    // Check for monthly payments without specific agreement
     checkAndGenerateMonthlyPayments().then((result) => {
       console.log("Monthly payment check completed:", result);
     });
-    
-    // Set up a check that runs once per day
+
     const today = SYSTEM_DATE.toDateString();
     const lastCheck = localStorage.getItem('lastPaymentCheck');
     
     if (!lastCheck || lastCheck !== today) {
       localStorage.setItem('lastPaymentCheck', today);
       
-      // Check again just to be sure
+      // Run daily payment check for all agreements
       checkAndGenerateMonthlyPayments().then((result) => {
         console.log("Daily payment check completed:", result);
       });
     }
   }, []);
 
-  // Financial transactions query - now fetching real data from Supabase
   const { 
     data: transactions = [], 
     isLoading: isLoadingTransactions, 
@@ -73,7 +80,6 @@ export function useFinancials() {
     ['financialTransactions', JSON.stringify(filters)],
     async () => {
       try {
-        // Fetch actual transactions from unified_payments table
         const { data: paymentData, error: paymentError } = await supabase
           .from('unified_payments')
           .select('*');
@@ -83,7 +89,6 @@ export function useFinancials() {
           throw paymentError;
         }
 
-        // Fetch car installment data for expenses
         const { data: installmentData, error: installmentError } = await supabase
           .from('car_installments')
           .select('*');
@@ -93,15 +98,13 @@ export function useFinancials() {
           throw installmentError;
         }
 
-        // Combine and format all financial transactions
         const formattedTransactions: FinancialTransaction[] = [
-          // Map payment data (primarily income from rentals)
           ...(paymentData || []).map(payment => ({
             id: payment.id,
             date: new Date(payment.payment_date),
             amount: payment.amount || 0,
             description: payment.description || 'Rental Payment',
-            type: payment.type?.toLowerCase() === 'expense' ? 'expense' as TransactionType : 'income' as TransactionType,
+            type: payment.type?.toLowerCase() === 'expense' ? 'expense' : 'income' as TransactionType,
             category: payment.type === 'Expense' ? 'Operational' : 'Rental',
             status: payment.status?.toLowerCase() as TransactionStatusType || 'completed',
             reference: payment.reference || '',
@@ -110,7 +113,6 @@ export function useFinancials() {
             customerId: payment.customer_id || ''
           })),
           
-          // Map installment data (expenses for car payments)
           ...(installmentData || []).map(installment => ({
             id: `inst-${installment.id}`,
             date: new Date(installment.payment_date || SYSTEM_DATE),
@@ -125,7 +127,6 @@ export function useFinancials() {
           }))
         ];
 
-        // Filter transactions based on applied filters
         let filtered = formattedTransactions;
         
         if (filters.transactionType && filters.transactionType !== 'all_types') {
@@ -152,7 +153,6 @@ export function useFinancials() {
           );
         }
         
-        // Return filtered transactions for UI display
         return filtered;
       } catch (error) {
         console.error('Error fetching financial transactions:', error);
@@ -161,7 +161,6 @@ export function useFinancials() {
     }
   );
 
-  // Financial summary query - calculated from real transaction data
   const { 
     data: financialSummary, 
     isLoading: isLoadingSummary,
@@ -170,7 +169,6 @@ export function useFinancials() {
     ['financialSummary'],
     async () => {
       try {
-        // Fetch rental income data - all unified_payments of type Income
         const { data: incomeData, error: incomeError } = await supabase
           .from('unified_payments')
           .select('amount, status')
@@ -181,7 +179,6 @@ export function useFinancials() {
           throw incomeError;
         }
 
-        // Fetch expense data - all unified_payments of type Expense
         const { data: expenseData, error: expenseError } = await supabase
           .from('unified_payments')
           .select('amount, status')
@@ -192,7 +189,6 @@ export function useFinancials() {
           throw expenseError;
         }
 
-        // Fetch car installment expenses
         const { data: installmentData, error: installmentError } = await supabase
           .from('car_installments')
           .select('payment_amount, payment_status');
@@ -202,12 +198,10 @@ export function useFinancials() {
           throw installmentError;
         }
 
-        // Calculate totals from real data
         const totalIncome = (incomeData || [])
           .filter(item => item.status !== 'failed')
           .reduce((sum, item) => sum + (item.amount || 0), 0);
           
-        // Combine expenses from both sources
         const expensesFromPayments = (expenseData || [])
           .filter(item => item.status !== 'failed')
           .reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -218,18 +212,16 @@ export function useFinancials() {
           
         const totalExpenses = expensesFromPayments + expensesFromInstallments;
         
-        // Calculate pending payments (income items with status 'pending')
         const pendingPayments = (incomeData || [])
           .filter(item => item.status === 'pending')
           .reduce((sum, item) => sum + (item.amount || 0), 0);
 
-        // Return the financial summary 
         return {
           totalIncome,
           totalExpenses,
           netRevenue: totalIncome - totalExpenses,
           pendingPayments,
-          unpaidInvoices: pendingPayments // Same as pending payments for now
+          unpaidInvoices: pendingPayments
         };
       } catch (error) {
         console.error('Error calculating financial summary:', error);
@@ -244,14 +236,80 @@ export function useFinancials() {
     }
   );
 
-  // Add transaction mutation
+  const { 
+    data: expenses = [], 
+    isLoading: isLoadingExpenses, 
+    refetch: refetchExpenses 
+  } = useApiQuery<FinancialTransaction[]>(
+    ['financialExpenses', JSON.stringify(expenseFilters)],
+    async () => {
+      try {
+        const { data: expenseData, error: expenseError } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('type', 'Expense');
+
+        if (expenseError) {
+          console.error('Error fetching expense data:', expenseError);
+          throw expenseError;
+        }
+
+        const formattedExpenses: FinancialTransaction[] = (expenseData || []).map(expense => ({
+          id: expense.id,
+          date: new Date(expense.payment_date || expense.created_at),
+          amount: expense.amount || 0,
+          description: expense.description || 'Expense',
+          type: 'expense' as TransactionType,
+          category: expense.description?.includes('Salary') ? 'Salary' : 
+                   expense.description?.includes('Rent') ? 'Rent' : 
+                   expense.description?.includes('Utility') ? 'Utilities' : 'Other',
+          status: expense.status?.toLowerCase() as TransactionStatusType || 'completed',
+          reference: expense.reference || '',
+          paymentMethod: expense.payment_method || 'Cash',
+          isRecurring: expense.is_recurring || false,
+          recurringInterval: expense.recurring_interval || undefined,
+          nextPaymentDate: expense.next_payment_date ? new Date(expense.next_payment_date) : undefined
+        }));
+
+        let filtered = formattedExpenses;
+        
+        if (expenseFilters.category && expenseFilters.category !== 'all_categories') {
+          filtered = filtered.filter(e => e.category === expenseFilters.category);
+        }
+        
+        if (expenseFilters.dateFrom) {
+          filtered = filtered.filter(e => e.date >= new Date(expenseFilters.dateFrom));
+        }
+        
+        if (expenseFilters.dateTo) {
+          filtered = filtered.filter(e => e.date <= new Date(expenseFilters.dateTo));
+        }
+        
+        if (expenseFilters.searchQuery) {
+          const query = expenseFilters.searchQuery.toLowerCase();
+          filtered = filtered.filter(e => 
+            e.description.toLowerCase().includes(query) ||
+            e.category.toLowerCase().includes(query)
+          );
+        }
+        
+        if (expenseFilters.recurringOnly) {
+          filtered = filtered.filter(e => e.isRecurring === true);
+        }
+        
+        return filtered;
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+        return [];
+      }
+    }
+  );
+
   const addTransactionMutation = useApiMutation<
     FinancialTransaction,
-    unknown,
     Omit<FinancialTransaction, 'id'>
   >(
     async (transactionData) => {
-      // Insert new transaction into unified_payments table
       const { data, error } = await supabase
         .from('unified_payments')
         .insert({
@@ -259,7 +317,6 @@ export function useFinancials() {
           amount: transactionData.amount,
           description: transactionData.description,
           type: transactionData.type === 'income' ? 'Income' : 'Expense',
-          category: transactionData.category,
           status: transactionData.status,
           reference: transactionData.reference,
           payment_method: transactionData.paymentMethod,
@@ -274,14 +331,16 @@ export function useFinancials() {
         throw error;
       }
 
-      // Format returned data to match our component expectations
       return {
         id: data.id,
         date: new Date(data.payment_date),
         amount: data.amount,
         description: data.description,
         type: data.type?.toLowerCase() === 'expense' ? 'expense' : 'income',
-        category: data.category || '',
+        category: data.type === 'Expense' ? 
+                 data.description?.includes('Salary') ? 'Salary' : 
+                 data.description?.includes('Rent') ? 'Rent' : 
+                 data.description?.includes('Utility') ? 'Utilities' : 'Other' : 'Rental',
         status: data.status as TransactionStatusType,
         reference: data.reference,
         paymentMethod: data.payment_method,
@@ -301,15 +360,12 @@ export function useFinancials() {
     }
   );
 
-  // Update transaction mutation
   const updateTransactionMutation = useApiMutation<
     FinancialTransaction,
-    unknown,
     { id: string; data: Partial<FinancialTransaction> }
   >(
     async ({ id, data }) => {
-      if (id.startsWith('inst-')) {
-        // Handle installment update
+      if (typeof id === 'string' && id.startsWith('inst-')) {
         const actualId = id.replace('inst-', '');
         const { data: updatedData, error } = await supabase
           .from('car_installments')
@@ -344,7 +400,6 @@ export function useFinancials() {
           vehicleId: updatedData.vehicle_id
         };
       } else {
-        // Handle regular transaction update
         const { data: updatedData, error } = await supabase
           .from('unified_payments')
           .update({
@@ -352,7 +407,6 @@ export function useFinancials() {
             amount: data.amount,
             description: data.description,
             type: data.type === 'income' ? 'Income' : 'Expense',
-            category: data.category,
             status: data.status,
             reference: data.reference,
             payment_method: data.paymentMethod,
@@ -374,7 +428,10 @@ export function useFinancials() {
           amount: updatedData.amount,
           description: updatedData.description,
           type: updatedData.type?.toLowerCase() === 'expense' ? 'expense' : 'income',
-          category: updatedData.category || '',
+          category: updatedData.type === 'Expense' ? 
+                   updatedData.description?.includes('Salary') ? 'Salary' : 
+                   updatedData.description?.includes('Rent') ? 'Rent' : 
+                   updatedData.description?.includes('Utility') ? 'Utilities' : 'Other' : 'Rental',
           status: updatedData.status as TransactionStatusType,
           reference: updatedData.reference,
           paymentMethod: updatedData.payment_method,
@@ -395,15 +452,12 @@ export function useFinancials() {
     }
   );
 
-  // Delete transaction mutation
   const deleteTransactionMutation = useApiMutation<
     string,
-    unknown,
     string
   >(
     async (id) => {
-      if (id.startsWith('inst-')) {
-        // Handle installment deletion
+      if (typeof id === 'string' && id.startsWith('inst-')) {
         const actualId = id.replace('inst-', '');
         const { error } = await supabase
           .from('car_installments')
@@ -415,7 +469,6 @@ export function useFinancials() {
           throw error;
         }
       } else {
-        // Handle regular transaction deletion
         const { error } = await supabase
           .from('unified_payments')
           .delete()
@@ -440,6 +493,158 @@ export function useFinancials() {
     }
   );
 
+  const addExpenseMutation = useApiMutation<
+    FinancialTransaction,
+    Omit<FinancialTransaction, 'id'>
+  >(
+    async (expenseData) => {
+      const nextPaymentDate = expenseData.nextPaymentDate
+        ? expenseData.nextPaymentDate.toISOString()
+        : null;
+
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .insert({
+          payment_date: expenseData.date.toISOString(),
+          amount: expenseData.amount,
+          description: expenseData.description,
+          type: 'Expense',
+          status: expenseData.status,
+          reference: expenseData.reference,
+          payment_method: expenseData.paymentMethod,
+          is_recurring: expenseData.isRecurring || false,
+          recurring_interval: expenseData.recurringInterval,
+          next_payment_date: nextPaymentDate
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding expense:', error);
+        throw error;
+      }
+
+      return {
+        id: data.id,
+        date: new Date(data.payment_date),
+        amount: data.amount,
+        description: data.description,
+        type: 'expense',
+        category: data.description?.includes('Salary') ? 'Salary' : 
+                 data.description?.includes('Rent') ? 'Rent' : 
+                 data.description?.includes('Utility') ? 'Utilities' : 'Other',
+        status: data.status as TransactionStatusType,
+        reference: data.reference,
+        paymentMethod: data.payment_method,
+        isRecurring: data.is_recurring || false,
+        recurringInterval: data.recurring_interval,
+        nextPaymentDate: data.next_payment_date ? new Date(data.next_payment_date) : undefined
+      };
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: 'Expense added',
+          description: 'Expense has been added successfully.'
+        });
+        refetchExpenses();
+        refetchSummary();
+      }
+    }
+  );
+
+  const updateExpenseMutation = useApiMutation<
+    FinancialTransaction,
+    { id: string; data: Partial<FinancialTransaction> }
+  >(
+    async ({ id, data }) => {
+      const updateData: any = {};
+      
+      if (data.date) updateData.payment_date = data.date.toISOString();
+      if (data.amount !== undefined) updateData.amount = data.amount;
+      if (data.description) updateData.description = data.description;
+      if (data.status) updateData.status = data.status;
+      if (data.reference !== undefined) updateData.reference = data.reference;
+      if (data.paymentMethod) updateData.payment_method = data.paymentMethod;
+      if (data.isRecurring !== undefined) updateData.is_recurring = data.isRecurring;
+      if (data.recurringInterval) updateData.recurring_interval = data.recurringInterval;
+      if (data.nextPaymentDate) updateData.next_payment_date = data.nextPaymentDate.toISOString();
+      
+      if (data.isRecurring === false) {
+        updateData.recurring_interval = null;
+        updateData.next_payment_date = null;
+      }
+
+      const { data: updatedData, error } = await supabase
+        .from('unified_payments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating expense:', error);
+        throw error;
+      }
+
+      return {
+        id: updatedData.id,
+        date: new Date(updatedData.payment_date),
+        amount: updatedData.amount,
+        description: updatedData.description,
+        type: 'expense',
+        category: updatedData.description?.includes('Salary') ? 'Salary' : 
+                 updatedData.description?.includes('Rent') ? 'Rent' : 
+                 updatedData.description?.includes('Utility') ? 'Utilities' : 'Other',
+        status: updatedData.status as TransactionStatusType,
+        reference: updatedData.reference,
+        paymentMethod: updatedData.payment_method,
+        isRecurring: updatedData.is_recurring || false,
+        recurringInterval: updatedData.recurring_interval,
+        nextPaymentDate: updatedData.next_payment_date ? new Date(updatedData.next_payment_date) : undefined
+      };
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: 'Expense updated',
+          description: 'Expense has been updated successfully.'
+        });
+        refetchExpenses();
+        refetchSummary();
+      }
+    }
+  );
+
+  const deleteExpenseMutation = useApiMutation<
+    string,
+    string
+  >(
+    async (id) => {
+      const { error } = await supabase
+        .from('unified_payments')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error('Error deleting expense:', error);
+        throw error;
+      }
+      
+      return id;
+    },
+    {
+      onSuccess: () => {
+        toast({
+          title: 'Expense deleted',
+          description: 'Expense has been deleted successfully.'
+        });
+        refetchExpenses();
+        refetchSummary();
+      }
+    }
+  );
+
   return {
     transactions,
     isLoadingTransactions,
@@ -450,6 +655,14 @@ export function useFinancials() {
     addTransaction: addTransactionMutation.mutate,
     updateTransaction: updateTransactionMutation.mutate,
     deleteTransaction: deleteTransactionMutation.mutate,
+    expenses,
+    isLoadingExpenses,
+    expenseFilters,
+    setExpenseFilters,
+    addExpense: addExpenseMutation.mutate,
+    updateExpense: updateExpenseMutation.mutate,
+    deleteExpense: deleteExpenseMutation.mutate,
+    recurringExpenses: expenses.filter(e => e.isRecurring === true),
     systemDate: SYSTEM_DATE
   };
 }
