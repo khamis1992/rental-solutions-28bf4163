@@ -1,13 +1,15 @@
 
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PaymentList } from '@/components/payments/PaymentList';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
+import { Badge } from '@/components/ui/badge';
+import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -36,6 +38,11 @@ export function AgreementDetail({
     window.print();
   }, []);
 
+  const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
+    const months = differenceInMonths(endDate, startDate);
+    return months;
+  }, []);
+
   if (!agreement) {
     return (
       <Alert>
@@ -44,68 +51,58 @@ export function AgreementDetail({
     );
   }
 
+  const duration = calculateDuration(
+    new Date(agreement.start_date),
+    new Date(agreement.end_date)
+  );
+
+  const formattedStatus = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
+      case 'closed':
+        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
+      default:
+        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
+    }
+  };
+
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Agreement {agreement.agreement_number}</h2>
-          <p className="text-muted-foreground">
-            Created on {format(new Date(agreement.created_at), 'PPP')}
-          </p>
-        </div>
-        <div className="flex items-center gap-4 mt-4 sm:mt-0">
-          <Button variant="outline" onClick={handlePrint} className="print:hidden">
-            Print
-          </Button>
-          <Button 
-            variant="default" 
-            onClick={() => navigate(`/agreements/${agreement.id}/edit`)}
-            className="print:hidden"
-          >
-            Edit
-          </Button>
-          <Button 
-            variant="destructive"
-            onClick={() => handleDelete(agreement.id)}
-            className="print:hidden"
-          >
-            Delete
-          </Button>
-        </div>
+      <div className="space-y-2">
+        <h2 className="text-3xl font-bold tracking-tight">
+          Agreement {agreement.agreement_number}
+          {formattedStatus(agreement.status)}
+        </h2>
+        <p className="text-muted-foreground">
+          Created on {format(new Date(agreement.created_at || new Date()), 'MMMM d, yyyy')}
+        </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Customer Information</CardTitle>
-            <CardDescription>Customer contact details</CardDescription>
+            <CardDescription>Details about the customer</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <p className="font-medium">Name</p>
-                <p>{agreement.customers?.full_name}</p>
+                <p>{agreement.customers?.full_name || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="font-medium">Email</p>
+                <p>{agreement.customers?.email || 'N/A'}</p>
               </div>
               <div>
                 <p className="font-medium">Phone</p>
-                <p>{agreement.customers?.phone_number}</p>
+                <p>{agreement.customers?.phone_number || 'N/A'}</p>
               </div>
-              <div>
-                <p className="font-medium">Driver License</p>
-                <p>{agreement.customers?.driver_license}</p>
-              </div>
-              {agreement.customers?.email && (
-                <div>
-                  <p className="font-medium">Email</p>
-                  <p>{agreement.customers.email}</p>
-                </div>
-              )}
-              {agreement.customers?.nationality && (
-                <div>
-                  <p className="font-medium">Nationality</p>
-                  <p>{agreement.customers.nationality}</p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -113,7 +110,7 @@ export function AgreementDetail({
         <Card>
           <CardHeader>
             <CardTitle>Vehicle Information</CardTitle>
-            <CardDescription>Vehicle details and specifications</CardDescription>
+            <CardDescription>Details about the rented vehicle</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -126,15 +123,9 @@ export function AgreementDetail({
                 <p>{agreement.vehicles?.license_plate}</p>
               </div>
               <div>
-                <p className="font-medium">VIN</p>
-                <p>{agreement.vehicles?.vin}</p>
+                <p className="font-medium">Color</p>
+                <p>{agreement.vehicles?.color || 'N/A'}</p>
               </div>
-              {agreement.vehicles?.color && (
-                <div>
-                  <p className="font-medium">Color</p>
-                  <p>{agreement.vehicles.color}</p>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
@@ -142,7 +133,7 @@ export function AgreementDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Rental Terms</CardTitle>
+          <CardTitle>Agreement Details</CardTitle>
           <CardDescription>Rental terms and payment information</CardDescription>
         </CardHeader>
         <CardContent>
@@ -150,45 +141,87 @@ export function AgreementDetail({
             <div className="space-y-4">
               <div>
                 <p className="font-medium">Rental Period</p>
-                <p>
-                  {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
+                <p className="flex items-center">
+                  {format(new Date(agreement.start_date), "MMMM d, yyyy")} to {format(new Date(agreement.end_date), "MMMM d, yyyy")}
                 </p>
+                <p className="text-sm text-muted-foreground">Duration: {duration} months</p>
               </div>
+              
               <div>
-                <p className="font-medium">Status</p>
-                <p className="capitalize">{agreement.status}</p>
+                <p className="font-medium">Additional Drivers</p>
+                <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
               </div>
-              {agreement.deposit_amount > 0 && (
-                <div>
-                  <p className="font-medium">Security Deposit</p>
-                  <p>QAR {agreement.deposit_amount}</p>
-                </div>
-              )}
             </div>
+            
             <div className="space-y-4">
               <div>
-                <p className="font-medium">Monthly Rent</p>
-                <p>{rentAmount ? `QAR ${rentAmount}` : 'Not set'}</p>
+                <p className="font-medium">Monthly Rent Amount</p>
+                <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
               </div>
+              
               <div>
                 <p className="font-medium">Total Contract Amount</p>
-                <p>QAR {contractAmount || agreement.total_amount}</p>
+                <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
+                <p className="text-xs text-muted-foreground">Monthly rent × {duration} months</p>
               </div>
-              {agreement.notes && (
-                <div>
-                  <p className="font-medium">Notes</p>
-                  <p className="whitespace-pre-wrap">{agreement.notes}</p>
-                </div>
-              )}
+              
+              <div>
+                <p className="font-medium">Deposit Amount</p>
+                <p>QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
+              </div>
+              
+              <div>
+                <p className="font-medium">Terms Accepted</p>
+                <p>{agreement.terms_accepted ? 'Yes' : 'No'}</p>
+              </div>
+              
+              <div>
+                <p className="font-medium">Signature</p>
+                <p>{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
+      <div className="flex flex-wrap items-center gap-4 mb-4">
+        <Button variant="outline" onClick={() => navigate(`/agreements/${agreement.id}/edit`)} className="print:hidden">
+          <Edit className="mr-2 h-4 w-4" />
+          Edit
+        </Button>
+        <Button variant="outline" onClick={handlePrint} className="print:hidden">
+          <Printer className="mr-2 h-4 w-4" />
+          Print
+        </Button>
+        <Button variant="outline" className="print:hidden">
+          <Download className="mr-2 h-4 w-4" />
+          Download PDF
+        </Button>
+        <Button variant="default" className="print:hidden bg-blue-500 hover:bg-blue-600">
+          <FilePlus className="mr-2 h-4 w-4" />
+          Record Payment
+        </Button>
+        <div className="flex-grow"></div>
+        <Button 
+          variant="destructive"
+          onClick={() => handleDelete(agreement.id)}
+          className="print:hidden ml-auto"
+        >
+          Delete
+        </Button>
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Payments</CardTitle>
-          <CardDescription>Payment history and transactions</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Payment History</CardTitle>
+            <CardDescription>View and manage payment records</CardDescription>
+          </div>
+          {rentAmount && (
+            <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
+              <span className="text-sm font-medium">Missing 1 payment</span>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <PaymentList 
@@ -200,11 +233,17 @@ export function AgreementDetail({
 
       {/* Traffic Fines Section */}
       {agreement.start_date && agreement.end_date && (
-        <AgreementTrafficFines
-          agreementId={agreement.id}
-          startDate={new Date(agreement.start_date)}
-          endDate={new Date(agreement.end_date)}
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Traffic Fines</CardTitle>
+            <CardDescription>Violations during the rental period</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center py-6 text-muted-foreground">
+              No traffic fines recorded for this rental period.
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

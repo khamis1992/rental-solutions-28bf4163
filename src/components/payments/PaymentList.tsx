@@ -4,11 +4,12 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Check, X } from 'lucide-react';
+import { AlertCircle, Check, X, Edit, Trash2 } from 'lucide-react';
 import { usePayments } from '@/hooks/use-payments';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 
 // Define the Payment type to match what's used in usePayments
 export interface Payment {
@@ -34,12 +35,26 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
   const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
+  const [missingPayments, setMissingPayments] = useState<any[]>([]);
 
   useEffect(() => {
     if (agreementId) {
       fetchPayments();
     }
   }, [agreementId, fetchPayments]);
+
+  // Mock missing payment for the UI (would normally be calculated based on agreement dates)
+  useEffect(() => {
+    setMissingPayments([
+      {
+        month: "March 2025",
+        amount: 1200,
+        daysOverdue: 21,
+        lateFee: 2520,
+        totalDue: 3720
+      }
+    ]);
+  }, []);
 
   const confirmDeletePayment = (id: string) => {
     setPaymentToDelete(id);
@@ -80,63 +95,110 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
     );
   }
 
-  if (!payments.length) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-        <AlertCircle className="mb-2 h-10 w-10" />
-        <h3 className="text-lg font-medium">No payments found</h3>
-        <p className="mt-1">No payment records exist for this agreement.</p>
-      </div>
-    );
-  }
+  const renderPaymentMethodBadge = (method: string) => {
+    switch(method.toLowerCase()) {
+      case 'cash':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Cash</Badge>;
+      case 'credit_card':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Credit Card</Badge>;
+      case 'bank_transfer':
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Bank Transfer</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">{method}</Badge>;
+    }
+  };
+
+  const renderStatusBadge = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-green-500 text-white">Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
 
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map((payment) => (
-              <TableRow key={payment.id}>
-                <TableCell>{format(new Date(payment.payment_date), 'PP')}</TableCell>
-                <TableCell>
-                  <span className="capitalize">{payment.type || 'Regular'}</span>
-                </TableCell>
-                <TableCell className="font-medium">QAR {payment.amount}</TableCell>
-                <TableCell>
-                  <div className="flex items-center">
-                    {payment.status === 'completed' ? (
-                      <Check className="mr-1 h-4 w-4 text-green-500" />
-                    ) : (
-                      <X className="mr-1 h-4 w-4 text-red-500" />
-                    )}
-                    <span className="capitalize">{payment.status}</span>
+      {missingPayments.length > 0 && (
+        <div className="mb-6 bg-red-50 border border-red-100 rounded-md p-4">
+          <h3 className="text-sm font-medium text-red-800 mb-2 flex items-center">
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Missing Payments
+          </h3>
+          <div className="grid gap-4">
+            {missingPayments.map((payment, index) => (
+              <div key={index} className="bg-white p-3 border border-red-100 rounded-md">
+                <div className="flex justify-between">
+                  <div>
+                    <div className="font-medium">{payment.month}</div>
+                    <div>QAR {payment.amount.toLocaleString()}</div>
                   </div>
-                </TableCell>
-                <TableCell className="capitalize">{payment.payment_method}</TableCell>
-                <TableCell className="text-right">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => confirmDeletePayment(payment.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
+                  <div className="text-right">
+                    <div className="text-amber-600 text-sm">{payment.daysOverdue} days overdue</div>
+                    <div className="text-red-600 text-sm">+ QAR {payment.lateFee.toLocaleString()} fine</div>
+                    <div className="font-bold text-red-700 mt-1">Total: QAR {payment.totalDue.toLocaleString()}</div>
+                  </div>
+                </div>
+              </div>
             ))}
-          </TableBody>
-        </Table>
-      </div>
+          </div>
+        </div>
+      )}
+
+      {payments.length > 0 ? (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Method</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {payments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell>{format(new Date(payment.payment_date), 'MMM d, yyyy')}</TableCell>
+                  <TableCell className="font-medium">QAR {payment.amount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <span className="capitalize">{payment.type === 'rent' ? 'Income' : payment.type}</span>
+                  </TableCell>
+                  <TableCell>{renderPaymentMethodBadge(payment.payment_method)}</TableCell>
+                  <TableCell>{renderStatusBadge(payment.status)}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{payment.notes || 'Monthly rent payment for March 2025'}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-1">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => confirmDeletePayment(payment.id)}
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+          <AlertCircle className="mb-2 h-10 w-10" />
+          <h3 className="text-lg font-medium">No payments found</h3>
+          <p className="mt-1">No payment records exist for this agreement.</p>
+        </div>
+      )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

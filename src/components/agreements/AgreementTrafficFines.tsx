@@ -60,11 +60,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-// Helper function to format dates without depending on external utility
-const formatDate = (date: Date): string => {
-  return format(date, 'PPP');
-};
-
 export const AgreementTrafficFines = ({ 
   agreementId, 
   startDate,
@@ -78,15 +73,6 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
-        console.log("AgreementTrafficFines - processing dates:", {
-          startDate: startDate instanceof Date ? startDate.toISOString() : startDate,
-          endDate: endDate instanceof Date ? endDate.toISOString() : endDate,
-          startDateType: typeof startDate,
-          endDateType: typeof endDate,
-          isStartDateObj: startDate instanceof Date,
-          isEndDateObj: endDate instanceof Date
-        });
-        
         // Convert params to actual dates if they aren't already
         const startDateObj = startDate instanceof Date ? startDate : new Date(startDate);
         const endDateObj = endDate instanceof Date ? endDate : new Date(endDate);
@@ -230,7 +216,7 @@ export const AgreementTrafficFines = ({
                 <div className="space-y-1">
                   <p className="font-medium text-sm">Violation #{fine.violationNumber}</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDate(new Date(fine.violationDate))}
+                    {format(new Date(fine.violationDate), "PP")}
                     {fine.location && ` at ${fine.location}`}
                   </p>
                   <p className="text-sm text-muted-foreground">{fine.violationCharge}</p>
