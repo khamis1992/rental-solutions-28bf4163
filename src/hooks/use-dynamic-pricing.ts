@@ -13,11 +13,13 @@ export function useDynamicPricing(vehicleId: string) {
   const [price, setPrice] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [pricingFactors, setPricingFactors] = useState<PricingFactors | null>(null);
 
   useEffect(() => {
     const updatePrice = async () => {
       try {
         setIsLoading(true);
+        setError(null);
         
         // Fetch vehicle rent_amount
         const { data: vehicle, error: vehicleError } = await supabase
@@ -54,9 +56,16 @@ export function useDynamicPricing(vehicleId: string) {
         // Get seasonal multiplier
         const seasonalMultiplier = getSeasonalMultiplier();
 
-        // Calculate final price using rent_amount instead of base_price
+        // Calculate final price using rent_amount
         const basePrice = vehicle.rent_amount || 1000; // Fallback value if rent_amount is not set
         const finalPrice = basePrice * demandMultiplier * seasonalMultiplier;
+        
+        // Store pricing factors for transparency
+        setPricingFactors({
+          basePrice,
+          demandMultiplier,
+          seasonalMultiplier
+        });
         
         setPrice(Math.round(finalPrice));
       } catch (err) {
@@ -68,12 +77,22 @@ export function useDynamicPricing(vehicleId: string) {
       }
     };
 
-    updatePrice();
-    const interval = setInterval(updatePrice, 3600000); // Update hourly
-    return () => clearInterval(interval);
+    if (vehicleId) {
+      updatePrice();
+      const interval = setInterval(updatePrice, 3600000); // Update hourly
+      return () => clearInterval(interval);
+    } else {
+      setIsLoading(false);
+      setError('Vehicle ID is required');
+    }
   }, [vehicleId]);
 
-  return { price, isLoading, error };
+  return { 
+    price, 
+    isLoading, 
+    error,
+    factors: pricingFactors 
+  };
 }
 
 // Helper function to get seasonal multiplier
