@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 interface SearchParams {
   query?: string;
   status?: string;
+  vehicle_id?: string;
+  customer_id?: string;
 }
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
