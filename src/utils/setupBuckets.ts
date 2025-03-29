@@ -1,6 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Ensures that the required storage buckets exist in Supabase
