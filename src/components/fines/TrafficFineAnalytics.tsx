@@ -349,7 +349,7 @@ const TrafficFineAnalytics = () => {
                   <LineChart data={monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => formatCurrency(value, false)} />
+                    <YAxis tickFormatter={(value) => formatCurrency(value)} />
                     <Tooltip 
                       formatter={(value: any) => [formatCurrency(value), 'Amount']}
                       labelFormatter={(label) => `Month: ${label}`}
@@ -372,7 +372,7 @@ const TrafficFineAnalytics = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="month" />
                     <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => formatCurrency(value, false)} />
+                    <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => formatCurrency(value)} />
                     <Tooltip 
                       formatter={(value: any, name: any) => {
                         return name === 'Amount' ? [formatCurrency(value), name] : [value, name];
@@ -420,7 +420,7 @@ const TrafficFineAnalytics = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={locationData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
-                  <XAxis type="number" tickFormatter={(value) => formatCurrency(value, false)} />
+                  <XAxis type="number" tickFormatter={(value) => formatCurrency(value)} />
                   <YAxis dataKey="location" type="category" width={150} />
                   <Tooltip 
                     formatter={(value: any) => [formatCurrency(value), 'Amount']}
