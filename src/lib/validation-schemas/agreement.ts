@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 // Define agreement statuses
@@ -59,7 +60,6 @@ export const agreementSchema = z.object({
   signature_url: z.string().optional(),
   template_url: z.string().optional(),
   additional_drivers: z.array(z.string()).optional(),
-  daily_late_fee: z.number().optional(),
   // Include the nested objects returned from Supabase
   customers: CustomerSchema.optional(),
   vehicles: VehicleSchema.optional(),
@@ -161,6 +161,115 @@ export const generateMonthlyPayment = async (
   }
 };
 
+// Function to manually generate payments for a specific agreement
+export const forceGeneratePaymentForAgreement = async (
+  supabase: any,
+  agreementId: string
+) => {
+  try {
+    // Get the agreement details
+    const { data: lease, error: leaseError } = await supabase
+      .from("leases")
+      .select("id, rent_amount, agreement_number, status")
+      .eq("id", agreementId)
+      .single();
+    
+    if (leaseError) throw leaseError;
+    
+    if (!lease) {
+      return { success: false, message: "Lease not found" };
+    }
+    
+    if (lease.status !== 'active') {
+      return { success: false, message: `Lease is not active (current status: ${lease.status})` };
+    }
+    
+    // Get current month and year
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Generate a payment for the current month if it doesn't exist
+    const result = await generateMonthlyPayment(
+      supabase,
+      lease.id,
+      lease.rent_amount,
+      currentMonth,
+      currentYear
+    );
+    
+    return result;
+  } catch (error) {
+    console.error("Error forcing payment generation:", error);
+    return { success: false, error };
+  }
+};
+
+/**
+ * Helper function to extract numerics from license plate
+ * This can be used for testing license plate matching locally
+ * without relying on database functions
+ */
+export const extractLicensePlateNumerics = (plate: string): string => {
+  if (!plate) return '';
+  
+  // Remove all non-digit characters to get just the numbers
+  return plate.replace(/\D/g, '');
+};
+
+/**
+ * Check if a license plate matches a numeric search pattern
+ * using multiple matching strategies
+ */
+export const doesLicensePlateMatchNumeric = (
+  plate: string, 
+  searchPattern: string
+): boolean => {
+  if (!plate || !searchPattern) return false;
+  
+  // 1. Direct includes (case insensitive)
+  if (plate.toLowerCase().includes(searchPattern.toLowerCase())) {
+    return true;
+  }
+  
+  // Only continue with numeric pattern matching if the search is numeric
+  if (!/^\d+$/.test(searchPattern)) return false;
+  
+  // 2. Extract just the numbers from the plate
+  const plateNumerics = extractLicensePlateNumerics(plate);
+  
+  // 3. Direct exact match of extracted numbers
+  if (plateNumerics === searchPattern) {
+    return true;
+  }
+  
+  // 4. Substring match of extracted numbers
+  if (plateNumerics.includes(searchPattern)) {
+    return true;
+  }
+  
+  // 5. Try removing leading zeros and compare
+  const trimmedPlateNumerics = plateNumerics.replace(/^0+/, '');
+  const trimmedSearch = searchPattern.replace(/^0+/, '');
+  
+  if (trimmedPlateNumerics === trimmedSearch) {
+    return true;
+  }
+  
+  if (trimmedPlateNumerics.includes(trimmedSearch)) {
+    return true;
+  }
+  
+  // 6. Additional check for suffix matching
+  // This is valuable when a user searches for the last digits of a plate
+  // E.g., searching "42" should match "ABC1042"
+  if (plateNumerics.endsWith(searchPattern)) {
+    return true;
+  }
+  
+  return false;
+};
+
 // Helper function to process template with dynamic values
 export const processAgreementTemplate = (templateText: string, data: any): string => {
   // Replace placeholders with actual data
@@ -202,14 +311,3 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
     
   return processedTemplate;
 };
-
-// Add the missing function for license plate matching
-export function doesLicensePlateMatchNumeric(licensePlate: string | null | undefined, numericPattern: string): boolean {
-  if (!licensePlate) return false;
-  
-  // Remove all non-numeric characters from the license plate
-  const digitsOnly = licensePlate.replace(/\D/g, '');
-  
-  // Check if the numeric pattern is found in the digits-only version of the license plate
-  return digitsOnly.includes(numericPattern);
-}

@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -238,7 +237,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 </div>
                 <div>
                   <p className="font-medium">Phone</p>
-                  <p>{agreement.customers.phone || agreement.customers.phone_number || "N/A"}</p>
+                  <p>{agreement.customers.phone || "N/A"}</p>
                 </div>
               </div>
             ) : (
@@ -317,10 +316,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 <div>
                   <p className="font-medium">Deposit Amount</p>
                   <p>{formatCurrency(agreement.deposit_amount || 0)}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Daily Late Fee</p>
-                  <p>{agreement.daily_late_fee !== undefined ? formatCurrency(agreement.daily_late_fee) : "Not specified"}</p>
                 </div>
                 <div>
                   <p className="font-medium">Terms Accepted</p>

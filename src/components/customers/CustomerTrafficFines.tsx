@@ -55,13 +55,14 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           id: fine.id,
           violationNumber: fine.violation_number,
           licensePlate: fine.license_plate,
-          violationDate: fine.violation_date,
+          vehicleModel: fine.vehicle_model,
+          violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount,
           violationCharge: fine.violation_charge,
           paymentStatus: fine.payment_status,
           location: fine.location || '',
-          vehicle_id: fine.vehicle_id,
-          lease_id: fine.lease_id
+          vehicleId: fine.vehicle_id,
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
         
         setFines(formattedFines);
@@ -105,7 +106,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           <TableRow key={fine.id}>
             <TableCell className="font-medium">{fine.violationNumber}</TableCell>
             <TableCell>{fine.licensePlate}</TableCell>
-            <TableCell>{new Date(fine.violationDate).toLocaleDateString()}</TableCell>
+            <TableCell>{fine.violationDate.toLocaleDateString()}</TableCell>
             <TableCell>{fine.violationCharge}</TableCell>
             <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
             <TableCell>
