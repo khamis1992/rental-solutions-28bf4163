@@ -1,63 +1,80 @@
 
-import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { useState } from 'react';
+import { 
+  Table, 
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Check, X } from 'lucide-react';
+import { EditIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { usePayments } from '@/hooks/use-payments';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
+import { formatDate } from '@/lib/date-utils';
+import { Payment } from '@/components/agreements/PaymentHistory';
+import { useRentAmount } from '@/hooks/use-rent-amount';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface PaymentListProps {
-  agreementId: string;
+  agreementId?: string;
   onPaymentDeleted: () => void;
 }
 
 export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  
+  // Get rent amount for this agreement
+  const { rentAmount } = useRentAmount(null, agreementId);
+  
+  // Get payments data
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, rentAmount);
 
-  useEffect(() => {
-    if (agreementId) {
-      fetchPayments();
-    }
-  }, [agreementId, fetchPayments]);
-
-  const confirmDeletePayment = (id: string) => {
-    setPaymentToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleDeletePayment = async () => {
-    if (!paymentToDelete) return;
-
+  // Handle deleting a payment
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!agreementId || !paymentId) return;
+    
     try {
+      setIsDeleteLoading(true);
+      
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', paymentToDelete);
-
-      if (error) {
-        console.error("Error deleting payment:", error);
-        toast.error("Failed to delete payment");
-        return;
-      }
-
-      toast.success("Payment deleted successfully");
-      setIsDeleteDialogOpen(false);
-      onPaymentDeleted();
+        .eq('id', paymentId);
+      
+      if (error) throw error;
+      
+      toast.success('Payment deleted successfully');
+      onPaymentDeleted(); // Refresh the parent component
+      fetchPayments(); // Refresh the payments list
     } catch (error) {
-      console.error("Error in payment deletion:", error);
-      toast.error("An unexpected error occurred");
+      console.error('Error deleting payment:', error);
+      toast.error('Failed to delete payment');
+    } finally {
+      setIsDeleteLoading(false);
     }
+  };
+
+  // Handle opening the edit modal
+  const handleEditPayment = (payment: Payment) => {
+    setEditingPayment(payment);
+    setShowPaymentModal(true);
+  };
+
+  // Handle adding a new payment
+  const handleAddPayment = () => {
+    setEditingPayment(null);
+    setShowPaymentModal(true);
   };
 
   if (isLoadingPayments) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-4">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-24 w-full" />
@@ -65,83 +82,80 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
     );
   }
 
-  if (!payments.length) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-        <AlertCircle className="mb-2 h-10 w-10" />
-        <h3 className="text-lg font-medium">No payments found</h3>
-        <p className="mt-1">No payment records exist for this agreement.</p>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="rounded-md border">
+    <div>
+      <div className="mb-4 flex justify-end">
+        <Button variant="outline" onClick={handleAddPayment}>
+          <PlusIcon className="mr-2 h-4 w-4" />
+          Add Payment
+        </Button>
+      </div>
+
+      {payments.length === 0 ? (
+        <div className="text-center py-8 border rounded-md">
+          <p className="text-muted-foreground">No payments recorded for this agreement.</p>
+        </div>
+      ) : (
         <Table>
+          <TableCaption>Payment history for this agreement</TableCaption>
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Amount</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Method</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
-                <TableCell>{format(new Date(payment.payment_date), 'PP')}</TableCell>
-                <TableCell>
-                  <span className="capitalize">{payment.type || 'Regular'}</span>
-                </TableCell>
-                <TableCell className="font-medium">QAR {payment.amount}</TableCell>
-                <TableCell>
-                  <div className="flex items-center">
-                    {payment.status === 'completed' ? (
-                      <Check className="mr-1 h-4 w-4 text-green-500" />
-                    ) : (
-                      <X className="mr-1 h-4 w-4 text-red-500" />
-                    )}
-                    <span className="capitalize">{payment.status}</span>
+                <TableCell>{formatDate(payment.payment_date)}</TableCell>
+                <TableCell>{payment.notes || payment.description || 'Payment'}</TableCell>
+                <TableCell className="capitalize">{payment.status}</TableCell>
+                <TableCell className="text-right">QAR {payment.amount.toFixed(2)}</TableCell>
+                <TableCell className="text-center">
+                  <div className="flex justify-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleEditPayment(payment)}
+                    >
+                      <EditIcon className="h-4 w-4" />
+                      <span className="sr-only">Edit</span>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => handleDeletePayment(payment.id)}
+                      disabled={isDeleteLoading}
+                    >
+                      <Trash2Icon className="h-4 w-4 text-destructive" />
+                      <span className="sr-only">Delete</span>
+                    </Button>
                   </div>
-                </TableCell>
-                <TableCell className="capitalize">{payment.payment_method}</TableCell>
-                <TableCell className="text-right">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => confirmDeletePayment(payment.id)}
-                  >
-                    Delete
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
-      </div>
+      )}
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this payment record. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeletePayment}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+      {/* Payment Modal - Uncomment when integrating the payment edit/add functionality
+      {showPaymentModal && (
+        <PaymentEditDialog
+          payment={editingPayment}
+          agreementId={agreementId}
+          rentAmount={rentAmount || 0}
+          onClose={() => setShowPaymentModal(false)}
+          onSave={() => {
+            setShowPaymentModal(false);
+            fetchPayments();
+            onPaymentDeleted();
+          }}
+        />
+      )}
+      */}
+    </div>
   );
 }

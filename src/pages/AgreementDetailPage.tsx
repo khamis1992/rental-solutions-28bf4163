@@ -10,6 +10,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,8 +20,11 @@ const AgreementDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Pass the agreement object directly and the ID as a fallback
+  // Get rent amount from the hook
   const { rentAmount } = useRentAmount(agreement, id);
+  
+  // Use the payment generation hook
+  const { refreshAgreementData } = usePaymentGeneration(agreement, id);
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -66,7 +70,7 @@ const AgreementDetailPage = () => {
     }
   };
 
-  const refreshAgreementData = () => {
+  const handleRefreshData = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -90,7 +94,7 @@ const AgreementDetailPage = () => {
           agreement={agreement}
           onDelete={handleDelete}
           rentAmount={rentAmount}
-          onPaymentDeleted={refreshAgreementData}
+          onPaymentDeleted={handleRefreshData}
         />
       ) : (
         <div className="text-center py-12">

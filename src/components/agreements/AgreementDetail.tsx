@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { PaymentList } from '@/components/payments/PaymentList';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { FilePenLine, Printer, Trash2 } from 'lucide-react';
+import { formatDate } from '@/lib/date-utils';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -46,7 +47,7 @@ export function AgreementDetail({
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Agreement {agreement.agreement_number}</h2>
           <p className="text-muted-foreground">
-            Created on {format(new Date(agreement.created_at || new Date()), 'PPP')}
+            Created on {agreement.created_at ? formatDate(agreement.created_at) : 'N/A'}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -148,7 +149,7 @@ export function AgreementDetail({
               <div>
                 <p className="font-medium">Rental Period</p>
                 <p>
-                  {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
+                  {formatDate(agreement.start_date)} to {formatDate(agreement.end_date)}
                 </p>
               </div>
               <div>
