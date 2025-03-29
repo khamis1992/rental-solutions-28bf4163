@@ -1,7 +1,7 @@
-
 import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 import { supabase } from '@/integrations/supabase/client';
+import { formatDate, formatDateTime } from '@/lib/date-utils';
 
 /**
  * Generate a legal report PDF for a customer with all their financial/legal obligations
@@ -88,10 +88,10 @@ export const generateLegalCustomerReport = async (
   doc.setFont('helvetica', 'bold');
   doc.text("LEGAL OBLIGATIONS REPORT", pageWidth / 2, startY, { align: "center" });
   
-  // Add report date with consistent spacing
+  // Add report date with consistent spacing and new format
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Report generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, startY + 8, { align: "center" });
+  doc.text(`Report generated on ${formatDate(new Date())}`, pageWidth / 2, startY + 8, { align: "center" });
   
   // Add customer information with consistent spacing
   doc.setFontSize(14);
@@ -295,8 +295,8 @@ export const generateLegalCustomerReport = async (
         doc.text(description, startX, yPos);
       }
       
-      // Add other fields
-      const dueDate = obligation.dueDate ? new Date(obligation.dueDate).toLocaleDateString() : 'N/A';
+      // Add due date with the new format
+      const dueDate = obligation.dueDate ? formatDate(obligation.dueDate) : 'N/A';
       doc.text(dueDate, startX + 90, yPos);
       doc.text(obligation.daysOverdue?.toString() || '0', startX + 130, yPos);
       doc.text(formatCurrency(obligation.amount), startX + 170, yPos);
@@ -307,12 +307,10 @@ export const generateLegalCustomerReport = async (
     yPos += 10;
   }
   
-  // Removed the "Important Information" section and contact information
-  
   // Add the footer with company info and logo to each page
   const footerLogoPath = '/lovable-uploads/f81bdd9a-0bfe-4a23-9690-2b9104df3642.png';
   
-  // Apply consistent footer to all pages
+  // Apply consistent footer to all pages with updated date format
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -328,11 +326,11 @@ export const generateLegalCustomerReport = async (
     // Add the footer image below the text
     doc.addImage(footerLogoPath, 'PNG', 15, pageHeight - 20, pageWidth - 30, 12);
     
-    // Add page number
+    // Add page number and date with new format
     doc.setFontSize(8);
     doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
     doc.text('CONFIDENTIAL', 14, pageHeight - 5);
-    doc.text(new Date().toLocaleDateString(), pageWidth - 14, pageHeight - 5, { align: 'right' });
+    doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 5, { align: 'right' });
   }
   
   return doc;

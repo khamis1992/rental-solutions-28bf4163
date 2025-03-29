@@ -59,6 +59,10 @@ import Financials from "./pages/Financials";
 
 // Reports pages
 import Reports from "./pages/Reports";
+import ScheduledReports from "./pages/ScheduledReports";
+
+// System Settings pages
+import SystemSettings from "./pages/SystemSettings";
 
 const App = () => {
   // Move the QueryClient initialization inside the component
@@ -127,8 +131,12 @@ const App = () => {
                           {/* Financials Management Route */}
                           <Route path="/financials" element={<Financials />} />
                           
-                          {/* Reports Route */}
+                          {/* Reports Routes */}
                           <Route path="/reports" element={<Reports />} />
+                          <Route path="/reports/scheduled" element={<ScheduledReports />} />
+                          
+                          {/* System Settings Route */}
+                          <Route path="/settings/system" element={<SystemSettings />} />
                           
                           {/* User Management Routes */}
                           <Route path="/settings" element={<UserSettings />} />

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,7 +35,7 @@ interface MaintenanceFormProps {
   onSubmit: (data: MaintenanceFormSchema) => void;
   isLoading?: boolean;
   isEditMode?: boolean;
-  submitLabel?: string; // Add the submitLabel prop
+  submitLabel?: string;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
@@ -44,17 +43,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   onSubmit,
   isLoading = false,
   isEditMode = false,
-  submitLabel, // Add it to the destructured props
+  submitLabel,
 }) => {
   // Setup form with validation
   const form = useForm<MaintenanceFormSchema>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
       vehicle_id: initialData?.vehicle_id || '',
-      maintenance_type: (initialData?.maintenance_type as any) || MaintenanceType.REGULAR_INSPECTION,
-      status: (initialData?.status as any) || MaintenanceStatus.SCHEDULED,
-      scheduled_date: initialData?.scheduled_date || new Date(),
-      completion_date: initialData?.completion_date,
+      maintenance_type: (initialData?.maintenance_type as keyof typeof MaintenanceType) || MaintenanceType.REGULAR_INSPECTION,
+      status: (initialData?.status as "scheduled" | "in_progress" | "completed" | "cancelled") || MaintenanceStatus.SCHEDULED,
+      scheduled_date: initialData?.scheduled_date ? new Date(initialData.scheduled_date) : new Date(),
+      completion_date: initialData?.completion_date ? new Date(initialData.completion_date) : undefined,
       description: initialData?.description || '',
       cost: initialData?.cost || 0,
       service_provider: initialData?.service_provider || '',
@@ -70,11 +69,27 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   // Format the maintenance type value
   const formatMaintenanceType = (type: string) => {
+    if (!type) return 'Unknown Type';
     return type
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
+
+  // Make sure vehicles has a default value if it's undefined
+  const vehiclesList = vehicles || [];
+
+  // Filter out invalid vehicle data to prevent select errors
+  const validVehicles = vehiclesList.filter(vehicle => 
+    vehicle && 
+    vehicle.id && 
+    vehicle.make && 
+    vehicle.model && 
+    vehicle.license_plate
+  );
+
+  // Check if there are any vehicles available
+  const hasVehicles = validVehicles.length > 0;
 
   return (
     <Card>
@@ -94,7 +109,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Vehicle</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      defaultValue={field.value || undefined}
                       disabled={isLoadingVehicles}
                     >
                       <FormControl>
@@ -103,11 +118,18 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehicles?.map(vehicle => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
-                          </SelectItem>
-                        ))}
+                        {hasVehicles ? (
+                          validVehicles.map(vehicle => (
+                            <SelectItem 
+                              key={vehicle.id} 
+                              value={vehicle.id}
+                            >
+                              {`${vehicle.make} ${vehicle.model} (${vehicle.license_plate})`}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-vehicles-available">No vehicles available</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -124,7 +146,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Maintenance Type</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      defaultValue={field.value || MaintenanceType.REGULAR_INSPECTION}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -132,9 +154,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.values(MaintenanceType).map((type) => (
-                          <SelectItem key={type} value={type}>
-                            {formatMaintenanceType(type)}
+                        {Object.entries(MaintenanceType).map(([key, value]) => (
+                          <SelectItem 
+                            key={key} 
+                            value={value}
+                          >
+                            {formatMaintenanceType(value)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -153,7 +178,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Status</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      defaultValue={field.value || MaintenanceStatus.SCHEDULED}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -161,10 +186,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={MaintenanceStatus.SCHEDULED}>Scheduled</SelectItem>
-                        <SelectItem value={MaintenanceStatus.IN_PROGRESS}>In Progress</SelectItem>
-                        <SelectItem value={MaintenanceStatus.COMPLETED}>Completed</SelectItem>
-                        <SelectItem value={MaintenanceStatus.CANCELLED}>Cancelled</SelectItem>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -202,6 +227,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                           onSelect={field.onChange}
                           disabled={(date) => date < new Date("1900-01-01")}
                           initialFocus
+                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
@@ -211,7 +237,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               />
 
               {/* Completion Date - only show if status is completed */}
-              {form.watch('status') === MaintenanceStatus.COMPLETED && (
+              {form.watch('status') === 'completed' && (
                 <FormField
                   control={form.control}
                   name="completion_date"
@@ -241,6 +267,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             onSelect={field.onChange}
                             disabled={(date) => date < new Date("1900-01-01")}
                             initialFocus
+                            className="pointer-events-auto"
                           />
                         </PopoverContent>
                       </Popover>

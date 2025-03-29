@@ -11,7 +11,7 @@ import {
   ColumnFiltersState,
   getFilteredRowModel
 } from "@tanstack/react-table";
-import { CheckCircle, Clock, XCircle, MoreHorizontal, UserCog, User, Shield, Search, Filter } from "lucide-react";
+import { CheckCircle, Clock, XCircle, MoreHorizontal, Search, Filter, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,10 +56,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Switch } from "@/components/ui/switch";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
+import { UserRoleManager } from "./UserRoleManager";
 
 interface UserData {
   id: string;
@@ -93,18 +104,11 @@ const DEFAULT_PERMISSIONS: Record<string, UserPermissions> = {
     financials: { view: true, create: true, edit: true, delete: true },
     userManagement: { view: true, create: true, edit: true, delete: true }
   },
-  manager: {
+  staff: {
     vehicles: { view: true, create: true, edit: true, delete: false },
     customers: { view: true, create: true, edit: true, delete: false },
     agreements: { view: true, create: true, edit: true, delete: false },
     financials: { view: true, create: false, edit: false, delete: false },
-    userManagement: { view: true, create: false, edit: false, delete: false }
-  },
-  user: {
-    vehicles: { view: true, create: false, edit: false, delete: false },
-    customers: { view: true, create: false, edit: false, delete: false },
-    agreements: { view: true, create: false, edit: false, delete: false },
-    financials: { view: false, create: false, edit: false, delete: false },
     userManagement: { view: false, create: false, edit: false, delete: false }
   }
 };
@@ -122,15 +126,19 @@ const UserList = () => {
     pending: 0,
     inactive: 0,
     admins: 0,
-    managers: 0,
-    users: 0
+    staff: 0
   });
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<UserData | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [bulkDeletingUsers, setBulkDeletingUsers] = useState(false);
   const { profile } = useProfile();
-
+  
   const form = useForm({
     defaultValues: {
       role: "",
@@ -139,7 +147,6 @@ const UserList = () => {
 
   useEffect(() => {
     fetchUsers();
-    updateTarekToAdmin();
   }, []);
 
   useEffect(() => {
@@ -150,8 +157,7 @@ const UserList = () => {
         pending: users.filter(user => user.status === 'pending_review').length,
         inactive: users.filter(user => user.status === 'inactive').length,
         admins: users.filter(user => user.role === 'admin').length,
-        managers: users.filter(user => user.role === 'manager').length,
-        users: users.filter(user => user.role === 'user').length
+        staff: users.filter(user => user.role === 'staff').length
       };
       setUserStats(stats);
     }
@@ -161,75 +167,203 @@ const UserList = () => {
     if (selectedUser) {
       form.setValue("role", selectedUser.role);
       
-      // Set initial permissions based on user role
-      setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
+      setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
     }
   }, [selectedUser, form]);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      console.log("Fetching users from Supabase...");
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .not('role', 'eq', 'customer');
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error details:", error);
+        throw error;
+      }
       
+      console.log("Fetched users:", data);
       setUsers(data || []);
     } catch (error: any) {
       console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users");
+      toast.error("Failed to load users: " + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateTarekToAdmin = async () => {
+  const deleteUser = async (userId: string) => {
     try {
-      const { error } = await supabase
+      setDeletingUser(true);
+      
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
+      
+      if (profileError) {
+        console.error("Error deleting user profile:", profileError);
+        throw profileError;
+      }
+      
+      setUsers(users.filter(user => user.id !== userId));
+      toast.success("User deleted successfully");
+      
+      setShowDeleteDialog(false);
+      setUserToDelete(null);
+    } catch (error: any) {
+      console.error("Error deleting user:", error.message);
+      toast.error("Failed to delete user: " + error.message);
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+
+  const bulkDeleteUsersByEmail = async (email: string, excludeUserId: string) => {
+    try {
+      setBulkDeletingUsers(true);
+      
+      const usersToDelete = users.filter(user => 
+        user.email === email && user.id !== excludeUserId
+      );
+      
+      if (usersToDelete.length === 0) {
+        toast.info("No duplicate users found with this email");
+        return;
+      }
+      
+      for (const user of usersToDelete) {
+        const { error } = await supabase
+          .from("profiles")
+          .delete()
+          .eq("id", user.id);
+        
+        if (error) {
+          console.error(`Error deleting user ${user.id}:`, error);
+          throw error;
+        }
+      }
+      
+      await fetchUsers();
+      
+      toast.success(`Successfully deleted ${usersToDelete.length} duplicate user(s)`);
+      
+      setShowBulkDeleteDialog(false);
+    } catch (error: any) {
+      console.error("Error performing bulk deletion:", error.message);
+      toast.error("Failed to delete duplicate users: " + error.message);
+    } finally {
+      setBulkDeletingUsers(false);
+    }
+  };
+
+  const handleDeleteKhamis = async () => {
+    if (!profile) {
+      toast.error("Cannot delete users: Your profile is not loaded");
+      return;
+    }
+    
+    try {
+      setBulkDeletingUsers(true);
+      console.log("Starting deletion of duplicate Khamis accounts");
+      
+      // Find all Khamis accounts except the current user's account
+      const khamisUsers = users.filter(user => 
+        user.email === "khamis-1992@hotmail.com" && user.id !== profile.id
+      );
+      
+      console.log(`Found ${khamisUsers.length} duplicate Khamis accounts to delete`);
+      
+      if (khamisUsers.length === 0) {
+        toast.info("No duplicate users found with this email");
+        setBulkDeletingUsers(false);
+        return;
+      }
+      
+      // Loop through and delete each duplicate account
+      const deletionPromises = khamisUsers.map(async (user) => {
+        console.log(`Attempting to delete user ${user.id}`);
+        const { error } = await supabase
+          .from("profiles")
+          .delete()
+          .eq("id", user.id);
+        
+        if (error) {
+          console.error(`Error deleting user ${user.id}:`, error);
+          throw error;
+        }
+        console.log(`Successfully deleted user ${user.id}`);
+        return user.id;
+      });
+      
+      // Wait for all deletions to complete
+      await Promise.all(deletionPromises);
+      
+      // Refresh user list
+      await fetchUsers();
+      
+      toast.success(`Successfully deleted ${khamisUsers.length} duplicate Khamis account(s)`);
+    } catch (error: any) {
+      console.error("Error deleting duplicate Khamis accounts:", error.message);
+      toast.error("Failed to delete users: " + error.message);
+    } finally {
+      setBulkDeletingUsers(false);
+    }
+  };
+
+  const openDeleteDialog = (user: UserData) => {
+    setUserToDelete(user);
+    setShowDeleteDialog(true);
+  };
+
+  const updateAdminAccounts = async () => {
+    try {
+      const { error: tarekError } = await supabase
         .from("profiles")
         .update({ role: "admin" })
         .eq("email", "tareklaribi25914@gmail.com");
       
-      if (error) throw error;
+      if (tarekError) {
+        console.error("Error updating Tarek's role:", tarekError);
+        throw tarekError;
+      }
       
       console.log("Tarek's account has been set as admin");
       
+      const { error: khamisError } = await supabase
+        .from("profiles")
+        .update({ role: "admin" })
+        .eq("email", "khamis-1992@hotmail.com");
+      
+      if (khamisError) {
+        console.error("Error updating Khamis's role:", khamisError);
+        throw khamisError;
+      }
+      
+      console.log("Khamis's account has been set as admin");
+      
       fetchUsers();
     } catch (error: any) {
-      console.error("Error updating user role:", error.message);
+      console.error("Error updating user roles:", error.message);
     }
   };
 
-  const handleUpdateUserRole = async (userId: string, newRole: string) => {
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role: newRole })
-        .eq("id", userId);
-      
-      if (error) throw error;
-      
-      setUsers(users.map(user => 
-        user.id === userId ? { ...user, role: newRole } : user
-      ));
-      
-      toast.success(`User role updated to ${newRole}`);
-    } catch (error: any) {
-      console.error("Error updating user role:", error.message);
-      toast.error("Failed to update user role");
-    }
-  };
-  
   const handleUpdateUserStatus = async (userId: string, newStatus: string) => {
     try {
+      const validStatus = newStatus as "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
+      
       const { error } = await supabase
         .from("profiles")
-        .update({ status: newStatus })
+        .update({ status: validStatus })
         .eq("id", userId);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Update status error details:", error);
+        throw error;
+      }
       
       setUsers(users.map(user => 
         user.id === userId ? { ...user, status: newStatus } : user
@@ -238,7 +372,7 @@ const UserList = () => {
       toast.success(`User status updated to ${newStatus}`);
     } catch (error: any) {
       console.error("Error updating user status:", error.message);
-      toast.error("Failed to update user status");
+      toast.error("Failed to update user status: " + error.message);
     }
   };
 
@@ -254,18 +388,16 @@ const UserList = () => {
     try {
       const newRole = form.getValues("role");
       
-      // Update the user role
       if (newRole !== selectedUser.role) {
-        await handleUpdateUserRole(selectedUser.id, newRole);
+        await supabase
+          .from("profiles")
+          .update({ role: newRole })
+          .eq("id", selectedUser.id);
       }
-      
-      // In a real application, we would save the custom permissions to a database
-      // For this demo, we're just showing the success toast
       
       toast.success("User permissions updated successfully");
       setShowPermissionDialog(false);
       
-      // Refresh the user list
       fetchUsers();
     } catch (error: any) {
       console.error("Error saving permissions:", error.message);
@@ -278,8 +410,7 @@ const UserList = () => {
   const handleRoleChange = (value: string) => {
     form.setValue("role", value);
     
-    // Update permissions based on the selected role
-    setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.user);
+    setUserPermissions(DEFAULT_PERMISSIONS[value as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
   };
 
   const updatePermission = (section: keyof UserPermissions, action: keyof PermissionSettings, value: boolean) => {
@@ -328,18 +459,17 @@ const UserList = () => {
       accessorKey: "role",
       header: "Role",
       cell: ({ row }) => {
-        const role = row.getValue("role") as string;
+        const user = row.original;
+        const isAdmin = profile?.role === "admin";
+        const isSelf = isCurrentUser(user.id);
+        
         return (
-          <div className="flex items-center">
-            {role === "admin" ? (
-              <Shield className="h-4 w-4 mr-2 text-primary" />
-            ) : role === "manager" ? (
-              <UserCog className="h-4 w-4 mr-2 text-blue-500" />
-            ) : (
-              <User className="h-4 w-4 mr-2 text-muted-foreground" />
-            )}
-            <span className="capitalize">{role || "user"}</span>
-          </div>
+          <UserRoleManager 
+            userId={user.id}
+            currentRole={user.role}
+            fullName={user.full_name}
+            disabled={!isAdmin || isSelf}
+          />
         );
       },
     },
@@ -381,6 +511,7 @@ const UserList = () => {
       cell: ({ row }) => {
         const user = row.original;
         const currentUserProfile = profile?.id === user.id;
+        const isAdmin = profile?.role === "admin";
         
         return (
           <DropdownMenu>
@@ -394,55 +525,39 @@ const UserList = () => {
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => toast.info(`User details: ${user.full_name}`)}
-              >
-                View details
-              </DropdownMenuItem>
-              <DropdownMenuItem
                 onClick={() => openPermissionDialog(user)}
-                disabled={profile?.role !== "admin"}
+                disabled={!isAdmin}
               >
                 Manage Permissions
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Change Role</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserRole(user.id, "admin")}
-                disabled={user.role === "admin" || profile?.role !== "admin" || currentUserProfile}
-              >
-                Set as Admin
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserRole(user.id, "manager")}
-                disabled={user.role === "manager" || profile?.role !== "admin" || currentUserProfile}
-              >
-                Set as Manager
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => handleUpdateUserRole(user.id, "user")}
-                disabled={user.role === "user" || profile?.role !== "admin" || currentUserProfile}
-              >
-                Set as User
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>Change Status</DropdownMenuLabel>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "active")}
-                disabled={user.status === "active" || profile?.role !== "admin" || currentUserProfile}
+                disabled={user.status === "active" || !isAdmin || currentUserProfile}
               >
                 Set Active
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "pending_review")}
-                disabled={user.status === "pending_review" || profile?.role !== "admin" || currentUserProfile}
+                disabled={user.status === "pending_review" || !isAdmin || currentUserProfile}
               >
                 Set Pending
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => handleUpdateUserStatus(user.id, "inactive")}
-                disabled={user.status === "inactive" || profile?.role !== "admin" || currentUserProfile}
+                disabled={user.status === "inactive" || !isAdmin || currentUserProfile}
               >
                 Set Inactive
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => openDeleteDialog(user)}
+                disabled={!isAdmin || currentUserProfile}
+                className="text-red-600"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete User
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -512,13 +627,13 @@ const UserList = () => {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Admins/Managers</CardTitle>
+            <CardTitle className="text-base font-medium">Admins/Staff</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userStats.admins + userStats.managers}</div>
+            <div className="text-2xl font-bold">{userStats.admins + userStats.staff}</div>
             <div className="mt-2">
               <Progress 
-                value={userStats.total ? ((userStats.admins + userStats.managers) / userStats.total) * 100 : 0} 
+                value={userStats.total ? ((userStats.admins + userStats.staff) / userStats.total) * 100 : 0} 
                 className="h-2" 
                 indicatorClassName="bg-blue-500"
               />
@@ -527,7 +642,7 @@ const UserList = () => {
         </Card>
       </div>
       
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex-1">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -547,8 +662,7 @@ const UserList = () => {
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="staff">Staff</SelectItem>
             </SelectContent>
           </Select>
           
@@ -568,6 +682,24 @@ const UserList = () => {
             <Filter className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+      
+      <div className="flex justify-end space-x-2">
+        <Button 
+          variant="destructive" 
+          size="sm" 
+          onClick={handleDeleteKhamis}
+          disabled={bulkDeletingUsers}
+        >
+          {bulkDeletingUsers ? (
+            <>Deleting...</>
+          ) : (
+            <>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Duplicate Khamis Accounts
+            </>
+          )}
+        </Button>
       </div>
       
       <div className="border rounded-md">
@@ -647,33 +779,22 @@ const UserList = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <Form {...form}>
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem className="mb-4">
-                      <FormLabel>User Role</FormLabel>
-                      <Select 
-                        onValueChange={handleRoleChange} 
-                        defaultValue={selectedUser.role}
-                        disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="user">User</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-              </Form>
+              <div className="mb-4">
+                <Label htmlFor="role-select" className="mb-2 block">User Role</Label>
+                <Select 
+                  onValueChange={handleRoleChange} 
+                  defaultValue={selectedUser.role}
+                  disabled={profile?.role !== "admin" || isCurrentUser(selectedUser.id)}
+                >
+                  <SelectTrigger id="role-select">
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="staff">Staff</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
               <div className="space-y-4 mt-4">
                 <div className="grid grid-cols-5 font-medium">
@@ -748,6 +869,58 @@ const UserList = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete User</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {userToDelete?.full_name}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingUser}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (userToDelete) deleteUser(userToDelete.id);
+              }}
+              disabled={deletingUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deletingUser ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Duplicate Users</AlertDialogTitle>
+            <AlertDialogDescription>
+              <div className="flex items-center mb-2 text-amber-600">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                <span>This will delete all duplicate users with the same email.</span>
+              </div>
+              <p>Are you sure you want to proceed? This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeletingUsers}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (profile) bulkDeleteUsersByEmail("khamis-1992@hotmail.com", profile.id);
+              }}
+              disabled={bulkDeletingUsers}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {bulkDeletingUsers ? "Deleting..." : "Delete All Duplicates"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
