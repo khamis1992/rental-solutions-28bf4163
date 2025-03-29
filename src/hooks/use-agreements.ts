@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -120,7 +119,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           mappedStatus = AgreementStatus.DRAFT;
       }
       
-      // Transform to Agreement type
+      // Transform to Agreement type with safe property access
       const agreement: Agreement = {
         id: data.id,
         customer_id: data.customer_id,
@@ -131,14 +130,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         created_at: data.created_at ? new Date(data.created_at) : undefined,
         updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
         total_amount: data.total_amount || 0,
-        deposit_amount: data.deposit_amount || 0, // Using deposit_amount directly
+        deposit_amount: data.deposit_amount || 0, 
         agreement_number: data.agreement_number || '',
         notes: data.notes || '',
         terms_accepted: true, // Default to true since the column doesn't exist in DB
-        additional_drivers: data.additional_drivers || [],
+        additional_drivers: [], // Default empty array as this may not exist in the database
         customers: customerData,
         vehicles: vehicleData,
-        signature_url: data.signature_url
+        signature_url: data.signature_url || undefined // Safe access with fallback
       };
       
       console.log("Transformed agreement data:", agreement);
@@ -165,35 +164,31 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       
       // Apply filters
       if (searchParams.status && searchParams.status !== 'all') {
-        // Map the front-end status to appropriate database statuses
-        let dbStatus: string;
+        // Handle the status filter based on the AgreementStatus enum
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
-            dbStatus = 'active';
+            query = query.eq('status', 'active');
             break;
           case AgreementStatus.PENDING:
             query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
             break;
           case AgreementStatus.CANCELLED:
-            dbStatus = 'cancelled';
+            query = query.eq('status', 'cancelled');
             break;
           case AgreementStatus.CLOSED:
             query = query.or('status.eq.completed,status.eq.terminated');
             break;
           case AgreementStatus.EXPIRED:
-            dbStatus = 'archived';
+            query = query.eq('status', 'archived');
             break;
           case AgreementStatus.DRAFT:
-            dbStatus = 'draft';
+            query = query.eq('status', 'draft');
             break;
           default:
-            dbStatus = searchParams.status;
-        }
-        
-        // Only apply the eq filter if we didn't use an OR filter above
-        if (searchParams.status !== AgreementStatus.PENDING && 
-            searchParams.status !== AgreementStatus.CLOSED) {
-          query = query.eq('status', dbStatus);
+            // If it's a direct database status value, use it directly
+            if (typeof searchParams.status === 'string') {
+              query = query.eq('status', searchParams.status);
+            }
         }
       }
       
@@ -262,14 +257,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           created_at: item.created_at ? new Date(item.created_at) : undefined,
           updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
           total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0, // Using deposit_amount directly
+          deposit_amount: item.deposit_amount || 0,
           agreement_number: item.agreement_number || '',
           notes: item.notes || '',
           terms_accepted: true,
-          additional_drivers: item.additional_drivers || [],
+          additional_drivers: [], // Default empty array as this may not exist in the database
           customers: item.profiles,
           vehicles: item.vehicles,
-          signature_url: item.signature_url
+          signature_url: item.signature_url || undefined // Safe access with fallback
         };
       });
       
