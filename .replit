@@ -33,4 +33,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd mobile-fleet-app && EXPO_USE_TUNNEL=true EXPO_DEBUG=true npm install -g expo-cli && npx expo start --tunnel --port 19000"
+args = "cd mobile-fleet-app && EXPO_USE_TUNNEL=true EXPO_DEBUG=true npx expo start --tunnel --port 19000"
