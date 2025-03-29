@@ -1,34 +1,82 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
+import { PieChart, Pie, ResponsiveContainer, Cell, Legend } from 'recharts';
 
-interface ForecastData {
-  month: string;
-  actual: number;
-  forecast: number;
-}
+const expenseData = [
+  { name: 'Maintenance', value: 35 },
+  { name: 'Insurance', value: 25 },
+  { name: 'Fuel', value: 20 },
+  { name: 'Taxes', value: 15 },
+  { name: 'Other', value: 5 }
+];
 
-export default function FinancialForecastChart({ data }: { data: ForecastData[] }) { // Renamed to avoid conflict
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+const FinancialMetricsChart = () => {
   return (
-    <Card className="w-full">
+    <Card>
       <CardHeader>
-        <CardTitle>Financial Forecast</CardTitle>
+        <CardTitle>Expense Breakdown</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="actual" stroke="#8884d8" name="Actual Revenue" />
-              <Line type="monotone" dataKey="forecast" stroke="#82ca9d" name="Forecast Revenue" />
-            </LineChart>
-          </ResponsiveContainer>
+        <div className="h-80">
+          <ChartContainer
+            config={{
+              Maintenance: {
+                label: "Maintenance",
+                color: COLORS[0]
+              },
+              Insurance: {
+                label: "Insurance",
+                color: COLORS[1]
+              },
+              Fuel: {
+                label: "Fuel",
+                color: COLORS[2]
+              },
+              Taxes: {
+                label: "Taxes",
+                color: COLORS[3]
+              },
+              Other: {
+                label: "Other",
+                color: COLORS[4]
+              }
+            }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={expenseData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={120}
+                  fill="#8884d8"
+                  paddingAngle={2}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
+                >
+                  {expenseData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={`var(--color-${entry.name})`} 
+                      stroke="var(--background)"
+                      strokeWidth={2}
+                    />
+                  ))}
+                </Pie>
+                <ChartTooltip content={<ChartTooltipContent />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         </div>
       </CardContent>
     </Card>
   );
-}
+};
+
+export default FinancialMetricsChart;

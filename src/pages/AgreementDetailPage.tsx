@@ -10,7 +10,6 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { UnifiedPaymentList } from '@/components/payments/UnifiedPaymentList';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -81,27 +80,14 @@ const AgreementDetailPage = () => {
           </div>
         </div>
       ) : agreement ? (
-        <>
-          <AgreementDetail 
-            agreement={agreement}
-            onDelete={handleDelete}
-            rentAmount={rentAmount}
-            contractAmount={contractAmount}
-            onPaymentDeleted={refreshAgreementData}
-            onDataRefresh={refreshAgreementData}
-          />
-          
-          {/* Using the new UnifiedPaymentList component */}
-          <div className="mt-6">
-            <UnifiedPaymentList 
-              agreementId={agreement.id}
-              rentAmount={rentAmount}
-              leaseStartDate={agreement.start_date}
-              leaseEndDate={agreement.end_date}
-              onPaymentDeleted={refreshAgreementData}
-            />
-          </div>
-        </>
+        <AgreementDetail 
+          agreement={agreement}
+          onDelete={handleDelete}
+          rentAmount={rentAmount}
+          contractAmount={contractAmount}
+          onPaymentDeleted={refreshAgreementData}
+          onDataRefresh={refreshAgreementData}
+        />
       ) : (
         <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">

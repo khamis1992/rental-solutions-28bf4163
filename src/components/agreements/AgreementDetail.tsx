@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, differenceInMonths, differenceInDays } from 'date-fns';
+import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,10 +10,6 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
-import { useDynamicPricing } from '@/hooks/use-dynamic-pricing';
-import { usePaymentPlans } from '@/hooks/use-payment-plans';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -32,56 +28,15 @@ export function AgreementDetail({
   onPaymentDeleted,
   onDataRefresh
 }: AgreementDetailProps) {
-  const { price: dynamicPrice } = useDynamicPricing(agreement?.vehicle_id || '');
   const navigate = useNavigate();
   
   const handleDelete = useCallback((id: string) => {
     onDelete(id);
   }, [onDelete]);
 
-  const { plans, calculateLateFee, calculateDynamicDeposit } = usePaymentPlans(agreement?.id || '');
-  
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
-
-  const handleLateFeeCalculation = async () => {
-    if (!agreement) return;
-    const daysLate = differenceInDays(new Date(), new Date(agreement.end_date));
-    // Use the actual amount field from agreement based on your data model
-    const lateFee = await calculateLateFee(daysLate, agreement.total_amount || 0);
-    
-    try {
-      const { data, error } = await supabase
-        .from('agreements')
-        .update({ 
-          late_fee_amount: lateFee,
-          last_late_fee_calculation: new Date().toISOString()
-        })
-        .eq('id', agreement.id);
-        
-      if (error) throw error;
-      toast.success('Late fee calculated and updated successfully');
-      
-    } catch (error) {
-      console.error('Error updating late fee:', error);
-      toast.error('Failed to update late fee');
-    }
-  };
-
-  const handleDepositCalculation = async () => {
-    if (!agreement?.vehicle_id) return;
-    const { data: vehicle } = await supabase
-      .from('vehicles')
-      .select('value')
-      .eq('id', agreement.vehicle_id)
-      .single();
-    
-    // Using a default customer score as it's not defined in the component
-    const customerScore = 80; // Default good score
-    const deposit = await calculateDynamicDeposit(vehicle?.value || 0, customerScore);
-    // Update agreement with calculated deposit
-  };
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
