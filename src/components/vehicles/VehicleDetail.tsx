@@ -401,10 +401,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Maintenance History</CardTitle>
-            <CustomButton size="sm" variant="outline" onClick={handleAddMaintenance}>
-              <Wrench className="h-4 w-4 mr-2" />
-              Add Maintenance
-            </CustomButton>
+            
           </div>
           
           {isLoadingMaintenance ? <div className="text-center py-8 text-muted-foreground">
