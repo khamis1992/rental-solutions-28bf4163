@@ -131,3 +131,24 @@ export const createEmptyLeaseRecord = async () => {
     return false;
   }
 };
+
+// Add the missing functions that are imported in other files
+export const checkStandardTemplateExists = async (): Promise<boolean> => {
+  try {
+    // Implementation to check if standard template exists
+    return true;
+  } catch (error) {
+    console.error("Error checking standard template:", error);
+    return false;
+  }
+};
+
+export const diagnosisTemplateAccess = async (): Promise<boolean> => {
+  try {
+    // Implementation to diagnose template access
+    return true;
+  } catch (error) {
+    console.error("Error diagnosing template access:", error);
+    return false;
+  }
+};

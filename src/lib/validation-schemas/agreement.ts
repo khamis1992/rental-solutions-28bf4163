@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 // Define agreement statuses
@@ -203,3 +202,14 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
     
   return processedTemplate;
 };
+
+// Add the missing function for license plate matching
+export function doesLicensePlateMatchNumeric(licensePlate: string | null | undefined, numericPattern: string): boolean {
+  if (!licensePlate) return false;
+  
+  // Remove all non-numeric characters from the license plate
+  const digitsOnly = licensePlate.replace(/\D/g, '');
+  
+  // Check if the numeric pattern is found in the digits-only version of the license plate
+  return digitsOnly.includes(numericPattern);
+}

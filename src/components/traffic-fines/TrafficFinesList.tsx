@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -37,6 +36,36 @@ import {
 } from 'lucide-react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
+
+const useTrafficFines = (filters) => {
+  const originalHook = useTrafficFines(filters);
+  
+  return {
+    ...originalHook,
+    payTrafficFine: useApiMutation(
+      async (id: string) => {
+        return await originalHook.updateTrafficFineStatus.mutateAsync({ id, status: 'paid' });
+      },
+      {
+        onSuccess: () => {
+          toast.success('Traffic fine marked as paid');
+          originalHook.refetch();
+        }
+      }
+    ),
+    disputeTrafficFine: useApiMutation(
+      async (id: string) => {
+        return await originalHook.updateTrafficFineStatus.mutateAsync({ id, status: 'disputed' });
+      },
+      {
+        onSuccess: () => {
+          toast.success('Traffic fine marked as disputed');
+          originalHook.refetch();
+        }
+      }
+    )
+  };
+};
 
 const TrafficFinesList = () => {
   const { toast } = useToast();
