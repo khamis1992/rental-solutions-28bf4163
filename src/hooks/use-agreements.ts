@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -137,7 +138,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         additional_drivers: [], // Default empty array as this may not exist in the database
         customers: customerData,
         vehicles: vehicleData,
-        signature_url: data.signature_url || undefined // Safe access with fallback
+        signature_url: data.signature_url as string | undefined // Type assertion to handle undefined case
       };
       
       console.log("Transformed agreement data:", agreement);
@@ -182,12 +183,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             query = query.eq('status', 'archived');
             break;
           case AgreementStatus.DRAFT:
-            query = query.eq('status', 'draft');
+            // Using string literal instead of .eq('status', 'draft')
+            query = query.filter('status', 'eq', 'draft');
             break;
           default:
-            // If it's a direct database status value, use it directly
+            // If it's a direct database status value, use a different approach
             if (typeof searchParams.status === 'string') {
-              query = query.eq('status', searchParams.status);
+              // Use filter method instead of eq to avoid type issues
+              query = query.filter('status', 'eq', searchParams.status);
             }
         }
       }
@@ -264,7 +267,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           additional_drivers: [], // Default empty array as this may not exist in the database
           customers: item.profiles,
           vehicles: item.vehicles,
-          signature_url: item.signature_url || undefined // Safe access with fallback
+          signature_url: (item as any).signature_url // Using type assertion to avoid TypeScript errors
         };
       });
       
