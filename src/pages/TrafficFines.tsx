@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, BarChart2, FileText } from "lucide-react";
 import TrafficFinesList from "@/components/fines/TrafficFinesList";
 import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
+import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 
 const TrafficFines = () => {
   const [activeTab, setActiveTab] = useState("list");
@@ -51,13 +52,7 @@ const TrafficFines = () => {
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-6">
-          <div className="bg-amber-50 border border-amber-200 rounded-md p-6 flex flex-col items-center justify-center space-y-4">
-            <BarChart2 className="h-12 w-12 text-amber-500" />
-            <h3 className="text-lg font-medium text-amber-800">Traffic Fine Analytics Coming Soon</h3>
-            <p className="text-amber-700 text-center max-w-md">
-              Advanced analytics and reporting features for traffic fines are under development and will be available in the next update.
-            </p>
-          </div>
+          <TrafficFineAnalytics />
         </TabsContent>
       </Tabs>
     </PageContainer>
