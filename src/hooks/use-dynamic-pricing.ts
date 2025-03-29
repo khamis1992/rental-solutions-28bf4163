@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface PricingFactors {
   seasonalMultiplier: number;
@@ -18,10 +19,10 @@ export function useDynamicPricing(vehicleId: string) {
       try {
         setIsLoading(true);
         
-        // Fetch vehicle base price
+        // Fetch vehicle rent_amount
         const { data: vehicle, error: vehicleError } = await supabase
           .from('vehicles')
-          .select('base_price')
+          .select('rent_amount')
           .eq('id', vehicleId)
           .single();
 
@@ -29,6 +30,7 @@ export function useDynamicPricing(vehicleId: string) {
 
         if (!vehicle) {
           setPrice(0);
+          setError('Vehicle not found');
           return;
         }
 
@@ -52,14 +54,15 @@ export function useDynamicPricing(vehicleId: string) {
         // Get seasonal multiplier
         const seasonalMultiplier = getSeasonalMultiplier();
 
-        // Calculate final price
-        const basePrice = vehicle.base_price || 1000; // Fallback value if base_price is not set
+        // Calculate final price using rent_amount instead of base_price
+        const basePrice = vehicle.rent_amount || 1000; // Fallback value if rent_amount is not set
         const finalPrice = basePrice * demandMultiplier * seasonalMultiplier;
         
         setPrice(Math.round(finalPrice));
       } catch (err) {
         console.error('Error calculating dynamic price:', err);
         setError('Failed to calculate dynamic price');
+        toast.error('Error calculating dynamic price');
       } finally {
         setIsLoading(false);
       }
