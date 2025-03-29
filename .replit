@@ -33,4 +33,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd mobile-fleet-app && npm install && npm install -g @expo/ngrok@4.1.0 --yes && npx expo start --tunnel --port 19000"
+args = "cd mobile-fleet-app && npm install --force && npm install -g @expo/ngrok@4.1.0 --yes && npx expo start --tunnel --port 19000"
