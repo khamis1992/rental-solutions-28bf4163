@@ -36,8 +36,16 @@ const AgreementDetailPage = () => {
   };
 
   useEffect(() => {
-    fetchAgreementData();
-  }, [id, refreshTrigger]);
+    if (id) {
+      fetchAgreementData();
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchAgreementData();
+    }
+  }, [refreshTrigger]);
 
   const handleDelete = async (agreementId: string) => {
     try {

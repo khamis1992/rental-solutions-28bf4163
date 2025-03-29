@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 
 const agreementSchema = z.object({
@@ -31,37 +30,37 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
-      
+
       if (!id || id.trim() === '') {
         console.error("Invalid agreement ID provided");
         toast.error("Invalid agreement ID");
         return null;
       }
-      
+
       // First, get the lease data
       const { data, error } = await supabase
         .from('leases')
         .select('*')
         .eq('id', id)
         .single();
-        
+
       if (error) {
         console.error("Error fetching agreement from Supabase:", error);
         toast.error(`Failed to load agreement details: ${error.message}`);
         return null;
       }
-      
+
       if (!data) {
         console.error(`No lease data found for ID: ${id}`);
         return null;
       }
-      
+
       console.log("Raw lease data from Supabase:", data);
-      
+
       // If we have the lease data, get the related customer and vehicle data
       let customerData = null;
       let vehicleData = null;
-      
+
       // Get customer data
       if (data.customer_id) {
         try {
@@ -70,7 +69,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             .select('id, full_name, email, phone_number, driver_license, nationality, address')
             .eq('id', data.customer_id)
             .maybeSingle();
-            
+
           if (customerError) {
             console.error("Error fetching customer:", customerError);
           } else if (customer) {
@@ -83,7 +82,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error("Error in customer data fetch:", customerFetchError);
         }
       }
-      
+
       // Get vehicle data - optimized with error handling
       if (data.vehicle_id) {
         try {
@@ -92,7 +91,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             .select('id, make, model, license_plate, image_url, year, color, vin')
             .eq('id', data.vehicle_id)
             .maybeSingle();
-            
+
           if (vehicleError) {
             console.error("Error fetching vehicle:", vehicleError);
           } else if (vehicle) {
@@ -105,10 +104,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error("Error in vehicle data fetch:", vehicleFetchError);
         }
       }
-      
+
       // Map database status to AgreementStatus type
       let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
-      
+
       switch(data.status) {
         case 'active':
           mappedStatus = AgreementStatus.ACTIVE;
@@ -130,7 +129,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         default:
           mappedStatus = AgreementStatus.DRAFT;
       }
-      
+
       // Transform to Agreement type with safe property access and proper date handling
       const agreement: Agreement = {
         id: data.id,
@@ -152,7 +151,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         // Use type assertion with 'as' to tell TypeScript this property exists
         signature_url: (data as any).signature_url
       };
-      
+
       console.log("Transformed agreement data:", agreement);
       return agreement;
     } catch (err) {
@@ -165,7 +164,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   // Implementation for fetching all agreements with filtering
   const fetchAgreements = async (): Promise<Agreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
-    
+
     try {
       let query = supabase
         .from('leases')
@@ -174,7 +173,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           profiles:customer_id (id, full_name, email, phone_number),
           vehicles:vehicle_id (id, make, model, license_plate, image_url)
         `);
-      
+
       // Apply filters
       if (searchParams.status && searchParams.status !== 'all') {
         // Handle the status filter based on the AgreementStatus enum
@@ -206,40 +205,40 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             }
         }
       }
-      
+
       if (searchParams.vehicle_id) {
         query = query.eq('vehicle_id', searchParams.vehicle_id);
       }
-      
+
       if (searchParams.customer_id) {
         query = query.eq('customer_id', searchParams.customer_id);
       }
-      
+
       if (searchParams.query) {
         const searchQuery = searchParams.query.toLowerCase().trim();
         // Handle simple search for agreement number
         query = query.or(`agreement_number.ilike.%${searchQuery}%,vehicles.license_plate.ilike.%${searchQuery}%,profiles.full_name.ilike.%${searchQuery}%`);
       }
-      
+
       const { data, error } = await query;
-      
+
       if (error) {
         console.error("Error fetching agreements:", error);
         throw new Error(`Failed to fetch agreements: ${error.message}`);
       }
-      
+
       if (!data || data.length === 0) {
         console.log("No agreements found with the given filters");
         return [];
       }
-      
+
       console.log(`Found ${data.length} agreements`, data);
-      
+
       // Transform to Agreement type with proper date handling
       const agreements: Agreement[] = data.map(item => {
         // Map database status to AgreementStatus type
         let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
-        
+
         switch(item.status) {
           case 'active':
             mappedStatus = AgreementStatus.ACTIVE;
@@ -261,7 +260,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           default:
             mappedStatus = AgreementStatus.DRAFT;
         }
-        
+
         return {
           id: item.id,
           customer_id: item.customer_id,
@@ -282,7 +281,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           signature_url: (item as any).signature_url // Using type assertion to avoid TypeScript errors
         };
       });
-      
+
       return agreements;
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
@@ -318,6 +317,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
+    staleTime: 30000, // Cache data for 30 seconds
+    cacheTime: 60000, // Keep unused data in cache for 1 minute
   });
 
   return {

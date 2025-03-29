@@ -24,6 +24,14 @@ export function AgreementDetail({
   onPaymentDeleted 
 }: AgreementDetailProps) {
   const navigate = useNavigate();
+  const handleDelete = useCallback((id: string) => {
+    onDelete(id);
+  }, [onDelete]);
+
+  const handlePrint = useCallback(() => {
+    window.print();
+  }, []);
+  const navigate = useNavigate();
 
   if (!agreement) {
     return (
