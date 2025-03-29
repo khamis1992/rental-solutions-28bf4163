@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ContractAmendment {
   id: string;
@@ -17,7 +18,7 @@ interface ContractAmendment {
 }
 
 export function SmartContractManager() {
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit, reset } = useForm();
 
   const onAmendContract = async (data: any) => {
     try {
@@ -30,11 +31,19 @@ export function SmartContractManager() {
         amendment_date: new Date()
       };
 
+      // Use a more generic approach with type assertion since contract_amendments 
+      // might not be in the type definitions
       const { error } = await supabase
-        .from('contract_amendments')
+        .from('contract_amendments' as any)
         .insert(amendment);
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Failed to amend contract: ' + error.message);
+        throw error;
+      }
+      
+      toast.success('Contract amendment recorded successfully');
+      reset();
     } catch (error) {
       console.error('Error amending contract:', error);
     }

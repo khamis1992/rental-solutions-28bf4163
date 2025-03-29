@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface SubscriptionPlan {
   id: string;
@@ -17,21 +18,27 @@ export function useSubscriptionPlans() {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
+        // Use a type assertion since subscription_plans might not be in the type definitions
         const { data, error } = await supabase
-          .from('subscription_plans')
+          .from('subscription_plans' as any)
           .select('*');
           
         if (error) throw error;
         
-        // Transform data to match expected format if needed
-        const formattedPlans = (data || []).map(plan => ({
-          ...plan,
-          features: plan.features || []
-        }));
-        
-        setPlans(formattedPlans);
+        // Validate and transform the data to match our expected interface
+        if (data) {
+          const formattedPlans: SubscriptionPlan[] = data.map((plan: any) => ({
+            id: plan.id || '',
+            name: plan.name || '',
+            price: Number(plan.price) || 0,
+            features: Array.isArray(plan.features) ? plan.features : []
+          }));
+          
+          setPlans(formattedPlans);
+        }
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
+        toast.error('Failed to load subscription plans');
       } finally {
         setIsLoading(false);
       }
