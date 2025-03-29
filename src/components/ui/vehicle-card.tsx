@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CircleUser, Calendar, MapPin, Fuel, Activity } from 'lucide-react';
 import { CustomButton } from './custom-button';
 import { VehicleStatus } from '@/types/vehicle';
-import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 
 interface VehicleCardProps {
   id: string;
@@ -36,9 +36,6 @@ const VehicleCard = ({
   className,
   onSelect,
 }: VehicleCardProps) => {
-  const [actualImageUrl, setActualImageUrl] = useState<string>('');
-  const [isImageLoading, setIsImageLoading] = useState(true);
-  
   const statusColors = {
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
@@ -50,130 +47,67 @@ const VehicleCard = ({
     retired: 'bg-gray-100 text-gray-800'
   };
 
+  // Default image for cars
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
   
-  useEffect(() => {
-    async function loadVehicleImage() {
-      setIsImageLoading(true);
-      
-      try {
-        // Check model-specific images
-        const modelToCheck = model || '';
-        
-        // Models to check for specific storage images
-        const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
-        
-        // Find if current vehicle matches any known model
-        const matchedModelType = modelTypes.find(type => 
-          modelToCheck.toUpperCase().includes(type) || 
-          modelToCheck.toLowerCase().includes(type.toLowerCase())
-        );
-        
-        if (matchedModelType) {
-          console.log(`Vehicle matched model type: ${matchedModelType}`);
-          const modelImage = await getModelSpecificImage(matchedModelType);
-          
-          if (modelImage) {
-            console.log(`Using ${matchedModelType} image from storage:`, modelImage);
-            setActualImageUrl(modelImage);
-            setIsImageLoading(false);
-            return;
-          }
-        }
-        
-        // Then check if we have a direct URL
-        if (imageUrl && imageUrl.startsWith('http')) {
-          setActualImageUrl(imageUrl);
-          setIsImageLoading(false);
-          return;
-        }
-        
-        // Then try to get an image by vehicle ID
-        const storageImage = await getVehicleImageByPrefix(id);
-        if (storageImage) {
-          setActualImageUrl(storageImage);
-          setIsImageLoading(false);
-          return;
-        }
-        
-        // Finally, fall back to model-specific images from public folder
-        fallbackToModelImages();
-      } catch (error) {
-        console.error('Error loading vehicle image:', error);
-        fallbackToModelImages();
-      }
-    }
-    
-    loadVehicleImage();
-  }, [id, imageUrl, make, model]);
+  // Image paths
+  const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
+  const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
+  const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
+  const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
   
-  const fallbackToModelImages = () => {
-    const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
-    const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
-    const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
-    const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
-    const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
-    const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
-    const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
+  // Custom image logic by make/model
+  let displayImageUrl = '';
+  
+  try {
+    // Normalize make and model for consistent comparison (convert to lowercase)
+    const makeLower = (make || '').toString().toLowerCase().trim();
+    const modelLower = (model || '').toString().toLowerCase().trim();
     
-    try {
-      const makeLower = (make || '').toString().toLowerCase().trim();
-      const modelLower = (model || '').toString().toLowerCase().trim();
-      
-      console.log('Vehicle card make/model:', makeLower, modelLower);
-      
-      if (modelLower.includes('b70') || modelLower === 'b70') {
-        setActualImageUrl(b70Image);
-        console.log('Using B70 fallback image');
-      }
-      else if (modelLower.includes('t33') || modelLower === 't33') {
-        setActualImageUrl(t33Image);
-        console.log('Using T33 fallback image');
-      }
-      else if (modelLower.includes('t77') || modelLower === 't77') {
-        setActualImageUrl(t77Image);
-        console.log('Using T77 fallback image');
-      } 
-      else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
-        setActualImageUrl(gs3Image);
-        console.log('Using GAC GS3 fallback image');
-      }
-      else if (modelLower.includes('gs3') || modelLower === 'gs3') {
-        setActualImageUrl(gs3Image);
-        console.log('Using GS3 fallback image');
-      }
-      else if (makeLower.includes('gac')) {
-        setActualImageUrl(gacImage);
-        console.log('Using generic GAC fallback image');
-      } 
-      else if (
-        makeLower === 'mg' || 
-        makeLower.startsWith('mg ') || 
-        modelLower.startsWith('mg')
+    console.log('Vehicle card make/model:', makeLower, modelLower);
+    
+    // Check for T77 in model name
+    if (modelLower.includes('t77') || modelLower === 't77') {
+      displayImageUrl = t77Image;
+      console.log('Using T77 image');
+    } 
+    // Check for GAC in make name
+    else if (makeLower.includes('gac')) {
+      displayImageUrl = gacImage;
+      console.log('Using GAC image');
+    } 
+    // MG handling - check both make and model
+    else if (
+      makeLower === 'mg' || 
+      makeLower.startsWith('mg ') || 
+      modelLower.startsWith('mg')
+    ) {
+      // Specific check for MG5
+      if (
+        modelLower.includes('5') || 
+        modelLower.includes('mg5') || 
+        makeLower.includes('mg5') ||
+        (makeLower === 'mg' && modelLower === '5')
       ) {
-        if (
-          modelLower.includes('5') || 
-          modelLower.includes('mg5') || 
-          makeLower.includes('mg5') ||
-          (makeLower === 'mg' && modelLower === '5')
-        ) {
-          setActualImageUrl(mg5Image);
-          console.log('Using MG5 specific fallback image:', mg5Image);
-        } else {
-          setActualImageUrl(mgImage);
-          console.log('Using generic MG fallback image:', mgImage);
-        }
-      } 
-      else {
-        setActualImageUrl(defaultCarImage);
+        displayImageUrl = mg5Image;
+        console.log('Using MG5 specific image:', mg5Image);
+      } else {
+        displayImageUrl = mgImage;
+        console.log('Using generic MG image:', mgImage);
       }
-    } catch (error) {
-      console.error('Error setting vehicle image:', error);
-      setActualImageUrl(defaultCarImage);
-    } finally {
-      setIsImageLoading(false);
+    } 
+    // Use provided imageUrl if available
+    else if (imageUrl) {
+      displayImageUrl = imageUrl;
+    } 
+    // Fallback to default image
+    else {
+      displayImageUrl = defaultCarImage;
     }
-  };
+  } catch (error) {
+    console.error('Error setting vehicle image:', error);
+    displayImageUrl = defaultCarImage;
+  }
 
   return (
     <Card className={cn(
@@ -183,21 +117,16 @@ const VehicleCard = ({
     )}>
       <div className="relative h-48 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10" />
-        {isImageLoading ? (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <span className="text-muted-foreground">Loading...</span>
-          </div>
-        ) : (
-          <img 
-            src={actualImageUrl || defaultCarImage} 
-            alt={`${make} ${model}`}
-            className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
-            onError={(e) => {
-              console.log('Image failed to load, using fallback:', e.currentTarget.src);
-              e.currentTarget.src = defaultCarImage;
-            }}
-          />
-        )}
+        <img 
+          src={displayImageUrl} 
+          alt={`${make} ${model}`}
+          className="w-full h-full object-cover transition-transform duration-500 ease-out hover:scale-105"
+          onError={(e) => {
+            console.log('Image failed to load, using fallback:', e.currentTarget.src);
+            // Fallback to default image if loading fails
+            e.currentTarget.src = defaultCarImage;
+          }}
+        />
         <Badge className={cn("absolute top-3 right-3 z-20", statusColors[status])}>
           {status.charAt(0).toUpperCase() + status.slice(1)}
         </Badge>

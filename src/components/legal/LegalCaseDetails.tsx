@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { ExternalLink, FileText, UserCog, CalendarClock, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/utils';
-import { formatDate } from '@/lib/date-utils';
 import { CustomerObligation } from './CustomerLegalObligations';
 
 interface LegalCaseDetailsProps {
@@ -77,7 +76,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <div className="flex items-center">
               <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" />
               <span className={isRecentDate(obligation.dueDate) ? 'text-red-500 font-medium' : ''}>
-                {formatDate(obligation.dueDate)}
+                {obligation.dueDate.toLocaleDateString()}
               </span>
             </div>
           </div>

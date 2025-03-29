@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -6,121 +5,52 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { Users, UserPlus, StarIcon, Repeat2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useCustomers } from '@/hooks/use-customers';
-import { formatCurrency } from '@/lib/utils';
-import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 
 const CustomerReport = () => {
-  const {
-    customers,
-    isLoading
-  } = useCustomers();
-
-  // Calculate customer metrics
-  const totalCustomers = customers.length;
-
-  // Get customers created in the last 30 days
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const newCustomers = customers.filter(customer => {
-    const createdDate = customer.created_at ? new Date(customer.created_at) : null;
-    return createdDate && createdDate > thirtyDaysAgo;
-  }).length;
-
-  // Calculate customer segments based on status
-  const activeCustomers = customers.filter(customer => customer.status === 'active').length;
-  const inactiveCustomers = customers.filter(customer => customer.status === 'inactive').length;
-  const blacklistedCustomers = customers.filter(customer => customer.status === 'blacklisted').length;
-  const pendingCustomers = customers.filter(customer => customer.status === 'pending_review').length;
-
-  // Prepare data for customer segments chart
-  const customerSegmentData = [{
-    name: 'Active',
-    value: activeCustomers,
-    color: '#3b82f6'
-  }, {
-    name: 'Inactive',
-    value: inactiveCustomers,
-    color: '#22c55e'
-  }, {
-    name: 'Blacklisted',
-    value: blacklistedCustomers,
-    color: '#f59e0b'
-  }, {
-    name: 'Pending Review',
-    value: pendingCustomers,
-    color: '#8b5cf6'
-  }].filter(segment => segment.value > 0);
-
-  // Get top customers (for demonstration, we'll sort by most recently created)
-  const topCustomers = [...customers].sort((a, b) => {
-    const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
-    const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
-    return dateB.getTime() - dateA.getTime();
-  }).slice(0, 5).map((customer, index) => ({
-    id: customer.id,
-    name: customer.full_name,
-    status: customer.status || 'active',
-    totalRentals: Math.floor(Math.random() * 15) + 1,
-    // Sample data as we don't have this info
-    totalSpent: Math.floor(Math.random() * 10000) + 1000,
-    // Sample data
-    lastRental: customer.updated_at ? new Date(customer.updated_at).toISOString().split('T')[0] : 'N/A',
-    rating: (4 + Math.random()).toFixed(1)
-  }));
-
-  // Create rental duration data (sample data as we don't have this in our database)
-  const rentalDurationData = [{
-    name: '1-3 days',
-    value: Math.floor(totalCustomers * 0.4),
-    color: '#3b82f6'
-  }, {
-    name: '4-7 days',
-    value: Math.floor(totalCustomers * 0.3),
-    color: '#22c55e'
-  }, {
-    name: '8-14 days',
-    value: Math.floor(totalCustomers * 0.2),
-    color: '#f59e0b'
-  }, {
-    name: '15+ days',
-    value: Math.floor(totalCustomers * 0.1),
-    color: '#8b5cf6'
-  }];
-  
-  // Prepare report data for download
-  const getReportData = () => {
-    return customers.map(customer => ({
-      id: customer.id,
-      full_name: customer.full_name,
-      email: customer.email,
-      phone: customer.phone,
-      status: customer.status,
-      driver_license: customer.driver_license,
-      created_at: customer.created_at,
-      nationality: customer.nationality || 'N/A',
-      address: customer.address || 'N/A'
-    }));
-  };
-  
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-64">Loading customer data...</div>;
-  }
-  return <div className="space-y-8">
+  return (
+    <div className="space-y-8">
       <div className="flex items-center mb-6">
-        
+        <img 
+          src="/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png" 
+          alt="Alaraf Car Rental" 
+          className="h-10 mr-4" 
+        />
         <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
       </div>
       
-      <div className="mb-6">
-        <ReportDownloadOptions reportType="customers" getReportData={getReportData} />
-      </div>
-      
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Customers" value={totalCustomers.toString()} trend={newCustomers} trendLabel="new this month" icon={Users} iconColor="text-blue-500" />
-        <StatCard title="New Customers" value={newCustomers.toString()} trend={Math.round(newCustomers / (totalCustomers || 1) * 100)} trendLabel="% of total" icon={UserPlus} iconColor="text-green-500" />
-        <StatCard title="Active Customers" value={`${activeCustomers}`} trend={Math.round(activeCustomers / (totalCustomers || 1) * 100)} trendLabel="% of total" icon={StarIcon} iconColor="text-amber-500" />
-        <StatCard title="Retention Rate" value={`${Math.round(activeCustomers / (totalCustomers || 1) * 100)}%`} trend={5} trendLabel="vs last month" icon={Repeat2} iconColor="text-indigo-500" />
+        <StatCard 
+          title="Total Customers" 
+          value="547" 
+          trend={12}
+          trendLabel="vs last month"
+          icon={Users}
+          iconColor="text-blue-500"
+        />
+        <StatCard 
+          title="New Customers" 
+          value="38" 
+          trend={8}
+          trendLabel="vs last month"
+          icon={UserPlus}
+          iconColor="text-green-500"
+        />
+        <StatCard 
+          title="Customer Satisfaction" 
+          value="4.7/5" 
+          trend={0.2}
+          trendLabel="vs last month"
+          icon={StarIcon}
+          iconColor="text-amber-500"
+        />
+        <StatCard 
+          title="Repeat Customers" 
+          value="64%" 
+          trend={5}
+          trendLabel="vs last month"
+          icon={Repeat2}
+          iconColor="text-indigo-500"
+        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -130,18 +60,26 @@ const CustomerReport = () => {
           </CardHeader>
           <CardContent>
             <div className="h-80 flex items-center justify-center">
-              {customerSegmentData.length > 0 ? <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie data={customerSegmentData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({
-                  name,
-                  percent
-                }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                      {customerSegmentData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip formatter={value => [`${value} customers`, 'Count']} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer> : <div className="text-center text-gray-500">No segment data available</div>}
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={customerSegmentData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {customerSegmentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [`${value} customers`, 'Count']} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
@@ -154,13 +92,21 @@ const CustomerReport = () => {
             <div className="h-80 flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={rentalDurationData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" label={({
-                  name,
-                  percent
-                }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                    {rentalDurationData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  <Pie
+                    data={rentalDurationData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {rentalDurationData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
                   </Pie>
-                  <Tooltip formatter={value => [`${value} rentals`, 'Count']} />
+                  <Tooltip formatter={(value) => [`${value} rentals`, 'Count']} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>
@@ -174,47 +120,71 @@ const CustomerReport = () => {
           <CardTitle>Top Customers</CardTitle>
         </CardHeader>
         <CardContent>
-          {topCustomers.length > 0 ? <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total Rentals</TableHead>
-                  <TableHead>Total Spent</TableHead>
-                  <TableHead>Last Rental</TableHead>
-                  <TableHead>Rating</TableHead>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Total Rentals</TableHead>
+                <TableHead>Total Spent</TableHead>
+                <TableHead>Last Rental</TableHead>
+                <TableHead>Rating</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {topCustomersData.map((customer) => (
+                <TableRow key={customer.id}>
+                  <TableCell className="font-medium">{customer.name}</TableCell>
+                  <TableCell>
+                    <CustomerStatusBadge status={customer.status} />
+                  </TableCell>
+                  <TableCell>{customer.totalRentals}</TableCell>
+                  <TableCell>${customer.totalSpent.toLocaleString()}</TableCell>
+                  <TableCell>{customer.lastRental}</TableCell>
+                  <TableCell>{customer.rating}/5</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {topCustomers.map(customer => <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
-                    <TableCell>
-                      <CustomerStatusBadge status={customer.status} />
-                    </TableCell>
-                    <TableCell>{customer.totalRentals}</TableCell>
-                    <TableCell>{formatCurrency(customer.totalSpent)}</TableCell>
-                    <TableCell>{customer.lastRental}</TableCell>
-                    <TableCell>{customer.rating}/5</TableCell>
-                  </TableRow>)}
-              </TableBody>
-            </Table> : <div className="text-center py-4 text-gray-500">No customer data available</div>}
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
-const CustomerStatusBadge = ({
-  status
-}: {
-  status: string;
-}) => {
+
+const CustomerStatusBadge = ({ status }: { status: string }) => {
   const variants: Record<string, string> = {
     'active': 'bg-green-100 text-green-800',
     'inactive': 'bg-gray-100 text-gray-800',
-    'blacklisted': 'bg-red-100 text-red-800',
-    'pending_review': 'bg-purple-100 text-purple-800'
+    'vip': 'bg-purple-100 text-purple-800',
   };
-  return <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-      {status.replace('_', ' ')}
-    </Badge>;
+
+  return (
+    <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
+      {status}
+    </Badge>
+  );
 };
+
+const customerSegmentData = [
+  { name: 'Business', value: 187, color: '#3b82f6' },
+  { name: 'Leisure', value: 294, color: '#22c55e' },
+  { name: 'Long-term', value: 66, color: '#f59e0b' },
+];
+
+const rentalDurationData = [
+  { name: '1-3 days', value: 203, color: '#3b82f6' },
+  { name: '4-7 days', value: 156, color: '#22c55e' },
+  { name: '8-14 days', value: 98, color: '#f59e0b' },
+  { name: '15+ days', value: 43, color: '#8b5cf6' },
+];
+
+const topCustomersData = [
+  { id: 1, name: 'John Smith', status: 'vip', totalRentals: 17, totalSpent: 8750, lastRental: '2023-08-10', rating: 4.9 },
+  { id: 2, name: 'Sarah Johnson', status: 'active', totalRentals: 12, totalSpent: 6420, lastRental: '2023-07-28', rating: 4.7 },
+  { id: 3, name: 'Michael Brown', status: 'vip', totalRentals: 15, totalSpent: 7850, lastRental: '2023-08-05', rating: 4.8 },
+  { id: 4, name: 'Emily Davis', status: 'active', totalRentals: 9, totalSpent: 4320, lastRental: '2023-08-12', rating: 4.5 },
+  { id: 5, name: 'David Wilson', status: 'inactive', totalRentals: 7, totalSpent: 3640, lastRental: '2023-06-18', rating: 4.2 },
+];
+
 export default CustomerReport;

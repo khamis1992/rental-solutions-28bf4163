@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 // Define agreement statuses
@@ -59,7 +60,6 @@ export const agreementSchema = z.object({
   signature_url: z.string().optional(),
   template_url: z.string().optional(),
   additional_drivers: z.array(z.string()).optional(),
-  daily_late_fee: z.number().optional(),
   // Include the nested objects returned from Supabase
   customers: CustomerSchema.optional(),
   vehicles: VehicleSchema.optional(),
@@ -91,7 +91,6 @@ export const createEmptyAgreement = (): Omit<Agreement, "id"> => ({
   notes: "",
   terms_accepted: false,
   additional_drivers: [],
-  daily_late_fee: 120, // Default daily late fee value
 });
 
 // Function to generate monthly payment records

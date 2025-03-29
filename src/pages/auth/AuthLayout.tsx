@@ -11,7 +11,7 @@ const AuthLayout = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-secondary/20 rounded-md blur-xl" />
             <div className="relative z-10">
               <div className="mb-6 flex flex-col space-y-2 text-center">
-                <h1 className="text-3xl font-bold tracking-tight">Rental Solutions</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Auto Rent Manager</h1>
                 <p className="text-muted-foreground text-lg">
                   Efficiently manage your fleet with our comprehensive rental management system.
                 </p>
@@ -20,7 +20,7 @@ const AuthLayout = () => {
                 <div className="w-full max-w-md">
                   {/* Placeholder for image or additional content */}
                   <div className="h-64 w-full rounded-lg bg-primary/10 flex items-center justify-center">
-                    <span className="text-4xl font-bold text-primary">RS</span>
+                    <span className="text-4xl font-bold text-primary">ARM</span>
                   </div>
                 </div>
               </div>
@@ -36,7 +36,7 @@ const AuthLayout = () => {
       <footer className="border-t py-4">
         <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-center text-sm leading-loose text-muted-foreground md:text-left">
-            &copy; {new Date().getFullYear()} Rental Solutions. All rights reserved.
+            &copy; {new Date().getFullYear()} Auto Rent Manager. All rights reserved.
           </p>
         </div>
       </footer>
