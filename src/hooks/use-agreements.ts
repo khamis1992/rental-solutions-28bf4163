@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -95,6 +95,31 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
       
+      // Map database status to AgreementStatus type
+      let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
+      
+      switch(data.status) {
+        case 'active':
+          mappedStatus = AgreementStatus.ACTIVE;
+          break;
+        case 'pending_payment':
+        case 'pending_deposit':
+          mappedStatus = AgreementStatus.PENDING;
+          break;
+        case 'cancelled':
+          mappedStatus = AgreementStatus.CANCELLED;
+          break;
+        case 'completed':
+        case 'terminated':
+          mappedStatus = AgreementStatus.CLOSED;
+          break;
+        case 'archived':
+          mappedStatus = AgreementStatus.EXPIRED;
+          break;
+        default:
+          mappedStatus = AgreementStatus.DRAFT;
+      }
+      
       // Transform to Agreement type
       const agreement: Agreement = {
         id: data.id,
@@ -102,11 +127,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         vehicle_id: data.vehicle_id,
         start_date: new Date(data.start_date),
         end_date: new Date(data.end_date),
-        status: data.status,
+        status: mappedStatus,
         created_at: data.created_at ? new Date(data.created_at) : undefined,
         updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
         total_amount: data.total_amount || 0,
-        deposit_amount: data.down_payment || 0, // Using down_payment as deposit_amount
+        deposit_amount: data.deposit_amount || 0, // Using deposit_amount directly
         agreement_number: data.agreement_number || '',
         notes: data.notes || '',
         terms_accepted: true, // Default to true since the column doesn't exist in DB
@@ -140,7 +165,36 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       
       // Apply filters
       if (searchParams.status && searchParams.status !== 'all') {
-        query = query.eq('status', searchParams.status);
+        // Map the front-end status to appropriate database statuses
+        let dbStatus: string;
+        switch(searchParams.status) {
+          case AgreementStatus.ACTIVE:
+            dbStatus = 'active';
+            break;
+          case AgreementStatus.PENDING:
+            query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
+            break;
+          case AgreementStatus.CANCELLED:
+            dbStatus = 'cancelled';
+            break;
+          case AgreementStatus.CLOSED:
+            query = query.or('status.eq.completed,status.eq.terminated');
+            break;
+          case AgreementStatus.EXPIRED:
+            dbStatus = 'archived';
+            break;
+          case AgreementStatus.DRAFT:
+            dbStatus = 'draft';
+            break;
+          default:
+            dbStatus = searchParams.status;
+        }
+        
+        // Only apply the eq filter if we didn't use an OR filter above
+        if (searchParams.status !== AgreementStatus.PENDING && 
+            searchParams.status !== AgreementStatus.CLOSED) {
+          query = query.eq('status', dbStatus);
+        }
       }
       
       if (searchParams.vehicle_id) {
@@ -172,25 +226,52 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       console.log(`Found ${data.length} agreements`, data);
       
       // Transform to Agreement type
-      const agreements: Agreement[] = data.map(item => ({
-        id: item.id,
-        customer_id: item.customer_id,
-        vehicle_id: item.vehicle_id,
-        start_date: new Date(item.start_date),
-        end_date: new Date(item.end_date),
-        status: item.status,
-        created_at: item.created_at ? new Date(item.created_at) : undefined,
-        updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
-        total_amount: item.total_amount || 0,
-        deposit_amount: item.down_payment || 0,
-        agreement_number: item.agreement_number || '',
-        notes: item.notes || '',
-        terms_accepted: true,
-        additional_drivers: item.additional_drivers || [],
-        customers: item.profiles,
-        vehicles: item.vehicles,
-        signature_url: item.signature_url
-      }));
+      const agreements: Agreement[] = data.map(item => {
+        // Map database status to AgreementStatus type
+        let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
+        
+        switch(item.status) {
+          case 'active':
+            mappedStatus = AgreementStatus.ACTIVE;
+            break;
+          case 'pending_payment':
+          case 'pending_deposit':
+            mappedStatus = AgreementStatus.PENDING;
+            break;
+          case 'cancelled':
+            mappedStatus = AgreementStatus.CANCELLED;
+            break;
+          case 'completed':
+          case 'terminated':
+            mappedStatus = AgreementStatus.CLOSED;
+            break;
+          case 'archived':
+            mappedStatus = AgreementStatus.EXPIRED;
+            break;
+          default:
+            mappedStatus = AgreementStatus.DRAFT;
+        }
+        
+        return {
+          id: item.id,
+          customer_id: item.customer_id,
+          vehicle_id: item.vehicle_id,
+          start_date: new Date(item.start_date),
+          end_date: new Date(item.end_date),
+          status: mappedStatus,
+          created_at: item.created_at ? new Date(item.created_at) : undefined,
+          updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
+          total_amount: item.total_amount || 0,
+          deposit_amount: item.deposit_amount || 0, // Using deposit_amount directly
+          agreement_number: item.agreement_number || '',
+          notes: item.notes || '',
+          terms_accepted: true,
+          additional_drivers: item.additional_drivers || [],
+          customers: item.profiles,
+          vehicles: item.vehicles,
+          signature_url: item.signature_url
+        };
+      });
       
       return agreements;
     } catch (err) {
