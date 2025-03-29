@@ -138,7 +138,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         additional_drivers: [], // Default empty array as this may not exist in the database
         customers: customerData,
         vehicles: vehicleData,
-        signature_url: data.signature_url as string | undefined // Type assertion to handle undefined case
+        // Use type assertion with 'as' to tell TypeScript this property exists
+        signature_url: (data as any).signature_url
       };
       
       console.log("Transformed agreement data:", agreement);
