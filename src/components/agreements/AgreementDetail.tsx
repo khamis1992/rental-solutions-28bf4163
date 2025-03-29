@@ -206,13 +206,18 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
             <CardDescription>Rental terms and payment information</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <div>
-                  <p className="font-medium">Rental Period</p>
-                  <p>
-                    {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
-                  </p>
+            {!agreement ? (
+              <div className="text-center py-4">
+                <p>No agreement data available</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-medium">Rental Period</p>
+                    <p>
+                      {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
+                    </p>
                   <p className="text-sm text-muted-foreground">
                     Duration: {durationMonths} {durationMonths === 1 ? 'month' : 'months'}
                   </p>

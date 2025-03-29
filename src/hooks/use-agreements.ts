@@ -1,4 +1,15 @@
 
+import { z } from 'zod';
+
+const agreementSchema = z.object({
+  id: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  status: z.string(),
+  // Add other fields as needed
+});
+
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';

@@ -1,4 +1,7 @@
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -127,7 +130,9 @@ const AgreementDetailPage = () => {
   };
 
   useEffect(() => {
-    // Additional debugging useEffect that runs on state updates
+    if (agreement && !isLoading) {
+      console.log("Agreement loaded successfully");
+    }
     console.log("AgreementDetailPage current state:", {
       agreementLoaded: !!agreement,
       isLoading,
