@@ -20,6 +20,18 @@ localPort = 8082
 externalPort = 3001
 
 [[ports]]
+localPort = 8083
+externalPort = 3002
+
+[[ports]]
+localPort = 8084
+externalPort = 3003
+
+[[ports]]
+localPort = 8085
+externalPort = 4200
+
+[[ports]]
 localPort = 19000
 externalPort = 3000
 
@@ -33,4 +45,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd mobile-fleet-app && EXPO_USE_TUNNEL=true EXPO_DEBUG=true EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 npx expo start --tunnel --port 19000 --lan"
+args = "cd mobile-fleet-app && EXPO_USE_TUNNEL=true EXPO_DEBUG=true EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0 npx expo start --tunnel"
