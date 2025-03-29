@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Camera, Upload, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 interface InspectionFormData {
@@ -15,7 +15,6 @@ interface InspectionFormData {
 }
 
 export const MobileInspectionForm = ({ vehicleId, onComplete }: { vehicleId: string; onComplete: () => void }) => {
-  const { supabase } = useSupabase();
   const [capturing, setCapturing] = useState(false);
   const [photos, setPhotos] = useState<string[]>([]);
   

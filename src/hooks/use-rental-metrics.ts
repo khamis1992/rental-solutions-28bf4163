@@ -1,9 +1,8 @@
 
 import { useState, useEffect } from 'react';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { supabase } from '@/lib/supabase';
 
 export const useRentalMetrics = () => {
-  const { supabase } = useSupabase();
   const [metrics, setMetrics] = useState({
     utilizationData: [],
     revenueData: [],
@@ -44,7 +43,7 @@ export const useRentalMetrics = () => {
     };
 
     fetchMetrics();
-  }, [supabase]);
+  }, []);
 
   return metrics;
 };

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSupabase } from '@/components/providers/supabase-provider';
+import { supabase } from '@/lib/supabase';
 
 interface ContractAmendment {
   id: string;
@@ -17,7 +17,6 @@ interface ContractAmendment {
 }
 
 export function SmartContractManager() {
-  const { supabase } = useSupabase();
   const { register, handleSubmit } = useForm();
 
   const onAmendContract = async (data: any) => {
