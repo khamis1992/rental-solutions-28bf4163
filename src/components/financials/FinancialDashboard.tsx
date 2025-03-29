@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,6 +81,43 @@ const keyMetrics: FinancialMetric[] = [
   }
 ];
 
+// Placeholder data for the new components.  Replace with actual data fetching/logic.
+const mockForecastData = [
+  { month: 'September', revenue: 12000, expenses: 7000 },
+  { month: 'October', revenue: 13000, expenses: 7500 },
+  { month: 'November', revenue: 14000, expenses: 8000 },
+];
+
+
+const FinancialMetricsChart: React.FC<{ data: { month: string; revenue: number; expenses: number; }[] }> = ({ data }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Financial Forecast</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Add your chart here */}
+        <p>Forecast chart will go here. Data: {JSON.stringify(data)}</p>
+      </CardContent>
+    </Card>
+  );
+};
+
+const BudgetPlanner: React.FC = () => {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Budget Planner</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {/* Add your budget planning UI here */}
+        <p>Budget planning tool will go here.</p>
+      </CardContent>
+    </Card>
+  );
+};
+
+
 const FinancialDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState<string>("last-6-months");
   const [chartType, setChartType] = useState<string>("area");
@@ -91,12 +127,12 @@ const FinancialDashboard: React.FC = () => {
       metric.changeType === 'positive' ? 'text-green-600' : 
       metric.changeType === 'negative' ? 'text-red-600' : 
       'text-gray-600';
-    
+
     const changeIcon = 
       metric.changeType === 'positive' ? '↑' : 
       metric.changeType === 'negative' ? '↓' : 
       '→';
-    
+
     return (
       <Card key={metric.name}>
         <CardContent className="p-6">
@@ -273,6 +309,11 @@ const FinancialDashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <FinancialMetricsChart data={mockForecastData} />
+        <BudgetPlanner />
       </div>
 
       <Card>
