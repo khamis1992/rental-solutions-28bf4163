@@ -10,7 +10,10 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, Calendar, Ban } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { PaymentList } from '@/components/payments/PaymentList';
+import { usePayments } from '@/hooks/use-payments';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -96,7 +99,15 @@ const AgreementDetailPage = () => {
 
   // Custom hooks for specific functionality - only call when agreement is available
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
-  const { refreshTrigger, refreshAgreementData, handleSpecialAgreementPayments } = usePaymentGeneration(agreement, id);
+  const { 
+    refreshTrigger, 
+    refreshAgreementData, 
+    generateMonthlyPayment,
+    isGeneratingPayment,
+    handleSpecialAgreementPayments 
+  } = usePaymentGeneration(agreement, id);
+  
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(id, rentAmount);
 
   // Handle refreshing data when needed
   useEffect(() => {
@@ -104,8 +115,9 @@ const AgreementDetailPage = () => {
       console.log("Refresh triggered, fetching updated agreement data");
       dataFetchAttempted.current = false; // Reset to allow re-fetching
       fetchAgreementData();
+      fetchPayments();
     }
-  }, [refreshTrigger, id, fetchAgreementData]);
+  }, [refreshTrigger, id, fetchAgreementData, fetchPayments]);
 
   // Special agreement check - run only when agreement and rentAmount are loaded
   useEffect(() => {
@@ -124,6 +136,11 @@ const AgreementDetailPage = () => {
       console.error("Error deleting agreement:", error);
       toast.error("Failed to delete agreement");
     }
+  };
+
+  // Function to check if agreement has an inactive status
+  const isAgreementInactive = (status: string): boolean => {
+    return ['expired', 'cancelled', 'closed'].includes(status.toLowerCase());
   };
 
   useEffect(() => {
@@ -194,13 +211,13 @@ const AgreementDetailPage = () => {
     );
   }
 
-  return (
-    <PageContainer
-      title="Agreement Details"
-      description="View and manage rental agreement details"
-      backLink="/agreements"
-    >
-      {isLoading ? (
+  if (isLoading) {
+    return (
+      <PageContainer
+        title="Agreement Details"
+        description="View and manage rental agreement details"
+        backLink="/agreements"
+      >
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
@@ -209,18 +226,20 @@ const AgreementDetailPage = () => {
             <Skeleton className="h-96 w-full md:col-span-2" />
           </div>
         </div>
-      ) : agreement ? (
-        <AgreementDetail 
-          agreement={agreement} 
-          onDelete={handleDelete}
-          contractAmount={contractAmount}
-          rentAmount={rentAmount}
-          onPaymentDeleted={refreshAgreementData}
-        />
-      ) : (
+      </PageContainer>
+    );
+  }
+
+  if (!agreement) {
+    return (
+      <PageContainer
+        title="Agreement Details"
+        description="View and manage rental agreement details"
+        backLink="/agreements"
+      >
         <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">
-            <AlertTriangle className="h-12 w-12 text-amber-500" />
+            <Ban className="h-12 w-12 text-amber-500" />
           </div>
           <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
           <p className="text-muted-foreground mb-4">
@@ -230,7 +249,69 @@ const AgreementDetailPage = () => {
             Return to Agreements
           </Button>
         </div>
-      )}
+      </PageContainer>
+    );
+  }
+
+  return (
+    <PageContainer
+      title="Agreement Details"
+      description="View and manage rental agreement details"
+      backLink="/agreements"
+    >
+      <div className="space-y-8">
+        <AgreementDetail 
+          agreement={agreement} 
+          onDelete={handleDelete}
+          contractAmount={contractAmount}
+          rentAmount={rentAmount}
+          onPaymentDeleted={refreshAgreementData}
+        />
+
+        {/* Payment Management Section */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <div>
+              <CardTitle>Payment Management</CardTitle>
+              <CardDescription>Manage monthly payments for this agreement</CardDescription>
+            </div>
+            <Button
+              onClick={generateMonthlyPayment}
+              disabled={isGeneratingPayment || isAgreementInactive(agreement.status)}
+              className="ml-auto"
+            >
+              {isGeneratingPayment ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Generate Payment for Current Month
+                </>
+              )}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            <PaymentList
+              payments={payments}
+              isLoading={isLoadingPayments}
+              onPaymentDeleted={refreshAgreementData}
+              rentAmount={rentAmount}
+              leaseStartDate={agreement.start_date}
+              leaseEndDate={agreement.end_date}
+            />
+          </CardContent>
+          <CardFooter className="border-t px-6 py-4">
+            <p className="text-sm text-muted-foreground">
+              {isAgreementInactive(agreement.status) ? 
+                "This agreement is not active. Payment generation is disabled." :
+                "Generate a new payment record for the current month if it doesn't already exist."}
+            </p>
+          </CardFooter>
+        </Card>
+      </div>
     </PageContainer>
   );
 };
