@@ -1,82 +1,75 @@
-
 import React, { useState } from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import * as DocumentPicker from 'expo-document-picker';
+import { View, TouchableOpacity, Image, StyleSheet } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { Text } from 'react-native-paper';
 import { supabase } from '../lib/supabase';
 import { SyncService } from '../services/SyncService';
 
-export const DocumentUpload = () => {
+
+export const DocumentUpload = ({ onUpload, documentType }) => {
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
 
-  const pickDocument = async () => {
+  const pickImage = async () => {
+    let result;
     try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/pdf', 'application/msword', 
-               'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-        copyToCacheDirectory: true
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All, //Allow all media types
+        allowsEditing: true,
+        quality: 1,
       });
-
-      if (result.type === 'success') {
-        await handleUpload(result);
-      }
     } catch (err) {
-      console.error('Error picking document:', err);
+      setError('Error accessing image library: ' + err.message);
+      return;
     }
-  };
 
-  const handleUpload = async (document) => {
-    try {
+    if (!result.canceled) {
       setUploading(true);
-      const fileName = `${Date.now()}-${document.name}`;
-      
-      if (navigator.onLine) {
-        const { data, error } = await supabase.storage
+      const file = result.assets[0];
+      const fileExt = file.uri.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${documentType}/${fileName}`;
+
+      try {
+        const response = await fetch(file.uri);
+        const blob = await response.blob();
+        const { error } = await supabase.storage
           .from('documents')
-          .upload(fileName, document);
-          
-        if (error) throw error;
-      } else {
-        // Store for offline sync
-        await SyncService.saveOfflineData('offline_documents', {
-          path: fileName,
-          data: document,
-          pendingUpload: true
-        });
+          .upload(filePath, blob);
+
+        if (error) throw new Error(`Supabase upload error: ${error.message}`);
+        const { data, error: getUrlError } = await supabase.storage.from('documents').getPublicUrl(filePath);
+        if (getUrlError) throw new Error(`Supabase get URL error: ${getUrlError.message}`);
+        onUpload(data.publicUrl);
+        setError('');
+      } catch (error) {
+        setError(`Upload failed: ${error.message}`);
+      } finally {
+        setUploading(false);
       }
-    } catch (error) {
-      console.error('Error uploading document:', error);
-    } finally {
-      setUploading(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.button} 
-        onPress={pickDocument}
-        disabled={uploading}
-      >
-        <Text style={styles.buttonText}>
-          {uploading ? 'Uploading...' : 'Upload Document'}
-        </Text>
+      <TouchableOpacity onPress={pickImage} style={styles.button} disabled={uploading}>
+        <Text>{uploading ? 'Uploading...' : 'Upload Document'}</Text>
       </TouchableOpacity>
+      {error && <Text style={{ color: 'red' }}>{error}</Text>}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 20,
   },
   button: {
-    backgroundColor: '#0284c7',
+    backgroundColor: '#4CAF50',
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
   },
 });

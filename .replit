@@ -14,3 +14,14 @@ externalPort = 80
 [[ports]]
 localPort = 8081
 externalPort = 8081
+
+[workflows]
+
+[[workflows.workflow]]
+name = "Start Mobile App"
+author = 39044110
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd mobile-fleet-app && npx expo start"

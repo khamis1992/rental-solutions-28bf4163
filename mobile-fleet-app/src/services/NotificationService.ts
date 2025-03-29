@@ -2,11 +2,41 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { supabase } from '../lib/supabase';
 
-export import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import { supabase } from '../lib/supabase';
+export class NotificationService {
+  static async registerForPushNotifications() {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
 
-class NotificationService {
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== 'granted') {
+      return;
+    }
+
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+      });
+    }
+
+    return token;
+  }
+
+  static async savePushToken(userId: string, token: string) {
+    const { error } = await supabase
+      .from('push_tokens')
+      .upsert({ user_id: userId, token });
+
+    if (error) throw error;
+  }
+
   static async requestPermissions() {
     const { status } = await Notifications.requestPermissionsAsync();
     return status === 'granted';
@@ -27,7 +57,6 @@ class NotificationService {
   }
 
   static async subscribeToUpdates() {
-    // Subscribe to various real-time updates
     const maintenanceSubscription = supabase
       .channel('maintenance_updates')
       .on('postgres_changes', {

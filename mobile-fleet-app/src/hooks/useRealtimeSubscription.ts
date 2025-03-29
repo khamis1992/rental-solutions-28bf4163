@@ -1,21 +1,20 @@
+
 import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { NotificationService } from '../services/NotificationService';
 
-export const useRealtimeSubscription = () => {
+export const useRealtimeSubscription = (table: string, onUpdate: (payload: any) => void) => {
   useEffect(() => {
-    const setupSubscriptions = async () => {
-      const subscriptions = await NotificationService.subscribeToUpdates();
+    const subscription = supabase
+      .channel(`${table}-changes`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table },
+        (payload) => onUpdate(payload)
+      )
+      .subscribe();
 
-      return () => {
-        subscriptions.forEach(subscription => {
-          if (subscription && subscription.unsubscribe) {
-            subscription.unsubscribe();
-          }
-        });
-      };
+    return () => {
+      subscription.unsubscribe();
     };
-
-    setupSubscriptions();
-  }, []);
+  }, [table, onUpdate]);
 };
