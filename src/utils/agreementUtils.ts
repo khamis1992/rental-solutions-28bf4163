@@ -3,6 +3,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import jsPDF from 'jspdf';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
   try {
@@ -108,5 +109,102 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
   } catch (error) {
     console.error("Error generating PDF:", error);
     return false;
+  }
+};
+
+// Add the missing exported functions
+export const checkStandardTemplateExists = async (): Promise<boolean> => {
+  try {
+    // Check if the agreements bucket exists
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      console.error("Error checking buckets:", bucketsError);
+      return false;
+    }
+    
+    const agreementsBucket = buckets?.find(bucket => bucket.name === 'agreements');
+    if (!agreementsBucket) {
+      console.log("Agreements bucket does not exist");
+      return false;
+    }
+    
+    // Check if the template file exists
+    const { data: files, error: filesError } = await supabase.storage
+      .from('agreements')
+      .list();
+      
+    if (filesError) {
+      console.error("Error listing files:", filesError);
+      return false;
+    }
+    
+    // Look for agreement_template.docx or similar filenames
+    const templateExists = files?.some(file => 
+      file.name === 'agreement_template.docx' || 
+      file.name === 'agreement temp.docx' || 
+      file.name === 'agreement_temp.docx'
+    );
+    
+    return templateExists || false;
+  } catch (error) {
+    console.error("Error checking template:", error);
+    return false;
+  }
+};
+
+export const diagnosisTemplateAccess = async (): Promise<{
+  bucketExists: boolean;
+  templateExists: boolean;
+  errors: string[];
+}> => {
+  const result = {
+    bucketExists: false,
+    templateExists: false,
+    errors: [] as string[]
+  };
+  
+  try {
+    // Check if the agreements bucket exists
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      result.errors.push(`Error checking buckets: ${bucketsError.message}`);
+      return result;
+    }
+    
+    const agreementsBucket = buckets?.find(bucket => bucket.name === 'agreements');
+    result.bucketExists = !!agreementsBucket;
+    
+    if (!agreementsBucket) {
+      result.errors.push("Agreements bucket does not exist");
+      return result;
+    }
+    
+    // Check if the template file exists
+    const { data: files, error: filesError } = await supabase.storage
+      .from('agreements')
+      .list();
+      
+    if (filesError) {
+      result.errors.push(`Error listing files: ${filesError.message}`);
+      return result;
+    }
+    
+    // Look for agreement_template.docx or similar filenames
+    result.templateExists = files?.some(file => 
+      file.name === 'agreement_template.docx' || 
+      file.name === 'agreement temp.docx' || 
+      file.name === 'agreement_temp.docx'
+    ) || false;
+    
+    if (!result.templateExists) {
+      result.errors.push("Template file does not exist in the bucket");
+    }
+    
+    return result;
+  } catch (error: any) {
+    result.errors.push(`Unexpected error: ${error.message}`);
+    return result;
   }
 };
