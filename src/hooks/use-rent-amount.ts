@@ -79,13 +79,13 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         if (agreement?.start_date && agreement?.end_date) {
           try {
             // Ensure we're working with JS Date objects
-            const startDate = new Date(agreement.start_date instanceof Date 
+            const startDate = agreement.start_date instanceof Date 
               ? agreement.start_date 
-              : agreement.start_date.toString());
+              : new Date(agreement.start_date);
             
-            const endDate = new Date(agreement.end_date instanceof Date
+            const endDate = agreement.end_date instanceof Date
               ? agreement.end_date
-              : agreement.end_date.toString());
+              : new Date(agreement.end_date);
             
             const durationMonths = differenceInMonths(endDate, startDate);
             const finalDuration = durationMonths > 0 ? durationMonths : 1;
@@ -121,13 +121,13 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       if (agreement.start_date && agreement.end_date) {
         try {
           // Ensure we're working with JS Date objects
-          const startDate = new Date(agreement.start_date instanceof Date 
+          const startDate = agreement.start_date instanceof Date 
             ? agreement.start_date 
-            : agreement.start_date.toString());
+            : new Date(agreement.start_date);
           
-          const endDate = new Date(agreement.end_date instanceof Date
+          const endDate = agreement.end_date instanceof Date
             ? agreement.end_date
-            : agreement.end_date.toString());
+            : new Date(agreement.end_date);
             
           const durationMonths = differenceInMonths(endDate, startDate);
           const finalDuration = durationMonths > 0 ? durationMonths : 1;
