@@ -1,9 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../lib/supabase';
 
 export class NotificationService {
-  static async registerForPushNotifications() {
+  static async initialize() {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -13,10 +14,8 @@ export class NotificationService {
     }
 
     if (finalStatus !== 'granted') {
-      return;
+      return false;
     }
-
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
 
     if (Platform.OS === 'android') {
       Notifications.setNotificationChannelAsync('default', {
@@ -26,7 +25,9 @@ export class NotificationService {
       });
     }
 
-    return token;
+    const token = await Notifications.getExpoPushTokenAsync();
+    await AsyncStorage.setItem('pushToken', token.data);
+    return token.data;
   }
 
   static async savePushToken(userId: string, token: string) {
