@@ -2,10 +2,10 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { formatCurrency } from "@/lib/utils";
-import { formatDate } from "@/lib/date-utils";
 import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 import { TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { toast } from "sonner";
 
@@ -21,24 +21,6 @@ type TrafficFine = {
   lease_id?: string;
   vehicle_id?: string;
 };
-
-// Define interfaces for Supabase query results
-interface LeaseResult {
-  vehicle_id: string;
-}
-
-interface TrafficFineResult {
-  id: string;
-  violation_number: string;
-  license_plate: string;
-  violation_date: string;
-  fine_amount: number;
-  violation_charge: string;
-  payment_status: string;
-  fine_location?: string;
-  lease_id?: string;
-  vehicle_id?: string;
-}
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -71,23 +53,6 @@ export const AgreementTrafficFines = ({
       setIsLoading(true);
       
       try {
-        console.log("AgreementTrafficFines - processing dates:", {
-          startDate: startDate instanceof Date ? startDate.toISOString() : startDate,
-          endDate: endDate instanceof Date ? endDate.toISOString() : endDate,
-          startDateType: typeof startDate,
-          endDateType: typeof endDate,
-          isStartDateObj: startDate instanceof Date,
-          isEndDateObj: endDate instanceof Date
-        });
-        
-        // Convert params to actual dates if they aren't already
-        const startDateObj = startDate instanceof Date ? startDate : new Date(startDate);
-        const endDateObj = endDate instanceof Date ? endDate : new Date(endDate);
-        
-        // Ensure dates are properly formatted for Supabase query
-        const formattedStartDate = startDateObj.toISOString();
-        const formattedEndDate = endDateObj.toISOString();
-      
         // Get the vehicle ID associated with this agreement
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
@@ -101,7 +66,7 @@ export const AgreementTrafficFines = ({
           return;
         }
 
-        if (!(leaseData as LeaseResult)?.vehicle_id) {
+        if (!leaseData?.vehicle_id) {
           console.error("No vehicle associated with this agreement");
           setIsLoading(false);
           return;
@@ -118,12 +83,13 @@ export const AgreementTrafficFines = ({
         }
 
         // Fetch traffic fines for the vehicle during the rental period
+        // Use snake_case field names to match the database
         const { data: dateRangeFines, error: dateRangeError } = await supabase
           .from('traffic_fines')
           .select('*')
-          .eq('vehicle_id', (leaseData as LeaseResult).vehicle_id)
-          .gte('violation_date', formattedStartDate)
-          .lte('violation_date', formattedEndDate);
+          .eq('vehicle_id', leaseData.vehicle_id)
+          .gte('violation_date', startDate.toISOString())
+          .lte('violation_date', endDate.toISOString());
 
         if (dateRangeError) {
           console.error("Error fetching date range traffic fines:", dateRangeError);
@@ -137,14 +103,14 @@ export const AgreementTrafficFines = ({
         
         if (directFines && directFines.length > 0) {
           // Transform data from snake_case to camelCase
-          allFines = (directFines as TrafficFineResult[]).map(fine => ({
+          allFines = directFines.map(fine => ({
             id: fine.id,
             violationNumber: fine.violation_number,
             licensePlate: fine.license_plate,
             violationDate: fine.violation_date,
             fineAmount: fine.fine_amount,
             violationCharge: fine.violation_charge,
-            paymentStatus: fine.payment_status as TrafficFineStatusType,
+            paymentStatus: fine.payment_status,
             location: fine.fine_location,
             lease_id: fine.lease_id,
             vehicle_id: fine.vehicle_id
@@ -153,14 +119,14 @@ export const AgreementTrafficFines = ({
         
         if (dateRangeFines && dateRangeFines.length > 0) {
           // Transform data from snake_case to camelCase
-          const transformedDateRangeFines = (dateRangeFines as TrafficFineResult[]).map(fine => ({
+          const transformedDateRangeFines = dateRangeFines.map(fine => ({
             id: fine.id,
             violationNumber: fine.violation_number,
             licensePlate: fine.license_plate,
             violationDate: fine.violation_date,
             fineAmount: fine.fine_amount,
             violationCharge: fine.violation_charge,
-            paymentStatus: fine.payment_status as TrafficFineStatusType,
+            paymentStatus: fine.payment_status,
             location: fine.fine_location,
             lease_id: fine.lease_id,
             vehicle_id: fine.vehicle_id
@@ -223,7 +189,7 @@ export const AgreementTrafficFines = ({
                 <div className="space-y-1">
                   <p className="font-medium text-sm">Violation #{fine.violationNumber}</p>
                   <p className="text-sm text-muted-foreground">
-                    {formatDate(new Date(fine.violationDate))}
+                    {format(new Date(fine.violationDate), "PPP")}
                     {fine.location && ` at ${fine.location}`}
                   </p>
                   <p className="text-sm text-muted-foreground">{fine.violationCharge}</p>
@@ -245,4 +211,4 @@ export const AgreementTrafficFines = ({
       </CardContent>
     </Card>
   );
-}
+};

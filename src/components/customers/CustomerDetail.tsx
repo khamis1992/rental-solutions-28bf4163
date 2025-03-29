@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle } from 'lucide-react';
@@ -28,7 +29,6 @@ import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 import { CustomerTrafficFines } from './CustomerTrafficFines';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatDate, formatDateTime } from '@/lib/date-utils';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +40,7 @@ export function CustomerDetail() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
+  // Use useCallback to prevent recreating the fetchCustomer function on every render
   const fetchCustomer = useCallback(async () => {
     if (!id || hasLoaded) return;
     
@@ -118,7 +119,7 @@ export function CustomerDetail() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{customer.full_name}</h2>
           <p className="text-muted-foreground">
-            Customer since {formatDate(customer.created_at || '')}
+            Customer since {new Date(customer.created_at || '').toLocaleDateString()}
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -214,7 +215,7 @@ export function CustomerDetail() {
               <div className="flex items-center">
                 <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
                 {customer.updated_at 
-                  ? formatDateTime(customer.updated_at) 
+                  ? new Date(customer.updated_at).toLocaleString() 
                   : 'Never updated'}
               </div>
             </div>

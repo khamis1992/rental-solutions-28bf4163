@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { useNavigate } from "react-router-dom"
@@ -10,12 +9,20 @@ import { Trash2, Edit, FileText, Download } from "lucide-react"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { PaymentEntryForm } from "./PaymentEntryForm"
 import { Payment, PaymentHistory } from "./PaymentHistory"
+import { supabase, initializeSystem } from "@/lib/supabase"
 import { AgreementTrafficFines } from "./AgreementTrafficFines"
 import { generatePdfDocument } from "@/utils/agreementUtils"
-import { usePayments } from "@/hooks/use-payments"
+
+interface AgreementDetailProps {
+  agreement: Agreement
+  onDelete?: (id: string) => void
+  contractAmount?: number | null
+  rentAmount?: number | null
+  onPaymentDeleted?: () => void
+}
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -45,36 +52,21 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
 }) => {
   const navigate = useNavigate()
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true)
+  const [localRentAmount, setLocalRentAmount] = useState<number | null>(rentAmount)
   const [durationMonths, setDurationMonths] = useState<number>(0)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
-  
-  const isMounted = useRef(true);
-  
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreement.id, rentAmount);
-
-  useEffect(() => {
-    console.log("AgreementDetail mounted with agreement:", agreement);
-    
-    return () => {
-      isMounted.current = false;
-    };
-  }, [agreement]);
 
   useEffect(() => {
     if (agreement.start_date && agreement.end_date) {
-      // Ensure we're working with JS Date objects
-      const startDate = agreement.start_date instanceof Date 
-        ? agreement.start_date 
-        : new Date(agreement.start_date);
-      
-      const endDate = agreement.end_date instanceof Date
-        ? agreement.end_date
-        : new Date(agreement.end_date);
-        
-      const months = differenceInMonths(endDate, startDate);
+      const months = differenceInMonths(
+        new Date(agreement.end_date),
+        new Date(agreement.start_date)
+      );
       setDurationMonths(months > 0 ? months : 1);
     }
-  }, [agreement.start_date, agreement.end_date]);
+  }, [agreement]);
 
   const handleEdit = () => {
     if (agreement && agreement.id) {
@@ -118,13 +110,97 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     }
   };
 
-  // When a payment is completed or deleted, refresh payments
-  const handlePaymentChange = () => {
-    fetchPayments();
-    if (onPaymentDeleted) {
-      onPaymentDeleted();
+  const fetchRentAmount = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("leases")
+        .select("rent_amount")
+        .eq("id", agreement.id)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching rent amount:", error);
+        return;
+      }
+      
+      if (data && data.rent_amount) {
+        setLocalRentAmount(data.rent_amount);
+        console.log("Fetched rent amount:", data.rent_amount);
+      }
+    } catch (error) {
+      console.error("Error fetching rent amount:", error);
     }
-  }
+  }, [agreement.id]);
+
+  const fetchPayments = useCallback(async () => {
+    setIsLoadingPayments(true)
+    try {
+      console.log("Fetching payments for agreement:", agreement.id);
+      
+      const { data: unifiedPayments, error: unifiedError } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreement.id)
+        .order('payment_date', { ascending: false });
+      
+      if (unifiedError) {
+        console.error("Error fetching unified payments:", unifiedError);
+        throw unifiedError;
+      }
+      
+      console.log("Raw payments data:", unifiedPayments);
+      
+      const formattedPayments = (unifiedPayments || []).map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        payment_date: payment.payment_date,
+        payment_method: payment.payment_method || 'cash',
+        reference_number: payment.transaction_id,
+        notes: payment.description,
+        type: payment.type,
+        status: payment.status,
+        late_fine_amount: payment.late_fine_amount,
+        days_overdue: payment.days_overdue,
+        lease_id: payment.lease_id
+      }));
+      
+      setPayments(formattedPayments);
+      console.log("Formatted payments set:", formattedPayments);
+      
+      if (formattedPayments.length > 0 && localRentAmount) {
+        const incorrectPayments = formattedPayments.filter(p => 
+          p.amount > localRentAmount * 5 && 
+          p.notes && 
+          p.notes.includes("Monthly rent payment")
+        );
+        
+        if (incorrectPayments.length > 0) {
+          console.warn(`Found ${incorrectPayments.length} payments with potentially incorrect amounts:`, 
+            incorrectPayments.map(p => ({ id: p.id, amount: p.amount, notes: p.notes }))
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      toast.error("Failed to load payment history");
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  }, [agreement.id, localRentAmount]);
+
+  useEffect(() => {
+    const initializeAndFetch = async () => {
+      await initializeSystem();
+      
+      if (rentAmount === null || rentAmount === undefined) {
+        await fetchRentAmount();
+      }
+      
+      await fetchPayments();
+    };
+    
+    initializeAndFetch();
+  }, [agreement.id, fetchPayments, fetchRentAmount, rentAmount]);
 
   return (
     <div className="space-y-8">
@@ -142,7 +218,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         </div>
       </div>
 
-      {/* Customer Information Card */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -162,7 +237,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 </div>
                 <div>
                   <p className="font-medium">Phone</p>
-                  <p>{agreement.customers.phone_number || "N/A"}</p>
+                  <p>{agreement.customers.phone || "N/A"}</p>
                 </div>
               </div>
             ) : (
@@ -171,7 +246,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
           </CardContent>
         </Card>
 
-        {/* Vehicle Information Card */}
         <Card>
           <CardHeader>
             <CardTitle>Vehicle Information</CardTitle>
@@ -199,7 +273,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
           </CardContent>
         </Card>
 
-        {/* Agreement Details Card */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle>Agreement Details</CardTitle>
@@ -229,12 +302,12 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
               <div className="space-y-4">
                 <div>
                   <p className="font-medium">Monthly Rent Amount</p>
-                  <p className="text-lg font-bold">{formatCurrency(rentAmount || agreement.total_amount)}</p>
+                  <p className="text-lg font-bold">{formatCurrency(localRentAmount || agreement.total_amount)}</p>
                 </div>
                 <div>
                   <p className="font-medium">Total Contract Amount</p>
                   <p className="text-lg font-bold">
-                    {formatCurrency(contractAmount || (rentAmount ? rentAmount * durationMonths : agreement.total_amount * durationMonths))}
+                    {formatCurrency(contractAmount || (localRentAmount ? localRentAmount * durationMonths : agreement.total_amount * durationMonths))}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     (Monthly rent × {durationMonths} {durationMonths === 1 ? 'month' : 'months'})
@@ -297,9 +370,9 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                     agreementId={agreement.id} 
                     onPaymentComplete={() => {
                       setIsPaymentDialogOpen(false);
-                      handlePaymentChange();
+                      fetchPayments();
                     }} 
-                    defaultAmount={rentAmount}
+                    defaultAmount={localRentAmount}
                   />
                 </DialogContent>
               </Dialog>
@@ -332,8 +405,8 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
           <PaymentHistory 
             payments={payments} 
             isLoading={isLoadingPayments} 
-            rentAmount={rentAmount}
-            onPaymentDeleted={handlePaymentChange}
+            rentAmount={localRentAmount}
+            onPaymentDeleted={onPaymentDeleted}
             leaseStartDate={agreement.start_date}
             leaseEndDate={agreement.end_date}
           />
@@ -342,19 +415,11 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         <div className="md:col-span-2">
           <AgreementTrafficFines 
             agreementId={agreement.id}
-            startDate={agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date)}
-            endDate={agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date)}
+            startDate={agreement.start_date}
+            endDate={agreement.end_date}
           />
         </div>
       </div>
     </div>
   )
-};
-
-interface AgreementDetailProps {
-  agreement: Agreement
-  onDelete?: (id: string) => void
-  contractAmount?: number | null
-  rentAmount?: number | null
-  onPaymentDeleted?: () => void
 }
