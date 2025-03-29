@@ -116,7 +116,8 @@ const AgreementDetailPage = () => {
       hasError: !!initializationError,
       rentAmount,
       contractAmount,
-      refreshTrigger
+      refreshTrigger,
+      currentId: id
     });
     
     if (agreement) {
@@ -128,7 +129,7 @@ const AgreementDetailPage = () => {
         status: agreement.status
       });
     }
-  }, [agreement, isLoading, initializationError, rentAmount, contractAmount, refreshTrigger]);
+  }, [agreement, isLoading, initializationError, rentAmount, contractAmount, refreshTrigger, id]);
 
   if (initializationError) {
     return (

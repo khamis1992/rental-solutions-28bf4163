@@ -45,6 +45,8 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           console.log("Using amount for calculations:", amount);
           return amount;
         }
+      } else {
+        console.log("No rent data returned for agreement ID:", agreementId);
       }
       return null;
     } catch (error) {
@@ -90,6 +92,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     };
     
     if (!hasInitiallyFetched.current || (agreement && !rentAmount)) {
+      console.log("Initiating rent amount loading for agreement ID:", agreementId);
       loadRentAmount();
     }
     

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -184,7 +183,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             query = query.eq('status', 'archived');
             break;
           case AgreementStatus.DRAFT:
-            // Using string literal instead of .eq('status', 'draft')
+            // Using filter method instead of .eq('status', 'draft')
             query = query.filter('status', 'eq', 'draft');
             break;
           default:

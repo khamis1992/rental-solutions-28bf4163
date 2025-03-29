@@ -53,10 +53,12 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   const { payments, isLoadingPayments, fetchPayments } = usePayments(agreement.id, rentAmount);
 
   useEffect(() => {
+    console.log("AgreementDetail mounted with agreement:", agreement);
+    
     return () => {
       isMounted.current = false;
     };
-  }, []);
+  }, [agreement]);
 
   useEffect(() => {
     if (agreement.start_date && agreement.end_date) {
@@ -154,7 +156,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
                 </div>
                 <div>
                   <p className="font-medium">Phone</p>
-                  <p>{agreement.customers.phone || "N/A"}</p>
+                  <p>{agreement.customers.phone_number || "N/A"}</p>
                 </div>
               </div>
             ) : (
