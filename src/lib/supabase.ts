@@ -1,6 +1,6 @@
 
 import { createClient } from "@supabase/supabase-js";
-import { forceGenerateMonthlyPayment } from "./validation-schemas/agreement";
+import { generateMonthlyPayment } from "./validation-schemas/agreement";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://vqdlsidkucrownbfuouq.supabase.co";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZxZGxzaWRrdWNyb3duYmZ1b3VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQzMDc4NDgsImV4cCI6MjA0OTg4Mzg0OH0.ARDnjN_J_bz74zQfV7IRDrq6ZL5-xs9L21zI3eG6O5Y";
@@ -62,7 +62,7 @@ export const forceGeneratePaymentsForMissingMonths = async (
       
       // Try to generate payment for this month
       try {
-        const result = await forceGenerateMonthlyPayment(
+        const result = await generateMonthlyPayment(
           supabase,
           agreementId,
           amount,
@@ -138,7 +138,7 @@ export const forceCheckAllAgreementsForPayments = async () => {
         const currentMonth = today.getMonth();
         const currentYear = today.getFullYear();
         
-        const result = await forceGenerateMonthlyPayment(
+        const result = await generateMonthlyPayment(
           supabase,
           agreement.id,
           rentAmount,
@@ -168,6 +168,30 @@ export const forceCheckAllAgreementsForPayments = async () => {
     };
   } catch (error) {
     console.error("Error in forceCheckAllAgreementsForPayments:", error);
+    return { success: false, error };
+  }
+};
+
+// Helper function to check and generate monthly payments
+export const checkAndGenerateMonthlyPayments = async (agreementId: string, amount: number) => {
+  try {
+    if (!agreementId || !amount) {
+      console.error("Missing required parameters for checkAndGenerateMonthlyPayments");
+      return { success: false, error: "Missing agreementId or amount" };
+    }
+    
+    const today = new Date();
+    const result = await generateMonthlyPayment(
+      supabase,
+      agreementId,
+      amount,
+      today.getMonth(),
+      today.getFullYear()
+    );
+    
+    return result;
+  } catch (error) {
+    console.error("Error in checkAndGenerateMonthlyPayments:", error);
     return { success: false, error };
   }
 };

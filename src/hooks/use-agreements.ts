@@ -1,4 +1,14 @@
 
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+
+export const useAgreements = (initialFilters = {}) => {
+  const [searchParams, setSearchParams] = useState(initialFilters);
+  const queryClient = useQueryClient();
+
   // Get agreement by ID
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     try {
@@ -107,3 +117,54 @@
       return null;
     }
   };
+
+  // Add other necessary methods for agreements...
+  // For example, a method to fetch all agreements, create, update, delete, etc.
+
+  const fetchAgreements = async () => {
+    // Implementation for fetching all agreements
+    return [];
+  };
+
+  const createAgreement = async (data: Partial<Agreement>) => {
+    // Implementation for creating an agreement
+    return {} as Agreement;
+  };
+
+  const updateAgreement = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<Agreement> }) => {
+      // Implementation for updating an agreement
+      return {} as Agreement;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+  });
+
+  const deleteAgreement = useMutation({
+    mutationFn: async (id: string) => {
+      // Implementation for deleting an agreement
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+  });
+
+  const { data: agreements, isLoading, error } = useQuery({
+    queryKey: ['agreements', searchParams],
+    queryFn: fetchAgreements,
+  });
+
+  return {
+    agreements,
+    isLoading,
+    error,
+    searchParams,
+    setSearchParams,
+    getAgreement,
+    createAgreement,
+    updateAgreement,
+    deleteAgreement,
+  };
+};
