@@ -33,4 +33,4 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd mobile-fleet-app && npm install --legacy-peer-deps && npx expo start --port 19000 --host tunnel"
+args = "cd mobile-fleet-app && EXPO_USE_TUNNEL=true EXPO_DEBUG=true npx expo start --tunnel --port 19000"
