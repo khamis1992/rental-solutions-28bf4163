@@ -110,3 +110,31 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     return false;
   }
 };
+
+// Function to check if a standard template exists
+export const checkStandardTemplateExists = async (): Promise<boolean> => {
+  try {
+    // This is a placeholder that would normally check for template existence
+    return true;
+  } catch (error) {
+    console.error("Error checking template existence:", error);
+    return false;
+  }
+};
+
+// Function to diagnose template access
+export const diagnosisTemplateAccess = async (): Promise<{exists: boolean; accessible: boolean}> => {
+  try {
+    // This is a placeholder function that would diagnose template access
+    return {
+      exists: true,
+      accessible: true
+    };
+  } catch (error) {
+    console.error("Error diagnosing template access:", error);
+    return {
+      exists: false,
+      accessible: false
+    };
+  }
+};
