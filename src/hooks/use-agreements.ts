@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -119,7 +120,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           mappedStatus = AgreementStatus.DRAFT;
       }
       
-      // Transform to Agreement type with safe property access
+      // Transform to Agreement type with safe property access and proper date handling
       const agreement: Agreement = {
         id: data.id,
         customer_id: data.customer_id,
@@ -223,7 +224,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       
       console.log(`Found ${data.length} agreements`, data);
       
-      // Transform to Agreement type
+      // Transform to Agreement type with proper date handling
       const agreements: Agreement[] = data.map(item => {
         // Map database status to AgreementStatus type
         let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
