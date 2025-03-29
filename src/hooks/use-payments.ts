@@ -9,9 +9,16 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const fetchInProgress = useRef(false);
   const initialFetchCompleted = useRef(false);
+  const errorCount = useRef(0);
   
   const fetchPayments = useCallback(async () => {
-    if (!agreementId || fetchInProgress.current) return;
+    if (!agreementId) {
+      console.log("No agreement ID provided to usePayments");
+      setIsLoadingPayments(false);
+      return;
+    }
+    
+    if (fetchInProgress.current) return;
     
     fetchInProgress.current = true;
     setIsLoadingPayments(true);
@@ -27,7 +34,12 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       
       if (unifiedError) {
         console.error("Error fetching unified payments:", unifiedError);
-        throw unifiedError;
+        errorCount.current += 1;
+        
+        if (errorCount.current > 3) {
+          toast.error("Unable to load payment history");
+        }
+        return;
       }
       
       console.log("Raw payments data:", unifiedPayments);
@@ -64,7 +76,11 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       }
     } catch (error) {
       console.error("Error fetching payments:", error);
-      toast.error("Failed to load payment history");
+      errorCount.current += 1;
+      
+      if (errorCount.current > 3) {
+        toast.error("Failed to load payment history");
+      }
     } finally {
       setIsLoadingPayments(false);
       fetchInProgress.current = false;
@@ -81,6 +97,18 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       fetchInProgress.current = false;
     };
   }, [agreementId, fetchPayments]);
+
+  // If we have an agreement ID but no payments and initial fetch is completed, retry once
+  useEffect(() => {
+    if (agreementId && initialFetchCompleted.current && payments.length === 0 && errorCount.current < 2) {
+      const retryTimer = setTimeout(() => {
+        console.log("Retrying payment fetch after initial empty result");
+        fetchPayments();
+      }, 2000);
+      
+      return () => clearTimeout(retryTimer);
+    }
+  }, [agreementId, payments.length, fetchPayments]);
 
   return { payments, isLoadingPayments, fetchPayments };
 };

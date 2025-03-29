@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
+import { Button } from '@/components/ui/button';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +26,13 @@ const AgreementDetailPage = () => {
 
   // Fetch agreement data
   const fetchAgreementData = useCallback(async () => {
-    if (!id || !isMounted.current || dataFetchAttempted.current) return;
+    if (!id) {
+      setInitializationError(new Error('No agreement ID was provided in the URL'));
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!isMounted.current || dataFetchAttempted.current) return;
     
     setIsLoading(true);
     dataFetchAttempted.current = true;
@@ -39,6 +47,7 @@ const AgreementDetailPage = () => {
       
       if (!data) {
         console.log("No agreement data found for ID:", id);
+        setInitializationError(new Error(`Agreement with ID ${id} not found`));
         setIsLoading(false);
         return;
       }
@@ -67,7 +76,7 @@ const AgreementDetailPage = () => {
 
   // Custom hooks for specific functionality - only call when agreement is available
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
-  const { refreshTrigger, refreshAgreementData } = usePaymentGeneration(agreement, id);
+  const { refreshTrigger, refreshAgreementData, handleSpecialAgreementPayments } = usePaymentGeneration(agreement, id);
 
   // Handle refreshing data when needed
   useEffect(() => {
@@ -76,6 +85,14 @@ const AgreementDetailPage = () => {
       fetchAgreementData();
     }
   }, [refreshTrigger, id, fetchAgreementData]);
+
+  // Special agreement check - run only when agreement and rentAmount are loaded
+  useEffect(() => {
+    if (agreement && rentAmount && agreement.agreement_number === 'MR202462') {
+      console.log("Special agreement MR202462 found with rentAmount:", rentAmount);
+      handleSpecialAgreementPayments(agreement, rentAmount);
+    }
+  }, [agreement, rentAmount, handleSpecialAgreementPayments]);
 
   const handleDelete = async (agreementId: string) => {
     try {
@@ -96,20 +113,32 @@ const AgreementDetailPage = () => {
         backLink="/agreements"
       >
         <div className="text-center py-12">
+          <div className="flex items-center justify-center mb-4">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+          </div>
           <h3 className="text-lg font-semibold mb-2 text-red-600">Error loading agreement</h3>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             {initializationError.message}
           </p>
-          <button 
-            onClick={() => {
-              dataFetchAttempted.current = false;
-              setInitializationError(null);
-              fetchAgreementData();
-            }}
-            className="mt-4 px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition-colors"
-          >
-            Retry
-          </button>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={() => {
+                dataFetchAttempted.current = false;
+                setInitializationError(null);
+                fetchAgreementData();
+              }}
+              className="mt-4"
+            >
+              Retry
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/agreements")}
+              className="mt-4"
+            >
+              Return to Agreements
+            </Button>
+          </div>
         </div>
       </PageContainer>
     );
@@ -140,10 +169,16 @@ const AgreementDetailPage = () => {
         />
       ) : (
         <div className="text-center py-12">
+          <div className="flex items-center justify-center mb-4">
+            <AlertTriangle className="h-12 w-12 text-amber-500" />
+          </div>
           <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             The agreement you're looking for doesn't exist or has been removed.
           </p>
+          <Button variant="outline" onClick={() => navigate("/agreements")}>
+            Return to Agreements
+          </Button>
         </div>
       )}
     </PageContainer>

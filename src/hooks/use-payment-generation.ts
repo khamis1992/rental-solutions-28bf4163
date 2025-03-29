@@ -11,15 +11,23 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
   
   const refreshAgreementData = useCallback(() => {
     // Increment refresh trigger to force a refresh
+    console.log("Triggering agreement data refresh");
     setRefreshTrigger(prev => prev + 1);
   }, []);
 
   // Function to handle special payments for agreement MR202462
   const handleSpecialAgreementPayments = useCallback(async (agreementData: Agreement, rentAmt: number) => {
-    if (agreementData.agreement_number !== 'MR202462' || isProcessing.current) return;
+    if (!agreementData?.agreement_number) {
+      console.warn("Cannot process special agreement: missing agreement number");
+      return;
+    }
+    
+    if (agreementData.agreement_number !== 'MR202462' || isProcessing.current) {
+      return;
+    }
     
     isProcessing.current = true;
-    console.log(`Special check for agreement ${agreementData.agreement_number} to catch up missing payments`);
+    console.log(`Special check for agreement ${agreementData.agreement_number} to catch up missing payments with rent amount ${rentAmt}`);
     
     try {
       // Create explicit date objects for the date range

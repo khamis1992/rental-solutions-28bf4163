@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ColumnDef, 
   flexRender, 
@@ -83,6 +82,7 @@ export function AgreementList() {
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
   const [searchTip, setSearchTip] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -95,7 +95,6 @@ export function AgreementList() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
   
-  // Reset searching state when results come in
   useEffect(() => {
     if (isSearching && !isLoading) {
       setIsSearching(false);
@@ -103,7 +102,6 @@ export function AgreementList() {
   }, [isLoading, agreements]);
   
   useEffect(() => {
-    // Show search tip for numeric searches that return no results
     const isNumericSearch = /^\d{2,}$/.test(searchQuery);
     const shouldShowTip = isNumericSearch && (!agreements || agreements.length === 0) && !isLoading;
     setSearchTip(shouldShowTip);
@@ -132,6 +130,11 @@ export function AgreementList() {
           <Link 
             to={`/agreements/${row.original.id}`}
             className="font-medium text-primary hover:underline"
+            onClick={(e) => {
+              e.preventDefault();
+              console.log("Navigating to agreement detail:", row.original.id);
+              navigate(`/agreements/${row.original.id}`);
+            }}
           >
             {row.getValue("agreement_number")}
           </Link>

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -189,6 +188,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   };
 
   const handleViewAgreement = (id: string) => {
+    if (!id) {
+      console.error("Attempted to navigate to agreement with no ID");
+      toast.error("Unable to view agreement: Missing ID");
+      return;
+    }
+    
+    console.log(`Navigating to agreement: /agreements/${id}`);
     navigate(`/agreements/${id}`);
   };
 
@@ -501,4 +507,3 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       </CardContent>
     </Card>;
 };
-
