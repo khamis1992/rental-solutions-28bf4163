@@ -45,7 +45,23 @@ export function AgreementDetail({
     if (!agreement) return;
     const daysLate = differenceInDays(new Date(), new Date(agreement.end_date));
     const lateFee = await calculateLateFee(daysLate, agreement.rent_amount);
-    // Update agreement with late fee
+    
+    try {
+      const { data, error } = await supabase
+        .from('agreements')
+        .update({ 
+          late_fee_amount: lateFee,
+          last_late_fee_calculation: new Date().toISOString()
+        })
+        .eq('id', agreement.id);
+        
+      if (error) throw error;
+      toast.success('Late fee calculated and updated successfully');
+      
+    } catch (error) {
+      console.error('Error updating late fee:', error);
+      toast.error('Failed to update late fee');
+    }
   };
 
   const handleDepositCalculation = async () => {
