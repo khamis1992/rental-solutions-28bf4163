@@ -1,97 +1,118 @@
+
 import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQuery } from '@tanstack/react-query';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PageContainer from '@/components/layout/PageContainer';
-import { SectionHeader } from '@/components/ui/section-header';
-import DashboardStats from '@/components/dashboard/DashboardStats';
-import RevenueChart from '@/components/dashboard/RevenueChart';
-import VehicleStatusChart from '@/components/dashboard/VehicleStatusChart';
-import RecentActivity from '@/components/dashboard/RecentActivity';
-import { LayoutDashboard, RefreshCw } from 'lucide-react';
-import { CustomButton } from '@/components/ui/custom-button';
-import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from '@/hooks/use-toast';
 
-// Suppress Supabase schema cache errors more comprehensively
-if (typeof window !== 'undefined') {
-  // Override console.error to filter out specific error messages
-  const originalConsoleError = console.error;
-  console.error = function(...args) {
-    // Filter out all errors about relationships in schema cache
-    if (args[0] && typeof args[0] === 'string' && 
-        args[0].includes('schema cache')) {
-      return; // Suppress all schema cache related errors
+export default function Dashboard() {
+  const { data: stats, isLoading } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: async () => {
+      // TODO: Replace with actual API call
+      return {
+        totalVehicles: 150,
+        activeRentals: 85,
+        pendingMaintenance: 12,
+        monthlyRevenue: 125000
+      };
     }
-    // Pass all other errors to the original console.error
-    originalConsoleError.apply(console, args);
-  };
-}
+  });
 
-const Dashboard = () => {
-  const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
-  
-  const handleRefresh = () => {
-    window.location.reload();
-  };
+  const { data: chartData, isLoading: isLoadingChart } = useQuery({
+    queryKey: ['revenue-chart'],
+    queryFn: async () => {
+      // TODO: Replace with actual API call
+      return [
+        { month: 'Jan', revenue: 65000 },
+        { month: 'Feb', revenue: 75000 },
+        { month: 'Mar', revenue: 125000 },
+      ];
+    }
+  });
 
   return (
-    <PageContainer>
-      <SectionHeader
-        title="Dashboard"
-        description="Overview of your rental operations"
-        icon={LayoutDashboard}
-        actions={
-          <CustomButton size="sm" variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </CustomButton>
-        }
-      />
-      
-      <div className="space-y-6">
-        {isLoading ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-              <Skeleton className="h-32" />
-            </div>
-            
-            <div className="grid grid-cols-1 gap-6">
-              <Skeleton className="h-96" />
-            </div>
-            
-            <div className="grid grid-cols-1 gap-6">
-              <Skeleton className="h-96" />
-            </div>
-            
-            <Skeleton className="h-96" />
-          </>
-        ) : isError ? (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            Failed to load dashboard data. Please try again later.
-            {error && <p className="text-sm mt-1">{error.toString()}</p>}
-          </div>
-        ) : (
-          <>
-            <DashboardStats stats={stats} />
-            
-            {/* Vehicle Status chart - now after the stats */}
-            <div className="grid grid-cols-1 gap-6 section-transition">
-              <VehicleStatusChart data={stats?.vehicleStats} />
-            </div>
-            
-            {/* Revenue chart now below the Vehicle Status */}
-            <div className="grid grid-cols-1 gap-6 section-transition">
-              <RevenueChart data={revenue} fullWidth={true} />
-            </div>
-            
-            <RecentActivity activities={activity} />
-          </>
-        )}
+    <PageContainer title="Dashboard" description="Overview of your fleet management system">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-[100px]" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.totalVehicles}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-[100px]" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.activeRentals}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Maintenance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-[100px]" />
+            ) : (
+              <div className="text-2xl font-bold">{stats?.pendingMaintenance}</div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-8 w-[100px]" />
+            ) : (
+              <div className="text-2xl font-bold">
+                ${stats?.monthlyRevenue.toLocaleString()}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingChart ? (
+              <Skeleton className="h-[350px] w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </PageContainer>
   );
-};
-
-export default Dashboard;
+}
