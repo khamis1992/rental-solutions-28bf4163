@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -18,7 +19,8 @@ const AgreementDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { rentAmount, contractAmount } = useRentAmount(id || '');
+  // Pass the agreement object directly and the ID as a fallback
+  const { rentAmount } = useRentAmount(agreement, id);
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -81,7 +83,6 @@ const AgreementDetailPage = () => {
         <AgreementDetail 
           agreement={agreement}
           onDelete={handleDelete}
-          contractAmount={contractAmount}
           rentAmount={rentAmount}
           onPaymentDeleted={refreshAgreementData}
         />
