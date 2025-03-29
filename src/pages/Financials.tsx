@@ -1,4 +1,3 @@
-
 import React from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -8,15 +7,9 @@ import FinancialDashboard from "@/components/financials/FinancialDashboard";
 import PaymentGatewaySettings from "@/components/payments/PaymentGatewaySettings";
 import InvoiceTemplateEditor from "@/components/invoices/InvoiceTemplateEditor";
 import CarInstallmentContracts from "@/components/financials/car-installments/CarInstallmentContracts";
-
 const Financials = () => {
-  return (
-    <PageContainer>
-      <SectionHeader
-        title="Financial Management"
-        description="Manage payments, invoices, financial reporting and installment contracts"
-        icon={ChartPieIcon}
-      />
+  return <PageContainer>
+      <SectionHeader title="Financial Management" description="Manage payments, invoices, financial reporting and installment contracts" icon={ChartPieIcon} />
       
       <Tabs defaultValue="dashboard" className="space-y-6">
         <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
@@ -28,10 +21,7 @@ const Financials = () => {
             <FileText className="h-4 w-4 mr-2" />
             Invoice Templates
           </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Payment Gateway
-          </TabsTrigger>
+          
           <TabsTrigger value="installments" className="flex items-center">
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Installment Contracts
@@ -54,8 +44,6 @@ const Financials = () => {
           <CarInstallmentContracts />
         </TabsContent>
       </Tabs>
-    </PageContainer>
-  );
+    </PageContainer>;
 };
-
 export default Financials;
