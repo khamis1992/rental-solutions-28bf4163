@@ -78,7 +78,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         try {
           const { data: vehicle, error: vehicleError } = await supabase
             .from('vehicles')
-            .select('id, make, model, license_plate, image_url, year, color, vin, registration_number')
+            .select('id, make, model, license_plate, image_url, year, color, vin')
             .eq('id', data.vehicle_id)
             .single();
             
@@ -125,12 +125,78 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  // Add other necessary methods for agreements...
-  // For example, a method to fetch all agreements, create, update, delete, etc.
-
-  const fetchAgreements = async () => {
-    // Implementation for fetching all agreements
-    return [];
+  // Implementation for fetching all agreements with filtering
+  const fetchAgreements = async (): Promise<Agreement[]> => {
+    console.log("Fetching agreements with params:", searchParams);
+    
+    try {
+      let query = supabase
+        .from('leases')
+        .select(`
+          *,
+          profiles:customer_id (id, full_name, email, phone_number),
+          vehicles:vehicle_id (id, make, model, license_plate, image_url)
+        `);
+      
+      // Apply filters
+      if (searchParams.status && searchParams.status !== 'all') {
+        query = query.eq('status', searchParams.status);
+      }
+      
+      if (searchParams.vehicle_id) {
+        query = query.eq('vehicle_id', searchParams.vehicle_id);
+      }
+      
+      if (searchParams.customer_id) {
+        query = query.eq('customer_id', searchParams.customer_id);
+      }
+      
+      if (searchParams.query) {
+        const searchQuery = searchParams.query.toLowerCase().trim();
+        // Handle simple search for agreement number
+        query = query.or(`agreement_number.ilike.%${searchQuery}%,vehicles.license_plate.ilike.%${searchQuery}%,profiles.full_name.ilike.%${searchQuery}%`);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error("Error fetching agreements:", error);
+        throw new Error(`Failed to fetch agreements: ${error.message}`);
+      }
+      
+      if (!data || data.length === 0) {
+        console.log("No agreements found with the given filters");
+        return [];
+      }
+      
+      console.log(`Found ${data.length} agreements`, data);
+      
+      // Transform to Agreement type
+      const agreements: Agreement[] = data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: new Date(item.start_date),
+        end_date: new Date(item.end_date),
+        status: item.status,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+        updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.down_payment || 0,
+        agreement_number: item.agreement_number || '',
+        notes: item.notes || '',
+        terms_accepted: true,
+        additional_drivers: item.additional_drivers || [],
+        customers: item.profiles,
+        vehicles: item.vehicles,
+        signature_url: item.signature_url
+      }));
+      
+      return agreements;
+    } catch (err) {
+      console.error("Unexpected error in fetchAgreements:", err);
+      throw err;
+    }
   };
 
   const createAgreement = async (data: Partial<Agreement>) => {
