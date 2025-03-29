@@ -24,7 +24,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
     setIsLoadingPayments(true);
     
     try {
-      console.log("Fetching payments for agreement:", agreementId);
+      console.log(`Fetching payments for agreement: ${agreementId}`);
       
       const { data: unifiedPayments, error: unifiedError } = await supabase
         .from('unified_payments')
@@ -42,9 +42,18 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
         return;
       }
       
-      console.log("Raw payments data:", unifiedPayments);
+      console.log(`Raw payments data for ${agreementId}:`, unifiedPayments);
       
-      const formattedPayments = (unifiedPayments || []).map(payment => ({
+      if (!unifiedPayments || unifiedPayments.length === 0) {
+        console.log(`No payments found for agreement ID: ${agreementId}`);
+        setPayments([]);
+        setIsLoadingPayments(false);
+        fetchInProgress.current = false;
+        initialFetchCompleted.current = true;
+        return;
+      }
+      
+      const formattedPayments = unifiedPayments.map(payment => ({
         id: payment.id,
         amount: payment.amount,
         payment_date: payment.payment_date,
@@ -59,7 +68,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       }));
       
       setPayments(formattedPayments);
-      console.log("Formatted payments set:", formattedPayments);
+      console.log(`Formatted payments set for ${agreementId}:`, formattedPayments);
       
       if (formattedPayments.length > 0 && rentAmount) {
         const incorrectPayments = formattedPayments.filter(p => 
@@ -89,6 +98,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
   }, [agreementId, rentAmount]);
 
   useEffect(() => {
+    console.log(`usePayments hook initialized with agreementId: ${agreementId}, initialFetch: ${initialFetchCompleted.current}`);
     if (agreementId && !initialFetchCompleted.current) {
       fetchPayments();
     }
@@ -101,14 +111,25 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
   // If we have an agreement ID but no payments and initial fetch is completed, retry once
   useEffect(() => {
     if (agreementId && initialFetchCompleted.current && payments.length === 0 && errorCount.current < 2) {
+      console.log(`Retrying payment fetch after initial empty result for ID: ${agreementId}`);
       const retryTimer = setTimeout(() => {
-        console.log("Retrying payment fetch after initial empty result");
         fetchPayments();
       }, 2000);
       
       return () => clearTimeout(retryTimer);
     }
   }, [agreementId, payments.length, fetchPayments]);
+
+  // Debug state changes
+  useEffect(() => {
+    console.log("usePayments state:", {
+      agreementId,
+      paymentsLoaded: payments.length,
+      isLoadingPayments,
+      initialFetchCompleted: initialFetchCompleted.current,
+      errorCount: errorCount.current
+    });
+  }, [agreementId, payments.length, isLoadingPayments]);
 
   return { payments, isLoadingPayments, fetchPayments };
 };

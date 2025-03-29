@@ -27,6 +27,7 @@ const AgreementDetailPage = () => {
   // Fetch agreement data
   const fetchAgreementData = useCallback(async () => {
     if (!id) {
+      console.error("No agreement ID was provided in the URL");
       setInitializationError(new Error('No agreement ID was provided in the URL'));
       setIsLoading(false);
       return;
@@ -46,14 +47,14 @@ const AgreementDetailPage = () => {
       }
       
       if (!data) {
-        console.log("No agreement data found for ID:", id);
+        console.error("No agreement data found for ID:", id);
         setInitializationError(new Error(`Agreement with ID ${id} not found`));
         setIsLoading(false);
         return;
       }
       
+      console.log("Agreement data fetched successfully:", JSON.stringify(data, null, 2));
       setAgreement(data);
-      console.log("Agreement data fetched successfully:", data);
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching agreement:", error);
@@ -67,6 +68,7 @@ const AgreementDetailPage = () => {
 
   // Initial data fetch
   useEffect(() => {
+    console.log("Component mounted, initializing data fetch for ID:", id);
     fetchAgreementData();
     
     return () => {
@@ -81,6 +83,7 @@ const AgreementDetailPage = () => {
   // Handle refreshing data when needed
   useEffect(() => {
     if (refreshTrigger > 0 && id && isMounted.current) {
+      console.log("Refresh triggered, fetching updated agreement data");
       dataFetchAttempted.current = false; // Reset to allow re-fetching
       fetchAgreementData();
     }
@@ -104,6 +107,28 @@ const AgreementDetailPage = () => {
       toast.error("Failed to delete agreement");
     }
   };
+
+  useEffect(() => {
+    // Additional debugging useEffect that runs on state updates
+    console.log("Current state:", {
+      agreementLoaded: !!agreement,
+      isLoading,
+      hasError: !!initializationError,
+      rentAmount,
+      contractAmount,
+      refreshTrigger
+    });
+    
+    if (agreement) {
+      console.log("Agreement state details:", {
+        id: agreement.id,
+        agreement_number: agreement.agreement_number,
+        hasCustomerData: !!agreement.customers,
+        hasVehicleData: !!agreement.vehicles,
+        status: agreement.status
+      });
+    }
+  }, [agreement, isLoading, initializationError, rentAmount, contractAmount, refreshTrigger]);
 
   if (initializationError) {
     return (

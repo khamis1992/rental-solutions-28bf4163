@@ -115,5 +115,15 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
     }
   }, [agreement, rentAmount]);
 
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log("useRentAmount state:", { 
+      rentAmount, 
+      contractAmount, 
+      agreementId,
+      hasAgreement: !!agreement
+    });
+  }, [rentAmount, contractAmount, agreementId, agreement]);
+
   return { rentAmount, contractAmount };
 };
