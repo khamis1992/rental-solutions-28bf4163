@@ -5,13 +5,10 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, PieChart, 
 import { useRentalMetrics } from '@/hooks/use-rental-metrics';
 
 export const RentalMetricsDashboard = () => {
-  const { 
-    utilizationData, 
-    revenueData, 
-    customerMetrics,
-    vehiclePerformance,
-    maintenanceCosts 
-  } = useRentalMetrics();
+  const { metrics, isLoading, error } = useRentalMetrics();
+
+  if (isLoading) return <div className="p-4">Loading metrics data...</div>;
+  if (error) return <div className="p-4 text-red-500">Error: {error}</div>;
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -21,7 +18,7 @@ export const RentalMetricsDashboard = () => {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={utilizationData}>
+            <LineChart data={metrics.utilizationData}>
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
@@ -37,7 +34,7 @@ export const RentalMetricsDashboard = () => {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={revenueData}>
+            <LineChart data={metrics.revenueData}>
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
@@ -56,7 +53,7 @@ export const RentalMetricsDashboard = () => {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
-                data={vehiclePerformance}
+                data={metrics.vehiclePerformance}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
@@ -64,7 +61,7 @@ export const RentalMetricsDashboard = () => {
                 innerRadius={60}
                 outerRadius={80}
               >
-                {vehiclePerformance.map((entry, index) => (
+                {metrics.vehiclePerformance.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
               </Pie>

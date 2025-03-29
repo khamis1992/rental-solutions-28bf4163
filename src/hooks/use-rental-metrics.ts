@@ -3,24 +3,24 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface UtilizationData {
+export interface UtilizationData {
   date: string;
   utilization: number;
 }
 
-interface RevenueData {
+export interface RevenueData {
   date: string;
   actual: number;
   forecast: number;
 }
 
-interface VehiclePerformance {
+export interface VehiclePerformance {
   name: string;
   value: number;
   color: string;
 }
 
-interface RentalMetrics {
+export interface RentalMetrics {
   utilizationData: UtilizationData[];
   revenueData: RevenueData[];
   customerMetrics: any[];
@@ -137,10 +137,10 @@ function calculatePerformanceMetric(item: any): number {
 }
 
 function getStatusColor(status: string): string {
-  const colors = {
+  const colors: {[key: string]: string} = {
     active: '#22c55e',
     maintenance: '#f59e0b',
     inactive: '#ef4444'
   };
-  return colors[status as keyof typeof colors] || '#cbd5e1';
+  return colors[status] || '#cbd5e1';
 }
