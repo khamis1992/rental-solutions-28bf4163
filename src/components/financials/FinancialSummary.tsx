@@ -6,8 +6,7 @@ import {
   TrendingUp, 
   TrendingDown, 
   DollarSign, 
-  Clock, 
-  AlertTriangle 
+  Clock
 } from 'lucide-react';
 import { FinancialSummary as FinancialSummaryType } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
@@ -21,7 +20,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {[...Array(5)].map((_, index) => (
+        {[...Array(4)].map((_, index) => (
           <Card key={index} className="animate-pulse h-32">
             <CardContent className="p-6">
               <div className="h-full flex items-center justify-center">
@@ -39,7 +38,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <StatCard
         title="Total Income"
         value={formatCurrency(summary.totalIncome)}
@@ -50,8 +49,8 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Total Expenses"
-        value={formatCurrency(summary.totalExpenses)}
-        description="Car installments and operational costs"
+        value={formatCurrency(summary.currentMonthDue)}
+        description="Current month's due installments"
         icon={TrendingDown}
         iconColor="text-red-500"
       />
@@ -70,14 +69,6 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
         description="Upcoming rental payments"
         icon={Clock}
         iconColor="text-amber-500"
-      />
-      
-      <StatCard
-        title="Unpaid Invoices"
-        value={formatCurrency(summary.unpaidInvoices)}
-        description="Outstanding balance"
-        icon={AlertTriangle}
-        iconColor="text-red-500"
       />
     </div>
   );

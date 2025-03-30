@@ -61,7 +61,7 @@ const statusConfig = [
   },
   { 
     key: 'reserved', 
-    name: 'In Reserve', 
+    name: 'Reserved', 
     color: '#8b5cf6', 
     icon: Clock,
     description: 'Reserved for future rental',
@@ -69,11 +69,11 @@ const statusConfig = [
   },
   { 
     key: 'attention', 
-    name: 'Attention', 
+    name: 'Needs Attention', 
     color: '#ec4899', 
     icon: AlertTriangle,
     description: 'Requires review',
-    filterValue: 'maintenance' as VehicleStatus // Map UI "attention" to database "maintenance"
+    filterValue: 'maintenance' as VehicleStatus
   },
   { 
     key: 'police_station', 
@@ -101,11 +101,11 @@ const statusConfig = [
   },
   { 
     key: 'critical', 
-    name: 'Critical', 
+    name: 'Critical Issues', 
     color: '#b91c1c', 
     icon: CircleDashed,
     description: 'Critical issues pending',
-    filterValue: 'maintenance' as VehicleStatus // Map UI "critical" to database "maintenance"
+    filterValue: 'maintenance' as VehicleStatus
   }
 ];
 
@@ -124,6 +124,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
     }
   });
   
+  // Create chart data from real vehicle stats
   const chartData = statusConfig
     .filter(status => normalizedData[status.key as keyof typeof normalizedData] > 0)
     .map(status => ({
@@ -142,7 +143,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   const hasCriticalVehicles = criticalVehicles > 0;
   
   const handleStatusClick = (data: any) => {
-    // Use the mapped filterValue instead of the UI key
+    // Navigate to vehicles page filtered by status
     navigate(`/vehicles?status=${data.filterValue}`);
   };
 

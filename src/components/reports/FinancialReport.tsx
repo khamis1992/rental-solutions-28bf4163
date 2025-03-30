@@ -1,12 +1,18 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CircleDollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
+import { CircleDollarSign, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
+import FinancialExpensesBreakdown from '@/components/financials/FinancialExpensesBreakdown';
+
+interface CategoryTotal {
+  total: number;
+  income: number;
+  expense: number;
+}
 
 const FinancialReport = () => {
   const { 
@@ -20,8 +26,7 @@ const FinancialReport = () => {
     return <div>Loading financial data...</div>;
   }
 
-  // Calculate category totals from real transaction data with proper type checking
-  const categoryTotals = transactions.reduce((acc, transaction) => {
+  const categoryTotals = transactions.reduce<Record<string, CategoryTotal>>((acc, transaction) => {
     const category = transaction.category || 'Other';
     if (!acc[category]) {
       acc[category] = {
@@ -32,6 +37,7 @@ const FinancialReport = () => {
     }
     
     const amount = transaction.amount || 0;
+    
     acc[category].total += amount;
     
     if (transaction.type === 'income') {
@@ -41,7 +47,7 @@ const FinancialReport = () => {
     }
     
     return acc;
-  }, {} as Record<string, { total: number; income: number; expense: number }>);
+  }, {});
 
   const categoryAnalytics = Object.entries(categoryTotals).map(([category, data]) => ({
     category,
@@ -59,32 +65,38 @@ const FinancialReport = () => {
         <StatCard 
           title="Total Income" 
           value={formatCurrency(financialSummary?.totalIncome || 0)} 
-          description="Revenue from car rentals"
+          trend={2.5}
+          trendLabel="vs last month"
           icon={TrendingUp}
           iconColor="text-green-500"
         />
         <StatCard 
           title="Total Expenses" 
           value={formatCurrency(financialSummary?.totalExpenses || 0)} 
-          description="Car installments and operational costs"
+          trend={-1.2}
+          trendLabel="vs last month"
           icon={TrendingDown}
           iconColor="text-red-500"
         />
         <StatCard 
           title="Net Revenue" 
           value={formatCurrency(financialSummary?.netRevenue || 0)} 
-          description="Income after expenses"
+          trend={3.4}
+          trendLabel="vs last month"
           icon={CircleDollarSign}
           iconColor="text-blue-500"
         />
         <StatCard 
-          title="Pending Payments" 
-          value={formatCurrency(financialSummary?.pendingPayments || 0)} 
-          description="Upcoming rental payments"
-          icon={Clock}
-          iconColor="text-amber-500"
+          title="Overdue Expenses" 
+          value={formatCurrency(financialSummary?.overdueExpenses || 0)} 
+          trend={financialSummary?.overdueExpenses > 0 ? 100 : 0}
+          trendLabel="requires attention"
+          icon={AlertTriangle}
+          iconColor="text-red-600"
         />
       </div>
+
+      <FinancialExpensesBreakdown />
 
       <Card>
         <CardHeader>

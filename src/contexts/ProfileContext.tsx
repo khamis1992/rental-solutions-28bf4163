@@ -1,15 +1,15 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client"; // Make sure we're using the correct client
 import { useAuth } from "./AuthContext";
 import { toast } from "sonner";
 
 export interface Profile {
   id: string;
   full_name: string;
-  role: string;
+  role: "admin" | "manager" | "user" | "staff" | "customer" | string;
   email: string;
-  status: string;
+  status: "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
   created_at: string;
   updated_at: string;
 }
@@ -41,16 +41,23 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     try {
       setLoading(true);
+      console.log("Fetching profile for user:", user.id);
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile:", error);
+        throw error;
+      }
+      
+      console.log("Fetched profile:", data);
       setProfile(data);
     } catch (error: any) {
       console.error("Error fetching profile:", error.message);
+      toast.error(`Failed to load profile: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -60,15 +67,25 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (!user) return;
     
     try {
+      // Ensure status is one of the allowed values if it's being updated
+      if (updates.status && !["active", "inactive", "suspended", "pending_review", "blacklisted"].includes(updates.status)) {
+        throw new Error(`Invalid status value: ${updates.status}`);
+      }
+      
       const { error } = await supabase
         .from("profiles")
         .update(updates)
         .eq("id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating profile:", error);
+        throw error;
+      }
+      
       setProfile(prev => prev ? { ...prev, ...updates } : null);
       toast.success("Profile updated successfully");
     } catch (error: any) {
+      console.error("Error updating profile:", error);
       toast.error(`Failed to update profile: ${error.message}`);
       throw error;
     }
