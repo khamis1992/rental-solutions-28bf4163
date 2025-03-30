@@ -1,111 +1,93 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { StatCard } from '@/components/ui/stat-card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
-import { TrendingDown, Clock, AlertTriangle } from 'lucide-react';
 
-const FinancialExpensesBreakdown: React.FC = () => {
-  const { financialSummary, isLoadingSummary } = useFinancials();
-  const [totalExpenses, setTotalExpenses] = useState(0);
-  const [currentMonthDue, setCurrentMonthDue] = useState(0);
-  const [overdueExpenses, setOverdueExpenses] = useState(0);
-  const [regularExpenses, setRegularExpenses] = useState(0);
+// Custom color palette
+const COLORS = ['#8B5CF6', '#D946EF', '#F97316', '#0EA5E9', '#4ade80', '#F59E0B'];
+
+const FinancialExpensesBreakdown = () => {
+  const { expenses } = useFinancials();
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (financialSummary) {
-      // Ensure all values are proper numbers with explicit conversions
-      const totalExp = parseFloat(Number(financialSummary.totalExpenses || 0).toFixed(2));
-      const currentDue = parseFloat(Number(financialSummary.currentMonthDue || 0).toFixed(2));
-      const overdue = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
+    if (expenses && expenses.length > 0) {
+      setIsLoading(true);
       
-      // Calculate regular expenses based on total minus overdue
-      const regular = parseFloat((totalExp - overdue).toFixed(2));
-
-      console.log("FinancialExpensesBreakdown VALUES after explicit conversion:");
-      console.log("Total Expenses:", totalExp, "Type:", typeof totalExp);
-      console.log("Current Month Due:", currentDue, "Type:", typeof currentDue);
-      console.log("Overdue Expenses:", overdue, "Type:", typeof overdue);
-      console.log("Regular Expenses:", regular, "Type:", typeof regular);
+      // Group expenses by category
+      const categoryTotals = expenses.reduce((acc: Record<string, number>, expense) => {
+        const category = expense.category || 'Other';
+        const amount = Number(expense.amount || 0);
+        
+        acc[category] = (acc[category] || 0) + amount;
+        return acc;
+      }, {});
       
-      setTotalExpenses(totalExp);
-      setCurrentMonthDue(currentDue);
-      setOverdueExpenses(overdue);
-      setRegularExpenses(regular);
+      // Convert to array and sort
+      const sortedData = Object.entries(categoryTotals)
+        .map(([name, value]) => ({ name, value: parseFloat(value.toFixed(2)) }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 6); // Get top 6 categories
+      
+      setChartData(sortedData);
+      setIsLoading(false);
+    } else {
+      setChartData([
+        { name: 'No Data', value: 0 }
+      ]);
+      setIsLoading(false);
     }
-  }, [financialSummary]);
+  }, [expenses]);
 
-  if (isLoadingSummary) {
-    return <div>Loading expense data...</div>;
-  }
-
-  if (!financialSummary) {
-    return <div>No expense data available</div>;
-  }
+  const formatYAxis = (value: number) => {
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(0)}k`;
+    }
+    return value;
+  };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Expense Analysis</CardTitle>
-        <CardDescription>Breakdown of expenses by status</CardDescription>
+        <CardTitle>Expense Categories</CardTitle>
       </CardHeader>
-      <CardContent className="pt-2">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            title="Total Expenses"
-            value={formatCurrency(totalExpenses)}
-            description="All expenses combined"
-            icon={TrendingDown}
-            iconColor="text-red-500"
-          />
-          
-          <StatCard
-            title="Current Month Due"
-            value={formatCurrency(currentMonthDue)}
-            description="Installments due this month"
-            icon={Clock}
-            iconColor="text-amber-500"
-          />
-          
-          <StatCard
-            title="Overdue Expenses"
-            value={formatCurrency(overdueExpenses)}
-            description="Past-due installment payments"
-            icon={AlertTriangle}
-            iconColor="text-red-600"
-            trend={overdueExpenses > 0 ? 100 : 0}
-            trendLabel="Requires attention"
-          />
-        </div>
-        
-        <div className="mt-6 p-4 bg-gray-50 rounded-md">
-          <h3 className="text-sm font-medium text-gray-700 mb-2">Expense Composition</h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm">Regular Expenses</span>
-              <span className="text-sm font-medium">
-                {formatCurrency(regularExpenses)}
-              </span>
-            </div>
-            
-            {overdueExpenses > 0 && (
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-red-600 font-medium">Overdue Expenses</span>
-                <span className="text-sm font-medium text-red-600">
-                  {formatCurrency(overdueExpenses)}
-                </span>
-              </div>
-            )}
-            
-            <div className="border-t pt-2 flex items-center justify-between">
-              <span className="text-sm font-medium">Total</span>
-              <span className="text-sm font-medium">
-                {formatCurrency(totalExpenses)}
-              </span>
+      <CardContent>
+        {isLoading ? (
+          <div className="h-80 flex items-center justify-center">
+            <div className="animate-pulse space-y-4 w-full">
+              <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+              <div className="h-4 bg-slate-200 rounded w-full"></div>
+              <div className="h-4 bg-slate-200 rounded w-5/6"></div>
+              <div className="h-4 bg-slate-200 rounded w-2/3"></div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                layout="vertical"
+                margin={{ top: 20, right: 30, left: 40, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                <XAxis type="number" tickFormatter={(value) => formatCurrency(value).split('.')[0]} />
+                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
+                <Tooltip 
+                  formatter={(value: number) => formatCurrency(value)}
+                  labelFormatter={(label) => `Category: ${label}`}
+                />
+                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
