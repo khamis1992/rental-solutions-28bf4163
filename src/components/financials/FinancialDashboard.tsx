@@ -65,6 +65,7 @@ const FinancialDashboard: React.FC = () => {
 
   useEffect(() => {
     if (financialSummary) {
+      console.log("Financial Summary:", financialSummary);
       // Create dynamic key metrics based on actual financial data
       setKeyMetrics([
         { 
