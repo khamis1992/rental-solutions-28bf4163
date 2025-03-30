@@ -22,7 +22,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date(2025, 2, 24) // Default to March 24, 2025
+  systemDate = new Date() // Default to current date instead of fixed date
 }) => {
   return (
     <div className="min-h-screen pl-64 w-full">

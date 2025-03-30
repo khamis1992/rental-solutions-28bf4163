@@ -8,6 +8,7 @@ const Maintenance = () => {
     <PageContainer 
       title="Vehicle Maintenance" 
       description="Track maintenance records and schedule service for your vehicles"
+      systemDate={new Date()} // Explicitly passing current date
     >
       <MaintenanceList />
     </PageContainer>

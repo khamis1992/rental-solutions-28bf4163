@@ -4,7 +4,8 @@ import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
-const SYSTEM_DATE = new Date(2025, 2, 24);
+// Replace fixed system date with a function that returns the current date
+const getSystemDate = () => new Date();
 
 export type TransactionType = 'income' | 'expense';
 export type TransactionStatusType = 'completed' | 'pending' | 'failed';
@@ -61,7 +62,7 @@ export function useFinancials() {
       console.log("Monthly payment check completed:", result);
     });
 
-    const today = SYSTEM_DATE.toDateString();
+    const today = getSystemDate().toDateString();
     const lastCheck = localStorage.getItem('lastPaymentCheck');
     
     if (!lastCheck || lastCheck !== today) {
@@ -117,7 +118,7 @@ export function useFinancials() {
           
           ...(installmentData || []).map(installment => ({
             id: `inst-${installment.id}`,
-            date: new Date(installment.payment_date || SYSTEM_DATE),
+            date: new Date(installment.payment_date || getSystemDate()),
             amount: installment.payment_amount || 0,
             description: `Car Installment - ${installment.vehicle_description || 'Vehicle'}`,
             type: 'expense' as TransactionType,
@@ -201,8 +202,9 @@ export function useFinancials() {
         }
 
         // Get current month's due amount from car installment payments
-        const currentMonth = SYSTEM_DATE.getMonth() + 1; // JavaScript months are 0-based
-        const currentYear = SYSTEM_DATE.getFullYear();
+        const systemDate = getSystemDate();
+        const currentMonth = systemDate.getMonth() + 1; // JavaScript months are 0-based
+        const currentYear = systemDate.getFullYear();
         
         // Format date strings for the start and end of the current month
         const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
@@ -577,8 +579,8 @@ export function useFinancials() {
         description: data.description,
         type: 'expense',
         category: data.description?.includes('Salary') ? 'Salary' : 
-                 data.description?.includes('Rent') ? 'Rent' : 
-                 data.description?.includes('Utility') ? 'Utilities' : 'Other',
+                 expenseData.description?.includes('Rent') ? 'Rent' : 
+                 expenseData.description?.includes('Utility') ? 'Utilities' : 'Other',
         status: data.status as TransactionStatusType,
         reference: data.reference,
         paymentMethod: data.payment_method,
@@ -709,6 +711,6 @@ export function useFinancials() {
     updateExpense: updateExpenseMutation.mutate,
     deleteExpense: deleteExpenseMutation.mutate,
     recurringExpenses: expenses.filter(e => e.isRecurring === true),
-    systemDate: SYSTEM_DATE
+    systemDate: getSystemDate() // Return the current date instead of the fixed date
   };
 }
