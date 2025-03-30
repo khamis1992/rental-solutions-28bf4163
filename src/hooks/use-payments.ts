@@ -69,20 +69,6 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       
       setPayments(formattedPayments);
       console.log(`Formatted payments set for ${agreementId}:`, formattedPayments);
-      
-      if (formattedPayments.length > 0 && rentAmount) {
-        const incorrectPayments = formattedPayments.filter(p => 
-          p.amount > (rentAmount || 0) * 5 && 
-          p.notes && 
-          p.notes.includes("Monthly rent payment")
-        );
-        
-        if (incorrectPayments.length > 0) {
-          console.warn(`Found ${incorrectPayments.length} payments with potentially incorrect amounts:`, 
-            incorrectPayments.map(p => ({ id: p.id, amount: p.amount, notes: p.notes }))
-          );
-        }
-      }
     } catch (error) {
       console.error("Error fetching payments:", error);
       errorCount.current += 1;
@@ -119,17 +105,6 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       return () => clearTimeout(retryTimer);
     }
   }, [agreementId, payments.length, fetchPayments]);
-
-  // Debug state changes
-  useEffect(() => {
-    console.log("usePayments state:", {
-      agreementId,
-      paymentsLoaded: payments.length,
-      isLoadingPayments,
-      initialFetchCompleted: initialFetchCompleted.current,
-      errorCount: errorCount.current
-    });
-  }, [agreementId, payments.length, isLoadingPayments]);
 
   return { payments, isLoadingPayments, fetchPayments };
 };

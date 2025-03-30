@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -43,7 +44,18 @@ export function AgreementDetail({
     daysLate: number;
   } | null>(null);
 
-  const { payments, isLoadingPayments } = usePayments(agreement?.id, rentAmount);
+  // Add console logs to debug payments
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreement?.id, rentAmount);
+  console.log('Agreement ID from AgreementDetail:', agreement?.id);
+  console.log('Payments from usePayments:', payments);
+  console.log('Loading state:', isLoadingPayments);
+
+  useEffect(() => {
+    if (agreement?.id) {
+      console.log('Fetching payments for agreement:', agreement.id);
+      fetchPayments();
+    }
+  }, [agreement?.id, fetchPayments]);
 
   const {
     handleSpecialAgreementPayments
@@ -107,6 +119,7 @@ export function AgreementDetail({
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
+          fetchPayments(); // Explicitly fetch payments after adding a new one
           toast.success("Payment recorded successfully");
         }
       } catch (error) {
@@ -114,7 +127,7 @@ export function AgreementDetail({
         toast.error("Failed to record payment");
       }
     }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
+  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
@@ -326,10 +339,13 @@ export function AgreementDetail({
 
       {agreement && (
         <PaymentHistory 
-          payments={payments} 
+          payments={payments || []} 
           isLoading={isLoadingPayments} 
           rentAmount={rentAmount}
-          onPaymentDeleted={onPaymentDeleted}
+          onPaymentDeleted={() => {
+            onPaymentDeleted();
+            fetchPayments(); // Fetch payments after deletion too
+          }}
           leaseStartDate={agreement.start_date}
           leaseEndDate={agreement.end_date}
         />

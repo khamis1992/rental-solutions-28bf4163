@@ -54,6 +54,9 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
   leaseStartDate,
   leaseEndDate 
 }) => {
+  console.log('PaymentHistory received payments:', payments);
+  console.log('PaymentHistory isLoading:', isLoading);
+  
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
@@ -252,7 +255,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
               </div>
             )}
                 
-            {payments.length > 0 ? (
+            {payments && payments.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -348,6 +351,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
             ) : (
               <div className="py-24 text-center">
                 <p className="text-muted-foreground">No payment records found</p>
+                <p className="text-xs text-muted-foreground mt-2">Agreement ID: {leaseStartDate ? 'Valid lease dates' : 'No lease dates'}</p>
               </div>
             )}
           </>
