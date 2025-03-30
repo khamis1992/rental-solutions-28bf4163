@@ -21,7 +21,7 @@ const FinancialExpensesBreakdown: React.FC = () => {
       const overdue = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
       
       // Calculate regular expenses based on total minus overdue
-      const regular = parseFloat(Number(totalExp - overdue).toFixed(2));
+      const regular = parseFloat((totalExp - overdue).toFixed(2));
 
       console.log("FinancialExpensesBreakdown VALUES after explicit conversion:");
       console.log("Total Expenses:", totalExp, "Type:", typeof totalExp);

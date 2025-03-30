@@ -19,6 +19,8 @@ const FinancialMetricsChart = () => {
 
   useEffect(() => {
     if (expenses && expenses.length > 0) {
+      console.log("Processing expenses for pie chart:", expenses.length);
+      
       // Process expenses by category
       const categoriesMap = new Map<string, number>();
       
@@ -34,7 +36,7 @@ const FinancialMetricsChart = () => {
       
       // Convert map to array and sort by value
       const processedData = Array.from(categoriesMap.entries())
-        .map(([name, value]) => ({ name, value }))
+        .map(([name, value]) => ({ name, value: parseFloat(value.toFixed(2)) }))
         .sort((a, b) => b.value - a.value)
         // Get top 5 categories + combine the rest
         .reduce((acc: ExpenseData[], curr, index, array) => {
@@ -44,7 +46,7 @@ const FinancialMetricsChart = () => {
             // Add "Other" category with remaining expenses
             const otherValue = array.slice(5).reduce((sum, item) => sum + item.value, 0);
             if (otherValue > 0) {
-              acc.push({ name: 'Other', value: otherValue });
+              acc.push({ name: 'Other', value: parseFloat(otherValue.toFixed(2)) });
             }
           }
           return acc;
@@ -60,11 +62,15 @@ const FinancialMetricsChart = () => {
     }
   }, [expenses]);
 
+  const createCustomColor = (index: number) => {
+    return COLORS[index % COLORS.length];
+  };
+
   // Create chart config from expense data
   const chartConfig = expenseData.reduce((config, category, index) => {
     config[category.name] = {
       label: category.name,
-      color: COLORS[index % COLORS.length]
+      color: createCustomColor(index)
     };
     return config;
   }, {} as Record<string, { label: string, color: string }>);
@@ -93,7 +99,7 @@ const FinancialMetricsChart = () => {
                   {expenseData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
-                      fill={`var(--color-${entry.name.replace(/\s+/g, '')})`} 
+                      fill={createCustomColor(index)} 
                       stroke="var(--background)"
                       strokeWidth={2}
                     />

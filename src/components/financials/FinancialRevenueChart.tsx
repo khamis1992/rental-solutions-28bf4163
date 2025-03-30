@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { useFinancials } from '@/hooks/use-financials';
 
@@ -18,6 +18,8 @@ const FinancialRevenueChart = () => {
 
   useEffect(() => {
     if (transactions && transactions.length > 0) {
+      console.log("Processing transactions for revenue chart:", transactions.length);
+      
       // Process transactions to monthly data
       const monthlyDataMap = new Map<string, { income: number, expenses: number }>();
       
@@ -35,16 +37,17 @@ const FinancialRevenueChart = () => {
       transactions.forEach(transaction => {
         if (!transaction.date) return;
         
-        const date = new Date(transaction.date);
-        const monthKey = monthNames[date.getMonth()];
+        const transactionDate = new Date(transaction.date);
+        const monthKey = monthNames[transactionDate.getMonth()];
         
         if (monthlyDataMap.has(monthKey)) {
           const currentData = monthlyDataMap.get(monthKey)!;
+          const amount = Number(transaction.amount || 0);
           
           if (transaction.type === 'income') {
-            currentData.income += Number(transaction.amount || 0);
+            currentData.income += amount;
           } else {
-            currentData.expenses += Number(transaction.amount || 0);
+            currentData.expenses += amount;
           }
           
           monthlyDataMap.set(monthKey, currentData);
@@ -55,8 +58,8 @@ const FinancialRevenueChart = () => {
       const processedData = Array.from(monthlyDataMap.entries())
         .map(([name, data]) => ({
           name,
-          income: data.income,
-          expenses: data.expenses
+          income: parseFloat(data.income.toFixed(2)),
+          expenses: parseFloat(data.expenses.toFixed(2))
         }));
       
       console.log("Processed monthly data for revenue chart:", processedData);
@@ -112,7 +115,7 @@ const FinancialRevenueChart = () => {
                   tick={{ fill: '#64748b', fontSize: 12 }}
                   tickFormatter={(value) => `${formatCurrency(value / 1000).split('.')[0]}k`}
                 />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
                 <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
               </BarChart>
