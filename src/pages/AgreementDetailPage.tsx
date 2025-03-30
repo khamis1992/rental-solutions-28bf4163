@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const AgreementDetailPage = () => {
@@ -72,24 +72,6 @@ const AgreementDetailPage = () => {
       description="View and manage rental agreement details"
       backLink="/agreements"
     >
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="gap-1 text-muted-foreground hover:text-foreground" 
-          onClick={() => navigate('/agreements')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-      </div>
-      
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Agreement Details</h1>
-        <p className="text-sm text-muted-foreground mt-1">View and manage rental agreement details</p>
-        <p className="text-xs text-muted-foreground">System Date: {new Date().toLocaleDateString()}</p>
-      </div>
-      
       {isLoading ? (
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />

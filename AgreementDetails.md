@@ -11,7 +11,6 @@ The Agreement Details page is composed of several key components:
 3. **PaymentHistory.tsx** - Payment tracking and management
 4. **AgreementTrafficFines.tsx** - Traffic violations tracking
 5. **PaymentEntryForm.tsx** - Form for recording new payments
-6. **PaymentEntryDialog.tsx** - Dialog component for the payment entry form
 
 ## Features and Functionality
 
@@ -44,264 +43,7 @@ The Agreement Details page is composed of several key components:
 - **Additional Drivers** - List of authorized additional drivers
 - **Notes** - Special terms, conditions, or comments about the agreement
 
-### 5. Payment History Card
-The Payment History card provides a comprehensive view of all payments associated with the agreement and allows for payment management. This component is implemented in `PaymentList.tsx`.
-
-#### Card Structure
-```tsx
-<Card className="mt-8">
-  <CardHeader className="pb-3">
-    <div className="flex items-center justify-between">
-      <div>
-        <CardTitle className="text-base font-medium">Payment History</CardTitle>
-        <CardDescription>View and manage payment records</CardDescription>
-      </div>
-      {rentAmount && agreement.status.toLowerCase() === 'active' && (
-        <div className="flex items-center">
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            Missing 1 payment
-          </Badge>
-        </div>
-      )}
-    </div>
-  </CardHeader>
-  <CardContent className="pt-0">
-    <PaymentList 
-      agreementId={agreement.id} 
-      onPaymentDeleted={onPaymentDeleted}
-    />
-  </CardContent>
-</Card>
-```
-
-#### Missing Payments Alert
-The Payment History card displays a prominent alert for missing payments:
-
-```tsx
-{missingPayments.length > 0 && (
-  <div className="mb-6 bg-red-50 border border-red-100 rounded-md p-4">
-    <h3 className="text-sm font-medium text-red-800 mb-2 flex items-center">
-      <AlertCircle className="h-4 w-4 mr-2" />
-      Missing Payments
-    </h3>
-    <div className="grid gap-4">
-      {missingPayments.map((payment, index) => (
-        <div key={index} className="bg-white p-3 border border-red-100 rounded-md">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="font-medium text-sm">{payment.month}</div>
-              <div className="text-sm">QAR {payment.amount.toLocaleString()}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-amber-600 text-xs">{payment.daysOverdue} days overdue</div>
-              <div className="text-red-600 text-xs">+ QAR {payment.lateFee.toLocaleString()} fine</div>
-              <div className="font-bold text-red-700 mt-1 text-sm">Total: QAR {payment.totalDue.toLocaleString()}</div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-```
-
-#### Payment Table
-The payment history is displayed in a table with the following columns:
-- Date (formatted with day, month, year)
-- Amount (with QAR currency formatting)
-- Type (Income, Fee, etc.)
-- Method (Cash, Credit Card, Bank Transfer, etc.)
-- Status (Paid, Pending)
-- Notes
-- Actions (Edit, Delete)
-
-```tsx
-<Table>
-  <TableHeader>
-    <TableRow>
-      <TableHead>Date</TableHead>
-      <TableHead>Amount</TableHead>
-      <TableHead>Type</TableHead>
-      <TableHead>Method</TableHead>
-      <TableHead>Status</TableHead>
-      <TableHead>Notes</TableHead>
-      <TableHead className="text-right">Actions</TableHead>
-    </TableRow>
-  </TableHeader>
-  <TableBody>
-    {payments.map((payment) => (
-      <TableRow key={payment.id}>
-        <TableCell className="text-sm">{formatDate(payment.payment_date)}</TableCell>
-        <TableCell className="font-medium text-sm">QAR {payment.amount.toLocaleString()}</TableCell>
-        <TableCell className="text-sm">
-          <span className="capitalize">{payment.type === 'rent' ? 'Income' : payment.type}</span>
-        </TableCell>
-        <TableCell className="text-sm">{renderPaymentMethodBadge(payment.payment_method)}</TableCell>
-        <TableCell className="text-sm">{renderStatusBadge(payment.status)}</TableCell>
-        <TableCell className="max-w-[200px] truncate text-sm">{payment.notes || 'Monthly rent payment'}</TableCell>
-        <TableCell className="text-right">
-          <div className="flex justify-end space-x-1">
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <Edit className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => confirmDeletePayment(payment.id)}
-              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </TableCell>
-      </TableRow>
-    ))}
-  </TableBody>
-</Table>
-```
-
-#### Empty State
-When no payments exist, a clear empty state is displayed:
-
-```tsx
-<div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-  <AlertCircle className="mb-2 h-10 w-10" />
-  <h3 className="text-lg font-medium">No payments found</h3>
-  <p className="mt-1 text-sm">No payment records exist for this agreement.</p>
-</div>
-```
-
-#### Loading State
-While payments are being fetched, a skeleton loading state is shown:
-
-```tsx
-<div className="space-y-3">
-  <Skeleton className="h-10 w-full" />
-  <Skeleton className="h-24 w-full" />
-  <Skeleton className="h-24 w-full" />
-</div>
-```
-
-#### Payment Status Badges
-Payment statuses are represented with color-coded badges:
-
-```tsx
-const renderStatusBadge = (status: string) => {
-  switch(status.toLowerCase()) {
-    case 'completed':
-      return <Badge className="bg-green-500 text-white">Paid</Badge>;
-    case 'pending':
-      return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
-    default:
-      return <Badge>{status}</Badge>;
-  }
-};
-```
-
-#### Payment Method Badges
-Payment methods are displayed with unique styling:
-
-```tsx
-const renderPaymentMethodBadge = (method: string) => {
-  switch(method.toLowerCase()) {
-    case 'cash':
-      return <Badge className="bg-green-50 text-green-700 border-green-100">Cash</Badge>;
-    case 'credit_card':
-      return <Badge className="bg-blue-50 text-blue-700 border-blue-100">Credit Card</Badge>;
-    case 'bank_transfer':
-      return <Badge className="bg-purple-50 text-purple-700 border-purple-100">Bank Transfer</Badge>;
-    default:
-      return <Badge className="bg-gray-50 text-gray-700 border-gray-100">{method}</Badge>;
-  }
-};
-```
-
-#### Delete Payment Confirmation
-A confirmation dialog is shown before deleting payments:
-
-```tsx
-<AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-      <AlertDialogDescription>
-        This will permanently delete this payment record. This action cannot be undone.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Cancel</AlertDialogCancel>
-      <AlertDialogAction 
-        onClick={handleDeletePayment}
-        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-      >
-        Delete
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-```
-
-#### Payment Data Fetching
-The component uses a custom hook `usePayments` to fetch payment data:
-
-```tsx
-const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
-
-useEffect(() => {
-  if (agreementId) {
-    fetchPayments();
-  }
-}, [agreementId, fetchPayments]);
-```
-
-#### Missing Payments Logic
-The component calculates missing payments based on expected payment dates:
-
-```tsx
-useEffect(() => {
-  setMissingPayments([
-    {
-      month: "March 2025",
-      amount: 1200,
-      daysOverdue: 21,
-      lateFee: 2520,
-      totalDue: 3720
-    }
-  ]);
-}, []);
-```
-
-#### Payment Deletion Handler
-The component handles payment deletion with proper error handling:
-
-```tsx
-const handleDeletePayment = async () => {
-  if (!paymentToDelete) return;
-
-  try {
-    const { error } = await supabase
-      .from('unified_payments')
-      .delete()
-      .eq('id', paymentToDelete);
-
-    if (error) {
-      console.error("Error deleting payment:", error);
-      toast.error("Failed to delete payment");
-      return;
-    }
-
-    toast.success("Payment deleted successfully");
-    setIsDeleteDialogOpen(false);
-    onPaymentDeleted();
-  } catch (error) {
-    console.error("Error in payment deletion:", error);
-    toast.error("An unexpected error occurred");
-  }
-};
-```
-
-### 6. Payment Management
+### 5. Payment Management
 - **Payment History** - Chronological list of all payments made against the agreement
 - **Payment Recording** - Interface to add new payment transactions
 - **Payment Editing** - Ability to modify existing payment records
@@ -311,115 +53,7 @@ const handleDeletePayment = async () => {
 - **Payment Method Selection** - Options for recording different payment methods (cash, credit card, bank transfer, etc.)
 - **Payment References** - Fields for recording transaction IDs or reference numbers
 
-### 7. Record New Payment Dialog
-The Record New Payment dialog is a modal interface for entering payment details. It is implemented in `PaymentEntryDialog.tsx` and includes the following features:
-
-#### Dialog Structure
-```tsx
-<Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-  <DialogContent className="sm:max-w-[450px]">
-    <DialogHeader>
-      <DialogTitle>Record Payment</DialogTitle>
-      <DialogDescription>Enter payment details below</DialogDescription>
-    </DialogHeader>
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        {/* Form fields */}
-      </form>
-    </Form>
-  </DialogContent>
-</Dialog>
-```
-
-#### Form Fields
-1. **Amount Field**
-   - Input for payment amount (QAR)
-   - Default value is the monthly rent amount
-   - Validation to ensure positive value
-
-2. **Payment Date Field**
-   - Date picker to select when payment was made
-   - Uses Calendar popover for date selection
-   - Includes validation to ensure date is provided
-
-3. **Payment Method Field**
-   - Dropdown select for payment method
-   - Options include: Cash, Credit Card, Bank Transfer, Cheque
-   - Required field with validation
-
-4. **Reference Number Field**
-   - Optional input for transaction ID, cheque number, etc.
-   - Help text explains purpose
-
-5. **Notes Field**
-   - Optional textarea for additional payment information
-   - Allows recording of special circumstances
-
-#### Footer Actions
-- **Cancel Button** - Closes dialog without saving
-- **Record Payment Button** - Submits form and records payment
-
-#### Form Validation
-- Uses react-hook-form with zod validation
-- Validates all required fields
-- Displays appropriate error messages
-
-#### Late Fee Detection
-- Automatically detects late payments (after 1st of month)
-- Calculates applicable late fee
-- Option to include late fee in payment record
-
-#### Implementation
-```tsx
-const formSchema = z.object({
-  amount: z.number().positive('Amount must be positive'),
-  paymentDate: z.date(),
-  notes: z.string().optional(),
-  paymentMethod: z.string().min(1, 'Please select a payment method'),
-  referenceNumber: z.string().optional()
-});
-
-export function PaymentEntryDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-  defaultAmount,
-  title = "Record Payment",
-  description = "Enter payment details below"
-}: PaymentEntryDialogProps) {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      amount: defaultAmount,
-      paymentDate: new Date(),
-      notes: '',
-      paymentMethod: 'cash',
-      referenceNumber: ''
-    }
-  });
-
-  // Update form when defaultAmount changes
-  React.useEffect(() => {
-    form.setValue('amount', defaultAmount);
-  }, [defaultAmount, form]);
-
-  const handleSubmit = (values: FormValues) => {
-    onSubmit(values.amount, values.paymentDate, values.notes);
-  };
-
-  // Form JSX rendering
-}
-```
-
-#### Styling
-- Clean, modern interface with consistent spacing
-- Form controls use Shadcn UI components
-- Responsive layout that works on mobile and desktop
-- Validation messages clearly displayed below fields
-- Blue accent color for the submit button
-- Dialog smoothly animates in and out
-
-### 8. Traffic Fines Tracking
+### 6. Traffic Fines Tracking
 - **Violation List** - Shows all traffic violations associated with the agreement
 - **Fine Details** - Information about each violation including date, location, and amount
 - **Payment Status** - Indicates whether fines have been paid, disputed, or are pending
@@ -428,11 +62,17 @@ export function PaymentEntryDialog({
 - **Fine Amount** - The monetary penalty for the violation
 - **Automatic Association** - System automatically links fines to agreements based on date and vehicle
 
-### 9. Document Management
+### 7. Document Management
 - **PDF Generation** - Functionality to create and download a PDF copy of the agreement
 - **Print Option** - Ability to print the agreement directly
 - **Template-Based Generation** - PDFs are generated using predefined templates with agreement data
 - **Digital Signature Support** - PDF documents can include digital signatures when available
+
+### 8. Security Deposit Handling
+- **Deposit Recording** - System tracks security deposits separately from regular payments
+- **Refund Tracking** - Records when and how much of a security deposit is refunded
+- **Deposit Status** - Shows whether deposits are held, partially refunded, or fully refunded
+- **Automatic Association** - Links deposits to the appropriate agreement record
 
 ## Button Actions
 
@@ -458,12 +98,10 @@ export function PaymentEntryDialog({
 
 4. **Record Payment Button**
    - **Label**: "Record Payment"
-   - **Icon**: DollarSign icon
+   - **Icon**: None (text-only button)
    - **Action**: Opens the payment entry dialog
    - **Behavior**: Displays a modal with a form for recording a new payment
    - **Form Fields**: Amount, payment date, payment method, reference number, and notes
-   - **Styling**: Blue accent color to draw attention as a primary action
-   - **Position**: Right-aligned in the button group
 
 5. **Delete Button**
    - **Label**: "Delete"
@@ -565,72 +203,26 @@ const handlePaymentComplete = async () => {
 };
 
 // In the render section:
-<PaymentEntryDialog 
-  open={isPaymentDialogOpen} 
-  onOpenChange={setIsPaymentDialogOpen}
-  onSubmit={handlePaymentSubmit}
-  defaultAmount={rentAmount || 0}
-  title="Record Rent Payment"
-  description="Record a new rental payment for this agreement."
-/>
-```
-
-The payment dialog component handles form state and validation:
-
-```typescript
-export function PaymentEntryDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-  defaultAmount,
-  title = "Record Payment",
-  description = "Enter payment details below"
-}: PaymentEntryDialogProps) {
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      amount: defaultAmount,
-      paymentDate: new Date(),
-      notes: '',
-      paymentMethod: 'cash',
-      referenceNumber: ''
-    }
-  });
-
-  // Update form when defaultAmount changes
-  React.useEffect(() => {
-    form.setValue('amount', defaultAmount);
-  }, [defaultAmount, form]);
-
-  const handleSubmit = (values: FormValues) => {
-    onSubmit(values.amount, values.paymentDate, values.notes);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px]">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {/* Form fields */}
-            <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-                Record Payment
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
+<Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+  <DialogTrigger asChild>
+    <Button variant="default" onClick={handleOpenPaymentDialog}>
+      Record Payment
+    </Button>
+  </DialogTrigger>
+  <DialogContent className="max-h-[85vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>Record New Payment</DialogTitle>
+      <DialogDescription>
+        Enter the payment details for agreement {agreement.agreement_number}
+      </DialogDescription>
+    </DialogHeader>
+    <PaymentEntryForm 
+      agreementId={agreement.id} 
+      onPaymentComplete={handlePaymentComplete} 
+      defaultAmount={localRentAmount}
+    />
+  </DialogContent>
+</Dialog>
 ```
 
 ### Late Payment Fee Handling
@@ -683,6 +275,46 @@ const handleDownloadAgreement = async () => {
     toast.error("Failed to generate PDF document: " + (error instanceof Error ? error.message : String(error)));
   } finally {
     setIsGeneratingPdf(false);
+  }
+};
+```
+
+The PDF generation utility handles template selection, data mapping, and document creation:
+
+```typescript
+export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
+  try {
+    // Create new PDF document
+    const doc = new jsPDF();
+    
+    // Add header with company information
+    doc.setFontSize(18);
+    doc.text("RENTAL AGREEMENT", 105, 20, { align: "center" });
+    
+    // Add agreement details
+    doc.setFontSize(12);
+    doc.text(`Agreement #: ${agreement.agreement_number}`, 20, 40);
+    doc.text(`Date: ${format(new Date(agreement.created_at || new Date()), "PP")}`, 20, 50);
+    
+    // Add customer information
+    doc.setFontSize(14);
+    doc.text("Customer Information", 20, 70);
+    doc.setFontSize(12);
+    if (agreement.customers) {
+      doc.text(`Name: ${agreement.customers.full_name || "N/A"}`, 30, 80);
+      doc.text(`Email: ${agreement.customers.email || "N/A"}`, 30, 90);
+      doc.text(`Phone: ${agreement.customers.phone || "N/A"}`, 30, 100);
+    }
+    
+    // Add vehicle information, terms, signature placeholders, etc.
+    // ... additional PDF generation code ...
+    
+    // Save the PDF with agreement number as filename
+    doc.save(`Agreement_${agreement.agreement_number}.pdf`);
+    return true;
+  } catch (error) {
+    console.error("Error in PDF generation:", error);
+    return false;
   }
 };
 ```

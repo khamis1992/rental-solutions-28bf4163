@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -96,13 +95,13 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
   const renderPaymentMethodBadge = (method: string) => {
     switch(method.toLowerCase()) {
       case 'cash':
-        return <Badge className="bg-green-50 text-green-700 border-green-100">Cash</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Cash</Badge>;
       case 'credit_card':
-        return <Badge className="bg-blue-50 text-blue-700 border-blue-100">Credit Card</Badge>;
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Credit Card</Badge>;
       case 'bank_transfer':
-        return <Badge className="bg-purple-50 text-purple-700 border-purple-100">Bank Transfer</Badge>;
+        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Bank Transfer</Badge>;
       default:
-        return <Badge className="bg-gray-50 text-gray-700 border-gray-100">{method}</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">{method}</Badge>;
     }
   };
 
@@ -128,15 +127,15 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
           <div className="grid gap-4">
             {missingPayments.map((payment, index) => (
               <div key={index} className="bg-white p-3 border border-red-100 rounded-md">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between">
                   <div>
-                    <div className="font-medium text-sm">{payment.month}</div>
-                    <div className="text-sm">QAR {payment.amount.toLocaleString()}</div>
+                    <div className="font-medium">{payment.month}</div>
+                    <div>QAR {payment.amount.toLocaleString()}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-amber-600 text-xs">{payment.daysOverdue} days overdue</div>
-                    <div className="text-red-600 text-xs">+ QAR {payment.lateFee.toLocaleString()} fine</div>
-                    <div className="font-bold text-red-700 mt-1 text-sm">Total: QAR {payment.totalDue.toLocaleString()}</div>
+                    <div className="text-amber-600 text-sm">{payment.daysOverdue} days overdue</div>
+                    <div className="text-red-600 text-sm">+ QAR {payment.lateFee.toLocaleString()} fine</div>
+                    <div className="font-bold text-red-700 mt-1">Total: QAR {payment.totalDue.toLocaleString()}</div>
                   </div>
                 </div>
               </div>
@@ -162,14 +161,14 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
             <TableBody>
               {payments.map((payment) => (
                 <TableRow key={payment.id}>
-                  <TableCell className="text-sm">{formatDate(payment.payment_date)}</TableCell>
-                  <TableCell className="font-medium text-sm">QAR {payment.amount.toLocaleString()}</TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell>{formatDate(payment.payment_date)}</TableCell>
+                  <TableCell className="font-medium">QAR {payment.amount.toLocaleString()}</TableCell>
+                  <TableCell>
                     <span className="capitalize">{payment.type === 'rent' ? 'Income' : payment.type}</span>
                   </TableCell>
-                  <TableCell className="text-sm">{renderPaymentMethodBadge(payment.payment_method)}</TableCell>
-                  <TableCell className="text-sm">{renderStatusBadge(payment.status)}</TableCell>
-                  <TableCell className="max-w-[200px] truncate text-sm">{payment.notes || 'Monthly rent payment'}</TableCell>
+                  <TableCell>{renderPaymentMethodBadge(payment.payment_method)}</TableCell>
+                  <TableCell>{renderStatusBadge(payment.status)}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{payment.notes || 'Monthly rent payment for March 2025'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-1">
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -194,7 +193,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
         <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
           <AlertCircle className="mb-2 h-10 w-10" />
           <h3 className="text-lg font-medium">No payments found</h3>
-          <p className="mt-1 text-sm">No payment records exist for this agreement.</p>
+          <p className="mt-1">No payment records exist for this agreement.</p>
         </div>
       )}
 
