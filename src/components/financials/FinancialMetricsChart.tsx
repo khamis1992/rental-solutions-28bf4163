@@ -2,38 +2,23 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { PieChart, Pie, ResponsiveContainer, Cell, Legend, Tooltip } from 'recharts';
+import { PieChart, Pie, ResponsiveContainer, Cell, Legend } from 'recharts';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 
 interface ExpenseData {
   name: string;
   value: number;
-  color?: string;
 }
 
-// Custom color palette for expense categories
-const COLORS = [
-  '#8B5CF6', // Vivid Purple
-  '#D946EF', // Magenta Pink
-  '#F97316', // Bright Orange
-  '#0EA5E9', // Ocean Blue
-  '#4ade80', // Green
-  '#F59E0B', // Amber
-  '#6366F1', // Indigo
-  '#EC4899', // Pink
-  '#9333EA', // Purple
-  '#10B981'  // Emerald
-];
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 const FinancialMetricsChart = () => {
   const { expenses } = useFinancials();
   const [expenseData, setExpenseData] = useState<ExpenseData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (expenses && expenses.length > 0) {
-      setIsLoading(true);
       console.log("Processing expenses for pie chart:", expenses.length);
       
       // Process expenses by category
@@ -56,19 +41,12 @@ const FinancialMetricsChart = () => {
         // Get top 5 categories + combine the rest
         .reduce((acc: ExpenseData[], curr, index, array) => {
           if (index < 5) {
-            acc.push({
-              ...curr,
-              color: COLORS[index % COLORS.length]
-            });
+            acc.push(curr);
           } else if (index === 5) {
             // Add "Other" category with remaining expenses
             const otherValue = array.slice(5).reduce((sum, item) => sum + item.value, 0);
             if (otherValue > 0) {
-              acc.push({ 
-                name: 'Other', 
-                value: parseFloat(otherValue.toFixed(2)),
-                color: COLORS[5 % COLORS.length]
-              });
+              acc.push({ name: 'Other', value: parseFloat(otherValue.toFixed(2)) });
             }
           }
           return acc;
@@ -76,24 +54,23 @@ const FinancialMetricsChart = () => {
       
       console.log("Processed expense data for pie chart:", processedData);
       setExpenseData(processedData);
-      setIsLoading(false);
     } else {
       // If no expenses, show default placeholder data
       setExpenseData([
-        { name: 'No expense data', value: 100, color: '#E5E7EB' }
+        { name: 'No expense data', value: 1 }
       ]);
-      setIsLoading(false);
     }
   }, [expenses]);
 
-  // Total expenses for percentage calculation
-  const totalExpenses = expenseData.reduce((sum, item) => sum + item.value, 0);
+  const createCustomColor = (index: number) => {
+    return COLORS[index % COLORS.length];
+  };
 
   // Create chart config from expense data
   const chartConfig = expenseData.reduce((config, category, index) => {
     config[category.name] = {
       label: category.name,
-      color: category.color || COLORS[index % COLORS.length]
+      color: createCustomColor(index)
     };
     return config;
   }, {} as Record<string, { label: string, color: string }>);
@@ -104,52 +81,38 @@ const FinancialMetricsChart = () => {
         <CardTitle>Expense Breakdown</CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="h-80 flex items-center justify-center">
-            <div className="animate-pulse h-40 w-40 rounded-full bg-slate-200"></div>
-          </div>
-        ) : (
-          <div className="h-80">
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={expenseData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={120}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
-                    {expenseData.map((entry, index) => (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.color || COLORS[index % COLORS.length]} 
-                        stroke="var(--background)"
-                        strokeWidth={2}
-                      />
-                    ))}
-                  </Pie>
-                  <ChartTooltip 
-                    content={
-                      <ChartTooltipContent 
-                        formatter={(value) => {
-                          const numValue = Number(value);
-                          const percentage = ((numValue / totalExpenses) * 100).toFixed(1);
-                          return `${formatCurrency(numValue)} (${percentage}%)`;
-                        }} 
-                      />
-                    } 
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
-        )}
+        <div className="h-80">
+          <ChartContainer config={chartConfig}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={expenseData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={120}
+                  paddingAngle={2}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  labelLine={false}
+                >
+                  {expenseData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={createCustomColor(index)} 
+                      stroke="var(--background)"
+                      strokeWidth={2}
+                    />
+                  ))}
+                </Pie>
+                <ChartTooltip 
+                  content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} 
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartContainer>
+        </div>
       </CardContent>
     </Card>
   );
