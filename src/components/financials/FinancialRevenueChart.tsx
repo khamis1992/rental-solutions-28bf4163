@@ -1,66 +1,93 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 
-const monthlyData = [
-  { name: 'Jan', income: 12000, expenses: 8000 },
-  { name: 'Feb', income: 15000, expenses: 7500 },
-  { name: 'Mar', income: 18000, expenses: 9000 },
-  { name: 'Apr', income: 16000, expenses: 8800 },
-  { name: 'May', income: 21000, expenses: 9200 },
-  { name: 'Jun', income: 19000, expenses: 8700 },
-  { name: 'Jul', income: 23000, expenses: 9500 },
-  { name: 'Aug', income: 25000, expenses: 10000 },
-  { name: 'Sep', income: 22000, expenses: 9800 },
-  { name: 'Oct', income: 20000, expenses: 9300 },
-  { name: 'Nov', income: 24000, expenses: 9900 },
-  { name: 'Dec', income: 27000, expenses: 10500 }
-];
+interface RevenueChartProps {
+  data: { name: string; revenue: number }[];
+  title?: string;
+  fullWidth?: boolean;
+}
 
-const FinancialRevenueChart = () => {
+const FinancialRevenueChart: React.FC<RevenueChartProps> = ({ 
+  data, 
+  title = "Revenue Overview",
+  fullWidth = false 
+}) => {
+  // Ensure we have data to display
+  const ensureCompleteData = (inputData: { name: string; revenue: number }[]) => {
+    if (!inputData || inputData.length === 0) {
+      console.log("No revenue data provided, showing placeholder data");
+      // Return placeholder data if no data is provided
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+      return months.map(month => ({
+        name: month,
+        revenue: Math.floor(Math.random() * 50000) + 10000
+      }));
+    }
+    
+    console.log("Processing revenue chart data:", inputData);
+    return inputData;
+  };
+  
+  const chartData = ensureCompleteData(data);
+
   return (
-    <Card className="col-span-3">
-      <CardHeader>
-        <CardTitle>Revenue vs. Expenses</CardTitle>
+    <Card className={`card-transition ${fullWidth ? 'col-span-full' : ''}`}>
+      <CardHeader className="pb-0">
+        <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-80">
-          <ChartContainer
-            config={{
-              income: {
-                label: "Income",
-                color: "#22c55e"
-              },
-              expenses: {
-                label: "Expenses",
-                color: "#ef4444"
-              }
-            }}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  tickFormatter={(value) => `${formatCurrency(value / 1000).split('.')[0]}k`}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={chartData}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 10,
+              }}
+            >
+              <defs>
+                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="name" 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+              />
+              <YAxis 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fill: '#64748b', fontSize: 12 }}
+                tickFormatter={(value) => formatCurrency(value).split('.')[0]} // Remove decimals for Y-axis labels
+              />
+              <Tooltip 
+                formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                contentStyle={{
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '0.5rem',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="revenue" 
+                stroke="#3b82f6" 
+                fillOpacity={1} 
+                fill="url(#colorRevenue)" 
+                strokeWidth={3}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </CardContent>
     </Card>
