@@ -60,18 +60,18 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
           description: item.description || '',
           customer_id: item.customer_id,
           customer_name: item.customer_name || 'Customer',
-          status: item.status || 'pending',
+          status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
           hearing_date: item.hearing_date || item.escalation_date || null,
-          court_location: item.court_location,
-          assigned_attorney: item.assigned_attorney || item.assigned_to,
-          opposing_party: item.opposing_party,
-          case_type: item.case_type || 'other',
-          documents: item.documents,
+          court_location: item.court_location || '',
+          assigned_attorney: item.assigned_attorney || item.assigned_to || '',
+          opposing_party: item.opposing_party || '',
+          case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
+          documents: item.documents || [],
           amount_claimed: item.amount_owed || 0,
-          amount_settled: item.amount_settled,
+          amount_settled: item.amount_settled || null,
           created_at: item.created_at,
           updated_at: item.updated_at,
-          notes: item.notes
+          notes: item.notes || ''
         }));
 
         setLegalCases(transformedData);
