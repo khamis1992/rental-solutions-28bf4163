@@ -45,7 +45,7 @@ const FinancialExpensesBreakdown: React.FC = () => {
   }
 
   return (
-    <Card>
+    <Card className="col-span-full">
       <CardHeader>
         <CardTitle>Expense Analysis</CardTitle>
         <CardDescription>Breakdown of expenses by status</CardDescription>

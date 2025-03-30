@@ -152,10 +152,12 @@ const FinancialDashboard = () => {
       {/* Financial Summary Section */}
       <FinancialSummary summary={financialSummary} isLoading={isLoadingSummary} />
       
+      {/* Expense Analysis - Now full width */}
+      <FinancialExpensesBreakdown />
+      
       {/* Charts Section */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
         <FinancialMetricsChart />
-        <FinancialExpensesBreakdown />
       </div>
     </div>
   );
