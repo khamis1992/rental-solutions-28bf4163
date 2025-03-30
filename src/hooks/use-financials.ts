@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -210,6 +211,25 @@ export function useFinancials() {
         const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
         const endOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
         
+        // Format today's date in YYYY-MM-DD format for car installment payments comparison
+        const todayStr = systemDate.toISOString().split('T')[0];
+        
+        // Fetch car installment payments due today
+        const { data: todayInstallments, error: todayInstallmentsError } = await supabase
+          .from('car_installment_payments')
+          .select('amount')
+          .eq('payment_date', todayStr)
+          .in('status', ['pending', 'overdue']);
+          
+        if (todayInstallmentsError) {
+          console.error('Error fetching today\'s installments:', todayInstallmentsError);
+          throw todayInstallmentsError;
+        }
+        
+        // Calculate total amount due today from car installments
+        const todayInstallmentsDue = (todayInstallments || [])
+          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+        
         const { data: currentMonthInstallments, error: currentMonthError } = await supabase
           .from('car_installment_payments')
           .select('amount, paid_amount')
@@ -254,7 +274,8 @@ export function useFinancials() {
           .filter(item => item.payment_status !== 'failed')
           .reduce((sum, item) => sum + (item.payment_amount || 0), 0);
           
-        const totalExpenses = expensesFromPayments + expensesFromInstallments;
+        // Include today's car installment payments in the total expenses
+        const totalExpenses = expensesFromPayments + expensesFromInstallments + todayInstallmentsDue;
         
         const pendingPayments = (incomeData || [])
           .filter(item => item.status === 'pending')
