@@ -1,10 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AreaChart, BarChart, PieChart } from "lucide-react";
 import { ResponsiveContainer, AreaChart as ReAreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart as ReBarChart, Bar, PieChart as RePieChart, Pie, Cell, Legend } from 'recharts';
+import { useFinancials } from "@/hooks/use-financials";
+import { formatCurrency } from "@/lib/utils";
 
 interface FinancialMetric {
   name: string;
@@ -55,36 +57,45 @@ const expenseCategories: CategoryData[] = [
   { name: 'Others', value: 1500 },
 ];
 
-const keyMetrics: FinancialMetric[] = [
-  { 
-    name: 'Total Revenue', 
-    value: 93000, 
-    change: 12.5, 
-    changeType: 'positive'
-  },
-  { 
-    name: 'Total Expenses', 
-    value: 46500, 
-    change: 5.7, 
-    changeType: 'positive'
-  },
-  { 
-    name: 'Net Profit', 
-    value: 46500, 
-    change: 18.2, 
-    changeType: 'positive'
-  },
-  { 
-    name: 'Profit Margin', 
-    value: 50, 
-    change: 3.1, 
-    changeType: 'positive'
-  }
-];
-
 const FinancialDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState<string>("last-6-months");
   const [chartType, setChartType] = useState<string>("area");
+  const { financialSummary, isLoadingSummary } = useFinancials();
+  const [keyMetrics, setKeyMetrics] = useState<FinancialMetric[]>([]);
+
+  useEffect(() => {
+    if (financialSummary) {
+      // Create dynamic key metrics based on actual financial data
+      setKeyMetrics([
+        { 
+          name: 'Total Revenue', 
+          value: financialSummary.totalIncome, 
+          change: 12.5, 
+          changeType: 'positive'
+        },
+        { 
+          name: 'Total Expenses', 
+          value: financialSummary.totalExpenses, 
+          change: 5.7, 
+          changeType: 'positive'
+        },
+        { 
+          name: 'Net Profit', 
+          value: financialSummary.netRevenue, 
+          change: 18.2, 
+          changeType: 'positive'
+        },
+        { 
+          name: 'Profit Margin', 
+          value: financialSummary.totalIncome > 0 
+            ? Math.round((financialSummary.netRevenue / financialSummary.totalIncome) * 100)
+            : 0, 
+          change: 3.1, 
+          changeType: 'positive'
+        }
+      ]);
+    }
+  }, [financialSummary]);
 
   const renderMetricCard = (metric: FinancialMetric) => {
     const changeClass = 
@@ -116,6 +127,10 @@ const FinancialDashboard: React.FC = () => {
       </Card>
     );
   };
+
+  if (isLoadingSummary) {
+    return <div className="p-4">Loading financial data...</div>;
+  }
 
   return (
     <div className="space-y-6">
@@ -294,19 +309,23 @@ const FinancialDashboard: React.FC = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 py-2 border-b">
                     <span className="font-medium">Revenue</span>
-                    <span className="text-right">QAR 93,000.00</span>
+                    <span className="text-right">{formatCurrency(financialSummary?.totalIncome || 0)}</span>
                   </div>
                   <div className="grid grid-cols-2 py-2 border-b">
                     <span className="font-medium">Expenses</span>
-                    <span className="text-right">QAR 46,500.00</span>
+                    <span className="text-right">{formatCurrency(financialSummary?.totalExpenses || 0)}</span>
                   </div>
                   <div className="grid grid-cols-2 py-2 border-b">
                     <span className="font-medium">Net Income</span>
-                    <span className="text-right font-bold">QAR 46,500.00</span>
+                    <span className="text-right font-bold">{formatCurrency(financialSummary?.netRevenue || 0)}</span>
                   </div>
                   <div className="grid grid-cols-2 py-2">
                     <span className="font-medium">Profit Margin</span>
-                    <span className="text-right">50.00%</span>
+                    <span className="text-right">
+                      {financialSummary?.totalIncome 
+                        ? ((financialSummary.netRevenue / financialSummary.totalIncome) * 100).toFixed(2)
+                        : 0}%
+                    </span>
                   </div>
                 </div>
               </div>
