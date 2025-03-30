@@ -35,7 +35,7 @@ const Financials = () => {
         title="Financial Management" 
         description="Manage payments, invoices, financial reporting and installment contracts" 
         icon={ChartPieIcon}
-        action={
+        actions={
           activeTab === "invoices" && (
             <Button 
               variant="outline" 

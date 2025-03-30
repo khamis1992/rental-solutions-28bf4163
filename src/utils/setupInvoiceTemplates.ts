@@ -24,29 +24,31 @@ export const setupInvoiceTemplatesTable = async (): Promise<boolean> => {
       if (createError.message.includes('does not exist')) {
         console.log("Creating invoice_templates table directly");
         
-        // Try direct SQL (only works with function permission or connection from server)
-        const { error: directError } = await supabase.query(`
-          CREATE TABLE IF NOT EXISTS public.invoice_templates (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            name TEXT NOT NULL,
-            description TEXT,
-            content TEXT NOT NULL,
-            category TEXT NOT NULL,
-            is_default BOOLEAN DEFAULT false,
-            variables JSONB,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-            updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-          );
-          
-          -- Ensure RLS is enabled
-          ALTER TABLE public.invoice_templates ENABLE ROW LEVEL SECURITY;
-          
-          -- Create policy for authenticated users
-          CREATE POLICY "Allow full access to authenticated users" 
-            ON public.invoice_templates 
-            USING (auth.role() = 'authenticated')
-            WITH CHECK (auth.role() = 'authenticated');
-        `);
+        // Use raw SQL operation in a way that's compatible with Supabase JS client
+        const { error: directError } = await supabase.rpc('exec_sql', {
+          sql_query: `
+            CREATE TABLE IF NOT EXISTS public.invoice_templates (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              name TEXT NOT NULL,
+              description TEXT,
+              content TEXT NOT NULL,
+              category TEXT NOT NULL,
+              is_default BOOLEAN DEFAULT false,
+              variables JSONB,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+            );
+            
+            -- Ensure RLS is enabled
+            ALTER TABLE public.invoice_templates ENABLE ROW LEVEL SECURITY;
+            
+            -- Create policy for authenticated users
+            CREATE POLICY "Allow full access to authenticated users" 
+              ON public.invoice_templates 
+              USING (auth.role() = 'authenticated')
+              WITH CHECK (auth.role() = 'authenticated');
+          `
+        });
         
         if (directError) {
           console.error("Failed to create invoice_templates table:", directError);
