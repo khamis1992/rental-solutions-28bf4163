@@ -1,13 +1,14 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CircleDollarSign, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react';
+import { CircleDollarSign, TrendingUp, TrendingDown, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
-import FinancialExpensesBreakdown from '@/components/financials/FinancialExpensesBreakdown';
 
+// Define interface for category totals
 interface CategoryTotal {
   total: number;
   income: number;
@@ -26,6 +27,7 @@ const FinancialReport = () => {
     return <div>Loading financial data...</div>;
   }
 
+  // Calculate category totals from real transaction data
   const categoryTotals = transactions.reduce<Record<string, CategoryTotal>>((acc, transaction) => {
     const category = transaction.category || 'Other';
     if (!acc[category]) {
@@ -38,8 +40,10 @@ const FinancialReport = () => {
     
     const amount = transaction.amount || 0;
     
+    // Update total
     acc[category].total += amount;
     
+    // Update income or expense based on transaction type
     if (transaction.type === 'income') {
       acc[category].income += amount;
     } else {
@@ -87,16 +91,14 @@ const FinancialReport = () => {
           iconColor="text-blue-500"
         />
         <StatCard 
-          title="Overdue Expenses" 
-          value={formatCurrency(financialSummary?.overdueExpenses || 0)} 
-          trend={financialSummary?.overdueExpenses > 0 ? 100 : 0}
-          trendLabel="requires attention"
-          icon={AlertTriangle}
-          iconColor="text-red-600"
+          title="Pending Payments" 
+          value={formatCurrency(financialSummary?.pendingPayments || 0)} 
+          trend={-2.3}
+          trendLabel="vs last month"
+          icon={Clock}
+          iconColor="text-amber-500"
         />
       </div>
-
-      <FinancialExpensesBreakdown />
 
       <Card>
         <CardHeader>

@@ -1,17 +1,7 @@
-import { z } from 'zod';
-
-const agreementSchema = z.object({
-  id: z.string(),
-  start_date: z.string(),
-  end_date: z.string(),
-  status: z.string(),
-  // Add other fields as needed
-});
-
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -30,37 +20,37 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
-
+      
       if (!id || id.trim() === '') {
         console.error("Invalid agreement ID provided");
         toast.error("Invalid agreement ID");
         return null;
       }
-
+      
       // First, get the lease data
       const { data, error } = await supabase
         .from('leases')
         .select('*')
         .eq('id', id)
         .single();
-
+        
       if (error) {
         console.error("Error fetching agreement from Supabase:", error);
         toast.error(`Failed to load agreement details: ${error.message}`);
         return null;
       }
-
+      
       if (!data) {
         console.error(`No lease data found for ID: ${id}`);
         return null;
       }
-
+      
       console.log("Raw lease data from Supabase:", data);
-
+      
       // If we have the lease data, get the related customer and vehicle data
       let customerData = null;
       let vehicleData = null;
-
+      
       // Get customer data
       if (data.customer_id) {
         try {
@@ -69,7 +59,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             .select('id, full_name, email, phone_number, driver_license, nationality, address')
             .eq('id', data.customer_id)
             .maybeSingle();
-
+            
           if (customerError) {
             console.error("Error fetching customer:", customerError);
           } else if (customer) {
@@ -82,7 +72,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error("Error in customer data fetch:", customerFetchError);
         }
       }
-
+      
       // Get vehicle data - optimized with error handling
       if (data.vehicle_id) {
         try {
@@ -91,7 +81,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             .select('id, make, model, license_plate, image_url, year, color, vin')
             .eq('id', data.vehicle_id)
             .maybeSingle();
-
+            
           if (vehicleError) {
             console.error("Error fetching vehicle:", vehicleError);
           } else if (vehicle) {
@@ -104,54 +94,28 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error("Error in vehicle data fetch:", vehicleFetchError);
         }
       }
-
-      // Map database status to AgreementStatus type
-      let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
-
-      switch(data.status) {
-        case 'active':
-          mappedStatus = AgreementStatus.ACTIVE;
-          break;
-        case 'pending_payment':
-        case 'pending_deposit':
-          mappedStatus = AgreementStatus.PENDING;
-          break;
-        case 'cancelled':
-          mappedStatus = AgreementStatus.CANCELLED;
-          break;
-        case 'completed':
-        case 'terminated':
-          mappedStatus = AgreementStatus.CLOSED;
-          break;
-        case 'archived':
-          mappedStatus = AgreementStatus.EXPIRED;
-          break;
-        default:
-          mappedStatus = AgreementStatus.DRAFT;
-      }
-
-      // Transform to Agreement type with safe property access and proper date handling
+      
+      // Transform to Agreement type
       const agreement: Agreement = {
         id: data.id,
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
         start_date: new Date(data.start_date),
         end_date: new Date(data.end_date),
-        status: mappedStatus,
+        status: data.status,
         created_at: data.created_at ? new Date(data.created_at) : undefined,
         updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
         total_amount: data.total_amount || 0,
-        deposit_amount: data.deposit_amount || 0, 
+        deposit_amount: data.down_payment || 0, // Using down_payment as deposit_amount
         agreement_number: data.agreement_number || '',
         notes: data.notes || '',
         terms_accepted: true, // Default to true since the column doesn't exist in DB
-        additional_drivers: [], // Default empty array as this may not exist in the database
+        additional_drivers: data.additional_drivers || [],
         customers: customerData,
         vehicles: vehicleData,
-        // Use type assertion with 'as' to tell TypeScript this property exists
-        signature_url: (data as any).signature_url
+        signature_url: data.signature_url
       };
-
+      
       console.log("Transformed agreement data:", agreement);
       return agreement;
     } catch (err) {
@@ -164,7 +128,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   // Implementation for fetching all agreements with filtering
   const fetchAgreements = async (): Promise<Agreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
-
+    
     try {
       let query = supabase
         .from('leases')
@@ -173,115 +137,61 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           profiles:customer_id (id, full_name, email, phone_number),
           vehicles:vehicle_id (id, make, model, license_plate, image_url)
         `);
-
+      
       // Apply filters
       if (searchParams.status && searchParams.status !== 'all') {
-        // Handle the status filter based on the AgreementStatus enum
-        switch(searchParams.status) {
-          case AgreementStatus.ACTIVE:
-            query = query.eq('status', 'active');
-            break;
-          case AgreementStatus.PENDING:
-            query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
-            break;
-          case AgreementStatus.CANCELLED:
-            query = query.eq('status', 'cancelled');
-            break;
-          case AgreementStatus.CLOSED:
-            query = query.or('status.eq.completed,status.eq.terminated');
-            break;
-          case AgreementStatus.EXPIRED:
-            query = query.eq('status', 'archived');
-            break;
-          case AgreementStatus.DRAFT:
-            // Using filter method instead of .eq('status', 'draft')
-            query = query.filter('status', 'eq', 'draft');
-            break;
-          default:
-            // If it's a direct database status value, use a different approach
-            if (typeof searchParams.status === 'string') {
-              // Use filter method instead of eq to avoid type issues
-              query = query.filter('status', 'eq', searchParams.status);
-            }
-        }
+        query = query.eq('status', searchParams.status);
       }
-
+      
       if (searchParams.vehicle_id) {
         query = query.eq('vehicle_id', searchParams.vehicle_id);
       }
-
+      
       if (searchParams.customer_id) {
         query = query.eq('customer_id', searchParams.customer_id);
       }
-
+      
       if (searchParams.query) {
         const searchQuery = searchParams.query.toLowerCase().trim();
         // Handle simple search for agreement number
         query = query.or(`agreement_number.ilike.%${searchQuery}%,vehicles.license_plate.ilike.%${searchQuery}%,profiles.full_name.ilike.%${searchQuery}%`);
       }
-
+      
       const { data, error } = await query;
-
+      
       if (error) {
         console.error("Error fetching agreements:", error);
         throw new Error(`Failed to fetch agreements: ${error.message}`);
       }
-
+      
       if (!data || data.length === 0) {
         console.log("No agreements found with the given filters");
         return [];
       }
-
+      
       console.log(`Found ${data.length} agreements`, data);
-
-      // Transform to Agreement type with proper date handling
-      const agreements: Agreement[] = data.map(item => {
-        // Map database status to AgreementStatus type
-        let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
-
-        switch(item.status) {
-          case 'active':
-            mappedStatus = AgreementStatus.ACTIVE;
-            break;
-          case 'pending_payment':
-          case 'pending_deposit':
-            mappedStatus = AgreementStatus.PENDING;
-            break;
-          case 'cancelled':
-            mappedStatus = AgreementStatus.CANCELLED;
-            break;
-          case 'completed':
-          case 'terminated':
-            mappedStatus = AgreementStatus.CLOSED;
-            break;
-          case 'archived':
-            mappedStatus = AgreementStatus.EXPIRED;
-            break;
-          default:
-            mappedStatus = AgreementStatus.DRAFT;
-        }
-
-        return {
-          id: item.id,
-          customer_id: item.customer_id,
-          vehicle_id: item.vehicle_id,
-          start_date: new Date(item.start_date),
-          end_date: new Date(item.end_date),
-          status: mappedStatus,
-          created_at: item.created_at ? new Date(item.created_at) : undefined,
-          updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
-          total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0,
-          agreement_number: item.agreement_number || '',
-          notes: item.notes || '',
-          terms_accepted: true,
-          additional_drivers: [], // Default empty array as this may not exist in the database
-          customers: item.profiles,
-          vehicles: item.vehicles,
-          signature_url: (item as any).signature_url // Using type assertion to avoid TypeScript errors
-        };
-      });
-
+      
+      // Transform to Agreement type
+      const agreements: Agreement[] = data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: new Date(item.start_date),
+        end_date: new Date(item.end_date),
+        status: item.status,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+        updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.down_payment || 0,
+        agreement_number: item.agreement_number || '',
+        notes: item.notes || '',
+        terms_accepted: true,
+        additional_drivers: item.additional_drivers || [],
+        customers: item.profiles,
+        vehicles: item.vehicles,
+        signature_url: item.signature_url
+      }));
+      
       return agreements;
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
@@ -317,8 +227,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 30000, // Cache data for 30 seconds
-    gcTime: 60000, // Keep unused data in cache for 1 minute
   });
 
   return {

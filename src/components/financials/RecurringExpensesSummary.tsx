@@ -16,10 +16,9 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { addMonths, addWeeks, addDays } from 'date-fns';
+import { format, addMonths, addWeeks, addDays } from 'date-fns';
 import { Calendar, RefreshCw } from 'lucide-react';
 import { FinancialTransaction } from '@/hooks/use-financials';
-import { formatDate } from '@/lib/date-utils';
 
 interface RecurringExpensesSummaryProps {
   recurringExpenses: FinancialTransaction[];
@@ -33,7 +32,7 @@ const RecurringExpensesSummary: React.FC<RecurringExpensesSummaryProps> = ({
   const getNextPaymentDate = (expense: FinancialTransaction) => {
     if (!expense.nextPaymentDate) return 'Not scheduled';
     
-    return formatDate(new Date(expense.nextPaymentDate));
+    return format(new Date(expense.nextPaymentDate), 'MMM d, yyyy');
   };
 
   const getFrequencyText = (interval: string | null) => {

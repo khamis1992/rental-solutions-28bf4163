@@ -3671,42 +3671,6 @@ export type Database = {
           },
         ]
       }
-      invoice_templates: {
-        Row: {
-          category: string
-          content: string
-          created_at: string | null
-          description: string | null
-          id: string
-          is_default: boolean | null
-          name: string
-          updated_at: string | null
-          variables: Json | null
-        }
-        Insert: {
-          category: string
-          content: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          name: string
-          updated_at?: string | null
-          variables?: Json | null
-        }
-        Update: {
-          category?: string
-          content?: string
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          is_default?: boolean | null
-          name?: string
-          updated_at?: string | null
-          variables?: Json | null
-        }
-        Relationships: []
-      }
       lead_activities: {
         Row: {
           activity_type: string
@@ -9878,10 +9842,6 @@ export type Database = {
           p_amount: number
         }
         Returns: string
-      }
-      create_invoice_templates_table: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
       }
       create_transaction_import: {
         Args: {

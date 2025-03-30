@@ -1,170 +1,160 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
-import { FileText, Plus, Save, Trash2, Eye, Copy, Download, Upload, Info } from "lucide-react";
+import { FileText, Plus, Save, Trash2, Eye, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from 'uuid';
-import { 
-  InvoiceTemplate, 
-  TemplateVariable, 
-  defaultVariables,
-  templateCategories,
-  getDefaultTemplate,
-  processTemplate,
-  saveTemplate,
-  fetchTemplates,
-  deleteTemplate,
-  initializeTemplates
-} from "@/utils/invoiceTemplateUtils";
-import TemplatePreview from "./TemplatePreview";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
+
+interface TemplateVariable {
+  id: string;
+  name: string;
+  description: string;
+  defaultValue: string;
+}
+
+interface InvoiceTemplate {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  variables: TemplateVariable[];
+}
+
+const defaultVariables: TemplateVariable[] = [
+  { id: "companyName", name: "{{companyName}}", description: "Company name", defaultValue: "Your Company Name" },
+  { id: "invoiceNumber", name: "{{invoiceNumber}}", description: "Invoice number", defaultValue: "INV-001" },
+  { id: "customerName", name: "{{customerName}}", description: "Customer name", defaultValue: "Customer Name" },
+  { id: "customerEmail", name: "{{customerEmail}}", description: "Customer email", defaultValue: "customer@example.com" },
+  { id: "invoiceDate", name: "{{invoiceDate}}", description: "Invoice date", defaultValue: "2023-07-15" },
+  { id: "dueDate", name: "{{dueDate}}", description: "Due date", defaultValue: "2023-08-15" },
+  { id: "totalAmount", name: "{{totalAmount}}", description: "Total amount", defaultValue: "1000.00" },
+  { id: "tax", name: "{{tax}}", description: "Tax amount", defaultValue: "50.00" },
+  { id: "currency", name: "{{currency}}", description: "Currency", defaultValue: "QAR" },
+];
+
+const defaultTemplate = `
+Dear {{customerName}},
+
+Invoice: {{invoiceNumber}}
+Date: {{invoiceDate}}
+Due Date: {{dueDate}}
+
+Thank you for your business with {{companyName}}. Please find below the details of your invoice.
+
+Total Amount: {{currency}} {{totalAmount}}
+Tax: {{currency}} {{tax}}
+
+Payment is due by {{dueDate}}. Please make your payment promptly to avoid any late fees.
+
+For any questions regarding this invoice, please contact our finance department.
+
+Best Regards,
+{{companyName}}
+`;
 
 const InvoiceTemplateEditor: React.FC = () => {
-  const [templates, setTemplates] = useState<InvoiceTemplate[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [editMode, setEditMode] = useState<"code" | "preview">("code");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("editor");
+  const [template, setTemplate] = useState<InvoiceTemplate>({
+    id: "default",
+    name: "Standard Invoice",
+    description: "Default invoice template for all customers",
+    content: defaultTemplate,
+    variables: defaultVariables,
+  });
   
-  // Template form state
-  const [templateName, setTemplateName] = useState<string>("");
-  const [templateDescription, setTemplateDescription] = useState<string>("");
-  const [templateContent, setTemplateContent] = useState<string>("");
-  const [templateCategory, setTemplateCategory] = useState<string>("invoice");
-  const [isTemplateDefault, setIsTemplateDefault] = useState<boolean>(false);
-  const [templateVariables, setTemplateVariables] = useState<TemplateVariable[]>(defaultVariables);
+  const [templates, setTemplates] = useState<InvoiceTemplate[]>([
+    {
+      id: "default",
+      name: "Standard Invoice",
+      description: "Default invoice template for all customers",
+      content: defaultTemplate,
+      variables: defaultVariables,
+    },
+    {
+      id: "reminder",
+      name: "Payment Reminder",
+      description: "Template for payment reminder notices",
+      content: "This is a reminder that your payment is due...",
+      variables: defaultVariables,
+    }
+  ]);
   
-  // Preview data for testing
-  const [previewData, setPreviewData] = useState<Record<string, string>>({});
+  const [selectedTemplateId, setSelectedTemplateId] = useState("default");
+  const [previewMode, setPreviewMode] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleTemplateChange = (templateId: string) => {
+    const selected = templates.find(t => t.id === templateId);
+    if (selected) {
+      setTemplate(selected);
+      setSelectedTemplateId(templateId);
+    }
+  };
   
-  // Load templates on mount
-  useEffect(() => {
-    loadTemplates();
-  }, []);
+  const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setTemplate({...template, content: e.target.value});
+  };
   
-  // Initialize preview data with default values
-  useEffect(() => {
-    const initialPreviewData: Record<string, string> = {};
-    templateVariables.forEach(variable => {
-      initialPreviewData[variable.id] = variable.defaultValue;
-    });
-    setPreviewData(initialPreviewData);
-  }, [templateVariables]);
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTemplate({...template, name: e.target.value});
+  };
   
-  // Load templates from database
-  const loadTemplates = async () => {
+  const handleDescriptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTemplate({...template, description: e.target.value});
+  };
+  
+  const saveTemplate = async () => {
     try {
       setLoading(true);
-      await initializeTemplates(); // Ensure default templates exist
-      const loadedTemplates = await fetchTemplates();
       
-      setTemplates(loadedTemplates);
+      // Simulate API call to save template
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (loadedTemplates.length > 0) {
-        const defaultTemplate = loadedTemplates.find(t => t.isDefault) || loadedTemplates[0];
-        selectTemplate(defaultTemplate.id);
-      }
+      // Update the templates list
+      const updatedTemplates = templates.map(t => 
+        t.id === template.id ? template : t
+      );
+      
+      setTemplates(updatedTemplates);
+      toast.success("Template saved successfully!");
     } catch (error: any) {
-      toast.error(`Failed to load templates: ${error.message}`);
+      toast.error("Failed to save template: " + error.message);
     } finally {
       setLoading(false);
     }
   };
   
-  // Select a template for editing
-  const selectTemplate = (templateId: string) => {
-    const selected = templates.find(t => t.id === templateId);
-    if (selected) {
-      setSelectedTemplateId(templateId);
-      setTemplateName(selected.name);
-      setTemplateDescription(selected.description);
-      setTemplateContent(selected.content);
-      setTemplateCategory(selected.category);
-      setIsTemplateDefault(selected.isDefault);
-      setTemplateVariables(selected.variables || defaultVariables);
-    }
+  const duplicateTemplate = () => {
+    const newTemplate = {
+      ...template,
+      id: `template-${Date.now()}`,
+      name: `${template.name} (Copy)`,
+    };
+    
+    setTemplates([...templates, newTemplate]);
+    setTemplate(newTemplate);
+    setSelectedTemplateId(newTemplate.id);
+    toast.success("Template duplicated successfully!");
   };
   
-  // Create a new template
-  const handleCreateTemplate = () => {
-    const newTemplate: InvoiceTemplate = {
-      id: `template-${uuidv4()}`,
+  const createNewTemplate = () => {
+    const newTemplate = {
+      id: `template-${Date.now()}`,
       name: "New Template",
       description: "Template description",
-      content: getDefaultTemplate(templateCategory),
-      category: templateCategory,
-      isDefault: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      content: "",
       variables: defaultVariables,
     };
     
     setTemplates([...templates, newTemplate]);
-    selectTemplate(newTemplate.id);
-    toast.success("New template created");
+    setTemplate(newTemplate);
+    setSelectedTemplateId(newTemplate.id);
   };
   
-  // Duplicate a template
-  const handleDuplicateTemplate = () => {
-    const selected = templates.find(t => t.id === selectedTemplateId);
-    if (!selected) return;
-    
-    const duplicated: InvoiceTemplate = {
-      ...selected,
-      id: `template-${uuidv4()}`,
-      name: `${selected.name} (Copy)`,
-      isDefault: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    
-    setTemplates([...templates, duplicated]);
-    selectTemplate(duplicated.id);
-    toast.success("Template duplicated");
-  };
-  
-  // Save template
-  const handleSaveTemplate = async () => {
-    if (!templateName.trim()) {
-      toast.error("Template name is required");
-      return;
-    }
-    
-    try {
-      setLoading(true);
-      
-      const templateToSave = {
-        id: selectedTemplateId,
-        name: templateName,
-        description: templateDescription,
-        content: templateContent,
-        category: templateCategory,
-        isDefault: isTemplateDefault,
-        variables: templateVariables,
-      };
-      
-      await saveTemplate(templateToSave);
-      
-      // Update local templates
-      await loadTemplates();
-      
-      toast.success("Template saved successfully");
-    } catch (error: any) {
-      toast.error(`Failed to save template: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Delete template
-  const handleDeleteTemplate = async () => {
+  const deleteTemplate = async () => {
     if (templates.length <= 1) {
       toast.error("Cannot delete the only template");
       return;
@@ -173,30 +163,52 @@ const InvoiceTemplateEditor: React.FC = () => {
     try {
       setLoading(true);
       
-      await deleteTemplate(selectedTemplateId);
+      // Simulate API call to delete template
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Update local templates
-      await loadTemplates();
+      // Remove from templates list
+      const updatedTemplates = templates.filter(t => t.id !== template.id);
+      setTemplates(updatedTemplates);
       
-      toast.success("Template deleted successfully");
+      // Select the first template
+      setTemplate(updatedTemplates[0]);
+      setSelectedTemplateId(updatedTemplates[0].id);
+      
+      toast.success("Template deleted successfully!");
     } catch (error: any) {
-      toast.error(`Failed to delete template: ${error.message}`);
+      toast.error("Failed to delete template: " + error.message);
     } finally {
       setLoading(false);
     }
   };
   
-  // Insert variable into template content
+  const togglePreviewMode = () => {
+    setPreviewMode(!previewMode);
+  };
+  
+  const renderPreview = () => {
+    let preview = template.content;
+    
+    template.variables.forEach(variable => {
+      preview = preview.replace(
+        new RegExp(variable.name, 'g'), 
+        variable.defaultValue
+      );
+    });
+    
+    return preview;
+  };
+  
   const insertVariable = (variable: TemplateVariable) => {
     const textArea = document.getElementById('template-content') as HTMLTextAreaElement;
     if (!textArea) return;
     
     const cursorPosition = textArea.selectionStart;
-    const textBeforeCursor = templateContent.substring(0, cursorPosition);
-    const textAfterCursor = templateContent.substring(cursorPosition);
+    const textBeforeCursor = template.content.substring(0, cursorPosition);
+    const textAfterCursor = template.content.substring(cursorPosition);
     
     const newContent = `${textBeforeCursor}${variable.name}${textAfterCursor}`;
-    setTemplateContent(newContent);
+    setTemplate({...template, content: newContent});
     
     // Set focus back to textarea with cursor after the inserted variable
     setTimeout(() => {
@@ -205,42 +217,7 @@ const InvoiceTemplateEditor: React.FC = () => {
       textArea.selectionEnd = cursorPosition + variable.name.length;
     }, 0);
   };
-  
-  // Generate preview HTML
-  const generatePreviewHtml = useCallback(() => {
-    if (!templateContent) return '<div class="p-4">No template content</div>';
-    return processTemplate(templateContent, previewData);
-  }, [templateContent, previewData]);
-  
-  // Export template as HTML
-  const exportTemplateAsHtml = () => {
-    const blob = new Blob([templateContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${templateName.replace(/\s+/g, '_')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-  
-  // Group variables by category
-  const getVariablesByCategory = () => {
-    const grouped: Record<string, TemplateVariable[]> = {};
-    
-    templateVariables.forEach(variable => {
-      if (!grouped[variable.category]) {
-        grouped[variable.category] = [];
-      }
-      grouped[variable.category].push(variable);
-    });
-    
-    return grouped;
-  };
-  
-  const variablesByCategory = getVariablesByCategory();
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -253,189 +230,102 @@ const InvoiceTemplateEditor: React.FC = () => {
         </CardDescription>
       </CardHeader>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="px-6">
-          <TabsList className="w-full">
-            <TabsTrigger value="editor" className="flex-1">Template Editor</TabsTrigger>
-            <TabsTrigger value="preview" className="flex-1">Preview</TabsTrigger>
-            <TabsTrigger value="data" className="flex-1">Test Data</TabsTrigger>
-          </TabsList>
-        </div>
-        
-        <CardContent className="space-y-6 pt-4">
-          <TabsContent value="editor" className="space-y-6 mt-0">
-            <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div className="space-y-4 w-full md:w-1/3">
-                <div className="space-y-2">
-                  <Label htmlFor="template-select">Select Template</Label>
-                  <Select value={selectedTemplateId} onValueChange={selectTemplate}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.map(t => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name} {t.isDefault && <Badge variant="outline" className="ml-2">Default</Badge>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="template-name">Template Name</Label>
-                  <Input
-                    id="template-name"
-                    value={templateName}
-                    onChange={(e) => setTemplateName(e.target.value)}
-                    placeholder="Enter template name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="template-description">Description</Label>
-                  <Input
-                    id="template-description"
-                    value={templateDescription}
-                    onChange={(e) => setTemplateDescription(e.target.value)}
-                    placeholder="Enter template description"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="template-category">Category</Label>
-                  <Select value={templateCategory} onValueChange={setTemplateCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templateCategories.map(category => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Available Variables</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Info className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Using Variables</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Click on a variable to insert it into your template. Variables will be replaced with actual data when generating invoices.
-                          </p>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {Object.entries(variablesByCategory).map(([category, variables]) => (
-                      <div key={category} className="space-y-1">
-                        <div className="text-sm font-medium capitalize">{category}</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {variables.map(variable => (
-                            <Button 
-                              key={variable.id}
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => insertVariable(variable)}
-                              className="justify-start text-xs overflow-hidden text-ellipsis whitespace-nowrap"
-                              title={variable.description}
-                            >
-                              {variable.name}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="w-full md:w-2/3 space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="template-content">Template HTML</Label>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setEditMode(editMode === "code" ? "preview" : "code")}
-                      className="text-xs"
-                    >
-                      {editMode === "preview" ? (
-                        <>Edit <Eye className="ml-1 h-3 w-3" /></>
-                      ) : (
-                        <>Preview <Eye className="ml-1 h-3 w-3" /></>
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={exportTemplateAsHtml}
-                      className="text-xs"
-                    >
-                      <Download className="mr-1 h-3 w-3" /> Export HTML
-                    </Button>
-                  </div>
-                </div>
-                
-                {editMode === "code" ? (
-                  <Textarea
-                    id="template-content"
-                    value={templateContent}
-                    onChange={(e) => setTemplateContent(e.target.value)}
-                    placeholder="Enter your invoice template HTML here..."
-                    className="min-h-[500px] font-mono text-sm"
-                  />
-                ) : (
-                  <TemplatePreview html={generatePreviewHtml()} className="min-h-[500px]" />
-                )}
-              </div>
+      <CardContent className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between gap-4">
+          <div className="space-y-4 w-full md:w-1/3">
+            <div className="space-y-2">
+              <Label htmlFor="template-select">Select Template</Label>
+              <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a template" />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </TabsContent>
-          
-          <TabsContent value="preview" className="mt-0">
-            <div className="p-2 bg-gray-50 rounded-md">
-              <TemplatePreview html={generatePreviewHtml()} />
+            
+            <div className="space-y-2">
+              <Label htmlFor="template-name">Template Name</Label>
+              <Input
+                id="template-name"
+                value={template.name}
+                onChange={handleNameChange}
+                placeholder="Enter template name"
+              />
             </div>
-          </TabsContent>
-          
-          <TabsContent value="data" className="mt-0">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {templateVariables.map(variable => (
-                  <div key={variable.id} className="space-y-1">
-                    <Label htmlFor={`var-${variable.id}`} className="text-sm">
-                      {variable.description}
-                    </Label>
-                    <Input
-                      id={`var-${variable.id}`}
-                      value={previewData[variable.id] || variable.defaultValue}
-                      onChange={(e) => setPreviewData({ ...previewData, [variable.id]: e.target.value })}
-                      placeholder={variable.description}
-                    />
-                  </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="template-description">Description</Label>
+              <Input
+                id="template-description"
+                value={template.description}
+                onChange={handleDescriptionChange}
+                placeholder="Enter template description"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Available Variables</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {template.variables.map(variable => (
+                  <Button 
+                    key={variable.id}
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => insertVariable(variable)}
+                    className="justify-start text-xs overflow-hidden text-ellipsis whitespace-nowrap"
+                    title={variable.description}
+                  >
+                    {variable.name}
+                  </Button>
                 ))}
               </div>
             </div>
-          </TabsContent>
-        </CardContent>
-      </Tabs>
+          </div>
+          
+          <div className="w-full md:w-2/3 space-y-2">
+            <div className="flex justify-between items-center">
+              <Label htmlFor="template-content">Template Content</Label>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={togglePreviewMode}
+                className="text-xs"
+              >
+                {previewMode ? (
+                  <>Edit <Eye className="ml-1 h-3 w-3" /></>
+                ) : (
+                  <>Preview <Eye className="ml-1 h-3 w-3" /></>
+                )}
+              </Button>
+            </div>
+            
+            {previewMode ? (
+              <div className="border rounded-md p-4 min-h-[300px] whitespace-pre-wrap">
+                {renderPreview()}
+              </div>
+            ) : (
+              <Textarea
+                id="template-content"
+                value={template.content}
+                onChange={handleContentChange}
+                placeholder="Enter your invoice template content here..."
+                className="min-h-[300px] font-mono"
+              />
+            )}
+          </div>
+        </div>
+      </CardContent>
       
       <CardFooter className="flex justify-between pt-2 flex-wrap gap-2">
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={handleCreateTemplate}
+            onClick={createNewTemplate}
             className="flex gap-1 items-center"
           >
             <Plus className="h-4 w-4" /> New
@@ -443,7 +333,7 @@ const InvoiceTemplateEditor: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleDuplicateTemplate}
+            onClick={duplicateTemplate}
             className="flex gap-1 items-center"
           >
             <Copy className="h-4 w-4" /> Duplicate
@@ -451,7 +341,7 @@ const InvoiceTemplateEditor: React.FC = () => {
           <Button
             variant="outline"
             size="sm"
-            onClick={handleDeleteTemplate}
+            onClick={deleteTemplate}
             disabled={templates.length <= 1 || loading}
             className="flex gap-1 items-center text-red-500 hover:text-red-600"
           >
@@ -460,7 +350,7 @@ const InvoiceTemplateEditor: React.FC = () => {
         </div>
         
         <Button
-          onClick={handleSaveTemplate}
+          onClick={saveTemplate}
           disabled={loading}
           className="flex gap-1 items-center"
         >

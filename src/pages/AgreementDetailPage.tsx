@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -8,8 +8,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, ArrowLeft } from 'lucide-react';
+import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { Button } from '@/components/ui/button';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,39 +18,84 @@ const AgreementDetailPage = () => {
   const { getAgreement, deleteAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const [initializationError, setInitializationError] = useState<Error | null>(null);
+  
+  // Use refs to track component lifecycle
+  const isMounted = useRef(true);
+  const dataFetchAttempted = useRef(false);
 
-  // Pass the agreement object directly and the ID as a fallback
-  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
-
-  const fetchAgreementData = async () => {
-    if (!id) return;
-
+  // Fetch agreement data
+  const fetchAgreementData = useCallback(async () => {
+    if (!id) {
+      console.error("No agreement ID was provided in the URL");
+      setInitializationError(new Error('No agreement ID was provided in the URL'));
+      setIsLoading(false);
+      return;
+    }
+    
+    if (!isMounted.current || dataFetchAttempted.current) return;
+    
+    setIsLoading(true);
+    dataFetchAttempted.current = true;
+    
     try {
-      setIsLoading(true);
+      console.log("Fetching agreement details for ID:", id);
       const data = await getAgreement(id);
       
-      if (data) {
-        setAgreement(data);
-      } else {
-        toast.error("Agreement not found");
-        navigate("/agreements");
+      if (!isMounted.current) {
+        return;
       }
-    } catch (error) {
-      console.error('Error fetching agreement:', error);
-      toast.error('Failed to load agreement details');
-    } finally {
+      
+      if (!data) {
+        console.error("No agreement data found for ID:", id);
+        setInitializationError(new Error(`Agreement with ID ${id} not found`));
+        setIsLoading(false);
+        return;
+      }
+      
+      console.log("Agreement data fetched successfully:", JSON.stringify(data, null, 2));
+      setAgreement(data);
       setIsLoading(false);
-      setHasAttemptedFetch(true);
+    } catch (error) {
+      console.error("Error fetching agreement:", error);
+      if (isMounted.current) {
+        setInitializationError(error instanceof Error ? error : new Error('Unknown error'));
+        setIsLoading(false);
+        toast.error("Failed to load agreement details");
+      }
     }
-  };
+  }, [id, getAgreement]);
 
+  // Initial data fetch
   useEffect(() => {
-    if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
+    console.log("Component mounted, initializing data fetch for ID:", id);
+    fetchAgreementData();
+    
+    return () => {
+      isMounted.current = false;
+    };
+  }, [fetchAgreementData]);
+
+  // Custom hooks for specific functionality - only call when agreement is available
+  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
+  const { refreshTrigger, refreshAgreementData, handleSpecialAgreementPayments } = usePaymentGeneration(agreement, id);
+
+  // Handle refreshing data when needed
+  useEffect(() => {
+    if (refreshTrigger > 0 && id && isMounted.current) {
+      console.log("Refresh triggered, fetching updated agreement data");
+      dataFetchAttempted.current = false; // Reset to allow re-fetching
       fetchAgreementData();
     }
-  }, [id, refreshTrigger]);
+  }, [refreshTrigger, id, fetchAgreementData]);
+
+  // Special agreement check - run only when agreement and rentAmount are loaded
+  useEffect(() => {
+    if (agreement && rentAmount && agreement.agreement_number === 'MR202462') {
+      console.log("Special agreement MR202462 found with rentAmount:", rentAmount);
+      handleSpecialAgreementPayments(agreement, rentAmount);
+    }
+  }, [agreement, rentAmount, handleSpecialAgreementPayments]);
 
   const handleDelete = async (agreementId: string) => {
     try {
@@ -62,9 +108,66 @@ const AgreementDetailPage = () => {
     }
   };
 
-  const refreshAgreementData = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
+  useEffect(() => {
+    // Additional debugging useEffect that runs on state updates
+    console.log("Current state:", {
+      agreementLoaded: !!agreement,
+      isLoading,
+      hasError: !!initializationError,
+      rentAmount,
+      contractAmount,
+      refreshTrigger
+    });
+    
+    if (agreement) {
+      console.log("Agreement state details:", {
+        id: agreement.id,
+        agreement_number: agreement.agreement_number,
+        hasCustomerData: !!agreement.customers,
+        hasVehicleData: !!agreement.vehicles,
+        status: agreement.status
+      });
+    }
+  }, [agreement, isLoading, initializationError, rentAmount, contractAmount, refreshTrigger]);
+
+  if (initializationError) {
+    return (
+      <PageContainer
+        title="Agreement Details"
+        description="View and manage rental agreement details"
+        backLink="/agreements"
+      >
+        <div className="text-center py-12">
+          <div className="flex items-center justify-center mb-4">
+            <AlertTriangle className="h-12 w-12 text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2 text-red-600">Error loading agreement</h3>
+          <p className="text-muted-foreground mb-4">
+            {initializationError.message}
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button 
+              onClick={() => {
+                dataFetchAttempted.current = false;
+                setInitializationError(null);
+                fetchAgreementData();
+              }}
+              className="mt-4"
+            >
+              Retry
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate("/agreements")}
+              className="mt-4"
+            >
+              Return to Agreements
+            </Button>
+          </div>
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
@@ -72,24 +175,6 @@ const AgreementDetailPage = () => {
       description="View and manage rental agreement details"
       backLink="/agreements"
     >
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="gap-1 text-muted-foreground hover:text-foreground" 
-          onClick={() => navigate('/agreements')}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back
-        </Button>
-      </div>
-      
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold">Agreement Details</h1>
-        <p className="text-sm text-muted-foreground mt-1">View and manage rental agreement details</p>
-        <p className="text-xs text-muted-foreground">System Date: {new Date().toLocaleDateString()}</p>
-      </div>
-      
       {isLoading ? (
         <div className="space-y-6">
           <Skeleton className="h-12 w-2/3" />
@@ -101,12 +186,11 @@ const AgreementDetailPage = () => {
         </div>
       ) : agreement ? (
         <AgreementDetail 
-          agreement={agreement}
+          agreement={agreement} 
           onDelete={handleDelete}
-          rentAmount={rentAmount}
           contractAmount={contractAmount}
+          rentAmount={rentAmount}
           onPaymentDeleted={refreshAgreementData}
-          onDataRefresh={refreshAgreementData}
         />
       ) : (
         <div className="text-center py-12">
