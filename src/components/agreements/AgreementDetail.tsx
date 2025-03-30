@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -16,6 +15,7 @@ import { LegalCaseCard } from './LegalCaseCard';
 import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { usePayments } from '@/hooks/use-payments';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -42,6 +42,8 @@ export function AgreementDetail({
     amount: number;
     daysLate: number;
   } | null>(null);
+
+  const { payments, isLoadingPayments } = usePayments(agreement?.id, rentAmount);
 
   const {
     handleSpecialAgreementPayments
@@ -324,8 +326,8 @@ export function AgreementDetail({
 
       {agreement && (
         <PaymentHistory 
-          payments={[]} 
-          isLoading={false} 
+          payments={payments} 
+          isLoading={isLoadingPayments} 
           rentAmount={rentAmount}
           onPaymentDeleted={onPaymentDeleted}
           leaseStartDate={agreement.start_date}
