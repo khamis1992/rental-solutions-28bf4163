@@ -29,24 +29,51 @@ interface CategoryData {
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#A569BD', '#5DADE2', '#45B39D'];
 
+const monthlyData: RevenueData[] = [
+  { name: 'Jan', revenue: 5200, expenses: 4100 },
+  { name: 'Feb', revenue: 4800, expenses: 4200 },
+  { name: 'Mar', revenue: 6000, expenses: 4500 },
+  { name: 'Apr', revenue: 6700, expenses: 4800 },
+  { name: 'May', revenue: 7500, expenses: 5000 },
+  { name: 'Jun', revenue: 9000, expenses: 5500 },
+  { name: 'Jul', revenue: 10000, expenses: 6000 },
+  { name: 'Aug', revenue: 11000, expenses: 6500 },
+];
+
+const revenueCategories: CategoryData[] = [
+  { name: 'Short-term Rentals', value: 42000 },
+  { name: 'Long-term Rentals', value: 28000 },
+  { name: 'Security Deposits', value: 15000 },
+  { name: 'Late Fees', value: 5000 },
+  { name: 'Other', value: 3000 },
+];
+
+const expenseCategories: CategoryData[] = [
+  { name: 'Vehicle Maintenance', value: 15000 },
+  { name: 'Salaries', value: 12000 },
+  { name: 'Insurance', value: 8000 },
+  { name: 'Rent', value: 5000 },
+  { name: 'Utilities', value: 3000 },
+  { name: 'Marketing', value: 2000 },
+  { name: 'Others', value: 1500 },
+];
+
 const FinancialDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState<string>("last-6-months");
   const [chartType, setChartType] = useState<string>("area");
-  const { 
-    financialSummary, 
-    isLoadingSummary,
-    transactions,
-    expenses, 
-    isLoadingTransactions 
-  } = useFinancials();
+  const { financialSummary, isLoadingSummary } = useFinancials();
   const [keyMetrics, setKeyMetrics] = useState<FinancialMetric[]>([]);
-  const [monthlyData, setMonthlyData] = useState<RevenueData[]>([]);
-  const [revenueCategories, setRevenueCategories] = useState<CategoryData[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<CategoryData[]>([]);
 
   useEffect(() => {
     if (financialSummary) {
       console.log("Financial Summary in Dashboard:", financialSummary);
+      console.log("IMPORTANT VALUES CHECK:");
+      console.log("Total Expenses value (raw):", financialSummary.totalExpenses);
+      console.log("Total Expenses value (typeof):", typeof financialSummary.totalExpenses);
+      console.log("Current Month Due value (raw):", financialSummary.currentMonthDue);
+      console.log("Current Month Due value (typeof):", typeof financialSummary.currentMonthDue);
+      console.log("Overdue Expenses value (raw):", financialSummary.overdueExpenses);
+      console.log("Overdue Expenses value (typeof):", typeof financialSummary.overdueExpenses);
       
       // Parse values to ensure they're numbers, with fallback to 0
       const totalExpenses = parseFloat(Number(financialSummary.totalExpenses || 0).toFixed(2));
@@ -54,10 +81,10 @@ const FinancialDashboard: React.FC = () => {
       const netRevenue = parseFloat(Number(financialSummary.netRevenue || 0).toFixed(2));
       const overdueExpenses = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
       
-      console.log("Dashboard metrics - Total Expenses:", totalExpenses);
-      console.log("Dashboard metrics - Total Income:", totalIncome);
-      console.log("Dashboard metrics - Net Revenue:", netRevenue);
-      console.log("Dashboard metrics - Overdue Expenses:", overdueExpenses);
+      console.log("After parsing - Total Expenses:", totalExpenses);
+      console.log("After parsing - Total Income:", totalIncome);
+      console.log("After parsing - Net Revenue:", netRevenue);
+      console.log("After parsing - Overdue Expenses:", overdueExpenses);
       
       // Create dynamic key metrics based on actual financial data with proper type handling
       setKeyMetrics([
@@ -90,92 +117,6 @@ const FinancialDashboard: React.FC = () => {
       ]);
     }
   }, [financialSummary]);
-
-  // Process transactions data for charts
-  useEffect(() => {
-    if (transactions && transactions.length > 0) {
-      console.log("Processing transactions for charts:", transactions.length);
-      
-      // Group transactions by month for the monthly chart
-      const monthlyDataMap = new Map<string, RevenueData>();
-      
-      // Get months for the last 6 months
-      const today = new Date();
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
-      // Initialize with empty data for last 6 months
-      for (let i = 5; i >= 0; i--) {
-        const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthKey = `${monthNames[month.getMonth()]} ${month.getFullYear()}`;
-        monthlyDataMap.set(monthKey, { 
-          name: monthNames[month.getMonth()], 
-          revenue: 0, 
-          expenses: 0 
-        });
-      }
-      
-      // Fill with actual data
-      transactions.forEach(transaction => {
-        if (!transaction.date) return;
-        
-        const date = new Date(transaction.date);
-        const monthKey = `${monthNames[date.getMonth()]} ${date.getFullYear()}`;
-        
-        if (monthlyDataMap.has(monthKey)) {
-          const current = monthlyDataMap.get(monthKey)!;
-          
-          if (transaction.type === 'income') {
-            current.revenue += Number(transaction.amount || 0);
-          } else {
-            current.expenses += Number(transaction.amount || 0);
-          }
-          
-          monthlyDataMap.set(monthKey, current);
-        }
-      });
-      
-      // Convert map to array for chart
-      setMonthlyData(Array.from(monthlyDataMap.values()));
-      
-      // Process revenue categories
-      const revenueCategoriesMap = new Map<string, number>();
-      const expenseCategoriesMap = new Map<string, number>();
-      
-      transactions.forEach(transaction => {
-        const amount = Number(transaction.amount || 0);
-        const category = transaction.category || 'Other';
-        
-        if (transaction.type === 'income') {
-          revenueCategoriesMap.set(
-            category, 
-            (revenueCategoriesMap.get(category) || 0) + amount
-          );
-        } else {
-          expenseCategoriesMap.set(
-            category, 
-            (expenseCategoriesMap.get(category) || 0) + amount
-          );
-        }
-      });
-      
-      // Convert maps to arrays for charts
-      setRevenueCategories(
-        Array.from(revenueCategoriesMap.entries())
-          .map(([name, value]) => ({ name, value }))
-          .sort((a, b) => b.value - a.value)
-      );
-      
-      setExpenseCategories(
-        Array.from(expenseCategoriesMap.entries())
-          .map(([name, value]) => ({ name, value }))
-          .sort((a, b) => b.value - a.value)
-      );
-      
-      console.log("Monthly data processed:", monthlyData);
-      console.log("Revenue categories:", revenueCategories);
-      console.log("Expense categories:", expenseCategories);
-    }
-  }, [transactions]);
 
   useEffect(() => {
     // Debug on initial render and whenever financial data changes
@@ -224,7 +165,7 @@ const FinancialDashboard: React.FC = () => {
     );
   };
 
-  if (isLoadingSummary || isLoadingTransactions) {
+  if (isLoadingSummary) {
     return <div className="p-4">Loading financial data...</div>;
   }
 
@@ -291,7 +232,7 @@ const FinancialDashboard: React.FC = () => {
                   <XAxis dataKey="name" />
                   <YAxis />
                   <CartesianGrid strokeDasharray="3 3" />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Tooltip />
                   <Area 
                     type="monotone" 
                     dataKey="revenue" 
@@ -315,7 +256,7 @@ const FinancialDashboard: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Tooltip />
                   <Legend />
                   <Bar dataKey="revenue" fill="#8884d8" name="Revenue" />
                   <Bar dataKey="expenses" fill="#82ca9d" name="Expenses" />
@@ -337,7 +278,7 @@ const FinancialDashboard: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <RePieChart>
                   <Pie
-                    data={revenueCategories.length > 0 ? revenueCategories : [{ name: 'No Data', value: 1 }]}
+                    data={revenueCategories}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -350,7 +291,7 @@ const FinancialDashboard: React.FC = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Tooltip formatter={(value) => `QAR ${value.toLocaleString()}`} />
                 </RePieChart>
               </ResponsiveContainer>
             </div>
@@ -367,7 +308,7 @@ const FinancialDashboard: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <RePieChart>
                   <Pie
-                    data={expenseCategories.length > 0 ? expenseCategories : [{ name: 'No Data', value: 1 }]}
+                    data={expenseCategories}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -380,7 +321,7 @@ const FinancialDashboard: React.FC = () => {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                  <Tooltip formatter={(value) => `QAR ${value.toLocaleString()}`} />
                 </RePieChart>
               </ResponsiveContainer>
             </div>

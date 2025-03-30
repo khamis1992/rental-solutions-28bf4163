@@ -1,14 +1,12 @@
-
 import React from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartPieIcon, FileText, BarChartBig, FileSpreadsheet } from "lucide-react";
+import { ChartPieIcon, CreditCard, FileText, BarChartBig, FileSpreadsheet } from "lucide-react";
 import FinancialDashboard from "@/components/financials/FinancialDashboard";
 import PaymentGatewaySettings from "@/components/payments/PaymentGatewaySettings";
 import InvoiceTemplateEditor from "@/components/invoices/InvoiceTemplateEditor";
 import CarInstallmentContracts from "@/components/financials/car-installments/CarInstallmentContracts";
-
 const Financials = () => {
   return <PageContainer>
       <SectionHeader title="Financial Management" description="Manage payments, invoices, financial reporting and installment contracts" icon={ChartPieIcon} />
@@ -38,11 +36,14 @@ const Financials = () => {
           <InvoiceTemplateEditor />
         </TabsContent>
         
+        <TabsContent value="payments" className="space-y-6">
+          <PaymentGatewaySettings />
+        </TabsContent>
+        
         <TabsContent value="installments" className="space-y-6">
           <CarInstallmentContracts />
         </TabsContent>
       </Tabs>
     </PageContainer>;
 };
-
 export default Financials;

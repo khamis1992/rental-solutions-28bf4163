@@ -1,86 +1,26 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { useFinancials } from '@/hooks/use-financials';
 
-interface MonthlyData {
-  name: string;
-  income: number;
-  expenses: number;
-}
+const monthlyData = [
+  { name: 'Jan', income: 12000, expenses: 8000 },
+  { name: 'Feb', income: 15000, expenses: 7500 },
+  { name: 'Mar', income: 18000, expenses: 9000 },
+  { name: 'Apr', income: 16000, expenses: 8800 },
+  { name: 'May', income: 21000, expenses: 9200 },
+  { name: 'Jun', income: 19000, expenses: 8700 },
+  { name: 'Jul', income: 23000, expenses: 9500 },
+  { name: 'Aug', income: 25000, expenses: 10000 },
+  { name: 'Sep', income: 22000, expenses: 9800 },
+  { name: 'Oct', income: 20000, expenses: 9300 },
+  { name: 'Nov', income: 24000, expenses: 9900 },
+  { name: 'Dec', income: 27000, expenses: 10500 }
+];
 
 const FinancialRevenueChart = () => {
-  const { transactions } = useFinancials();
-  const [chartData, setChartData] = useState<MonthlyData[]>([]);
-
-  useEffect(() => {
-    if (transactions && transactions.length > 0) {
-      console.log("Processing transactions for revenue chart:", transactions.length);
-      
-      // Process transactions to monthly data
-      const monthlyDataMap = new Map<string, { income: number, expenses: number }>();
-      
-      // Initialize last 12 months with zero values
-      const today = new Date();
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
-      for (let i = 11; i >= 0; i--) {
-        const month = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthKey = `${monthNames[month.getMonth()]}`;
-        monthlyDataMap.set(monthKey, { income: 0, expenses: 0 });
-      }
-      
-      // Fill with actual transaction data
-      transactions.forEach(transaction => {
-        if (!transaction.date) return;
-        
-        const transactionDate = new Date(transaction.date);
-        const monthKey = monthNames[transactionDate.getMonth()];
-        
-        if (monthlyDataMap.has(monthKey)) {
-          const currentData = monthlyDataMap.get(monthKey)!;
-          const amount = Number(transaction.amount || 0);
-          
-          if (transaction.type === 'income') {
-            currentData.income += amount;
-          } else {
-            currentData.expenses += amount;
-          }
-          
-          monthlyDataMap.set(monthKey, currentData);
-        }
-      });
-      
-      // Convert map to array for chart
-      const processedData = Array.from(monthlyDataMap.entries())
-        .map(([name, data]) => ({
-          name,
-          income: parseFloat(data.income.toFixed(2)),
-          expenses: parseFloat(data.expenses.toFixed(2))
-        }));
-      
-      console.log("Processed monthly data for revenue chart:", processedData);
-      setChartData(processedData);
-    } else {
-      // If no transactions, initialize with empty data
-      const emptyData: MonthlyData[] = [];
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
-      for (let i = 0; i < 12; i++) {
-        emptyData.push({
-          name: monthNames[i],
-          income: 0,
-          expenses: 0
-        });
-      }
-      
-      setChartData(emptyData);
-    }
-  }, [transactions]);
-
   return (
     <Card className="col-span-3">
       <CardHeader>
@@ -101,7 +41,7 @@ const FinancialRevenueChart = () => {
             }}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
+              <BarChart data={monthlyData} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis
                   dataKey="name"
@@ -115,7 +55,7 @@ const FinancialRevenueChart = () => {
                   tick={{ fill: '#64748b', fontSize: 12 }}
                   tickFormatter={(value) => `${formatCurrency(value / 1000).split('.')[0]}k`}
                 />
-                <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
+                <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="income" fill="var(--color-income)" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="expenses" fill="var(--color-expenses)" radius={[4, 4, 0, 0]} />
               </BarChart>
