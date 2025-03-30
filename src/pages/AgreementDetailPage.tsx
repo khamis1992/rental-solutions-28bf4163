@@ -18,6 +18,7 @@ const AgreementDetailPage = () => {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
 
   // Pass the agreement object directly and the ID as a fallback
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
@@ -28,26 +29,27 @@ const AgreementDetailPage = () => {
     try {
       setIsLoading(true);
       const data = await getAgreement(id);
-      setAgreement(data);
+      
+      if (data) {
+        setAgreement(data);
+      } else {
+        toast.error("Agreement not found");
+        navigate("/agreements");
+      }
     } catch (error) {
       console.error('Error fetching agreement:', error);
       toast.error('Failed to load agreement details');
     } finally {
       setIsLoading(false);
+      setHasAttemptedFetch(true);
     }
   };
 
   useEffect(() => {
-    if (id) {
+    if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
       fetchAgreementData();
     }
-  }, [id]);
-
-  useEffect(() => {
-    if (refreshTrigger > 0) {
-      fetchAgreementData();
-    }
-  }, [refreshTrigger]);
+  }, [id, refreshTrigger]);
 
   const handleDelete = async (agreementId: string) => {
     try {

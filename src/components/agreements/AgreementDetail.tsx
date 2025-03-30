@@ -9,12 +9,13 @@ import { PaymentList } from '@/components/payments/PaymentList';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, FilePlus, DollarSign } from 'lucide-react';
+import { CalendarDays, Download, Edit, Printer, DollarSign, FilePlus } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { LegalCaseCard } from './LegalCaseCard';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -36,6 +37,7 @@ export function AgreementDetail({
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const { handleSpecialAgreementPayments } = usePaymentGeneration(agreement, agreement?.id);
   
   const handleDelete = useCallback(() => {
@@ -62,6 +64,9 @@ export function AgreementDetail({
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
+        setIsGeneratingPdf(true);
+        toast.info("Preparing agreement PDF document...");
+        
         const success = await generatePdfDocument(agreement);
         if (success) {
           toast.success("Agreement PDF downloaded successfully");
@@ -71,6 +76,8 @@ export function AgreementDetail({
       } catch (error) {
         console.error("Error generating PDF:", error);
         toast.error("Failed to generate PDF");
+      } finally {
+        setIsGeneratingPdf(false);
       }
     }
   }, [agreement]);
@@ -78,6 +85,13 @@ export function AgreementDetail({
   const handleRecordPayment = useCallback(() => {
     setIsPaymentDialogOpen(true);
   }, []);
+
+  const handleGenerateDocument = useCallback(() => {
+    if (agreement) {
+      // This would navigate to document generation, just show toast for now
+      toast.info("Document generation functionality coming soon");
+    }
+  }, [agreement]);
 
   const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string) => {
     if (agreement && agreement.id) {
@@ -97,7 +111,7 @@ export function AgreementDetail({
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
-    return months;
+    return months > 0 ? months : 1; // Ensure at least 1 month
   }, []);
 
   if (!agreement) {
@@ -108,10 +122,16 @@ export function AgreementDetail({
     );
   }
 
-  const duration = calculateDuration(
-    new Date(agreement.start_date),
-    new Date(agreement.end_date)
-  );
+  // Ensure dates are Date objects
+  const startDate = agreement.start_date instanceof Date 
+    ? agreement.start_date 
+    : new Date(agreement.start_date);
+    
+  const endDate = agreement.end_date instanceof Date
+    ? agreement.end_date
+    : new Date(agreement.end_date);
+
+  const duration = calculateDuration(startDate, endDate);
 
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
@@ -123,20 +143,28 @@ export function AgreementDetail({
         return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
       case 'cancelled':
         return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
+      case 'expired':
+        return <Badge className="bg-gray-500 text-white ml-2">EXPIRED</Badge>;
+      case 'draft':
+        return <Badge className="bg-purple-500 text-white ml-2">DRAFT</Badge>;
       default:
         return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
     }
   };
 
+  const createdDate = agreement.created_at instanceof Date 
+    ? agreement.created_at 
+    : new Date(agreement.created_at || new Date());
+
   return (
     <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">
+        <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
           Agreement {agreement.agreement_number}
           {formattedStatus(agreement.status)}
         </h2>
         <p className="text-muted-foreground">
-          Created on {format(new Date(agreement.created_at || new Date()), 'MMMM d, yyyy')}
+          Created on {format(createdDate, 'MMMM d, yyyy')}
         </p>
       </div>
 
@@ -160,6 +188,14 @@ export function AgreementDetail({
                 <p className="font-medium">Phone</p>
                 <p>{agreement.customers?.phone_number || 'N/A'}</p>
               </div>
+              <div>
+                <p className="font-medium">Address</p>
+                <p>{agreement.customers?.address || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="font-medium">Driver License</p>
+                <p>{agreement.customers?.driver_license || 'N/A'}</p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -173,7 +209,7 @@ export function AgreementDetail({
             <div className="space-y-4">
               <div>
                 <p className="font-medium">Vehicle</p>
-                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year})</p>
+                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
               </div>
               <div>
                 <p className="font-medium">License Plate</p>
@@ -182,6 +218,10 @@ export function AgreementDetail({
               <div>
                 <p className="font-medium">Color</p>
                 <p>{agreement.vehicles?.color || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="font-medium">VIN</p>
+                <p>{agreement.vehicles?.vin || 'N/A'}</p>
               </div>
             </div>
           </CardContent>
@@ -199,14 +239,20 @@ export function AgreementDetail({
               <div>
                 <p className="font-medium">Rental Period</p>
                 <p className="flex items-center">
-                  {format(new Date(agreement.start_date), "MMMM d, yyyy")} to {format(new Date(agreement.end_date), "MMMM d, yyyy")}
+                  <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
+                  {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
                 </p>
-                <p className="text-sm text-muted-foreground">Duration: {duration} months</p>
+                <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
               </div>
               
               <div>
                 <p className="font-medium">Additional Drivers</p>
                 <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
+              </div>
+              
+              <div>
+                <p className="font-medium">Notes</p>
+                <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
               </div>
             </div>
             
@@ -241,22 +287,33 @@ export function AgreementDetail({
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        <Button variant="outline" onClick={handleEdit} className="print:hidden">
+      <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
+        <Button variant="outline" onClick={handleEdit}>
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>
-        <Button variant="outline" onClick={handlePrint} className="print:hidden">
+        <Button variant="outline" onClick={handlePrint}>
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
-        <Button variant="outline" onClick={handleDownloadPdf} className="print:hidden">
+        <Button 
+          variant="outline" 
+          onClick={handleDownloadPdf}
+          disabled={isGeneratingPdf}
+        >
           <Download className="mr-2 h-4 w-4" />
-          Download PDF
+          {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
+        </Button>
+        <Button 
+          variant="outline"
+          onClick={handleGenerateDocument}
+        >
+          <FilePlus className="mr-2 h-4 w-4" />
+          Generate Document
         </Button>
         <Button 
           variant="default" 
-          className="print:hidden bg-blue-500 hover:bg-blue-600"
+          className="bg-blue-500 hover:bg-blue-600"
           onClick={handleRecordPayment}
         >
           <DollarSign className="mr-2 h-4 w-4" />
@@ -266,7 +323,7 @@ export function AgreementDetail({
         <Button 
           variant="destructive"
           onClick={handleDelete}
-          className="print:hidden ml-auto"
+          className="ml-auto"
         >
           Delete
         </Button>
@@ -278,7 +335,7 @@ export function AgreementDetail({
             <CardTitle>Payment History</CardTitle>
             <CardDescription>View and manage payment records</CardDescription>
           </div>
-          {rentAmount && (
+          {rentAmount && agreement.status.toLowerCase() === 'active' && (
             <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
               <span className="text-sm font-medium">Missing 1 payment</span>
             </div>
@@ -301,13 +358,18 @@ export function AgreementDetail({
           <CardContent>
             <AgreementTrafficFines
               agreementId={agreement.id}
-              startDate={new Date(agreement.start_date)}
-              endDate={new Date(agreement.end_date)}
+              startDate={startDate}
+              endDate={endDate}
             />
           </CardContent>
         </Card>
       )}
+      
+      {agreement.id && (
+        <LegalCaseCard agreementId={agreement.id} />
+      )}
 
+      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -323,6 +385,7 @@ export function AgreementDetail({
         </DialogContent>
       </Dialog>
 
+      {/* Payment Entry Dialog */}
       <PaymentEntryDialog 
         open={isPaymentDialogOpen} 
         onOpenChange={setIsPaymentDialogOpen}
