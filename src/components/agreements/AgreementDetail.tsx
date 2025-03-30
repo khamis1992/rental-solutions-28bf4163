@@ -1,5 +1,4 @@
-
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,6 +37,7 @@ export function AgreementDetail({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [lateFeeDetails, setLateFeeDetails] = useState<{amount: number; daysLate: number} | null>(null);
   const { handleSpecialAgreementPayments } = usePaymentGeneration(agreement, agreement?.id);
   
   const handleDelete = useCallback(() => {
@@ -88,15 +88,28 @@ export function AgreementDetail({
 
   const handleGenerateDocument = useCallback(() => {
     if (agreement) {
-      // This would navigate to document generation, just show toast for now
       toast.info("Document generation functionality coming soon");
     }
   }, [agreement]);
 
-  const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string) => {
+  const handlePaymentSubmit = useCallback(async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string,
+    paymentMethod?: string,
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean
+  ) => {
     if (agreement && agreement.id) {
       try {
-        const success = await handleSpecialAgreementPayments(amount, paymentDate, notes);
+        const success = await handleSpecialAgreementPayments(
+          amount, 
+          paymentDate, 
+          notes,
+          paymentMethod,
+          referenceNumber,
+          includeLatePaymentFee
+        );
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
@@ -114,6 +127,21 @@ export function AgreementDetail({
     return months > 0 ? months : 1; // Ensure at least 1 month
   }, []);
 
+  useEffect(() => {
+    const today = new Date();
+    if (today.getDate() > 1) {
+      const daysLate = today.getDate() - 1;
+      const lateFeeAmount = Math.min(daysLate * 120, 3000); // 120 QAR per day, max 3000
+      
+      setLateFeeDetails({
+        amount: lateFeeAmount,
+        daysLate: daysLate
+      });
+    } else {
+      setLateFeeDetails(null);
+    }
+  }, []);
+
   if (!agreement) {
     return (
       <Alert>
@@ -122,7 +150,6 @@ export function AgreementDetail({
     );
   }
 
-  // Ensure dates are Date objects
   const startDate = agreement.start_date instanceof Date 
     ? agreement.start_date 
     : new Date(agreement.start_date);
@@ -393,6 +420,7 @@ export function AgreementDetail({
         defaultAmount={rentAmount || 0}
         title="Record Rent Payment"
         description="Record a new rental payment for this agreement."
+        lateFeeDetails={lateFeeDetails}
       />
     </div>
   );

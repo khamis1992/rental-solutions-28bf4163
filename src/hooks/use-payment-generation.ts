@@ -15,7 +15,14 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
   }, []);
 
   // Handle special agreement payments with late fee calculation
-  const handleSpecialAgreementPayments = useCallback(async (amount: number, paymentDate: Date, description?: string) => {
+  const handleSpecialAgreementPayments = useCallback(async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string,
+    paymentMethod: string = 'cash',
+    referenceNumber?: string,
+    includeLatePaymentFee: boolean = false
+  ) => {
     if (!agreement || !agreementId) {
       toast.error("Agreement information is missing");
       return false;
@@ -47,10 +54,12 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         lease_id: agreementId,
         amount: amount,
         payment_date: paymentDate.toISOString(),
-        payment_method: 'cash', // Default to cash, can be made configurable
-        description: description || `Monthly rent payment for ${agreement.agreement_number}`,
+        payment_method: paymentMethod,
+        reference_number: referenceNumber || null,
+        notes: notes || null,
+        description: notes || `Monthly rent payment for ${agreement.agreement_number}`,
         status: 'completed',
-        type: 'Income',
+        type: 'rent',
         days_overdue: daysLate,
         original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
       };
@@ -70,13 +79,15 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         return false;
       }
       
-      // If there's a late fee to apply, record it as a separate transaction
-      if (lateFeeAmount > 0) {
+      // If there's a late fee to apply and user opted to include it, record it as a separate transaction
+      if (lateFeeAmount > 0 && includeLatePaymentFee) {
         const lateFeeRecord = {
           lease_id: agreementId,
           amount: lateFeeAmount,
           payment_date: paymentDate.toISOString(),
-          payment_method: 'cash',
+          payment_method: paymentMethod,
+          reference_number: referenceNumber || null,
+          notes: notes || null,
           description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
           status: 'completed',
           type: 'LATE_PAYMENT_FEE',

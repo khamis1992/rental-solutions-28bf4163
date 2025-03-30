@@ -26,16 +26,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { CalendarIcon, DollarSign } from 'lucide-react';
+import { cn, formatCurrency } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const formSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   paymentDate: z.date(),
   notes: z.string().optional(),
   paymentMethod: z.string().min(1, 'Please select a payment method'),
-  referenceNumber: z.string().optional()
+  referenceNumber: z.string().optional(),
+  includeLatePaymentFee: z.boolean().default(false)
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -43,10 +46,11 @@ type FormValues = z.infer<typeof formSchema>;
 interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (amount: number, paymentDate: Date, notes?: string) => void;
+  onSubmit: (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean) => void;
   defaultAmount: number;
   title?: string;
   description?: string;
+  lateFeeDetails?: { amount: number; daysLate: number } | null;
 }
 
 export function PaymentEntryDialog({
@@ -55,7 +59,8 @@ export function PaymentEntryDialog({
   onSubmit,
   defaultAmount,
   title = "Record Payment",
-  description = "Enter payment details below"
+  description = "Enter payment details below",
+  lateFeeDetails = null
 }: PaymentEntryDialogProps) {
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -64,7 +69,8 @@ export function PaymentEntryDialog({
       paymentDate: new Date(),
       notes: '',
       paymentMethod: 'cash',
-      referenceNumber: ''
+      referenceNumber: '',
+      includeLatePaymentFee: false
     }
   });
 
@@ -74,12 +80,19 @@ export function PaymentEntryDialog({
   }, [defaultAmount, form]);
 
   const handleSubmit = (values: FormValues) => {
-    onSubmit(values.amount, values.paymentDate, values.notes);
+    onSubmit(
+      values.amount, 
+      values.paymentDate, 
+      values.notes, 
+      values.paymentMethod, 
+      values.referenceNumber,
+      values.includeLatePaymentFee
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
@@ -94,12 +107,16 @@ export function PaymentEntryDialog({
                 <FormItem>
                   <FormLabel>Amount (QAR)</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...field}
-                      onChange={e => field.onChange(parseFloat(e.target.value))}
-                    />
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="pl-10"
+                        {...field}
+                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
                   </FormControl>
                   <FormDescription>Enter the payment amount</FormDescription>
                   <FormMessage />
@@ -147,6 +164,34 @@ export function PaymentEntryDialog({
               )}
             />
 
+            {lateFeeDetails && (
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 my-2">
+                <p className="text-amber-800 font-medium">Late Payment Fee Applicable</p>
+                <p className="text-sm text-amber-700">
+                  Payment is {lateFeeDetails.daysLate} days late from the 1st of the month. 
+                  A late fee of {formatCurrency(lateFeeDetails.amount)} applies ({lateFeeDetails.daysLate} days × 120 QAR/day, max 3000 QAR).
+                </p>
+                
+                <FormField
+                  control={form.control}
+                  name="includeLatePaymentFee"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 mt-2">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Include late payment fee</FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
+
             <FormField
               control={form.control}
               name="paymentMethod"
@@ -164,6 +209,7 @@ export function PaymentEntryDialog({
                       <SelectItem value="credit_card">Credit Card</SelectItem>
                       <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                       <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="mobile_payment">Mobile Payment</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>Select how the payment was made</FormDescription>
