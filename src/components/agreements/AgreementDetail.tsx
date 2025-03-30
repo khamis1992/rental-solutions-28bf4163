@@ -15,7 +15,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { LegalCaseCard } from './LegalCaseCard';
-
 interface AgreementDetailProps {
   agreement: Agreement | null;
   onDelete: (id: string) => void;
@@ -24,10 +23,9 @@ interface AgreementDetailProps {
   onPaymentDeleted: () => void;
   onDataRefresh: () => void;
 }
-
-export function AgreementDetail({ 
-  agreement, 
-  onDelete, 
+export function AgreementDetail({
+  agreement,
+  onDelete,
   rentAmount,
   contractAmount,
   onPaymentDeleted,
@@ -37,36 +35,35 @@ export function AgreementDetail({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [lateFeeDetails, setLateFeeDetails] = useState<{amount: number; daysLate: number} | null>(null);
-  const { handleSpecialAgreementPayments } = usePaymentGeneration(agreement, agreement?.id);
-  
+  const [lateFeeDetails, setLateFeeDetails] = useState<{
+    amount: number;
+    daysLate: number;
+  } | null>(null);
+  const {
+    handleSpecialAgreementPayments
+  } = usePaymentGeneration(agreement, agreement?.id);
   const handleDelete = useCallback(() => {
     setIsDeleteDialogOpen(true);
   }, []);
-
   const confirmDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
       setIsDeleteDialogOpen(false);
     }
   }, [agreement, onDelete]);
-
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
-
   const handleEdit = useCallback(() => {
     if (agreement) {
       navigate(`/agreements/${agreement.id}/edit`);
     }
   }, [agreement, navigate]);
-
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setIsGeneratingPdf(true);
         toast.info("Preparing agreement PDF document...");
-        
         const success = await generatePdfDocument(agreement);
         if (success) {
           toast.success("Agreement PDF downloaded successfully");
@@ -81,35 +78,18 @@ export function AgreementDetail({
       }
     }
   }, [agreement]);
-
   const handleRecordPayment = useCallback(() => {
     setIsPaymentDialogOpen(true);
   }, []);
-
   const handleGenerateDocument = useCallback(() => {
     if (agreement) {
       toast.info("Document generation functionality coming soon");
     }
   }, [agreement]);
-
-  const handlePaymentSubmit = useCallback(async (
-    amount: number, 
-    paymentDate: Date, 
-    notes?: string,
-    paymentMethod?: string,
-    referenceNumber?: string,
-    includeLatePaymentFee?: boolean
-  ) => {
+  const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean) => {
     if (agreement && agreement.id) {
       try {
-        const success = await handleSpecialAgreementPayments(
-          amount, 
-          paymentDate, 
-          notes,
-          paymentMethod,
-          referenceNumber,
-          includeLatePaymentFee
-        );
+        const success = await handleSpecialAgreementPayments(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee);
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
@@ -121,18 +101,16 @@ export function AgreementDetail({
       }
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
-
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
     return months > 0 ? months : 1; // Ensure at least 1 month
   }, []);
-
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
       const daysLate = today.getDate() - 1;
       const lateFeeAmount = Math.min(daysLate * 120, 3000); // 120 QAR per day, max 3000
-      
+
       setLateFeeDetails({
         amount: lateFeeAmount,
         daysLate: daysLate
@@ -141,25 +119,14 @@ export function AgreementDetail({
       setLateFeeDetails(null);
     }
   }, []);
-
   if (!agreement) {
-    return (
-      <Alert>
+    return <Alert>
         <AlertDescription>Agreement details not available.</AlertDescription>
-      </Alert>
-    );
+      </Alert>;
   }
-
-  const startDate = agreement.start_date instanceof Date 
-    ? agreement.start_date 
-    : new Date(agreement.start_date);
-    
-  const endDate = agreement.end_date instanceof Date
-    ? agreement.end_date
-    : new Date(agreement.end_date);
-
+  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
   const duration = calculateDuration(startDate, endDate);
-
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -178,13 +145,8 @@ export function AgreementDetail({
         return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
     }
   };
-
-  const createdDate = agreement.created_at instanceof Date 
-    ? agreement.created_at 
-    : new Date(agreement.created_at || new Date());
-
-  return (
-    <div className="space-y-8">
+  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
+  return <div className="space-y-8">
       <div className="space-y-2">
         <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
           Agreement {agreement.agreement_number}
@@ -323,78 +285,42 @@ export function AgreementDetail({
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
-        <Button 
-          variant="outline" 
-          onClick={handleDownloadPdf}
-          disabled={isGeneratingPdf}
-        >
+        <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
           <Download className="mr-2 h-4 w-4" />
           {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
         </Button>
-        <Button 
-          variant="outline"
-          onClick={handleGenerateDocument}
-        >
+        <Button variant="outline" onClick={handleGenerateDocument}>
           <FilePlus className="mr-2 h-4 w-4" />
           Generate Document
         </Button>
-        <Button 
-          variant="default" 
-          className="bg-blue-500 hover:bg-blue-600"
-          onClick={handleRecordPayment}
-        >
+        <Button variant="default" className="bg-blue-500 hover:bg-blue-600" onClick={handleRecordPayment}>
           <DollarSign className="mr-2 h-4 w-4" />
           Record Payment
         </Button>
         <div className="flex-grow"></div>
-        <Button 
-          variant="destructive"
-          onClick={handleDelete}
-          className="ml-auto"
-        >
+        <Button variant="destructive" onClick={handleDelete} className="ml-auto">
           Delete
         </Button>
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Payment History</CardTitle>
-            <CardDescription>View and manage payment records</CardDescription>
-          </div>
-          {rentAmount && agreement.status.toLowerCase() === 'active' && (
-            <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
-              <span className="text-sm font-medium">Missing 1 payment</span>
-            </div>
-          )}
-        </CardHeader>
+        
         <CardContent>
-          <PaymentList 
-            agreementId={agreement.id} 
-            onPaymentDeleted={onPaymentDeleted}
-          />
+          <PaymentList agreementId={agreement.id} onPaymentDeleted={onPaymentDeleted} />
         </CardContent>
       </Card>
 
-      {agreement.start_date && agreement.end_date && (
-        <Card>
+      {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>
             <CardTitle>Traffic Fines</CardTitle>
             <CardDescription>Violations during the rental period</CardDescription>
           </CardHeader>
           <CardContent>
-            <AgreementTrafficFines
-              agreementId={agreement.id}
-              startDate={startDate}
-              endDate={endDate}
-            />
+            <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
           </CardContent>
-        </Card>
-      )}
+        </Card>}
       
-      {agreement.id && (
-        <LegalCaseCard agreementId={agreement.id} />
-      )}
+      {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -413,15 +339,6 @@ export function AgreementDetail({
       </Dialog>
 
       {/* Payment Entry Dialog */}
-      <PaymentEntryDialog 
-        open={isPaymentDialogOpen} 
-        onOpenChange={setIsPaymentDialogOpen}
-        onSubmit={handlePaymentSubmit}
-        defaultAmount={rentAmount || 0}
-        title="Record Rent Payment"
-        description="Record a new rental payment for this agreement."
-        lateFeeDetails={lateFeeDetails}
-      />
-    </div>
-  );
+      <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={handlePaymentSubmit} defaultAmount={rentAmount || 0} title="Record Rent Payment" description="Record a new rental payment for this agreement." lateFeeDetails={lateFeeDetails} />
+    </div>;
 }
