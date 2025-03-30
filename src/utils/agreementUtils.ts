@@ -1,8 +1,8 @@
-
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import jsPDF from 'jspdf';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
+import { format } from 'date-fns';
 
 export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
   try {

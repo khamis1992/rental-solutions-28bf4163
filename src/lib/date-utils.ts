@@ -25,6 +25,16 @@ export const formatDate = (date: Date | string | null | undefined, formatString 
 };
 
 /**
+ * Formats a date with time into a readable string
+ * @param date The date to format
+ * @param formatString Optional format string (defaults to 'MMMM d, yyyy h:mm a')
+ * @returns Formatted date and time string
+ */
+export const formatDateTime = (date: Date | string | null | undefined, formatString = 'MMMM d, yyyy h:mm a'): string => {
+  return formatDate(date, formatString);
+};
+
+/**
  * Returns a date object from a string or date input
  * @param date Date or string to convert
  * @returns Date object or null if invalid
