@@ -65,7 +65,8 @@ const FinancialDashboard: React.FC = () => {
 
   useEffect(() => {
     if (financialSummary) {
-      console.log("Financial Summary:", financialSummary);
+      console.log("Financial Summary in Dashboard:", financialSummary);
+      console.log("Total Expenses value:", financialSummary.totalExpenses);
       
       // Create dynamic key metrics based on actual financial data
       setKeyMetrics([
@@ -98,6 +99,26 @@ const FinancialDashboard: React.FC = () => {
       ]);
     }
   }, [financialSummary]);
+
+  // Let's add a debug function to check data issues
+  const debugFinancialData = () => {
+    if (financialSummary) {
+      console.table({
+        "totalIncome": financialSummary.totalIncome,
+        "totalExpenses": financialSummary.totalExpenses,
+        "currentMonthDue": financialSummary.currentMonthDue,
+        "netRevenue": financialSummary.netRevenue,
+        "keyMetrics": keyMetrics.map(m => `${m.name}: ${m.value}`)
+      });
+    } else {
+      console.log("No financial summary data available");
+    }
+  };
+
+  useEffect(() => {
+    // Debug on initial render and whenever financial data changes
+    debugFinancialData();
+  }, [financialSummary, keyMetrics]);
 
   const renderMetricCard = (metric: FinancialMetric) => {
     const changeClass = 
@@ -324,7 +345,7 @@ const FinancialDashboard: React.FC = () => {
                   <div className="grid grid-cols-2 py-2">
                     <span className="font-medium">Profit Margin</span>
                     <span className="text-right">
-                      {financialSummary?.totalIncome 
+                      {financialSummary?.totalIncome && financialSummary.totalIncome > 0
                         ? ((financialSummary.netRevenue / financialSummary.totalIncome) * 100).toFixed(2)
                         : 0}%
                     </span>

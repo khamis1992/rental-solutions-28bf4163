@@ -277,32 +277,33 @@ export function useFinancials() {
           
         const expensesFromPayments = (expenseData || [])
           .filter(item => item.status !== 'failed')
-          .reduce((sum, item) => sum + (item.amount || 0), 0);
+          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
           
         const expensesFromInstallments = (installmentData || [])
           .filter(item => item.payment_status !== 'failed')
-          .reduce((sum, item) => sum + (item.payment_amount || 0), 0);
+          .reduce((sum, item) => sum + (Number(item.payment_amount) || 0), 0);
           
         console.log("Expenses from payments:", expensesFromPayments);
         console.log("Expenses from installments:", expensesFromInstallments);
         console.log("Today's installments due:", todayInstallmentsDue);
           
         // Include today's car installment payments in the total expenses
-        const totalExpenses = expensesFromPayments + expensesFromInstallments + todayInstallmentsDue;
+        // Make sure we're using Number conversions to avoid string concatenation
+        const totalExpenses = Number(expensesFromPayments) + Number(expensesFromInstallments) + Number(todayInstallmentsDue);
         console.log("Total expenses calculated:", totalExpenses);
         
         const pendingPayments = (incomeData || [])
           .filter(item => item.status === 'pending')
-          .reduce((sum, item) => sum + (item.amount || 0), 0);
+          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
 
         const summary = {
-          totalIncome,
-          totalExpenses,
-          netRevenue: totalIncome - totalExpenses,
-          pendingPayments,
-          unpaidInvoices: pendingPayments,
-          installmentsPending,
-          currentMonthDue
+          totalIncome: Number(totalIncome) || 0,
+          totalExpenses: Number(totalExpenses) || 0,
+          netRevenue: Number(totalIncome) - Number(totalExpenses) || 0,
+          pendingPayments: Number(pendingPayments) || 0,
+          unpaidInvoices: Number(pendingPayments) || 0,
+          installmentsPending: Number(installmentsPending) || 0,
+          currentMonthDue: Number(currentMonthDue) || 0
         };
         
         console.log("Financial summary calculated:", summary);
