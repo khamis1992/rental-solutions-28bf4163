@@ -72,26 +72,6 @@ const FinancialMetricsChart = () => {
     label: string;
     color: string;
   }>);
-  return <Card>
-      
-      <CardContent>
-        <div className="h-80">
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={expenseData} cx="50%" cy="50%" innerRadius={80} outerRadius={120} paddingAngle={2} dataKey="value" label={({
-                name,
-                percent
-              }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
-                  {expenseData.map((entry, index) => <Cell key={`cell-${index}`} fill={createCustomColor(index)} stroke="var(--background)" strokeWidth={2} />)}
-                </Pie>
-                <ChartTooltip content={<ChartTooltipContent formatter={value => formatCurrency(Number(value))} />} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-      </CardContent>
-    </Card>;
+  return;
 };
 export default FinancialMetricsChart;
