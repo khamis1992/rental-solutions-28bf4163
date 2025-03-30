@@ -1,9 +1,7 @@
-
 import React from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
 import FinancialExpensesBreakdown from './FinancialExpensesBreakdown';
-import FinancialMetricsChart from './FinancialMetricsChart';
 import FinancialRevenueChart from './FinancialRevenueChart';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +18,6 @@ const FinancialDashboard = () => {
   
   const { revenue: revenueData } = useDashboardData();
 
-  // Calculate monthly trends for the overview section
   const getTrendData = () => {
     if (!financialSummary) return { 
       currentMonthRevenue: 0, 
@@ -52,7 +49,6 @@ const FinancialDashboard = () => {
   
   const trendData = getTrendData();
   
-  // Calculate percentage changes
   const getPercentageChange = (current, previous) => {
     if (previous === 0) return current > 0 ? 100 : 0;
     return ((current - previous) / previous) * 100;
@@ -62,14 +58,12 @@ const FinancialDashboard = () => {
   const expenseChange = getPercentageChange(trendData.currentMonthExpenses, trendData.previousMonthExpenses);
   const profitChange = getPercentageChange(trendData.currentMonthProfit, trendData.previousMonthProfit);
   
-  // Prepare combined data for the revenue chart including expenses
   const prepareRevenueChartData = () => {
     if (!revenueData || revenueData.length === 0) {
       console.log("No revenue data available for chart");
       return [];
     }
     
-    // Extract expenses by month from transactions if available
     const expensesByMonth = {};
     
     if (transactions && transactions.length > 0) {
@@ -87,11 +81,10 @@ const FinancialDashboard = () => {
       });
     }
     
-    // Combine revenue data with expenses
     return revenueData.map(item => ({
       name: item.name,
       revenue: item.revenue,
-      expenses: expensesByMonth[item.name] || (item.revenue * 0.6) // If no data, estimate as 60% of revenue
+      expenses: expensesByMonth[item.name] || (item.revenue * 0.6)
     }));
   };
   
@@ -101,7 +94,6 @@ const FinancialDashboard = () => {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold tracking-tight">Financial Dashboard</h2>
       
-      {/* Financial Overview Section */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -143,22 +135,14 @@ const FinancialDashboard = () => {
         </Card>
       </div>
       
-      {/* Financial Overview Chart */}
       <FinancialRevenueChart 
         data={combinedChartData} 
         fullWidth={true}
       />
       
-      {/* Financial Summary Section */}
       <FinancialSummary summary={financialSummary} isLoading={isLoadingSummary} />
       
-      {/* Expense Analysis - Now full width */}
       <FinancialExpensesBreakdown />
-      
-      {/* Charts Section */}
-      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1">
-        <FinancialMetricsChart />
-      </div>
     </div>
   );
 };
