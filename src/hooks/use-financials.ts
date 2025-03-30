@@ -213,6 +213,7 @@ export function useFinancials() {
         
         // Format today's date in YYYY-MM-DD format for car installment payments comparison
         const todayStr = systemDate.toISOString().split('T')[0];
+        console.log("Today's date for installment query:", todayStr);
         
         // Fetch car installment payments due today
         const { data: todayInstallments, error: todayInstallmentsError } = await supabase
@@ -226,9 +227,13 @@ export function useFinancials() {
           throw todayInstallmentsError;
         }
         
+        console.log("Today's installments:", todayInstallments);
+        
         // Calculate total amount due today from car installments
         const todayInstallmentsDue = (todayInstallments || [])
           .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          
+        console.log("Today's installments due amount:", todayInstallmentsDue);
         
         const { data: currentMonthInstallments, error: currentMonthError } = await supabase
           .from('car_installment_payments')
@@ -248,6 +253,8 @@ export function useFinancials() {
             const remainingAmount = payment.amount - (payment.paid_amount || 0);
             return sum + (remainingAmount > 0 ? remainingAmount : 0);
           }, 0);
+          
+        console.log("Current month's installments due:", currentMonthDue);
 
         // Get total pending amount for reference (but we'll use current month's due for display)
         const { data: contractsData, error: contractsError } = await supabase
@@ -262,6 +269,8 @@ export function useFinancials() {
         const installmentsPending = (contractsData || [])
           .reduce((sum, contract) => sum + (contract.amount_pending || 0), 0);
 
+        console.log("Total pending installments:", installmentsPending);
+
         const totalIncome = (incomeData || [])
           .filter(item => item.status !== 'failed')
           .reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -274,14 +283,19 @@ export function useFinancials() {
           .filter(item => item.payment_status !== 'failed')
           .reduce((sum, item) => sum + (item.payment_amount || 0), 0);
           
+        console.log("Expenses from payments:", expensesFromPayments);
+        console.log("Expenses from installments:", expensesFromInstallments);
+        console.log("Today's installments due:", todayInstallmentsDue);
+          
         // Include today's car installment payments in the total expenses
         const totalExpenses = expensesFromPayments + expensesFromInstallments + todayInstallmentsDue;
+        console.log("Total expenses calculated:", totalExpenses);
         
         const pendingPayments = (incomeData || [])
           .filter(item => item.status === 'pending')
           .reduce((sum, item) => sum + (item.amount || 0), 0);
 
-        return {
+        const summary = {
           totalIncome,
           totalExpenses,
           netRevenue: totalIncome - totalExpenses,
@@ -290,6 +304,9 @@ export function useFinancials() {
           installmentsPending,
           currentMonthDue
         };
+        
+        console.log("Financial summary calculated:", summary);
+        return summary;
       } catch (error) {
         console.error('Error calculating financial summary:', error);
         return {

@@ -66,23 +66,24 @@ const FinancialDashboard: React.FC = () => {
   useEffect(() => {
     if (financialSummary) {
       console.log("Financial Summary:", financialSummary);
+      
       // Create dynamic key metrics based on actual financial data
       setKeyMetrics([
         { 
           name: 'Total Revenue', 
-          value: financialSummary.totalIncome, 
+          value: financialSummary.totalIncome || 0, 
           change: 12.5, 
           changeType: 'positive'
         },
         { 
           name: 'Total Expenses', 
-          value: financialSummary.totalExpenses, 
+          value: financialSummary.totalExpenses || 0, 
           change: 5.7, 
           changeType: 'positive'
         },
         { 
           name: 'Net Profit', 
-          value: financialSummary.netRevenue, 
+          value: financialSummary.netRevenue || 0, 
           change: 18.2, 
           changeType: 'positive'
         },
@@ -116,7 +117,7 @@ const FinancialDashboard: React.FC = () => {
             <p className="text-sm font-medium text-muted-foreground">{metric.name}</p>
             <div className="flex items-baseline justify-between">
               <h3 className="text-2xl font-bold">
-                {metric.name === 'Profit Margin' ? `${metric.value}%` : `QAR ${metric.value.toLocaleString()}`}
+                {metric.name === 'Profit Margin' ? `${metric.value}%` : formatCurrency(metric.value)}
               </h3>
               <div className={`flex items-center gap-1 text-sm ${changeClass}`}>
                 <span>{changeIcon}</span>
