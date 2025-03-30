@@ -23,10 +23,7 @@ const Financials = () => {
             <FileText className="h-4 w-4 mr-2" />
             Invoice Templates
           </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center">
-            <ChartPieIcon className="h-4 w-4 mr-2" />
-            Payment Settings
-          </TabsTrigger>
+          
           <TabsTrigger value="installments" className="flex items-center">
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Installment Contracts
@@ -39,10 +36,6 @@ const Financials = () => {
         
         <TabsContent value="invoices" className="space-y-6">
           <InvoiceTemplateEditor />
-        </TabsContent>
-        
-        <TabsContent value="payments" className="space-y-6">
-          <PaymentGatewaySettings />
         </TabsContent>
         
         <TabsContent value="installments" className="space-y-6">
