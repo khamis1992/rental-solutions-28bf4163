@@ -9843,6 +9843,10 @@ export type Database = {
         }
         Returns: string
       }
+      create_invoice_templates_table: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       create_transaction_import: {
         Args: {
           p_file_name: string
