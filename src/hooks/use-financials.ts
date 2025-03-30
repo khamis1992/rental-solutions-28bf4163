@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -35,6 +34,7 @@ export interface FinancialSummary {
   pendingPayments: number;
   unpaidInvoices: number;
   installmentsPending: number;
+  currentMonthDue: number;
 }
 
 export function useFinancials() {
@@ -200,7 +200,34 @@ export function useFinancials() {
           throw installmentError;
         }
 
-        // Get total pending amount from car installment contracts
+        // Get current month's due amount from car installment payments
+        const currentMonth = SYSTEM_DATE.getMonth() + 1; // JavaScript months are 0-based
+        const currentYear = SYSTEM_DATE.getFullYear();
+        
+        // Format date strings for the start and end of the current month
+        const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+        const endOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
+        
+        const { data: currentMonthInstallments, error: currentMonthError } = await supabase
+          .from('car_installment_payments')
+          .select('amount, paid_amount')
+          .gte('payment_date', startOfMonth)
+          .lte('payment_date', endOfMonth)
+          .in('status', ['pending', 'overdue']);
+          
+        if (currentMonthError) {
+          console.error('Error fetching current month installments:', currentMonthError);
+          throw currentMonthError;
+        }
+          
+        // Calculate the current month's due amount
+        const currentMonthDue = (currentMonthInstallments || [])
+          .reduce((sum, payment) => {
+            const remainingAmount = payment.amount - (payment.paid_amount || 0);
+            return sum + (remainingAmount > 0 ? remainingAmount : 0);
+          }, 0);
+
+        // Get total pending amount for reference (but we'll use current month's due for display)
         const { data: contractsData, error: contractsError } = await supabase
           .from('car_installment_contracts')
           .select('amount_pending');
@@ -237,7 +264,8 @@ export function useFinancials() {
           netRevenue: totalIncome - totalExpenses,
           pendingPayments,
           unpaidInvoices: pendingPayments,
-          installmentsPending
+          installmentsPending,
+          currentMonthDue
         };
       } catch (error) {
         console.error('Error calculating financial summary:', error);
@@ -247,7 +275,8 @@ export function useFinancials() {
           netRevenue: 0,
           pendingPayments: 0,
           unpaidInvoices: 0,
-          installmentsPending: 0
+          installmentsPending: 0,
+          currentMonthDue: 0
         };
       }
     }
