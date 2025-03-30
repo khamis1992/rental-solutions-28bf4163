@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -174,6 +173,7 @@ export function useFinancials() {
     ['financialSummary'],
     async () => {
       try {
+        // Query income data
         const { data: incomeData, error: incomeError } = await supabase
           .from('unified_payments')
           .select('amount, status')
@@ -184,6 +184,7 @@ export function useFinancials() {
           throw incomeError;
         }
 
+        // Query expense data
         const { data: expenseData, error: expenseError } = await supabase
           .from('unified_payments')
           .select('amount, status')
@@ -194,6 +195,7 @@ export function useFinancials() {
           throw expenseError;
         }
 
+        // Query installment data
         const { data: installmentData, error: installmentError } = await supabase
           .from('car_installments')
           .select('payment_amount, payment_status');
@@ -232,7 +234,7 @@ export function useFinancials() {
         
         // Calculate total amount due today from car installments
         const todayInstallmentsDue = (todayInstallments || [])
-          .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+          .reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
           
         console.log("Today's installments due amount:", todayInstallmentsDue);
         
@@ -252,12 +254,13 @@ export function useFinancials() {
         // Calculate total overdue amount
         const overdueExpensesTotal = (overdueInstallments || [])
           .reduce((sum, payment) => {
-            const remainingAmount = payment.amount - (payment.paid_amount || 0);
+            const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
             return sum + (remainingAmount > 0 ? remainingAmount : 0);
           }, 0);
           
         console.log("Total overdue expenses:", overdueExpensesTotal);
 
+        // Fetch current month's installments
         const { data: currentMonthInstallments, error: currentMonthError } = await supabase
           .from('car_installment_payments')
           .select('amount, paid_amount')
@@ -273,13 +276,13 @@ export function useFinancials() {
         // Calculate the current month's due amount
         const currentMonthDue = (currentMonthInstallments || [])
           .reduce((sum, payment) => {
-            const remainingAmount = payment.amount - (payment.paid_amount || 0);
+            const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
             return sum + (remainingAmount > 0 ? remainingAmount : 0);
           }, 0);
           
         console.log("Current month's installments due:", currentMonthDue);
 
-        // Get total pending amount for reference (but we'll use current month's due for display)
+        // Get total pending amount for reference
         const { data: contractsData, error: contractsError } = await supabase
           .from('car_installment_contracts')
           .select('amount_pending');
@@ -290,13 +293,14 @@ export function useFinancials() {
         }
           
         const installmentsPending = (contractsData || [])
-          .reduce((sum, contract) => sum + (contract.amount_pending || 0), 0);
+          .reduce((sum, contract) => sum + (Number(contract.amount_pending) || 0), 0);
 
         console.log("Total pending installments:", installmentsPending);
 
+        // Calculate income, expenses and net revenue
         const totalIncome = (incomeData || [])
           .filter(item => item.status !== 'failed')
-          .reduce((sum, item) => sum + (item.amount || 0), 0);
+          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
           
         const expensesFromPayments = (expenseData || [])
           .filter(item => item.status !== 'failed')
@@ -332,9 +336,10 @@ export function useFinancials() {
           unpaidInvoices: Number(pendingPayments) || 0,
           installmentsPending: Number(installmentsPending) || 0,
           currentMonthDue: Number(currentMonthDue) || 0,
-          overdueExpenses: Number(overdueExpensesTotal) || 0 // Adding new field with overdue amount
+          overdueExpenses: Number(overdueExpensesTotal) || 0
         };
         
+        // Log the final calculated summary for debugging
         console.log("Financial summary calculated:", summary);
         return summary;
       } catch (error) {
@@ -347,7 +352,7 @@ export function useFinancials() {
           unpaidInvoices: 0,
           installmentsPending: 0,
           currentMonthDue: 0,
-          overdueExpenses: 0 // Default value for new field
+          overdueExpenses: 0
         };
       }
     }

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,6 +6,7 @@ import { AreaChart, BarChart, PieChart } from "lucide-react";
 import { ResponsiveContainer, AreaChart as ReAreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart as ReBarChart, Bar, PieChart as RePieChart, Pie, Cell, Legend } from 'recharts';
 import { useFinancials } from "@/hooks/use-financials";
 import { formatCurrency } from "@/lib/utils";
+import FinancialExpensesBreakdown from "@/components/financials/FinancialExpensesBreakdown";
 
 interface FinancialMetric {
   name: string;
@@ -101,8 +101,8 @@ const FinancialDashboard: React.FC = () => {
     }
   }, [financialSummary]);
 
-  // Debug function to check data issues
-  const debugFinancialData = () => {
+  useEffect(() => {
+    // Debug on initial render and whenever financial data changes
     if (financialSummary) {
       console.table({
         "totalIncome": financialSummary.totalIncome,
@@ -115,11 +115,6 @@ const FinancialDashboard: React.FC = () => {
     } else {
       console.log("No financial summary data available");
     }
-  };
-
-  useEffect(() => {
-    // Debug on initial render and whenever financial data changes
-    debugFinancialData();
   }, [financialSummary, keyMetrics]);
 
   const renderMetricCard = (metric: FinancialMetric) => {
@@ -162,6 +157,8 @@ const FinancialDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {keyMetrics.map(renderMetricCard)}
       </div>
+
+      <FinancialExpensesBreakdown />
 
       <Card>
         <CardHeader className="pb-3">
