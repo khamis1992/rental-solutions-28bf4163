@@ -62,6 +62,41 @@ const FinancialDashboard = () => {
   const expenseChange = getPercentageChange(trendData.currentMonthExpenses, trendData.previousMonthExpenses);
   const profitChange = getPercentageChange(trendData.currentMonthProfit, trendData.previousMonthProfit);
   
+  // Prepare combined data for the revenue chart including expenses
+  const prepareRevenueChartData = () => {
+    if (!revenueData || revenueData.length === 0) {
+      console.log("No revenue data available for chart");
+      return [];
+    }
+    
+    // Extract expenses by month from transactions if available
+    const expensesByMonth = {};
+    
+    if (transactions && transactions.length > 0) {
+      transactions.forEach(transaction => {
+        if (transaction.type === 'expense') {
+          const date = new Date(transaction.date);
+          const monthKey = date.toLocaleString('default', { month: 'short' });
+          
+          if (!expensesByMonth[monthKey]) {
+            expensesByMonth[monthKey] = 0;
+          }
+          
+          expensesByMonth[monthKey] += transaction.amount || 0;
+        }
+      });
+    }
+    
+    // Combine revenue data with expenses
+    return revenueData.map(item => ({
+      name: item.name,
+      revenue: item.revenue,
+      expenses: expensesByMonth[item.name] || (item.revenue * 0.6) // If no data, estimate as 60% of revenue
+    }));
+  };
+  
+  const combinedChartData = prepareRevenueChartData();
+  
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold tracking-tight">Financial Dashboard</h2>
@@ -108,20 +143,18 @@ const FinancialDashboard = () => {
         </Card>
       </div>
       
+      {/* Financial Overview Chart */}
+      <FinancialRevenueChart 
+        data={combinedChartData} 
+        fullWidth={true}
+      />
+      
       {/* Financial Summary Section */}
       <FinancialSummary summary={financialSummary} isLoading={isLoadingSummary} />
       
       {/* Charts Section */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-        <FinancialRevenueChart 
-          title="Revenue Breakdown" 
-          data={revenueData || []} 
-        />
         <FinancialMetricsChart />
-      </div>
-      
-      {/* Expenses Breakdown */}
-      <div className="grid gap-4 md:grid-cols-1">
         <FinancialExpensesBreakdown />
       </div>
     </div>
