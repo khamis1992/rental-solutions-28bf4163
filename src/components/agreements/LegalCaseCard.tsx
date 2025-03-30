@@ -52,29 +52,34 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
           return;
         }
 
-        // Transform the data to match the LegalCase type
-        const transformedData: LegalCase[] = (data || []).map(item => ({
-          id: item.id,
-          case_number: item.case_number || `CASE-${item.id.substring(0, 8)}`,
-          title: item.title || `Case regarding ${item.case_type || 'dispute'}`,
-          description: item.description || '',
-          customer_id: item.customer_id,
-          customer_name: item.customer_name || 'Customer',
-          status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
-          hearing_date: item.hearing_date || item.escalation_date || null,
-          court_location: item.court_location || '',
-          assigned_attorney: item.assigned_attorney || item.assigned_to || '',
-          opposing_party: item.opposing_party || '',
-          case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
-          documents: item.documents || [],
-          amount_claimed: item.amount_owed || 0,
-          amount_settled: item.amount_settled || null,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          notes: item.notes || ''
-        }));
+        // Log the data to see what we're getting
+        console.log('Legal cases data:', data);
 
-        setLegalCases(transformedData);
+        // Transform the data to match the LegalCase type
+        if (data) {
+          const transformedData: LegalCase[] = data.map(item => ({
+            id: item.id,
+            case_number: `CASE-${item.id.substring(0, 8)}`,
+            title: item.description ? `Case regarding ${item.description.substring(0, 30)}...` : `Case regarding ${item.case_type || 'dispute'}`,
+            description: item.description || '',
+            customer_id: item.customer_id,
+            customer_name: 'Customer', // Default value
+            status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
+            hearing_date: item.escalation_date || null,
+            court_location: '',
+            assigned_attorney: item.assigned_to || '',
+            opposing_party: '',
+            case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
+            documents: [],
+            amount_claimed: item.amount_owed || 0,
+            amount_settled: null,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            notes: item.notes || ''
+          }));
+
+          setLegalCases(transformedData);
+        }
       } catch (err) {
         console.error('Unexpected error fetching legal cases:', err);
       } finally {
