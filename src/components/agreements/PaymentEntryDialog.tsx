@@ -79,14 +79,14 @@ export function PaymentEntryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="amount"
@@ -201,11 +201,11 @@ export function PaymentEntryDialog({
               )}
             />
 
-            <DialogFooter>
+            <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Record Payment</Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Record Payment</Button>
             </DialogFooter>
           </form>
         </Form>

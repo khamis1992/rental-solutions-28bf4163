@@ -9,7 +9,7 @@ import { PaymentList } from '@/components/payments/PaymentList';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, DollarSign, FilePlus } from 'lucide-react';
+import { AlertCircle, Download, Edit, Printer, DollarSign, FilePlus } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -136,19 +136,19 @@ export function AgreementDetail({
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
+        return <Badge className="bg-green-500 text-white">ACTIVE</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
+        return <Badge className="bg-yellow-500 text-white">PENDING</Badge>;
       case 'closed':
-        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
+        return <Badge className="bg-blue-500 text-white">CLOSED</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
+        return <Badge className="bg-red-500 text-white">CANCELLED</Badge>;
       case 'expired':
-        return <Badge className="bg-gray-500 text-white ml-2">EXPIRED</Badge>;
+        return <Badge className="bg-gray-500 text-white">EXPIRED</Badge>;
       case 'draft':
-        return <Badge className="bg-purple-500 text-white ml-2">DRAFT</Badge>;
+        return <Badge className="bg-purple-500 text-white">DRAFT</Badge>;
       default:
-        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
+        return <Badge className="bg-gray-500 text-white">{status.toUpperCase()}</Badge>;
     }
   };
 
@@ -157,71 +157,75 @@ export function AgreementDetail({
     : new Date(agreement.created_at || new Date());
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
-          Agreement {agreement.agreement_number}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold flex items-center gap-2">
+            Agreement {agreement.agreement_number}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Created on {format(createdDate, 'MMMM d, yyyy')}
+          </p>
+        </div>
+        <div>
           {formattedStatus(agreement.status)}
-        </h2>
-        <p className="text-muted-foreground">
-          Created on {format(createdDate, 'MMMM d, yyyy')}
-        </p>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Customer Information</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Customer Information</CardTitle>
             <CardDescription>Details about the customer</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pt-0">
+            <div className="space-y-3">
               <div>
-                <p className="font-medium">Name</p>
-                <p>{agreement.customers?.full_name || 'N/A'}</p>
+                <p className="text-sm font-medium">Name</p>
+                <p className="text-sm">{agreement.customers?.full_name || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">Email</p>
-                <p>{agreement.customers?.email || 'N/A'}</p>
+                <p className="text-sm font-medium">Email</p>
+                <p className="text-sm">{agreement.customers?.email || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">Phone</p>
-                <p>{agreement.customers?.phone_number || 'N/A'}</p>
+                <p className="text-sm font-medium">Phone</p>
+                <p className="text-sm">{agreement.customers?.phone_number || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">Address</p>
-                <p>{agreement.customers?.address || 'N/A'}</p>
+                <p className="text-sm font-medium">Address</p>
+                <p className="text-sm">{agreement.customers?.address || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">Driver License</p>
-                <p>{agreement.customers?.driver_license || 'N/A'}</p>
+                <p className="text-sm font-medium">Driver License</p>
+                <p className="text-sm">{agreement.customers?.driver_license || 'N/A'}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Vehicle Information</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Vehicle Information</CardTitle>
             <CardDescription>Details about the rented vehicle</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="pt-0">
+            <div className="space-y-3">
               <div>
-                <p className="font-medium">Vehicle</p>
-                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
+                <p className="text-sm font-medium">Vehicle</p>
+                <p className="text-sm">{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
               </div>
               <div>
-                <p className="font-medium">License Plate</p>
-                <p>{agreement.vehicles?.license_plate}</p>
+                <p className="text-sm font-medium">License Plate</p>
+                <p className="text-sm">{agreement.vehicles?.license_plate}</p>
               </div>
               <div>
-                <p className="font-medium">Color</p>
-                <p>{agreement.vehicles?.color || 'N/A'}</p>
+                <p className="text-sm font-medium">Color</p>
+                <p className="text-sm">{agreement.vehicles?.color || 'N/A'}</p>
               </div>
               <div>
-                <p className="font-medium">VIN</p>
-                <p>{agreement.vehicles?.vin || 'N/A'}</p>
+                <p className="text-sm font-medium">VIN</p>
+                <p className="text-sm">{agreement.vehicles?.vin || 'N/A'}</p>
               </div>
             </div>
           </CardContent>
@@ -229,91 +233,95 @@ export function AgreementDetail({
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Agreement Details</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-medium">Agreement Details</CardTitle>
           <CardDescription>Rental terms and payment information</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <p className="font-medium">Rental Period</p>
-                <p className="flex items-center">
-                  <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
+                <p className="text-sm font-medium">Rental Period</p>
+                <p className="text-sm">
                   {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
+                <p className="text-xs text-muted-foreground">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
               </div>
               
               <div>
-                <p className="font-medium">Additional Drivers</p>
-                <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
+                <p className="text-sm font-medium">Additional Drivers</p>
+                <p className="text-sm">{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
               </div>
               
               <div>
-                <p className="font-medium">Notes</p>
-                <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
+                <p className="text-sm font-medium">Notes</p>
+                <p className="text-sm whitespace-pre-line">{agreement.notes || 'No notes'}</p>
               </div>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <p className="font-medium">Monthly Rent Amount</p>
-                <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
+                <p className="text-sm font-medium">Monthly Rent Amount</p>
+                <p className="text-sm font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
               </div>
               
               <div>
-                <p className="font-medium">Total Contract Amount</p>
-                <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
+                <p className="text-sm font-medium">Total Contract Amount</p>
+                <p className="text-sm font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
                 <p className="text-xs text-muted-foreground">Monthly rent × {duration} months</p>
               </div>
               
               <div>
-                <p className="font-medium">Deposit Amount</p>
-                <p>QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
+                <p className="text-sm font-medium">Deposit Amount</p>
+                <p className="text-sm">QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
               </div>
               
               <div>
-                <p className="font-medium">Terms Accepted</p>
-                <p>{agreement.terms_accepted ? 'Yes' : 'No'}</p>
+                <p className="text-sm font-medium">Terms Accepted</p>
+                <p className="text-sm">{agreement.terms_accepted ? 'Yes' : 'No'}</p>
               </div>
               
               <div>
-                <p className="font-medium">Signature</p>
-                <p>{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
+                <p className="text-sm font-medium">Signature</p>
+                <p className="text-sm">{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
-        <Button variant="outline" onClick={handleEdit}>
+      <div className="flex flex-wrap items-center gap-2 print:hidden">
+        <Button variant="outline" size="sm" onClick={handleEdit} className="h-9">
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>
-        <Button variant="outline" onClick={handlePrint}>
+        <Button variant="outline" size="sm" onClick={handlePrint} className="h-9">
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
         <Button 
           variant="outline" 
+          size="sm"
           onClick={handleDownloadPdf}
           disabled={isGeneratingPdf}
+          className="h-9"
         >
           <Download className="mr-2 h-4 w-4" />
           {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
         </Button>
         <Button 
           variant="outline"
+          size="sm"
           onClick={handleGenerateDocument}
+          className="h-9"
         >
           <FilePlus className="mr-2 h-4 w-4" />
           Generate Document
         </Button>
         <Button 
-          variant="default" 
-          className="bg-blue-500 hover:bg-blue-600"
+          variant="primary" 
+          size="sm"
+          className="h-9 bg-blue-600 hover:bg-blue-700 text-white ml-auto"
           onClick={handleRecordPayment}
         >
           <DollarSign className="mr-2 h-4 w-4" />
@@ -322,26 +330,32 @@ export function AgreementDetail({
         <div className="flex-grow"></div>
         <Button 
           variant="destructive"
+          size="sm"
           onClick={handleDelete}
-          className="ml-auto"
+          className="h-9"
         >
           Delete
         </Button>
       </div>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Payment History</CardTitle>
-            <CardDescription>View and manage payment records</CardDescription>
-          </div>
-          {rentAmount && agreement.status.toLowerCase() === 'active' && (
-            <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
-              <span className="text-sm font-medium">Missing 1 payment</span>
+      <Card className="mt-8">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-medium">Payment History</CardTitle>
+              <CardDescription>View and manage payment records</CardDescription>
             </div>
-          )}
+            {rentAmount && agreement.status.toLowerCase() === 'active' && (
+              <div className="flex items-center">
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  <AlertCircle className="h-3 w-3 mr-1" />
+                  Missing 1 payment
+                </Badge>
+              </div>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <PaymentList 
             agreementId={agreement.id} 
             onPaymentDeleted={onPaymentDeleted}
@@ -351,11 +365,11 @@ export function AgreementDetail({
 
       {agreement.start_date && agreement.end_date && (
         <Card>
-          <CardHeader>
-            <CardTitle>Traffic Fines</CardTitle>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Traffic Fines</CardTitle>
             <CardDescription>Violations during the rental period</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-0">
             <AgreementTrafficFines
               agreementId={agreement.id}
               startDate={startDate}
