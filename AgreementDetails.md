@@ -49,15 +49,30 @@ The Agreement Details page is composed of several key components:
 - **Payment Editing** - Ability to modify existing payment records
 - **Payment Deletion** - Option to remove incorrect payment entries
 - **Financial Summary** - Shows total paid, total due, and remaining balance
+- **Late Payment Handling** - System for detecting and applying late payment fees
+- **Payment Method Selection** - Options for recording different payment methods (cash, credit card, bank transfer, etc.)
+- **Payment References** - Fields for recording transaction IDs or reference numbers
 
 ### 6. Traffic Fines Tracking
 - **Violation List** - Shows all traffic violations associated with the agreement
 - **Fine Details** - Information about each violation including date, location, and amount
 - **Payment Status** - Indicates whether fines have been paid, disputed, or are pending
+- **Violation Charge** - Description of the traffic rule that was violated
+- **Location Information** - Where the violation occurred
+- **Fine Amount** - The monetary penalty for the violation
+- **Automatic Association** - System automatically links fines to agreements based on date and vehicle
 
 ### 7. Document Management
 - **PDF Generation** - Functionality to create and download a PDF copy of the agreement
 - **Print Option** - Ability to print the agreement directly
+- **Template-Based Generation** - PDFs are generated using predefined templates with agreement data
+- **Digital Signature Support** - PDF documents can include digital signatures when available
+
+### 8. Security Deposit Handling
+- **Deposit Recording** - System tracks security deposits separately from regular payments
+- **Refund Tracking** - Records when and how much of a security deposit is refunded
+- **Deposit Status** - Shows whether deposits are held, partially refunded, or fully refunded
+- **Automatic Association** - Links deposits to the appropriate agreement record
 
 ## Button Actions
 
@@ -79,12 +94,14 @@ The Agreement Details page is composed of several key components:
    - **Icon**: Download icon
    - **Action**: Generates and downloads a PDF document of the agreement
    - **Behavior**: Shows loading state during generation and success/error toasts upon completion
+   - **Implementation**: Uses the `generatePdfDocument` utility function to create the PDF
 
 4. **Record Payment Button**
    - **Label**: "Record Payment"
    - **Icon**: None (text-only button)
    - **Action**: Opens the payment entry dialog
    - **Behavior**: Displays a modal with a form for recording a new payment
+   - **Form Fields**: Amount, payment date, payment method, reference number, and notes
 
 5. **Delete Button**
    - **Label**: "Delete"
@@ -208,8 +225,35 @@ const handlePaymentComplete = async () => {
 </Dialog>
 ```
 
+### Late Payment Fee Handling
+The system automatically calculates late payment fees based on configured rates:
+
+```typescript
+const calculateLateFee = async (date: Date) => {
+  // Get the current month's first day
+  const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  
+  // If payment date is after the 1st, calculate late fee
+  if (date.getDate() > 1) {
+    // Calculate days late (payment date - 1st of month)
+    const daysLate = date.getDate() - 1;
+    
+    // Calculate late fee amount (daily_late_fee * days late, with possible maximum cap)
+    const dailyLateFee = agreement?.daily_late_fee || 120; // Default 120 if not specified
+    const calculatedFee = Math.min(daysLate * dailyLateFee, 3000); // Cap at 3000
+    
+    setLateFeeDetails({
+      amount: calculatedFee,
+      daysLate: daysLate
+    });
+  } else {
+    setLateFeeDetails(null);
+  }
+};
+```
+
 ### PDF Generation
-The agreement can be exported as a PDF document:
+The agreement can be exported as a PDF document using a specialized utility:
 
 ```typescript
 const handleDownloadAgreement = async () => {
@@ -233,16 +277,46 @@ const handleDownloadAgreement = async () => {
     setIsGeneratingPdf(false);
   }
 };
+```
 
-// In the render section:
-<Button 
-  variant="outline" 
-  onClick={handleDownloadAgreement}
-  disabled={isGeneratingPdf}
->
-  <Download className="mr-2 h-4 w-4" />
-  {isGeneratingPdf ? "Generating..." : "Download PDF"}
-</Button>
+The PDF generation utility handles template selection, data mapping, and document creation:
+
+```typescript
+export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
+  try {
+    // Create new PDF document
+    const doc = new jsPDF();
+    
+    // Add header with company information
+    doc.setFontSize(18);
+    doc.text("RENTAL AGREEMENT", 105, 20, { align: "center" });
+    
+    // Add agreement details
+    doc.setFontSize(12);
+    doc.text(`Agreement #: ${agreement.agreement_number}`, 20, 40);
+    doc.text(`Date: ${format(new Date(agreement.created_at || new Date()), "PP")}`, 20, 50);
+    
+    // Add customer information
+    doc.setFontSize(14);
+    doc.text("Customer Information", 20, 70);
+    doc.setFontSize(12);
+    if (agreement.customers) {
+      doc.text(`Name: ${agreement.customers.full_name || "N/A"}`, 30, 80);
+      doc.text(`Email: ${agreement.customers.email || "N/A"}`, 30, 90);
+      doc.text(`Phone: ${agreement.customers.phone || "N/A"}`, 30, 100);
+    }
+    
+    // Add vehicle information, terms, signature placeholders, etc.
+    // ... additional PDF generation code ...
+    
+    // Save the PDF with agreement number as filename
+    doc.save(`Agreement_${agreement.agreement_number}.pdf`);
+    return true;
+  } catch (error) {
+    console.error("Error in PDF generation:", error);
+    return false;
+  }
+};
 ```
 
 ### Payment History
@@ -257,7 +331,7 @@ const calculateTotalDue = () => {
   if (!rentAmount || !leaseStartDate || !leaseEndDate) return 0;
   
   const months = Math.max(1, Math.ceil(
-    (leaseEndDate.getTime() - leaseStartDate.getTime()) / (30 * 24 * 60 * 60 * 1000)
+    differenceInMonths(new Date(leaseEndDate), new Date(leaseStartDate))
   ));
   
   return rentAmount * months;
@@ -346,7 +420,39 @@ useEffect(() => {
       // Combine both sets and remove duplicates
       let allFines: TrafficFine[] = [];
       
-      // Process and merge both direct and date-range fines
+      if (directFines && directFines.length > 0) {
+        allFines = directFines.map(fine => ({
+          id: fine.id,
+          violationNumber: fine.violation_number,
+          licensePlate: fine.license_plate,
+          violationDate: fine.violation_date,
+          fineAmount: fine.fine_amount,
+          violationCharge: fine.violation_charge,
+          paymentStatus: fine.payment_status,
+          location: fine.fine_location,
+          lease_id: fine.lease_id,
+          vehicle_id: fine.vehicle_id
+        }));
+      }
+      
+      if (dateRangeFines && dateRangeFines.length > 0) {
+        dateRangeFines.forEach(fine => {
+          if (!allFines.some(f => f.id === fine.id)) {
+            allFines.push({
+              id: fine.id,
+              violationNumber: fine.violation_number,
+              licensePlate: fine.license_plate,
+              violationDate: fine.violation_date,
+              fineAmount: fine.fine_amount,
+              violationCharge: fine.violation_charge,
+              paymentStatus: fine.payment_status,
+              location: fine.fine_location,
+              lease_id: fine.lease_id,
+              vehicle_id: fine.vehicle_id
+            });
+          }
+        });
+      }
       
       setTrafficFines(allFines);
     } catch (error) {
@@ -359,6 +465,54 @@ useEffect(() => {
 
   fetchTrafficFines();
 }, [agreementId, startDate, endDate]);
+```
+
+### Security Deposit Management
+The system handles security deposits with dedicated functionality:
+
+```typescript
+// Recording a security deposit
+const handleRecordDeposit = async (depositData) => {
+  try {
+    const { data, error } = await supabase.from('security_deposits').insert({
+      lease_id: agreement.id,
+      amount: depositData.amount,
+      status: 'pending',
+      notes: depositData.notes
+    });
+    
+    if (error) throw error;
+    
+    toast.success('Security deposit recorded successfully');
+    refreshDepositData();
+  } catch (error) {
+    console.error('Error recording security deposit:', error);
+    toast.error('Failed to record security deposit');
+  }
+};
+
+// Processing a deposit refund
+const handleRefundDeposit = async (depositId, refundAmount, notes) => {
+  try {
+    const { error } = await supabase
+      .from('security_deposits')
+      .update({
+        refund_amount: refundAmount,
+        refund_date: new Date().toISOString(),
+        status: refundAmount === depositAmount ? 'refunded' : 'partially_refunded',
+        notes: notes
+      })
+      .eq('id', depositId);
+    
+    if (error) throw error;
+    
+    toast.success('Deposit refund processed successfully');
+    refreshDepositData();
+  } catch (error) {
+    console.error('Error processing deposit refund:', error);
+    toast.error('Failed to process deposit refund');
+  }
+};
 ```
 
 ## Data Models
@@ -440,6 +594,23 @@ enum TrafficFineStatusType {
 }
 ```
 
+### Security Deposit Object
+Represents a security deposit and its status:
+
+```typescript
+interface SecurityDeposit {
+  id: string;
+  lease_id: string;
+  amount: number;
+  status: 'pending' | 'held' | 'partially_refunded' | 'refunded';
+  refund_amount?: number;
+  refund_date?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+```
+
 ## User Workflows
 
 ### Viewing Agreement Details
@@ -451,9 +622,10 @@ enum TrafficFineStatusType {
 1. User clicks "Record Payment" button
 2. Payment entry dialog opens
 3. User enters payment amount, date, method, and optional details
-4. User submits the form
-5. System records the payment and updates the payment history
-6. Success notification is displayed
+4. If the payment date is after the 1st of the month, system offers to include late payment fee
+5. User submits the form
+6. System records the payment (and late fee if applicable) and updates the payment history
+7. Success notification is displayed
 
 ### Editing an Agreement
 1. User clicks "Edit" button
@@ -467,6 +639,18 @@ enum TrafficFineStatusType {
 2. System generates a PDF document with all agreement details
 3. PDF is downloaded to the user's device
 4. Success notification is displayed
+
+### Managing Traffic Fines
+1. User reviews traffic fines in the dedicated section
+2. User can see violation details, dates, and amounts
+3. User can update payment status of fines
+4. Changes are saved to the database
+
+### Processing Security Deposits
+1. User can view security deposit information
+2. User can record refunds (partial or full)
+3. System tracks deposit status (held, partially refunded, fully refunded)
+4. Financial summaries are updated accordingly
 
 ### Deleting an Agreement
 1. User clicks "Delete" button
@@ -483,6 +667,7 @@ The page implements comprehensive error handling:
 - PDF generation errors display detailed error messages
 - Payment recording/editing failures show appropriate error messages
 - Network errors are caught and displayed to the user
+- Input validation prevents invalid data entry
 
 ## Responsive Design
 The Agreement Details page is fully responsive:
@@ -490,15 +675,33 @@ The Agreement Details page is fully responsive:
 - On medium screens, some sections collapse to a single column
 - On small/mobile screens, all sections stack vertically
 - Modal dialogs are scrollable on smaller screens with a maximum height
+- Buttons and interactive elements are appropriately sized for touch interfaces
 
 ## Performance Considerations
 - Data is fetched only when needed using state tracking
 - Payment history uses optimized queries with pagination when appropriate
 - PDF generation happens asynchronously without blocking the UI
 - Large data sets are processed in batches to maintain responsiveness
+- Caching is implemented for frequently accessed data
 
 ## Security
 - Agreement access is restricted to authenticated users
 - The page checks for authorization to view the specific agreement
 - Sensitive data is appropriately protected and masked when necessary
 - Operations like deletion require explicit confirmation
+- All database operations use prepared statements to prevent SQL injection
+
+## Accessibility Features
+- All interactive elements have appropriate ARIA labels
+- Color contrast meets WCAG standards
+- Keyboard navigation is supported throughout the interface
+- Form elements have associated labels and error messages
+- Modal dialogs trap focus appropriately
+
+## Integration Points
+- **Customers Module** - Links to customer profiles and data
+- **Vehicles Module** - Connects to vehicle information and availability
+- **Payments System** - Integrates with payment processing and financial records
+- **Traffic Fines System** - Fetches and manages violation data
+- **Document Generation** - Creates PDFs and other agreement documents
+- **Notification System** - Sends alerts for payment reminders and updates
