@@ -13,11 +13,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
-
+import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { toast } from 'sonner';
 interface VehicleDetailProps {
   vehicle: Vehicle;
 }
-
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   vehicle
 }) => {
@@ -34,8 +34,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   });
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
+  const [vehicleImageUrl, setVehicleImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
   const {
-    getMaintenanceByVehicleId
+    getByVehicleId
   } = useMaintenance();
   const statusColors = {
     available: 'bg-green-100 text-green-800',
@@ -43,111 +45,125 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     maintenance: 'bg-amber-100 text-amber-800',
     retired: 'bg-red-100 text-red-800'
   };
-
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
-  const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
-  const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
-  const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
-  const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
-  const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
-  const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
-  const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
-
-  let displayImageUrl = defaultCarImage;
-  try {
-    const makeLower = (vehicle.make || '').toString().toLowerCase().trim();
-    const modelLower = (vehicle.model || '').toString().toLowerCase().trim();
-    
-    console.log('Vehicle detail make/model:', makeLower, modelLower);
-    
-    if (vehicle.imageUrl && (vehicle.imageUrl.includes('storage.googleapis.com') || vehicle.imageUrl?.includes('supabase.co'))) {
-      displayImageUrl = vehicle.imageUrl;
-      console.log('Using Supabase storage image in detail:', vehicle.imageUrl);
-    }
-    else if (modelLower.includes('b70') || modelLower === 'b70') {
-      displayImageUrl = b70Image;
-      console.log('Using B70 image in detail');
-    }
-    else if (modelLower.includes('t33') || modelLower === 't33') {
-      displayImageUrl = t33Image;
-      console.log('Using T33 image in detail');
-    }
-    else if (modelLower.includes('t77') || modelLower === 't77') {
-      displayImageUrl = t77Image;
-      console.log('Using T77 image in detail');
-    } 
-    else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
-      displayImageUrl = gs3Image;
-      console.log('Using GAC GS3 image in detail');
-    }
-    else if (modelLower.includes('gs3') || modelLower === 'gs3') {
-      displayImageUrl = gs3Image;
-      console.log('Using GS3 image in detail');
-    }
-    else if (makeLower.includes('gac')) {
-      displayImageUrl = gacImage;
-      console.log('Using generic GAC image in detail');
-    } 
-    else if (
-      makeLower === 'mg' || 
-      makeLower.startsWith('mg ') || 
-      modelLower.startsWith('mg')
-    ) {
-      if (
-        modelLower.includes('5') || 
-        modelLower.includes('mg5') || 
-        makeLower.includes('mg5') ||
-        (makeLower === 'mg' && modelLower === '5')
-      ) {
-        displayImageUrl = mg5Image;
-        console.log('Using MG5 specific image in detail:', mg5Image);
-      } else {
-        displayImageUrl = mgImage;
-        console.log('Using generic MG image in detail:', mgImage);
+  useEffect(() => {
+    async function fetchVehicleImage() {
+      setImageLoading(true);
+      try {
+        const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
+        const modelToCheck = vehicle.model || '';
+        const matchedModelType = modelTypes.find(type => modelToCheck.toUpperCase().includes(type) || modelToCheck.toLowerCase().includes(type.toLowerCase()));
+        if (matchedModelType) {
+          console.log(`Detail view: Vehicle matched model type: ${matchedModelType}`);
+          const modelImage = await getModelSpecificImage(matchedModelType);
+          if (modelImage) {
+            console.log(`Detail view: Using ${matchedModelType} image from storage:`, modelImage);
+            setVehicleImageUrl(modelImage);
+            setImageLoading(false);
+            return;
+          }
+        }
+        if (vehicle.imageUrl || vehicle.image_url) {
+          setVehicleImageUrl(vehicle.imageUrl || vehicle.image_url);
+          setImageLoading(false);
+          return;
+        }
+        const imageUrl = await getVehicleImageByPrefix(vehicle.id);
+        if (imageUrl) {
+          setVehicleImageUrl(imageUrl);
+          setImageLoading(false);
+          return;
+        }
+        fallbackToModelImages();
+      } catch (error) {
+        console.error('Error fetching vehicle image:', error);
+        fallbackToModelImages();
+      } finally {
+        setImageLoading(false);
       }
-    } 
-    else if (vehicle.imageUrl) {
-      displayImageUrl = vehicle.imageUrl;
     }
-  } catch (error) {
-    console.error('Error setting vehicle detail image:', error);
-  }
-
+    fetchVehicleImage();
+  }, [vehicle.id, vehicle.imageUrl, vehicle.image_url, vehicle.model]);
+  const fallbackToModelImages = () => {
+    const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
+    const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
+    const mgImage = '/lovable-uploads/5384d3e3-5c1c-4588-b472-64e08eeeac72.png';
+    const mg5Image = '/lovable-uploads/355f1572-39eb-4db2-8d1b-0da5b1ce4d00.png';
+    const gs3Image = '/lovable-uploads/3a9a07d4-ef18-41ea-ac89-3b22acd724d0.png';
+    const b70Image = '/lovable-uploads/977480e0-3193-4751-b9d0-8172d78e42e5.png';
+    const t33Image = '/lovable-uploads/a27a9638-2a8b-4f23-b9fb-1c311298b745.png';
+    try {
+      const makeLower = (vehicle.make || '').toString().toLowerCase().trim();
+      const modelLower = (vehicle.model || '').toString().toLowerCase().trim();
+      console.log('Vehicle detail make/model:', makeLower, modelLower);
+      if (modelLower.includes('b70') || modelLower === 'b70') {
+        setVehicleImageUrl(b70Image);
+        console.log('Using B70 fallback image in detail');
+      } else if (modelLower.includes('t33') || modelLower === 't33') {
+        setVehicleImageUrl(t33Image);
+        console.log('Using T33 fallback image in detail');
+      } else if (modelLower.includes('t77') || modelLower === 't77') {
+        setVehicleImageUrl(t77Image);
+        console.log('Using T77 fallback image in detail');
+      } else if (makeLower.includes('gac') && modelLower.includes('gs3')) {
+        setVehicleImageUrl(gs3Image);
+        console.log('Using GAC GS3 fallback image in detail');
+      } else if (modelLower.includes('gs3') || modelLower === 'gs3') {
+        setVehicleImageUrl(gs3Image);
+        console.log('Using GS3 fallback image in detail');
+      } else if (makeLower.includes('gac')) {
+        setVehicleImageUrl(gacImage);
+        console.log('Using generic GAC fallback image in detail');
+      } else if (makeLower === 'mg' || makeLower.startsWith('mg ') || modelLower.startsWith('mg')) {
+        if (modelLower.includes('5') || modelLower.includes('mg5') || makeLower.includes('mg5') || makeLower === 'mg' && modelLower === '5') {
+          setVehicleImageUrl(mg5Image);
+          console.log('Using MG5 specific fallback image in detail:', mg5Image);
+        } else {
+          setVehicleImageUrl(mgImage);
+          console.log('Using generic MG fallback image in detail:', mgImage);
+        }
+      } else {
+        setVehicleImageUrl(defaultCarImage);
+      }
+    } catch (error) {
+      console.error('Error setting vehicle detail image:', error);
+      setVehicleImageUrl(defaultCarImage);
+    }
+  };
   const hasInsurance = !!vehicle.insurance_company;
   const insuranceExpiry = vehicle.insurance_expiry ? parseISO(vehicle.insurance_expiry) : null;
   const isInsuranceValid = insuranceExpiry ? isAfter(insuranceExpiry, new Date()) : false;
-
   const getInsuranceBadgeStyle = () => {
     if (!hasInsurance) return 'bg-red-100 text-red-800';
     return isInsuranceValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
-
   const getInsuranceStatusText = () => {
     if (!hasInsurance) return 'No Insurance';
     return isInsuranceValid ? 'Valid' : 'Expired';
   };
-
   const handleViewMaintenance = (id: string) => {
     navigate(`/maintenance/${id}`);
   };
-
   const handleAddMaintenance = () => {
     navigate(`/maintenance/add?vehicleId=${vehicle.id}`);
   };
-
   const handleViewAgreement = (id: string) => {
+    if (!id) {
+      console.error("Attempted to navigate to agreement with no ID");
+      toast.error("Unable to view agreement: Missing ID");
+      return;
+    }
+    console.log(`Navigating to agreement: /agreements/${id}`);
     navigate(`/agreements/${id}`);
   };
-
   const handleCreateAgreement = () => {
     navigate(`/agreements/add?vehicleId=${vehicle.id}`);
   };
-
   useEffect(() => {
     const fetchMaintenance = async () => {
       setIsLoadingMaintenance(true);
       try {
-        const records = await getMaintenanceByVehicleId(vehicle.id);
+        const records = await getByVehicleId(vehicle.id);
         setMaintenanceRecords(records);
       } catch (error) {
         console.error("Error fetching maintenance records:", error);
@@ -158,12 +174,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     if (vehicle.id) {
       fetchMaintenance();
     }
-  }, [vehicle.id, getMaintenanceByVehicleId]);
-
+  }, [vehicle.id, getByVehicleId]);
   const formatMaintenanceType = (type: string) => {
     return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
-
   const getMaintenanceStatusColor = (status: string) => {
     switch (status) {
       case MaintenanceStatus.COMPLETED:
@@ -178,7 +192,6 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   const getAgreementStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -194,15 +207,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         return 'bg-gray-100 text-gray-800';
     }
   };
-
   const formatAgreementStatus = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
-
   return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-        <img src={displayImageUrl} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-full object-cover" onError={e => {
+        <img src={vehicleImageUrl || defaultCarImage} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-full object-cover" onError={e => {
         console.log('Detail image failed to load, using fallback');
         e.currentTarget.src = defaultCarImage;
       }} />
@@ -390,10 +401,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Maintenance History</CardTitle>
-            <CustomButton size="sm" variant="outline" onClick={handleAddMaintenance}>
-              <Wrench className="h-4 w-4 mr-2" />
-              Add Maintenance
-            </CustomButton>
+            
           </div>
           
           {isLoadingMaintenance ? <div className="text-center py-8 text-muted-foreground">

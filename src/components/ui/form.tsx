@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { Slot } from "@radix-ui/react-slot"
@@ -8,6 +9,7 @@ import {
   FieldValues,
   FormProvider,
   useFormContext,
+  FieldError
 } from "react-hook-form"
 
 import { cn } from "@/lib/utils"
@@ -39,16 +41,26 @@ const FormField = <
   )
 }
 
-const useFormField = () => {
+// Define a return type for useFormField to include error
+type FormFieldState = {
+  id: string
+  name: string
+  formItemId: string
+  formDescriptionId: string
+  formMessageId: string
+  error?: FieldError
+}
+
+const useFormField = (): FormFieldState => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
-  const { getFieldState, formState } = useFormContext()
-
-  const fieldState = getFieldState(fieldContext.name, formState)
+  const formContext = useFormContext()
 
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>")
   }
+
+  const fieldState = formContext?.getFieldState?.(fieldContext.name, formContext.formState) || {}
 
   const { id } = itemContext
 
@@ -58,7 +70,7 @@ const useFormField = () => {
     formItemId: `${id}-form-item`,
     formDescriptionId: `${id}-form-item-description`,
     formMessageId: `${id}-form-item-message`,
-    ...fieldState,
+    ...(fieldState as { error?: FieldError }), // Cast fieldState to include error property
   }
 }
 

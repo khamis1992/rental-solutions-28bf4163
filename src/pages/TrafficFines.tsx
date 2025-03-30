@@ -1,25 +1,60 @@
 
-import React from 'react';
-import PageContainer from '@/components/layout/PageContainer';
-import { SectionHeader } from '@/components/ui/section-header';
-import { AlertTriangle } from 'lucide-react';
-import TrafficFinesList from '@/components/traffic-fines/TrafficFinesList';
+import React, { useState } from "react";
+import PageContainer from "@/components/layout/PageContainer";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertTriangle, BarChart2, FileText } from "lucide-react";
+import TrafficFinesList from "@/components/fines/TrafficFinesList";
+import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
+import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 
 const TrafficFines = () => {
+  const [activeTab, setActiveTab] = useState("list");
+  
+  const handleAddFine = () => {
+    setActiveTab("add");
+  };
+  
+  const handleFineSaved = () => {
+    setActiveTab("list");
+  };
+
   return (
-    <PageContainer
-      title="Traffic Fines Management"
-      description="Manage and track traffic fines for your fleet"
-    >
+    <PageContainer>
       <SectionHeader
-        title="Traffic Fines"
-        description="View, pay, and dispute traffic fines for vehicles in your fleet"
+        title="Traffic Fines Management"
+        description="Record, track, and manage traffic violations"
         icon={AlertTriangle}
       />
       
-      <div className="space-y-6">
-        <TrafficFinesList />
-      </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid grid-cols-1 md:grid-cols-3 w-full">
+          <TabsTrigger value="list" className="flex items-center">
+            <FileText className="h-4 w-4 mr-2" />
+            Fines List
+          </TabsTrigger>
+          <TabsTrigger value="add" className="flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Record New Fine
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center">
+            <BarChart2 className="h-4 w-4 mr-2" />
+            Fine Analytics
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="list" className="space-y-6">
+          <TrafficFinesList onAddFine={handleAddFine} />
+        </TabsContent>
+        
+        <TabsContent value="add" className="space-y-6">
+          <TrafficFineEntry onFineSaved={handleFineSaved} />
+        </TabsContent>
+        
+        <TabsContent value="reports" className="space-y-6">
+          <TrafficFineAnalytics />
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 };
