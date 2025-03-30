@@ -319,7 +319,7 @@ export function AgreementDetail({
           Generate Document
         </Button>
         <Button 
-          variant="primary" 
+          variant="default" 
           size="sm"
           className="h-9 bg-blue-600 hover:bg-blue-700 text-white ml-auto"
           onClick={handleRecordPayment}
