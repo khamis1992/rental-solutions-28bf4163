@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,33 +67,49 @@ const FinancialDashboard: React.FC = () => {
   useEffect(() => {
     if (financialSummary) {
       console.log("Financial Summary in Dashboard:", financialSummary);
-      console.log("Total Expenses value:", financialSummary.totalExpenses);
-      console.log("Overdue Expenses value:", financialSummary.overdueExpenses);
+      console.log("IMPORTANT VALUES CHECK:");
+      console.log("Total Expenses value (raw):", financialSummary.totalExpenses);
+      console.log("Total Expenses value (typeof):", typeof financialSummary.totalExpenses);
+      console.log("Current Month Due value (raw):", financialSummary.currentMonthDue);
+      console.log("Current Month Due value (typeof):", typeof financialSummary.currentMonthDue);
+      console.log("Overdue Expenses value (raw):", financialSummary.overdueExpenses);
+      console.log("Overdue Expenses value (typeof):", typeof financialSummary.overdueExpenses);
       
-      // Create dynamic key metrics based on actual financial data
+      // Parse values to ensure they're numbers, with fallback to 0
+      const totalExpenses = parseFloat(Number(financialSummary.totalExpenses || 0).toFixed(2));
+      const totalIncome = parseFloat(Number(financialSummary.totalIncome || 0).toFixed(2));
+      const netRevenue = parseFloat(Number(financialSummary.netRevenue || 0).toFixed(2));
+      const overdueExpenses = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
+      
+      console.log("After parsing - Total Expenses:", totalExpenses);
+      console.log("After parsing - Total Income:", totalIncome);
+      console.log("After parsing - Net Revenue:", netRevenue);
+      console.log("After parsing - Overdue Expenses:", overdueExpenses);
+      
+      // Create dynamic key metrics based on actual financial data with proper type handling
       setKeyMetrics([
         { 
           name: 'Total Revenue', 
-          value: financialSummary.totalIncome || 0, 
+          value: totalIncome, 
           change: 12.5, 
           changeType: 'positive'
         },
         { 
           name: 'Total Expenses', 
-          value: financialSummary.totalExpenses || 0, 
+          value: totalExpenses,
           change: 5.7, 
           changeType: 'positive'
         },
         { 
           name: 'Net Profit', 
-          value: financialSummary.netRevenue || 0, 
+          value: netRevenue,
           change: 18.2, 
           changeType: 'positive'
         },
         { 
           name: 'Profit Margin', 
-          value: financialSummary.totalIncome > 0 
-            ? Math.round((financialSummary.netRevenue / financialSummary.totalIncome) * 100)
+          value: totalIncome > 0 
+            ? Math.round((netRevenue / totalIncome) * 100)
             : 0, 
           change: 3.1, 
           changeType: 'positive'

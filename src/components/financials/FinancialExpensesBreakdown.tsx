@@ -17,6 +17,18 @@ const FinancialExpensesBreakdown: React.FC = () => {
     return <div>No expense data available</div>;
   }
 
+  // Ensure all values are proper numbers
+  const totalExpenses = parseFloat(Number(financialSummary.totalExpenses || 0).toFixed(2));
+  const currentMonthDue = parseFloat(Number(financialSummary.currentMonthDue || 0).toFixed(2));
+  const overdueExpenses = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
+  const regularExpenses = parseFloat(Number(totalExpenses - overdueExpenses).toFixed(2));
+
+  console.log("FinancialExpensesBreakdown VALUES (after parsing):");
+  console.log("Total Expenses:", totalExpenses);
+  console.log("Current Month Due:", currentMonthDue);
+  console.log("Overdue Expenses:", overdueExpenses);
+  console.log("Regular Expenses:", regularExpenses);
+
   return (
     <Card>
       <CardHeader>
@@ -27,7 +39,7 @@ const FinancialExpensesBreakdown: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <StatCard
             title="Total Expenses"
-            value={formatCurrency(financialSummary.totalExpenses)}
+            value={formatCurrency(totalExpenses)}
             description="All expenses combined"
             icon={TrendingDown}
             iconColor="text-red-500"
@@ -35,7 +47,7 @@ const FinancialExpensesBreakdown: React.FC = () => {
           
           <StatCard
             title="Current Month Due"
-            value={formatCurrency(financialSummary.currentMonthDue)}
+            value={formatCurrency(currentMonthDue)}
             description="Installments due this month"
             icon={Clock}
             iconColor="text-amber-500"
@@ -43,11 +55,11 @@ const FinancialExpensesBreakdown: React.FC = () => {
           
           <StatCard
             title="Overdue Expenses"
-            value={formatCurrency(financialSummary.overdueExpenses)}
+            value={formatCurrency(overdueExpenses)}
             description="Past-due installment payments"
             icon={AlertTriangle}
             iconColor="text-red-600"
-            trend={financialSummary.overdueExpenses > 0 ? 100 : 0}
+            trend={overdueExpenses > 0 ? 100 : 0}
             trendLabel="Requires attention"
           />
         </div>
@@ -58,15 +70,15 @@ const FinancialExpensesBreakdown: React.FC = () => {
             <div className="flex items-center justify-between">
               <span className="text-sm">Regular Expenses</span>
               <span className="text-sm font-medium">
-                {formatCurrency(financialSummary.totalExpenses - financialSummary.overdueExpenses)}
+                {formatCurrency(regularExpenses)}
               </span>
             </div>
             
-            {financialSummary.overdueExpenses > 0 && (
+            {overdueExpenses > 0 && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-red-600 font-medium">Overdue Expenses</span>
                 <span className="text-sm font-medium text-red-600">
-                  {formatCurrency(financialSummary.overdueExpenses)}
+                  {formatCurrency(overdueExpenses)}
                 </span>
               </div>
             )}
@@ -74,7 +86,7 @@ const FinancialExpensesBreakdown: React.FC = () => {
             <div className="border-t pt-2 flex items-center justify-between">
               <span className="text-sm font-medium">Total</span>
               <span className="text-sm font-medium">
-                {formatCurrency(financialSummary.totalExpenses)}
+                {formatCurrency(totalExpenses)}
               </span>
             </div>
           </div>
