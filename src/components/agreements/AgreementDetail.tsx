@@ -305,9 +305,7 @@ export function AgreementDetail({
 
       <Card>
         
-        <CardContent>
-          <PaymentList agreementId={agreement.id} onPaymentDeleted={onPaymentDeleted} />
-        </CardContent>
+        
       </Card>
 
       {agreement.start_date && agreement.end_date && <Card>
