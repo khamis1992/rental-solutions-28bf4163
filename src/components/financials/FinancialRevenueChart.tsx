@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -13,7 +12,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ChartIcon, BarChart } from 'lucide-react';
+import { LineChart, BarChart } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -44,11 +43,9 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
   const [timePeriod, setTimePeriod] = useState<string>("6");
   const [viewType, setViewType] = useState<'area' | 'bar'>('area');
   
-  // Ensure we have data to display with both revenue and expenses
   const ensureCompleteData = (inputData: RevenueChartData[]): RevenueChartData[] => {
     if (!inputData || inputData.length === 0) {
       console.log("No revenue data provided, showing placeholder data");
-      // Return placeholder data if no data is provided
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'];
       return months.map(month => ({
         name: month,
@@ -59,16 +56,14 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
     
     console.log("Processing revenue chart data:", inputData);
     
-    // Ensure all entries have expenses
     return inputData.map(item => ({
       ...item,
-      expenses: item.expenses || Math.floor(item.revenue * 0.6) // If no expenses, estimate as 60% of revenue
+      expenses: item.expenses || Math.floor(item.revenue * 0.6)
     }));
   };
   
   const chartData = ensureCompleteData(data);
 
-  // Filter data based on selected time period
   const getFilteredData = () => {
     const months = parseInt(timePeriod);
     if (months && chartData.length > months) {
@@ -79,7 +74,6 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
 
   const filteredData = getFilteredData();
   
-  // Calculate the profit for tooltip display
   const getProfit = (revenue: number, expenses: number) => {
     return revenue - expenses;
   };
@@ -99,7 +93,7 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
               onClick={() => setViewType('area')}
               className="h-8 w-8 p-0"
             >
-              <ChartIcon className="h-4 w-4" />
+              <LineChart className="h-4 w-4" />
             </Button>
             <Button
               variant={viewType === 'bar' ? 'default' : 'ghost'}
@@ -156,7 +150,7 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#64748b', fontSize: 12 }}
-                tickFormatter={(value) => formatCurrency(value).split('.')[0]} // Remove decimals for Y-axis labels
+                tickFormatter={(value) => formatCurrency(value).split('.')[0]}
               />
               <Tooltip 
                 formatter={(value: number, name: string) => {
