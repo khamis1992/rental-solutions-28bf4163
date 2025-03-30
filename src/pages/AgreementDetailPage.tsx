@@ -10,6 +10,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { usePayments } from '@/hooks/use-payments';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,9 @@ const AgreementDetailPage = () => {
 
   // Pass the agreement object directly and the ID as a fallback
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
+  
+  // Get payments data
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', null);
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -32,6 +36,8 @@ const AgreementDetailPage = () => {
       
       if (data) {
         setAgreement(data);
+        // Fetch payments when agreement data is loaded
+        fetchPayments();
       } else {
         toast.error("Agreement not found");
         navigate("/agreements");

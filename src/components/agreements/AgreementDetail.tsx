@@ -4,9 +4,6 @@ import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PaymentList } from '@/components/payments/PaymentList';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Download, Edit, Printer, DollarSign, FilePlus } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
@@ -15,6 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { LegalCaseCard } from './LegalCaseCard';
+import { PaymentHistory } from './PaymentHistory';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+
 interface AgreementDetailProps {
   agreement: Agreement | null;
   onDelete: (id: string) => void;
@@ -23,6 +23,7 @@ interface AgreementDetailProps {
   onPaymentDeleted: () => void;
   onDataRefresh: () => void;
 }
+
 export function AgreementDetail({
   agreement,
   onDelete,
@@ -39,26 +40,32 @@ export function AgreementDetail({
     amount: number;
     daysLate: number;
   } | null>(null);
+
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
+
   const handleDelete = useCallback(() => {
     setIsDeleteDialogOpen(true);
   }, []);
+
   const confirmDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
       setIsDeleteDialogOpen(false);
     }
   }, [agreement, onDelete]);
+
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
+
   const handleEdit = useCallback(() => {
     if (agreement) {
       navigate(`/agreements/${agreement.id}/edit`);
     }
   }, [agreement, navigate]);
+
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
@@ -78,14 +85,17 @@ export function AgreementDetail({
       }
     }
   }, [agreement]);
+
   const handleRecordPayment = useCallback(() => {
     setIsPaymentDialogOpen(true);
   }, []);
+
   const handleGenerateDocument = useCallback(() => {
     if (agreement) {
       toast.info("Document generation functionality coming soon");
     }
   }, [agreement]);
+
   const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean) => {
     if (agreement && agreement.id) {
       try {
@@ -101,10 +111,12 @@ export function AgreementDetail({
       }
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
+
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
     return months > 0 ? months : 1; // Ensure at least 1 month
   }, []);
+
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
@@ -119,14 +131,17 @@ export function AgreementDetail({
       setLateFeeDetails(null);
     }
   }, []);
+
   if (!agreement) {
     return <Alert>
         <AlertDescription>Agreement details not available.</AlertDescription>
       </Alert>;
   }
+
   const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
   const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
   const duration = calculateDuration(startDate, endDate);
+
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -145,7 +160,9 @@ export function AgreementDetail({
         return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
     }
   };
+
   const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
+
   return <div className="space-y-8">
       <div className="space-y-2">
         <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
@@ -303,10 +320,16 @@ export function AgreementDetail({
         </Button>
       </div>
 
-      <Card>
-        
-        
-      </Card>
+      {agreement && (
+        <PaymentHistory 
+          payments={[]} 
+          isLoading={false} 
+          rentAmount={rentAmount}
+          onPaymentDeleted={onPaymentDeleted}
+          leaseStartDate={agreement.start_date}
+          leaseEndDate={agreement.end_date}
+        />
+      )}
 
       {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>
