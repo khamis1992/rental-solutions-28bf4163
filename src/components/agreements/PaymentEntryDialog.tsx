@@ -3,29 +3,48 @@ import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, Save } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const paymentFormSchema = z.object({
-  amount: z.number().positive('Amount must be greater than zero'),
+const formSchema = z.object({
+  amount: z.number().positive('Amount must be positive'),
   paymentDate: z.date(),
-  notes: z.string().optional()
+  notes: z.string().optional(),
+  paymentMethod: z.string().min(1, 'Please select a payment method'),
+  referenceNumber: z.string().optional()
 });
 
-type PaymentFormData = z.infer<typeof paymentFormSchema>;
+type FormValues = z.infer<typeof formSchema>;
 
 interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (amount: number, paymentDate: Date, notes?: string) => void;
-  defaultAmount?: number;
+  defaultAmount: number;
   title?: string;
   description?: string;
 }
@@ -34,41 +53,38 @@ export function PaymentEntryDialog({
   open,
   onOpenChange,
   onSubmit,
-  defaultAmount = 0,
+  defaultAmount,
   title = "Record Payment",
   description = "Enter payment details below"
 }: PaymentEntryDialogProps) {
-  const form = useForm<PaymentFormData>({
-    resolver: zodResolver(paymentFormSchema),
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       amount: defaultAmount,
       paymentDate: new Date(),
-      notes: ""
+      notes: '',
+      paymentMethod: 'cash',
+      referenceNumber: ''
     }
   });
 
+  // Update form when defaultAmount changes
   React.useEffect(() => {
-    if (open) {
-      form.reset({
-        amount: defaultAmount,
-        paymentDate: new Date(),
-        notes: ""
-      });
-    }
-  }, [open, form, defaultAmount]);
+    form.setValue('amount', defaultAmount);
+  }, [defaultAmount, form]);
 
-  const handleSubmit = (data: PaymentFormData) => {
-    onSubmit(data.amount, data.paymentDate, data.notes);
+  const handleSubmit = (values: FormValues) => {
+    onSubmit(values.amount, values.paymentDate, values.notes);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <FormField
@@ -76,20 +92,21 @@ export function PaymentEntryDialog({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Amount (QAR)</FormLabel>
+                  <FormLabel>Amount (QAR)</FormLabel>
                   <FormControl>
-                    <Input 
+                    <Input
                       type="number"
-                      placeholder="0.00"
+                      step="0.01"
                       {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      onChange={e => field.onChange(parseFloat(e.target.value))}
                     />
                   </FormControl>
+                  <FormDescription>Enter the payment amount</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="paymentDate"
@@ -120,18 +137,56 @@ export function PaymentEntryDialog({
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
-                        disabled={(date) =>
-                          date > new Date() || date < new Date("1900-01-01")
-                        }
                         initialFocus
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormDescription>Select when the payment was made</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
+            <FormField
+              control={form.control}
+              name="paymentMethod"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Method</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="cash">Cash</SelectItem>
+                      <SelectItem value="credit_card">Credit Card</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>Select how the payment was made</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="referenceNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reference Number (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Transaction ID, Cheque number, etc." />
+                  </FormControl>
+                  <FormDescription>Enter any reference information</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="notes"
@@ -139,10 +194,7 @@ export function PaymentEntryDialog({
                 <FormItem>
                   <FormLabel>Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Monthly rent payment"
-                      {...field}
-                    />
+                    <Textarea {...field} placeholder="Additional notes about the payment" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,10 +202,10 @@ export function PaymentEntryDialog({
             />
 
             <DialogFooter>
-              <Button type="submit" className="w-full sm:w-auto">
-                <Save className="mr-2 h-4 w-4" />
-                Record Payment
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
               </Button>
+              <Button type="submit">Record Payment</Button>
             </DialogFooter>
           </form>
         </Form>
