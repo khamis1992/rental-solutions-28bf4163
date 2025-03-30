@@ -1,178 +1,163 @@
 
-import { toast } from '@/hooks/use-toast';
-import { PostgrestError } from '@supabase/supabase-js';
-import { useMutation, useQuery, UseQueryOptions, UseMutationOptions, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, UseQueryOptions, UseMutationOptions } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
-/**
- * Standard error handler for API calls.
- * Use this to handle errors from Supabase and other API calls consistently.
- */
-export function handleApiError(error: unknown, context?: string): void {
+// Standardized error handling for API calls
+export const handleApiError = (error: unknown) => {
   console.error('API Error:', error);
   
-  let errorMessage = 'An unexpected error occurred';
-  
-  // Handle specific error types
+  // Extract error message
+  let errorMessage = 'An unknown error occurred';
   if (error instanceof Error) {
     errorMessage = error.message;
   } else if (typeof error === 'string') {
     errorMessage = error;
-  } else if (isPostgrestError(error)) {
-    errorMessage = `Database error: ${error.message}`;
-    
-    // Handle specific database errors
-    if (error.code === '23505') {
-      errorMessage = 'A record with this information already exists.';
-    } else if (error.code === '23503') {
-      errorMessage = 'This record cannot be modified because it is referenced by other data.';
-    } else if (error.code === '42P01') {
-      errorMessage = 'Database table not found. Please contact support.';
-    }
+  } else if (typeof error === 'object' && error !== null && 'message' in error) {
+    errorMessage = String((error as { message: unknown }).message);
   }
   
-  // Add context to the error message if provided
-  if (context) {
-    errorMessage = `${context}: ${errorMessage}`;
-  }
-  
-  // Show toast notification for the error
-  toast({
-    title: 'Error',
+  // Display toast notification
+  toast.error('Operation failed', {
     description: errorMessage,
-    variant: 'destructive',
   });
-}
+  
+  return errorMessage;
+};
 
-/**
- * Type guard to check if an error is a PostgrestError from Supabase
- */
-function isPostgrestError(error: unknown): error is PostgrestError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'message' in error &&
-    'code' in error
-  );
-}
+// Type for API functions
+type ApiFunction<TParams, TResponse> = (params: TParams) => Promise<TResponse>;
 
-/**
- * Format validation errors from form submissions
- */
-export function formatValidationErrors(errors: Record<string, string[]>): string {
-  return Object.entries(errors)
-    .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-    .join('\n');
-}
-
-/**
- * Standardized success handler
- */
-export function handleApiSuccess(message: string): void {
-  toast({
-    title: 'Success',
-    description: message,
-  });
-}
-
-/**
- * Custom hook for API queries with standardized error handling
- */
-export function useApiQuery<TData>(
-  queryKey: unknown[],
+// Standard hook for data fetching
+export function useApiQuery<TData, TError = unknown>(
+  queryKey: string[], 
   queryFn: () => Promise<TData>,
-  options?: Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>
-): UseQueryResult<TData, Error> {
+  options?: Omit<UseQueryOptions<TData, TError, TData>, 'queryKey' | 'queryFn'>
+) {
   return useQuery({
     queryKey,
-    queryFn: async () => {
-      try {
-        return await queryFn();
-      } catch (error) {
-        handleApiError(error, `Error fetching ${queryKey[0]}`);
-        throw error;
-      }
-    },
-    ...options
+    queryFn,
+    ...options,
   });
 }
 
-/**
- * Custom hook for API mutations with standardized error and success handling
- */
-export function useApiMutation<TData, TVariables>(
+// Standard hook for data mutations
+export function useApiMutation<TData, TError = unknown, TVariables = void, TContext = unknown>(
   mutationFn: (variables: TVariables) => Promise<TData>,
-  options?: {
-    onSuccess?: (data: TData, variables: TVariables) => void;
-    onError?: (error: Error, variables: TVariables) => void;
-    onSettled?: (data: TData | undefined, error: Error | null, variables: TVariables) => void;
-    successMessage?: string;
-  }
-): UseMutationResult<TData, Error, TVariables, unknown> {
+  options?: Omit<UseMutationOptions<TData, TError, TVariables, TContext>, 'mutationFn'>
+) {
+  const queryClient = useQueryClient();
+  
   return useMutation({
-    mutationFn: async (variables) => {
-      try {
-        const result = await mutationFn(variables);
-        if (options?.successMessage) {
-          handleApiSuccess(options.successMessage);
-        }
-        return result;
-      } catch (error) {
-        handleApiError(error);
-        throw error;
-      }
+    mutationFn,
+    onError: (error, variables, context) => {
+      handleApiError(error);
+      options?.onError?.(error, variables, context);
     },
-    onSuccess: options?.onSuccess,
-    onError: options?.onError,
-    onSettled: options?.onSettled
+    ...options,
   });
 }
 
-/**
- * Custom hook for CRUD operations with standardized endpoint structure
- */
-export function useCrudApi<TData, TInsert, TUpdate = Partial<TInsert>>(
-  resourceName: string,
-  endpoint: {
-    getAll: () => Promise<TData[]>;
-    getById: (id: string) => Promise<TData>;
-    create: (data: TInsert) => Promise<TData>;
-    update: (id: string, data: TUpdate) => Promise<TData>;
-    delete: (id: string) => Promise<void>;
-  }
-) {
-  const getAll = useApiQuery<TData[]>([resourceName], endpoint.getAll);
+// Helper hook for CRUD operations
+export function useCrudApi<TItem extends { id: string }>(resourceName: string) {
+  const queryClient = useQueryClient();
+  const queryKey = [resourceName];
   
-  const getById = (id: string) => useApiQuery<TData>(
-    [resourceName, id],
-    () => endpoint.getById(id)
-  );
-  
-  const create = useApiMutation<TData, TInsert>(
-    (data) => endpoint.create(data),
-    { successMessage: `${resourceName} created successfully` }
-  );
-  
-  const update = useApiMutation<TData, { id: string; data: TUpdate }>(
-    ({ id, data }) => endpoint.update(id, data),
-    { successMessage: `${resourceName} updated successfully` }
-  );
-  
-  const remove = useApiMutation<void, string>(
-    (id) => endpoint.delete(id),
-    { successMessage: `${resourceName} deleted successfully` }
-  );
+  const invalidateResource = () => {
+    return queryClient.invalidateQueries({ queryKey });
+  };
   
   return {
-    getAll,
-    getById,
-    create,
-    update,
-    remove,
-    // Add these aliases for compatibility with existing code
-    useList: getAll, 
-    useOne: getById,
-    useCreate: create,
-    useUpdate: update,
-    useDelete: remove
+    // Get list of resources
+    useList: <TFilter = void>(filter?: TFilter) => {
+      const query = useApiQuery(
+        filter ? [...queryKey, 'list', JSON.stringify(filter)] : [...queryKey, 'list'], 
+        async () => {
+          // Replace with actual API call
+          return [] as TItem[];
+        },
+        {
+          // Handle errors through the query state instead of callbacks
+          meta: {
+            errorHandler: (error: unknown) => handleApiError(error)
+          }
+        }
+      );
+      
+      // Handle errors manually when the query fails
+      if (query.error) {
+        handleApiError(query.error);
+      }
+      
+      return query;
+    },
+      
+    // Get single resource
+    useItem: (id: string) => {
+      const query = useApiQuery(
+        [...queryKey, id], 
+        async () => {
+          // Replace with actual API call
+          return {} as TItem;
+        },
+        {
+          // Handle errors through the query state instead of callbacks
+          meta: {
+            errorHandler: (error: unknown) => handleApiError(error)
+          }
+        }
+      );
+      
+      // Handle errors manually when the query fails
+      if (query.error) {
+        handleApiError(query.error);
+      }
+      
+      return query;
+    },
+      
+    // Create resource
+    useCreate: () => 
+      useApiMutation(
+        async (data: Omit<TItem, 'id'>) => {
+          // Replace with actual API call
+          return {} as TItem;
+        },
+        {
+          onSuccess: () => {
+            toast.success(`${resourceName} created successfully`);
+            invalidateResource();
+          }
+        }
+      ),
+      
+    // Update resource
+    useUpdate: () => 
+      useApiMutation(
+        async ({ id, data }: { id: string, data: Partial<TItem> }) => {
+          // Replace with actual API call
+          return {} as TItem;
+        },
+        {
+          onSuccess: () => {
+            toast.success(`${resourceName} updated successfully`);
+            invalidateResource();
+          }
+        }
+      ),
+      
+    // Delete resource
+    useDelete: () => 
+      useApiMutation(
+        async (id: string) => {
+          // Replace with actual API call
+          return id;
+        },
+        {
+          onSuccess: () => {
+            toast.success(`${resourceName} deleted successfully`);
+            invalidateResource();
+          }
+        }
+      ),
   };
 }

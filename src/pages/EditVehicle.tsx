@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft, AlertOctagon, Loader2 } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -9,82 +9,54 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { ensureVehicleImagesBucket } from '@/lib/vehicles/vehicle-storage';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bucketError, setBucketError] = useState<string | null>(null);
-  const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
+  const [checkingBucket, setCheckingBucket] = useState(false);
   
   const { useVehicle, useUpdate } = useVehicles();
   const { data: vehicle, isLoading, error } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
   
-  useEffect(() => {
-    async function checkForModelImage() {
-      if (vehicle?.model && vehicle.model.toLowerCase().includes('b70')) {
-        const imageUrl = await getModelSpecificImage(vehicle.model);
-        setModelSpecificImage(imageUrl);
-      }
-    }
-    
-    if (vehicle) {
-      checkForModelImage();
-    }
-  }, [vehicle]);
-  
   // Check if bucket exists and create it if needed
-  const ensureVehicleImagesBucket = async () => {
+  const checkVehicleImagesBucket = async () => {
     try {
-      // Check if bucket exists
-      const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+      setCheckingBucket(true);
+      const bucketReady = await ensureVehicleImagesBucket();
       
-      if (listError) {
-        console.error('Error listing buckets:', listError);
-        setBucketError(`Error checking storage buckets: ${listError.message}`);
+      if (!bucketReady) {
+        setBucketError('Failed to prepare storage for vehicle images. Check your Supabase configuration.');
+        toast.error('Storage bucket issue', { 
+          description: 'Failed to prepare storage for vehicle images. Check your Supabase configuration.'
+        });
+        setCheckingBucket(false);
         return false;
       }
       
-      const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
-      
-      if (!bucketExists) {
-        // Create the bucket
-        const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
-          public: true,
-          fileSizeLimit: 10485760, // 10MB
-        });
-        
-        if (createError) {
-          console.error('Error creating bucket:', createError);
-          setBucketError(`Error creating storage bucket: ${createError.message}`);
-          return false;
-        }
-        
-        toast.success('Vehicle images storage bucket created successfully');
-      }
-      
+      setBucketError(null);
+      setCheckingBucket(false);
       return true;
     } catch (error) {
       console.error('Error ensuring vehicle images bucket exists:', error);
       setBucketError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error('Storage error', {
+        description: error instanceof Error ? error.message : 'Unknown error checking storage'
+      });
+      setCheckingBucket(false);
       return false;
     }
   };
   
   const handleSubmit = async (formData: any) => {
     if (id) {
-      // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
-      if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
-        // We don't need to upload an image, as we'll use the model-specific one
-        console.log('Using model-specific B70 image');
-      } 
       // If there's an image, ensure the bucket exists first
-      else if (formData.image) {
-        const bucketReady = await ensureVehicleImagesBucket();
+      if (formData.image) {
+        const bucketReady = await checkVehicleImagesBucket();
         if (!bucketReady) {
-          toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
           return;
         }
       }
@@ -157,11 +129,37 @@ const EditVehicle = () => {
         }
       />
       
+      {bucketError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertOctagon className="h-4 w-4" />
+          <AlertTitle>Storage Configuration Error</AlertTitle>
+          <AlertDescription>
+            <p>{bucketError}</p>
+            <p className="text-sm mt-2">
+              Please check your Supabase configuration and ensure that the VITE_SUPABASE_SERVICE_ROLE_KEY 
+              is properly set in your .env file.
+            </p>
+            <div className="mt-3">
+              <CustomButton
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={checkVehicleImagesBucket}
+                disabled={checkingBucket}
+              >
+                {checkingBucket && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Retry Storage Configuration
+              </CustomButton>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="section-transition">
         <VehicleForm 
           initialData={vehicle}
           onSubmit={handleSubmit} 
-          isLoading={isUpdating}
+          isLoading={isUpdating || checkingBucket}
           isEditMode={true}
         />
       </div>
