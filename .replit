@@ -63,6 +63,10 @@ externalPort = 8080
 localPort = 19000
 externalPort = 3000
 
+[[ports]]
+localPort = 19006
+externalPort = 8099
+
 [workflows]
 runButton = "Start Mobile App"
 
