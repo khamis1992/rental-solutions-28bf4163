@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -32,7 +33,10 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         daysLate = paymentDate.getDate() - 1;
         
         // Use agreement's daily_late_fee or default to 120 QAR
-        const dailyLateFee = agreement.daily_late_fee || 120;
+        // First check if the property exists in the agreement object
+        const dailyLateFee = 'daily_late_fee' in agreement && typeof agreement.daily_late_fee === 'number' 
+          ? agreement.daily_late_fee 
+          : 120;
         
         // Calculate late fee amount (capped at 3000 QAR)
         lateFeeAmount = Math.min(daysLate * dailyLateFee, 3000);
