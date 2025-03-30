@@ -1,12 +1,12 @@
 
-import { createStyles } from 'react-to-pdf';
+import { jsPDF } from 'jspdf';
 import { LegalCase } from '@/types/legal-case';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/date-utils';
-import { jsPDF } from 'jspdf';
 import { CustomerObligation } from '@/components/legal/CustomerLegalObligations';
 
-export const generateLegalReportStyles = createStyles({
+// Define our styles object manually instead of using createStyles from react-to-pdf
+const legalReportStyles = {
   container: {
     padding: '20px',
     fontFamily: 'Helvetica',
@@ -41,7 +41,7 @@ export const generateLegalReportStyles = createStyles({
     marginTop: '20px',
     textAlign: 'center',
   },
-});
+};
 
 export const generateLegalReportData = async (caseId: string): Promise<LegalCase | null> => {
   try {
