@@ -1,11 +1,10 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
@@ -64,10 +63,16 @@ import ScheduledReports from "./pages/ScheduledReports";
 // System Settings pages
 import SystemSettings from "./pages/SystemSettings";
 
-const App = () => {
+import initializeApp from "./utils/app-initializer";
+
+function App() {
   // Move the QueryClient initialization inside the component
   // This ensures React hooks are called in the correct context
   const [queryClient] = useState(() => new QueryClient());
+
+  useEffect(() => {
+    initializeApp();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

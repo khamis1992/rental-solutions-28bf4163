@@ -1,19 +1,56 @@
 
-import React from "react";
+import React, { useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChartPieIcon, FileText, BarChartBig, FileSpreadsheet } from "lucide-react";
+import { ChartPieIcon, FileText, BarChartBig, FileSpreadsheet, Printer } from "lucide-react";
 import FinancialDashboard from "@/components/financials/FinancialDashboard";
 import PaymentGatewaySettings from "@/components/payments/PaymentGatewaySettings";
 import InvoiceTemplateEditor from "@/components/invoices/InvoiceTemplateEditor";
 import CarInstallmentContracts from "@/components/financials/car-installments/CarInstallmentContracts";
+import InvoiceGenerator from "@/components/invoices/InvoiceGenerator";
+import { Button } from "@/components/ui/button";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogDescription,
+  DialogFooter 
+} from "@/components/ui/dialog";
 
 const Financials = () => {
-  return <PageContainer>
-      <SectionHeader title="Financial Management" description="Manage payments, invoices, financial reporting and installment contracts" icon={ChartPieIcon} />
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [invoiceDialog, setInvoiceDialog] = useState(false);
+  const [invoiceType, setInvoiceType] = useState<'agreement' | 'payment' | 'customer'>('agreement');
+  
+  const handleOpenInvoiceGenerator = (type: 'agreement' | 'payment' | 'customer') => {
+    setInvoiceType(type);
+    setInvoiceDialog(true);
+  };
+  
+  return (
+    <PageContainer>
+      <SectionHeader 
+        title="Financial Management" 
+        description="Manage payments, invoices, financial reporting and installment contracts" 
+        icon={ChartPieIcon}
+        actions={
+          activeTab === "invoices" && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleOpenInvoiceGenerator('agreement')}
+              className="h-9"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Generate Invoice
+            </Button>
+          )
+        }
+      />
       
-      <Tabs defaultValue="dashboard" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
           <TabsTrigger value="dashboard" className="flex items-center">
             <BarChartBig className="h-4 w-4 mr-2" />
@@ -49,7 +86,25 @@ const Financials = () => {
           <CarInstallmentContracts />
         </TabsContent>
       </Tabs>
-    </PageContainer>;
+      
+      <Dialog open={invoiceDialog} onOpenChange={setInvoiceDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Generate Invoice</DialogTitle>
+            <DialogDescription>
+              Create and customize an invoice from a template
+            </DialogDescription>
+          </DialogHeader>
+          
+          <InvoiceGenerator 
+            recordType={invoiceType}
+            recordId="12345"
+            onClose={() => setInvoiceDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
+    </PageContainer>
+  );
 };
 
 export default Financials;
