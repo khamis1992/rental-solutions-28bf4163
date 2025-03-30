@@ -1,17 +1,15 @@
-
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Check, X, Edit, Trash2 } from 'lucide-react';
+import { AlertCircle, Edit, Trash2 } from 'lucide-react';
 import { usePayments } from '@/hooks/use-payments';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/date-utils';
 
-// Define the Payment type to match what's used in usePayments
 export interface Payment {
   id: string;
   amount: number;
@@ -43,7 +41,6 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
     }
   }, [agreementId, fetchPayments]);
 
-  // Mock missing payment for the UI (would normally be calculated based on agreement dates)
   useEffect(() => {
     setMissingPayments([
       {
@@ -164,7 +161,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
             <TableBody>
               {payments.map((payment) => (
                 <TableRow key={payment.id}>
-                  <TableCell>{format(new Date(payment.payment_date), 'MMM d, yyyy')}</TableCell>
+                  <TableCell>{formatDate(payment.payment_date)}</TableCell>
                   <TableCell className="font-medium">QAR {payment.amount.toLocaleString()}</TableCell>
                   <TableCell>
                     <span className="capitalize">{payment.type === 'rent' ? 'Income' : payment.type}</span>

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import Header from './Header';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { formatDate } from '@/lib/date-utils';
 
 interface PageContainerProps {
   children: React.ReactNode;
@@ -42,7 +43,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
           <div>
             {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
             {description && <p className="text-muted-foreground mt-1">{description}</p>}
-            <p className="text-xs text-muted-foreground mt-1">System Date: {systemDate.toLocaleDateString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">System Date: {formatDate(systemDate)}</p>
           </div>
           {actions && (
             <div className="mt-4 sm:mt-0">{actions}</div>
