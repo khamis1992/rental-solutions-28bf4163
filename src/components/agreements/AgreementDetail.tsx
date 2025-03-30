@@ -1,5 +1,4 @@
-
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -10,6 +9,10 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Badge } from '@/components/ui/badge';
 import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
+import { generatePdfDocument } from '@/utils/agreementUtils';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -29,13 +32,49 @@ export function AgreementDetail({
   onDataRefresh
 }: AgreementDetailProps) {
   const navigate = useNavigate();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const { handleSpecialAgreementPayments } = usePaymentGeneration(agreement, agreement?.id);
   
-  const handleDelete = useCallback((id: string) => {
-    onDelete(id);
-  }, [onDelete]);
+  const handleDelete = useCallback(() => {
+    setIsDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (agreement) {
+      onDelete(agreement.id);
+      setIsDeleteDialogOpen(false);
+    }
+  }, [agreement, onDelete]);
 
   const handlePrint = useCallback(() => {
     window.print();
+  }, []);
+
+  const handleEdit = useCallback(() => {
+    if (agreement) {
+      navigate(`/agreements/${agreement.id}/edit`);
+    }
+  }, [agreement, navigate]);
+
+  const handleDownloadPdf = useCallback(async () => {
+    if (agreement) {
+      try {
+        const success = await generatePdfDocument(agreement);
+        if (success) {
+          toast.success("Agreement PDF downloaded successfully");
+        } else {
+          toast.error("Failed to generate PDF");
+        }
+      } catch (error) {
+        console.error("Error generating PDF:", error);
+        toast.error("Failed to generate PDF");
+      }
+    }
+  }, [agreement]);
+
+  const handleRecordPayment = useCallback(() => {
+    setIsPaymentDialogOpen(true);
   }, []);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
@@ -185,7 +224,7 @@ export function AgreementDetail({
       </Card>
 
       <div className="flex flex-wrap items-center gap-4 mb-4">
-        <Button variant="outline" onClick={() => navigate(`/agreements/${agreement.id}/edit`)} className="print:hidden">
+        <Button variant="outline" onClick={handleEdit} className="print:hidden">
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>
@@ -193,18 +232,22 @@ export function AgreementDetail({
           <Printer className="mr-2 h-4 w-4" />
           Print
         </Button>
-        <Button variant="outline" className="print:hidden">
+        <Button variant="outline" onClick={handleDownloadPdf} className="print:hidden">
           <Download className="mr-2 h-4 w-4" />
           Download PDF
         </Button>
-        <Button variant="default" className="print:hidden bg-blue-500 hover:bg-blue-600">
+        <Button 
+          variant="default" 
+          className="print:hidden bg-blue-500 hover:bg-blue-600"
+          onClick={handleRecordPayment}
+        >
           <FilePlus className="mr-2 h-4 w-4" />
           Record Payment
         </Button>
         <div className="flex-grow"></div>
         <Button 
           variant="destructive"
-          onClick={() => handleDelete(agreement.id)}
+          onClick={handleDelete}
           className="print:hidden ml-auto"
         >
           Delete
@@ -231,7 +274,6 @@ export function AgreementDetail({
         </CardContent>
       </Card>
 
-      {/* Traffic Fines Section */}
       {agreement.start_date && agreement.end_date && (
         <Card>
           <CardHeader>
@@ -239,12 +281,44 @@ export function AgreementDetail({
             <CardDescription>Violations during the rental period</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-center py-6 text-muted-foreground">
-              No traffic fines recorded for this rental period.
-            </p>
+            <AgreementTrafficFines
+              agreementId={agreement.id}
+              startDate={new Date(agreement.start_date)}
+              endDate={new Date(agreement.end_date)}
+            />
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Record Payment</DialogTitle>
+            <DialogDescription>
+              This feature will be implemented in a future update. 
+              You can close this dialog and use the Payments tab to manage payments.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setIsPaymentDialogOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

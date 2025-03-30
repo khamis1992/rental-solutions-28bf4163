@@ -111,6 +111,12 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
   }
 };
 
+// Helper function for date formatting
+export const formatDateForDisplay = (date: Date | string): string => {
+  const dateObj = date instanceof Date ? date : new Date(date);
+  return format(dateObj, 'MMMM d, yyyy');
+};
+
 // Function to check if a standard template exists
 export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {

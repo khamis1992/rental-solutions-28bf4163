@@ -1,47 +1,66 @@
 
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
+/**
+ * Combines class names
+ */
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
-  // If amount is not a number, return empty string or placeholder
-  if (typeof amount !== 'number' || isNaN(amount)) {
-    return '';
+/**
+ * Formats a number as currency
+ * @param amount The amount to format
+ * @param currency The currency code (default: 'QAR')
+ * @returns Formatted currency string
+ */
+export const formatCurrency = (amount: number | string | null | undefined, currency = 'QAR'): string => {
+  if (amount === null || amount === undefined) return `${currency} 0.00`;
+  
+  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  
+  if (isNaN(numericAmount)) {
+    return `${currency} 0.00`;
   }
   
-  // For very large numbers, use compact notation
-  if (amount >= 1000000) {
-    // For millions, format with 2 decimal places and M suffix
-    const inMillions = amount / 1000000;
-    return new Intl.NumberFormat('en-QA', {
-      style: 'currency',
-      currency: 'QAR',
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0,
-    }).format(inMillions) + 'M';
-  } 
-  // For thousands but less than millions
-  else if (amount >= 10000) {
-    // Format with no decimal places for thousands
-    return new Intl.NumberFormat('en-QA', {
-      style: 'currency',
-      currency: 'QAR',
-      maximumFractionDigits: 0,
-    }).format(amount);
-  }
-  // For smaller amounts
-  else {
-    // Format with up to 2 decimal places for smaller numbers
-    const formatted = new Intl.NumberFormat('en-QA', {
-      style: 'currency',
-      currency: 'QAR',
-      maximumFractionDigits: 2,
-    }).format(amount);
-    
-    // If the amount ends with .00, remove the decimal part
-    return formatted.endsWith('.00') ? formatted.substring(0, formatted.length - 3) : formatted;
-  }
-}
+  return `${currency} ${numericAmount.toLocaleString(undefined, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
+};
+
+/**
+ * Delays execution for specified milliseconds
+ * @param ms Milliseconds to delay
+ * @returns Promise that resolves after the delay
+ */
+export const delay = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+/**
+ * Converts a file to a base64 string
+ * @param file The file to convert
+ * @returns Promise with the base64 string
+ */
+export const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
+
+/**
+ * Truncates text to a specified length
+ * @param text The text to truncate
+ * @param maxLength Maximum length before truncation
+ * @returns Truncated text with ellipsis if needed
+ */
+export const truncateText = (text: string, maxLength: number): string => {
+  return text.length > maxLength
+    ? `${text.substring(0, maxLength)}...`
+    : text;
+};

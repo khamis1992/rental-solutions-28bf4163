@@ -3671,6 +3671,42 @@ export type Database = {
           },
         ]
       }
+      invoice_templates: {
+        Row: {
+          category: string
+          content: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean | null
+          name: string
+          updated_at: string | null
+          variables: Json | null
+        }
+        Insert: {
+          category: string
+          content: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean | null
+          name?: string
+          updated_at?: string | null
+          variables?: Json | null
+        }
+        Relationships: []
+      }
       lead_activities: {
         Row: {
           activity_type: string
