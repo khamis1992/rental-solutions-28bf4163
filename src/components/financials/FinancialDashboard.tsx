@@ -67,6 +67,7 @@ const FinancialDashboard: React.FC = () => {
     if (financialSummary) {
       console.log("Financial Summary in Dashboard:", financialSummary);
       console.log("Total Expenses value:", financialSummary.totalExpenses);
+      console.log("Overdue Expenses value:", financialSummary.overdueExpenses);
       
       // Create dynamic key metrics based on actual financial data
       setKeyMetrics([
@@ -100,7 +101,7 @@ const FinancialDashboard: React.FC = () => {
     }
   }, [financialSummary]);
 
-  // Let's add a debug function to check data issues
+  // Debug function to check data issues
   const debugFinancialData = () => {
     if (financialSummary) {
       console.table({
@@ -108,6 +109,7 @@ const FinancialDashboard: React.FC = () => {
         "totalExpenses": financialSummary.totalExpenses,
         "currentMonthDue": financialSummary.currentMonthDue,
         "netRevenue": financialSummary.netRevenue,
+        "overdueExpenses": financialSummary.overdueExpenses,
         "keyMetrics": keyMetrics.map(m => `${m.name}: ${m.value}`)
       });
     } else {
@@ -338,6 +340,12 @@ const FinancialDashboard: React.FC = () => {
                     <span className="font-medium">Expenses</span>
                     <span className="text-right">{formatCurrency(financialSummary?.totalExpenses || 0)}</span>
                   </div>
+                  {financialSummary?.overdueExpenses > 0 && (
+                    <div className="grid grid-cols-2 py-2 border-b">
+                      <span className="font-medium text-red-600">Overdue Expenses</span>
+                      <span className="text-right text-red-600">{formatCurrency(financialSummary?.overdueExpenses || 0)}</span>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 py-2 border-b">
                     <span className="font-medium">Net Income</span>
                     <span className="text-right font-bold">{formatCurrency(financialSummary?.netRevenue || 0)}</span>

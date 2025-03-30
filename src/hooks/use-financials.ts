@@ -37,6 +37,7 @@ export interface FinancialSummary {
   unpaidInvoices: number;
   installmentsPending: number;
   currentMonthDue: number;
+  overdueExpenses: number; // New field to track overdue expenses
 }
 
 export function useFinancials() {
@@ -235,6 +236,28 @@ export function useFinancials() {
           
         console.log("Today's installments due amount:", todayInstallmentsDue);
         
+        // NEW QUERY: Fetch all overdue car installment payments
+        const { data: overdueInstallments, error: overdueInstallmentsError } = await supabase
+          .from('car_installment_payments')
+          .select('amount, paid_amount')
+          .eq('status', 'overdue');
+          
+        if (overdueInstallmentsError) {
+          console.error('Error fetching overdue installments:', overdueInstallmentsError);
+          throw overdueInstallmentsError;
+        }
+        
+        console.log("Overdue installments found:", overdueInstallments?.length || 0);
+        
+        // Calculate total overdue amount
+        const overdueExpensesTotal = (overdueInstallments || [])
+          .reduce((sum, payment) => {
+            const remainingAmount = payment.amount - (payment.paid_amount || 0);
+            return sum + (remainingAmount > 0 ? remainingAmount : 0);
+          }, 0);
+          
+        console.log("Total overdue expenses:", overdueExpensesTotal);
+
         const { data: currentMonthInstallments, error: currentMonthError } = await supabase
           .from('car_installment_payments')
           .select('amount, paid_amount')
@@ -286,11 +309,16 @@ export function useFinancials() {
         console.log("Expenses from payments:", expensesFromPayments);
         console.log("Expenses from installments:", expensesFromInstallments);
         console.log("Today's installments due:", todayInstallmentsDue);
+        console.log("Overdue expenses:", overdueExpensesTotal);
           
-        // Include today's car installment payments in the total expenses
+        // Include today's car installment payments AND all overdue payments in the total expenses
         // Make sure we're using Number conversions to avoid string concatenation
-        const totalExpenses = Number(expensesFromPayments) + Number(expensesFromInstallments) + Number(todayInstallmentsDue);
-        console.log("Total expenses calculated:", totalExpenses);
+        const totalExpenses = Number(expensesFromPayments) + 
+                              Number(expensesFromInstallments) + 
+                              Number(todayInstallmentsDue) +
+                              Number(overdueExpensesTotal);
+                              
+        console.log("Total expenses calculated with overdue amounts:", totalExpenses);
         
         const pendingPayments = (incomeData || [])
           .filter(item => item.status === 'pending')
@@ -303,7 +331,8 @@ export function useFinancials() {
           pendingPayments: Number(pendingPayments) || 0,
           unpaidInvoices: Number(pendingPayments) || 0,
           installmentsPending: Number(installmentsPending) || 0,
-          currentMonthDue: Number(currentMonthDue) || 0
+          currentMonthDue: Number(currentMonthDue) || 0,
+          overdueExpenses: Number(overdueExpensesTotal) || 0 // Adding new field with overdue amount
         };
         
         console.log("Financial summary calculated:", summary);
@@ -317,7 +346,8 @@ export function useFinancials() {
           pendingPayments: 0,
           unpaidInvoices: 0,
           installmentsPending: 0,
-          currentMonthDue: 0
+          currentMonthDue: 0,
+          overdueExpenses: 0 // Default value for new field
         };
       }
     }
