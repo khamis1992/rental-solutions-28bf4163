@@ -1,3 +1,4 @@
+
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -8,11 +9,12 @@ import { PaymentList } from '@/components/payments/PaymentList';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
+import { CalendarDays, Download, Edit, Printer, FilePlus, DollarSign } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
+import { PaymentEntryDialog } from './PaymentEntryDialog';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -76,6 +78,22 @@ export function AgreementDetail({
   const handleRecordPayment = useCallback(() => {
     setIsPaymentDialogOpen(true);
   }, []);
+
+  const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string) => {
+    if (agreement && agreement.id) {
+      try {
+        const success = await handleSpecialAgreementPayments(amount, paymentDate, notes);
+        if (success) {
+          setIsPaymentDialogOpen(false);
+          onDataRefresh();
+          toast.success("Payment recorded successfully");
+        }
+      } catch (error) {
+        console.error("Error recording payment:", error);
+        toast.error("Failed to record payment");
+      }
+    }
+  }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
@@ -241,7 +259,7 @@ export function AgreementDetail({
           className="print:hidden bg-blue-500 hover:bg-blue-600"
           onClick={handleRecordPayment}
         >
-          <FilePlus className="mr-2 h-4 w-4" />
+          <DollarSign className="mr-2 h-4 w-4" />
           Record Payment
         </Button>
         <div className="flex-grow"></div>
@@ -305,20 +323,14 @@ export function AgreementDetail({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Record Payment</DialogTitle>
-            <DialogDescription>
-              This feature will be implemented in a future update. 
-              You can close this dialog and use the Payments tab to manage payments.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button onClick={() => setIsPaymentDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PaymentEntryDialog 
+        open={isPaymentDialogOpen} 
+        onOpenChange={setIsPaymentDialogOpen}
+        onSubmit={handlePaymentSubmit}
+        defaultAmount={rentAmount || 0}
+        title="Record Rent Payment"
+        description="Record a new rental payment for this agreement."
+      />
     </div>
   );
 }
