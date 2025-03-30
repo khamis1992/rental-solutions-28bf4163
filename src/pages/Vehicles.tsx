@@ -1,104 +1,123 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useQuery } from '@tanstack/react-query';
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { Plus } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { SectionHeader } from '@/components/ui/section-header';
+import VehicleGrid from '@/components/vehicles/VehicleGrid';
+import { Car, Plus } from 'lucide-react';
+import { CustomButton } from '@/components/ui/custom-button';
+import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
+import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
+import { useVehicles } from '@/hooks/use-vehicles';
+import { toast } from 'sonner';
 
-export default function Vehicles() {
+// Define valid statuses based on database enum
+const VALID_STATUSES: VehicleStatus[] = [
+  'available',
+  'rented',
+  'reserved',
+  'maintenance',
+  'police_station',
+  'accident',
+  'stolen',
+  'retired'
+];
+
+const Vehicles = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<VehicleFilterParams>({});
+  const { useRealtimeUpdates } = useVehicles();
+  
+  // Setup real-time updates
+  useRealtimeUpdates();
 
-  const { data: vehicles, isLoading } = useQuery({
-    queryKey: ['vehicles'],
-    queryFn: async () => {
-      // TODO: Replace with actual API call
-      return [
-        {
-          id: '1',
-          make: 'Toyota',
-          model: 'Camry',
-          year: 2024,
-          status: 'available',
-          licensePlate: 'ABC123',
-          lastMaintenance: '2024-02-15'
-        }
-      ];
+  // Get status from URL search params
+  useEffect(() => {
+    const statusFromUrl = searchParams.get('status');
+    
+    if (statusFromUrl && statusFromUrl !== 'all') {
+      // Validate that the status is a valid enum value
+      if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
+        setFilters(prevFilters => ({ 
+          ...prevFilters,
+          status: statusFromUrl as VehicleStatus
+        }));
+        
+        // Show a toast to indicate filtered view
+        toast.info(`Showing vehicles with status: ${statusFromUrl}`);
+      } else {
+        // If invalid status, show error toast and reset filters
+        toast.error(`Invalid status filter: ${statusFromUrl}`);
+        navigate('/vehicles');
+      }
     }
-  });
+  }, [searchParams, navigate]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'available':
-        return 'bg-green-500';
-      case 'rented':
-        return 'bg-blue-500';
-      case 'maintenance':
-        return 'bg-yellow-500';
-      default:
-        return 'bg-gray-500';
-    }
+  const handleSelectVehicle = (id: string) => {
+    navigate(`/vehicles/${id}`);
   };
 
-  return (
-    <PageContainer 
-      title="Vehicles" 
-      description="Manage your fleet vehicles"
-      actions={
-        <Button onClick={() => navigate('/vehicles/add')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Vehicle
-        </Button>
-      }
-    >
-      <div className="flex items-center py-4">
-        <Input
-          placeholder="Search vehicles..."
-          className="max-w-sm"
-        />
-      </div>
+  const handleAddVehicle = () => {
+    navigate('/vehicles/add');
+  };
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Make & Model</TableHead>
-              <TableHead>Year</TableHead>
-              <TableHead>License Plate</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Last Maintenance</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vehicles?.map((vehicle) => (
-              <TableRow key={vehicle.id}>
-                <TableCell className="font-medium">
-                  {vehicle.make} {vehicle.model}
-                </TableCell>
-                <TableCell>{vehicle.year}</TableCell>
-                <TableCell>{vehicle.licensePlate}</TableCell>
-                <TableCell>
-                  <Badge className={getStatusColor(vehicle.status)}>
-                    {vehicle.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{new Date(vehicle.lastMaintenance).toLocaleDateString()}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    onClick={() => navigate(`/vehicles/${vehicle.id}`)}
-                  >
-                    View
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+  const handleFilterChange = (newFilters: VehicleFilterValues) => {
+    // Convert from VehicleFilterValues to VehicleFilterParams
+    const convertedFilters: VehicleFilterParams = {};
+    
+    if (newFilters.status && newFilters.status !== 'all') 
+      convertedFilters.status = newFilters.status as VehicleStatus;
+    
+    if (newFilters.make && newFilters.make !== 'all') 
+      convertedFilters.make = newFilters.make;
+    
+    if (newFilters.location && newFilters.location !== 'all') 
+      convertedFilters.location = newFilters.location;
+    
+    if (newFilters.year && newFilters.year !== 'all') 
+      convertedFilters.year = parseInt(newFilters.year);
+    
+    // Handle the category to vehicle_type_id mapping
+    if (newFilters.category && newFilters.category !== 'all') {
+      convertedFilters.vehicle_type_id = newFilters.category;
+    }
+    
+    setFilters(convertedFilters);
+  };
+  
+  return (
+    <PageContainer>
+      <SectionHeader
+        title="Vehicle Management"
+        description="Manage your fleet inventory"
+        icon={Car}
+        actions={
+          <CustomButton size="sm" glossy onClick={handleAddVehicle}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Vehicle
+          </CustomButton>
+        }
+      />
+      
+      <VehicleFilters 
+        onFilterChange={handleFilterChange} 
+        initialValues={{
+          status: filters.status || 'all',
+          make: filters.make || 'all',
+          location: filters.location || 'all',
+          year: filters.year?.toString() || 'all',
+          category: filters.vehicle_type_id || 'all'
+        }}
+        className="mb-6"
+      />
+      
+      <VehicleGrid 
+        onSelectVehicle={handleSelectVehicle} 
+        filter={filters}
+      />
     </PageContainer>
   );
-}
+};
+
+export default Vehicles;
