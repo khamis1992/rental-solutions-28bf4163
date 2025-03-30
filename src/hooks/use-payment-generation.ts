@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format as dateFormat } from 'date-fns';
 
 export const usePaymentGeneration = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -77,7 +77,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           amount: lateFeeAmount,
           payment_date: paymentDate.toISOString(),
           payment_method: 'cash',
-          description: `Late payment fee for ${format(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
+          description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
           status: 'completed',
           type: 'LATE_PAYMENT_FEE',
           late_fine_amount: lateFeeAmount,
@@ -119,14 +119,3 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     isProcessing
   };
 };
-
-// Helper function to format date
-function format(date: Date, formatString: string): string {
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  
-  return formatString.replace('MMMM', months[date.getMonth()])
-                     .replace('yyyy', date.getFullYear().toString());
-}
