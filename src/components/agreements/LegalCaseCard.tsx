@@ -58,8 +58,11 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         // Transform the data to match the LegalCase type
         if (data) {
           const transformedData: LegalCase[] = data.map(item => {
-            // Safely access potentially missing properties
-            const hasNotes = 'notes' in item;
+            // Safely check if notes exists and ensure it's a string
+            let notesValue = '';
+            if ('notes' in item && item.notes !== null && item.notes !== undefined) {
+              notesValue = String(item.notes); // Convert to string to ensure type compatibility
+            }
             
             return {
               id: item.id,
@@ -79,7 +82,7 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
               amount_settled: null,
               created_at: item.created_at,
               updated_at: item.updated_at,
-              notes: hasNotes ? item.notes : ''
+              notes: notesValue
             };
           });
 
