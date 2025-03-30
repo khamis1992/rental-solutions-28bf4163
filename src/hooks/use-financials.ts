@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -33,6 +34,7 @@ export interface FinancialSummary {
   netRevenue: number;
   pendingPayments: number;
   unpaidInvoices: number;
+  installmentsPending: number;
 }
 
 export function useFinancials() {
@@ -198,6 +200,19 @@ export function useFinancials() {
           throw installmentError;
         }
 
+        // Get total pending amount from car installment contracts
+        const { data: contractsData, error: contractsError } = await supabase
+          .from('car_installment_contracts')
+          .select('amount_pending');
+          
+        if (contractsError) {
+          console.error('Error fetching contract data:', contractsError);
+          throw contractsError;
+        }
+          
+        const installmentsPending = (contractsData || [])
+          .reduce((sum, contract) => sum + (contract.amount_pending || 0), 0);
+
         const totalIncome = (incomeData || [])
           .filter(item => item.status !== 'failed')
           .reduce((sum, item) => sum + (item.amount || 0), 0);
@@ -221,7 +236,8 @@ export function useFinancials() {
           totalExpenses,
           netRevenue: totalIncome - totalExpenses,
           pendingPayments,
-          unpaidInvoices: pendingPayments
+          unpaidInvoices: pendingPayments,
+          installmentsPending
         };
       } catch (error) {
         console.error('Error calculating financial summary:', error);
@@ -230,7 +246,8 @@ export function useFinancials() {
           totalExpenses: 0,
           netRevenue: 0,
           pendingPayments: 0,
-          unpaidInvoices: 0
+          unpaidInvoices: 0,
+          installmentsPending: 0
         };
       }
     }

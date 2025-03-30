@@ -50,8 +50,8 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Total Expenses"
-        value={formatCurrency(summary.totalExpenses)}
-        description="Car installments and operational costs"
+        value={formatCurrency(summary.installmentsPending)}
+        description="Total due from installment contracts"
         icon={TrendingDown}
         iconColor="text-red-500"
       />
