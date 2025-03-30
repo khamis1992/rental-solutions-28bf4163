@@ -11,6 +11,7 @@ The Agreement Details page is composed of several key components:
 3. **PaymentHistory.tsx** - Payment tracking and management
 4. **AgreementTrafficFines.tsx** - Traffic violations tracking
 5. **PaymentEntryForm.tsx** - Form for recording new payments
+6. **PaymentEntryDialog.tsx** - Dialog component for the payment entry form
 
 ## Features and Functionality
 
@@ -53,7 +54,115 @@ The Agreement Details page is composed of several key components:
 - **Payment Method Selection** - Options for recording different payment methods (cash, credit card, bank transfer, etc.)
 - **Payment References** - Fields for recording transaction IDs or reference numbers
 
-### 6. Traffic Fines Tracking
+### 6. Record New Payment Dialog
+The Record New Payment dialog is a modal interface for entering payment details. It is implemented in `PaymentEntryDialog.tsx` and includes the following features:
+
+#### Dialog Structure
+```tsx
+<Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+  <DialogContent className="sm:max-w-[450px]">
+    <DialogHeader>
+      <DialogTitle>Record Payment</DialogTitle>
+      <DialogDescription>Enter payment details below</DialogDescription>
+    </DialogHeader>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        {/* Form fields */}
+      </form>
+    </Form>
+  </DialogContent>
+</Dialog>
+```
+
+#### Form Fields
+1. **Amount Field**
+   - Input for payment amount (QAR)
+   - Default value is the monthly rent amount
+   - Validation to ensure positive value
+
+2. **Payment Date Field**
+   - Date picker to select when payment was made
+   - Uses Calendar popover for date selection
+   - Includes validation to ensure date is provided
+
+3. **Payment Method Field**
+   - Dropdown select for payment method
+   - Options include: Cash, Credit Card, Bank Transfer, Cheque
+   - Required field with validation
+
+4. **Reference Number Field**
+   - Optional input for transaction ID, cheque number, etc.
+   - Help text explains purpose
+
+5. **Notes Field**
+   - Optional textarea for additional payment information
+   - Allows recording of special circumstances
+
+#### Footer Actions
+- **Cancel Button** - Closes dialog without saving
+- **Record Payment Button** - Submits form and records payment
+
+#### Form Validation
+- Uses react-hook-form with zod validation
+- Validates all required fields
+- Displays appropriate error messages
+
+#### Late Fee Detection
+- Automatically detects late payments (after 1st of month)
+- Calculates applicable late fee
+- Option to include late fee in payment record
+
+#### Implementation
+```tsx
+const formSchema = z.object({
+  amount: z.number().positive('Amount must be positive'),
+  paymentDate: z.date(),
+  notes: z.string().optional(),
+  paymentMethod: z.string().min(1, 'Please select a payment method'),
+  referenceNumber: z.string().optional()
+});
+
+export function PaymentEntryDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  defaultAmount,
+  title = "Record Payment",
+  description = "Enter payment details below"
+}: PaymentEntryDialogProps) {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: defaultAmount,
+      paymentDate: new Date(),
+      notes: '',
+      paymentMethod: 'cash',
+      referenceNumber: ''
+    }
+  });
+
+  // Update form when defaultAmount changes
+  React.useEffect(() => {
+    form.setValue('amount', defaultAmount);
+  }, [defaultAmount, form]);
+
+  const handleSubmit = (values: FormValues) => {
+    onSubmit(values.amount, values.paymentDate, values.notes);
+  };
+
+  // Form JSX rendering
+}
+```
+
+#### Styling
+- Clean, modern interface with consistent spacing
+- Form controls use Shadcn UI components
+- Responsive layout that works on mobile and desktop
+- Validation messages clearly displayed below fields
+- Blue accent color for the submit button
+- Dialog smoothly animates in and out
+
+### 7. Traffic Fines Tracking
 - **Violation List** - Shows all traffic violations associated with the agreement
 - **Fine Details** - Information about each violation including date, location, and amount
 - **Payment Status** - Indicates whether fines have been paid, disputed, or are pending
@@ -62,13 +171,13 @@ The Agreement Details page is composed of several key components:
 - **Fine Amount** - The monetary penalty for the violation
 - **Automatic Association** - System automatically links fines to agreements based on date and vehicle
 
-### 7. Document Management
+### 8. Document Management
 - **PDF Generation** - Functionality to create and download a PDF copy of the agreement
 - **Print Option** - Ability to print the agreement directly
 - **Template-Based Generation** - PDFs are generated using predefined templates with agreement data
 - **Digital Signature Support** - PDF documents can include digital signatures when available
 
-### 8. Security Deposit Handling
+### 9. Security Deposit Handling
 - **Deposit Recording** - System tracks security deposits separately from regular payments
 - **Refund Tracking** - Records when and how much of a security deposit is refunded
 - **Deposit Status** - Shows whether deposits are held, partially refunded, or fully refunded
@@ -98,10 +207,12 @@ The Agreement Details page is composed of several key components:
 
 4. **Record Payment Button**
    - **Label**: "Record Payment"
-   - **Icon**: None (text-only button)
+   - **Icon**: DollarSign icon
    - **Action**: Opens the payment entry dialog
    - **Behavior**: Displays a modal with a form for recording a new payment
    - **Form Fields**: Amount, payment date, payment method, reference number, and notes
+   - **Styling**: Blue accent color to draw attention as a primary action
+   - **Position**: Right-aligned in the button group
 
 5. **Delete Button**
    - **Label**: "Delete"
@@ -203,26 +314,72 @@ const handlePaymentComplete = async () => {
 };
 
 // In the render section:
-<Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
-  <DialogTrigger asChild>
-    <Button variant="default" onClick={handleOpenPaymentDialog}>
-      Record Payment
-    </Button>
-  </DialogTrigger>
-  <DialogContent className="max-h-[85vh] overflow-y-auto">
-    <DialogHeader>
-      <DialogTitle>Record New Payment</DialogTitle>
-      <DialogDescription>
-        Enter the payment details for agreement {agreement.agreement_number}
-      </DialogDescription>
-    </DialogHeader>
-    <PaymentEntryForm 
-      agreementId={agreement.id} 
-      onPaymentComplete={handlePaymentComplete} 
-      defaultAmount={localRentAmount}
-    />
-  </DialogContent>
-</Dialog>
+<PaymentEntryDialog 
+  open={isPaymentDialogOpen} 
+  onOpenChange={setIsPaymentDialogOpen}
+  onSubmit={handlePaymentSubmit}
+  defaultAmount={rentAmount || 0}
+  title="Record Rent Payment"
+  description="Record a new rental payment for this agreement."
+/>
+```
+
+The payment dialog component handles form state and validation:
+
+```typescript
+export function PaymentEntryDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  defaultAmount,
+  title = "Record Payment",
+  description = "Enter payment details below"
+}: PaymentEntryDialogProps) {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: defaultAmount,
+      paymentDate: new Date(),
+      notes: '',
+      paymentMethod: 'cash',
+      referenceNumber: ''
+    }
+  });
+
+  // Update form when defaultAmount changes
+  React.useEffect(() => {
+    form.setValue('amount', defaultAmount);
+  }, [defaultAmount, form]);
+
+  const handleSubmit = (values: FormValues) => {
+    onSubmit(values.amount, values.paymentDate, values.notes);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[450px]">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {/* Form fields */}
+            <DialogFooter className="mt-6">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+                Record Payment
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
 ```
 
 ### Late Payment Fee Handling
@@ -626,6 +783,39 @@ interface SecurityDeposit {
 5. User submits the form
 6. System records the payment (and late fee if applicable) and updates the payment history
 7. Success notification is displayed
+
+### Payment Form Implementation
+The payment form is implemented using the `PaymentEntryDialog` component:
+
+```tsx
+export function PaymentEntryDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  defaultAmount,
+  title = "Record Payment",
+  description = "Enter payment details below"
+}: PaymentEntryDialogProps) {
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      amount: defaultAmount,
+      paymentDate: new Date(),
+      notes: '',
+      paymentMethod: 'cash',
+      referenceNumber: ''
+    }
+  });
+
+  // Form JSX with fields for:
+  // - Payment amount
+  // - Payment date (calendar picker)
+  // - Payment method (dropdown)
+  // - Reference number (optional text field)
+  // - Notes (optional textarea)
+  // - Submit and cancel buttons
+}
+```
 
 ### Editing an Agreement
 1. User clicks "Edit" button
