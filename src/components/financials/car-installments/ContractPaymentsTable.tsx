@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
 import { CarInstallmentPayment } from '@/types/car-installment';
 import { formatCurrency } from '@/lib/utils';
-import { formatDate } from '@/lib/date-utils';
 
 interface ContractPaymentsTableProps {
   payments: CarInstallmentPayment[];
@@ -16,6 +15,11 @@ export const ContractPaymentsTable: React.FC<ContractPaymentsTableProps> = ({
   payments, 
   onRecordPayment 
 }) => {
+  // Format date to local date string
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
   // Get status icon based on payment status
   const getStatusIcon = (status: string) => {
     switch (status) {

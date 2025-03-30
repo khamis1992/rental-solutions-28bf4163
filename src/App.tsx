@@ -1,10 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 // Context Providers
 import { AuthProvider } from "./contexts/AuthContext";
@@ -58,21 +59,11 @@ import Financials from "./pages/Financials";
 
 // Reports pages
 import Reports from "./pages/Reports";
-import ScheduledReports from "./pages/ScheduledReports";
 
-// System Settings pages
-import SystemSettings from "./pages/SystemSettings";
-
-import initializeApp from "./utils/app-initializer";
-
-function App() {
+const App = () => {
   // Move the QueryClient initialization inside the component
   // This ensures React hooks are called in the correct context
   const [queryClient] = useState(() => new QueryClient());
-
-  useEffect(() => {
-    initializeApp();
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -136,17 +127,13 @@ function App() {
                           {/* Financials Management Route */}
                           <Route path="/financials" element={<Financials />} />
                           
-                          {/* Reports Routes */}
+                          {/* Reports Route */}
                           <Route path="/reports" element={<Reports />} />
-                          <Route path="/reports/scheduled" element={<ScheduledReports />} />
-                          
-                          {/* System Settings Route */}
-                          <Route path="/settings/system" element={<SystemSettings />} />
                           
                           {/* User Management Routes */}
                           <Route path="/settings" element={<UserSettings />} />
                           <Route 
-                            path="/user-management" 
+                            path="/users" 
                             element={
                               <ProtectedRoute roles={["admin"]}>
                                 <UserManagement />
@@ -154,10 +141,8 @@ function App() {
                             } 
                           />
                           
-                          {/* Unauthorized Route */}
-                          <Route path="/unauthorized" element={<NotFound />} />
+                          {/* Add other module routes here */}
                           
-                          {/* Catch-all route for 404 */}
                           <Route path="*" element={<NotFound />} />
                         </Routes>
                       </>

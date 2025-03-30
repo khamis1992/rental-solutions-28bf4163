@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft, AlertOctagon, Loader2 } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -10,30 +10,15 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bucketError, setBucketError] = useState<string | null>(null);
-  const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
   
   const { useVehicle, useUpdate } = useVehicles();
   const { data: vehicle, isLoading, error } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
-  
-  useEffect(() => {
-    async function checkForModelImage() {
-      if (vehicle?.model && vehicle.model.toLowerCase().includes('b70')) {
-        const imageUrl = await getModelSpecificImage(vehicle.model);
-        setModelSpecificImage(imageUrl);
-      }
-    }
-    
-    if (vehicle) {
-      checkForModelImage();
-    }
-  }, [vehicle]);
   
   // Check if bucket exists and create it if needed
   const ensureVehicleImagesBucket = async () => {
@@ -75,13 +60,8 @@ const EditVehicle = () => {
   
   const handleSubmit = async (formData: any) => {
     if (id) {
-      // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
-      if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
-        // We don't need to upload an image, as we'll use the model-specific one
-        console.log('Using model-specific B70 image');
-      } 
       // If there's an image, ensure the bucket exists first
-      else if (formData.image) {
+      if (formData.image) {
         const bucketReady = await ensureVehicleImagesBucket();
         if (!bucketReady) {
           toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });

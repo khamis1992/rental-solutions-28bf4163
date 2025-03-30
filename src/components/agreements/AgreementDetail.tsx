@@ -1,143 +1,221 @@
-
-import { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { format, differenceInMonths } from 'date-fns';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { PaymentList } from '@/components/payments/PaymentList';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, FilePlus, DollarSign } from 'lucide-react';
-import { generatePdfDocument } from '@/utils/agreementUtils';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { usePaymentGeneration } from '@/hooks/use-payment-generation';
-import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { useNavigate } from "react-router-dom"
+import { formatCurrency } from "@/lib/utils"
+import { Agreement, AgreementStatus } from "@/lib/validation-schemas/agreement"
+import { Badge } from "@/components/ui/badge"
+import { format, differenceInMonths } from "date-fns"
+import { Trash2, Edit, FileText, Download } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { useState, useEffect, useCallback } from "react"
+import { PaymentEntryForm } from "./PaymentEntryForm"
+import { Payment, PaymentHistory } from "./PaymentHistory"
+import { supabase, initializeSystem } from "@/lib/supabase"
+import { AgreementTrafficFines } from "./AgreementTrafficFines"
+import { generatePdfDocument } from "@/utils/agreementUtils"
 
 interface AgreementDetailProps {
-  agreement: Agreement | null;
-  onDelete: (id: string) => void;
-  rentAmount: number | null;
-  contractAmount: number | null;
-  onPaymentDeleted: () => void;
-  onDataRefresh: () => void;
+  agreement: Agreement
+  onDelete?: (id: string) => void
+  contractAmount?: number | null
+  rentAmount?: number | null
+  onPaymentDeleted?: () => void
 }
 
-export function AgreementDetail({ 
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case AgreementStatus.ACTIVE:
+      return "bg-green-500"
+    case AgreementStatus.EXPIRED:
+      return "bg-gray-500"
+    case AgreementStatus.CANCELLED:
+      return "bg-red-500"
+    case AgreementStatus.DRAFT:
+      return "bg-yellow-500"
+    case AgreementStatus.PENDING:
+      return "bg-blue-500"
+    case AgreementStatus.CLOSED:
+      return "bg-purple-500"
+    default:
+      return "bg-gray-500"
+  }
+}
+
+export const AgreementDetail: React.FC<AgreementDetailProps> = ({ 
   agreement, 
-  onDelete, 
-  rentAmount,
+  onDelete,
   contractAmount,
-  onPaymentDeleted,
-  onDataRefresh
-}: AgreementDetailProps) {
-  const navigate = useNavigate();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const { handleSpecialAgreementPayments } = usePaymentGeneration(agreement, agreement?.id);
-  
-  const handleDelete = useCallback(() => {
-    setIsDeleteDialogOpen(true);
-  }, []);
+  rentAmount,
+  onPaymentDeleted
+}) => {
+  const navigate = useNavigate()
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false)
+  const [payments, setPayments] = useState<Payment[]>([])
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true)
+  const [localRentAmount, setLocalRentAmount] = useState<number | null>(rentAmount)
+  const [durationMonths, setDurationMonths] = useState<number>(0)
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
 
-  const confirmDelete = useCallback(() => {
-    if (agreement) {
-      onDelete(agreement.id);
-      setIsDeleteDialogOpen(false);
-    }
-  }, [agreement, onDelete]);
-
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
-
-  const handleEdit = useCallback(() => {
-    if (agreement) {
-      navigate(`/agreements/${agreement.id}/edit`);
-    }
-  }, [agreement, navigate]);
-
-  const handleDownloadPdf = useCallback(async () => {
-    if (agreement) {
-      try {
-        const success = await generatePdfDocument(agreement);
-        if (success) {
-          toast.success("Agreement PDF downloaded successfully");
-        } else {
-          toast.error("Failed to generate PDF");
-        }
-      } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF");
-      }
+  useEffect(() => {
+    if (agreement.start_date && agreement.end_date) {
+      const months = differenceInMonths(
+        new Date(agreement.end_date),
+        new Date(agreement.start_date)
+      );
+      setDurationMonths(months > 0 ? months : 1);
     }
   }, [agreement]);
 
-  const handleRecordPayment = useCallback(() => {
-    setIsPaymentDialogOpen(true);
-  }, []);
-
-  const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string) => {
+  const handleEdit = () => {
     if (agreement && agreement.id) {
-      try {
-        const success = await handleSpecialAgreementPayments(amount, paymentDate, notes);
-        if (success) {
-          setIsPaymentDialogOpen(false);
-          onDataRefresh();
-          toast.success("Payment recorded successfully");
-        }
-      } catch (error) {
-        console.error("Error recording payment:", error);
-        toast.error("Failed to record payment");
-      }
+      console.log(`Navigating to edit agreement: /agreements/edit/${agreement.id}`);
+      navigate(`/agreements/edit/${agreement.id}`);
+      toast.info("Editing agreement " + agreement.agreement_number);
+    } else {
+      toast.error("Cannot edit: Agreement ID is missing");
     }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
-
-  const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
-    const months = differenceInMonths(endDate, startDate);
-    return months;
-  }, []);
-
-  if (!agreement) {
-    return (
-      <Alert>
-        <AlertDescription>Agreement details not available.</AlertDescription>
-      </Alert>
-    );
   }
 
-  const duration = calculateDuration(
-    new Date(agreement.start_date),
-    new Date(agreement.end_date)
-  );
+  const handleDelete = () => {
+    if (onDelete && agreement.id) {
+      onDelete(agreement.id);
+    }
+  }
 
-  const formattedStatus = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
-      case 'closed':
-        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
-      default:
-        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
+  const handlePrintAgreement = () => {
+    toast.info("Print functionality will be implemented in a future update")
+  }
+
+  const handleDownloadAgreement = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      console.log("Generating PDF for agreement:", agreement);
+      
+      toast.info("Preparing agreement PDF document...");
+      
+      const success = await generatePdfDocument(agreement);
+      
+      if (success) {
+        toast.success("Agreement downloaded as PDF");
+      } else {
+        toast.error("Failed to generate PDF document");
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error("Failed to generate PDF document: " + (error instanceof Error ? error.message : String(error)));
+    } finally {
+      setIsGeneratingPdf(false);
     }
   };
 
+  const fetchRentAmount = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("leases")
+        .select("rent_amount")
+        .eq("id", agreement.id)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching rent amount:", error);
+        return;
+      }
+      
+      if (data && data.rent_amount) {
+        setLocalRentAmount(data.rent_amount);
+        console.log("Fetched rent amount:", data.rent_amount);
+      }
+    } catch (error) {
+      console.error("Error fetching rent amount:", error);
+    }
+  }, [agreement.id]);
+
+  const fetchPayments = useCallback(async () => {
+    setIsLoadingPayments(true)
+    try {
+      console.log("Fetching payments for agreement:", agreement.id);
+      
+      const { data: unifiedPayments, error: unifiedError } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreement.id)
+        .order('payment_date', { ascending: false });
+      
+      if (unifiedError) {
+        console.error("Error fetching unified payments:", unifiedError);
+        throw unifiedError;
+      }
+      
+      console.log("Raw payments data:", unifiedPayments);
+      
+      const formattedPayments = (unifiedPayments || []).map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        payment_date: payment.payment_date,
+        payment_method: payment.payment_method || 'cash',
+        reference_number: payment.transaction_id,
+        notes: payment.description,
+        type: payment.type,
+        status: payment.status,
+        late_fine_amount: payment.late_fine_amount,
+        days_overdue: payment.days_overdue,
+        lease_id: payment.lease_id
+      }));
+      
+      setPayments(formattedPayments);
+      console.log("Formatted payments set:", formattedPayments);
+      
+      if (formattedPayments.length > 0 && localRentAmount) {
+        const incorrectPayments = formattedPayments.filter(p => 
+          p.amount > localRentAmount * 5 && 
+          p.notes && 
+          p.notes.includes("Monthly rent payment")
+        );
+        
+        if (incorrectPayments.length > 0) {
+          console.warn(`Found ${incorrectPayments.length} payments with potentially incorrect amounts:`, 
+            incorrectPayments.map(p => ({ id: p.id, amount: p.amount, notes: p.notes }))
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      toast.error("Failed to load payment history");
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  }, [agreement.id, localRentAmount]);
+
+  useEffect(() => {
+    const initializeAndFetch = async () => {
+      await initializeSystem();
+      
+      if (rentAmount === null || rentAmount === undefined) {
+        await fetchRentAmount();
+      }
+      
+      await fetchPayments();
+    };
+    
+    initializeAndFetch();
+  }, [agreement.id, fetchPayments, fetchRentAmount, rentAmount]);
+
   return (
     <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Agreement {agreement.agreement_number}
-          {formattedStatus(agreement.status)}
-        </h2>
-        <p className="text-muted-foreground">
-          Created on {format(new Date(agreement.created_at || new Date()), 'MMMM d, yyyy')}
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Agreement {agreement.agreement_number}</h2>
+          <p className="text-muted-foreground">
+            Created on {format(new Date(agreement.created_at || new Date()), "PPP")}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge className={getStatusColor(agreement.status)}>
+            {agreement.status.toUpperCase()}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
@@ -147,20 +225,24 @@ export function AgreementDetail({
             <CardDescription>Details about the customer</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Name</p>
-                <p>{agreement.customers?.full_name || 'N/A'}</p>
+            {agreement.customers ? (
+              <div className="space-y-2">
+                <div>
+                  <p className="font-medium">Name</p>
+                  <p>{agreement.customers.full_name || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Email</p>
+                  <p>{agreement.customers.email || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Phone</p>
+                  <p>{agreement.customers.phone || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">Email</p>
-                <p>{agreement.customers?.email || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Phone</p>
-                <p>{agreement.customers?.phone_number || 'N/A'}</p>
-              </div>
-            </div>
+            ) : (
+              <p className="text-muted-foreground">No customer information available</p>
+            )}
           </CardContent>
         </Card>
 
@@ -170,167 +252,174 @@ export function AgreementDetail({
             <CardDescription>Details about the rented vehicle</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Vehicle</p>
-                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year})</p>
+            {agreement.vehicles ? (
+              <div className="space-y-2">
+                <div>
+                  <p className="font-medium">Vehicle</p>
+                  <p>{agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.year})</p>
+                </div>
+                <div>
+                  <p className="font-medium">License Plate</p>
+                  <p>{agreement.vehicles.license_plate || "N/A"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Color</p>
+                  <p>{agreement.vehicles.color || "N/A"}</p>
+                </div>
               </div>
-              <div>
-                <p className="font-medium">License Plate</p>
-                <p>{agreement.vehicles?.license_plate}</p>
-              </div>
-              <div>
-                <p className="font-medium">Color</p>
-                <p>{agreement.vehicles?.color || 'N/A'}</p>
-              </div>
-            </div>
+            ) : (
+              <p className="text-muted-foreground">No vehicle information available</p>
+            )}
           </CardContent>
         </Card>
-      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Agreement Details</CardTitle>
-          <CardDescription>Rental terms and payment information</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Rental Period</p>
-                <p className="flex items-center">
-                  {format(new Date(agreement.start_date), "MMMM d, yyyy")} to {format(new Date(agreement.end_date), "MMMM d, yyyy")}
-                </p>
-                <p className="text-sm text-muted-foreground">Duration: {duration} months</p>
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Agreement Details</CardTitle>
+            <CardDescription>Rental terms and payment information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium">Rental Period</p>
+                  <p>
+                    {format(new Date(agreement.start_date), "PPP")} to {format(new Date(agreement.end_date), "PPP")}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Duration: {durationMonths} {durationMonths === 1 ? 'month' : 'months'}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Additional Drivers</p>
+                  <p>
+                    {agreement.additional_drivers && agreement.additional_drivers.length > 0
+                      ? agreement.additional_drivers.join(", ")
+                      : "None"}
+                  </p>
+                </div>
               </div>
-              
-              <div>
-                <p className="font-medium">Additional Drivers</p>
-                <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium">Monthly Rent Amount</p>
+                  <p className="text-lg font-bold">{formatCurrency(localRentAmount || agreement.total_amount)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Total Contract Amount</p>
+                  <p className="text-lg font-bold">
+                    {formatCurrency(contractAmount || (localRentAmount ? localRentAmount * durationMonths : agreement.total_amount * durationMonths))}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    (Monthly rent × {durationMonths} {durationMonths === 1 ? 'month' : 'months'})
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">Deposit Amount</p>
+                  <p>{formatCurrency(agreement.deposit_amount || 0)}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Terms Accepted</p>
+                  <p>{agreement.terms_accepted ? "Yes" : "No"}</p>
+                </div>
+                <div>
+                  <p className="font-medium">Signature</p>
+                  <p>{agreement.signature_url ? "Signed" : "Not signed"}</p>
+                </div>
               </div>
             </div>
             
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Monthly Rent Amount</p>
-                <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
+            {agreement.notes && (
+              <div className="mt-6">
+                <p className="font-medium">Notes</p>
+                <p className="whitespace-pre-line">{agreement.notes}</p>
               </div>
-              
-              <div>
-                <p className="font-medium">Total Contract Amount</p>
-                <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
-                <p className="text-xs text-muted-foreground">Monthly rent × {duration} months</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Deposit Amount</p>
-                <p>QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Terms Accepted</p>
-                <p>{agreement.terms_accepted ? 'Yes' : 'No'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Signature</p>
-                <p>{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap items-center gap-4 mb-4">
-        <Button variant="outline" onClick={handleEdit} className="print:hidden">
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
-        </Button>
-        <Button variant="outline" onClick={handlePrint} className="print:hidden">
-          <Printer className="mr-2 h-4 w-4" />
-          Print
-        </Button>
-        <Button variant="outline" onClick={handleDownloadPdf} className="print:hidden">
-          <Download className="mr-2 h-4 w-4" />
-          Download PDF
-        </Button>
-        <Button 
-          variant="default" 
-          className="print:hidden bg-blue-500 hover:bg-blue-600"
-          onClick={handleRecordPayment}
-        >
-          <DollarSign className="mr-2 h-4 w-4" />
-          Record Payment
-        </Button>
-        <div className="flex-grow"></div>
-        <Button 
-          variant="destructive"
-          onClick={handleDelete}
-          className="print:hidden ml-auto"
-        >
-          Delete
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Payment History</CardTitle>
-            <CardDescription>View and manage payment records</CardDescription>
-          </div>
-          {rentAmount && (
-            <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
-              <span className="text-sm font-medium">Missing 1 payment</span>
-            </div>
-          )}
-        </CardHeader>
-        <CardContent>
-          <PaymentList 
-            agreementId={agreement.id} 
-            onPaymentDeleted={onPaymentDeleted}
-          />
-        </CardContent>
-      </Card>
-
-      {agreement.start_date && agreement.end_date && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Traffic Fines</CardTitle>
-            <CardDescription>Violations during the rental period</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AgreementTrafficFines
-              agreementId={agreement.id}
-              startDate={new Date(agreement.start_date)}
-              endDate={new Date(agreement.end_date)}
-            />
+            )}
           </CardContent>
+          <CardFooter className="flex justify-between flex-wrap gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={handleEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="outline" onClick={handlePrintAgreement}>
+                <FileText className="mr-2 h-4 w-4" />
+                Print
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadAgreement}
+                disabled={isGeneratingPdf}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                {isGeneratingPdf ? "Generating..." : "Download PDF"}
+              </Button>
+              <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default">
+                    Record Payment
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Record New Payment</DialogTitle>
+                    <DialogDescription>
+                      Enter the payment details for agreement {agreement.agreement_number}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <PaymentEntryForm 
+                    agreementId={agreement.id} 
+                    onPaymentComplete={() => {
+                      setIsPaymentDialogOpen(false);
+                      fetchPayments();
+                    }} 
+                    defaultAmount={localRentAmount}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="max-h-[85vh] overflow-y-auto">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the
+                    agreement and remove the data from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardFooter>
         </Card>
-      )}
 
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <div className="md:col-span-2">
+          <PaymentHistory 
+            payments={payments} 
+            isLoading={isLoadingPayments} 
+            rentAmount={localRentAmount}
+            onPaymentDeleted={onPaymentDeleted}
+            leaseStartDate={agreement.start_date}
+            leaseEndDate={agreement.end_date}
+          />
+        </div>
 
-      <PaymentEntryDialog 
-        open={isPaymentDialogOpen} 
-        onOpenChange={setIsPaymentDialogOpen}
-        onSubmit={handlePaymentSubmit}
-        defaultAmount={rentAmount || 0}
-        title="Record Rent Payment"
-        description="Record a new rental payment for this agreement."
-      />
+        <div className="md:col-span-2">
+          <AgreementTrafficFines 
+            agreementId={agreement.id}
+            startDate={agreement.start_date}
+            endDate={agreement.end_date}
+          />
+        </div>
+      </div>
     </div>
-  );
+  )
 }
