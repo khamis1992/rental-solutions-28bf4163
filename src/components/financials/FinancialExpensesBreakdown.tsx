@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { useFinancials } from '@/hooks/use-financials';
@@ -8,6 +8,33 @@ import { TrendingDown, Clock, AlertTriangle } from 'lucide-react';
 
 const FinancialExpensesBreakdown: React.FC = () => {
   const { financialSummary, isLoadingSummary } = useFinancials();
+  const [totalExpenses, setTotalExpenses] = useState(0);
+  const [currentMonthDue, setCurrentMonthDue] = useState(0);
+  const [overdueExpenses, setOverdueExpenses] = useState(0);
+  const [regularExpenses, setRegularExpenses] = useState(0);
+
+  useEffect(() => {
+    if (financialSummary) {
+      // Ensure all values are proper numbers with explicit conversions
+      const totalExp = parseFloat(Number(financialSummary.totalExpenses || 0).toFixed(2));
+      const currentDue = parseFloat(Number(financialSummary.currentMonthDue || 0).toFixed(2));
+      const overdue = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
+      
+      // Calculate regular expenses based on total minus overdue
+      const regular = parseFloat(Number(totalExp - overdue).toFixed(2));
+
+      console.log("FinancialExpensesBreakdown VALUES after explicit conversion:");
+      console.log("Total Expenses:", totalExp, "Type:", typeof totalExp);
+      console.log("Current Month Due:", currentDue, "Type:", typeof currentDue);
+      console.log("Overdue Expenses:", overdue, "Type:", typeof overdue);
+      console.log("Regular Expenses:", regular, "Type:", typeof regular);
+      
+      setTotalExpenses(totalExp);
+      setCurrentMonthDue(currentDue);
+      setOverdueExpenses(overdue);
+      setRegularExpenses(regular);
+    }
+  }, [financialSummary]);
 
   if (isLoadingSummary) {
     return <div>Loading expense data...</div>;
@@ -16,18 +43,6 @@ const FinancialExpensesBreakdown: React.FC = () => {
   if (!financialSummary) {
     return <div>No expense data available</div>;
   }
-
-  // Ensure all values are proper numbers
-  const totalExpenses = parseFloat(Number(financialSummary.totalExpenses || 0).toFixed(2));
-  const currentMonthDue = parseFloat(Number(financialSummary.currentMonthDue || 0).toFixed(2));
-  const overdueExpenses = parseFloat(Number(financialSummary.overdueExpenses || 0).toFixed(2));
-  const regularExpenses = parseFloat(Number(totalExpenses - overdueExpenses).toFixed(2));
-
-  console.log("FinancialExpensesBreakdown VALUES (after parsing):");
-  console.log("Total Expenses:", totalExpenses);
-  console.log("Current Month Due:", currentMonthDue);
-  console.log("Overdue Expenses:", overdueExpenses);
-  console.log("Regular Expenses:", regularExpenses);
 
   return (
     <Card>
