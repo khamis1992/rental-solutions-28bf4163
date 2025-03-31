@@ -5,23 +5,50 @@
     "profile": "الملف الشخصي",
     "security": "الأمان",
     "preferences": "التفضيلات",
-    "signOut": "تسجيل الخروج"
+    "signOut": "تسجيل الخروج",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "search": "بحث",
+    "filter": "تصفية",
+    "actions": "إجراءات",
+    "status": "الحالة",
+    "details": "التفاصيل"
   },
-  "settings": {
-    "accountSettings": "إعدادات الحساب",
-    "manageAccount": "إدارة تفضيلات وإعدادات حسابك",
-    "securitySettings": "إعدادات الأمان",
-    "manageSecuritySettings": "إدارة تفضيلات الأمان والمصادقة لحسابك",
-    "changePassword": "تغيير كلمة المرور",
-    "preferences": "التفضيلات",
-    "customizePreferences": "تخصيص تفضيلات حسابك وإعدادات الإشعارات"
+  "auth": {
+    "login": "تسجيل الدخول",
+    "register": "تسجيل",
+    "forgotPassword": "نسيت كلمة المرور",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور"
   },
-  "notifications": {
-    "paymentReminders": "تذكيرات الدفع",
-    "reportNotifications": "إشعارات التقارير",
-    "documentExpiration": "انتهاء صلاحية المستندات",
-    "getNotifiedPayments": "احصل على إشعارات حول المدفوعات القادمة",
-    "getNotifiedReports": "احصل على إشعارات عند إنشاء التقارير",
-    "getNotifiedDocuments": "احصل على إشعارات حول المستندات منتهية الصلاحية"
+  "vehicles": {
+    "title": "المركبات",
+    "addVehicle": "إضافة مركبة",
+    "vehicleDetails": "تفاصيل المركبة",
+    "make": "الصانع",
+    "model": "الموديل",
+    "year": "السنة",
+    "plateNumber": "رقم اللوحة",
+    "status": "الحالة"
+  },
+  "customers": {
+    "title": "العملاء",
+    "addCustomer": "إضافة عميل",
+    "customerDetails": "تفاصيل العميل",
+    "name": "الاسم",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "address": "العنوان"
+  },
+  "agreements": {
+    "title": "الاتفاقيات",
+    "newAgreement": "اتفاقية جديدة",
+    "agreementDetails": "تفاصيل الاتفاقية",
+    "startDate": "تاريخ البداية",
+    "endDate": "تاريخ النهاية",
+    "totalAmount": "المبلغ الإجمالي",
+    "status": "الحالة"
   }
 }

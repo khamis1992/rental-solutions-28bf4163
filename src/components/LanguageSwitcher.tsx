@@ -1,17 +1,14 @@
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Languages } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
+  const { changeLanguage, currentLanguage, isRTL } = useTranslation();
 
   const toggleLanguage = () => {
-    const newLang = i18n.language === 'ar' ? 'en' : 'ar';
-    i18n.changeLanguage(newLang);
-    document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = newLang;
+    changeLanguage(currentLanguage === 'ar' ? 'en' : 'ar');
   };
 
   return (
@@ -19,7 +16,8 @@ export const LanguageSwitcher = () => {
       variant="outline"
       size="icon"
       onClick={toggleLanguage}
-      className={`fixed ${i18n.language === 'ar' ? 'left-4' : 'right-4'} bottom-4 z-50`}
+      className={`fixed ${isRTL ? 'left-4' : 'right-4'} bottom-4 z-50 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60`}
+      title={currentLanguage === 'ar' ? 'Switch to English' : 'التبديل إلى العربية'}
     >
       <Languages className="h-4 w-4" />
     </Button>

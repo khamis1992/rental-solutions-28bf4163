@@ -5,23 +5,50 @@
     "profile": "Profile",
     "security": "Security",
     "preferences": "Preferences",
-    "signOut": "Sign out"
+    "signOut": "Sign Out",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "filter": "Filter",
+    "actions": "Actions",
+    "status": "Status",
+    "details": "Details"
   },
-  "settings": {
-    "accountSettings": "Account Settings",
-    "manageAccount": "Manage your account preferences and settings",
-    "securitySettings": "Security Settings",
-    "manageSecuritySettings": "Manage your account security and authentication preferences",
-    "changePassword": "Change Password",
-    "preferences": "Preferences",
-    "customizePreferences": "Customize your account preferences and notification settings"
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "forgotPassword": "Forgot Password",
+    "email": "Email",
+    "password": "Password"
   },
-  "notifications": {
-    "paymentReminders": "Payment Reminders",
-    "reportNotifications": "Report Notifications",
-    "documentExpiration": "Document Expiration",
-    "getNotifiedPayments": "Get notified about upcoming payments",
-    "getNotifiedReports": "Get notified when reports are generated",
-    "getNotifiedDocuments": "Get notified about expiring documents"
+  "vehicles": {
+    "title": "Vehicles",
+    "addVehicle": "Add Vehicle",
+    "vehicleDetails": "Vehicle Details",
+    "make": "Make",
+    "model": "Model",
+    "year": "Year",
+    "plateNumber": "Plate Number",
+    "status": "Status"
+  },
+  "customers": {
+    "title": "Customers",
+    "addCustomer": "Add Customer",
+    "customerDetails": "Customer Details",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address"
+  },
+  "agreements": {
+    "title": "Agreements",
+    "newAgreement": "New Agreement",
+    "agreementDetails": "Agreement Details",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "totalAmount": "Total Amount",
+    "status": "Status"
   }
 }
