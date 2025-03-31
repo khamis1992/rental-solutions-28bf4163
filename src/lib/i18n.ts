@@ -26,8 +26,7 @@ i18n
       lookupLocalStorage: 'preferredLanguage'
     },
     react: {
-      useSuspense: false, // This helps prevent issues during initial load
-      wait: true
+      useSuspense: false // This helps prevent issues during initial load
     }
   });
 
