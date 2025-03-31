@@ -9062,6 +9062,7 @@ export type Database = {
           id: string
           image_url: string | null
           insurance_company: string | null
+          insurance_expiry: string | null
           is_test_data: boolean | null
           license_plate: string
           location: string | null
@@ -9083,6 +9084,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           insurance_company?: string | null
+          insurance_expiry?: string | null
           is_test_data?: boolean | null
           license_plate: string
           location?: string | null
@@ -9104,6 +9106,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           insurance_company?: string | null
+          insurance_expiry?: string | null
           is_test_data?: boolean | null
           license_plate?: string
           location?: string | null

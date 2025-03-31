@@ -74,44 +74,61 @@ const EditVehicle = () => {
   };
   
   const handleSubmit = async (formData: any) => {
+    // Validate required fields
+    if (!formData.make || !formData.model || !formData.year || !formData.license_plate || !formData.vin) {
+      toast.error('Missing required fields', {
+        description: 'Please fill in all required fields'
+      });
+      return;
+    }
+    
     if (id) {
-      // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
-      if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
-        // We don't need to upload an image, as we'll use the model-specific one
-        console.log('Using model-specific B70 image');
-      } 
-      // If there's an image, ensure the bucket exists first
-      else if (formData.image) {
-        const bucketReady = await ensureVehicleImagesBucket();
-        if (!bucketReady) {
-          toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
-          return;
-        }
-      }
-      
-      // Process insurance_expiry to handle empty string (convert to null for the database)
-      if (formData.insurance_expiry === '') {
-        formData.insurance_expiry = null;
-      }
-      
-      // Make a safe copy of formData that won't cause type issues
-      const safeFormData = { ...formData };
-      
-      updateVehicle(
-        { id, data: safeFormData },
-        {
-          onSuccess: () => {
-            navigate(`/vehicles/${id}`);
-            toast.success('Vehicle updated successfully');
-          },
-          onError: (error) => {
-            console.error('Update vehicle error:', error);
-            toast.error('Failed to update vehicle', {
-              description: error instanceof Error ? error.message : 'Unknown error occurred',
-            });
+      try {
+        // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
+        if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
+          // We don't need to upload an image, as we'll use the model-specific one
+          console.log('Using model-specific B70 image');
+        } 
+        // If there's an image, ensure the bucket exists first
+        else if (formData.image) {
+          const bucketReady = await ensureVehicleImagesBucket();
+          if (!bucketReady) {
+            toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
+            return;
           }
         }
-      );
+        
+        // Process insurance_expiry to handle empty string (convert to null for the database)
+        if (formData.insurance_expiry === '') {
+          formData.insurance_expiry = null;
+        }
+        
+        // Make a safe copy of formData that won't cause type issues
+        const safeFormData = { ...formData };
+        
+        console.log('Submitting vehicle update with data:', safeFormData);
+        
+        updateVehicle(
+          { id, data: safeFormData },
+          {
+            onSuccess: () => {
+              navigate(`/vehicles/${id}`);
+              toast.success('Vehicle updated successfully');
+            },
+            onError: (error) => {
+              console.error('Update vehicle error:', error);
+              toast.error('Failed to update vehicle', {
+                description: error instanceof Error ? error.message : 'Unknown error occurred',
+              });
+            }
+          }
+        );
+      } catch (error) {
+        console.error('Edit vehicle submission error:', error);
+        toast.error('Error submitting form', {
+          description: error instanceof Error ? error.message : 'An unexpected error occurred'
+        });
+      }
     }
   };
   

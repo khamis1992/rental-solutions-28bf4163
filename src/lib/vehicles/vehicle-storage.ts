@@ -1,9 +1,9 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 // Ensure the vehicle-images bucket exists
 export async function ensureVehicleImagesBucket(): Promise<boolean> {
   try {
+    console.log('Checking if vehicle-images bucket exists');
     // Check if bucket exists
     const { data: buckets, error: listError } = await supabase.storage.listBuckets();
     
@@ -15,6 +15,7 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
     const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
     
     if (!bucketExists) {
+      console.log('Creating vehicle-images bucket');
       // Create the bucket
       const { error: createError } = await supabase.storage
         .createBucket('vehicle-images', {
@@ -26,6 +27,9 @@ export async function ensureVehicleImagesBucket(): Promise<boolean> {
         console.error('Error creating bucket:', createError);
         return false;
       }
+      console.log('vehicle-images bucket created successfully');
+    } else {
+      console.log('vehicle-images bucket already exists');
     }
     
     return true;
@@ -48,30 +52,46 @@ export function getImagePublicUrl(bucket: string, path: string): string {
 
 // Upload a vehicle image
 export async function uploadVehicleImage(file: File, id: string): Promise<string> {
-  const bucketReady = await ensureVehicleImagesBucket();
+  console.log(`Uploading image for vehicle ${id}`, file);
   
-  if (!bucketReady) {
-    throw new Error('Failed to ensure vehicle-images bucket exists. Please contact an administrator.');
+  try {
+    const bucketReady = await ensureVehicleImagesBucket();
+    
+    if (!bucketReady) {
+      throw new Error('Failed to ensure vehicle-images bucket exists. Please contact an administrator.');
+    }
+    
+    if (!file || !file.name) {
+      throw new Error('Invalid file provided');
+    }
+    
+    // Extract file extension safely
+    const fileExt = file.name.split('.').pop() || 'jpg';
+    const fileName = `${id}-${Date.now()}.${fileExt}`;
+    const filePath = `${fileName}`;
+    
+    console.log(`Uploading to path: ${filePath}`);
+    
+    const { error } = await supabase.storage
+      .from('vehicle-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+    
+    if (error) {
+      console.error('Upload error details:', error);
+      throw new Error(`Error uploading image: ${error.message}`);
+    }
+    
+    // Get the public URL for the uploaded image
+    const publicUrl = getImagePublicUrl('vehicle-images', filePath);
+    console.log('Image uploaded successfully, public URL:', publicUrl);
+    return publicUrl;
+  } catch (error) {
+    console.error('Error in uploadVehicleImage:', error);
+    throw error;
   }
-  
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${id}-${Date.now()}.${fileExt}`;
-  const filePath = `${fileName}`;
-  
-  const { error } = await supabase.storage
-    .from('vehicle-images')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: true,
-    });
-  
-  if (error) {
-    console.error('Upload error details:', error);
-    throw new Error(`Error uploading image: ${error.message}`);
-  }
-  
-  // Get the public URL for the uploaded image
-  return getImagePublicUrl('vehicle-images', filePath);
 }
 
 // List all vehicle images in the bucket

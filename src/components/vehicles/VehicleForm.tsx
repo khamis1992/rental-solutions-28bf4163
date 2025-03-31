@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -23,25 +23,28 @@ import VehicleImageUpload from './VehicleImageUpload';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
+// Create a more robust schema with better validations
 const vehicleSchema = z.object({
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
-  year: z.coerce.number().min(1900).max(new Date().getFullYear() + 1),
+  year: z.coerce.number().min(1900, 'Year must be after 1900').max(new Date().getFullYear() + 1, `Year cannot be after ${new Date().getFullYear() + 1}`),
   license_plate: z.string().min(1, 'License plate is required'),
   vin: z.string().min(1, 'VIN is required'),
-  status: z.enum(['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'] as const),
+  status: z.enum(['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'] as const, {
+    errorMap: () => ({ message: 'Please select a valid status' })
+  }),
   color: z.string().optional(),
-  mileage: z.coerce.number().min(0).optional(),
+  mileage: z.coerce.number().min(0, 'Mileage must be a positive number').optional(),
   location: z.string().optional(),
   description: z.string().optional(),
   insurance_company: z.string().optional(),
-  insurance_expiry: z.string().optional(),
-  rent_amount: z.coerce.number().min(0).optional(),
-  vehicle_type_id: z.string().optional(),
+  insurance_expiry: z.union([z.string(), z.null()]).optional(),
+  rent_amount: z.coerce.number().min(0, 'Rent amount must be a positive number').optional(),
+  vehicle_type_id: z.union([z.string(), z.literal('none')]).optional(),
 });
 
 type VehicleFormSchema = z.infer<typeof vehicleSchema>;
@@ -59,24 +62,31 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isLoading = false,
   isEditMode = false,
 }) => {
+  // Fixed default values to prevent undefined issues
+  const defaultValues = {
+    make: initialData?.make || '',
+    model: initialData?.model || '',
+    year: initialData?.year || new Date().getFullYear(),
+    license_plate: initialData?.licensePlate || initialData?.license_plate || '',
+    vin: initialData?.vin || '',
+    status: (initialData?.status as VehicleStatus) || 'available',
+    color: initialData?.color || '',
+    mileage: initialData?.mileage || 0,
+    location: initialData?.location || '',
+    description: initialData?.notes || initialData?.description || '',
+    insurance_company: initialData?.insurance_company || '',
+    insurance_expiry: initialData?.insurance_expiry || '',
+    rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
+    vehicle_type_id: initialData?.vehicle_type_id || ''
+  };
+
+  console.log('VehicleForm initialData:', initialData);
+  console.log('VehicleForm defaultValues:', defaultValues);
+
   const form = useForm<VehicleFormSchema>({
     resolver: zodResolver(vehicleSchema),
-    defaultValues: {
-      make: initialData?.make || '',
-      model: initialData?.model || '',
-      year: initialData?.year || new Date().getFullYear(),
-      license_plate: initialData?.licensePlate || initialData?.license_plate || '',
-      vin: initialData?.vin || '',
-      status: (initialData?.status as VehicleStatus) || 'available',
-      color: initialData?.color || '',
-      mileage: initialData?.mileage || 0,
-      location: initialData?.location || '',
-      description: initialData?.notes || initialData?.description || '',
-      insurance_company: initialData?.insurance_company || '',
-      insurance_expiry: initialData?.insurance_expiry || '',
-      rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
-      vehicle_type_id: initialData?.vehicle_type_id || '',
-    },
+    defaultValues,
+    mode: 'onBlur' // Validate on blur for better UX
   });
 
   const { useVehicleTypes } = useVehicles();
@@ -84,26 +94,61 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
+  // Re-initialize the form when initial data changes
+  useEffect(() => {
+    if (initialData) {
+      const values: any = { ...defaultValues };
+      // Update with latest initialData
+      if (initialData.make) values.make = initialData.make;
+      if (initialData.model) values.model = initialData.model;
+      if (initialData.year) values.year = initialData.year;
+      if (initialData.license_plate || initialData.licensePlate) 
+        values.license_plate = initialData.license_plate || initialData.licensePlate || '';
+      if (initialData.vin) values.vin = initialData.vin;
+      if (initialData.status) values.status = initialData.status;
+      if (initialData.color) values.color = initialData.color;
+      if (initialData.mileage !== undefined) values.mileage = initialData.mileage;
+      if (initialData.location) values.location = initialData.location;
+      if (initialData.description || initialData.notes) 
+        values.description = initialData.description || initialData.notes || '';
+      if (initialData.insurance_company) values.insurance_company = initialData.insurance_company;
+      if (initialData.insurance_expiry) values.insurance_expiry = initialData.insurance_expiry;
+      if (initialData.rent_amount || initialData.dailyRate) 
+        values.rent_amount = initialData.rent_amount || initialData.dailyRate || 0;
+      if (initialData.vehicle_type_id) values.vehicle_type_id = initialData.vehicle_type_id;
+      
+      console.log('Resetting form with values:', values);
+      form.reset(values);
+    }
+  }, [initialData, form]);
+
   const handleFormSubmit = (formValues: VehicleFormSchema) => {
-    const formData: VehicleFormData = {
-      make: formValues.make,
-      model: formValues.model,
-      year: formValues.year,
-      license_plate: formValues.license_plate,
-      vin: formValues.vin,
-      status: formValues.status,
-      color: formValues.color,
-      mileage: formValues.mileage,
-      location: formValues.location,
-      description: formValues.description,
-      insurance_company: formValues.insurance_company,
-      insurance_expiry: formValues.insurance_expiry,
-      rent_amount: formValues.rent_amount,
-      vehicle_type_id: formValues.vehicle_type_id,
-      image: selectedImage,
-    };
-    
-    onSubmit(formData);
+    try {
+      console.log('Form values before submission:', formValues);
+      
+      const formData: VehicleFormData = {
+        make: formValues.make,
+        model: formValues.model,
+        year: formValues.year,
+        license_plate: formValues.license_plate,
+        vin: formValues.vin,
+        status: formValues.status,
+        color: formValues.color || undefined,
+        mileage: formValues.mileage,
+        location: formValues.location || undefined,
+        description: formValues.description || undefined,
+        insurance_company: formValues.insurance_company || undefined,
+        insurance_expiry: formValues.insurance_expiry || undefined,
+        rent_amount: formValues.rent_amount,
+        vehicle_type_id: formValues.vehicle_type_id === 'none' ? undefined : formValues.vehicle_type_id,
+        image: selectedImage,
+      };
+      
+      console.log('Processed form data for submission:', formData);
+      onSubmit(formData);
+    } catch (error) {
+      console.error('Error processing form data:', error);
+    }
   };
 
   return (
@@ -202,6 +247,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      value={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -245,7 +291,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>Mileage</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? 0 : parseInt(value));
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -297,7 +350,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                             )}
                           >
                             {field.value ? (
-                              format(new Date(field.value), "PPP")
+                              isValid(new Date(field.value)) ? 
+                                format(new Date(field.value), "PPP") : 
+                                "Invalid date"
                             ) : (
                               <span>Pick a date</span>
                             )}
@@ -309,7 +364,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                         <Calendar
                           mode="single"
                           selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(date) => field.onChange(date ? format(date, 'yyyy-MM-dd') : '')}
+                          onSelect={(date) => {
+                            console.log('Selected date:', date);
+                            field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -326,7 +384,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>Daily Rate ($)</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? 0 : parseFloat(value));
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -342,6 +407,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      value={field.value || 'none'}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -349,18 +415,18 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="no-type-selected">None</SelectItem>
-                        {vehicleTypes && vehicleTypes.map((type) => (
-                          type.id ? (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.name} ({type.size})
-                            </SelectItem>
-                          ) : (
-                            <SelectItem key="unknown-type" value="unknown-type">
-                              Unknown Type
-                            </SelectItem>
-                          )
-                        ))}
+                        <SelectItem value="none">None</SelectItem>
+                        {isLoadingTypes ? (
+                          <SelectItem value="loading">Loading...</SelectItem>
+                        ) : (
+                          vehicleTypes && vehicleTypes.map((type) => (
+                            type.id ? (
+                              <SelectItem key={type.id} value={type.id}>
+                                {type.name} ({type.size})
+                              </SelectItem>
+                            ) : null
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

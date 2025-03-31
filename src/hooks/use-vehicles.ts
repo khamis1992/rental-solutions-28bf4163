@@ -212,10 +212,15 @@ export const useVehicles = () => {
       return useMutation({
         mutationFn: async ({ id, data }: { id: string; data: VehicleFormData }): Promise<Vehicle> => {
           try {
+            console.log('Starting vehicle update process for ID:', id);
+            console.log('Received update data:', data);
+            
             let imageUrl = null;
             if (data.image) {
               try {
+                console.log('Uploading new vehicle image');
                 imageUrl = await uploadVehicleImage(data.image, id);
+                console.log('Image uploaded successfully:', imageUrl);
               } catch (error) {
                 console.error('Error uploading image:', error);
                 toast.error('Failed to upload image', {
@@ -271,6 +276,7 @@ export const useVehicles = () => {
               throw error;
             }
             
+            console.log('Vehicle updated successfully:', updatedVehicle);
             return mapDatabaseRecordToVehicle(updatedVehicle);
           } catch (error) {
             console.error('Update vehicle error details:', error);
