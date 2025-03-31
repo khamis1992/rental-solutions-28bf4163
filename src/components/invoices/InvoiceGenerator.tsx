@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,6 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const [recordData, setRecordData] = useState<Record<string, any>>({});
   
-  // Load templates on mount
   useEffect(() => {
     loadTemplates();
     loadRecordData();
@@ -44,7 +42,6 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
       setLoading(true);
       const loadedTemplates = await fetchTemplates();
       
-      // Filter templates by relevant categories based on recordType
       const filteredTemplates = loadedTemplates.filter(template => {
         if (recordType === 'agreement') {
           return ['invoice', 'agreement'].includes(template.category);
@@ -57,7 +54,6 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
       
       setTemplates(filteredTemplates);
       
-      // Select default template based on record type
       if (filteredTemplates.length > 0) {
         let defaultCategory = recordType === 'agreement' ? 'invoice' : 
                               recordType === 'payment' ? 'receipt' : 'statement';
@@ -77,87 +73,84 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
   
   const loadRecordData = async () => {
     if (!recordId) {
-      // Use sample data for preview
       setRecordData({
-        // Company info
         companyName: "ALARAF CAR RENTAL",
         companyAddress: "Doha, Qatar",
         companyPhone: "+974 1234 5678",
         companyEmail: "info@alarafcarrental.com",
         
-        // Agreement info
         agreementNumber: "AGR-12345",
         startDate: "2023-01-01",
         endDate: "2023-02-01",
         
-        // Customer info
-        customerName: "Mohammed Ali",
+        clientName: "Mohammed Ali",
+        clientAddress: "West Bay, Doha, Qatar",
         customerEmail: "mali@example.com",
         customerPhone: "+974 5555 6666",
-        customerAddress: "West Bay, Doha, Qatar",
         
-        // Vehicle info
         vehicleMake: "Toyota",
         vehicleModel: "Land Cruiser",
         vehiclePlate: "12345-QAT",
         vehicleYear: "2022",
         
-        // Payment info
         invoiceNumber: "INV-2023-001",
         invoiceDate: new Date().toLocaleDateString(),
         dueDate: new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString(),
-        totalAmount: "3,500.00",
+        amountDue: "3,500.00",
         paidAmount: "1,750.00",
         balanceAmount: "1,750.00",
         tax: "175.00",
-        currency: "QAR"
+        currency: "QAR",
+        
+        itemDescription: "Vehicle Rental Service",
+        itemQuantity: "30 days",
+        itemUnitPrice: "QAR 116.67/day",
+        itemTotal: "QAR 3,500.00",
+        
+        paymentTerms: "Net 30 days"
       });
       return;
     }
     
     try {
       setLoading(true);
-      // In a real implementation, we would fetch the data from the database
-      // based on the recordType and recordId
-      
-      // For now, we'll use sample data
-      // This would be replaced with a real API call
-      
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       setRecordData({
-        // Company info
         companyName: "ALARAF CAR RENTAL",
         companyAddress: "Doha, Qatar",
         companyPhone: "+974 1234 5678",
         companyEmail: "info@alarafcarrental.com",
         
-        // Agreement info
         agreementNumber: `AGR-${recordId}`,
         startDate: "2023-01-01",
         endDate: "2023-02-01",
         
-        // Customer info
-        customerName: "Mohammed Ali",
+        clientName: "Mohammed Ali",
+        clientAddress: "West Bay, Doha, Qatar",
         customerEmail: "mali@example.com",
         customerPhone: "+974 5555 6666",
-        customerAddress: "West Bay, Doha, Qatar",
         
-        // Vehicle info
         vehicleMake: "Toyota",
         vehicleModel: "Land Cruiser",
         vehiclePlate: "12345-QAT",
         vehicleYear: "2022",
         
-        // Payment info
         invoiceNumber: `INV-${recordId}`,
         invoiceDate: new Date().toLocaleDateString(),
         dueDate: new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString(),
-        totalAmount: "3,500.00",
+        amountDue: "3,500.00",
         paidAmount: "1,750.00",
         balanceAmount: "1,750.00",
         tax: "175.00",
-        currency: "QAR"
+        currency: "QAR",
+        
+        itemDescription: "Vehicle Rental Service",
+        itemQuantity: "30 days",
+        itemUnitPrice: "QAR 116.67/day",
+        itemTotal: "QAR 3,500.00",
+        
+        paymentTerms: "Net 30 days"
       });
     } catch (error: any) {
       toast.error(`Failed to load record data: ${error.message}`);
@@ -175,17 +168,14 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
     try {
       setLoading(true);
       
-      // Find the selected template
       const template = templates.find(t => t.id === selectedTemplateId);
       if (!template) {
         throw new Error("Template not found");
       }
       
-      // Process the template with data
       const processedHtml = processTemplate(template.content, recordData);
       setGeneratedHtml(processedHtml);
       
-      // Open the preview
       setPreviewOpen(true);
     } catch (error: any) {
       toast.error(`Failed to generate invoice: ${error.message}`);
@@ -200,11 +190,9 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
       return;
     }
     
-    // Create a blob with the HTML content
     const blob = new Blob([generatedHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
-    // Create a link to download the file
     const a = document.createElement('a');
     a.href = url;
     a.download = `Invoice-${recordData.invoiceNumber || recordData.agreementNumber || Date.now()}.html`;
@@ -222,18 +210,15 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
       return;
     }
     
-    // Create a new window for printing
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast.error("Could not open print window. Please check your popup settings.");
       return;
     }
     
-    // Write the HTML content to the new window
     printWindow.document.write(generatedHtml);
     printWindow.document.close();
     
-    // Wait for the content to load before printing
     printWindow.onload = () => {
       printWindow.print();
     };
@@ -245,8 +230,6 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
       return;
     }
     
-    // In a real implementation, we would send the invoice via email
-    // For now, just show a success toast
     toast.success(`Invoice sent to ${recordData.customerEmail || 'customer'}`);
   };
   
