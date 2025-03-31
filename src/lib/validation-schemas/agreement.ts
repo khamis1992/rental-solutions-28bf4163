@@ -88,6 +88,7 @@ export const createEmptyAgreement = (): Omit<Agreement, "id"> => ({
   status: AgreementStatus.DRAFT,
   total_amount: 0,
   deposit_amount: 0,
+  rent_amount: 0, // Added default value for rent_amount
   agreement_number: `AGR-${Date.now().toString().substring(7)}`,
   notes: "",
   terms_accepted: false,

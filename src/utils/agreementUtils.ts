@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { loadFontFile, arrayBufferToBase64, toArabicNumerals } from './fontUtils';
