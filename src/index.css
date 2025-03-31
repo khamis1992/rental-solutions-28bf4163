@@ -1,56 +1,7 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
-
-/* RTL Support */
-html[dir="rtl"] * {
-  font-family: "Noto Sans Arabic", sans-serif;
-}
-
-html[dir="rtl"] input,
-html[dir="rtl"] textarea {
-  text-align: right;
-}
-
-html[dir="rtl"] .ltr {
-  direction: ltr;
-  text-align: left;
-}
-
-html[dir="rtl"] .fixed.bottom-4.right-4 {
-  right: auto;
-  left: 1rem;
-}
-
-html[dir="ltr"] * {
-  font-family: "Inter", sans-serif;
-}
-
-/* RTL layout adjustments */
-[dir="rtl"] * {
-  letter-spacing: 0;
-}
-
-[dir="rtl"] .ml-2,
-[dir="rtl"] .ml-4 {
-  margin-left: 0;
-  margin-right: 0.5rem;
-}
-
-[dir="rtl"] .mr-2,
-[dir="rtl"] .mr-4 {
-  margin-right: 0;
-  margin-left: 0.5rem;
-}
-
-[dir="rtl"] .pl-64 {
-  padding-left: 0;
-  padding-right: 16rem;
-}
-
-/* Keep the original Tailwind directives and the rest of the styles */
 @tailwind components;
 @tailwind utilities;
 
@@ -101,7 +52,7 @@ html[dir="ltr"] * {
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
@@ -129,7 +80,7 @@ html[dir="ltr"] * {
   .glass-panel {
     @apply bg-white/80 backdrop-blur-glass shadow-glass border border-white/20 rounded-lg;
   }
-
+  
   .glass-card {
     @apply bg-white/90 backdrop-blur-sm shadow-card border border-border/50 rounded-lg transition-all duration-300 hover:shadow-lg;
   }
