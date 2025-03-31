@@ -1,25 +1,40 @@
 
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
+import { Globe } from 'lucide-react';
 
-export const LanguageSwitcher = () => {
-  const { i18n } = useTranslation();
+interface LanguageSwitcherProps {
+  variant?: 'outline' | 'ghost' | 'default';
+  className?: string;
+  showLabel?: boolean;
+  position?: 'fixed' | 'inline';
+}
+
+export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
+  variant = 'outline',
+  className = '',
+  showLabel = true,
+  position = 'fixed'
+}) => {
+  const { t, changeLanguage, currentLanguage } = useTranslation();
 
   const toggleLanguage = () => {
-    const newLang = i18n.language === 'ar' ? 'en' : 'ar';
-    i18n.changeLanguage(newLang);
-    document.documentElement.dir = newLang === 'ar' ? 'rtl' : 'ltr';
-    document.documentElement.lang = newLang;
+    const newLang = currentLanguage === 'ar' ? 'en' : 'ar';
+    changeLanguage(newLang);
   };
+
+  const positionClass = position === 'fixed' ? 'fixed bottom-4 right-4 z-50' : '';
 
   return (
     <Button
-      variant="outline"
+      variant={variant}
       onClick={toggleLanguage}
-      className="fixed bottom-4 right-4 px-4 py-2 z-50"
+      className={`${positionClass} ${className}`}
+      aria-label={t('common.changeLanguage')}
     >
-      {i18n.language === 'ar' ? 'English' : 'العربية'}
+      <Globe className="h-4 w-4 mr-2" />
+      {showLabel && (currentLanguage === 'ar' ? 'English' : 'العربية')}
     </Button>
   );
 };

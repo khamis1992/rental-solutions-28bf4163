@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "لوحة التحكم",
@@ -20,7 +21,8 @@
     "filter": "تصفية",
     "actions": "إجراءات",
     "status": "الحالة",
-    "details": "التفاصيل"
+    "details": "التفاصيل",
+    "changeLanguage": "تغيير اللغة"
   },
   "auth": {
     "login": "تسجيل الدخول",
@@ -66,5 +68,22 @@
     "endDate": "تاريخ النهاية",
     "totalAmount": "المبلغ الإجمالي",
     "status": "الحالة"
+  },
+  "settings": {
+    "accountSettings": "إعدادات الحساب",
+    "manageAccount": "إدارة إعدادات حسابك وتفضيلاتك",
+    "securitySettings": "إعدادات الأمان",
+    "manageSecuritySettings": "إدارة إعدادات الأمان الخاصة بك",
+    "changePassword": "تغيير كلمة المرور",
+    "preferences": "التفضيلات",
+    "customizePreferences": "تخصيص تفضيلاتك",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "passwordUpdated": "تم تحديث كلمة المرور بنجاح",
+    "passwordsDoNotMatch": "كلمات المرور غير متطابقة",
+    "passwordMinLength": "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
+    "updatePassword": "تحديث كلمة المرور",
+    "updating": "جاري التحديث..."
   }
 }

@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -19,6 +21,7 @@ type ForgotPasswordFormValues = z.infer<typeof forgotPasswordSchema>;
 
 const ForgotPassword = () => {
   const { resetPassword } = useAuth();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = React.useState(false);
   const [isSubmitted, setIsSubmitted] = React.useState(false);
 
@@ -43,10 +46,13 @@ const ForgotPassword = () => {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background">
+      <div className="absolute top-4 right-4">
+        <LanguageSwitcher position="inline" />
+      </div>
       <div className="w-full max-w-md px-4">
         <Card>
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Reset password</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center">{t('auth.forgotPassword')}</CardTitle>
             <CardDescription className="text-center">
               Enter your email to receive a password reset link
             </CardDescription>
@@ -60,7 +66,7 @@ const ForgotPassword = () => {
                 </p>
                 <Link to="/auth/login">
                   <Button variant="outline" className="w-full">
-                    Back to login
+                    {t('auth.login')}
                   </Button>
                 </Link>
               </div>
@@ -72,7 +78,7 @@ const ForgotPassword = () => {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>{t('auth.email')}</FormLabel>
                         <FormControl>
                           <Input placeholder="name@example.com" {...field} />
                         </FormControl>
@@ -98,7 +104,7 @@ const ForgotPassword = () => {
             <div className="text-sm text-center text-muted-foreground">
               Remember your password?{" "}
               <Link to="/auth/login" className="text-primary hover:underline">
-                Back to login
+                {t('auth.login')}
               </Link>
             </div>
           </CardFooter>

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -82,7 +83,8 @@ function App() {
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <LanguageSwitcher/> {/* Added LanguageSwitcher component */}
+              
+              {/* Only show the language switcher on the landing page, not on auth pages */}
               <Routes>
                 <Route path="/" element={<Index />} />
 
@@ -101,6 +103,7 @@ function App() {
                     <ProtectedRoute>
                       <>
                         <Sidebar />
+                        <LanguageSwitcher />
                         <Routes>
                           <Route path="/dashboard" element={<Dashboard />} />
 

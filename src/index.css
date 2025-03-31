@@ -1,24 +1,6 @@
-:root[dir="rtl"] {
-  direction: rtl;
-  text-align: right;
-}
-
-:root[dir="rtl"] .flex {
-  flex-direction: row-reverse;
-}
-
-:root[dir="rtl"] .mr-2 {
-  margin-right: 0;
-  margin-left: 0.5rem;
-}
-
-:root[dir="rtl"] .ml-2 {
-  margin-left: 0;
-  margin-right: 0.5rem;
-}
-
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 
@@ -34,15 +16,41 @@ html[dir="rtl"] textarea {
 
 html[dir="rtl"] .ltr {
   direction: ltr;
+  text-align: left;
 }
 
+html[dir="rtl"] .fixed.bottom-4.right-4 {
+  right: auto;
+  left: 1rem;
+}
+
+html[dir="ltr"] * {
+  font-family: "Inter", sans-serif;
+}
+
+/* RTL layout adjustments */
 [dir="rtl"] * {
   letter-spacing: 0;
 }
 
-[dir="rtl"] .font-arabic {
-  font-family: "Noto Sans Arabic", sans-serif;
+[dir="rtl"] .ml-2,
+[dir="rtl"] .ml-4 {
+  margin-left: 0;
+  margin-right: 0.5rem;
 }
+
+[dir="rtl"] .mr-2,
+[dir="rtl"] .mr-4 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+[dir="rtl"] .pl-64 {
+  padding-left: 0;
+  padding-right: 16rem;
+}
+
+/* Keep the original Tailwind directives and the rest of the styles */
 @tailwind components;
 @tailwind utilities;
 
@@ -93,7 +101,7 @@ html[dir="rtl"] .ltr {
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 

@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "Dashboard",
@@ -20,7 +21,8 @@
     "filter": "Filter",
     "actions": "Actions",
     "status": "Status",
-    "details": "Details"
+    "details": "Details",
+    "changeLanguage": "Change Language"
   },
   "auth": {
     "login": "Login",
@@ -61,5 +63,22 @@
     "endDate": "End Date",
     "totalAmount": "Total Amount",
     "status": "Status"
+  },
+  "settings": {
+    "accountSettings": "Account Settings",
+    "manageAccount": "Manage your account settings and preferences",
+    "securitySettings": "Security Settings",
+    "manageSecuritySettings": "Manage your security settings",
+    "changePassword": "Change Password",
+    "preferences": "Preferences",
+    "customizePreferences": "Customize your preferences",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "passwordUpdated": "Password updated successfully",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordMinLength": "Password must be at least 6 characters",
+    "updatePassword": "Update Password",
+    "updating": "Updating..."
   }
 }

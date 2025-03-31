@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
-import { UserCog } from "lucide-react";
+import { UserCog, Globe } from "lucide-react";
 import UserProfile from "@/components/auth/UserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -35,12 +35,12 @@ const UserSettings = () => {
   const handleChangePassword = async () => {
     // Password validation
     if (newPassword !== confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("settings.passwordsDoNotMatch"));
       return;
     }
 
     if (newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters");
+      toast.error(t("settings.passwordMinLength"));
       return;
     }
 
@@ -49,7 +49,7 @@ const UserSettings = () => {
       
       // Here you would typically call a function to change password
       // For security reasons, many auth systems require re-authentication first
-      toast.success("Password updated successfully");
+      toast.success(t("settings.passwordUpdated"));
       
       // Clear form and close dialog
       setNewPassword("");
@@ -70,7 +70,6 @@ const UserSettings = () => {
         description={t('settings.manageAccount')}
         icon={UserCog}
       />
-      <LanguageSwitcher />
 
       <div className="grid gap-6 md:grid-cols-12">
         <div className="md:col-span-3">
@@ -99,7 +98,7 @@ const UserSettings = () => {
                     <div>
                       <h4 className="font-medium">{t('settings.changePassword')}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Change your account password
+                        {t('settings.changePassword')}
                       </p>
                     </div>
                     <Dialog
@@ -113,12 +112,12 @@ const UserSettings = () => {
                         <DialogHeader>
                           <DialogTitle>{t('settings.changePassword')}</DialogTitle>
                           <DialogDescription>
-                            Enter your current password and new password below.
+                            {t('settings.changePassword')}
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4 py-2">
                           <div className="space-y-2">
-                            <Label htmlFor="current-password">Current password</Label>
+                            <Label htmlFor="current-password">{t('settings.currentPassword')}</Label>
                             <Input
                               id="current-password"
                               type="password"
@@ -127,7 +126,7 @@ const UserSettings = () => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="new-password">New password</Label>
+                            <Label htmlFor="new-password">{t('settings.newPassword')}</Label>
                             <Input
                               id="new-password"
                               type="password"
@@ -136,7 +135,7 @@ const UserSettings = () => {
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="confirm-password">Confirm password</Label>
+                            <Label htmlFor="confirm-password">{t('settings.confirmPassword')}</Label>
                             <Input
                               id="confirm-password"
                               type="password"
@@ -153,10 +152,10 @@ const UserSettings = () => {
                             {isChangingPassword ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Updating...
+                                {t('settings.updating')}
                               </>
                             ) : (
-                              "Save changes"
+                              t('settings.updatePassword')
                             )}
                           </Button>
                         </DialogFooter>
@@ -168,7 +167,7 @@ const UserSettings = () => {
                     <div>
                       <h4 className="font-medium">{t('common.signOut')}</h4>
                       <p className="text-sm text-muted-foreground">
-                        Sign out from your account
+                        {t('common.signOut')}
                       </p>
                     </div>
                     <Button variant="destructive" onClick={signOut}>
@@ -189,10 +188,16 @@ const UserSettings = () => {
                 </div>
 
                 <div className="space-y-4">
-                  {/* Placeholder for preferences settings */}
-                  <p className="text-sm text-muted-foreground">
-                    Preference settings will be available soon.
-                  </p>
+                  {/* Language settings */}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h4 className="font-medium">{t('common.language')}</h4>
+                      <p className="text-sm text-muted-foreground">
+                        {t('common.changeLanguage')}
+                      </p>
+                    </div>
+                    <LanguageSwitcher position="inline" showLabel={true} />
+                  </div>
                 </div>
               </div>
             </TabsContent>

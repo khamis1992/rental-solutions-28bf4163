@@ -5,6 +5,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import enTranslation from '../locales/en/translation.json';
 import arTranslation from '../locales/ar/translation.json';
 
+// Initialize i18next
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -21,12 +22,23 @@ i18n
     load: 'languageOnly',
     detection: {
       order: ['localStorage', 'navigator'],
-      caches: ['localStorage']
+      caches: ['localStorage'],
+      lookupLocalStorage: 'preferredLanguage'
     }
   });
 
-// Set initial direction
-document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
-document.documentElement.lang = i18n.language;
+// Set initial direction and language attribute
+const setDocumentAttributes = (lang: string) => {
+  document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang;
+};
+
+// Set initial direction based on detected language
+setDocumentAttributes(i18n.language);
+
+// Listen for language changes
+i18n.on('languageChanged', (lang) => {
+  setDocumentAttributes(lang);
+});
 
 export default i18n;
