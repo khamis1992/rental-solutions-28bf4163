@@ -215,13 +215,28 @@ export const saveTemplate = async (template: InvoiceTemplate): Promise<InvoiceTe
     }
 
     console.log("Template saved successfully:", data);
+    
+    // Ensure we're handling the JSON data correctly
+    let parsedVariables: TemplateVariable[] = defaultVariables;
+    if (data.variables) {
+      try {
+        // Check if data.variables is already a string or needs to be stringified
+        const variablesStr = typeof data.variables === 'string' 
+          ? data.variables 
+          : JSON.stringify(data.variables);
+        parsedVariables = JSON.parse(variablesStr);
+      } catch (e) {
+        console.error("Error parsing variables:", e);
+      }
+    }
+    
     return {
       id: data.id,
       name: data.name,
       description: data.description,
       content: data.content,
       category: data.category,
-      variables: JSON.parse(data.variables) || defaultVariables,
+      variables: parsedVariables,
       isDefault: data.is_default || false,
       created_at: data.created_at,
       updated_at: data.updated_at
@@ -249,17 +264,33 @@ export const fetchTemplates = async (): Promise<InvoiceTemplate[]> => {
       return [];
     }
 
-    return data.map(template => ({
-      id: template.id,
-      name: template.name,
-      description: template.description,
-      content: template.content,
-      category: template.category,
-      variables: template.variables ? JSON.parse(template.variables) : defaultVariables,
-      isDefault: template.is_default || false,
-      created_at: template.created_at,
-      updated_at: template.updated_at
-    }));
+    return data.map(template => {
+      let parsedVariables: TemplateVariable[] = defaultVariables;
+      
+      if (template.variables) {
+        try {
+          // Check if template.variables is already a string or needs to be stringified
+          const variablesStr = typeof template.variables === 'string' 
+            ? template.variables 
+            : JSON.stringify(template.variables);
+          parsedVariables = JSON.parse(variablesStr);
+        } catch (e) {
+          console.error("Error parsing variables for template:", template.id, e);
+        }
+      }
+      
+      return {
+        id: template.id,
+        name: template.name,
+        description: template.description,
+        content: template.content,
+        category: template.category,
+        variables: parsedVariables,
+        isDefault: template.is_default || false,
+        created_at: template.created_at,
+        updated_at: template.updated_at
+      };
+    });
   } catch (error) {
     console.error("Error in fetchTemplates:", error);
     throw error;
