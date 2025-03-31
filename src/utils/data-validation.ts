@@ -18,8 +18,13 @@ export const isValidEmailFormat = (email: string): boolean => {
 
 // Utility function to validate phone number format (Qatar format)
 export const isValidPhoneNumberFormat = (phoneNumber: string): boolean => {
-  const regex = /^(?:(?:\+|00)974)?\s?(3|5|6|7)\d{7}$/;
-  return regex.test(phoneNumber);
+  // For 8-digit Qatar numbers (without country code)
+  const qatarRegex = /^[3-9]\d{7}$/;
+  
+  // For numbers with +974 country code
+  const qatarWithCodeRegex = /^(?:\+974)?[3-9]\d{7}$/;
+  
+  return qatarRegex.test(phoneNumber) || qatarWithCodeRegex.test(phoneNumber);
 };
 
 // Utility function to validate URL format

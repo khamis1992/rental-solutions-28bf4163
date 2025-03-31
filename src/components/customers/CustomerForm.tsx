@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { customerSchema, Customer } from "@/lib/validation-schemas/customer";
@@ -34,7 +33,6 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
   const navigate = useNavigate();
   const formInitialized = useRef(false);
   
-  // Create default values to avoid null or undefined values
   const defaultValues: Partial<Customer> = {
     full_name: "",
     email: "",
@@ -43,19 +41,16 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
     driver_license: "",
     nationality: "",
     notes: "",
-    status: "active" as const, // Use 'as const' to ensure proper type
+    status: "active" as const,
   };
-  
+
   const form = useForm<Customer>({
     resolver: zodResolver(customerSchema),
     defaultValues,
   });
 
-  // Update form when initialData changes or becomes available
-  // This effect should only run when initialData changes, and only once for initialization
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0 && !formInitialized.current) {
-      // Ensure all values are strings and not null/undefined
       const safeInitialData: Partial<Customer> = {
         full_name: initialData.full_name || "",
         email: initialData.email || "",
@@ -64,7 +59,6 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
         driver_license: initialData.driver_license || "",
         nationality: initialData.nationality || "",
         notes: initialData.notes || "",
-        // Ensure status is one of the valid enum values
         status: initialData.status || "active",
       };
       
@@ -113,8 +107,11 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="+1234567890" {...field} value={field.value || ''} />
+                  <Input placeholder="33123456" {...field} value={field.value || ''} />
                 </FormControl>
+                <FormDescription>
+                  Enter 8 digits only. The +974 country code will be added automatically.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

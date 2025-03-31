@@ -9,6 +9,25 @@ import { toast } from 'sonner';
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
 
+// Function to format Qatar phone number - ensure it has the +974 prefix
+const formatQatarPhoneNumber = (phone: string): string => {
+  // Remove any existing country code if present
+  const cleanPhone = phone.replace(/^\+974/, '').trim();
+  
+  // Add the +974 prefix if it's a valid 8-digit Qatar number
+  if (/^[3-9]\d{7}$/.test(cleanPhone)) {
+    return `+974${cleanPhone}`;
+  }
+  
+  // Return original if not matching format (validation will catch this)
+  return phone;
+};
+
+// Function to strip country code for display/edit
+const stripCountryCode = (phone: string): string => {
+  return phone.replace(/^\+974/, '').trim();
+};
+
 export const useCustomers = () => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useState({
@@ -61,7 +80,7 @@ export const useCustomers = () => {
           id: profile.id,
           full_name: profile.full_name || '',
           email: profile.email || '',
-          phone: profile.phone_number || '',
+          phone: stripCountryCode(profile.phone_number || ''), // Strip +974 for UI display
           driver_license: profile.driver_license || '',
           nationality: profile.nationality || '',
           address: profile.address || '',
@@ -86,12 +105,16 @@ export const useCustomers = () => {
     mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
       console.log('Creating new customer with data:', newCustomer);
       
+      // Format phone number to include +974 country code
+      const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
+      console.log('Formatted phone number:', formattedPhone);
+      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .insert([{ 
           full_name: newCustomer.full_name,
           email: newCustomer.email,
-          phone_number: newCustomer.phone, // Map to phone_number in profiles
+          phone_number: formattedPhone, // Store with +974 prefix
           address: newCustomer.address,
           driver_license: newCustomer.driver_license,
           nationality: newCustomer.nationality,
@@ -108,8 +131,12 @@ export const useCustomers = () => {
         throw new Error(error.message);
       }
       
+      // Return customer with country code stripped from phone for UI consistency
       console.log('Created customer:', data);
-      return data as Customer;
+      return {
+        ...data,
+        phone: stripCountryCode(data.phone_number || '')
+      } as Customer;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -123,12 +150,16 @@ export const useCustomers = () => {
   // Update a customer
   const updateCustomer = useMutation({
     mutationFn: async (customer: Customer) => {
+      // Format phone number to include +974 country code
+      const formattedPhone = formatQatarPhoneNumber(customer.phone);
+      console.log('Updating customer with formatted phone:', formattedPhone);
+      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .update({ 
           full_name: customer.full_name,
           email: customer.email,
-          phone_number: customer.phone, // Map to phone_number in profiles
+          phone_number: formattedPhone, // Store with +974 prefix
           address: customer.address,
           driver_license: customer.driver_license,
           nationality: customer.nationality,
@@ -140,7 +171,12 @@ export const useCustomers = () => {
         .select();
 
       if (error) throw new Error(error.message);
-      return data[0] as Customer;
+      
+      // Return customer with country code stripped for UI consistency
+      return {
+        ...data[0],
+        phone: stripCountryCode(data[0].phone_number || '')
+      } as Customer;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -200,7 +236,7 @@ export const useCustomers = () => {
         id: data.id,
         full_name: data.full_name || '',
         email: data.email || '',
-        phone: data.phone_number || '',
+        phone: stripCountryCode(data.phone_number || ''), // Strip country code for UI
         driver_license: data.driver_license || '',
         nationality: data.nationality || '',
         address: data.address || '',

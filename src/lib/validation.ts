@@ -1,9 +1,11 @@
+
 import { z } from 'zod';
 
 // Common validation patterns
 export const validationPatterns = {
   email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
   phone: /^\+?[0-9]{10,15}$/,
+  qatarPhone: /^[3-9]\d{7}$/, // 8-digit Qatar number starting with 3-9
   licensePlate: /^[A-Z0-9-]{2,10}$/,
   vinNumber: /^[A-HJ-NPR-Z0-9]{17}$/,
 };
