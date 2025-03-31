@@ -275,11 +275,11 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.text(`الصنع: ${vehicleMake}`, 190, 100, { align: 'right' });
         doc.text(`الموديل: ${vehicleModel}`, 190, 105, { align: 'right' });
         
-        // Handle vehicleYear safely
-        let yearString = vehicleYear;
-        if (typeof vehicleYear === 'number') {
-          yearString = vehicleYear.toString();
-        } else if (vehicleYear === 'N/A') {
+        // Handle vehicleYear safely - Here's the fix
+        let yearString = '';
+        if (vehicleYear !== null && vehicleYear !== undefined) {
+          yearString = String(vehicleYear); // Convert to string explicitly
+        } else {
           yearString = 'N/A';
         }
         doc.text(`السنة: ${toArabicNumerals(yearString)}`, 190, 110, { align: 'right' });
