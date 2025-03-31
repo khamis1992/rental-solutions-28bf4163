@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface CustomerFormProps {
   initialData?: Customer;
@@ -32,29 +32,30 @@ interface CustomerFormProps {
 
 export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormProps) {
   const navigate = useNavigate();
+  const formInitialized = useRef(false);
+  
+  // Create default values to avoid null or undefined values
+  const defaultValues = {
+    full_name: "",
+    email: "",
+    phone: "",
+    address: "",
+    driver_license: "",
+    nationality: "",
+    notes: "",
+    status: "active",
+  };
   
   const form = useForm<Customer>({
     resolver: zodResolver(customerSchema),
-    defaultValues: {
-      full_name: "",
-      email: "",
-      phone: "",
-      address: "",
-      driver_license: "",
-      nationality: "",
-      notes: "",
-      status: "active",
-      ...initialData
-    },
+    defaultValues,
   });
 
-  // Update form when initialData changes (e.g., after async fetch)
+  // Update form when initialData changes or becomes available
   useEffect(() => {
-    if (initialData) {
-      console.log("Resetting form with initialData:", initialData);
-      
-      // This ensures we use the initialData once it's available
-      form.reset({
+    if (initialData && Object.keys(initialData).length > 0) {
+      // Ensure all values are strings and not null/undefined
+      const safeInitialData = {
         full_name: initialData.full_name || "",
         email: initialData.email || "",
         phone: initialData.phone || "",
@@ -63,7 +64,11 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
         nationality: initialData.nationality || "",
         notes: initialData.notes || "",
         status: initialData.status || "active",
-      });
+      };
+      
+      console.log("Resetting form with initialData:", safeInitialData);
+      form.reset(safeInitialData);
+      formInitialized.current = true;
     }
   }, [initialData, form]);
 
@@ -78,7 +83,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Full Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter customer's full name" {...field} />
+                  <Input placeholder="Enter customer's full name" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -92,7 +97,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Email Address</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="customer@example.com" {...field} />
+                  <Input type="email" placeholder="customer@example.com" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -106,7 +111,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder="+1234567890" {...field} />
+                  <Input placeholder="+1234567890" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -120,7 +125,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Driver License</FormLabel>
                 <FormControl>
-                  <Input placeholder="License number" {...field} />
+                  <Input placeholder="License number" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -134,7 +139,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>Nationality</FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter customer's nationality" {...field} />
+                  <Input placeholder="Enter customer's nationality" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -147,7 +152,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value || 'active'}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select customer status" />

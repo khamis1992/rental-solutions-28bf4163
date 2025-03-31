@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { CustomerForm } from '@/components/customers/CustomerForm';
@@ -16,42 +16,54 @@ const EditCustomer = () => {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fetchAttempts, setFetchAttempts] = useState(0);
 
-  useEffect(() => {
-    const fetchCustomer = async () => {
-      if (!id) {
-        setError("Customer ID not provided");
+  const fetchCustomerData = useCallback(async () => {
+    if (!id) {
+      setError("Customer ID not provided");
+      setLoading(false);
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log(`Fetching customer data for ID: ${id}, attempt ${fetchAttempts + 1}`);
+      const data = await getCustomer(id);
+      
+      if (!data) {
+        console.error(`No customer found with ID: ${id}`);
+        setError("Customer not found");
         setLoading(false);
         return;
       }
       
-      setLoading(true);
-      setError(null);
-      
-      try {
-        console.log(`Fetching customer data for ID: ${id}`);
-        const data = await getCustomer(id);
-        
-        if (!data) {
-          console.error(`No customer found with ID: ${id}`);
-          setError("Customer not found");
-          setLoading(false);
-          return;
-        }
-        
-        console.log("Customer data retrieved:", data);
-        setCustomer(data);
-      } catch (err) {
-        console.error("Error fetching customer:", err);
-        setError("Failed to load customer data");
-        toast.error("Error loading customer data");
-      } finally {
-        setLoading(false);
-      }
-    };
+      console.log("Customer data successfully retrieved:", data);
+      setCustomer(data);
+    } catch (err) {
+      console.error("Error fetching customer:", err);
+      setError("Failed to load customer data");
+      toast.error("Error loading customer data");
+    } finally {
+      setLoading(false);
+    }
+  }, [id, getCustomer, fetchAttempts]);
 
-    fetchCustomer();
-  }, [id, getCustomer]);
+  useEffect(() => {
+    fetchCustomerData();
+  }, [fetchCustomerData]);
+
+  // If first attempt fails, try once more after a delay
+  useEffect(() => {
+    if (error && fetchAttempts < 1) {
+      const retryTimer = setTimeout(() => {
+        setFetchAttempts(prev => prev + 1);
+      }, 1000);
+      
+      return () => clearTimeout(retryTimer);
+    }
+  }, [error, fetchAttempts]);
 
   const handleSubmit = async (data: Customer) => {
     if (!id) return;

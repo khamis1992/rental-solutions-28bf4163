@@ -1,12 +1,13 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 
 // Change the table name from 'customers' to 'profiles'
 const PROFILES_TABLE = 'profiles';
+const CUSTOMER_ROLE = 'customer';
 
 export const useCustomers = () => {
   const queryClient = useQueryClient();
@@ -29,7 +30,7 @@ export const useCustomers = () => {
         let query = supabase
           .from(PROFILES_TABLE)
           .select('*')
-          .eq('role', 'customer') // Only select profiles with role='customer'
+          .eq('role', CUSTOMER_ROLE) // Only select profiles with role='customer'
           .order('created_at', { ascending: false });
 
         // Apply status filter if not 'all'
@@ -95,7 +96,7 @@ export const useCustomers = () => {
           nationality: newCustomer.nationality,
           notes: newCustomer.notes,
           status: newCustomer.status || 'active',
-          role: 'customer', // Ensure role is set to customer
+          role: CUSTOMER_ROLE, // Ensure role is set to customer
           created_at: new Date().toISOString() 
         }])
         .select()
@@ -172,7 +173,6 @@ export const useCustomers = () => {
   // Get a single customer by ID
   const getCustomer = async (id: string): Promise<Customer | null> => {
     try {
-      // Add a console log to track each time getCustomer is called
       console.log('Fetching customer with ID:', id);
       
       const { data, error } = await supabase
