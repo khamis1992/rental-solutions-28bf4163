@@ -23,21 +23,35 @@ const EditVehicle = () => {
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
   
   useEffect(() => {
+    if (!id) {
+      console.error('No vehicle ID provided in URL');
+      toast.error('No vehicle ID provided', {
+        description: 'Please go back to the vehicles list and try again'
+      });
+      return;
+    }
+    
+    console.log(`EditVehicle page loaded for vehicle ID: ${id}`);
+    
     async function checkForModelImage() {
       if (vehicle?.model && vehicle.model.toLowerCase().includes('b70')) {
+        console.log('Checking for B70 model-specific image');
         const imageUrl = await getModelSpecificImage(vehicle.model);
+        console.log('Model-specific image found:', imageUrl);
         setModelSpecificImage(imageUrl);
       }
     }
     
     if (vehicle) {
+      console.log('Vehicle data loaded:', vehicle);
       checkForModelImage();
     }
-  }, [vehicle]);
+  }, [vehicle, id]);
   
   // Check if bucket exists and create it if needed
   const ensureVehicleImagesBucket = async () => {
     try {
+      console.log('Ensuring vehicle-images bucket exists');
       // Check if bucket exists
       const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
@@ -50,6 +64,7 @@ const EditVehicle = () => {
       const bucketExists = buckets?.some(bucket => bucket.name === 'vehicle-images');
       
       if (!bucketExists) {
+        console.log('Creating vehicle-images bucket');
         // Create the bucket
         const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
           public: true,
@@ -62,7 +77,10 @@ const EditVehicle = () => {
           return false;
         }
         
+        console.log('Storage bucket created successfully');
         toast.success('Vehicle images storage bucket created successfully');
+      } else {
+        console.log('vehicle-images bucket already exists');
       }
       
       return true;
@@ -74,61 +92,74 @@ const EditVehicle = () => {
   };
   
   const handleSubmit = async (formData: any) => {
+    if (!id) {
+      console.error('No vehicle ID provided for update');
+      toast.error('Missing vehicle ID', {
+        description: 'Cannot update vehicle without an ID'
+      });
+      return;
+    }
+    
+    console.log('Form submitted with data:', formData);
+    
     // Validate required fields
     if (!formData.make || !formData.model || !formData.year || !formData.license_plate || !formData.vin) {
+      console.error('Missing required fields in form data:', formData);
       toast.error('Missing required fields', {
         description: 'Please fill in all required fields'
       });
       return;
     }
     
-    if (id) {
-      try {
-        // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
-        if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
-          // We don't need to upload an image, as we'll use the model-specific one
-          console.log('Using model-specific B70 image');
-        } 
-        // If there's an image, ensure the bucket exists first
-        else if (formData.image) {
-          const bucketReady = await ensureVehicleImagesBucket();
-          if (!bucketReady) {
-            toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
-            return;
-          }
+    try {
+      // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
+      if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
+        // We don't need to upload an image, as we'll use the model-specific one
+        console.log('Using model-specific B70 image');
+      } 
+      // If there's an image, ensure the bucket exists first
+      else if (formData.image) {
+        console.log('Image provided, ensuring storage bucket exists');
+        const bucketReady = await ensureVehicleImagesBucket();
+        if (!bucketReady) {
+          console.error('Failed to prepare storage bucket:', bucketError);
+          toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
+          return;
         }
-        
-        // Process insurance_expiry to handle empty string (convert to null for the database)
-        if (formData.insurance_expiry === '') {
-          formData.insurance_expiry = null;
-        }
-        
-        // Make a safe copy of formData that won't cause type issues
-        const safeFormData = { ...formData };
-        
-        console.log('Submitting vehicle update with data:', safeFormData);
-        
-        updateVehicle(
-          { id, data: safeFormData },
-          {
-            onSuccess: () => {
-              navigate(`/vehicles/${id}`);
-              toast.success('Vehicle updated successfully');
-            },
-            onError: (error) => {
-              console.error('Update vehicle error:', error);
-              toast.error('Failed to update vehicle', {
-                description: error instanceof Error ? error.message : 'Unknown error occurred',
-              });
-            }
-          }
-        );
-      } catch (error) {
-        console.error('Edit vehicle submission error:', error);
-        toast.error('Error submitting form', {
-          description: error instanceof Error ? error.message : 'An unexpected error occurred'
-        });
       }
+      
+      // Process insurance_expiry to handle empty string (convert to null for the database)
+      if (formData.insurance_expiry === '') {
+        console.log('Converting empty insurance_expiry to null');
+        formData.insurance_expiry = null;
+      }
+      
+      // Make a safe copy of formData that won't cause type issues
+      const safeFormData = { ...formData };
+      
+      console.log('Submitting vehicle update with data:', safeFormData);
+      
+      updateVehicle(
+        { id, data: safeFormData },
+        {
+          onSuccess: (updatedVehicle) => {
+            console.log('Vehicle updated successfully:', updatedVehicle);
+            navigate(`/vehicles/${id}`);
+            toast.success('Vehicle updated successfully');
+          },
+          onError: (error) => {
+            console.error('Update vehicle error:', error);
+            toast.error('Failed to update vehicle', {
+              description: error instanceof Error ? error.message : 'Unknown error occurred',
+            });
+          }
+        }
+      );
+    } catch (error) {
+      console.error('Edit vehicle submission error:', error);
+      toast.error('Error submitting form', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
     }
   };
   
@@ -145,6 +176,7 @@ const EditVehicle = () => {
   }
   
   if (error || !vehicle) {
+    console.error('Error loading vehicle:', error);
     return (
       <PageContainer>
         <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg">
@@ -153,6 +185,7 @@ const EditVehicle = () => {
             <h2 className="text-xl font-semibold">Vehicle Not Found</h2>
           </div>
           <p>The vehicle you're trying to edit doesn't exist or has been removed.</p>
+          <p className="mt-2 text-sm">{error instanceof Error ? error.message : 'Unknown error'}</p>
           <CustomButton 
             className="mt-4" 
             variant="outline" 

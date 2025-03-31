@@ -83,23 +83,36 @@ export const useVehicles = () => {
         queryKey: ['vehicles', id],
         queryFn: async () => {
           try {
+            if (!id) {
+              throw new Error('Vehicle ID is required');
+            }
+            
+            console.log(`Fetching vehicle with ID: ${id}`);
             const { data, error } = await supabase
               .from('vehicles')
               .select('*, vehicle_types(*)')
               .eq('id', id)
-              .single();
+              .maybeSingle(); // Changed from single() to maybeSingle()
             
             if (error) {
+              console.error(`Error fetching vehicle ${id}:`, error);
               throw error;
             }
             
+            if (!data) {
+              console.error(`No vehicle found with ID: ${id}`);
+              throw new Error(`Vehicle with ID ${id} not found`);
+            }
+            
+            console.log(`Successfully fetched vehicle data:`, data);
             return mapDatabaseRecordToVehicle(data);
           } catch (error) {
+            console.error(`Failed to fetch vehicle ${id}:`, error);
             handleApiError(error, `Failed to fetch vehicle ${id}`);
             throw error;
           }
         },
-        enabled: !!id,
+        enabled: Boolean(id),
       });
     },
     
@@ -215,6 +228,27 @@ export const useVehicles = () => {
             console.log('Starting vehicle update process for ID:', id);
             console.log('Received update data:', data);
             
+            if (!id) {
+              throw new Error('Vehicle ID is required for update');
+            }
+            
+            // Verify the vehicle exists before attempting to update
+            const { data: existingVehicle, error: checkError } = await supabase
+              .from('vehicles')
+              .select('id')
+              .eq('id', id)
+              .maybeSingle();
+              
+            if (checkError) {
+              console.error('Error checking if vehicle exists:', checkError);
+              throw new Error(`Failed to verify vehicle: ${checkError.message}`);
+            }
+            
+            if (!existingVehicle) {
+              console.error('Vehicle not found with ID:', id);
+              throw new Error(`Vehicle with ID ${id} not found`);
+            }
+            
             let imageUrl = null;
             if (data.image) {
               try {
@@ -263,17 +297,22 @@ export const useVehicles = () => {
             
             console.log('Updating vehicle with data:', vehicleData);
             
-            // Update the vehicle
+            // Update the vehicle and get the updated record
             const { data: updatedVehicle, error } = await supabase
               .from('vehicles')
               .update(vehicleData)
               .eq('id', id)
               .select('*, vehicle_types(*)')
-              .single();
+              .maybeSingle(); // Changed from single() to maybeSingle()
               
             if (error) {
               console.error('Supabase update error:', error);
               throw error;
+            }
+            
+            if (!updatedVehicle) {
+              console.error('Vehicle update succeeded but no data returned for ID:', id);
+              throw new Error('Vehicle update succeeded but no data returned');
             }
             
             console.log('Vehicle updated successfully:', updatedVehicle);
