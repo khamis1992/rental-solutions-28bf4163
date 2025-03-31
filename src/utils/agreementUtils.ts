@@ -12,6 +12,8 @@ async function loadArabicFont(doc: jsPDF): Promise<boolean> {
     const regularFontBuffer = await loadFontFile('/fonts/Amiri-Regular.ttf');
     
     if (boldFontBuffer && regularFontBuffer) {
+      console.log("Font files loaded successfully");
+      
       doc.addFileToVFS('Amiri-Bold.ttf', arrayBufferToBase64(boldFontBuffer));
       doc.addFileToVFS('Amiri-Regular.ttf', arrayBufferToBase64(regularFontBuffer));
       
@@ -105,6 +107,9 @@ export async function diagnosisTemplateAccess(): Promise<{
 
 export async function generatePdfDocument(agreement: Agreement, language: string = 'english'): Promise<boolean> {
   try {
+    console.log("Starting PDF generation with language:", language);
+    console.log("Agreement data:", JSON.stringify(agreement, null, 2));
+    
     // Initialize PDF document with proper settings for RTL support if needed
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -114,15 +119,18 @@ export async function generatePdfDocument(agreement: Agreement, language: string
     
     // Load fonts based on language
     if (language === 'arabic' || language === 'both') {
+      console.log("Loading Arabic fonts...");
       const fontLoaded = await loadArabicFont(doc);
       if (!fontLoaded) {
         console.error("Failed to load Arabic fonts");
         return false;
       }
+      console.log("Arabic fonts loaded successfully");
     }
     
     // Set font for English text
     doc.setFont('helvetica', 'normal');
+    console.log("English font set");
     
     // Get start and end dates
     const startDate = agreement.start_date instanceof Date 
@@ -165,8 +173,11 @@ export async function generatePdfDocument(agreement: Agreement, language: string
     const totalAmount = agreement.total_amount || 0;
     const depositAmount = agreement.deposit_amount || 0;
     
+    console.log("Document data prepared");
+    
     // Generate English PDF
     if (language === 'english' || language === 'both') {
+      console.log("Generating English content");
       // Title
       doc.setFontSize(18);
       doc.setFont('helvetica', 'bold');
@@ -217,80 +228,103 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       doc.text('Company Signature: _______________________', 20, 220);
       doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 230);
       
+      console.log("English content generated");
+      
       // If bilingual, add new page for Arabic
       if (language === 'both') {
         doc.addPage();
+        console.log("Added new page for Arabic content");
       }
     }
     
     // Generate Arabic PDF
     if (language === 'arabic' || language === 'both') {
-      // If not creating a bilingual document, we don't need to add a page
-      if (language === 'arabic') {
-        // We're starting on the first page
-      } else {
-        // We've already added a new page for Arabic
+      console.log("Generating Arabic content");
+      
+      try {
+        // If not creating a bilingual document, we don't need to add a page
+        if (language === 'arabic') {
+          // We're starting on the first page
+        } else {
+          // We've already added a new page for Arabic
+        }
+        
+        // Set RTL and Arabic font
+        doc.setR2L(true);
+        doc.setFont('Amiri', 'bold');
+        
+        // Arabic Title
+        doc.setFontSize(18);
+        doc.text('عقد إيجار', 105, 20, { align: 'center' });
+        doc.text(`رقم العقد: ${toArabicNumerals(agreement.agreement_number || '')}`, 105, 30, { align: 'center' });
+        
+        // Customer information in Arabic
+        doc.setFontSize(12);
+        doc.text('معلومات العميل', 190, 45, { align: 'right' });
+        doc.setFont('Amiri', 'normal');
+        doc.text(`الاسم: ${customerName}`, 190, 55, { align: 'right' });
+        doc.text(`الهاتف: ${toArabicNumerals(customerPhone)}`, 190, 60, { align: 'right' });
+        doc.text(`البريد الإلكتروني: ${customerEmail}`, 190, 65, { align: 'right' });
+        doc.text(`العنوان: ${customerAddress}`, 190, 70, { align: 'right' });
+        doc.text(`رخصة القيادة: ${driverLicense}`, 190, 75, { align: 'right' });
+        
+        // Vehicle information in Arabic
+        doc.setFont('Amiri', 'bold');
+        doc.text('معلومات المركبة', 190, 90, { align: 'right' });
+        doc.setFont('Amiri', 'normal');
+        doc.text(`الصنع: ${vehicleMake}`, 190, 100, { align: 'right' });
+        doc.text(`الموديل: ${vehicleModel}`, 190, 105, { align: 'right' });
+        
+        // Handle vehicleYear safely
+        let yearString = vehicleYear;
+        if (typeof vehicleYear === 'number') {
+          yearString = vehicleYear.toString();
+        } else if (vehicleYear === 'N/A') {
+          yearString = 'N/A';
+        }
+        doc.text(`السنة: ${toArabicNumerals(yearString)}`, 190, 110, { align: 'right' });
+        
+        doc.text(`رقم اللوحة: ${vehiclePlate}`, 190, 115, { align: 'right' });
+        doc.text(`رقم الهيكل: ${vehicleVin}`, 190, 120, { align: 'right' });
+        
+        // Agreement details in Arabic
+        doc.setFont('Amiri', 'bold');
+        doc.text('فترة الإيجار', 190, 135, { align: 'right' });
+        doc.setFont('Amiri', 'normal');
+        // Convert dates to Arabic format
+        const arabicStartDate = toArabicNumerals(startDate.toLocaleDateString('ar-SA'));
+        const arabicEndDate = toArabicNumerals(endDate.toLocaleDateString('ar-SA'));
+        doc.text(`تاريخ البدء: ${arabicStartDate}`, 190, 145, { align: 'right' });
+        doc.text(`تاريخ الانتهاء: ${arabicEndDate}`, 190, 150, { align: 'right' });
+        
+        // Payment information in Arabic
+        doc.setFont('Amiri', 'bold');
+        doc.text('معلومات الدفع', 190, 165, { align: 'right' });
+        doc.setFont('Amiri', 'normal');
+        doc.text(`الإيجار الشهري: ${toArabicNumerals(rentAmount.toString())} ر.ق`, 190, 175, { align: 'right' });
+        doc.text(`المبلغ الإجمالي: ${toArabicNumerals(totalAmount.toString())} ر.ق`, 190, 180, { align: 'right' });
+        doc.text(`مبلغ التأمين: ${toArabicNumerals(depositAmount.toString())} ر.ق`, 190, 185, { align: 'right' });
+        
+        // Signatures in Arabic
+        doc.setFont('Amiri', 'bold');
+        doc.text('التوقيعات', 190, 200, { align: 'right' });
+        doc.setFont('Amiri', 'normal');
+        doc.text('توقيع العميل: _______________________', 190, 210, { align: 'right' });
+        doc.text('توقيع الشركة: _______________________', 190, 220, { align: 'right' });
+        doc.text(`التاريخ: ${toArabicNumerals(new Date().toLocaleDateString('ar-SA'))}`, 190, 230, { align: 'right' });
+        
+        console.log("Arabic content generated successfully");
+      } catch (arabicError) {
+        console.error("Error generating Arabic section:", arabicError);
+        // Continue with just English if Arabic fails
       }
-      
-      // Set RTL and Arabic font
-      doc.setR2L(true);
-      doc.setFont('Amiri', 'bold');
-      
-      // Arabic Title
-      doc.setFontSize(18);
-      doc.text('عقد إيجار', 105, 20, { align: 'center' });
-      doc.text(`رقم العقد: ${toArabicNumerals(agreement.agreement_number || '')}`, 105, 30, { align: 'center' });
-      
-      // Customer information in Arabic
-      doc.setFontSize(12);
-      doc.text('معلومات العميل', 190, 45, { align: 'right' });
-      doc.setFont('Amiri', 'normal');
-      doc.text(`الاسم: ${customerName}`, 190, 55, { align: 'right' });
-      doc.text(`الهاتف: ${toArabicNumerals(customerPhone)}`, 190, 60, { align: 'right' });
-      doc.text(`البريد الإلكتروني: ${customerEmail}`, 190, 65, { align: 'right' });
-      doc.text(`العنوان: ${customerAddress}`, 190, 70, { align: 'right' });
-      doc.text(`رخصة القيادة: ${driverLicense}`, 190, 75, { align: 'right' });
-      
-      // Vehicle information in Arabic
-      doc.setFont('Amiri', 'bold');
-      doc.text('معلومات المركبة', 190, 90, { align: 'right' });
-      doc.setFont('Amiri', 'normal');
-      doc.text(`الصنع: ${vehicleMake}`, 190, 100, { align: 'right' });
-      doc.text(`الموديل: ${vehicleModel}`, 190, 105, { align: 'right' });
-      doc.text(`السنة: ${toArabicNumerals(vehicleYear.toString())}`, 190, 110, { align: 'right' });
-      doc.text(`رقم اللوحة: ${vehiclePlate}`, 190, 115, { align: 'right' });
-      doc.text(`رقم الهيكل: ${vehicleVin}`, 190, 120, { align: 'right' });
-      
-      // Agreement details in Arabic
-      doc.setFont('Amiri', 'bold');
-      doc.text('فترة الإيجار', 190, 135, { align: 'right' });
-      doc.setFont('Amiri', 'normal');
-      // Convert dates to Arabic format
-      const arabicStartDate = toArabicNumerals(startDate.toLocaleDateString('ar-SA'));
-      const arabicEndDate = toArabicNumerals(endDate.toLocaleDateString('ar-SA'));
-      doc.text(`تاريخ البدء: ${arabicStartDate}`, 190, 145, { align: 'right' });
-      doc.text(`تاريخ الانتهاء: ${arabicEndDate}`, 190, 150, { align: 'right' });
-      
-      // Payment information in Arabic
-      doc.setFont('Amiri', 'bold');
-      doc.text('معلومات الدفع', 190, 165, { align: 'right' });
-      doc.setFont('Amiri', 'normal');
-      doc.text(`الإيجار الشهري: ${toArabicNumerals(rentAmount.toString())} ر.ق`, 190, 175, { align: 'right' });
-      doc.text(`المبلغ الإجمالي: ${toArabicNumerals(totalAmount.toString())} ر.ق`, 190, 180, { align: 'right' });
-      doc.text(`مبلغ التأمين: ${toArabicNumerals(depositAmount.toString())} ر.ق`, 190, 185, { align: 'right' });
-      
-      // Signatures in Arabic
-      doc.setFont('Amiri', 'bold');
-      doc.text('التوقيعات', 190, 200, { align: 'right' });
-      doc.setFont('Amiri', 'normal');
-      doc.text('توقيع العميل: _______________________', 190, 210, { align: 'right' });
-      doc.text('توقيع الشركة: _______________________', 190, 220, { align: 'right' });
-      doc.text(`التاريخ: ${toArabicNumerals(new Date().toLocaleDateString('ar-SA'))}`, 190, 230, { align: 'right' });
     }
     
     // Save the PDF file
     const fileName = `Rental_Agreement_${agreement.agreement_number}_${language}.pdf`;
+    console.log("Saving PDF:", fileName);
     doc.save(fileName);
+    console.log("PDF generated successfully");
     
     return true;
   } catch (error) {
@@ -298,3 +332,45 @@ export async function generatePdfDocument(agreement: Agreement, language: string
     return false;
   }
 }
+
+// Helper function to process template with dynamic values
+export const processAgreementTemplate = (templateText: string, data: any): string => {
+  // Replace placeholders with actual data
+  let processedTemplate = templateText;
+  
+  // Customer data
+  if (data.customer_data) {
+    processedTemplate = processedTemplate
+      .replace(/\{\{CUSTOMER_NAME\}\}/g, data.customer_data.full_name || '')
+      .replace(/\{\{CUSTOMER_EMAIL\}\}/g, data.customer_data.email || '')
+      .replace(/\{\{CUSTOMER_PHONE\}\}/g, data.customer_data.phone_number || '')
+      .replace(/\{\{CUSTOMER_LICENSE\}\}/g, data.customer_data.driver_license || '')
+      .replace(/\{\{CUSTOMER_NATIONALITY\}\}/g, data.customer_data.nationality || '')
+      .replace(/\{\{CUSTOMER_ADDRESS\}\}/g, data.customer_data.address || '');
+  }
+  
+  // Vehicle data
+  if (data.vehicle_data) {
+    processedTemplate = processedTemplate
+      .replace(/\{\{VEHICLE_MAKE\}\}/g, data.vehicle_data.make || '')
+      .replace(/\{\{VEHICLE_MODEL\}\}/g, data.vehicle_data.model || '')
+      .replace(/\{\{VEHICLE_YEAR\}\}/g, data.vehicle_data.year?.toString() || '')
+      .replace(/\{\{VEHICLE_COLOR\}\}/g, data.vehicle_data.color || '')
+      .replace(/\{\{VEHICLE_PLATE\}\}/g, data.vehicle_data.license_plate || '')
+      .replace(/\{\{VEHICLE_VIN\}\}/g, data.vehicle_data.vin || '');
+  }
+  
+  // Agreement data
+  processedTemplate = processedTemplate
+    .replace(/\{\{AGREEMENT_NUMBER\}\}/g, data.agreement_number || '')
+    .replace(/\{\{START_DATE\}\}/g, new Date(data.start_date).toLocaleDateString() || '')
+    .replace(/\{\{END_DATE\}\}/g, new Date(data.end_date).toLocaleDateString() || '')
+    .replace(/\{\{RENT_AMOUNT\}\}/g, data.rent_amount?.toString() || '')
+    .replace(/\{\{DEPOSIT_AMOUNT\}\}/g, data.deposit_amount?.toString() || '')
+    .replace(/\{\{TOTAL_AMOUNT\}\}/g, data.total_amount?.toString() || '')
+    .replace(/\{\{DAILY_LATE_FEE\}\}/g, data.daily_late_fee?.toString() || '')
+    .replace(/\{\{AGREEMENT_DURATION\}\}/g, data.agreement_duration || '')
+    .replace(/\{\{CURRENT_DATE\}\}/g, new Date().toLocaleDateString());
+    
+  return processedTemplate;
+};

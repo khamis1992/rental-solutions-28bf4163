@@ -4,11 +4,15 @@
 // Function to fetch and load font files
 export async function loadFontFile(fontPath: string): Promise<ArrayBuffer | null> {
   try {
+    console.log(`Loading font from: ${fontPath}`);
     const response = await fetch(fontPath);
     if (!response.ok) {
-      throw new Error(`Failed to load font from ${fontPath}: ${response.status} ${response.statusText}`);
+      console.error(`Failed to load font from ${fontPath}: ${response.status} ${response.statusText}`);
+      return null;
     }
-    return await response.arrayBuffer();
+    const buffer = await response.arrayBuffer();
+    console.log(`Successfully loaded font from ${fontPath}, size: ${buffer.byteLength} bytes`);
+    return buffer;
   } catch (error) {
     console.error(`Error loading font from ${fontPath}:`, error);
     return null;
@@ -30,6 +34,8 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 // Convert numbers to Arabic numerals
 export function toArabicNumerals(str: string): string {
+  if (!str) return '';
+  
   const arabicNumerals: Record<string, string> = {
     '0': '٠',
     '1': '١',
