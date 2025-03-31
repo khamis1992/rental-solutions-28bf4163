@@ -1,19 +1,14 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { FileText, Plus, Save, Trash2, Eye, Copy, Download, Upload, Info, Sparkles } from "lucide-react";
+import { FileText } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
 import { 
   InvoiceTemplate, 
   TemplateVariable, 
   defaultVariables,
-  templateCategories,
   getDefaultTemplate,
   processTemplate,
   saveTemplate,
@@ -22,9 +17,11 @@ import {
   initializeTemplates
 } from "@/utils/invoiceTemplateUtils";
 import TemplatePreview from "./TemplatePreview";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 import AITemplateGeneratorDialog from './AITemplateGeneratorDialog';
+import TemplateEditorSidebar from "./TemplateEditorSidebar";
+import TemplateCodeEditor from "./TemplateCodeEditor";
+import TemplateTestData from "./TemplateTestData";
+import TemplateActionButtons from "./TemplateActionButtons";
 
 const InvoiceTemplateEditor: React.FC = () => {
   const [templates, setTemplates] = useState<InvoiceTemplate[]>([]);
@@ -211,21 +208,6 @@ const InvoiceTemplateEditor: React.FC = () => {
     URL.revokeObjectURL(url);
   };
   
-  const getVariablesByCategory = () => {
-    const grouped: Record<string, TemplateVariable[]> = {};
-    
-    templateVariables.forEach(variable => {
-      if (!grouped[variable.category]) {
-        grouped[variable.category] = [];
-      }
-      grouped[variable.category].push(variable);
-    });
-    
-    return grouped;
-  };
-  
-  const variablesByCategory = getVariablesByCategory();
-  
   const handleTemplateGenerated = (generatedTemplate: string) => {
     setTemplateContent(generatedTemplate);
     toast.success("AI template loaded into editor. Review and save it.");
@@ -255,149 +237,29 @@ const InvoiceTemplateEditor: React.FC = () => {
         <CardContent className="space-y-6 pt-4">
           <TabsContent value="editor" className="space-y-6 mt-0">
             <div className="flex flex-col md:flex-row justify-between gap-4">
-              <div className="space-y-4 w-full md:w-1/3">
-                <div className="space-y-2">
-                  <Label htmlFor="template-select">Select Template</Label>
-                  <Select value={selectedTemplateId} onValueChange={selectTemplate}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a template" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templates.map(t => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name} {t.isDefault && <Badge variant="outline" className="ml-2">Default</Badge>}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="template-name">Template Name</Label>
-                  <Input
-                    id="template-name"
-                    value={templateName}
-                    onChange={(e) => setTemplateName(e.target.value)}
-                    placeholder="Enter template name"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="template-description">Description</Label>
-                  <Input
-                    id="template-description"
-                    value={templateDescription}
-                    onChange={(e) => setTemplateDescription(e.target.value)}
-                    placeholder="Enter template description"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="template-category">Category</Label>
-                  <Select value={templateCategory} onValueChange={setTemplateCategory}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {templateCategories.map(category => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button 
-                  variant="secondary" 
-                  className="w-full flex items-center justify-center gap-2"
-                  onClick={() => setIsAIDialogOpen(true)}
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Generate with AI
-                </Button>
-                
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Available Variables</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Info className="h-4 w-4" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <div className="space-y-2">
-                          <h4 className="font-medium">Using Variables</h4>
-                          <p className="text-sm text-muted-foreground">
-                            Click on a variable to insert it into your template. Variables will be replaced with actual data when generating invoices.
-                          </p>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {Object.entries(variablesByCategory).map(([category, variables]) => (
-                      <div key={category} className="space-y-1">
-                        <div className="text-sm font-medium capitalize">{category}</div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {variables.map(variable => (
-                            <Button 
-                              key={variable.id}
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => insertVariable(variable)}
-                              className="justify-start text-xs overflow-hidden text-ellipsis whitespace-nowrap"
-                              title={variable.description}
-                            >
-                              {variable.name}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+              <TemplateEditorSidebar 
+                templates={templates}
+                selectedTemplateId={selectedTemplateId}
+                templateName={templateName}
+                templateDescription={templateDescription}
+                templateCategory={templateCategory}
+                templateVariables={templateVariables}
+                onSelectTemplate={selectTemplate}
+                onNameChange={setTemplateName}
+                onDescriptionChange={setTemplateDescription}
+                onCategoryChange={setTemplateCategory}
+                onInsertVariable={insertVariable}
+                onOpenAIDialog={() => setIsAIDialogOpen(true)}
+              />
               
-              <div className="w-full md:w-2/3 space-y-2">
-                <div className="flex justify-between items-center">
-                  <Label htmlFor="template-content">Template HTML</Label>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => setEditMode(editMode === "code" ? "preview" : "code")}
-                      className="text-xs"
-                    >
-                      {editMode === "preview" ? (
-                        <>Edit <Eye className="ml-1 h-3 w-3" /></>
-                      ) : (
-                        <>Preview <Eye className="ml-1 h-3 w-3" /></>
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={exportTemplateAsHtml}
-                      className="text-xs"
-                    >
-                      <Download className="mr-1 h-3 w-3" /> Export HTML
-                    </Button>
-                  </div>
-                </div>
-                
-                {editMode === "code" ? (
-                  <Textarea
-                    id="template-content"
-                    value={templateContent}
-                    onChange={(e) => setTemplateContent(e.target.value)}
-                    placeholder="Enter your invoice template HTML here..."
-                    className="min-h-[500px] font-mono text-sm"
-                  />
-                ) : (
-                  <TemplatePreview html={generatePreviewHtml()} className="min-h-[500px]" />
-                )}
-              </div>
+              <TemplateCodeEditor 
+                templateContent={templateContent}
+                editMode={editMode}
+                onContentChange={setTemplateContent}
+                onEditModeChange={setEditMode}
+                onExportTemplate={exportTemplateAsHtml}
+                generatePreviewHtml={generatePreviewHtml}
+              />
             </div>
           </TabsContent>
           
@@ -408,67 +270,24 @@ const InvoiceTemplateEditor: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="data" className="mt-0">
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {templateVariables.map(variable => (
-                  <div key={variable.id} className="space-y-1">
-                    <Label htmlFor={`var-${variable.id}`} className="text-sm">
-                      {variable.description}
-                    </Label>
-                    <Input
-                      id={`var-${variable.id}`}
-                      value={previewData[variable.id] || variable.defaultValue}
-                      onChange={(e) => setPreviewData({ ...previewData, [variable.id]: e.target.value })}
-                      placeholder={variable.description}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <TemplateTestData 
+              templateVariables={templateVariables}
+              previewData={previewData}
+              onPreviewDataChange={setPreviewData}
+            />
           </TabsContent>
         </CardContent>
       </Tabs>
       
-      <CardFooter className="flex justify-between pt-2 flex-wrap gap-2">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleCreateTemplate}
-            className="flex gap-1 items-center"
-          >
-            <Plus className="h-4 w-4" /> New
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDuplicateTemplate}
-            className="flex gap-1 items-center"
-          >
-            <Copy className="h-4 w-4" /> Duplicate
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDeleteTemplate}
-            disabled={templates.length <= 1 || loading}
-            className="flex gap-1 items-center text-red-500 hover:text-red-600"
-          >
-            <Trash2 className="h-4 w-4" /> Delete
-          </Button>
-        </div>
-        
-        <Button
-          onClick={handleSaveTemplate}
-          disabled={loading}
-          className="flex gap-1 items-center"
-        >
-          {loading ? "Saving..." : (
-            <>
-              <Save className="h-4 w-4" /> Save Template
-            </>
-          )}
-        </Button>
+      <CardFooter>
+        <TemplateActionButtons 
+          onCreateTemplate={handleCreateTemplate}
+          onDuplicateTemplate={handleDuplicateTemplate}
+          onDeleteTemplate={handleDeleteTemplate}
+          onSaveTemplate={handleSaveTemplate}
+          loading={loading}
+          templatesCount={templates.length}
+        />
       </CardFooter>
 
       <AITemplateGeneratorDialog 
