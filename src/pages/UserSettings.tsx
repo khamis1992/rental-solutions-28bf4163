@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next"; // Added import for translations
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -20,9 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"; // Added proper import
 
 const UserSettings = () => {
   const { user, signOut } = useAuth();
+  const { t } = useTranslation(); // Added translation hook
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -73,9 +76,9 @@ const UserSettings = () => {
         <div className="md:col-span-3">
           <Tabs defaultValue="profile" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="security">Security</TabsTrigger>
-              <TabsTrigger value="preferences">Preferences</TabsTrigger>
+              <TabsTrigger value="profile">{t('common.profile')}</TabsTrigger>
+              <TabsTrigger value="security">{t('common.security')}</TabsTrigger>
+              <TabsTrigger value="preferences">{t('common.preferences')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="space-y-4 mt-4">
@@ -85,16 +88,16 @@ const UserSettings = () => {
             <TabsContent value="security" className="space-y-4 mt-4">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Security Settings</h3>
+                  <h3 className="text-lg font-medium">{t('settings.securitySettings')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Manage your account security and authentication preferences
+                    {t('settings.manageSecuritySettings')}
                   </p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h4 className="font-medium">Password</h4>
+                      <h4 className="font-medium">{t('settings.changePassword')}</h4>
                       <p className="text-sm text-muted-foreground">
                         Change your account password
                       </p>
@@ -104,11 +107,11 @@ const UserSettings = () => {
                       onOpenChange={setIsChangePasswordOpen}
                     >
                       <DialogTrigger asChild>
-                        <Button variant="outline">Change password</Button>
+                        <Button variant="outline">{t('settings.changePassword')}</Button>
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Change password</DialogTitle>
+                          <DialogTitle>{t('settings.changePassword')}</DialogTitle>
                           <DialogDescription>
                             Enter your current password and new password below.
                           </DialogDescription>
@@ -163,13 +166,13 @@ const UserSettings = () => {
 
                   <div className="flex justify-between items-center">
                     <div>
-                      <h4 className="font-medium">Sign Out</h4>
+                      <h4 className="font-medium">{t('common.signOut')}</h4>
                       <p className="text-sm text-muted-foreground">
                         Sign out from your account
                       </p>
                     </div>
                     <Button variant="destructive" onClick={signOut}>
-                      Sign out
+                      {t('common.signOut')}
                     </Button>
                   </div>
                 </div>
@@ -179,9 +182,9 @@ const UserSettings = () => {
             <TabsContent value="preferences" className="space-y-4 mt-4">
               <div className="grid gap-4">
                 <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Preferences</h3>
+                  <h3 className="text-lg font-medium">{t('settings.preferences')}</h3>
                   <p className="text-sm text-muted-foreground">
-                    Customize your account preferences and notification settings
+                    {t('settings.customizePreferences')}
                   </p>
                 </div>
 
