@@ -5,6 +5,10 @@ import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { format, differenceInMonths } from 'date-fns';
 
+const toArabicNumerals = (str: string): string => {
+  return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+};
+
 export const generatePdfDocument = async (agreement: Agreement, language = 'english'): Promise<boolean> => {
   try {
     if (language === 'both') {
@@ -184,15 +188,20 @@ const generateArabicPdf = async (agreement: Agreement): Promise<boolean> => {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
+      putOnlyUsedFonts: true
     });
     
-    // Add the Arabic font
-    // Note: In a real implementation, you'd need to add proper Arabic font support
-    // We're using the default font for demonstration
+    // Add Amiri font for Arabic text
+    doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7aRnpd8CGxBHpUrtLMA7w.ttf', 'Amiri', 'normal');
+    doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7acnpd8CGxBHp2VkZY4xA.ttf', 'Amiri', 'bold');
     
-    // Enable right-to-left text direction
+    // Set default font
+    doc.setFont('Amiri');
+    
+    // Enable right-to-left text direction and UTF-8 encoding
     doc.setR2L(true);
+    doc.setLanguage("ar");
     
     // Format dates
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
@@ -218,8 +227,18 @@ const generateArabicPdf = async (agreement: Agreement): Promise<boolean> => {
     
     // Add contract introduction - Arabic translation
     const formattedDate = formatDate(startDate);
-    doc.text(`تم إبرام وتنفيذ اتفاقية إيجار السيارة هذه ("الاتفاقية") بتاريخ ${formattedDate}.`, rightMargin, y, { align: 'right' });
-    y += lineHeight * 2;
+    // Convert numbers to Arabic numerals
+    const arabicDate = formattedDate.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    
+    // Add text with proper spacing and line breaks
+    const text = `تم إبرام وتنفيذ اتفاقية إيجار السيارة هذه ("الاتفاقية") بتاريخ ${arabicDate}`;
+    const lines = doc.splitTextToSize(text, 170);
+    doc.text(lines, rightMargin, y, { 
+      align: 'right',
+      maxWidth: 170,
+      lineHeightFactor: 1.5
+    });
+    y += lines.length * lineHeight * 1.5;
     
     // Customer and vehicle information
     const customerName = agreement.customers?.full_name || 'غير متوفر';
