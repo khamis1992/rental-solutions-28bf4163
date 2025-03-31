@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -16,6 +17,7 @@ import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -40,6 +42,8 @@ export function AgreementDetail({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isLanguageDialogOpen, setIsLanguageDialogOpen] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState('english');
   const [lateFeeDetails, setLateFeeDetails] = useState<{
     amount: number;
     daysLate: number;
@@ -84,12 +88,16 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  const handleDownloadPdf = useCallback(async () => {
+  const handleDownloadPdf = useCallback(() => {
+    setIsLanguageDialogOpen(true);
+  }, []);
+
+  const generatePdf = useCallback(async () => {
     if (agreement) {
       try {
         setIsGeneratingPdf(true);
-        toast.info("Preparing agreement PDF document...");
-        const success = await generatePdfDocument(agreement);
+        toast.info(`Preparing agreement PDF document in ${selectedLanguage}...`);
+        const success = await generatePdfDocument(agreement, selectedLanguage);
         if (success) {
           toast.success("Agreement PDF downloaded successfully");
         } else {
@@ -100,9 +108,10 @@ export function AgreementDetail({
         toast.error("Failed to generate PDF");
       } finally {
         setIsGeneratingPdf(false);
+        setIsLanguageDialogOpen(false);
       }
     }
-  }, [agreement]);
+  }, [agreement, selectedLanguage]);
 
   const handleRecordPayment = useCallback(() => {
     setIsPaymentDialogOpen(true);
@@ -366,6 +375,35 @@ export function AgreementDetail({
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isLanguageDialogOpen} onOpenChange={setIsLanguageDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Document Language</DialogTitle>
+            <DialogDescription>
+              Choose the language for your agreement document
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="english">English</SelectItem>
+                <SelectItem value="arabic">Arabic</SelectItem>
+                <SelectItem value="both">English & Arabic (Bilingual)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsLanguageDialogOpen(false)}>Cancel</Button>
+            <Button variant="default" onClick={generatePdf} disabled={isGeneratingPdf}>
+              {isGeneratingPdf ? 'Generating...' : 'Download'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
