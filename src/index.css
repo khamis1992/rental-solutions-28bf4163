@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -47,6 +46,9 @@
     --sidebar-ring: 221 83% 53%;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
   * {
     @apply border-border;
   }
@@ -78,11 +80,24 @@
 @layer components {
   /* Glass effect components */
   .glass-panel {
-    @apply bg-white/80 backdrop-blur-glass shadow-glass border border-white/20 rounded-lg;
+    @apply bg-white/70 backdrop-blur-xl shadow-glass border border-white/30 rounded-lg;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
   }
-  
+
   .glass-card {
-    @apply bg-white/90 backdrop-blur-sm shadow-card border border-border/50 rounded-lg transition-all duration-300 hover:shadow-lg;
+    @apply bg-white/80 backdrop-blur-md shadow-card border border-border/40 rounded-lg transition-all duration-300;
+    &:hover {
+      @apply shadow-xl transform -translate-y-1;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+  }
+
+  .glass-button {
+    @apply bg-white/90 hover:bg-white/95 backdrop-blur-sm shadow-button rounded-lg px-4 py-2 transition-all duration-200;
+    &:hover {
+      @apply transform -translate-y-0.5;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    }
   }
 
   /* Animated transitions */
