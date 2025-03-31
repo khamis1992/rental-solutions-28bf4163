@@ -98,9 +98,10 @@ function App() {
                   path="/*"
                   element={
                     <ProtectedRoute>
-                      <>
+                      <div className="flex flex-col md:flex-row min-h-screen">
                         <Sidebar />
-                        <Routes>
+                        <main className="flex-1 p-4 md:p-6 w-full">
+                          <Routes>
                           <Route path="/dashboard" element={<Dashboard />} />
                           
                           {/* Vehicle Management Routes */}
