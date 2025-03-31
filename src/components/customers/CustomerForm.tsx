@@ -52,8 +52,9 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
   });
 
   // Update form when initialData changes or becomes available
+  // This effect should only run when initialData changes, and only once for initialization
   useEffect(() => {
-    if (initialData && Object.keys(initialData).length > 0) {
+    if (initialData && Object.keys(initialData).length > 0 && !formInitialized.current) {
       // Ensure all values are strings and not null/undefined
       const safeInitialData: Partial<Customer> = {
         full_name: initialData.full_name || "",

@@ -18,6 +18,8 @@ const EditCustomer = () => {
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempts, setFetchAttempts] = useState(0);
 
+  // Use a stable reference to id to prevent useCallback from recreating
+  // the fetchCustomerData function on every render
   const fetchCustomerData = useCallback(async () => {
     if (!id) {
       setError("Customer ID not provided");
@@ -50,20 +52,24 @@ const EditCustomer = () => {
     }
   }, [id, getCustomer, fetchAttempts]);
 
+  // Only fetch data once on initial mount
   useEffect(() => {
-    fetchCustomerData();
-  }, [fetchCustomerData]);
+    // Only fetch if we don't already have the customer data
+    if (!customer) {
+      fetchCustomerData();
+    }
+  }, [fetchCustomerData, customer]);
 
   // If first attempt fails, try once more after a delay
   useEffect(() => {
-    if (error && fetchAttempts < 1) {
+    if (error && fetchAttempts < 1 && !customer) {
       const retryTimer = setTimeout(() => {
         setFetchAttempts(prev => prev + 1);
       }, 1000);
       
       return () => clearTimeout(retryTimer);
     }
-  }, [error, fetchAttempts]);
+  }, [error, fetchAttempts, customer]);
 
   const handleSubmit = async (data: Customer) => {
     if (!id) return;
