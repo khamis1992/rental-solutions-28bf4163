@@ -1,3 +1,4 @@
+
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from "@/integrations/supabase/client";
 
@@ -189,22 +190,22 @@ export const saveTemplate = async (template: InvoiceTemplate): Promise<InvoiceTe
     // Generate a proper UUID instead of using a timestamp-based ID
     const templateId = template.id || uuidv4();
     
+    // Convert variables array to JSON string for storage
+    const templateData = {
+      id: templateId,
+      name: template.name,
+      description: template.description,
+      content: template.content,
+      category: template.category,
+      variables: JSON.stringify(template.variables || defaultVariables),
+      is_default: template.isDefault || false,
+      updated_at: new Date().toISOString(),
+      created_at: template.created_at || new Date().toISOString()
+    };
+    
     const { data, error } = await supabase
       .from('invoice_templates')
-      .upsert(
-        {
-          id: templateId,
-          name: template.name,
-          description: template.description,
-          content: template.content,
-          category: template.category,
-          variables: template.variables || defaultVariables,
-          is_default: template.isDefault || false,
-          updated_at: new Date().toISOString(),
-          created_at: template.created_at || new Date().toISOString()
-        },
-        { onConflict: 'id' }
-      )
+      .upsert(templateData, { onConflict: 'id' })
       .select()
       .single();
 
@@ -220,7 +221,7 @@ export const saveTemplate = async (template: InvoiceTemplate): Promise<InvoiceTe
       description: data.description,
       content: data.content,
       category: data.category,
-      variables: data.variables || defaultVariables,
+      variables: JSON.parse(data.variables) || defaultVariables,
       isDefault: data.is_default || false,
       created_at: data.created_at,
       updated_at: data.updated_at
@@ -254,7 +255,7 @@ export const fetchTemplates = async (): Promise<InvoiceTemplate[]> => {
       description: template.description,
       content: template.content,
       category: template.category,
-      variables: template.variables || defaultVariables,
+      variables: template.variables ? JSON.parse(template.variables) : defaultVariables,
       isDefault: template.is_default || false,
       created_at: template.created_at,
       updated_at: template.updated_at
@@ -299,33 +300,41 @@ export const initializeTemplates = async (): Promise<void> => {
     // If no templates exist, create default ones
     if (!existingTemplates || existingTemplates.length === 0) {
       console.log("No templates found, creating defaults");
-      const defaultInvoiceTemplate: InvoiceTemplate = {
-        id: uuidv4(), // Use UUID instead of timestamp
+      
+      const defaultInvoiceTemplate = {
+        id: uuidv4(),
         name: "Standard Invoice",
         description: "Default invoice template",
         category: "invoice",
         content: getDefaultTemplate('invoice'),
-        variables: defaultVariables,
-        isDefault: true,
+        variables: JSON.stringify(defaultVariables),
+        is_default: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
-      const defaultReceiptTemplate: InvoiceTemplate = {
-        id: uuidv4(), // Use UUID instead of timestamp
+      const defaultReceiptTemplate = {
+        id: uuidv4(),
         name: "Standard Receipt",
         description: "Default receipt template",
         category: "receipt",
         content: getDefaultTemplate('receipt'),
-        variables: defaultVariables,
-        isDefault: true,
+        variables: JSON.stringify(defaultVariables),
+        is_default: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
 
       // Save default templates
-      await saveTemplate(defaultInvoiceTemplate);
-      await saveTemplate(defaultReceiptTemplate);
+      const { error: saveError } = await supabase
+        .from('invoice_templates')
+        .insert([defaultInvoiceTemplate, defaultReceiptTemplate]);
+
+      if (saveError) {
+        console.error("Error creating default templates:", saveError);
+        throw new Error(`Failed to create default templates: ${saveError.message}`);
+      }
+      
       console.log("Default templates created");
     } else {
       console.log("Templates already exist, skipping initialization");

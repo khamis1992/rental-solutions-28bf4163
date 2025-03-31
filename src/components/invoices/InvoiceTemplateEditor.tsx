@@ -20,6 +20,7 @@ import TemplateEditorSidebar from "./TemplateEditorSidebar";
 import TemplateCodeEditor from "./TemplateCodeEditor";
 import TemplateTestData from "./TemplateTestData";
 import TemplateActionButtons from "./TemplateActionButtons";
+import AITemplateGeneratorDialog from './AITemplateGeneratorDialog';
 
 const InvoiceTemplateEditor: React.FC = () => {
   const [templates, setTemplates] = useState<InvoiceTemplate[]>([]);
@@ -33,6 +34,7 @@ const InvoiceTemplateEditor: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>("editor");
   const [editMode, setEditMode] = useState<"code" | "preview">("code");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isAIDialogOpen, setIsAIDialogOpen] = useState<boolean>(false);
 
   // Load templates on component mount
   useEffect(() => {
@@ -68,9 +70,16 @@ const InvoiceTemplateEditor: React.FC = () => {
     setPreviewData({});
   };
 
+  const handleSelectTemplate = (templateId: string) => {
+    const template = templates.find(t => t.id === templateId);
+    if (template) {
+      selectTemplate(template);
+    }
+  };
+
   const handleCreateTemplate = () => {
     const newTemplate: InvoiceTemplate = {
-      id: uuidv4(), // Use UUID instead of timestamp
+      id: uuidv4(),
       name: "New Template",
       description: "New template description",
       category: "invoice",
@@ -91,7 +100,7 @@ const InvoiceTemplateEditor: React.FC = () => {
 
     const duplicateTemplate: InvoiceTemplate = {
       ...selectedTemplate,
-      id: uuidv4(), // Use UUID instead of timestamp
+      id: uuidv4(),
       name: `${selectedTemplate.name} (Copy)`,
       isDefault: false,
       updated_at: new Date().toISOString()
@@ -182,6 +191,15 @@ const InvoiceTemplateEditor: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleTemplateGenerated = (generatedTemplate: string) => {
+    console.log("Generated template:", generatedTemplate);
+    setTemplateContent(generatedTemplate);
+    // Set edit mode to preview so user can immediately see the result
+    setEditMode("preview");
+    setActiveTab("editor");
+    toast.success("AI template loaded into editor. Review and save it.");
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -208,16 +226,17 @@ const InvoiceTemplateEditor: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between gap-4">
               <TemplateEditorSidebar 
                 templates={templates}
-                selectedTemplate={selectedTemplate}
+                selectedTemplateId={selectedTemplate?.id || ""}
                 templateName={templateName}
                 templateDescription={templateDescription}
                 templateCategory={templateCategory}
                 templateVariables={templateVariables}
-                onTemplateSelect={selectTemplate}
+                onTemplateSelect={handleSelectTemplate}
                 onNameChange={setTemplateName}
                 onDescriptionChange={setTemplateDescription}
                 onCategoryChange={setTemplateCategory}
                 onInsertVariable={insertVariable}
+                onOpenAIDialog={() => setIsAIDialogOpen(true)}
               />
               
               <TemplateCodeEditor 
@@ -257,6 +276,14 @@ const InvoiceTemplateEditor: React.FC = () => {
           templatesCount={templates.length}
         />
       </CardFooter>
+
+      <AITemplateGeneratorDialog 
+        open={isAIDialogOpen}
+        onOpenChange={setIsAIDialogOpen}
+        onTemplateGenerated={handleTemplateGenerated}
+        variables={templateVariables}
+        templateType={templateCategory}
+      />
     </Card>
   );
 };

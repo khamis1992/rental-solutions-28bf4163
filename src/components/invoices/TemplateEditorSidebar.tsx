@@ -20,7 +20,7 @@ interface TemplateEditorSidebarProps {
   templateDescription: string;
   templateCategory: string;
   templateVariables: TemplateVariable[];
-  onSelectTemplate: (templateId: string) => void;
+  onTemplateSelect: (templateId: string) => void;
   onNameChange: (name: string) => void;
   onDescriptionChange: (desc: string) => void;
   onCategoryChange: (category: string) => void;
@@ -35,33 +35,39 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
   templateDescription,
   templateCategory,
   templateVariables,
-  onSelectTemplate,
+  onTemplateSelect,
   onNameChange,
   onDescriptionChange,
   onCategoryChange,
   onInsertVariable,
   onOpenAIDialog
 }) => {
-  const getVariablesByCategory = () => {
+  // Group variables by type for better organization
+  const groupVariablesByType = () => {
     const grouped: Record<string, TemplateVariable[]> = {};
     
     templateVariables.forEach(variable => {
-      if (!grouped[variable.category]) {
-        grouped[variable.category] = [];
+      const type = variable.id.includes('company') ? 'Company' :
+                   variable.id.includes('client') ? 'Client' :
+                   variable.id.includes('invoice') ? 'Invoice' :
+                   variable.id.includes('item') ? 'Items' : 'Other';
+      
+      if (!grouped[type]) {
+        grouped[type] = [];
       }
-      grouped[variable.category].push(variable);
+      grouped[type].push(variable);
     });
     
     return grouped;
   };
 
-  const variablesByCategory = getVariablesByCategory();
+  const variablesByType = groupVariablesByType();
 
   return (
     <div className="space-y-4 w-full md:w-1/3">
       <div className="space-y-2">
         <Label htmlFor="template-select">Select Template</Label>
-        <Select value={selectedTemplateId} onValueChange={onSelectTemplate}>
+        <Select value={selectedTemplateId} onValueChange={onTemplateSelect}>
           <SelectTrigger>
             <SelectValue placeholder="Select a template" />
           </SelectTrigger>
@@ -103,7 +109,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
           </SelectTrigger>
           <SelectContent>
             {templateCategories.map(category => (
-              <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+              <SelectItem key={category.value} value={category.value}>{category.label}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -139,9 +145,9 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
         </div>
         
         <div className="space-y-2">
-          {Object.entries(variablesByCategory).map(([category, variables]) => (
-            <div key={category} className="space-y-1">
-              <div className="text-sm font-medium capitalize">{category}</div>
+          {Object.entries(variablesByType).map(([type, variables]) => (
+            <div key={type} className="space-y-1">
+              <div className="text-sm font-medium capitalize">{type}</div>
               <div className="grid grid-cols-2 gap-2">
                 {variables.map(variable => (
                   <Button 
