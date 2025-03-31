@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { useTranslation } from "react-i18next"; // Added import for translations
+import { useTranslation } from "react-i18next";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -21,11 +21,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher"; // Added proper import
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 const UserSettings = () => {
   const { user, signOut } = useAuth();
-  const { t } = useTranslation(); // Added translation hook
+  const { t } = useTranslation();
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
