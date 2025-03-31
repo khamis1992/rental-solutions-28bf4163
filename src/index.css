@@ -22,6 +22,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
+
+/* RTL Support */
+[dir="rtl"] * {
+  letter-spacing: 0;
+}
+
+[dir="rtl"] .font-arabic {
+  font-family: "Noto Sans Arabic", sans-serif;
+}
 @tailwind components;
 @tailwind utilities;
 

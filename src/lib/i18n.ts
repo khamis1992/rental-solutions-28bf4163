@@ -17,7 +17,16 @@ i18n
     interpolation: {
       escapeValue: false
     },
-    supportedLngs: ['en', 'ar']
+    supportedLngs: ['en', 'ar'],
+    load: 'languageOnly',
+    detection: {
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage']
+    }
   });
+
+// Set initial direction
+document.documentElement.dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+document.documentElement.lang = i18n.language;
 
 export default i18n;
