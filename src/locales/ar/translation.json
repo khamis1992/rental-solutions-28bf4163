@@ -1,7 +1,13 @@
-
 {
   "common": {
+    "dashboard": "لوحة التحكم",
+    "vehicles": "المركبات",
+    "customers": "العملاء",
+    "agreements": "الاتفاقيات",
+    "maintenance": "الصيانة",
+    "reports": "التقارير",
     "settings": "الإعدادات",
+    "language": "اللغة",
     "profile": "الملف الشخصي",
     "security": "الأمان",
     "preferences": "التفضيلات",
@@ -18,10 +24,20 @@
   },
   "auth": {
     "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "profile": "الملف الشخصي",
     "register": "تسجيل",
     "forgotPassword": "نسيت كلمة المرور",
     "email": "البريد الإلكتروني",
     "password": "كلمة المرور"
+  },
+  "actions": {
+    "add": "إضافة",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "search": "بحث"
   },
   "vehicles": {
     "title": "المركبات",

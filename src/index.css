@@ -1,4 +1,3 @@
-
 :root[dir="rtl"] {
   direction: rtl;
   text-align: right;
@@ -24,6 +23,19 @@
 @tailwind base;
 
 /* RTL Support */
+html[dir="rtl"] * {
+  font-family: "Noto Sans Arabic", sans-serif;
+}
+
+html[dir="rtl"] input,
+html[dir="rtl"] textarea {
+  text-align: right;
+}
+
+html[dir="rtl"] .ltr {
+  direction: ltr;
+}
+
 [dir="rtl"] * {
   letter-spacing: 0;
 }
@@ -109,7 +121,7 @@
   .glass-panel {
     @apply bg-white/80 backdrop-blur-glass shadow-glass border border-white/20 rounded-lg;
   }
-  
+
   .glass-card {
     @apply bg-white/90 backdrop-blur-sm shadow-card border border-border/50 rounded-lg transition-all duration-300 hover:shadow-lg;
   }

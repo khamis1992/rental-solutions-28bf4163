@@ -1,7 +1,13 @@
-
 {
   "common": {
+    "dashboard": "Dashboard",
+    "vehicles": "Vehicles",
+    "customers": "Customers",
+    "agreements": "Agreements",
+    "maintenance": "Maintenance",
+    "reports": "Reports",
     "settings": "Settings",
+    "language": "Language",
     "profile": "Profile",
     "security": "Security",
     "preferences": "Preferences",
@@ -18,10 +24,15 @@
   },
   "auth": {
     "login": "Login",
+    "logout": "Logout",
+    "profile": "Profile",
     "register": "Register",
     "forgotPassword": "Forgot Password",
     "email": "Email",
     "password": "Password"
+  },
+  "actions": {
+    "add": "Add"
   },
   "vehicles": {
     "title": "Vehicles",
