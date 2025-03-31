@@ -183,7 +183,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       console.log("Generating English content");
       // Title
       doc.setFontSize(18);
-      // FIXED: removed second parameter in setFont calls
+      // FIXED: Using proper setFont calls
       doc.setFont('helvetica', 'bold');
       doc.text('RENTAL AGREEMENT', 105, 20, { align: 'center' });
       doc.text(`Agreement #: ${agreement.agreement_number}`, 105, 30, { align: 'center' });
@@ -265,7 +265,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
           hasAmiriNormal 
         });
         
-        // FIXED: Properly set font without extra parameters
+        // FIXED: Properly set font
         if (hasAmiriBold) {
           doc.setFont('Amiri', 'bold');
           console.log("Using Amiri Bold font for Arabic content");
@@ -284,7 +284,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.setFontSize(12);
         doc.text('معلومات العميل', 190, 45, { align: 'right' });
         
-        // FIXED: Properly set font without extra parameters
+        // FIXED: Properly set font 
         if (hasAmiriNormal) {
           doc.setFont('Amiri', 'normal');
         } else {
