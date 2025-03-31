@@ -24,6 +24,10 @@ i18n
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
       lookupLocalStorage: 'preferredLanguage'
+    },
+    react: {
+      useSuspense: false, // This helps prevent issues during initial load
+      wait: true
     }
   });
 

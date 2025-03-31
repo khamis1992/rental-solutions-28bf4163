@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
 import { Button } from '@/components/ui/button';
 import { Globe } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface LanguageSwitcherProps {
   variant?: 'outline' | 'ghost' | 'default';
@@ -18,10 +19,29 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   position = 'fixed'
 }) => {
   const { t, changeLanguage, currentLanguage } = useTranslation();
+  const [language, setLanguage] = useState(currentLanguage);
 
-  const toggleLanguage = () => {
-    const newLang = currentLanguage === 'ar' ? 'en' : 'ar';
-    changeLanguage(newLang);
+  // Update state when language changes from outside this component
+  useEffect(() => {
+    setLanguage(currentLanguage);
+  }, [currentLanguage]);
+
+  // Update when the application language changes
+  useEffect(() => {
+    const handleLanguageChanged = () => {
+      setLanguage(document.documentElement.lang === 'ar' ? 'ar' : 'en');
+    };
+
+    window.addEventListener('language-changed', handleLanguageChanged);
+    return () => {
+      window.removeEventListener('language-changed', handleLanguageChanged);
+    };
+  }, []);
+
+  const toggleLanguage = async () => {
+    const newLang = language === 'ar' ? 'en' : 'ar';
+    setLanguage(newLang); // Update state immediately for responsiveness
+    await changeLanguage(newLang);
   };
 
   const positionClass = position === 'fixed' ? 'fixed bottom-4 right-4 z-50' : '';
@@ -34,7 +54,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       aria-label={t('common.changeLanguage')}
     >
       <Globe className="h-4 w-4 mr-2" />
-      {showLabel && (currentLanguage === 'ar' ? 'English' : 'العربية')}
+      {showLabel && (language === 'ar' ? 'English' : 'العربية')}
     </Button>
   );
 };

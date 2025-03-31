@@ -5,16 +5,21 @@ import { useEffect } from 'react';
 export const useTranslation = () => {
   const { t, i18n } = useI18nTranslation();
   
-  const changeLanguage = (lang: 'en' | 'ar') => {
+  const changeLanguage = async (lang: 'en' | 'ar') => {
     // Save language preference to localStorage
     localStorage.setItem('preferredLanguage', lang);
     
     // Change language in i18n
-    i18n.changeLanguage(lang);
+    await i18n.changeLanguage(lang);
     
     // Update document direction
     document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = lang;
+
+    // Force a re-render by triggering a small timeout
+    setTimeout(() => {
+      window.dispatchEvent(new Event('language-changed'));
+    }, 0);
   };
 
   // Initialize language from localStorage if available
