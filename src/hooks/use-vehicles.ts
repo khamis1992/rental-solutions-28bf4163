@@ -242,7 +242,12 @@ export const useVehicles = () => {
             if (data.description !== undefined) vehicleData.description = data.description;
             if (data.location !== undefined) vehicleData.location = data.location;
             if (data.insurance_company !== undefined) vehicleData.insurance_company = data.insurance_company;
-            if (data.insurance_expiry !== undefined) vehicleData.insurance_expiry = data.insurance_expiry;
+            
+            // Handle insurance_expiry specifically to avoid empty string issues
+            if ('insurance_expiry' in data) {
+              vehicleData.insurance_expiry = data.insurance_expiry || null;
+            }
+            
             if (data.rent_amount !== undefined) vehicleData.rent_amount = data.rent_amount;
             
             if (data.vehicle_type_id !== undefined) {
@@ -250,6 +255,8 @@ export const useVehicles = () => {
             }
             
             if (imageUrl) vehicleData.image_url = imageUrl;
+            
+            console.log('Updating vehicle with data:', vehicleData);
             
             // Update the vehicle
             const { data: updatedVehicle, error } = await supabase
@@ -260,11 +267,13 @@ export const useVehicles = () => {
               .single();
               
             if (error) {
+              console.error('Supabase update error:', error);
               throw error;
             }
             
             return mapDatabaseRecordToVehicle(updatedVehicle);
           } catch (error) {
+            console.error('Update vehicle error details:', error);
             handleApiError(error, 'Failed to update vehicle');
             throw error;
           }
@@ -272,7 +281,6 @@ export const useVehicles = () => {
         onSuccess: (_, variables) => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.invalidateQueries({ queryKey: ['vehicles', variables.id] });
-          toast.success('Vehicle updated successfully');
         },
       });
     },

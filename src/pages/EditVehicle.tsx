@@ -89,13 +89,23 @@ const EditVehicle = () => {
         }
       }
       
+      // Process insurance_expiry to handle empty string (convert to null for the database)
+      if (formData.insurance_expiry === '') {
+        formData.insurance_expiry = null;
+      }
+      
+      // Make a safe copy of formData that won't cause type issues
+      const safeFormData = { ...formData };
+      
       updateVehicle(
-        { id, data: formData },
+        { id, data: safeFormData },
         {
           onSuccess: () => {
             navigate(`/vehicles/${id}`);
+            toast.success('Vehicle updated successfully');
           },
           onError: (error) => {
+            console.error('Update vehicle error:', error);
             toast.error('Failed to update vehicle', {
               description: error instanceof Error ? error.message : 'Unknown error occurred',
             });
