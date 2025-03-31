@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   ColumnDef, 
@@ -15,7 +15,6 @@ import {
 import { 
   MoreHorizontal, 
   FileText, 
-  Search, 
   FileCheck, 
   FileX, 
   FileClock, 
@@ -28,7 +27,6 @@ import {
   Info
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -63,7 +61,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
 
 interface SearchParams {
-  query?: string;
   status?: string;
 }
 
@@ -291,15 +288,6 @@ export function AgreementList() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">
-          <div className="relative w-full sm:w-[250px] md:w-[300px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
-            <Input
-              placeholder="Search agreements..."
-              value={searchParams.query || ''}
-              onChange={(e) => setSearchParams({...searchParams, query: e.target.value})}
-              className="h-9 pl-9 w-full"
-            />
-          </div>
           <Select
             value={searchParams.status || 'all'}
             onValueChange={(value) => setSearchParams({...searchParams, status: value})}
@@ -383,8 +371,8 @@ export function AgreementList() {
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
                     <p>
-                      {searchParams.query || (searchParams.status && searchParams.status !== 'all') ? 
-                        'Try adjusting your filters or search terms.' : 
+                      {searchParams.status && searchParams.status !== 'all' ? 
+                        'No agreements found with the selected status.' : 
                         'Add your first agreement using the button above.'}
                     </p>
                   </div>
