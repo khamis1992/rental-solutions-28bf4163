@@ -54,8 +54,33 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply bg-background text-foreground font-sans min-h-screen overflow-x-hidden;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    html {
+      font-size: 14px;
+    }
+
+    .glass-panel {
+      @apply px-4 py-3;
+    }
+
+    .glass-card {
+      @apply mx-2;
+    }
+
+    .container {
+      @apply px-4;
+    }
+
+    input, select, textarea {
+      @apply text-base;
+      font-size: 16px !important;
+    }
   }
 
   /* Custom scrollbar */
