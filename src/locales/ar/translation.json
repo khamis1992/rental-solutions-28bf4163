@@ -1,0 +1,27 @@
+
+{
+  "common": {
+    "settings": "الإعدادات",
+    "profile": "الملف الشخصي",
+    "security": "الأمان",
+    "preferences": "التفضيلات",
+    "signOut": "تسجيل الخروج"
+  },
+  "settings": {
+    "accountSettings": "إعدادات الحساب",
+    "manageAccount": "إدارة تفضيلات وإعدادات حسابك",
+    "securitySettings": "إعدادات الأمان",
+    "manageSecuritySettings": "إدارة تفضيلات الأمان والمصادقة لحسابك",
+    "changePassword": "تغيير كلمة المرور",
+    "preferences": "التفضيلات",
+    "customizePreferences": "تخصيص تفضيلات حسابك وإعدادات الإشعارات"
+  },
+  "notifications": {
+    "paymentReminders": "تذكيرات الدفع",
+    "reportNotifications": "إشعارات التقارير",
+    "documentExpiration": "انتهاء صلاحية المستندات",
+    "getNotifiedPayments": "احصل على إشعارات حول المدفوعات القادمة",
+    "getNotifiedReports": "احصل على إشعارات عند إنشاء التقارير",
+    "getNotifiedDocuments": "احصل على إشعارات حول المستندات منتهية الصلاحية"
+  }
+}

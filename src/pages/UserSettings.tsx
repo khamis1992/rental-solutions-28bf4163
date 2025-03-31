@@ -63,10 +63,11 @@ const UserSettings = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title="Account Settings"
-        description="Manage your account preferences and settings"
+        title={t('settings.accountSettings')}
+        description={t('settings.manageAccount')}
         icon={UserCog}
       />
+      <LanguageSwitcher />
 
       <div className="grid gap-6 md:grid-cols-12">
         <div className="md:col-span-3">

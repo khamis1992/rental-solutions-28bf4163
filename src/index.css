@@ -1,4 +1,24 @@
 
+:root[dir="rtl"] {
+  direction: rtl;
+  text-align: right;
+}
+
+:root[dir="rtl"] .flex {
+  flex-direction: row-reverse;
+}
+
+:root[dir="rtl"] .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+:root[dir="rtl"] .ml-2 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
