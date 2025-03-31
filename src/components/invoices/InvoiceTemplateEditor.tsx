@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText } from "lucide-react";
@@ -36,7 +35,6 @@ const InvoiceTemplateEditor: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAIDialogOpen, setIsAIDialogOpen] = useState<boolean>(false);
 
-  // Load templates on component mount
   useEffect(() => {
     loadTemplates();
   }, []);
@@ -66,7 +64,6 @@ const InvoiceTemplateEditor: React.FC = () => {
     setTemplateCategory(template.category);
     setTemplateContent(template.content);
     setTemplateVariables(template.variables || defaultVariables);
-    // Reset preview data when selecting a new template
     setPreviewData({});
   };
 
@@ -128,7 +125,6 @@ const InvoiceTemplateEditor: React.FC = () => {
 
       const savedTemplate = await saveTemplate(updatedTemplate);
       
-      // Update the templates list with the saved template
       setTemplates(templates.map(t => t.id === savedTemplate.id ? savedTemplate : t));
       setSelectedTemplate(savedTemplate);
       
@@ -148,15 +144,12 @@ const InvoiceTemplateEditor: React.FC = () => {
       setIsLoading(true);
       await deleteTemplate(selectedTemplate.id);
       
-      // Remove from templates list
       const updatedTemplates = templates.filter(t => t.id !== selectedTemplate.id);
       setTemplates(updatedTemplates);
       
-      // Select another template if available
       if (updatedTemplates.length > 0) {
         selectTemplate(updatedTemplates[0]);
       } else {
-        // No templates left, create a new one
         handleCreateTemplate();
       }
       
@@ -194,7 +187,6 @@ const InvoiceTemplateEditor: React.FC = () => {
   const handleTemplateGenerated = (generatedTemplate: string) => {
     console.log("Generated template:", generatedTemplate);
     setTemplateContent(generatedTemplate);
-    // Set edit mode to preview so user can immediately see the result
     setEditMode("preview");
     setActiveTab("editor");
     toast.success("AI template loaded into editor. Review and save it.");
