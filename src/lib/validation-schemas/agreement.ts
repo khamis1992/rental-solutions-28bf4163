@@ -54,6 +54,7 @@ export const agreementSchema = z.object({
   updated_at: z.date().optional(),
   total_amount: z.number(),
   deposit_amount: z.number().optional(),
+  rent_amount: z.number().optional(), // Added rent_amount field
   agreement_number: z.string(),
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false),

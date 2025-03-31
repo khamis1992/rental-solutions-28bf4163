@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { loadFontFile, arrayBufferToBase64, toArabicNumerals } from './fontUtils';
+import { supabase } from '@/lib/supabase';
 
 // Function to load the Amiri font for Arabic text
 async function loadArabicFont(doc: jsPDF): Promise<boolean> {
@@ -25,6 +26,79 @@ async function loadArabicFont(doc: jsPDF): Promise<boolean> {
   } catch (error) {
     console.error("Error loading Arabic fonts:", error);
     return false;
+  }
+}
+
+// Check if standard template exists
+export async function checkStandardTemplateExists(): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.storage
+      .from('agreements')
+      .list();
+      
+    if (error) {
+      console.error("Error checking template:", error);
+      return false;
+    }
+    
+    // Look for any of the standard template filenames
+    const templateNames = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
+    return data.some(file => templateNames.includes(file.name));
+  } catch (error) {
+    console.error("Error in checkStandardTemplateExists:", error);
+    return false;
+  }
+}
+
+// Template access diagnosis function
+export async function diagnosisTemplateAccess(): Promise<{
+  bucketExists: boolean;
+  templateExists: boolean;
+  errors: string[];
+}> {
+  const result = {
+    bucketExists: false,
+    templateExists: false,
+    errors: [] as string[]
+  };
+  
+  try {
+    // Check if the bucket exists
+    const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+    
+    if (bucketsError) {
+      result.errors.push(`Bucket error: ${bucketsError.message}`);
+      return result;
+    }
+    
+    result.bucketExists = buckets.some(bucket => bucket.name === 'agreements');
+    
+    if (!result.bucketExists) {
+      result.errors.push('Agreements bucket does not exist');
+      return result;
+    }
+    
+    // Check for template files
+    const { data: files, error: filesError } = await supabase.storage
+      .from('agreements')
+      .list();
+      
+    if (filesError) {
+      result.errors.push(`Files listing error: ${filesError.message}`);
+      return result;
+    }
+    
+    const templateNames = ['agreement_template.docx', 'agreement temp.docx', 'agreement_temp.docx'];
+    result.templateExists = files.some(file => templateNames.includes(file.name));
+    
+    if (!result.templateExists) {
+      result.errors.push('Template file not found in agreements bucket');
+    }
+    
+    return result;
+  } catch (error: any) {
+    result.errors.push(`Unexpected error: ${error.message}`);
+    return result;
   }
 }
 
@@ -85,6 +159,11 @@ export async function generatePdfDocument(agreement: Agreement, language: string
     const vehiclePlate = agreement.vehicles?.license_plate || 'N/A';
     const vehicleVin = agreement.vehicles?.vin || 'N/A';
     
+    // Handle rent amount safely
+    const rentAmount = agreement.rent_amount || 0;
+    const totalAmount = agreement.total_amount || 0;
+    const depositAmount = agreement.deposit_amount || 0;
+    
     // Generate English PDF
     if (language === 'english' || language === 'both') {
       // Title
@@ -125,9 +204,9 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       doc.setFont('helvetica', 'bold');
       doc.text('PAYMENT INFORMATION', 20, 165);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Monthly Rent: QAR ${agreement.rent_amount?.toLocaleString() || '0'}`, 20, 175);
-      doc.text(`Total Amount: QAR ${agreement.total_amount?.toLocaleString() || '0'}`, 20, 180);
-      doc.text(`Deposit Amount: QAR ${agreement.deposit_amount?.toLocaleString() || '0'}`, 20, 185);
+      doc.text(`Monthly Rent: QAR ${rentAmount.toLocaleString()}`, 20, 175);
+      doc.text(`Total Amount: QAR ${totalAmount.toLocaleString()}`, 20, 180);
+      doc.text(`Deposit Amount: QAR ${depositAmount.toLocaleString()}`, 20, 185);
       
       // Signatures
       doc.setFont('helvetica', 'bold');
@@ -195,9 +274,9 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       doc.setFont('Amiri', 'bold');
       doc.text('معلومات الدفع', 190, 165, { align: 'right' });
       doc.setFont('Amiri', 'normal');
-      doc.text(`الإيجار الشهري: ${toArabicNumerals((agreement.rent_amount || 0).toString())} ر.ق`, 190, 175, { align: 'right' });
-      doc.text(`المبلغ الإجمالي: ${toArabicNumerals((agreement.total_amount || 0).toString())} ر.ق`, 190, 180, { align: 'right' });
-      doc.text(`مبلغ التأمين: ${toArabicNumerals((agreement.deposit_amount || 0).toString())} ر.ق`, 190, 185, { align: 'right' });
+      doc.text(`الإيجار الشهري: ${toArabicNumerals(rentAmount.toString())} ر.ق`, 190, 175, { align: 'right' });
+      doc.text(`المبلغ الإجمالي: ${toArabicNumerals(totalAmount.toString())} ر.ق`, 190, 180, { align: 'right' });
+      doc.text(`مبلغ التأمين: ${toArabicNumerals(depositAmount.toString())} ر.ق`, 190, 185, { align: 'right' });
       
       // Signatures in Arabic
       doc.setFont('Amiri', 'bold');
