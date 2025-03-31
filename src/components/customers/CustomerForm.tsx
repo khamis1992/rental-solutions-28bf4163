@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 interface CustomerFormProps {
   initialData?: Customer;
@@ -34,7 +35,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
   
   const form = useForm<Customer>({
     resolver: zodResolver(customerSchema),
-    defaultValues: initialData || {
+    defaultValues: {
       full_name: "",
       email: "",
       phone: "",
@@ -43,8 +44,28 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
       nationality: "",
       notes: "",
       status: "active",
+      ...initialData
     },
   });
+
+  // Update form when initialData changes (e.g., after async fetch)
+  useEffect(() => {
+    if (initialData) {
+      console.log("Resetting form with initialData:", initialData);
+      
+      // This ensures we use the initialData once it's available
+      form.reset({
+        full_name: initialData.full_name || "",
+        email: initialData.email || "",
+        phone: initialData.phone || "",
+        address: initialData.address || "",
+        driver_license: initialData.driver_license || "",
+        nationality: initialData.nationality || "",
+        notes: initialData.notes || "",
+        status: initialData.status || "active",
+      });
+    }
+  }, [initialData, form]);
 
   return (
     <Form {...form}>
@@ -155,7 +176,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             <FormItem>
               <FormLabel>Address</FormLabel>
               <FormControl>
-                <Textarea placeholder="Customer's address" {...field} />
+                <Textarea placeholder="Customer's address" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -169,7 +190,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea placeholder="Additional notes about the customer" {...field} />
+                <Textarea placeholder="Additional notes about the customer" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
