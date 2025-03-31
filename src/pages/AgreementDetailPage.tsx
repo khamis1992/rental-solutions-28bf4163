@@ -11,6 +11,8 @@ import { useRentAmount } from '@/hooks/use-rent-amount';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePayments } from '@/hooks/use-payments';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +22,7 @@ const AgreementDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
 
   // Pass the agreement object directly and the ID as a fallback
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
@@ -72,6 +75,10 @@ const AgreementDetailPage = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
+  const handleGenerateDocument = () => {
+    setIsDocumentDialogOpen(true);
+  };
+
   return (
     <PageContainer
       title="Agreement Details"
@@ -88,14 +95,27 @@ const AgreementDetailPage = () => {
           </div>
         </div>
       ) : agreement ? (
-        <AgreementDetail 
-          agreement={agreement}
-          onDelete={handleDelete}
-          rentAmount={rentAmount}
-          contractAmount={contractAmount}
-          onPaymentDeleted={refreshAgreementData}
-          onDataRefresh={refreshAgreementData}
-        />
+        <>
+          <AgreementDetail 
+            agreement={agreement}
+            onDelete={handleDelete}
+            rentAmount={rentAmount}
+            contractAmount={contractAmount}
+            onPaymentDeleted={refreshAgreementData}
+            onDataRefresh={refreshAgreementData}
+            onGenerateDocument={handleGenerateDocument}
+          />
+          
+          <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
+            <DialogContent className="max-w-4xl">
+              <InvoiceGenerator 
+                recordType="agreement" 
+                recordId={agreement.id} 
+                onClose={() => setIsDocumentDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
+        </>
       ) : (
         <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">

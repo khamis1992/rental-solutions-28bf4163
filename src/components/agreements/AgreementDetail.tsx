@@ -24,6 +24,7 @@ interface AgreementDetailProps {
   contractAmount: number | null;
   onPaymentDeleted: () => void;
   onDataRefresh: () => void;
+  onGenerateDocument?: () => void;
 }
 
 export function AgreementDetail({
@@ -32,7 +33,8 @@ export function AgreementDetail({
   rentAmount,
   contractAmount,
   onPaymentDeleted,
-  onDataRefresh
+  onDataRefresh,
+  onGenerateDocument
 }: AgreementDetailProps) {
   const navigate = useNavigate();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -106,10 +108,12 @@ export function AgreementDetail({
   }, []);
 
   const handleGenerateDocument = useCallback(() => {
-    if (agreement) {
-      toast.info("Document generation functionality coming soon");
+    if (agreement && onGenerateDocument) {
+      onGenerateDocument();
+    } else {
+      toast.info("Document generation functionality is being configured");
     }
-  }, [agreement]);
+  }, [agreement, onGenerateDocument]);
 
   const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean) => {
     if (agreement && agreement.id) {
