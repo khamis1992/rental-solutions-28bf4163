@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -29,7 +28,8 @@ import {
   Info,
   X,
   Car,
-  Filter
+  Filter,
+  CircleAlert
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,6 +64,7 @@ import {
   PaginationLink
 } from "@/components/ui/pagination";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { isLicensePlatePattern } from '@/utils/searchUtils';
 
 interface SearchParams {
   query?: string;
@@ -89,11 +90,10 @@ export function AgreementList() {
   const [searchTip, setSearchTip] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [lastSearchAttempt, setLastSearchAttempt] = useState<string>('');
+  const [searchMode, setSearchMode] = useState<'all' | 'car'>('all');
   const navigate = useNavigate();
   
-  // Improved debounced search handling
   useEffect(() => {
-    // Only trigger search if query actually changed and has content
     if (searchQuery !== searchParams.query) {
       const handler = setTimeout(() => {
         setIsSearching(true);
@@ -105,31 +105,38 @@ export function AgreementList() {
     }
   }, [searchQuery]);
   
-  // Handle search completion and loading states
   useEffect(() => {
     if (isSearching && !isLoading) {
       setIsSearching(false);
     }
   }, [isLoading, agreements]);
   
-  // Show search tips when appropriate
   useEffect(() => {
-    // Only show tips for numeric/short searches with no results
+    const isLicensePlate = isLicensePlatePattern(searchQuery);
     const isNumericSearch = /^\d{2,}$/.test(searchQuery);
     const isShortSearch = searchQuery.length >= 2 && searchQuery.length <= 4;
     const hasNoResults = (!agreements || agreements.length === 0) && !isLoading;
-    const shouldShowTip = (isNumericSearch || isShortSearch) && hasNoResults && searchQuery === lastSearchAttempt;
+    
+    const shouldShowTip = ((isLicensePlate || isNumericSearch || isShortSearch) && 
+                          hasNoResults && 
+                          searchQuery === lastSearchAttempt) || 
+                          (searchMode === 'car' && hasNoResults && searchQuery.length > 0);
     
     setSearchTip(shouldShowTip);
     
     if (shouldShowTip) {
-      console.log(`Showing search tip for query: "${searchQuery}" (${isNumericSearch ? 'numeric' : 'short text'})`);
+      console.log(`Showing search tip for car number query: "${searchQuery}" 
+                  (${isLicensePlate ? 'license plate' : isNumericSearch ? 'numeric' : 'short text'})`);
     }
-  }, [searchQuery, agreements, isLoading, lastSearchAttempt]);
+  }, [searchQuery, agreements, isLoading, lastSearchAttempt, searchMode]);
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
+    
+    if (value.length > 2 && isLicensePlatePattern(value)) {
+      setSearchMode('car');
+    }
   };
   
   const handleClearSearch = () => {
@@ -138,10 +145,8 @@ export function AgreementList() {
     setSearchParams({...searchParams, query: ''});
   };
   
-  // Try alternative search approach
   const handleTryAlternativeSearch = () => {
     if (searchQuery.length > 2) {
-      // Try with fewer digits for numeric searches or shortened text
       const shorterQuery = searchQuery.substring(0, Math.ceil(searchQuery.length/2));
       setSearchQuery(shorterQuery);
     }
@@ -353,60 +358,105 @@ export function AgreementList() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center w-full sm:w-auto space-x-2">
-          <div className="relative w-full sm:w-[250px] md:w-[300px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="relative">
-                    <Input
-                      placeholder="Search by agreement #, customer, or vehicle..."
-                      value={searchQuery}
-                      onChange={handleSearchInputChange}
-                      className="h-9 pl-9 pr-8 w-full"
-                    />
-                    {searchQuery && (
-                      <button 
-                        onClick={handleClearSearch}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-4 w-4" />
-                        <span className="sr-only">Clear search</span>
-                      </button>
-                    )}
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="max-w-xs p-4">
-                  <p className="font-semibold">Search Examples:</p>
-                  <ul className="list-disc pl-4 mt-2 space-y-1.5">
-                    <li><strong>Agreement numbers:</strong> "MR202462", "AGR-202502"</li>
-                    <li><strong>Vehicle numbers:</strong> Just type the numeric part (e.g., "7042", "704")</li>
-                    <li><strong>License plates:</strong> Full plate with or without formatting</li>
-                    <li><strong>Customer names, vehicle make/model</strong></li>
-                  </ul>
-                  <p className="mt-2 text-sm text-muted-foreground">Tip: For partial vehicle numbers, try entering just 2-4 digits (e.g., "70" instead of full "7042")</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+        <div className="flex flex-col w-full sm:w-auto space-y-2">
+          <div className="flex items-center w-full sm:w-auto space-x-2">
+            <div className="relative w-full sm:w-[320px] md:w-[350px]">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center">
+                <Search className="h-4 w-4 opacity-50 mr-1" />
+                {searchMode === 'car' && <Car className="h-3.5 w-3.5 text-primary" />}
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="relative">
+                      <Input
+                        placeholder={searchMode === 'car' 
+                          ? "Search by car number/license plate..." 
+                          : "Search agreements, customers, cars..."}
+                        value={searchQuery}
+                        onChange={handleSearchInputChange}
+                        className="h-9 pl-10 pr-8 w-full"
+                      />
+                      {searchQuery && (
+                        <button 
+                          onClick={handleClearSearch}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Clear search</span>
+                        </button>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs p-4">
+                    <p className="font-semibold">Search Tips:</p>
+                    <ul className="list-disc pl-4 mt-2 space-y-1.5">
+                      <li><strong>Car Numbers:</strong> Enter full or partial license plate</li>
+                      <li><strong>Format-free:</strong> Spaces and special characters are ignored</li>
+                      <li><strong>Partial Match:</strong> Just the numeric part often works</li>
+                    </ul>
+                    <p className="mt-2 text-sm text-muted-foreground italic">Click 'Car' mode button for focused license plate search</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            
+            <div className="flex space-x-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant={searchMode === 'car' ? "default" : "outline"} 
+                      size="sm"
+                      onClick={() => {
+                        setSearchMode(searchMode === 'car' ? 'all' : 'car');
+                        if (searchQuery) {
+                          setIsSearching(true);
+                          setLastSearchAttempt(searchQuery);
+                          setSearchParams({...searchParams, query: searchQuery});
+                        }
+                      }}
+                      className="flex items-center gap-1"
+                    >
+                      <Car className="h-4 w-4" /> 
+                      <span className="hidden md:inline">Car Search</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {searchMode === 'car' 
+                      ? "Currently searching by license plate/car number only" 
+                      : "Switch to car number search mode"}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              
+              <Select
+                value={searchParams.status || 'all'}
+                onValueChange={(value) => setSearchParams({...searchParams, status: value})}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
+                  <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
+                  <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
+                  <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
+                  <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <Select
-            value={searchParams.status || 'all'}
-            onValueChange={(value) => setSearchParams({...searchParams, status: value})}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
-              <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
-              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
-              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+          
+          {searchMode === 'car' && searchQuery.length > 0 && (
+            <div className="text-sm flex items-center text-muted-foreground ml-2">
+              <CircleAlert className="h-3.5 w-3.5 mr-1.5 text-amber-500" />
+              <span>Searching for cars with license plate containing "<span className="font-medium">{searchQuery}</span>"</span>
+            </div>
+          )}
         </div>
+        
         <Button asChild>
           <Link to="/agreements/add">
             <FilePlus className="h-4 w-4 mr-2" />
@@ -426,21 +476,45 @@ export function AgreementList() {
       {searchTip && (
         <Alert variant="default" className="mb-4 bg-amber-50 border-amber-200">
           <AlertCircle className="h-4 w-4 text-amber-500" />
-          <AlertTitle className="text-amber-800">Search Tip</AlertTitle>
+          <AlertTitle className="text-amber-800">
+            {searchMode === 'car' ? 'Car Number Search Tip' : 'Search Tip'}
+          </AlertTitle>
           <AlertDescription className="text-amber-700">
-            When searching for "{searchQuery}", try these alternatives:
-            <ul className="list-disc pl-5 mt-2">
-              <li>Fewer digits (e.g., use "{searchQuery.substring(0, Math.ceil(searchQuery.length/2))}" instead of "{searchQuery}")</li>
-              {/^\d+$/.test(searchQuery) && (
-                <>
-                  <li>Just the ending digits if searching for a license plate</li>
-                  <li>Complete agreement number if you know it</li>
-                </>
-              )}
-              {!/^\d+$/.test(searchQuery) && (
-                <li>Try different spellings or partial words</li>
-              )}
-            </ul>
+            {searchMode === 'car' ? (
+              <>
+                <p>No vehicles found with license plate "<strong>{searchQuery}</strong>". Try these alternatives:</p>
+                <ul className="list-disc pl-5 mt-2">
+                  {searchQuery.length > 2 && (
+                    <li>Try without special characters or spaces</li>
+                  )}
+                  {/^\d+$/.test(searchQuery) && (
+                    <>
+                      <li>Enter the full license plate, not just numbers</li>
+                      <li>For numeric-only plates, try adding leading zeros</li>
+                    </>
+                  )}
+                  {!/^\d+$/.test(searchQuery) && searchQuery.length > 3 && (
+                    <li>Try a shorter portion of the plate</li>
+                  )}
+                </ul>
+              </>
+            ) : (
+              <>
+                <p>When searching for "{searchQuery}", try these alternatives:</p>
+                <ul className="list-disc pl-5 mt-2">
+                  <li>Fewer digits (e.g., use "{searchQuery.substring(0, Math.ceil(searchQuery.length/2))}" instead of "{searchQuery}")</li>
+                  {/^\d+$/.test(searchQuery) && (
+                    <>
+                      <li>Just the ending digits if searching for a license plate</li>
+                      <li>Complete agreement number if you know it</li>
+                    </>
+                  )}
+                  {!/^\d+$/.test(searchQuery) && (
+                    <li>Try different spellings or partial words</li>
+                  )}
+                </ul>
+              </>
+            )}
             <div className="mt-2 text-sm flex space-x-2">
               <Button 
                 variant="outline" 
@@ -513,9 +587,13 @@ export function AgreementList() {
                 <TableCell colSpan={7} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
-                    <p>No agreements found. {searchQuery || (searchParams.status && searchParams.status !== 'all') ? 
-                      'Try adjusting your filters or search terms.' : 
-                      'Add your first agreement using the button above.'}</p>
+                    <p>
+                      {searchMode === 'car' && searchQuery ? 
+                        'No agreements found with that car number.' : 
+                        searchQuery || (searchParams.status && searchParams.status !== 'all') ? 
+                          'Try adjusting your filters or search terms.' : 
+                          'Add your first agreement using the button above.'}
+                    </p>
                     {searchQuery && (
                       <div className="flex space-x-2">
                         <Button 

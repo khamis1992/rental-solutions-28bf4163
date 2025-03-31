@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -16,7 +15,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
 
-  // Get agreement by ID
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
@@ -27,7 +25,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return null;
       }
 
-      // First, get the lease data
       const { data, error } = await supabase
         .from('leases')
         .select('*')
@@ -47,11 +44,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log("Raw lease data from Supabase:", data);
 
-      // If we have the lease data, get the related customer and vehicle data
       let customerData = null;
       let vehicleData = null;
 
-      // Get customer data
       if (data.customer_id) {
         try {
           const { data: customer, error: customerError } = await supabase
@@ -73,7 +68,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      // Get vehicle data - optimized with error handling
       if (data.vehicle_id) {
         try {
           const { data: vehicle, error: vehicleError } = await supabase
@@ -95,7 +89,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      // Map database status to AgreementStatus type
       let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
 
       switch(data.status) {
@@ -120,7 +113,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           mappedStatus = AgreementStatus.DRAFT;
       }
 
-      // Transform to Agreement type with safe property access and proper date handling
       const agreement: Agreement = {
         id: data.id,
         customer_id: data.customer_id,
@@ -134,11 +126,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         deposit_amount: data.deposit_amount || 0, 
         agreement_number: data.agreement_number || '',
         notes: data.notes || '',
-        terms_accepted: true, // Default to true since the column doesn't exist in DB
-        additional_drivers: [], // Default empty array as this may not exist in the database
+        terms_accepted: true,
+        additional_drivers: [],
         customers: customerData,
         vehicles: vehicleData,
-        // Use type assertion with 'as' to tell TypeScript this property exists
         signature_url: (data as any).signature_url
       };
 
@@ -151,7 +142,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  // Implementation for fetching all agreements with filtering
   const fetchAgreements = async (): Promise<Agreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
 
@@ -164,9 +154,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles:vehicle_id (id, make, model, license_plate, image_url)
         `);
 
-      // Apply filters
       if (searchParams.status && searchParams.status !== 'all') {
-        // Handle the status filter based on the AgreementStatus enum
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
             query = query.eq('status', 'active');
@@ -184,13 +172,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             query = query.eq('status', 'archived');
             break;
           case AgreementStatus.DRAFT:
-            // Using filter method instead of .eq('status', 'draft')
             query = query.filter('status', 'eq', 'draft');
             break;
           default:
-            // If it's a direct database status value, use a different approach
             if (typeof searchParams.status === 'string') {
-              // Use filter method instead of eq to avoid type issues
               query = query.filter('status', 'eq', searchParams.status);
             }
         }
@@ -204,37 +189,27 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         query = query.eq('customer_id', searchParams.customer_id);
       }
 
-      // Improved search query handling
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        // Try to determine if this is a license plate or numeric search
-        const isNumericSearch = /^\d+$/.test(searchQuery);
-        const isLicensePlateSearch = /^[A-Za-z0-9-]+$/.test(searchQuery);
-        
-        // Build a more robust OR filter for different search scenarios
+        const isLicensePlateSearch = isLicensePlatePattern(searchQuery) || 
+                                     searchParams.query.length <= 4;
+
         let orConditions = [];
         
-        // Always search agreement number (most specific)
         orConditions.push(`agreement_number.ilike.%${searchQuery}%`);
         
-        // For license plates, we need to be explicit about the table/column
-        orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}%`);
-        
-        // Customer name search
-        orConditions.push(`profiles.full_name.ilike.%${searchQuery}%`);
-        
-        // If it looks like a number, also search for agreements ending with those digits
-        if (isNumericSearch) {
-          orConditions.push(`agreement_number.ilike.%${searchQuery}`);
-          
-          // For numeric searches, also try license plates ending with those digits
-          if (searchQuery.length >= 2) {
-            orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}`);
+        if (isLicensePlateSearch) {
+          orConditions.push(`vehicles.license_plate.ilike.${searchQuery}%`);
+          orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}`);
+          orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}%`);
+          if (/^\d+$/.test(searchQuery) && searchQuery.length >= 2) {
+            orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}%`);
           }
+        } else {
+          orConditions.push(`profiles.full_name.ilike.%${searchQuery}%`);
         }
         
-        // Apply the combined OR conditions
         query = query.or(orConditions.join(','));
       }
 
@@ -253,9 +228,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Transform to Agreement type with proper date handling
       const agreements: Agreement[] = data.map(item => {
-        // Map database status to AgreementStatus type
         let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
 
         switch(item.status) {
@@ -294,10 +267,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           agreement_number: item.agreement_number || '',
           notes: item.notes || '',
           terms_accepted: true,
-          additional_drivers: [], // Default empty array as this may not exist in the database
+          additional_drivers: [],
           customers: item.profiles,
           vehicles: item.vehicles,
-          signature_url: (item as any).signature_url // Using type assertion to avoid TypeScript errors
+          signature_url: (item as any).signature_url
         };
       });
 
@@ -309,13 +282,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   };
 
   const createAgreement = async (data: Partial<Agreement>) => {
-    // Implementation for creating an agreement
     return {} as Agreement;
   };
 
   const updateAgreement = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Agreement> }) => {
-      // Implementation for updating an agreement
       return {} as Agreement;
     },
     onSuccess: () => {
@@ -325,7 +296,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
-      // Implementation for deleting an agreement
       return id;
     },
     onSuccess: () => {
@@ -336,8 +306,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 30000, // Cache data for 30 seconds
-    gcTime: 60000, // Keep unused data in cache for 1 minute
+    staleTime: 30000,
+    gcTime: 60000,
   });
 
   return {
@@ -352,3 +322,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     deleteAgreement,
   };
 };
+
+function isLicensePlatePattern(query: string): boolean {
+  return /^[A-Za-z0-9-]+$/.test(query);
+}

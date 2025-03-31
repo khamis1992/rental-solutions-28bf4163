@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for enhanced search capabilities
  */
@@ -23,6 +24,17 @@ export const extractNumericParts = (text: string): string => {
 };
 
 /**
+ * Normalizes a license plate by removing spaces, special characters, and converting to uppercase
+ * This makes license plate comparisons more reliable
+ */
+export const normalizeLicensePlate = (licensePlate: string): string => {
+  if (!licensePlate) return '';
+  
+  // Remove all non-alphanumeric characters and convert to uppercase
+  return licensePlate.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+};
+
+/**
  * Checks if a license plate matches a search query using multiple strategies
  * @param licensePlate The actual license plate
  * @param searchQuery The user's search term
@@ -34,30 +46,66 @@ export const doesLicensePlateMatch = (
 ): boolean => {
   if (!licensePlate || !searchQuery) return false;
   
-  const sanitizedPlate = sanitizeSearchQuery(licensePlate);
-  const sanitizedQuery = sanitizeSearchQuery(searchQuery);
+  // Normalize both the license plate and query for comparison
+  const normalizedPlate = normalizeLicensePlate(licensePlate);
+  const normalizedQuery = normalizeLicensePlate(searchQuery);
   
-  // Direct match (sanitized)
-  if (sanitizedPlate === sanitizedQuery) return true;
+  // Direct match (normalized)
+  if (normalizedPlate === normalizedQuery) return true;
   
-  // Contains match (sanitized)
-  if (sanitizedPlate.includes(sanitizedQuery)) return true;
+  // Contains match (normalized)
+  if (normalizedPlate.includes(normalizedQuery)) return true;
   
   // For numeric searches, check if the plate's numeric part matches
-  if (/^\d+$/.test(sanitizedQuery)) {
+  if (/^\d+$/.test(normalizedQuery)) {
     const plateNumbers = extractNumericParts(licensePlate);
     
     // Exact numeric match
-    if (plateNumbers === sanitizedQuery) return true;
+    if (plateNumbers === normalizedQuery) return true;
     
     // Ends with the numeric query (common search pattern)
-    if (plateNumbers.endsWith(sanitizedQuery)) return true;
+    if (plateNumbers.endsWith(normalizedQuery)) return true;
     
     // Contains the numeric query
-    if (plateNumbers.includes(sanitizedQuery)) return true;
+    if (plateNumbers.includes(normalizedQuery)) return true;
+  }
+  
+  // For partial plate searches (at least 2 characters)
+  if (normalizedQuery.length >= 2) {
+    // Check if the license plate starts with the query
+    if (normalizedPlate.startsWith(normalizedQuery)) return true;
+    
+    // Check if any part of the license plate matches the query (allow for partial plate search)
+    for (let i = 0; i <= normalizedPlate.length - normalizedQuery.length; i++) {
+      if (normalizedPlate.substring(i, i + normalizedQuery.length) === normalizedQuery) {
+        return true;
+      }
+    }
   }
   
   return false;
+};
+
+/**
+ * Checks if a string might be a license plate based on patterns
+ * @param query The string to check
+ * @returns boolean indicating if the string matches license plate patterns
+ */
+export const isLicensePlatePattern = (query: string): boolean => {
+  if (!query || query.length < 2) return false;
+  
+  // Common license plate patterns include:
+  // - Mix of letters and numbers
+  // - Often 5-8 characters
+  // - May contain hyphens
+  
+  const normalized = query.replace(/[^A-Za-z0-9]/g, '');
+  
+  // If it has both letters and numbers, it's likely a plate
+  const hasLetters = /[A-Za-z]/.test(normalized);
+  const hasNumbers = /[0-9]/.test(normalized);
+  
+  return hasLetters && hasNumbers;
 };
 
 /**
