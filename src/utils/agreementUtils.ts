@@ -5,6 +5,15 @@ import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { format, differenceInMonths } from 'date-fns';
 
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+};
+
 const toArabicNumerals = (str: string): string => {
   return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
 };
@@ -189,19 +198,36 @@ const generateArabicPdf = async (agreement: Agreement): Promise<boolean> => {
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
-      putOnlyUsedFonts: true
+      putOnlyUsedFonts: true,
+      hotfixes: ["px_scaling"]
     });
+
+    // Load and embed the Amiri font for Arabic text
+    const amiriNormalPath = '/fonts/Amiri-Regular.ttf';
+    const amiriBoldPath = '/fonts/Amiri-Bold.ttf';
     
-    // Add Amiri font for Arabic text
-    doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7aRnpd8CGxBHpUrtLMA7w.ttf', 'Amiri', 'normal');
-    doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7acnpd8CGxBHp2VkZY4xA.ttf', 'Amiri', 'bold');
+    doc.addFileToVFS('Amiri-Regular.ttf', await fetch(amiriNormalPath).then(r => r.arrayBuffer()).then(b => arrayBufferToBase64(b)));
+    doc.addFileToVFS('Amiri-Bold.ttf', await fetch(amiriBoldPath).then(r => r.arrayBuffer()).then(b => arrayBufferToBase64(b)));
     
-    // Set default font
+    doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+    doc.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
+    
+    // Configure for Arabic text
     doc.setFont('Amiri');
-    
-    // Enable right-to-left text direction and UTF-8 encoding
     doc.setR2L(true);
-    doc.setLanguage("ar");
+    doc.setLanguage("ar-SA");
+    doc.setFontSize(12);
+    
+    // Enable better text rendering
+    doc.internal.write = function () {
+      this.internal.pdfEscape = function (text) {
+        return text.split('').map(char => {
+          const code = char.charCodeAt(0);
+          return code > 127 ? `\\u${('0000' + code.toString(16)).slice(-4)}` : char;
+        }).join('');
+      };
+      return this.__proto__.write.apply(this, arguments);
+    };
     
     // Format dates
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
