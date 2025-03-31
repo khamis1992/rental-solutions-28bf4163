@@ -1,4 +1,5 @@
 
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Languages } from 'lucide-react';
@@ -17,7 +18,7 @@ export const LanguageSwitcher = () => {
       variant="outline"
       size="icon"
       onClick={toggleLanguage}
-      className="fixed bottom-4 right-4"
+      className={`fixed bottom-4 ${i18n.language === 'ar' ? 'left-4' : 'right-4'}`}
     >
       <Languages className="h-4 w-4" />
     </Button>
