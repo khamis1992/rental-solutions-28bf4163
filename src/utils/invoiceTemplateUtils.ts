@@ -1,14 +1,5 @@
-
-import { supabase } from "@/lib/supabase";
-import { toast } from "sonner";
-
-export interface TemplateVariable {
-  id: string;
-  name: string;
-  description: string;
-  defaultValue: string;
-  category: 'customer' | 'vehicle' | 'payment' | 'agreement' | 'company';
-}
+import { v4 as uuidv4 } from 'uuid';
+import { supabase } from "@/integrations/supabase/client";
 
 export interface InvoiceTemplate {
   id: string;
@@ -16,543 +7,363 @@ export interface InvoiceTemplate {
   description: string;
   content: string;
   category: string;
-  isDefault: boolean;
-  createdAt: Date;
-  updatedAt: Date;
   variables: TemplateVariable[];
+  isDefault: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateVariable {
+  id: string;
+  name: string;
+  description: string;
+  defaultValue: string;
 }
 
 export const defaultVariables: TemplateVariable[] = [
-  // Company information
-  { id: "companyName", name: "{{companyName}}", description: "Company name", defaultValue: "ALARAF CAR RENTAL", category: 'company' },
-  { id: "companyAddress", name: "{{companyAddress}}", description: "Company address", defaultValue: "Doha, Qatar", category: 'company' },
-  { id: "companyPhone", name: "{{companyPhone}}", description: "Company phone", defaultValue: "+974 1234 5678", category: 'company' },
-  { id: "companyEmail", name: "{{companyEmail}}", description: "Company email", defaultValue: "info@alarafcarrental.com", category: 'company' },
-  
-  // Customer information
-  { id: "customerName", name: "{{customerName}}", description: "Customer name", defaultValue: "Customer Name", category: 'customer' },
-  { id: "customerEmail", name: "{{customerEmail}}", description: "Customer email", defaultValue: "customer@example.com", category: 'customer' },
-  { id: "customerPhone", name: "{{customerPhone}}", description: "Customer phone", defaultValue: "+974 5555 5555", category: 'customer' },
-  { id: "customerAddress", name: "{{customerAddress}}", description: "Customer address", defaultValue: "Customer Address", category: 'customer' },
-  
-  // Vehicle information
-  { id: "vehicleMake", name: "{{vehicleMake}}", description: "Vehicle make", defaultValue: "Toyota", category: 'vehicle' },
-  { id: "vehicleModel", name: "{{vehicleModel}}", description: "Vehicle model", defaultValue: "Land Cruiser", category: 'vehicle' },
-  { id: "vehiclePlate", name: "{{vehiclePlate}}", description: "License plate", defaultValue: "ABC-123", category: 'vehicle' },
-  { id: "vehicleYear", name: "{{vehicleYear}}", description: "Vehicle year", defaultValue: "2023", category: 'vehicle' },
-  
-  // Agreement information
-  { id: "agreementNumber", name: "{{agreementNumber}}", description: "Agreement number", defaultValue: "AGR-12345", category: 'agreement' },
-  { id: "startDate", name: "{{startDate}}", description: "Start date", defaultValue: "2023-07-15", category: 'agreement' },
-  { id: "endDate", name: "{{endDate}}", description: "End date", defaultValue: "2023-08-15", category: 'agreement' },
-  
-  // Payment information
-  { id: "invoiceNumber", name: "{{invoiceNumber}}", description: "Invoice number", defaultValue: "INV-001", category: 'payment' },
-  { id: "invoiceDate", name: "{{invoiceDate}}", description: "Invoice date", defaultValue: "2023-07-15", category: 'payment' },
-  { id: "dueDate", name: "{{dueDate}}", description: "Due date", defaultValue: "2023-08-15", category: 'payment' },
-  { id: "totalAmount", name: "{{totalAmount}}", description: "Total amount", defaultValue: "1000.00", category: 'payment' },
-  { id: "paidAmount", name: "{{paidAmount}}", description: "Paid amount", defaultValue: "500.00", category: 'payment' },
-  { id: "balanceAmount", name: "{{balanceAmount}}", description: "Balance amount", defaultValue: "500.00", category: 'payment' },
-  { id: "tax", name: "{{tax}}", description: "Tax amount", defaultValue: "50.00", category: 'payment' },
-  { id: "currency", name: "{{currency}}", description: "Currency", defaultValue: "QAR", category: 'payment' },
+  { id: "companyName", name: "Company Name", description: "Your company's name", defaultValue: "Your Company" },
+  { id: "companyAddress", name: "Company Address", description: "Your company's address", defaultValue: "123 Main St, Anytown" },
+  { id: "clientName", name: "Client Name", description: "Client's name", defaultValue: "Client Name" },
+  { id: "clientAddress", name: "Client Address", description: "Client's address", defaultValue: "456 Elm St, Anytown" },
+  { id: "invoiceNumber", name: "Invoice Number", description: "Invoice number", defaultValue: "INV-001" },
+  { id: "invoiceDate", name: "Invoice Date", description: "Invoice date", defaultValue: new Date().toLocaleDateString() },
+  { id: "dueDate", name: "Due Date", description: "Due date", defaultValue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString() },
+  { id: "amountDue", name: "Amount Due", description: "Total amount due", defaultValue: "$1,000.00" },
+  { id: "paymentTerms", name: "Payment Terms", description: "Payment terms", defaultValue: "Net 30 days" },
+  { id: "itemDescription", name: "Item Description", description: "Description of the item or service", defaultValue: "Service Description" },
+  { id: "itemQuantity", name: "Item Quantity", description: "Quantity of the item or service", defaultValue: "1" },
+  { id: "itemUnitPrice", name: "Item Unit Price", description: "Unit price of the item or service", defaultValue: "$1,000.00" },
+  { id: "itemTotal", name: "Item Total", description: "Total cost of the item or service", defaultValue: "$1,000.00" }
 ];
 
 export const templateCategories = [
-  { id: "invoice", name: "Invoice" },
-  { id: "receipt", name: "Receipt" },
-  { id: "agreement", name: "Agreement" },
-  { id: "reminder", name: "Payment Reminder" },
-  { id: "statement", name: "Account Statement" },
+  { value: "invoice", label: "Invoice" },
+  { value: "receipt", label: "Receipt" },
+  { value: "estimate", label: "Estimate" },
+  { value: "credit-memo", label: "Credit Memo" },
+  { value: "statement", label: "Statement" },
 ];
 
-// Default templates for different categories
 export const getDefaultTemplate = (category: string): string => {
   switch (category) {
-    case "invoice":
+    case 'invoice':
       return `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-    .invoice-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-    .company-info { margin-bottom: 20px; }
-    .invoice-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #2c3e50; }
-    .invoice-details { margin-bottom: 20px; }
-    .customer-info { margin-bottom: 20px; }
-    .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    .table th { background-color: #f2f2f2; text-align: left; padding: 10px; }
-    .table td { padding: 10px; border-bottom: 1px solid #ddd; }
-    .totals { margin-left: auto; width: 300px; }
-    .total-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-    .grand-total { font-weight: bold; font-size: 18px; }
-    .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #777; }
-  </style>
-</head>
-<body>
-  <div class="invoice-header">
-    <div class="company-info">
-      <div class="invoice-title">{{companyName}}</div>
-      <div>{{companyAddress}}</div>
-      <div>{{companyPhone}}</div>
-      <div>{{companyEmail}}</div>
-    </div>
-    <div class="invoice-details">
-      <div class="invoice-title">INVOICE</div>
-      <div><strong>Invoice #:</strong> {{invoiceNumber}}</div>
-      <div><strong>Date:</strong> {{invoiceDate}}</div>
-      <div><strong>Due Date:</strong> {{dueDate}}</div>
-    </div>
-  </div>
-  
-  <div class="customer-info">
-    <div><strong>Bill To:</strong></div>
-    <div>{{customerName}}</div>
-    <div>{{customerEmail}}</div>
-    <div>{{customerPhone}}</div>
-    <div>{{customerAddress}}</div>
-  </div>
-  
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Description</th>
-        <th>Vehicle</th>
-        <th>Period</th>
-        <th>Amount</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Vehicle Rental</td>
-        <td>{{vehicleMake}} {{vehicleModel}} ({{vehiclePlate}})</td>
-        <td>{{startDate}} to {{endDate}}</td>
-        <td>{{currency}} {{totalAmount}}</td>
-      </tr>
-    </tbody>
-  </table>
-  
-  <div class="totals">
-    <div class="total-row">
-      <div>Subtotal:</div>
-      <div>{{currency}} {{totalAmount}}</div>
-    </div>
-    <div class="total-row">
-      <div>Tax:</div>
-      <div>{{currency}} {{tax}}</div>
-    </div>
-    <div class="total-row grand-total">
-      <div>Total:</div>
-      <div>{{currency}} {{totalAmount}}</div>
-    </div>
-    <div class="total-row">
-      <div>Paid:</div>
-      <div>{{currency}} {{paidAmount}}</div>
-    </div>
-    <div class="total-row">
-      <div>Balance Due:</div>
-      <div>{{currency}} {{balanceAmount}}</div>
-    </div>
-  </div>
-  
-  <div class="footer">
-    <p>Thank you for your business!</p>
-    <p>Agreement #: {{agreementNumber}}</p>
-  </div>
-</body>
-</html>`;
-    
-    case "receipt":
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Invoice</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .invoice { width: 80%; margin: auto; border: 1px solid #ccc; padding: 20px; }
+            .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ccc; }
+            .details { margin-top: 20px; display: flex; justify-content: space-between; }
+            .item-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .item-table th, .item-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            .total { text-align: right; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="invoice">
+            <div class="header">
+              <h1>Invoice</h1>
+              <p>{{companyName}}</p>
+              <p>{{companyAddress}}</p>
+            </div>
+            <div class="details">
+              <div>
+                <p><strong>Client:</strong> {{clientName}}</p>
+                <p>{{clientAddress}}</p>
+              </div>
+              <div>
+                <p><strong>Invoice #:</strong> {{invoiceNumber}}</p>
+                <p><strong>Date:</strong> {{invoiceDate}}</p>
+                <p><strong>Due Date:</strong> {{dueDate}}</p>
+              </div>
+            </div>
+            <table class="item-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Quantity</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{{itemDescription}}</td>
+                  <td>{{itemQuantity}}</td>
+                  <td>{{itemUnitPrice}}</td>
+                  <td>{{itemTotal}}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="total">
+              <strong>Amount Due:</strong> {{amountDue}}
+            </div>
+            <div class="payment-terms">
+              <p><strong>Payment Terms:</strong> {{paymentTerms}}</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+    case 'receipt':
       return `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-    .receipt-header { text-align: center; margin-bottom: 20px; }
-    .receipt-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-    .company-info { margin-bottom: 20px; text-align: center; }
-    .details { margin-bottom: 20px; }
-    .customer-info { margin-bottom: 20px; }
-    .payment-info { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; }
-    .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #777; }
-  </style>
-</head>
-<body>
-  <div class="receipt-header">
-    <div class="receipt-title">PAYMENT RECEIPT</div>
-    <div>Receipt #: {{invoiceNumber}}</div>
-    <div>Date: {{invoiceDate}}</div>
-  </div>
-  
-  <div class="company-info">
-    <div><strong>{{companyName}}</strong></div>
-    <div>{{companyAddress}}</div>
-    <div>{{companyPhone}} | {{companyEmail}}</div>
-  </div>
-  
-  <div class="customer-info">
-    <div><strong>Customer:</strong> {{customerName}}</div>
-    <div><strong>Contact:</strong> {{customerPhone}} | {{customerEmail}}</div>
-  </div>
-  
-  <div class="payment-info">
-    <div><strong>Payment Details</strong></div>
-    <div>Agreement #: {{agreementNumber}}</div>
-    <div>Vehicle: {{vehicleMake}} {{vehicleModel}} ({{vehiclePlate}})</div>
-    <div>Payment Amount: {{currency}} {{paidAmount}}</div>
-    <div>Payment Date: {{invoiceDate}}</div>
-  </div>
-  
-  <div class="details">
-    <div><strong>Payment Summary</strong></div>
-    <div>Total Amount: {{currency}} {{totalAmount}}</div>
-    <div>Previous Balance: {{currency}} {{balanceAmount}}</div>
-    <div>Amount Paid: {{currency}} {{paidAmount}}</div>
-    <div>Remaining Balance: {{currency}} 0.00</div>
-  </div>
-  
-  <div class="footer">
-    <p>Thank you for your payment!</p>
-    <p>This is an official receipt of {{companyName}}</p>
-  </div>
-</body>
-</html>`;
-    
-    case "reminder":
-      return `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-    .reminder-header { text-align: center; margin-bottom: 20px; }
-    .reminder-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #e74c3c; }
-    .company-info { margin-bottom: 20px; text-align: center; }
-    .message { margin-bottom: 20px; line-height: 1.5; }
-    .payment-details { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; background-color: #f9f9f9; }
-    .important { color: #e74c3c; font-weight: bold; }
-    .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #777; }
-  </style>
-</head>
-<body>
-  <div class="reminder-header">
-    <div class="reminder-title">PAYMENT REMINDER</div>
-    <div>Reference #: {{invoiceNumber}}</div>
-    <div>Date: {{invoiceDate}}</div>
-  </div>
-  
-  <div class="company-info">
-    <div><strong>{{companyName}}</strong></div>
-    <div>{{companyAddress}}</div>
-    <div>{{companyPhone}} | {{companyEmail}}</div>
-  </div>
-  
-  <div class="message">
-    <p>Dear {{customerName}},</p>
-    <p>Our records indicate that we have not yet received payment for the following invoice that is now past due. If you have already sent your payment, please disregard this notice.</p>
-  </div>
-  
-  <div class="payment-details">
-    <div><strong>Payment Details</strong></div>
-    <div>Agreement #: {{agreementNumber}}</div>
-    <div>Vehicle: {{vehicleMake}} {{vehicleModel}} ({{vehiclePlate}})</div>
-    <div>Original Due Date: {{dueDate}}</div>
-    <div class="important">Amount Due: {{currency}} {{balanceAmount}}</div>
-  </div>
-  
-  <div class="message">
-    <p>Please arrange for this payment as soon as possible. If you have any questions regarding this invoice, please contact our accounting department.</p>
-    <p>Thank you for your prompt attention to this matter.</p>
-  </div>
-  
-  <div class="footer">
-    <p>{{companyName}}</p>
-    <p>{{companyPhone}} | {{companyEmail}}</p>
-  </div>
-</body>
-</html>`;
-    
-    case "statement":
-      return `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; color: #333; }
-    .statement-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-    .company-info { margin-bottom: 20px; }
-    .statement-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #2c3e50; }
-    .statement-details { margin-bottom: 20px; }
-    .customer-info { margin-bottom: 20px; }
-    .table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    .table th { background-color: #f2f2f2; text-align: left; padding: 10px; }
-    .table td { padding: 10px; border-bottom: 1px solid #ddd; }
-    .summary { margin-left: auto; width: 300px; }
-    .summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-    .total-due { font-weight: bold; font-size: 18px; }
-    .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #777; }
-  </style>
-</head>
-<body>
-  <div class="statement-header">
-    <div class="company-info">
-      <div class="statement-title">{{companyName}}</div>
-      <div>{{companyAddress}}</div>
-      <div>{{companyPhone}}</div>
-      <div>{{companyEmail}}</div>
-    </div>
-    <div class="statement-details">
-      <div class="statement-title">ACCOUNT STATEMENT</div>
-      <div><strong>Statement Date:</strong> {{invoiceDate}}</div>
-      <div><strong>Account #:</strong> {{customerName}}</div>
-    </div>
-  </div>
-  
-  <div class="customer-info">
-    <div><strong>Customer:</strong></div>
-    <div>{{customerName}}</div>
-    <div>{{customerEmail}}</div>
-    <div>{{customerPhone}}</div>
-    <div>{{customerAddress}}</div>
-  </div>
-  
-  <table class="table">
-    <thead>
-      <tr>
-        <th>Date</th>
-        <th>Description</th>
-        <th>Reference</th>
-        <th>Amount</th>
-        <th>Balance</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>{{startDate}}</td>
-        <td>Vehicle Rental</td>
-        <td>{{agreementNumber}}</td>
-        <td>{{currency}} {{totalAmount}}</td>
-        <td>{{currency}} {{totalAmount}}</td>
-      </tr>
-      <tr>
-        <td>{{invoiceDate}}</td>
-        <td>Payment Received</td>
-        <td>{{invoiceNumber}}</td>
-        <td>{{currency}} -{{paidAmount}}</td>
-        <td>{{currency}} {{balanceAmount}}</td>
-      </tr>
-    </tbody>
-  </table>
-  
-  <div class="summary">
-    <div class="summary-row total-due">
-      <div>Total Due:</div>
-      <div>{{currency}} {{balanceAmount}}</div>
-    </div>
-  </div>
-  
-  <div class="footer">
-    <p>This statement reflects the current status of your account with {{companyName}}.</p>
-    <p>Please contact us with any questions or concerns.</p>
-  </div>
-</body>
-</html>`;
-    
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Receipt</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .receipt { width: 60%; margin: auto; border: 1px solid #ccc; padding: 20px; }
+            .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #ccc; }
+            .details { margin-top: 20px; display: flex; justify-content: space-between; }
+            .item-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            .item-table th, .item-table td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+            .total { text-align: right; margin-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="header">
+              <h1>Receipt</h1>
+              <p>{{companyName}}</p>
+              <p>{{companyAddress}}</p>
+            </div>
+            <div class="details">
+              <div>
+                <p><strong>Client:</strong> {{clientName}}</p>
+                <p>{{clientAddress}}</p>
+              </div>
+              <div>
+                <p><strong>Receipt #:</strong> {{invoiceNumber}}</p>
+                <p><strong>Date:</strong> {{invoiceDate}}</p>
+              </div>
+            </div>
+            <table class="item-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Quantity</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{{itemDescription}}</td>
+                  <td>{{itemQuantity}}</td>
+                  <td>{{itemUnitPrice}}</td>
+                  <td>{{itemTotal}}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="total">
+              <strong>Amount Paid:</strong> {{amountDue}}
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
     default:
-      return `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-  </style>
-</head>
-<body>
-  <h1>{{companyName}}</h1>
-  <p>Document #: {{invoiceNumber}}</p>
-  <p>Date: {{invoiceDate}}</p>
-  
-  <div>
-    <h2>Customer Information</h2>
-    <p>Name: {{customerName}}</p>
-    <p>Email: {{customerEmail}}</p>
-    <p>Phone: {{customerPhone}}</p>
-  </div>
-  
-  <p>Thank you for your business with {{companyName}}.</p>
-</body>
-</html>`;
+      return `<h1>Default Template</h1><p>No template available for this category.</p>`;
   }
 };
 
-// Process template by replacing variables with actual data
-export const processTemplate = (template: string, data: Record<string, any>): string => {
-  let processedTemplate = template;
-  
-  // Loop through all keys in data and replace corresponding placeholders
+export const processTemplate = (templateContent: string, data: Record<string, string>): string => {
+  let processedHtml = templateContent;
   Object.keys(data).forEach(key => {
-    const placeholder = new RegExp(`{{${key}}}`, 'g');
-    processedTemplate = processedTemplate.replace(placeholder, data[key] || '');
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    processedHtml = processedHtml.replace(regex, data[key]);
   });
-  
-  // Remove any remaining placeholders with empty strings
-  processedTemplate = processedTemplate.replace(/{{.*?}}/g, '');
-  
-  return processedTemplate;
+  return processedHtml;
 };
 
-// Save a template to the database
-export const saveTemplate = async (template: Omit<InvoiceTemplate, 'createdAt' | 'updatedAt'>) => {
+export const saveTemplate = async (template: InvoiceTemplate): Promise<InvoiceTemplate> => {
   try {
+    // Generate a proper UUID instead of using a timestamp-based ID
+    const templateId = template.id || uuidv4();
+    
     const { data, error } = await supabase
       .from('invoice_templates')
-      .upsert({
-        id: template.id,
-        name: template.name,
-        description: template.description,
-        content: template.content,
-        category: template.category,
-        is_default: template.isDefault,
-        variables: template.variables,
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'id'
-      })
-      .select('*')
+      .upsert(
+        {
+          id: templateId,
+          name: template.name,
+          description: template.description,
+          content: template.content,
+          category: template.category,
+          variables: template.variables || defaultVariables,
+          is_default: template.isDefault || false,
+          updated_at: new Date().toISOString(),
+          created_at: template.created_at || new Date().toISOString()
+        },
+        { onConflict: 'id' }
+      )
+      .select()
       .single();
-    
+
     if (error) {
-      console.error('Error saving template:', error);
+      console.error("Error saving template:", error);
       throw new Error(`Failed to save template: ${error.message}`);
     }
-    
-    return data;
-  } catch (error: any) {
-    console.error('Error in saveTemplate:', error);
-    throw new Error(error.message || 'Failed to save template');
+
+    console.log("Template saved successfully:", data);
+    return {
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      content: data.content,
+      category: data.category,
+      variables: data.variables || defaultVariables,
+      isDefault: data.is_default || false,
+      created_at: data.created_at,
+      updated_at: data.updated_at
+    };
+  } catch (error) {
+    console.error("Error in saveTemplate:", error);
+    throw error;
   }
 };
 
-// Fetch all templates from the database
 export const fetchTemplates = async (): Promise<InvoiceTemplate[]> => {
   try {
     const { data, error } = await supabase
       .from('invoice_templates')
       .select('*')
-      .order('name');
-    
+      .order('created_at', { ascending: false });
+
     if (error) {
-      console.error('Error fetching templates:', error);
+      console.error("Error fetching templates:", error);
       throw new Error(`Failed to fetch templates: ${error.message}`);
     }
-    
-    if (!data || data.length === 0) {
+
+    if (!data) {
+      console.warn("No templates found, returning empty array");
       return [];
     }
-    
-    // Transform from database format to application format
-    return data.map(item => ({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      content: item.content,
-      category: item.category,
-      isDefault: item.is_default,
-      createdAt: new Date(item.created_at),
-      updatedAt: new Date(item.updated_at),
-      variables: item.variables || defaultVariables,
+
+    return data.map(template => ({
+      id: template.id,
+      name: template.name,
+      description: template.description,
+      content: template.content,
+      category: template.category,
+      variables: template.variables || defaultVariables,
+      isDefault: template.is_default || false,
+      created_at: template.created_at,
+      updated_at: template.updated_at
     }));
-  } catch (error: any) {
-    console.error('Error in fetchTemplates:', error);
-    throw new Error(error.message || 'Failed to fetch templates');
+  } catch (error) {
+    console.error("Error in fetchTemplates:", error);
+    throw error;
   }
 };
 
-// Delete a template from the database
-export const deleteTemplate = async (templateId: string): Promise<boolean> => {
+export const deleteTemplate = async (templateId: string): Promise<void> => {
   try {
     const { error } = await supabase
       .from('invoice_templates')
       .delete()
       .eq('id', templateId);
-    
+
     if (error) {
-      console.error('Error deleting template:', error);
+      console.error("Error deleting template:", error);
       throw new Error(`Failed to delete template: ${error.message}`);
     }
-    
-    return true;
-  } catch (error: any) {
-    console.error('Error in deleteTemplate:', error);
-    throw new Error(error.message || 'Failed to delete template');
+
+    console.log(`Template with ID ${templateId} deleted successfully`);
+  } catch (error) {
+    console.error("Error in deleteTemplate:", error);
+    throw error;
   }
 };
 
-// Generate PDF from a template
-export const generatePDF = async (
-  templateId: string, 
-  data: Record<string, any>
-): Promise<Blob> => {
-  try {
-    // First, get the template
-    const { data: template, error } = await supabase
-      .from('invoice_templates')
-      .select('*')
-      .eq('id', templateId)
-      .single();
-    
-    if (error || !template) {
-      throw new Error('Template not found');
-    }
-    
-    // Process the template with data
-    const processedHTML = processTemplate(template.content, data);
-    
-    // In a real implementation, we would convert the HTML to PDF
-    // For now, we'll create a Blob with the HTML content
-    const blob = new Blob([processedHTML], { type: 'text/html' });
-    return blob;
-  } catch (error: any) {
-    console.error('Error generating PDF:', error);
-    throw new Error(error.message || 'Failed to generate PDF');
-  }
-};
-
-// Initialize templates if none exist
 export const initializeTemplates = async (): Promise<void> => {
   try {
-    // Check if any templates exist
-    const { data, error } = await supabase
+    // First check if there are any templates in the database
+    const { data: existingTemplates, error: checkError } = await supabase
       .from('invoice_templates')
-      .select('id')
-      .limit(1);
-    
-    if (error) {
-      throw new Error(`Failed to check templates: ${error.message}`);
+      .select('*');
+
+    if (checkError) {
+      console.error("Error checking templates:", checkError);
+      throw new Error(`Failed to check templates: ${checkError.message}`);
     }
-    
+
     // If no templates exist, create default ones
-    if (!data || data.length === 0) {
-      const defaultTemplates = templateCategories.map(category => ({
-        id: `template-${category.id}-${Date.now()}`,
-        name: `Default ${category.name}`,
-        description: `Standard ${category.name.toLowerCase()} template for all customers`,
-        content: getDefaultTemplate(category.id),
-        category: category.id,
+    if (!existingTemplates || existingTemplates.length === 0) {
+      console.log("No templates found, creating defaults");
+      const defaultInvoiceTemplate: InvoiceTemplate = {
+        id: uuidv4(), // Use UUID instead of timestamp
+        name: "Standard Invoice",
+        description: "Default invoice template",
+        category: "invoice",
+        content: getDefaultTemplate('invoice'),
+        variables: defaultVariables,
         isDefault: true,
-        variables: defaultVariables
-      }));
-      
-      // Insert all default templates
-      for (const template of defaultTemplates) {
-        await saveTemplate(template);
-      }
-      
-      toast.success('Default templates initialized');
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const defaultReceiptTemplate: InvoiceTemplate = {
+        id: uuidv4(), // Use UUID instead of timestamp
+        name: "Standard Receipt",
+        description: "Default receipt template",
+        category: "receipt",
+        content: getDefaultTemplate('receipt'),
+        variables: defaultVariables,
+        isDefault: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      // Save default templates
+      await saveTemplate(defaultInvoiceTemplate);
+      await saveTemplate(defaultReceiptTemplate);
+      console.log("Default templates created");
+    } else {
+      console.log("Templates already exist, skipping initialization");
     }
-  } catch (error: any) {
-    console.error('Error initializing templates:', error);
-    toast.error(error.message || 'Failed to initialize templates');
+  } catch (error) {
+    console.error("Error initializing templates:", error);
+    throw error;
+  }
+};
+
+export const isValidTemplate = (templateContent: string): boolean => {
+  try {
+    // Basic check for HTML structure
+    if (!templateContent.trim().startsWith("<!DOCTYPE html>")) {
+      console.warn("Template does not start with <!DOCTYPE html>");
+      return false;
+    }
+
+    // Check for essential tags
+    if (!templateContent.includes("<html") || !templateContent.includes("<body")) {
+      console.warn("Template missing essential <html> or <body> tags");
+      return false;
+    }
+
+    // Try to create a DOM element from the template content
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(templateContent, 'text/html');
+
+    // Check for parsing errors
+    const errorNode = doc.querySelector('parsererror');
+    if (errorNode) {
+      console.error("Template parsing error:", errorNode.textContent);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error validating template:", error);
+    return false;
   }
 };

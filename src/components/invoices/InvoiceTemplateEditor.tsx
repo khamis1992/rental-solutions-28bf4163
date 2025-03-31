@@ -1,7 +1,6 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText } from "lucide-react";
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
@@ -16,8 +15,7 @@ import {
   deleteTemplate,
   initializeTemplates
 } from "@/utils/invoiceTemplateUtils";
-import TemplatePreview from "./TemplatePreview";
-import AITemplateGeneratorDialog from './AITemplateGeneratorDialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TemplateEditorSidebar from "./TemplateEditorSidebar";
 import TemplateCodeEditor from "./TemplateCodeEditor";
 import TemplateTestData from "./TemplateTestData";
@@ -25,194 +23,165 @@ import TemplateActionButtons from "./TemplateActionButtons";
 
 const InvoiceTemplateEditor: React.FC = () => {
   const [templates, setTemplates] = useState<InvoiceTemplate[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
-  const [editMode, setEditMode] = useState<"code" | "preview">("code");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<string>("editor");
-  
+  const [selectedTemplate, setSelectedTemplate] = useState<InvoiceTemplate | null>(null);
   const [templateName, setTemplateName] = useState<string>("");
   const [templateDescription, setTemplateDescription] = useState<string>("");
-  const [templateContent, setTemplateContent] = useState<string>("");
   const [templateCategory, setTemplateCategory] = useState<string>("invoice");
-  const [isTemplateDefault, setIsTemplateDefault] = useState<boolean>(false);
+  const [templateContent, setTemplateContent] = useState<string>("");
   const [templateVariables, setTemplateVariables] = useState<TemplateVariable[]>(defaultVariables);
-  
   const [previewData, setPreviewData] = useState<Record<string, string>>({});
-  
-  const [isAIDialogOpen, setIsAIDialogOpen] = useState<boolean>(false);
-  
+  const [activeTab, setActiveTab] = useState<string>("editor");
+  const [editMode, setEditMode] = useState<"code" | "preview">("code");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Load templates on component mount
   useEffect(() => {
     loadTemplates();
   }, []);
-  
-  useEffect(() => {
-    const initialPreviewData: Record<string, string> = {};
-    templateVariables.forEach(variable => {
-      initialPreviewData[variable.id] = variable.defaultValue;
-    });
-    setPreviewData(initialPreviewData);
-  }, [templateVariables]);
-  
+
   const loadTemplates = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       await initializeTemplates();
-      const loadedTemplates = await fetchTemplates();
-      
-      setTemplates(loadedTemplates);
-      
-      if (loadedTemplates.length > 0) {
-        const defaultTemplate = loadedTemplates.find(t => t.isDefault) || loadedTemplates[0];
-        selectTemplate(defaultTemplate.id);
+      const fetchedTemplates = await fetchTemplates();
+      setTemplates(fetchedTemplates);
+
+      if (fetchedTemplates.length > 0) {
+        selectTemplate(fetchedTemplates[0]);
       }
-    } catch (error: any) {
-      toast.error(`Failed to load templates: ${error.message}`);
+    } catch (error) {
+      console.error("Error loading templates:", error);
+      toast.error("Failed to load templates");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-  
-  const selectTemplate = (templateId: string) => {
-    const selected = templates.find(t => t.id === templateId);
-    if (selected) {
-      setSelectedTemplateId(templateId);
-      setTemplateName(selected.name);
-      setTemplateDescription(selected.description);
-      setTemplateContent(selected.content);
-      setTemplateCategory(selected.category);
-      setIsTemplateDefault(selected.isDefault);
-      setTemplateVariables(selected.variables || defaultVariables);
-    }
+
+  const selectTemplate = (template: InvoiceTemplate) => {
+    setSelectedTemplate(template);
+    setTemplateName(template.name);
+    setTemplateDescription(template.description || "");
+    setTemplateCategory(template.category);
+    setTemplateContent(template.content);
+    setTemplateVariables(template.variables || defaultVariables);
+    // Reset preview data when selecting a new template
+    setPreviewData({});
   };
-  
+
   const handleCreateTemplate = () => {
     const newTemplate: InvoiceTemplate = {
-      id: `template-${uuidv4()}`,
+      id: uuidv4(), // Use UUID instead of timestamp
       name: "New Template",
-      description: "Template description",
-      content: getDefaultTemplate(templateCategory),
-      category: templateCategory,
-      isDefault: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      description: "New template description",
+      category: "invoice",
+      content: getDefaultTemplate('invoice'),
       variables: defaultVariables,
+      isDefault: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
     setTemplates([...templates, newTemplate]);
-    selectTemplate(newTemplate.id);
+    selectTemplate(newTemplate);
     toast.success("New template created");
   };
-  
+
   const handleDuplicateTemplate = () => {
-    const selected = templates.find(t => t.id === selectedTemplateId);
-    if (!selected) return;
-    
-    const duplicated: InvoiceTemplate = {
-      ...selected,
-      id: `template-${uuidv4()}`,
-      name: `${selected.name} (Copy)`,
+    if (!selectedTemplate) return;
+
+    const duplicateTemplate: InvoiceTemplate = {
+      ...selectedTemplate,
+      id: uuidv4(), // Use UUID instead of timestamp
+      name: `${selectedTemplate.name} (Copy)`,
       isDefault: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      updated_at: new Date().toISOString()
     };
-    
-    setTemplates([...templates, duplicated]);
-    selectTemplate(duplicated.id);
+
+    setTemplates([...templates, duplicateTemplate]);
+    selectTemplate(duplicateTemplate);
     toast.success("Template duplicated");
   };
-  
+
   const handleSaveTemplate = async () => {
-    if (!templateName.trim()) {
-      toast.error("Template name is required");
-      return;
-    }
-    
+    if (!selectedTemplate) return;
+
     try {
-      setLoading(true);
-      
-      const templateToSave = {
-        id: selectedTemplateId,
+      setIsLoading(true);
+      const updatedTemplate: InvoiceTemplate = {
+        ...selectedTemplate,
         name: templateName,
         description: templateDescription,
-        content: templateContent,
         category: templateCategory,
-        isDefault: isTemplateDefault,
+        content: templateContent,
         variables: templateVariables,
+        updated_at: new Date().toISOString()
       };
+
+      const savedTemplate = await saveTemplate(updatedTemplate);
       
-      await saveTemplate(templateToSave);
-      
-      await loadTemplates();
+      // Update the templates list with the saved template
+      setTemplates(templates.map(t => t.id === savedTemplate.id ? savedTemplate : t));
+      setSelectedTemplate(savedTemplate);
       
       toast.success("Template saved successfully");
-    } catch (error: any) {
-      toast.error(`Failed to save template: ${error.message}`);
+    } catch (error) {
+      console.error("Error saving template:", error);
+      toast.error("Failed to save template");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-  
+
   const handleDeleteTemplate = async () => {
-    if (templates.length <= 1) {
-      toast.error("Cannot delete the only template");
-      return;
-    }
-    
+    if (!selectedTemplate) return;
+
     try {
-      setLoading(true);
+      setIsLoading(true);
+      await deleteTemplate(selectedTemplate.id);
       
-      await deleteTemplate(selectedTemplateId);
+      // Remove from templates list
+      const updatedTemplates = templates.filter(t => t.id !== selectedTemplate.id);
+      setTemplates(updatedTemplates);
       
-      await loadTemplates();
+      // Select another template if available
+      if (updatedTemplates.length > 0) {
+        selectTemplate(updatedTemplates[0]);
+      } else {
+        // No templates left, create a new one
+        handleCreateTemplate();
+      }
       
-      toast.success("Template deleted successfully");
-    } catch (error: any) {
-      toast.error(`Failed to delete template: ${error.message}`);
+      toast.success("Template deleted");
+    } catch (error) {
+      console.error("Error deleting template:", error);
+      toast.error("Failed to delete template");
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
-  
+
   const insertVariable = (variable: TemplateVariable) => {
-    const textArea = document.getElementById('template-content') as HTMLTextAreaElement;
-    if (!textArea) return;
-    
-    const cursorPosition = textArea.selectionStart;
-    const textBeforeCursor = templateContent.substring(0, cursorPosition);
-    const textAfterCursor = templateContent.substring(cursorPosition);
-    
-    const newContent = `${textBeforeCursor}${variable.name}${textAfterCursor}`;
-    setTemplateContent(newContent);
-    
-    setTimeout(() => {
-      textArea.focus();
-      textArea.selectionStart = cursorPosition + variable.name.length;
-      textArea.selectionEnd = cursorPosition + variable.name.length;
-    }, 0);
+    const variableText = `{{${variable.id}}}`;
+    setTemplateContent(prev => prev + variableText);
   };
-  
-  const generatePreviewHtml = useCallback(() => {
-    if (!templateContent) return '<div class="p-4">No template content</div>';
+
+  const generatePreviewHtml = () => {
     return processTemplate(templateContent, previewData);
-  }, [templateContent, previewData]);
-  
+  };
+
   const exportTemplateAsHtml = () => {
-    const blob = new Blob([templateContent], { type: 'text/html' });
+    const html = templateContent;
+    const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${templateName.replace(/\s+/g, '_')}.html`;
+    a.download = `${templateName.toLowerCase().replace(/\s+/g, "-")}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-  
-  const handleTemplateGenerated = (generatedTemplate: string) => {
-    setTemplateContent(generatedTemplate);
-    toast.success("AI template loaded into editor. Review and save it.");
-  };
-  
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -239,17 +208,16 @@ const InvoiceTemplateEditor: React.FC = () => {
             <div className="flex flex-col md:flex-row justify-between gap-4">
               <TemplateEditorSidebar 
                 templates={templates}
-                selectedTemplateId={selectedTemplateId}
+                selectedTemplate={selectedTemplate}
                 templateName={templateName}
                 templateDescription={templateDescription}
                 templateCategory={templateCategory}
                 templateVariables={templateVariables}
-                onSelectTemplate={selectTemplate}
+                onTemplateSelect={selectTemplate}
                 onNameChange={setTemplateName}
                 onDescriptionChange={setTemplateDescription}
                 onCategoryChange={setTemplateCategory}
                 onInsertVariable={insertVariable}
-                onOpenAIDialog={() => setIsAIDialogOpen(true)}
               />
               
               <TemplateCodeEditor 
@@ -264,8 +232,8 @@ const InvoiceTemplateEditor: React.FC = () => {
           </TabsContent>
           
           <TabsContent value="preview" className="mt-0">
-            <div className="p-2 bg-gray-50 rounded-md">
-              <TemplatePreview html={generatePreviewHtml()} />
+            <div className="border rounded-md p-6 min-h-[600px] bg-white">
+              <div dangerouslySetInnerHTML={{ __html: generatePreviewHtml() }} />
             </div>
           </TabsContent>
           
@@ -285,18 +253,10 @@ const InvoiceTemplateEditor: React.FC = () => {
           onDuplicateTemplate={handleDuplicateTemplate}
           onDeleteTemplate={handleDeleteTemplate}
           onSaveTemplate={handleSaveTemplate}
-          loading={loading}
+          loading={isLoading}
           templatesCount={templates.length}
         />
       </CardFooter>
-
-      <AITemplateGeneratorDialog 
-        open={isAIDialogOpen}
-        onOpenChange={setIsAIDialogOpen}
-        onTemplateGenerated={handleTemplateGenerated}
-        variables={templateVariables}
-        templateType={templateCategory}
-      />
     </Card>
   );
 };
