@@ -114,7 +114,9 @@ export async function generatePdfDocument(agreement: Agreement, language: string
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
+      putOnlyUsedFonts: true,  // Add this to improve font handling
+      compress: true           // Compress the PDF for better performance
     });
     
     // Load fonts based on language
@@ -122,10 +124,11 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       console.log("Loading Arabic fonts...");
       const fontLoaded = await loadArabicFont(doc);
       if (!fontLoaded) {
-        console.error("Failed to load Arabic fonts");
-        return false;
+        console.error("Failed to load Arabic fonts - falling back to default font");
+        // Continue with default font if Arabic fonts fail to load
+      } else {
+        console.log("Arabic fonts loaded successfully");
       }
-      console.log("Arabic fonts loaded successfully");
     }
     
     // Set font for English text
@@ -247,38 +250,67 @@ export async function generatePdfDocument(agreement: Agreement, language: string
           // We're starting on the first page
         } else {
           // We've already added a new page for Arabic
+          doc.addPage();
+          console.log("Added new page for Arabic content");
         }
         
         // Set RTL and Arabic font
         doc.setR2L(true);
-        doc.setFont('Amiri', 'bold');
+        
+        // Check if Amiri font was loaded successfully, otherwise use a fallback
+        if (doc.getFont('Amiri', 'bold').fontName) {
+          doc.setFont('Amiri', 'bold');
+          console.log("Using Amiri font for Arabic content");
+        } else {
+          // Fallback to a system font that might support Arabic
+          doc.setFont('helvetica', 'bold');
+          console.log("Using fallback font for Arabic as Amiri not loaded");
+        }
         
         // Arabic Title
         doc.setFontSize(18);
         doc.text('عقد إيجار', 105, 20, { align: 'center' });
-        doc.text(`رقم العقد: ${toArabicNumerals(agreement.agreement_number || '')}`, 105, 30, { align: 'center' });
+        doc.text(`رقم العقد: ${toArabicNumerals(String(agreement.agreement_number || ''))}`, 105, 30, { align: 'center' });
         
         // Customer information in Arabic
         doc.setFontSize(12);
         doc.text('معلومات العميل', 190, 45, { align: 'right' });
-        doc.setFont('Amiri', 'normal');
+        
+        // Check if Amiri font was loaded successfully for normal text
+        if (doc.getFont('Amiri', 'normal').fontName) {
+          doc.setFont('Amiri', 'normal');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        
         doc.text(`الاسم: ${customerName}`, 190, 55, { align: 'right' });
-        doc.text(`الهاتف: ${toArabicNumerals(customerPhone)}`, 190, 60, { align: 'right' });
+        doc.text(`الهاتف: ${toArabicNumerals(String(customerPhone))}`, 190, 60, { align: 'right' });
         doc.text(`البريد الإلكتروني: ${customerEmail}`, 190, 65, { align: 'right' });
         doc.text(`العنوان: ${customerAddress}`, 190, 70, { align: 'right' });
         doc.text(`رخصة القيادة: ${driverLicense}`, 190, 75, { align: 'right' });
         
         // Vehicle information in Arabic
-        doc.setFont('Amiri', 'bold');
+        if (doc.getFont('Amiri', 'bold').fontName) {
+          doc.setFont('Amiri', 'bold');
+        } else {
+          doc.setFont('helvetica', 'bold');
+        }
+        
         doc.text('معلومات المركبة', 190, 90, { align: 'right' });
-        doc.setFont('Amiri', 'normal');
+        
+        if (doc.getFont('Amiri', 'normal').fontName) {
+          doc.setFont('Amiri', 'normal');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        
         doc.text(`الصنع: ${vehicleMake}`, 190, 100, { align: 'right' });
         doc.text(`الموديل: ${vehicleModel}`, 190, 105, { align: 'right' });
         
-        // Handle vehicleYear safely - Here's the fix
+        // Handle vehicleYear safely with proper string conversion
         let yearString = '';
         if (vehicleYear !== null && vehicleYear !== undefined) {
-          yearString = String(vehicleYear); // Convert to string explicitly
+          yearString = String(vehicleYear); // Ensure it's a string
         } else {
           yearString = 'N/A';
         }
@@ -288,30 +320,80 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.text(`رقم الهيكل: ${vehicleVin}`, 190, 120, { align: 'right' });
         
         // Agreement details in Arabic
-        doc.setFont('Amiri', 'bold');
+        if (doc.getFont('Amiri', 'bold').fontName) {
+          doc.setFont('Amiri', 'bold');
+        } else {
+          doc.setFont('helvetica', 'bold');
+        }
+        
         doc.text('فترة الإيجار', 190, 135, { align: 'right' });
-        doc.setFont('Amiri', 'normal');
-        // Convert dates to Arabic format
-        const arabicStartDate = toArabicNumerals(startDate.toLocaleDateString('ar-SA'));
-        const arabicEndDate = toArabicNumerals(endDate.toLocaleDateString('ar-SA'));
-        doc.text(`تاريخ البدء: ${arabicStartDate}`, 190, 145, { align: 'right' });
-        doc.text(`تاريخ الانتهاء: ${arabicEndDate}`, 190, 150, { align: 'right' });
+        
+        if (doc.getFont('Amiri', 'normal').fontName) {
+          doc.setFont('Amiri', 'normal');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        
+        // Convert dates to Arabic format - safely handle date formatting
+        try {
+          const arabicStartDate = toArabicNumerals(startDate.toLocaleDateString('ar-SA'));
+          const arabicEndDate = toArabicNumerals(endDate.toLocaleDateString('ar-SA'));
+          doc.text(`تاريخ البدء: ${arabicStartDate}`, 190, 145, { align: 'right' });
+          doc.text(`تاريخ الانتهاء: ${arabicEndDate}`, 190, 150, { align: 'right' });
+        } catch (dateError) {
+          console.error("Error formatting dates to Arabic:", dateError);
+          // Fallback to ISO format if localization fails
+          doc.text(`تاريخ البدء: ${toArabicNumerals(startDate.toISOString().split('T')[0])}`, 190, 145, { align: 'right' });
+          doc.text(`تاريخ الانتهاء: ${toArabicNumerals(endDate.toISOString().split('T')[0])}`, 190, 150, { align: 'right' });
+        }
         
         // Payment information in Arabic
-        doc.setFont('Amiri', 'bold');
+        if (doc.getFont('Amiri', 'bold').fontName) {
+          doc.setFont('Amiri', 'bold');
+        } else {
+          doc.setFont('helvetica', 'bold');
+        }
+        
         doc.text('معلومات الدفع', 190, 165, { align: 'right' });
-        doc.setFont('Amiri', 'normal');
-        doc.text(`الإيجار الشهري: ${toArabicNumerals(rentAmount.toString())} ر.ق`, 190, 175, { align: 'right' });
-        doc.text(`المبلغ الإجمالي: ${toArabicNumerals(totalAmount.toString())} ر.ق`, 190, 180, { align: 'right' });
-        doc.text(`مبلغ التأمين: ${toArabicNumerals(depositAmount.toString())} ر.ق`, 190, 185, { align: 'right' });
+        
+        if (doc.getFont('Amiri', 'normal').fontName) {
+          doc.setFont('Amiri', 'normal');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        
+        // Safely convert numbers to strings before using toArabicNumerals
+        doc.text(`الإيجار الشهري: ${toArabicNumerals(String(rentAmount))} ر.ق`, 190, 175, { align: 'right' });
+        doc.text(`المبلغ الإجمالي: ${toArabicNumerals(String(totalAmount))} ر.ق`, 190, 180, { align: 'right' });
+        doc.text(`مبلغ التأمين: ${toArabicNumerals(String(depositAmount))} ر.ق`, 190, 185, { align: 'right' });
         
         // Signatures in Arabic
-        doc.setFont('Amiri', 'bold');
+        if (doc.getFont('Amiri', 'bold').fontName) {
+          doc.setFont('Amiri', 'bold');
+        } else {
+          doc.setFont('helvetica', 'bold');
+        }
+        
         doc.text('التوقيعات', 190, 200, { align: 'right' });
-        doc.setFont('Amiri', 'normal');
+        
+        if (doc.getFont('Amiri', 'normal').fontName) {
+          doc.setFont('Amiri', 'normal');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        
         doc.text('توقيع العميل: _______________________', 190, 210, { align: 'right' });
         doc.text('توقيع الشركة: _______________________', 190, 220, { align: 'right' });
-        doc.text(`التاريخ: ${toArabicNumerals(new Date().toLocaleDateString('ar-SA'))}`, 190, 230, { align: 'right' });
+        
+        try {
+          const currentDate = new Date();
+          const arabicDate = toArabicNumerals(currentDate.toLocaleDateString('ar-SA'));
+          doc.text(`التاريخ: ${arabicDate}`, 190, 230, { align: 'right' });
+        } catch (dateError) {
+          console.error("Error formatting current date to Arabic:", dateError);
+          // Fallback to ISO format
+          doc.text(`التاريخ: ${toArabicNumerals(new Date().toISOString().split('T')[0])}`, 190, 230, { align: 'right' });
+        }
         
         console.log("Arabic content generated successfully");
       } catch (arabicError) {

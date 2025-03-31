@@ -5,11 +5,15 @@
 export async function loadFontFile(fontPath: string): Promise<ArrayBuffer | null> {
   try {
     console.log(`Loading font from: ${fontPath}`);
-    const response = await fetch(fontPath);
+    const response = await fetch(fontPath, {
+      cache: 'force-cache' // Use cached version if available to improve performance
+    });
+    
     if (!response.ok) {
       console.error(`Failed to load font from ${fontPath}: ${response.status} ${response.statusText}`);
       return null;
     }
+    
     const buffer = await response.arrayBuffer();
     console.log(`Successfully loaded font from ${fontPath}, size: ${buffer.byteLength} bytes`);
     return buffer;
@@ -50,4 +54,31 @@ export function toArabicNumerals(str: string): string {
   };
   
   return str.replace(/[0-9]/g, match => arabicNumerals[match] || match);
+}
+
+// Helper function to check if Arabic fonts are available
+export async function checkArabicFontsAvailability(): Promise<{
+  available: boolean;
+  regularFont: boolean;
+  boldFont: boolean;
+}> {
+  const result = {
+    available: false,
+    regularFont: false,
+    boldFont: false
+  };
+  
+  try {
+    const boldFont = await loadFontFile('/fonts/Amiri-Bold.ttf');
+    const regularFont = await loadFontFile('/fonts/Amiri-Regular.ttf');
+    
+    result.boldFont = !!boldFont;
+    result.regularFont = !!regularFont;
+    result.available = result.boldFont && result.regularFont;
+    
+    return result;
+  } catch (error) {
+    console.error("Error checking Arabic fonts availability:", error);
+    return result;
+  }
 }
