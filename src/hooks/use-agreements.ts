@@ -1,13 +1,3 @@
-import { z } from 'zod';
-
-const agreementSchema = z.object({
-  id: z.string(),
-  start_date: z.string(),
-  end_date: z.string(),
-  status: z.string(),
-  // Add other fields as needed
-});
-
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -214,12 +204,41 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         query = query.eq('customer_id', searchParams.customer_id);
       }
 
-      if (searchParams.query) {
-        const searchQuery = searchParams.query.toLowerCase().trim();
-        // Handle simple search for agreement number
-        query = query.or(`agreement_number.ilike.%${searchQuery}%,vehicles.license_plate.ilike.%${searchQuery}%,profiles.full_name.ilike.%${searchQuery}%`);
+      // Improved search query handling
+      if (searchParams.query && searchParams.query.trim() !== '') {
+        const searchQuery = searchParams.query.trim().toLowerCase();
+        
+        // Try to determine if this is a license plate or numeric search
+        const isNumericSearch = /^\d+$/.test(searchQuery);
+        const isLicensePlateSearch = /^[A-Za-z0-9-]+$/.test(searchQuery);
+        
+        // Build a more robust OR filter for different search scenarios
+        let orConditions = [];
+        
+        // Always search agreement number (most specific)
+        orConditions.push(`agreement_number.ilike.%${searchQuery}%`);
+        
+        // For license plates, we need to be explicit about the table/column
+        orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}%`);
+        
+        // Customer name search
+        orConditions.push(`profiles.full_name.ilike.%${searchQuery}%`);
+        
+        // If it looks like a number, also search for agreements ending with those digits
+        if (isNumericSearch) {
+          orConditions.push(`agreement_number.ilike.%${searchQuery}`);
+          
+          // For numeric searches, also try license plates ending with those digits
+          if (searchQuery.length >= 2) {
+            orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}`);
+          }
+        }
+        
+        // Apply the combined OR conditions
+        query = query.or(orConditions.join(','));
       }
 
+      console.log("Executing Supabase query...");
       const { data, error } = await query;
 
       if (error) {

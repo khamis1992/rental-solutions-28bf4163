@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -87,34 +88,44 @@ export function AgreementList() {
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.query || '');
   const [searchTip, setSearchTip] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [lastSearchAttempt, setLastSearchAttempt] = useState<string>('');
   const navigate = useNavigate();
   
+  // Improved debounced search handling
   useEffect(() => {
-    const handler = setTimeout(() => {
-      if (searchQuery !== searchParams.query) {
+    // Only trigger search if query actually changed and has content
+    if (searchQuery !== searchParams.query) {
+      const handler = setTimeout(() => {
         setIsSearching(true);
+        setLastSearchAttempt(searchQuery);
         setSearchParams({...searchParams, query: searchQuery});
-      }
-    }, 300);
-    
-    return () => clearTimeout(handler);
+      }, 300);
+      
+      return () => clearTimeout(handler);
+    }
   }, [searchQuery]);
   
+  // Handle search completion and loading states
   useEffect(() => {
     if (isSearching && !isLoading) {
       setIsSearching(false);
     }
   }, [isLoading, agreements]);
   
+  // Show search tips when appropriate
   useEffect(() => {
+    // Only show tips for numeric/short searches with no results
     const isNumericSearch = /^\d{2,}$/.test(searchQuery);
-    const shouldShowTip = isNumericSearch && (!agreements || agreements.length === 0) && !isLoading;
+    const isShortSearch = searchQuery.length >= 2 && searchQuery.length <= 4;
+    const hasNoResults = (!agreements || agreements.length === 0) && !isLoading;
+    const shouldShowTip = (isNumericSearch || isShortSearch) && hasNoResults && searchQuery === lastSearchAttempt;
+    
     setSearchTip(shouldShowTip);
     
     if (shouldShowTip) {
-      console.log(`Showing search tip for numeric search: ${searchQuery}`);
+      console.log(`Showing search tip for query: "${searchQuery}" (${isNumericSearch ? 'numeric' : 'short text'})`);
     }
-  }, [searchQuery, agreements, isLoading]);
+  }, [searchQuery, agreements, isLoading, lastSearchAttempt]);
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -123,7 +134,17 @@ export function AgreementList() {
   
   const handleClearSearch = () => {
     setSearchQuery('');
+    setLastSearchAttempt('');
     setSearchParams({...searchParams, query: ''});
+  };
+  
+  // Try alternative search approach
+  const handleTryAlternativeSearch = () => {
+    if (searchQuery.length > 2) {
+      // Try with fewer digits for numeric searches or shortened text
+      const shorterQuery = searchQuery.substring(0, Math.ceil(searchQuery.length/2));
+      setSearchQuery(shorterQuery);
+    }
   };
 
   const columns: ColumnDef<Agreement>[] = [
@@ -407,11 +428,18 @@ export function AgreementList() {
           <AlertCircle className="h-4 w-4 text-amber-500" />
           <AlertTitle className="text-amber-800">Search Tip</AlertTitle>
           <AlertDescription className="text-amber-700">
-            When searching for vehicle number "{searchQuery}", try these formats:
+            When searching for "{searchQuery}", try these alternatives:
             <ul className="list-disc pl-5 mt-2">
-              <li>Fewer digits (e.g., use "70" instead of "7042")</li>
-              <li>Just the ending digits (e.g., "42" to match plates ending with those digits)</li>
-              <li>Complete license plate if you know it</li>
+              <li>Fewer digits (e.g., use "{searchQuery.substring(0, Math.ceil(searchQuery.length/2))}" instead of "{searchQuery}")</li>
+              {/^\d+$/.test(searchQuery) && (
+                <>
+                  <li>Just the ending digits if searching for a license plate</li>
+                  <li>Complete agreement number if you know it</li>
+                </>
+              )}
+              {!/^\d+$/.test(searchQuery) && (
+                <li>Try different spellings or partial words</li>
+              )}
             </ul>
             <div className="mt-2 text-sm flex space-x-2">
               <Button 
@@ -427,11 +455,7 @@ export function AgreementList() {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => {
-                    // Try with fewer digits
-                    const shorterQuery = searchQuery.substring(0, Math.ceil(searchQuery.length/2));
-                    setSearchQuery(shorterQuery);
-                  }}
+                  onClick={handleTryAlternativeSearch}
                   className="bg-white hover:bg-white/90"
                 >
                   <Filter className="h-3.5 w-3.5 mr-1.5" /> Try with "{searchQuery.substring(0, Math.ceil(searchQuery.length/2))}"
@@ -506,11 +530,7 @@ export function AgreementList() {
                           <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => {
-                              // Try with fewer digits
-                              const shorterQuery = searchQuery.substring(0, Math.ceil(searchQuery.length/2));
-                              setSearchQuery(shorterQuery);
-                            }}
+                            onClick={handleTryAlternativeSearch}
                           >
                             <Filter className="h-3.5 w-3.5 mr-1.5" /> Try fewer digits
                           </Button>
