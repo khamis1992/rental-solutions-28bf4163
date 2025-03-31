@@ -35,7 +35,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
   const formInitialized = useRef(false);
   
   // Create default values to avoid null or undefined values
-  const defaultValues = {
+  const defaultValues: Partial<Customer> = {
     full_name: "",
     email: "",
     phone: "",
@@ -43,7 +43,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
     driver_license: "",
     nationality: "",
     notes: "",
-    status: "active",
+    status: "active" as const, // Use 'as const' to ensure proper type
   };
   
   const form = useForm<Customer>({
@@ -55,7 +55,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
       // Ensure all values are strings and not null/undefined
-      const safeInitialData = {
+      const safeInitialData: Partial<Customer> = {
         full_name: initialData.full_name || "",
         email: initialData.email || "",
         phone: initialData.phone || "",
@@ -63,6 +63,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
         driver_license: initialData.driver_license || "",
         nationality: initialData.nationality || "",
         notes: initialData.notes || "",
+        // Ensure status is one of the valid enum values
         status: initialData.status || "active",
       };
       

@@ -35,7 +35,8 @@ export const useCustomers = () => {
 
         // Apply status filter if not 'all'
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status);
+          // Cast the status to a valid value for the query
+          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted");
         }
 
         // Apply search query if provided
@@ -65,7 +66,7 @@ export const useCustomers = () => {
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: profile.status || 'active',
+          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted",
           created_at: profile.created_at,
           updated_at: profile.updated_at,
         }));
@@ -204,7 +205,7 @@ export const useCustomers = () => {
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: data.status || 'active',
+        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted",
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
