@@ -16,7 +16,6 @@ import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
-
 interface AgreementDetailProps {
   agreement: Agreement | null;
   onDelete: (id: string) => void;
@@ -26,7 +25,6 @@ interface AgreementDetailProps {
   onDataRefresh: () => void;
   onGenerateDocument?: () => void;
 }
-
 export function AgreementDetail({
   agreement,
   onDelete,
@@ -46,43 +44,40 @@ export function AgreementDetail({
   } | null>(null);
 
   // Add console logs to debug payments
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreement?.id, rentAmount);
+  const {
+    payments,
+    isLoadingPayments,
+    fetchPayments
+  } = usePayments(agreement?.id, rentAmount);
   console.log('Agreement ID from AgreementDetail:', agreement?.id);
   console.log('Payments from usePayments:', payments);
   console.log('Loading state:', isLoadingPayments);
-
   useEffect(() => {
     if (agreement?.id) {
       console.log('Fetching payments for agreement:', agreement.id);
       fetchPayments();
     }
   }, [agreement?.id, fetchPayments]);
-
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
-
   const handleDelete = useCallback(() => {
     setIsDeleteDialogOpen(true);
   }, []);
-
   const confirmDelete = useCallback(() => {
     if (agreement) {
       onDelete(agreement.id);
       setIsDeleteDialogOpen(false);
     }
   }, [agreement, onDelete]);
-
   const handlePrint = useCallback(() => {
     window.print();
   }, []);
-
   const handleEdit = useCallback(() => {
     if (agreement) {
       navigate(`/agreements/edit/${agreement.id}`);
     }
   }, [agreement, navigate]);
-
   const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
@@ -102,11 +97,9 @@ export function AgreementDetail({
       }
     }
   }, [agreement]);
-
   const handleRecordPayment = useCallback(() => {
     setIsPaymentDialogOpen(true);
   }, []);
-
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {
       onGenerateDocument();
@@ -114,7 +107,6 @@ export function AgreementDetail({
       toast.info("Document generation functionality is being configured");
     }
   }, [agreement, onGenerateDocument]);
-
   const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean) => {
     if (agreement && agreement.id) {
       try {
@@ -131,12 +123,10 @@ export function AgreementDetail({
       }
     }
   }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
-
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
     return months > 0 ? months : 1; // Ensure at least 1 month
   }, []);
-
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
@@ -151,17 +141,14 @@ export function AgreementDetail({
       setLateFeeDetails(null);
     }
   }, []);
-
   if (!agreement) {
     return <Alert>
         <AlertDescription>Agreement details not available.</AlertDescription>
       </Alert>;
   }
-
   const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
   const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
   const duration = calculateDuration(startDate, endDate);
-
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
@@ -180,9 +167,7 @@ export function AgreementDetail({
         return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
     }
   };
-
   const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
-
   return <div className="space-y-8">
       <div className="space-y-2">
         <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
@@ -318,10 +303,7 @@ export function AgreementDetail({
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>
-        <Button variant="outline" onClick={handlePrint}>
-          <Printer className="mr-2 h-4 w-4" />
-          Print
-        </Button>
+        
         <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
           <Download className="mr-2 h-4 w-4" />
           {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
@@ -340,19 +322,10 @@ export function AgreementDetail({
         </Button>
       </div>
 
-      {agreement && (
-        <PaymentHistory 
-          payments={payments || []} 
-          isLoading={isLoadingPayments} 
-          rentAmount={rentAmount}
-          onPaymentDeleted={() => {
-            onPaymentDeleted();
-            fetchPayments(); // Fetch payments after deletion too
-          }}
-          leaseStartDate={agreement.start_date}
-          leaseEndDate={agreement.end_date}
-        />
-      )}
+      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
+      onPaymentDeleted();
+      fetchPayments(); // Fetch payments after deletion too
+    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
 
       {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>
