@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -78,7 +77,7 @@ export function AgreementDetail({
 
   const handleEdit = useCallback(() => {
     if (agreement) {
-      navigate(`/agreements/${agreement.id}/edit`);
+      navigate(`/agreements/edit/${agreement.id}`);
     }
   }, [agreement, navigate]);
 
