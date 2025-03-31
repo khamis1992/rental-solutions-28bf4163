@@ -303,16 +303,35 @@ export const useVehicles = () => {
               .update(vehicleData)
               .eq('id', id)
               .select('*, vehicle_types(*)')
-              .maybeSingle(); // Changed from single() to maybeSingle()
+              .maybeSingle();
               
             if (error) {
               console.error('Supabase update error:', error);
               throw error;
             }
             
+            // Fix for the "Vehicle update succeeded but no data returned" error
+            // If the update succeeded but no data was returned, fetch the vehicle data separately
             if (!updatedVehicle) {
-              console.error('Vehicle update succeeded but no data returned for ID:', id);
-              throw new Error('Vehicle update succeeded but no data returned');
+              console.log('Update succeeded but no data returned, fetching vehicle data separately');
+              const { data: fetchedVehicle, error: fetchError } = await supabase
+                .from('vehicles')
+                .select('*, vehicle_types(*)')
+                .eq('id', id)
+                .maybeSingle();
+                
+              if (fetchError) {
+                console.error('Error fetching updated vehicle:', fetchError);
+                throw new Error(`Vehicle updated but failed to fetch updated data: ${fetchError.message}`);
+              }
+              
+              if (!fetchedVehicle) {
+                console.error('Vehicle not found after update:', id);
+                throw new Error('Vehicle was updated but could not be found afterwards');
+              }
+              
+              console.log('Successfully fetched vehicle after update:', fetchedVehicle);
+              return mapDatabaseRecordToVehicle(fetchedVehicle);
             }
             
             console.log('Vehicle updated successfully:', updatedVehicle);

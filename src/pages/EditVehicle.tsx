@@ -19,7 +19,7 @@ const EditVehicle = () => {
   const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
   
   const { useVehicle, useUpdate } = useVehicles();
-  const { data: vehicle, isLoading, error } = useVehicle(id || '');
+  const { data: vehicle, isLoading, error, refetch } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
   
   useEffect(() => {
@@ -144,14 +144,16 @@ const EditVehicle = () => {
         {
           onSuccess: (updatedVehicle) => {
             console.log('Vehicle updated successfully:', updatedVehicle);
-            navigate(`/vehicles/${id}`);
             toast.success('Vehicle updated successfully');
+            navigate(`/vehicles/${id}`);
           },
           onError: (error) => {
             console.error('Update vehicle error:', error);
             toast.error('Failed to update vehicle', {
               description: error instanceof Error ? error.message : 'Unknown error occurred',
             });
+            // Try to refetch the vehicle data to ensure our UI is in sync
+            refetch();
           }
         }
       );
