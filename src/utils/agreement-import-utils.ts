@@ -137,7 +137,9 @@ export const createImportLog = async (
 
 // Function to download a template CSV file
 export const downloadAgreementCSVTemplate = () => {
-  const csvContent = agreementCSVFields.join(',') + '\n';
+  // Update template description to include how to identify customers and vehicles
+  const csvHeader = `# Agreement Import Template\n# For Customer ID, you can use:\n# - UUID\n# - Email\n# - Phone Number\n# - Full Name\n# For Vehicle ID, you can use:\n# - UUID\n# - License Plate\n# - VIN\n\n`;
+  const csvContent = csvHeader + agreementCSVFields.join(',') + '\n';
   const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');

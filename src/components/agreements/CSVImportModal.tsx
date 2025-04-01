@@ -6,8 +6,9 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { toast } from 'sonner';
 import { uploadCSV, createImportLog, downloadAgreementCSVTemplate, checkEdgeFunctionAvailability } from '@/utils/agreement-import-utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, FileUp, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, FileUp, Download, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface CSVImportModalProps {
   open: boolean;
@@ -130,11 +131,19 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         <DialogHeader>
           <DialogTitle>Import Agreements from CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to create multiple agreements at once. You can use Customer ID, Email, Phone Number, or Full Name to identify customers, and Vehicle ID, License Plate or VIN to identify vehicles.
+            Upload a CSV file to create multiple agreements at once.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <Alert variant="info" className="bg-blue-50">
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              For Customer ID, you can use UUID, Email, Phone Number, or Full Name.
+              For Vehicle ID, you can use UUID, License Plate, or VIN.
+            </AlertDescription>
+          </Alert>
+          
           <div
             {...getRootProps()}
             className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors
