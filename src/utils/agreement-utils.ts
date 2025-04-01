@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { MutationVariables } from '@/utils/type-utils';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 
 /**
  * Checks if a vehicle is already assigned to an active agreement
@@ -169,12 +169,21 @@ export const updateAgreementWithCheck = async (
     
     // Map the status values to those expected by the database
     let dbStatus = data.status;
-    if (data.status === 'draft') {
+    
+    // Convert AgreementStatus to database status
+    // These mappings need to align with what the database expects
+    if (data.status === AgreementStatus.DRAFT) {
       dbStatus = 'pending_payment'; // Map 'draft' to 'pending_payment'
-    } else if (data.status === 'pending') {
+    } else if (data.status === AgreementStatus.PENDING) {
       dbStatus = 'pending_payment'; // Map 'pending' to 'pending_payment'
-    } else if (data.status === 'expired') {
+    } else if (data.status === AgreementStatus.EXPIRED) {
       dbStatus = 'archived'; // Map 'expired' to 'archived'
+    } else if (data.status === AgreementStatus.CLOSED) {
+      dbStatus = 'closed';
+    } else if (data.status === AgreementStatus.ACTIVE) {
+      dbStatus = 'active';
+    } else if (data.status === AgreementStatus.CANCELLED) {
+      dbStatus = 'cancelled';
     }
     
     // Convert Date objects to ISO strings for Supabase

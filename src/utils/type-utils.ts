@@ -49,3 +49,4 @@ export type PaginatedResponse<T> = {
   pageSize: number;
   totalPages: number;
 };
+
