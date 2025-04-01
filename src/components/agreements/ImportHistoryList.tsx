@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, revertAgreementImport } from '@/lib/supabase';
 import { format } from 'date-fns';
 import {
   Table,
@@ -132,64 +131,14 @@ export function ImportHistoryList() {
     try {
       setIsReverting(true);
       
-      // First get the import details to find agreements created in this import
-      const { data: importData, error: importError } = await supabase
-        .from('agreement_imports')
-        .select('*')
-        .eq('id', selectedImportId)
-        .single();
-        
-      if (importError) {
-        throw importError;
-      }
+      // Use the dedicated function to revert the import
+      const result = await revertAgreementImport(selectedImportId, revertReason.trim() || 'No reason provided');
       
-      // Determine timeframe for imported agreements
-      const startTime = new Date(importData.created_at);
-      const endTime = new Date(importData.updated_at || importData.created_at);
-      // Add a buffer of 5 minutes to the end time
-      endTime.setMinutes(endTime.getMinutes() + 5);
-      
-      console.log(`Reverting import from ${startTime.toISOString()} to ${endTime.toISOString()}`);
-      
-      // Get agreements created during this import
-      const { data: agreements } = await supabase
-        .from('leases')
-        .select('id')
-        .gte('created_at', startTime.toISOString())
-        .lte('created_at', endTime.toISOString());
-        
-      console.log(`Found ${agreements?.length || 0} agreements to delete`);
-      
-      if (!agreements || agreements.length === 0) {
-        toast.warning('No agreements found to delete for this import');
-        setIsReverting(false);
-        setRevertDialogOpen(false);
-        setSelectedImportId(null);
-        setRevertReason('');
-        return;
-      }
-        
-      // Call the function to delete agreements
-      const { data, error } = await supabase.rpc('delete_agreements_by_import_id', {
-        p_import_id: selectedImportId
-      });
-
-      if (error) {
-        throw error;
-      }
-      
-      // Log the revert operation
-      if (data.success) {
-        await supabase.from('agreement_import_reverts').insert({
-          import_id: selectedImportId,
-          deleted_count: data.deleted_count,
-          reason: revertReason.trim() || 'No reason provided'
-        });
-        
-        toast.success(`Successfully reverted import. ${data.deleted_count} agreements deleted.`);
+      if (result.success) {
+        toast.success(result.message);
         fetchImports(); // Refresh the list
       } else {
-        toast.error(`Failed to revert import: ${data.message}`);
+        toast.error(`Failed to revert import: ${result.message || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Error reverting import:', err);
