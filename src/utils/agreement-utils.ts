@@ -135,7 +135,7 @@ export const updateAgreementWithCheck = async (
     const { id, data } = updateParams;
     
     // Check if this is a status change to 'active' and the agreement has a vehicle
-    if (data.status === 'active' && data.vehicle_id) {
+    if (data.status === AgreementStatus.ACTIVE && data.vehicle_id) {
       const { isAvailable, existingAgreement } = await checkVehicleAvailability(
         data.vehicle_id.toString(), 
         id
@@ -167,23 +167,31 @@ export const updateAgreementWithCheck = async (
       }
     }
     
-    // Map the status values to those expected by the database
-    let dbStatus = data.status;
+    // Map the Agreement enum status to database status values
+    let dbStatus: string;
     
-    // Convert AgreementStatus to database status
-    // These mappings need to align with what the database expects
-    if (data.status === AgreementStatus.DRAFT) {
-      dbStatus = 'pending_payment'; // Map 'draft' to 'pending_payment'
-    } else if (data.status === AgreementStatus.PENDING) {
-      dbStatus = 'pending_payment'; // Map 'pending' to 'pending_payment'
-    } else if (data.status === AgreementStatus.EXPIRED) {
-      dbStatus = 'archived'; // Map 'expired' to 'archived'
-    } else if (data.status === AgreementStatus.CLOSED) {
-      dbStatus = 'closed';
-    } else if (data.status === AgreementStatus.ACTIVE) {
-      dbStatus = 'active';
-    } else if (data.status === AgreementStatus.CANCELLED) {
-      dbStatus = 'cancelled';
+    // Convert AgreementStatus to database status string
+    switch(data.status) {
+      case AgreementStatus.DRAFT:
+        dbStatus = 'pending_payment';
+        break;
+      case AgreementStatus.PENDING:
+        dbStatus = 'pending_payment';
+        break;
+      case AgreementStatus.EXPIRED:
+        dbStatus = 'archived';
+        break;
+      case AgreementStatus.CLOSED:
+        dbStatus = 'closed';
+        break;
+      case AgreementStatus.ACTIVE:
+        dbStatus = 'active';
+        break;
+      case AgreementStatus.CANCELLED:
+        dbStatus = 'cancelled';
+        break;
+      default:
+        dbStatus = 'pending_payment'; // Default fallback
     }
     
     // Convert Date objects to ISO strings for Supabase

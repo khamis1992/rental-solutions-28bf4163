@@ -50,3 +50,12 @@ export type PaginatedResponse<T> = {
   totalPages: number;
 };
 
+/**
+ * Creates a flat, non-recursive version of complex types
+ * Specifically designed to prevent "excessively deep" TypeScript errors
+ * 
+ * @template T The complex type to flatten
+ */
+export type FlattenType<T> = {
+  [P in keyof T]: T[P];
+};
