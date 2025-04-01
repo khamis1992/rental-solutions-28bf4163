@@ -56,7 +56,6 @@ const generateArabicPdf = async (agreement: Agreement, doc: jsPDF): Promise<void
 
 export const generatePdfDocument = async (agreement: Agreement, language: 'en' | 'ar' = 'en'): Promise<boolean> => {
   try {
-    // Generate PDF in selected language
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
@@ -64,10 +63,19 @@ export const generatePdfDocument = async (agreement: Agreement, language: 'en' |
       putOnlyUsedFonts: true
     });
 
-    // Set font size and style for the header
-    docEn.setFontSize(16);
-    docEn.setFont('helvetica', 'bold');
-    docEn.text('Vehicle Rental Contract', 105, 20, { align: 'center' });
+    if (language === 'ar') {
+      // Load Arabic font locally
+      doc.addFont('/fonts/Amiri-Regular.ttf', 'Amiri', 'normal');
+      doc.setFont('Amiri');
+      doc.setR2L(true);
+      doc.setLanguage("ar");
+      await generateArabicPdf(agreement, doc);
+      doc.save(`Rental_Agreement-${agreement.agreement_number}-ar.pdf`);
+    } else {
+      // English version
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Vehicle Rental Contract', 105, 20, { align: 'center' });
 
     // Format dates
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
@@ -322,13 +330,14 @@ export const generatePdfDocument = async (agreement: Agreement, language: 'en' |
         format: 'a4',
         putOnlyUsedFonts: true
     });
-    await generateArabicPdf(agreement, docAr);
-
-    if (language === 'ar') {
-      await generateArabicPdf(agreement, doc);
-      doc.save(`Rental_Agreement-${agreement.agreement_number}-ar.pdf`);
-    } else {
-      // Original English PDF generation code here
+    // Generate English content
+      // Format dates
+      const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+      const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+      
+      // Add contract content
+      generateEnglishContent(doc, agreement, startDate, endDate);
+      
       doc.save(`Rental_Agreement-${agreement.agreement_number}-en.pdf`);
     }
     return true;
@@ -381,5 +390,38 @@ export const diagnosisTemplateAccess = async (): Promise<{
       templateExists: false,
       errors: [error instanceof Error ? error.message : String(error)]
     };
+  }
+};
+const verifyFontLoading = (doc: jsPDF): boolean => {
+  try {
+    // Test font loading
+    doc.setFont('Amiri');
+    return true;
+  } catch (error) {
+    console.error('Font loading failed:', error);
+    return false;
+  }
+};
+
+const generateEnglishContent = (doc: jsPDF, agreement: Agreement, startDate: Date, endDate: Date) => {
+  try {
+    // Your existing English content generation code
+    const durationMonths = differenceInMonths(endDate, startDate);
+    const duration = `${durationMonths} ${durationMonths === 1 ? 'month' : 'months'}`;
+    
+    let y = 30;
+    const leftMargin = 20;
+    const lineHeight = 5;
+    
+    // Add content sections
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    // Contract details...
+    // Add your existing English content generation logic here
+    
+  } catch (error) {
+    console.error('Error generating English content:', error);
+    throw error;
   }
 };
