@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -287,12 +288,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as Agreement;
   };
 
-  // Fix the update agreement mutation by simplifying the type structure
-  const updateAgreementMutation = useMutation<
-    Agreement, 
-    Error, 
-    { id: string; data: Partial<Agreement> }
-  >({
+  // Define a separate update function type to avoid circular references
+  type UpdateAgreementFn = (params: { id: string; data: Partial<Agreement> }) => Promise<Agreement>;
+  
+  // Create the mutation with explicitly separate type parameters
+  const updateAgreementMutation = useMutation<Agreement, Error, Parameters<UpdateAgreementFn>[0]>({
     mutationFn: async ({ id, data }) => {
       // Implementation would go here in a real application
       return {} as Agreement;
@@ -302,7 +302,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Simply reference the mutation directly to avoid circular type references
+  // Reference the mutation directly
   const updateAgreement = updateAgreementMutation;
 
   const deleteAgreement = useMutation({
