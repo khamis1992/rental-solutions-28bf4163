@@ -137,9 +137,25 @@ export const createImportLog = async (
 
 // Function to download a template CSV file
 export const downloadAgreementCSVTemplate = () => {
-  // Update template description to include how to identify customers and vehicles
-  const csvHeader = `# Agreement Import Template\n# For Customer ID, you can use:\n# - UUID\n# - Email\n# - Phone Number\n# - Full Name\n# For Vehicle ID, you can use:\n# - UUID\n# - License Plate\n# - VIN\n\n`;
-  const csvContent = csvHeader + agreementCSVFields.join(',') + '\n';
+  // Create a more comprehensive template with comments and example data
+  const csvHeader = `# Agreement Import Template\n# For Customer ID, you can use:\n# - UUID\n# - Email\n# - Phone Number\n# - Full Name\n# For Vehicle ID, you can use:\n# - UUID\n# - License Plate\n# - VIN\n# Dates should be in YYYY-MM-DD format\n\n`;
+  
+  // Add the header row
+  const headerRow = agreementCSVFields.join(',');
+  
+  // Add an example row
+  const exampleRow = [
+    'john.doe@example.com', // Customer ID (email)
+    'ABC123', // Vehicle ID (license plate)
+    '2025-01-01', // Start Date
+    '2025-12-31', // End Date
+    '1000', // Rent Amount
+    '500', // Deposit Amount
+    'long_term', // Agreement Type
+    'Example agreement note' // Notes
+  ].join(',');
+  
+  const csvContent = csvHeader + headerRow + '\n' + exampleRow + '\n';
   const blob = new Blob([csvContent], { type: 'text/csv' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');

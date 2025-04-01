@@ -141,6 +141,7 @@ serve(async (req) => {
       );
     }
     
+    // Here's the fix - process the file properly
     const result = await processCSV(supabase, fileData, importId);
     
     console.log(`Processing completed. Result: ${JSON.stringify(result)}`);
@@ -184,7 +185,12 @@ async function updateImportStatus(supabase, importId, status, updates = {}) {
 
 async function processCSV(supabase, fileData, importId): Promise<ProcessingResult> {
   try {
-    const text = new TextDecoder().decode(fileData);
+    // Properly handle the file data from Supabase Storage
+    // Fixed: Ensure we're working with a Blob/ArrayBuffer before using TextDecoder
+    const blob = new Blob([fileData]);
+    const arrayBuffer = await blob.arrayBuffer();
+    const text = new TextDecoder().decode(arrayBuffer);
+    
     console.log(`CSV text length: ${text.length} characters`);
     
     if (!text || text.trim() === "") {
@@ -197,8 +203,14 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
       };
     }
     
-    const lines = text.split("\n").filter(line => line.trim() !== "");
-    console.log(`Found ${lines.length} lines in CSV`);
+    // Split by newlines and filter out empty lines
+    const lines = text.split("\n").filter(line => {
+      const trimmed = line.trim();
+      // Skip empty lines and comment lines
+      return trimmed !== "" && !trimmed.startsWith("#");
+    });
+    
+    console.log(`Found ${lines.length} lines in CSV (after removing comments and empty lines)`);
     
     if (lines.length < 2) {
       return { 
