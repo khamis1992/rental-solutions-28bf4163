@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -58,6 +57,25 @@ export const agreementCSVMap: Record<string, keyof AgreementImportRow> = {
   'Deposit Amount': 'deposit_amount',
   'Agreement Type': 'agreement_type',
   'Notes': 'notes'
+};
+
+// Function to check if the Edge Function is available
+export const checkEdgeFunctionAvailability = async (): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
+      body: { test: true },
+    });
+    
+    if (error) {
+      console.error('Edge Function check failed:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('Error checking Edge Function:', err);
+    return false;
+  }
 };
 
 // Function to upload a CSV file to storage

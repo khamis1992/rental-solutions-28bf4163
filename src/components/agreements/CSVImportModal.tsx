@@ -72,19 +72,27 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
 
       setUploadProgress('processing');
 
+      console.log('Calling process-agreement-imports function with importId:', importId);
+      
       // Call the Edge Function to process the file
-      const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
-        body: { importId },
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
+          body: { importId: importId },
+        });
 
-      if (error) {
-        console.error('Error processing import:', error);
-        toast.error(`Import processing failed: ${error.message}`);
+        if (error) {
+          console.error('Error processing import:', error);
+          toast.error(`Import processing failed: ${error.message}`);
+          setUploadProgress('error');
+        } else {
+          toast.success(`Import submitted for processing: ${data?.processed || 0} agreements will be imported`);
+          setUploadProgress('success');
+          onImportComplete();
+        }
+      } catch (fnError: any) {
+        console.error('Exception calling edge function:', fnError);
+        toast.error(`Failed to process import: ${fnError.message}`);
         setUploadProgress('error');
-      } else {
-        toast.success(`Import submitted for processing: ${data?.processed || 0} agreements will be imported`);
-        setUploadProgress('success');
-        onImportComplete();
       }
     } catch (err) {
       console.error('Unexpected error during import:', err);

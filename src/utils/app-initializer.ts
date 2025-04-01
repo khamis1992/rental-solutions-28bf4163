@@ -1,22 +1,24 @@
 
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 export const initializeApp = async () => {
   // Set up database tables and other requirements
   await setupInvoiceTemplatesTable();
   
   // Enable the process-agreement-imports function
-  console.log("Enabling agreement import processing function...");
+  console.log("Checking agreement import processing function...");
   try {
-    const { error } = await supabase.functions.invoke('process-agreement-imports', {
+    const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
       body: { test: true },
     });
     
     if (error) {
       console.warn("Error testing agreement import function:", error);
+      toast.error("Agreement import function unavailable. Some features may not work properly.");
     } else {
-      console.log("Agreement import function is available");
+      console.log("Agreement import function is available:", data);
     }
   } catch (err) {
     console.warn("Failed to test agreement import function:", err);

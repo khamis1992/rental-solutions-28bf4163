@@ -3,6 +3,12 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { z } from 'https://deno.land/x/zod@v3.16.1/mod.ts';
 
+// Define CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // Define the schema for validating CSV row data
 const agreementImportSchema = z.object({
   customer_id: z.string().uuid('Customer ID must be a valid UUID'),
@@ -42,14 +48,42 @@ type ProcessingResult = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+  
   try {
+    console.log("Process agreement imports function called");
+    
     // Get the request body
-    const { importId } = await req.json();
+    let reqBody;
+    try {
+      reqBody = await req.json();
+      console.log("Request body:", JSON.stringify(reqBody));
+    } catch (parseError) {
+      console.error("Error parsing request JSON:", parseError);
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid JSON in request body" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
+    // Handle test request
+    if (reqBody.test === true) {
+      console.log("Test request received, returning success");
+      return new Response(
+        JSON.stringify({ success: true, message: "Function is available" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { importId } = reqBody;
     
     if (!importId) {
       return new Response(
         JSON.stringify({ success: false, error: "Import ID is required" }),
-        { headers: { "Content-Type": "application/json" }, status: 400 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
       );
     }
 
@@ -68,7 +102,7 @@ serve(async (req) => {
     if (importError) {
       return new Response(
         JSON.stringify({ success: false, error: `Failed to get import record: ${importError.message}` }),
-        { headers: { "Content-Type": "application/json" }, status: 500 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
     
@@ -90,7 +124,7 @@ serve(async (req) => {
       
       return new Response(
         JSON.stringify({ success: false, error: `Failed to download file: ${fileError.message}` }),
-        { headers: { "Content-Type": "application/json" }, status: 500 }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
       );
     }
     
@@ -112,13 +146,13 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify(result),
-      { headers: { "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Error processing agreement imports:", err);
     return new Response(
       JSON.stringify({ success: false, error: err.message }),
-      { headers: { "Content-Type": "application/json" }, status: 500 }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
     );
   }
 });
