@@ -4,13 +4,20 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { uploadCSV, createImportLog, downloadAgreementCSVTemplate, checkEdgeFunctionAvailability } from '@/utils/agreement-import-utils';
+import { 
+  uploadCSV, 
+  createImportLog, 
+  downloadAgreementCSVTemplate, 
+  checkEdgeFunctionAvailability,
+  previewAgreementCSV
+} from '@/utils/agreement-import-utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, FileUp, Download, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Loader2, FileUp, Download, CheckCircle, AlertCircle, Info, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface CSVImportModalProps {
   open: boolean;
@@ -23,6 +30,9 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
   const [overwriteExisting, setOverwriteExisting] = useState(false);
+  const [previewData, setPreviewData] = useState<{headers: string[], rows: string[][]} | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const { user } = useAuth();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -34,9 +44,28 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
     onDrop: (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
         setFile(acceptedFiles[0]);
+        setPreviewData(null);
+        setShowPreview(false);
       }
     },
   });
+
+  const handlePreviewFile = async () => {
+    if (!file) return;
+    
+    setIsPreviewLoading(true);
+    setShowPreview(true);
+    
+    try {
+      const preview = await previewAgreementCSV(file);
+      setPreviewData(preview);
+    } catch (error) {
+      console.error('Failed to preview file:', error);
+      toast.error('Failed to preview file');
+    } finally {
+      setIsPreviewLoading(false);
+    }
+  };
 
   const handleImport = async () => {
     if (!file) {
@@ -124,6 +153,8 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         setFile(null);
         setUploadProgress('idle');
         setOverwriteExisting(false);
+        setPreviewData(null);
+        setShowPreview(false);
       }, 2000);
     }
   };
@@ -132,9 +163,20 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
     downloadAgreementCSVTemplate();
   };
 
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setFile(null);
+      setUploadProgress('idle');
+      setOverwriteExisting(false);
+      setPreviewData(null);
+      setShowPreview(false);
+    }
+    onOpenChange(open);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleDialogClose}>
+      <DialogContent className="sm:max-w-md md:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import Agreements from CSV</DialogTitle>
           <DialogDescription>
@@ -151,53 +193,55 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
             </AlertDescription>
           </Alert>
           
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors
-              ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}`}
-          >
-            <input {...getInputProps()} disabled={isUploading} />
-            {uploadProgress === 'idle' && (
-              <>
-                <FileUp className="w-10 h-10 mx-auto text-muted-foreground" />
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {isDragActive
-                    ? 'Drop the CSV file here'
-                    : 'Drag and drop a CSV file, or click to select'}
-                </p>
-              </>
-            )}
-            
-            {uploadProgress === 'uploading' && (
-              <div className="flex flex-col items-center">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <p className="mt-2">Uploading file...</p>
-              </div>
-            )}
-            
-            {uploadProgress === 'processing' && (
-              <div className="flex flex-col items-center">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <p className="mt-2">Processing agreements...</p>
-              </div>
-            )}
-            
-            {uploadProgress === 'success' && (
-              <div className="flex flex-col items-center">
-                <CheckCircle className="w-10 h-10 text-green-500" />
-                <p className="mt-2">Import successful!</p>
-              </div>
-            )}
-            
-            {uploadProgress === 'error' && (
-              <div className="flex flex-col items-center">
-                <AlertCircle className="w-10 h-10 text-destructive" />
-                <p className="mt-2">Import failed. Please try again.</p>
-              </div>
-            )}
-          </div>
+          {!showPreview && (
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors
+                ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}`}
+            >
+              <input {...getInputProps()} disabled={isUploading} />
+              {uploadProgress === 'idle' && (
+                <>
+                  <FileUp className="w-10 h-10 mx-auto text-muted-foreground" />
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {isDragActive
+                      ? 'Drop the CSV file here'
+                      : 'Drag and drop a CSV file, or click to select'}
+                  </p>
+                </>
+              )}
+              
+              {uploadProgress === 'uploading' && (
+                <div className="flex flex-col items-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                  <p className="mt-2">Uploading file...</p>
+                </div>
+              )}
+              
+              {uploadProgress === 'processing' && (
+                <div className="flex flex-col items-center">
+                  <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                  <p className="mt-2">Processing agreements...</p>
+                </div>
+              )}
+              
+              {uploadProgress === 'success' && (
+                <div className="flex flex-col items-center">
+                  <CheckCircle className="w-10 h-10 text-green-500" />
+                  <p className="mt-2">Import successful!</p>
+                </div>
+              )}
+              
+              {uploadProgress === 'error' && (
+                <div className="flex flex-col items-center">
+                  <AlertCircle className="w-10 h-10 text-destructive" />
+                  <p className="mt-2">Import failed. Please try again.</p>
+                </div>
+              )}
+            </div>
+          )}
 
-          {file && uploadProgress === 'idle' && (
+          {file && !showPreview && uploadProgress === 'idle' && (
             <div className="flex items-center justify-between bg-muted p-3 rounded-md">
               <div className="flex-1 truncate">
                 <p className="text-sm font-medium">{file.name}</p>
@@ -205,14 +249,72 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
                   {(file.size / 1024).toFixed(2)} KB
                 </p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setFile(null)}
-                disabled={isUploading}
-              >
-                Remove
-              </Button>
+              <div className="flex space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handlePreviewFile}
+                  disabled={isUploading}
+                >
+                  <Eye className="h-4 w-4 mr-1" />
+                  Preview
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setFile(null)}
+                  disabled={isUploading}
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* CSV Preview Section */}
+          {showPreview && (
+            <div className="bg-white rounded-md border p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold">CSV Preview (First 5 Rows)</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowPreview(false)}
+                >
+                  Hide Preview
+                </Button>
+              </div>
+              
+              {isPreviewLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : previewData ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {previewData.headers.map((header, index) => (
+                          <TableHead key={index}>{header}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {previewData.rows.map((row, rowIndex) => (
+                        <TableRow key={rowIndex}>
+                          {row.map((cell, cellIndex) => (
+                            <TableCell key={cellIndex}>{cell}</TableCell>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  No preview data available
+                </div>
+              )}
             </div>
           )}
 
@@ -248,7 +350,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
           <Button
             type="button"
             variant="secondary"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleDialogClose(false)}
             disabled={isUploading}
           >
             Cancel

@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for CSV file operations
  */
@@ -95,6 +94,79 @@ export function parseCSVFile<T>(file: File, headerMap: Record<string, string>): 
         }
         
         resolve(results);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    
+    reader.onerror = (error) => {
+      reject(error);
+    };
+    
+    reader.readAsText(file);
+  });
+}
+
+/**
+ * Preview the first few rows of a CSV file
+ * @param file The File object to preview
+ * @param maxRows Maximum number of rows to return (default: 5)
+ * @returns Promise resolving to array with headers and rows
+ */
+export function previewCSVFile(file: File, maxRows: number = 5): Promise<{headers: string[], rows: string[][]}> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      try {
+        const csvText = event.target?.result as string;
+        const lines = csvText.split('\n').filter(line => line.trim() !== '');
+        
+        if (lines.length === 0) {
+          throw new Error('CSV file is empty');
+        }
+        
+        // Extract headers
+        const headers = lines[0].split(',').map(header => header.trim());
+        
+        // Process only the first few rows
+        const previewRows: string[][] = [];
+        const rowsToProcess = Math.min(maxRows, lines.length - 1);
+        
+        for (let i = 1; i <= rowsToProcess; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          
+          // Handle quoted values properly
+          const values: string[] = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let j = 0; j < line.length; j++) {
+            const char = line[j];
+            
+            if (char === '"' && (j === 0 || line[j-1] !== '\\')) {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              values.push(current);
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          
+          // Push the last value
+          values.push(current);
+          
+          // Remove surrounding quotes from values
+          const cleanedValues = values.map(val => val.replace(/^"|"$/g, ''));
+          previewRows.push(cleanedValues);
+        }
+        
+        resolve({
+          headers,
+          rows: previewRows
+        });
       } catch (error) {
         reject(error);
       }

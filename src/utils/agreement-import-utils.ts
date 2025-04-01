@@ -1,8 +1,8 @@
-
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
+import { previewCSVFile } from '@/utils/csv-utils';
 
 // Schema for validating CSV row data
 export const agreementImportSchema = z.object({
@@ -176,6 +176,18 @@ export const createImportLog = async (
     console.error('Unexpected error creating import log:', err);
     toast.error('An unexpected error occurred while logging the import');
     return null;
+  }
+};
+
+// Function to preview CSV data
+export const previewAgreementCSV = async (file: File): Promise<{headers: string[], rows: string[][]}> => {
+  try {
+    const preview = await previewCSVFile(file, 5);
+    return preview;
+  } catch (err) {
+    console.error('Error previewing CSV file:', err);
+    toast.error('Failed to preview CSV file');
+    throw err;
   }
 };
 
