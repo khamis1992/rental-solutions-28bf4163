@@ -18,6 +18,8 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +28,16 @@ import {
   CollapsibleContent, 
   CollapsibleTrigger 
 } from '@/components/ui/collapsible';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from 'sonner';
+import { Textarea } from "@/components/ui/textarea";
 
 export function ImportHistoryList() {
   const [imports, setImports] = useState<any[]>([]);
@@ -33,6 +45,10 @@ export function ImportHistoryList() {
   const [error, setError] = useState<string | null>(null);
   const [openImportId, setOpenImportId] = useState<string | null>(null);
   const [importErrors, setImportErrors] = useState<Record<string, any[]>>({});
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
+  const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
+  const [revertReason, setRevertReason] = useState('');
+  const [isReverting, setIsReverting] = useState(false);
 
   useEffect(() => {
     fetchImports();
@@ -110,6 +126,50 @@ export function ImportHistoryList() {
     }
   };
 
+  const handleRevertImport = async () => {
+    if (!selectedImportId) return;
+    
+    try {
+      setIsReverting(true);
+      
+      // Call the function to delete agreements
+      const { data, error } = await supabase.rpc('delete_agreements_by_import_id', {
+        p_import_id: selectedImportId
+      });
+
+      if (error) {
+        throw error;
+      }
+      
+      // Log the revert operation
+      if (data.success) {
+        await supabase.from('agreement_import_reverts').insert({
+          import_id: selectedImportId,
+          deleted_count: data.deleted_count,
+          reason: revertReason.trim() || 'No reason provided'
+        });
+        
+        toast.success(`Successfully reverted import. ${data.deleted_count} agreements deleted.`);
+        fetchImports(); // Refresh the list
+      } else {
+        toast.error(`Failed to revert import: ${data.message}`);
+      }
+    } catch (err) {
+      console.error('Error reverting import:', err);
+      toast.error(`Error reverting import: ${err.message}`);
+    } finally {
+      setIsReverting(false);
+      setRevertDialogOpen(false);
+      setSelectedImportId(null);
+      setRevertReason('');
+    }
+  };
+
+  const openRevertDialog = (importId: string) => {
+    setSelectedImportId(importId);
+    setRevertDialogOpen(true);
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -120,6 +180,8 @@ export function ImportHistoryList() {
         return <AlertCircle className="h-4 w-4 text-destructive" />;
       case 'pending':
         return <FileText className="h-4 w-4 text-muted-foreground" />;
+      case 'reverted':
+        return <RotateCcw className="h-4 w-4 text-blue-500" />;
       default:
         return null;
     }
@@ -135,9 +197,20 @@ export function ImportHistoryList() {
         return <Badge variant="destructive" className="capitalize">Failed</Badge>;
       case 'pending':
         return <Badge variant="outline" className="capitalize">Pending</Badge>;
+      case 'reverted':
+        return <Badge variant="secondary" className="capitalize bg-blue-100 text-blue-800">Reverted</Badge>;
       default:
         return <Badge variant="secondary" className="capitalize">{status}</Badge>;
     }
+  };
+
+  const canRevertImport = (importItem: any): boolean => {
+    // Only allow reverting completed or failed imports with errors
+    return (
+      (importItem.status === 'completed' || importItem.status === 'failed') && 
+      importItem.error_count > 0 &&
+      importItem.status !== 'reverted'
+    );
   };
 
   if (isLoading && imports.length === 0) {
@@ -173,6 +246,7 @@ export function ImportHistoryList() {
             <TableHead>Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Records</TableHead>
+            <TableHead className="w-24"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -216,9 +290,22 @@ export function ImportHistoryList() {
                     )}
                   </div>
                 </TableCell>
+                <TableCell>
+                  {canRevertImport(importItem) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => openRevertDialog(importItem.id)}
+                      className="flex items-center gap-1"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      <span>Revert</span>
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={5} className="p-0">
+                <TableCell colSpan={6} className="p-0">
                   <Collapsible
                     open={openImportId === importItem.id}
                     onOpenChange={(open) => {
@@ -287,6 +374,57 @@ export function ImportHistoryList() {
           ))}
         </TableBody>
       </Table>
+
+      <Dialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Revert Agreement Import</DialogTitle>
+            <DialogDescription>
+              This will delete all agreements created with errors during this import. 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <div className="mb-4">
+              <label className="text-sm font-medium">Reason for reverting (optional)</label>
+              <Textarea
+                placeholder="Enter reason for reverting this import"
+                value={revertReason}
+                onChange={(e) => setRevertReason(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRevertDialogOpen(false)}
+              disabled={isReverting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRevertImport}
+              disabled={isReverting}
+            >
+              {isReverting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Reverting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Revert Import
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

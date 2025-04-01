@@ -365,6 +365,41 @@ export type Database = {
           },
         ]
       }
+      agreement_import_reverts: {
+        Row: {
+          created_at: string | null
+          deleted_count: number
+          id: string
+          import_id: string
+          reason: string | null
+          reverted_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deleted_count: number
+          id?: string
+          import_id: string
+          reason?: string | null
+          reverted_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deleted_count?: number
+          id?: string
+          import_id?: string
+          reason?: string | null
+          reverted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agreement_import_reverts_import_id_fkey"
+            columns: ["import_id"]
+            isOneToOne: false
+            referencedRelation: "agreement_imports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agreement_imports: {
         Row: {
           created_at: string | null
@@ -9950,6 +9985,12 @@ export type Database = {
           p_file_name: string
         }
         Returns: string
+      }
+      delete_agreements_by_import_id: {
+        Args: {
+          p_import_id: string
+        }
+        Returns: Json
       }
       delete_all_agreements: {
         Args: Record<PropertyKey, never>
