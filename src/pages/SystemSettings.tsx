@@ -12,9 +12,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getSystemServicesStatus } from '@/utils/service-availability';
 
 interface SystemSetting {
   id: string;
@@ -35,21 +36,14 @@ const SystemSettings = () => {
   });
   
   useEffect(() => {
-    const checkFunctionAvailability = async () => {
+    const checkServices = async () => {
       try {
         setServiceStatus(prev => ({ ...prev, isChecking: true }));
         
-        const agreementCheck = await supabase.functions.invoke('process-agreement-imports', {
-          body: { test: true },
-        });
-        
-        const customerCheck = await supabase.functions.invoke('process-customer-imports', {
-          body: { test: true },
-        });
+        const status = await getSystemServicesStatus();
         
         setServiceStatus({
-          agreementImport: !agreementCheck.error,
-          customerImport: !customerCheck.error,
+          ...status,
           isChecking: false
         });
       } catch (err) {
@@ -62,7 +56,7 @@ const SystemSettings = () => {
       }
     };
     
-    checkFunctionAvailability();
+    checkServices();
   }, []);
   
   const { data: settings, isLoading } = useQuery({
