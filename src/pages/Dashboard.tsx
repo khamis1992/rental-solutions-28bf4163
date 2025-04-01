@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -91,11 +90,11 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 gap-6 section-transition">
               <VehicleStatusChart 
                 availableCount={stats?.vehicleStats?.available || 0}
-                assignedCount={stats?.vehicleStats?.assigned || 0}
+                assignedCount={stats?.vehicleStats?.rented || 0} 
                 maintenanceCount={stats?.vehicleStats?.maintenance || 0}
                 reservedCount={stats?.vehicleStats?.reserved || 0}
-                pendingCount={stats?.vehicleStats?.pending || 0}
-                unavailableCount={stats?.vehicleStats?.unavailable || 0}
+                pendingCount={stats?.vehicleStats?.attention || 0}
+                unavailableCount={stats?.vehicleStats?.critical || 0}
               />
             </div>
             

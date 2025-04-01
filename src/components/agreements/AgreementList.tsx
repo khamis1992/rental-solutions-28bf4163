@@ -5,7 +5,11 @@ import { Table } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 
-const AgreementList = () => {
+interface AgreementListProps {
+  searchQuery?: string;
+}
+
+const AgreementList: React.FC<AgreementListProps> = ({ searchQuery = '' }) => {
   const { agreements, isLoading, error, searchParams, setSearchParams } = useAgreements();
 
   if (isLoading) return <div>Loading...</div>;

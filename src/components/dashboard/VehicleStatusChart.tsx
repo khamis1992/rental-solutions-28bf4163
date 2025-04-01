@@ -1,7 +1,5 @@
 
 import React from 'react';
-import { Chart as ChartJS, ArcElement, Tooltip, Legend, ChartOptions, Plugin } from 'chart.js';
-import { Doughnut } from 'react-chartjs-2';
 import { Badge } from "@/components/ui/badge";
 import {
   CheckCircle,
@@ -12,8 +10,6 @@ import {
   HelpCircle
 } from "lucide-react";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
-
 interface VehicleStatusChartProps {
   availableCount: number;
   assignedCount: number;
@@ -22,33 +18,6 @@ interface VehicleStatusChartProps {
   pendingCount: number;
   unavailableCount: number;
 }
-
-const backgroundColors = [
-  'rgba(75, 192, 192, 0.8)',   // Available (Green)
-  'rgba(54, 162, 235, 0.8)',   // Assigned (Blue)
-  'rgba(255, 206, 86, 0.8)',   // Maintenance (Yellow)
-  'rgba(153, 102, 255, 0.8)',  // Reserved (Purple)
-  'rgba(255, 159, 64, 0.8)',   // Pending (Orange)
-  'rgba(255, 99, 132, 0.8)',    // Unavailable (Red)
-];
-
-const borderColors = [
-  'rgba(75, 192, 192, 1)',
-  'rgba(54, 162, 235, 1)',
-  'rgba(255, 206, 86, 1)',
-  'rgba(153, 102, 255, 1)',
-  'rgba(255, 159, 64, 1)',
-  'rgba(255, 99, 132, 1)',
-];
-
-const statusLabels = [
-  'Available',
-  'Assigned',
-  'Maintenance',
-  'Reserved',
-  'Pending',
-  'Unavailable',
-];
 
 export const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({
   availableCount,
@@ -59,7 +28,14 @@ export const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({
   unavailableCount,
 }) => {
   const data = {
-    labels: statusLabels,
+    labels: [
+      'Available',
+      'Assigned',
+      'Maintenance',
+      'Reserved',
+      'Pending',
+      'Unavailable',
+    ],
     datasets: [
       {
         label: 'Vehicle Status',
@@ -71,8 +47,22 @@ export const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({
           pendingCount,
           unavailableCount,
         ],
-        backgroundColor: backgroundColors,
-        borderColor: borderColors,
+        backgroundColor: [
+          'rgba(75, 192, 192, 0.8)',   // Available (Green)
+          'rgba(54, 162, 235, 0.8)',   // Assigned (Blue)
+          'rgba(255, 206, 86, 0.8)',   // Maintenance (Yellow)
+          'rgba(153, 102, 255, 0.8)',  // Reserved (Purple)
+          'rgba(255, 159, 64, 0.8)',   // Pending (Orange)
+          'rgba(255, 99, 132, 0.8)',    // Unavailable (Red)
+        ],
+        borderColor: [
+          'rgba(75, 192, 192, 1)',
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 206, 86, 1)',
+          'rgba(153, 102, 255, 1)',
+          'rgba(255, 159, 64, 1)',
+          'rgba(255, 99, 132, 1)',
+        ],
         borderWidth: 1,
       },
     ],
@@ -105,36 +95,36 @@ export const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({
     }
   };
 
-  const options: ChartOptions<'doughnut'> = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-        position: 'right',
-      },
-      tooltip: {
-        callbacks: {
-          label: function (context) {
-            const label = context.label || '';
-            const value = context.parsed || 0;
-            const percentage = totalVehicles > 0 ? ((value / totalVehicles) * 100).toFixed(2) + '%' : '0.00%';
-            return `${label}: ${value} (${percentage})`;
-          },
-        },
-      },
-    },
-  };
-
+  // Simplified implementation without chart.js and react-chartjs-2 dependency
   return (
     <div className="w-full h-full flex flex-col items-center justify-center">
-      <div className="w-full h-64 md:h-80 relative">
-        <Doughnut data={data} options={options} />
+      <div className="w-full h-64 md:h-80 relative bg-gray-50 rounded-lg flex items-center justify-center">
+        <div className="text-center">
+          <h4 className="text-lg font-semibold">Vehicle Status Distribution</h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-4">
+            {[
+              { label: 'Available', count: availableCount, color: 'bg-emerald-400' },
+              { label: 'Assigned', count: assignedCount, color: 'bg-blue-400' },
+              { label: 'Maintenance', count: maintenanceCount, color: 'bg-yellow-400' },
+              { label: 'Reserved', count: reservedCount, color: 'bg-purple-400' },
+              { label: 'Pending', count: pendingCount, color: 'bg-orange-400' },
+              { label: 'Unavailable', count: unavailableCount, color: 'bg-red-400' },
+            ].map(item => (
+              <div key={item.label} className="flex items-center p-2 rounded border">
+                <div className={`${item.color} w-3 h-3 rounded-full mr-2`}></div>
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-600">{item.label}</span>
+                  <span className="font-medium">{item.count}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
       <div className="mt-4 w-full">
         <h3 className="text-sm font-medium text-gray-700">Vehicle Status</h3>
         <div className="flex flex-wrap justify-center mt-2">
-          {statusLabels.map((label, index) => {
+          {data.labels.map((label, index) => {
             const count = data.datasets[0].data[index] as number;
             if (count === 0) return null;
             const Icon = getStatusIcon(label);

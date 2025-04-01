@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,6 +51,8 @@ const EditAgreement = () => {
 
   useEffect(() => {
     const fetchAgreement = async () => {
+      if (!id) return;
+      
       const agreement = await getAgreement(id);
       if (agreement) {
         form.reset(agreement);
@@ -62,7 +65,14 @@ const EditAgreement = () => {
   }, [id, getAgreement, form]);
 
   const onSubmit = async (data) => {
+    if (!id) return;
+    
     await updateAgreement.mutateAsync({ id, data });
+    navigate('/agreements');
+  };
+
+  // The function to navigate back after save
+  const handleAfterSave = () => {
     navigate('/agreements');
   };
 
@@ -73,6 +83,7 @@ const EditAgreement = () => {
         onSubmit={onSubmit}
         isSubmitting={updateAgreement.isPending}
         initialData={form.getValues()}
+        onAfterSave={handleAfterSave} 
       />
     </div>
   );
