@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { MutationVariables } from '@/utils/type-utils';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { recordVehicleReassignment } from './reassignment-utils';
 
 /**
  * Checks if a vehicle is already assigned to an active agreement
@@ -29,7 +30,7 @@ export const checkVehicleAvailability = async (
     // Query for any active agreements using this vehicle
     const { data, error } = await supabase
       .from('leases')
-      .select('id, agreement_number, status')
+      .select('id, agreement_number, status, customer_id')
       .eq('vehicle_id', vehicleId)
       .eq('status', 'active')
       .maybeSingle();
@@ -63,13 +64,30 @@ export const checkVehicleAvailability = async (
  * Handles activation of an agreement, with warning if vehicle is already assigned
  * @param id The agreement ID to activate
  * @param vehicleId The vehicle ID to check
+ * @param userId Optional: The user ID performing the activation
+ * @param transferObligations Whether to transfer financial obligations to the new agreement
  * @returns Promise resolving to success status
  */
 export const activateAgreement = async (
   id: string, 
-  vehicleId: string
+  vehicleId: string,
+  userId?: string,
+  transferObligations: boolean = false
 ): Promise<boolean> => {
   try {
+    // Get new agreement details
+    const { data: newAgreement, error: newAgreementError } = await supabase
+      .from('leases')
+      .select('id, agreement_number')
+      .eq('id', id)
+      .single();
+      
+    if (newAgreementError) {
+      console.error("Error fetching new agreement details:", newAgreementError);
+      toast.error("Failed to find agreement details");
+      return false;
+    }
+    
     // Check vehicle availability first
     const { isAvailable, existingAgreement } = await checkVehicleAvailability(vehicleId, id);
     
@@ -96,6 +114,24 @@ export const activateAgreement = async (
       } else {
         console.log(`Successfully closed agreement ${existingAgreement.id}`);
         toast.success(`Agreement #${existingAgreement.agreement_number} was closed successfully`);
+        
+        // Record the vehicle reassignment for historical tracking
+        await recordVehicleReassignment({
+          sourceAgreementId: existingAgreement.id,
+          sourceAgreementNumber: existingAgreement.agreement_number,
+          targetAgreementId: id,
+          targetAgreementNumber: newAgreement.agreement_number,
+          vehicleId: vehicleId,
+          userId: userId,
+          reason: "Vehicle reassigned to new agreement",
+          transferObligations: transferObligations
+        });
+        
+        // Transfer financial obligations if requested
+        if (transferObligations && existingAgreement.id) {
+          const { transferObligations } = await import('./reassignment-utils');
+          await transferObligations(existingAgreement.id, id);
+        }
       }
     }
 
@@ -121,30 +157,66 @@ export const activateAgreement = async (
 };
 
 /**
+ * Generates documentation for a vehicle reassignment
+ * @param sourceAgreementId Previous agreement
+ * @param targetAgreementId New agreement
+ * @returns URL to the generated document
+ */
+export const generateReassignmentDocument = async (
+  sourceAgreementId: string,
+  targetAgreementId: string
+): Promise<string | null> => {
+  try {
+    // This would be implemented to generate transfer/transition documentation
+    // For now, just return a placeholder message
+    toast.info("Document generation to be implemented");
+    return null;
+  } catch (error) {
+    console.error("Error generating reassignment document:", error);
+    return null;
+  }
+};
+
+/**
  * Enhances the agreement update function with vehicle availability check
  * @param updateParams The update parameters
+ * @param userId Optional: The user ID performing the update
  * @param onSuccess Optional success callback
  * @param onError Optional error callback
+ * @param transferObligations Whether to transfer financial obligations to the new agreement
  */
 export const updateAgreementWithCheck = async (
   updateParams: MutationVariables<Agreement>,
+  userId?: string,
   onSuccess?: () => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
+  transferObligations: boolean = false
 ): Promise<void> => {
   try {
     const { id, data } = updateParams;
     
+    // Get existing agreement details for potential reassignment tracking
+    const { data: existingAgreement, error: existingAgreementError } = await supabase
+      .from('leases')
+      .select('id, agreement_number, vehicle_id')
+      .eq('id', id)
+      .single();
+      
+    if (existingAgreementError) {
+      console.error("Error fetching existing agreement details:", existingAgreementError);
+    }
+    
     // Check if this is a status change to 'active' and the agreement has a vehicle
     if (data.status === AgreementStatus.ACTIVE && data.vehicle_id) {
-      const { isAvailable, existingAgreement } = await checkVehicleAvailability(
+      const { isAvailable, existingAgreement: vehicleAgreement } = await checkVehicleAvailability(
         data.vehicle_id.toString(), 
         id
       );
       
       // If vehicle is not available, close the existing agreement
-      if (!isAvailable && existingAgreement) {
+      if (!isAvailable && vehicleAgreement) {
         // Show warning toast about closing other agreement
-        toast(`Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`, {
+        toast(`Vehicle is currently assigned to agreement #${vehicleAgreement.agreement_number}. That agreement will be automatically closed.`, {
           duration: 5000
         });
         
@@ -156,14 +228,44 @@ export const updateAgreementWithCheck = async (
             updated_at: new Date().toISOString(),
             notes: `Agreement automatically closed when vehicle was reassigned to agreement ${id}`
           })
-          .eq('id', existingAgreement.id);
+          .eq('id', vehicleAgreement.id);
           
         if (closeError) {
           console.error("Error closing existing agreement:", closeError);
           toast.error("Failed to close existing agreement");
         } else {
-          console.log(`Successfully closed agreement ${existingAgreement.id}`);
+          console.log(`Successfully closed agreement ${vehicleAgreement.id}`);
+          
+          // Record the vehicle reassignment if we have all the necessary details
+          if (existingAgreement) {
+            await recordVehicleReassignment({
+              sourceAgreementId: vehicleAgreement.id,
+              sourceAgreementNumber: vehicleAgreement.agreement_number,
+              targetAgreementId: id,
+              targetAgreementNumber: existingAgreement.agreement_number,
+              vehicleId: data.vehicle_id.toString(),
+              userId: userId,
+              reason: "Vehicle reassigned during agreement update",
+              transferObligations: transferObligations
+            });
+            
+            // Transfer financial obligations if requested
+            if (transferObligations && vehicleAgreement.id) {
+              const { transferObligations } = await import('./reassignment-utils');
+              await transferObligations(vehicleAgreement.id, id);
+            }
+          }
         }
+      }
+      
+      // Check if this is a vehicle change, not just a status change
+      if (existingAgreement && 
+          existingAgreement.vehicle_id && 
+          data.vehicle_id.toString() !== existingAgreement.vehicle_id.toString()) {
+        // This is a vehicle change within the same agreement - record it as well
+        console.log(`Vehicle changed from ${existingAgreement.vehicle_id} to ${data.vehicle_id}`);
+        
+        // We might want to record this differently or handle it as a special case
       }
     }
     
