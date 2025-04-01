@@ -6,7 +6,7 @@ import FinancialExpensesBreakdown from './FinancialExpensesBreakdown';
 import FinancialRevenueChart from './FinancialRevenueChart';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingDown, BarChartBig } from 'lucide-react';
+import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 
 // Helper function to calculate percentage change - DEFINED BEFORE USAGE
@@ -40,6 +40,7 @@ const FinancialDashboard = () => {
   
   // Simulated trend data - could be enhanced later with real trend calculation 
   const trendData = {
+    revenueChange: financialSummary ? getPercentageChange(financialSummary.totalIncome, financialSummary.totalIncome * 0.95) : 0,
     expenseChange: financialSummary ? getPercentageChange(financialSummary.totalExpenses, financialSummary.totalExpenses * 1.02) : 0,
     profitChange: financialSummary ? getPercentageChange(financialSummary.netRevenue, financialSummary.netRevenue * 0.93) : 0
   };
@@ -62,10 +63,23 @@ const FinancialDashboard = () => {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold tracking-tight">Financial Dashboard</h2>
       
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Revenue ({currentMonth})</CardTitle>
+            <TrendingUp className={`h-4 w-4 ${trendData.revenueChange >= 0 ? 'text-green-500' : 'text-red-500'}`} />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(displayValues.totalIncome)}</div>
+            <p className="text-xs text-muted-foreground">
+              {trendData.revenueChange >= 0 ? '+' : ''}{trendData.revenueChange.toFixed(1)}% from last month
+            </p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Expenses</CardTitle>
             <TrendingDown className={`h-4 w-4 ${trendData.expenseChange <= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
