@@ -294,9 +294,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Partial<Agreement>;
   }
 
-  // Explicitly type the mutation with the interface we defined
-  const updateAgreementMutation = useMutation<Agreement, Error, UpdateAgreementParams>({
-    mutationFn: async ({ id, data }: UpdateAgreementParams): Promise<Agreement> => {
+  // Fix the mutation definition to avoid deep type instantiation
+  const updateAgreementMutation = useMutation<
+    Agreement, 
+    Error, 
+    UpdateAgreementParams
+  >({
+    mutationFn: async ({ id, data }: UpdateAgreementParams) => {
       // Implementation would go here in a real application
       return {} as Agreement;
     },
