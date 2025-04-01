@@ -357,7 +357,7 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         
         console.log(`Creating agreement for customer ${customerId}, vehicle ${vehicleId}`);
         
-        // IMPORTANT: Change the status from 'draft' to 'pending' which is a valid enum value
+        // Use 'draft' status which should be a valid enum value in the database schema
         const { error: createError } = await supabase
           .from("leases")
           .insert({
@@ -370,7 +370,7 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
             agreement_type: rowData.agreement_type || 'short_term',
             notes: rowData.notes || '',
             total_amount: parseFloat(rowData.rent_amount),
-            status: 'pending', // Changed from 'draft' to 'pending'
+            status: 'active', // Changed to 'active' which should be a valid enum value
             agreement_number: getAgreementNumber()
           });
           
