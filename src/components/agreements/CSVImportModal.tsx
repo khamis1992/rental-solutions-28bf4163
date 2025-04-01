@@ -1,0 +1,226 @@
+
+import React, { useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { uploadCSV, createImportLog, downloadAgreementCSVTemplate } from '@/utils/agreement-import-utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, FileUp, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+interface CSVImportModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onImportComplete: () => void;
+}
+
+export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImportModalProps) {
+  const [file, setFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
+  const { user } = useAuth();
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      'text/csv': ['.csv'],
+      'application/vnd.ms-excel': ['.csv'],
+    },
+    maxFiles: 1,
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles.length > 0) {
+        setFile(acceptedFiles[0]);
+      }
+    },
+  });
+
+  const handleImport = async () => {
+    if (!file) {
+      toast.error('Please select a CSV file to import');
+      return;
+    }
+
+    if (!user?.id) {
+      toast.error('You must be logged in to import agreements');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress('uploading');
+
+    try {
+      // Generate a unique filename
+      const timestamp = new Date().getTime();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `agreement-import-${timestamp}.${fileExt}`;
+
+      // Upload the file to Supabase Storage
+      const filePath = await uploadCSV(file, fileName);
+      if (!filePath) {
+        setUploadProgress('error');
+        setIsUploading(false);
+        return;
+      }
+
+      // Create an import log entry
+      const importId = await createImportLog(fileName, file.name, user.id);
+      if (!importId) {
+        setUploadProgress('error');
+        setIsUploading(false);
+        return;
+      }
+
+      setUploadProgress('processing');
+
+      // Call the Edge Function to process the file
+      const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
+        body: { importId },
+      });
+
+      if (error) {
+        console.error('Error processing import:', error);
+        toast.error(`Import processing failed: ${error.message}`);
+        setUploadProgress('error');
+      } else {
+        toast.success(`Import submitted for processing: ${data?.processed || 0} agreements will be imported`);
+        setUploadProgress('success');
+        onImportComplete();
+      }
+    } catch (err) {
+      console.error('Unexpected error during import:', err);
+      toast.error('An unexpected error occurred during import');
+      setUploadProgress('error');
+    } finally {
+      setIsUploading(false);
+      // Close the modal after a short delay to show the success/error state
+      setTimeout(() => {
+        onOpenChange(false);
+        setFile(null);
+        setUploadProgress('idle');
+      }, 2000);
+    }
+  };
+
+  const handleDownloadTemplate = () => {
+    downloadAgreementCSVTemplate();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Import Agreements from CSV</DialogTitle>
+          <DialogDescription>
+            Upload a CSV file to create multiple agreements at once.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div
+            {...getRootProps()}
+            className={`border-2 border-dashed rounded-md p-6 text-center cursor-pointer transition-colors
+              ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}`}
+          >
+            <input {...getInputProps()} disabled={isUploading} />
+            {uploadProgress === 'idle' && (
+              <>
+                <FileUp className="w-10 h-10 mx-auto text-muted-foreground" />
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {isDragActive
+                    ? 'Drop the CSV file here'
+                    : 'Drag and drop a CSV file, or click to select'}
+                </p>
+              </>
+            )}
+            
+            {uploadProgress === 'uploading' && (
+              <div className="flex flex-col items-center">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="mt-2">Uploading file...</p>
+              </div>
+            )}
+            
+            {uploadProgress === 'processing' && (
+              <div className="flex flex-col items-center">
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="mt-2">Processing agreements...</p>
+              </div>
+            )}
+            
+            {uploadProgress === 'success' && (
+              <div className="flex flex-col items-center">
+                <CheckCircle className="w-10 h-10 text-green-500" />
+                <p className="mt-2">Import successful!</p>
+              </div>
+            )}
+            
+            {uploadProgress === 'error' && (
+              <div className="flex flex-col items-center">
+                <AlertCircle className="w-10 h-10 text-destructive" />
+                <p className="mt-2">Import failed. Please try again.</p>
+              </div>
+            )}
+          </div>
+
+          {file && uploadProgress === 'idle' && (
+            <div className="flex items-center justify-between bg-muted p-3 rounded-md">
+              <div className="flex-1 truncate">
+                <p className="text-sm font-medium">{file.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {(file.size / 1024).toFixed(2)} KB
+                </p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setFile(null)}
+                disabled={isUploading}
+              >
+                Remove
+              </Button>
+            </div>
+          )}
+
+          <div className="text-sm mt-2">
+            <p className="text-muted-foreground">
+              Need a template? 
+              <Button
+                variant="link"
+                size="sm"
+                className="px-2 h-auto"
+                onClick={handleDownloadTemplate}
+              >
+                <Download className="h-3 w-3 mr-1" /> Download Template
+              </Button>
+            </p>
+          </div>
+        </div>
+
+        <DialogFooter className="flex gap-2 sm:justify-between mt-4">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => onOpenChange(false)}
+            disabled={isUploading}
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            onClick={handleImport}
+            disabled={!file || isUploading}
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              'Import Agreements'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

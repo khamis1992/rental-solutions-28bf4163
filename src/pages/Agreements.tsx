@@ -2,12 +2,18 @@
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
-import { Loader2, Search, X } from 'lucide-react';
+import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
+import { CSVImportModal } from '@/components/agreements/CSVImportModal';
+import { Loader2, Search, X, FileUp } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { useAgreements } from '@/hooks/use-agreements';
 
 const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const { setSearchParams } = useAgreements();
   
   const handleSearchChange = useDebouncedCallback((value: string) => {
     setSearchQuery(value);
@@ -16,11 +22,29 @@ const Agreements = () => {
   const clearSearch = () => {
     setSearchQuery('');
   };
+  
+  const handleImportComplete = () => {
+    // Reset search params to show all agreements and refresh the list
+    setSearchParams({ 
+      query: '', 
+      status: 'all' 
+    });
+  };
 
   return (
     <PageContainer 
       title="Rental Agreements" 
       description="Manage customer rental agreements and contracts"
+      actions={
+        <Button 
+          variant="outline" 
+          onClick={() => setIsImportModalOpen(true)}
+          className="flex items-center gap-2"
+        >
+          <FileUp className="h-4 w-4" />
+          Import CSV
+        </Button>
+      }
     >
       <div className="mb-6">
         <div className="relative">
@@ -52,6 +76,16 @@ const Agreements = () => {
       }>
         <AgreementList searchQuery={searchQuery} />
       </Suspense>
+      
+      <div className="mt-8">
+        <ImportHistoryList />
+      </div>
+      
+      <CSVImportModal 
+        open={isImportModalOpen}
+        onOpenChange={setIsImportModalOpen}
+        onImportComplete={handleImportComplete}
+      />
     </PageContainer>
   );
 };

@@ -365,6 +365,48 @@ export type Database = {
           },
         ]
       }
+      agreement_imports: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          error_count: number | null
+          errors: Json | null
+          file_name: string
+          id: string
+          original_file_name: string | null
+          processed_count: number | null
+          row_count: number | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          error_count?: number | null
+          errors?: Json | null
+          file_name: string
+          id?: string
+          original_file_name?: string | null
+          processed_count?: number | null
+          row_count?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          error_count?: number | null
+          errors?: Json | null
+          file_name?: string
+          id?: string
+          original_file_name?: string | null
+          processed_count?: number | null
+          row_count?: number | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       agreement_templates: {
         Row: {
           agreement_duration: string
