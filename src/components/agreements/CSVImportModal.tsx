@@ -136,7 +136,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          <Alert variant="info" className="bg-blue-50">
+          <Alert variant="default" className="bg-blue-50">
             <Info className="h-4 w-4" />
             <AlertDescription>
               For Customer ID, you can use UUID, Email, Phone Number, or Full Name.
