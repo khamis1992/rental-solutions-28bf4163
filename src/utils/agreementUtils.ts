@@ -131,7 +131,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       }
     }
     
-    // Set font for English text - Using string-based font setting
+    // Set font for English text
     doc.setFont('helvetica');
     console.log("English font set");
     
@@ -254,7 +254,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
           // We've already added a new page for Arabic
         }
         
-        // Set RTL and Arabic font
+        // Set RTL - fix the setR2L call that's causing the error
         doc.setR2L(true);
         
         // Check if Amiri font was loaded successfully, otherwise use a fallback
