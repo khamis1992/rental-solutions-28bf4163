@@ -143,3 +143,72 @@ BEGIN
   RETURN v_agreement_id;
 END;
 $$;
+
+-- Create function to revert agreement import
+CREATE OR REPLACE FUNCTION public.revert_agreement_import(p_import_id UUID, p_reason TEXT DEFAULT 'User-initiated revert')
+RETURNS TABLE(deleted_count BIGINT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+BEGIN
+  -- Create a record of this revert operation
+  INSERT INTO agreement_import_reverts (
+    import_id,
+    reason,
+    reverted_by,
+    deleted_count
+  ) VALUES (
+    p_import_id,
+    p_reason,
+    auth.uid(),
+    0
+  );
+
+  -- Delete agreements created by this import
+  WITH deleted AS (
+    DELETE FROM leases
+    WHERE id IN (
+      SELECT lease_id 
+      FROM imported_agreements 
+      WHERE import_id = p_import_id
+    )
+    RETURNING id
+  )
+  SELECT COUNT(*) INTO deleted_count FROM deleted;
+  
+  -- Update the revert record with the actual count
+  UPDATE agreement_import_reverts
+  SET deleted_count = deleted_count
+  WHERE import_id = p_import_id AND reverted_by = auth.uid();
+  
+  -- Also delete the import records
+  DELETE FROM imported_agreements
+  WHERE import_id = p_import_id;
+  
+  -- Return the count
+  RETURN QUERY SELECT deleted_count;
+END;
+$$;
+
+-- Create table to track imported agreements if it doesn't exist
+CREATE TABLE IF NOT EXISTS public.imported_agreements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  import_id UUID NOT NULL REFERENCES agreement_imports(id),
+  lease_id UUID NOT NULL REFERENCES leases(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+-- Create index on import_id for faster lookups
+CREATE INDEX IF NOT EXISTS idx_imported_agreements_import_id ON imported_agreements(import_id);
+CREATE INDEX IF NOT EXISTS idx_imported_agreements_lease_id ON imported_agreements(lease_id);
+
+-- Create table to track import reverts if it doesn't exist
+CREATE TABLE IF NOT EXISTS public.agreement_import_reverts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  import_id UUID NOT NULL REFERENCES agreement_imports(id),
+  reason TEXT,
+  reverted_by UUID,
+  deleted_count INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
