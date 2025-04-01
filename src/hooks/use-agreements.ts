@@ -395,8 +395,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   });
 
   const { data: agreements, isLoading, error } = useQuery({
-    queryKey: ['agreements', searchParams],
-    queryFn: fetchAgreements,
+    queryKey: ['agreements', searchParams] as const,
+    queryFn: () => fetchAgreements(),
     staleTime: 30000,
     gcTime: 60000,
   });

@@ -27,18 +27,25 @@ export const recordVehicleReassignment = async (
     
     // First, create the reassignment history record
     const { data, error } = await supabase
-      .from('leases')  // Using an existing table instead of vehicle_reassignments
+      .from('leases')  // Using the leases table for reassignment tracking
       .insert({
-        source_agreement_id: details.sourceAgreementId,
-        source_agreement_number: details.sourceAgreementNumber,
-        target_agreement_id: details.targetAgreementId,
-        target_agreement_number: details.targetAgreementNumber,
+        // We're adapting the fields to use what's available in the leases table
+        // instead of trying to use a non-existent vehicle_reassignments table
         vehicle_id: details.vehicleId,
-        reassigned_at: reassignedAt,
-        reassigned_by: details.userId || null,
-        reason: details.reason || 'Vehicle reassignment',
-        transfer_obligations: details.transferObligations || false,
-        notes: `Vehicle reassigned from ${details.sourceAgreementNumber} to ${details.targetAgreementNumber}`
+        agreement_number: `Reassigned: ${details.sourceAgreementNumber} -> ${details.targetAgreementNumber}`,
+        notes: details.reason || 'Vehicle reassignment',
+        status: 'pending_review' as any,
+        created_at: reassignedAt,
+        updated_at: reassignedAt,
+        // Store reassignment details in the notes field
+        additional_data: {
+          source_agreement_id: details.sourceAgreementId, 
+          source_agreement_number: details.sourceAgreementNumber,
+          target_agreement_id: details.targetAgreementId,
+          target_agreement_number: details.targetAgreementNumber,
+          reassigned_by: details.userId,
+          transfer_obligations: details.transferObligations
+        }
       })
       .select('id')
       .single();
@@ -135,10 +142,10 @@ export const revertReassignment = async (
   reason: string = "User-initiated rollback"
 ): Promise<boolean> => {
   try {
-    // 1. Fetch the reassignment record
+    // 1. Fetch the reassignment record from leases table
     const { data, error } = await supabase
-      .from('leases')  // Using leases instead of vehicle_reassignments
-      .select('*')
+      .from('leases')
+      .select('*, additional_data')
       .eq('id', reassignmentId)
       .single();
       
@@ -148,11 +155,24 @@ export const revertReassignment = async (
       return false;
     }
     
+    // Check if we have the required additional_data
+    const additionalData = data.additional_data || {};
+    const sourceAgreementId = additionalData.source_agreement_id;
+    const sourceAgreementNumber = additionalData.source_agreement_number;
+    const targetAgreementId = additionalData.target_agreement_id;
+    const targetAgreementNumber = additionalData.target_agreement_number;
+    const vehicleId = data.vehicle_id;
+    
+    if (!sourceAgreementId || !targetAgreementId) {
+      toast.error("Incomplete reassignment data found - cannot revert");
+      return false;
+    }
+    
     // 2. Check if the source agreement is still valid for rollback
     const { data: sourceAgreement, error: sourceError } = await supabase
       .from('leases')
       .select('id, status')
-      .eq('id', data.source_agreement_id || '')
+      .eq('id', sourceAgreementId)
       .single();
       
     if (sourceError || !sourceAgreement) {
@@ -164,10 +184,10 @@ export const revertReassignment = async (
     const { data: targetAgreement, error: targetError } = await supabase
       .from('leases')
       .select('id, vehicle_id')
-      .eq('id', data.target_agreement_id || '')
+      .eq('id', targetAgreementId)
       .single();
       
-    if (targetError || !targetAgreement || targetAgreement.vehicle_id !== data.vehicle_id) {
+    if (targetError || !targetAgreement || targetAgreement.vehicle_id !== vehicleId) {
       toast.error("Vehicle is no longer assigned to the target agreement");
       return false;
     }
@@ -176,11 +196,11 @@ export const revertReassignment = async (
     const { error: updateError } = await supabase
       .from('leases')
       .update({ 
-        vehicle_id: data.vehicle_id,
+        vehicle_id: vehicleId,
         status: 'active',
         updated_at: new Date().toISOString()
       })
-      .eq('id', data.source_agreement_id || '');
+      .eq('id', sourceAgreementId);
       
     if (updateError) {
       console.error("Error updating source agreement:", updateError);
@@ -195,7 +215,7 @@ export const revertReassignment = async (
         vehicle_id: null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', data.target_agreement_id || '');
+      .eq('id', targetAgreementId);
       
     if (targetUpdateError) {
       console.error("Error updating target agreement:", targetUpdateError);
@@ -204,17 +224,17 @@ export const revertReassignment = async (
     }
     
     // 6. If original reassignment transferred obligations, move them back
-    if (data.transfer_obligations) {
-      await transferObligations(data.target_agreement_id || '', data.source_agreement_id || '');
+    if (additionalData.transfer_obligations) {
+      await transferObligations(targetAgreementId, sourceAgreementId);
     }
     
     // 7. Record the rollback action
     await recordVehicleReassignment({
-      sourceAgreementId: data.target_agreement_id || '',
-      sourceAgreementNumber: data.target_agreement_number || '',
-      targetAgreementId: data.source_agreement_id || '',
-      targetAgreementNumber: data.source_agreement_number || '',
-      vehicleId: data.vehicle_id || '',
+      sourceAgreementId: targetAgreementId,
+      sourceAgreementNumber: targetAgreementNumber,
+      targetAgreementId: sourceAgreementId,
+      targetAgreementNumber: sourceAgreementNumber,
+      vehicleId: vehicleId,
       reason: reason
     });
     
@@ -243,28 +263,31 @@ export const getReassignmentHistory = async (params: {
       return [];
     }
     
+    // We'll use the audit_logs table to get reassignment history since there is no vehicle_reassignments table
     let query = supabase
-      .from('leases')  // Using leases instead of vehicle_reassignments
+      .from('audit_logs')
       .select(`
         id,
-        source_agreement_id,
-        source_agreement_number,
-        target_agreement_id,
-        target_agreement_number,
-        vehicle_id,
-        reassigned_at,
-        reassigned_by,
-        reason,
-        vehicles(make, model, license_plate)
+        entity_id, 
+        action,
+        performed_by,
+        created_at,
+        description,
+        changes
       `)
-      .order('reassigned_at', { ascending: false });
+      .eq('action', 'reassign')
+      .eq('entity_type', 'vehicle')
+      .order('created_at', { ascending: false });
       
     if (params.vehicleId) {
-      query = query.eq('vehicle_id', params.vehicleId);
+      query = query.eq('entity_id', params.vehicleId);
     }
     
     if (params.agreementId) {
-      query = query.or(`source_agreement_id.eq.${params.agreementId},target_agreement_id.eq.${params.agreementId}`);
+      // We need to search inside the changes JSON field
+      query = query.or(
+        `changes->source_agreement_id.eq.${params.agreementId},changes->target_agreement_id.eq.${params.agreementId}`
+      );
     }
     
     if (params.limit) {
@@ -278,7 +301,19 @@ export const getReassignmentHistory = async (params: {
       return [];
     }
     
-    return data || [];
+    // Transform the data to match the expected format
+    const transformedData = data?.map(item => ({
+      id: item.id,
+      source_agreement_id: item.changes?.source_agreement_id,
+      target_agreement_id: item.changes?.target_agreement_id,
+      vehicle_id: item.entity_id,
+      reassigned_at: item.created_at,
+      reassigned_by: item.performed_by,
+      reason: item.changes?.reason,
+      description: item.description
+    })) || [];
+    
+    return transformedData;
   } catch (error) {
     console.error("Unexpected error in getReassignmentHistory:", error);
     return [];

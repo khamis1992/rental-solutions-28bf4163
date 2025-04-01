@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { AgreementFormWithVehicleCheck } from "@/components/agreements/AgreementFormWithVehicleCheck";
+import AgreementFormWithVehicleCheck from "@/components/agreements/AgreementFormWithVehicleCheck";
 import { useAgreements } from '@/hooks/use-agreements';
 import { toast } from 'sonner';
 
@@ -71,7 +71,7 @@ const EditAgreement = () => {
       <h1>Edit Agreement</h1>
       <AgreementFormWithVehicleCheck
         onSubmit={onSubmit}
-        isSubmitting={updateAgreement.isLoading}
+        isSubmitting={updateAgreement.isPending}
         initialData={form.getValues()}
       />
     </div>

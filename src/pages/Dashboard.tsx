@@ -4,7 +4,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import RevenueChart from '@/components/dashboard/RevenueChart';
-import VehicleStatusChart from '@/components/dashboard/VehicleStatusChart';
+import { VehicleStatusChart } from '@/components/dashboard/VehicleStatusChart';
 import RecentActivity from '@/components/dashboard/RecentActivity';
 import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -89,7 +89,14 @@ const Dashboard = () => {
             <DashboardStats stats={stats} />
             
             <div className="grid grid-cols-1 gap-6 section-transition">
-              <VehicleStatusChart data={stats?.vehicleStats} />
+              <VehicleStatusChart 
+                availableCount={stats?.vehicleStats?.available || 0}
+                assignedCount={stats?.vehicleStats?.assigned || 0}
+                maintenanceCount={stats?.vehicleStats?.maintenance || 0}
+                reservedCount={stats?.vehicleStats?.reserved || 0}
+                pendingCount={stats?.vehicleStats?.pending || 0}
+                unavailableCount={stats?.vehicleStats?.unavailable || 0}
+              />
             </div>
             
             <div className="grid grid-cols-1 gap-6 section-transition">
