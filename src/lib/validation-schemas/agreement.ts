@@ -54,7 +54,6 @@ export const agreementSchema = z.object({
   updated_at: z.date().optional(),
   total_amount: z.number(),
   deposit_amount: z.number().optional(),
-  rent_amount: z.number().optional(), // Ensure rent_amount is defined
   agreement_number: z.string(),
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false),
@@ -88,7 +87,6 @@ export const createEmptyAgreement = (): Omit<Agreement, "id"> => ({
   status: AgreementStatus.DRAFT,
   total_amount: 0,
   deposit_amount: 0,
-  rent_amount: 0, // Added default value for rent_amount
   agreement_number: `AGR-${Date.now().toString().substring(7)}`,
   notes: "",
   terms_accepted: false,

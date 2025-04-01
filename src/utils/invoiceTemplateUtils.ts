@@ -186,8 +186,10 @@ export const processTemplate = (templateContent: string, data: Record<string, st
 
 export const saveTemplate = async (template: InvoiceTemplate): Promise<InvoiceTemplate> => {
   try {
+    // Generate a proper UUID instead of using a timestamp-based ID
     const templateId = template.id || uuidv4();
     
+    // Convert variables array to JSON string for storage
     const templateData = {
       id: templateId,
       name: template.name,
@@ -213,9 +215,11 @@ export const saveTemplate = async (template: InvoiceTemplate): Promise<InvoiceTe
 
     console.log("Template saved successfully:", data);
     
+    // Ensure we're handling the JSON data correctly
     let parsedVariables: TemplateVariable[] = defaultVariables;
     if (data.variables) {
       try {
+        // Check if data.variables is already a string or needs to be stringified
         const variablesStr = typeof data.variables === 'string' 
           ? data.variables 
           : JSON.stringify(data.variables);
@@ -264,6 +268,7 @@ export const fetchTemplates = async (): Promise<InvoiceTemplate[]> => {
       
       if (template.variables) {
         try {
+          // Check if template.variables is already a string or needs to be stringified
           const variablesStr = typeof template.variables === 'string' 
             ? template.variables 
             : JSON.stringify(template.variables);
@@ -312,6 +317,7 @@ export const deleteTemplate = async (templateId: string): Promise<void> => {
 
 export const initializeTemplates = async (): Promise<void> => {
   try {
+    // First check if there are any templates in the database
     const { data: existingTemplates, error: checkError } = await supabase
       .from('invoice_templates')
       .select('*');
@@ -321,6 +327,7 @@ export const initializeTemplates = async (): Promise<void> => {
       throw new Error(`Failed to check templates: ${checkError.message}`);
     }
 
+    // If no templates exist, create default ones
     if (!existingTemplates || existingTemplates.length === 0) {
       console.log("No templates found, creating defaults");
       
@@ -348,6 +355,7 @@ export const initializeTemplates = async (): Promise<void> => {
         updated_at: new Date().toISOString()
       };
 
+      // Save default templates
       const { error: saveError } = await supabase
         .from('invoice_templates')
         .insert([defaultInvoiceTemplate, defaultReceiptTemplate]);
@@ -369,19 +377,23 @@ export const initializeTemplates = async (): Promise<void> => {
 
 export const isValidTemplate = (templateContent: string): boolean => {
   try {
+    // Basic check for HTML structure
     if (!templateContent.trim().startsWith("<!DOCTYPE html>")) {
       console.warn("Template does not start with <!DOCTYPE html>");
       return false;
     }
 
+    // Check for essential tags
     if (!templateContent.includes("<html") || !templateContent.includes("<body")) {
       console.warn("Template missing essential <html> or <body> tags");
       return false;
     }
 
+    // Try to create a DOM element from the template content
     const parser = new DOMParser();
     const doc = parser.parseFromString(templateContent, 'text/html');
 
+    // Check for parsing errors
     const errorNode = doc.querySelector('parsererror');
     if (errorNode) {
       console.error("Template parsing error:", errorNode.textContent);

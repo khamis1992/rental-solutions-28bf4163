@@ -16,7 +16,6 @@ import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -41,27 +40,24 @@ export function AgreementDetail({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [isLanguageDialogOpen, setIsLanguageDialogOpen] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('english');
   const [lateFeeDetails, setLateFeeDetails] = useState<{
     amount: number;
     daysLate: number;
   } | null>(null);
 
-  const {
-    payments,
-    isLoadingPayments,
-    fetchPayments
-  } = usePayments(agreement?.id, rentAmount);
+  // Add console logs to debug payments
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreement?.id, rentAmount);
   console.log('Agreement ID from AgreementDetail:', agreement?.id);
   console.log('Payments from usePayments:', payments);
   console.log('Loading state:', isLoadingPayments);
+
   useEffect(() => {
     if (agreement?.id) {
       console.log('Fetching payments for agreement:', agreement.id);
       fetchPayments();
     }
   }, [agreement?.id, fetchPayments]);
+
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
@@ -87,16 +83,12 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  const handleDownloadPdf = useCallback(() => {
-    setIsLanguageDialogOpen(true);
-  }, []);
-
-  const generatePdf = useCallback(async () => {
+  const handleDownloadPdf = useCallback(async () => {
     if (agreement) {
       try {
         setIsGeneratingPdf(true);
-        toast.info(`Preparing agreement PDF document in ${selectedLanguage}...`);
-        const success = await generatePdfDocument(agreement, selectedLanguage);
+        toast.info("Preparing agreement PDF document...");
+        const success = await generatePdfDocument(agreement);
         if (success) {
           toast.success("Agreement PDF downloaded successfully");
         } else {
@@ -107,10 +99,9 @@ export function AgreementDetail({
         toast.error("Failed to generate PDF");
       } finally {
         setIsGeneratingPdf(false);
-        setIsLanguageDialogOpen(false);
       }
     }
-  }, [agreement, selectedLanguage]);
+  }, [agreement]);
 
   const handleRecordPayment = useCallback(() => {
     setIsPaymentDialogOpen(true);
@@ -131,7 +122,7 @@ export function AgreementDetail({
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
-          fetchPayments();
+          fetchPayments(); // Explicitly fetch payments after adding a new one
           toast.success("Payment recorded successfully");
         }
       } catch (error) {
@@ -143,14 +134,14 @@ export function AgreementDetail({
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
-    return months > 0 ? months : 1;
+    return months > 0 ? months : 1; // Ensure at least 1 month
   }, []);
 
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
       const daysLate = today.getDate() - 1;
-      const lateFeeAmount = Math.min(daysLate * 120, 3000);
+      const lateFeeAmount = Math.min(daysLate * 120, 3000); // 120 QAR per day, max 3000
 
       setLateFeeDetails({
         amount: lateFeeAmount,
@@ -327,10 +318,13 @@ export function AgreementDetail({
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>
-        
+        <Button variant="outline" onClick={handlePrint}>
+          <Printer className="mr-2 h-4 w-4" />
+          Print
+        </Button>
         <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
           <Download className="mr-2 h-4 w-4" />
-          {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
+          {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
         </Button>
         <Button variant="outline" onClick={handleGenerateDocument}>
           <FilePlus className="mr-2 h-4 w-4" />
@@ -346,10 +340,19 @@ export function AgreementDetail({
         </Button>
       </div>
 
-      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
-      onPaymentDeleted();
-      fetchPayments();
-    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
+      {agreement && (
+        <PaymentHistory 
+          payments={payments || []} 
+          isLoading={isLoadingPayments} 
+          rentAmount={rentAmount}
+          onPaymentDeleted={() => {
+            onPaymentDeleted();
+            fetchPayments(); // Fetch payments after deletion too
+          }}
+          leaseStartDate={agreement.start_date}
+          leaseEndDate={agreement.end_date}
+        />
+      )}
 
       {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>
@@ -360,9 +363,10 @@ export function AgreementDetail({
             <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
           </CardContent>
         </Card>}
-
+      
       {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
 
+      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -378,35 +382,7 @@ export function AgreementDetail({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={isLanguageDialogOpen} onOpenChange={setIsLanguageDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Select Document Language</DialogTitle>
-            <DialogDescription>
-              Choose the language for your agreement document
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="english">English</SelectItem>
-                <SelectItem value="arabic">Arabic</SelectItem>
-                <SelectItem value="both">English & Arabic (Bilingual)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsLanguageDialogOpen(false)}>Cancel</Button>
-            <Button variant="default" onClick={generatePdf} disabled={isGeneratingPdf}>
-              {isGeneratingPdf ? 'Generating...' : 'Download'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      {/* Payment Entry Dialog */}
       <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={handlePaymentSubmit} defaultAmount={rentAmount || 0} title="Record Rent Payment" description="Record a new rental payment for this agreement." lateFeeDetails={lateFeeDetails} />
     </div>;
 }
