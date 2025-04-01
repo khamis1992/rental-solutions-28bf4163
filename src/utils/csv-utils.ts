@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for CSV file operations
  */
@@ -36,11 +37,16 @@ export function downloadCSVTemplate(fields: string[], filename: string): void {
 
 /**
  * Parse a CSV file to an array of objects
+ * Type-safe version to avoid deep type instantiation errors
+ * 
  * @param file The File object to parse
  * @param headerMap Map of CSV headers to object properties
  * @returns Promise resolving to array of parsed objects
  */
-export function parseCSVFile<T>(file: File, headerMap: Record<string, string>): Promise<T[]> {
+export function parseCSVFile<T extends Record<string, any>>(
+  file: File, 
+  headerMap: Record<string, keyof T & string>
+): Promise<T[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     

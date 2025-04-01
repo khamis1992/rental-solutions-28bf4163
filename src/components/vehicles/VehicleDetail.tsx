@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
 import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Wrench, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { format, isAfter, parseISO } from 'date-fns';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
@@ -15,9 +15,11 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { toast } from 'sonner';
+
 interface VehicleDetailProps {
   vehicle: Vehicle;
 }
+
 export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   vehicle
 }) => {
@@ -46,6 +48,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     retired: 'bg-red-100 text-red-800'
   };
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
+
   useEffect(() => {
     async function fetchVehicleImage() {
       setImageLoading(true);
@@ -84,6 +87,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     }
     fetchVehicleImage();
   }, [vehicle.id, vehicle.imageUrl, vehicle.image_url, vehicle.model]);
+
   const fallbackToModelImages = () => {
     const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
     const gacImage = '/lovable-uploads/e38aaeba-21fd-492e-9f43-2d798fe0edfc.png';
@@ -130,23 +134,29 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       setVehicleImageUrl(defaultCarImage);
     }
   };
+
   const hasInsurance = !!vehicle.insurance_company;
   const insuranceExpiry = vehicle.insurance_expiry ? parseISO(vehicle.insurance_expiry) : null;
   const isInsuranceValid = insuranceExpiry ? isAfter(insuranceExpiry, new Date()) : false;
+
   const getInsuranceBadgeStyle = () => {
     if (!hasInsurance) return 'bg-red-100 text-red-800';
     return isInsuranceValid ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
   };
+
   const getInsuranceStatusText = () => {
     if (!hasInsurance) return 'No Insurance';
     return isInsuranceValid ? 'Valid' : 'Expired';
   };
+
   const handleViewMaintenance = (id: string) => {
     navigate(`/maintenance/${id}`);
   };
+
   const handleAddMaintenance = () => {
     navigate(`/maintenance/add?vehicleId=${vehicle.id}`);
   };
+
   const handleViewAgreement = (id: string) => {
     if (!id) {
       console.error("Attempted to navigate to agreement with no ID");
@@ -156,9 +166,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     console.log(`Navigating to agreement: /agreements/${id}`);
     navigate(`/agreements/${id}`);
   };
+
   const handleCreateAgreement = () => {
     navigate(`/agreements/add?vehicleId=${vehicle.id}`);
   };
+
   useEffect(() => {
     const fetchMaintenance = async () => {
       setIsLoadingMaintenance(true);
@@ -175,9 +187,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       fetchMaintenance();
     }
   }, [vehicle.id, getByVehicleId]);
+
   const formatMaintenanceType = (type: string) => {
     return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
   };
+
   const getMaintenanceStatusColor = (status: string) => {
     switch (status) {
       case MaintenanceStatus.COMPLETED:
@@ -192,6 +206,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         return 'bg-gray-100 text-gray-800';
     }
   };
+
   const getAgreementStatusColor = (status: string) => {
     switch (status) {
       case 'active':
@@ -207,9 +222,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         return 'bg-gray-100 text-gray-800';
     }
   };
+
   const formatAgreementStatus = (status: string) => {
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
+
   return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
@@ -305,7 +322,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
               <li className="flex items-center text-sm">
                 <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
                 <span className="text-muted-foreground w-28">Daily Rate:</span>
-                <span>{vehicle.dailyRate ? `$${vehicle.dailyRate.toFixed(2)}` : 'N/A'}</span>
+                <span>{vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -384,7 +401,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                           {formatAgreementStatus(agreement.status)}
                         </Badge>
                       </TableCell>
-                      <TableCell>${agreement.total_amount?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>{formatCurrency(agreement.total_amount)}</TableCell>
                       <TableCell className="text-right">
                         <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(agreement.id)}>
                           View
@@ -431,7 +448,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                           {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                         </Badge>
                       </TableCell>
-                      <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
+                      <TableCell>{formatCurrency(record.cost)}</TableCell>
                       <TableCell>{record.service_provider || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <CustomButton size="sm" variant="ghost" onClick={() => handleViewMaintenance(record.id)}>
