@@ -193,14 +193,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        const isLicensePlateSearch = isLicensePlatePattern(searchQuery) || 
-                                    searchParams.query.length <= 4;
-        
-        if (isLicensePlateSearch) {
-          query = query.or(`agreement_number.ilike.%${searchQuery}%,vehicles.license_plate.ilike.%${searchQuery}%`);
-        } else {
-          query = query.or(`agreement_number.ilike.%${searchQuery}%,profiles.full_name.ilike.%${searchQuery}%`);
-        }
+        // Only search by license plate as requested by the user
+        query = query.ilike('vehicles.license_plate', `%${searchQuery}%`);
       }
 
       console.log("Executing Supabase query...");
