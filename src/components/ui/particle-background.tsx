@@ -8,6 +8,7 @@ interface Particle {
   speedX: number;
   speedY: number;
   opacity: number;
+  color: string;
 }
 
 const ParticleBackground: React.FC = () => {
@@ -33,19 +34,32 @@ const ParticleBackground: React.FC = () => {
     window.addEventListener('resize', handleResize);
     handleResize();
     
-    // Initialize particles
+    // Initialize particles with better colors and distribution
     function initializeParticles() {
-      const particleCount = Math.min(Math.floor(window.innerWidth * 0.05), 100); // Responsive particle count
+      const particleCount = Math.min(Math.floor(window.innerWidth * 0.07), 120); // More particles
       particles.current = [];
       
+      // Color palette for particles
+      const colors = [
+        'rgba(59, 130, 246, opacity)', // Primary blue
+        'rgba(96, 165, 250, opacity)', // Light blue
+        'rgba(37, 99, 235, opacity)',  // Darker blue
+        'rgba(147, 197, 253, opacity)' // Very light blue
+      ];
+      
       for (let i = 0; i < particleCount; i++) {
+        const colorIndex = Math.floor(Math.random() * colors.length);
+        const baseOpacity = Math.random() * 0.5 + 0.1;
+        const color = colors[colorIndex].replace('opacity', baseOpacity.toString());
+        
         particles.current.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 2 + 0.5,
-          speedX: (Math.random() - 0.5) * 0.3,
-          speedY: (Math.random() - 0.5) * 0.3,
-          opacity: Math.random() * 0.5 + 0.1
+          size: Math.random() * 3 + 0.5, // Slightly bigger particles
+          speedX: (Math.random() - 0.5) * 0.4,
+          speedY: (Math.random() - 0.5) * 0.4,
+          opacity: baseOpacity,
+          color: color
         });
       }
     }
@@ -56,9 +70,13 @@ const ParticleBackground: React.FC = () => {
       
       // Update and draw particles
       particles.current.forEach((particle, index) => {
-        // Update position
+        // Update position with slight acceleration
         particle.x += particle.speedX;
         particle.y += particle.speedY;
+        
+        // Add slight random movement
+        particle.x += (Math.random() - 0.5) * 0.2;
+        particle.y += (Math.random() - 0.5) * 0.2;
         
         // Wrap around screen edges
         if (particle.x < 0) particle.x = canvas.width;
@@ -69,7 +87,7 @@ const ParticleBackground: React.FC = () => {
         // Draw particle
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(59, 130, 246, ${particle.opacity})`;
+        ctx.fillStyle = particle.color;
         ctx.fill();
         
         // Connect particles within a certain distance
@@ -80,9 +98,9 @@ const ParticleBackground: React.FC = () => {
       animationFrameId.current = requestAnimationFrame(animate);
     }
     
-    // Draw lines between nearby particles
+    // Draw lines between nearby particles with improved aesthetics
     function connectParticles(particle: Particle, index: number) {
-      const connectionDistance = 150; // Max distance for connection
+      const connectionDistance = 180; // Increased max distance for connection
       
       for (let i = index + 1; i < particles.current.length; i++) {
         const other = particles.current[i];
@@ -91,15 +109,24 @@ const ParticleBackground: React.FC = () => {
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < connectionDistance) {
-          // Calculate opacity based on distance
-          const opacity = (1 - distance / connectionDistance) * 0.2;
+          // Calculate opacity based on distance - smoother gradient
+          const opacity = (1 - distance / connectionDistance) * 0.15;
           
-          // Draw connecting line
+          // Draw connecting line with gradient
           ctx.beginPath();
           ctx.moveTo(particle.x, particle.y);
           ctx.lineTo(other.x, other.y);
-          ctx.strokeStyle = `rgba(59, 130, 246, ${opacity})`;
-          ctx.lineWidth = 0.5;
+          
+          // Use gradient for smoother connections
+          const gradient = ctx.createLinearGradient(
+            particle.x, particle.y, other.x, other.y
+          );
+          
+          gradient.addColorStop(0, particle.color.replace(/[\d.]+\)$/, `${opacity})`));
+          gradient.addColorStop(1, other.color.replace(/[\d.]+\)$/, `${opacity})`));
+          
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = 0.6;
           ctx.stroke();
         }
       }
@@ -122,7 +149,7 @@ const ParticleBackground: React.FC = () => {
     <canvas 
       ref={canvasRef} 
       className="absolute top-0 left-0 w-full h-full pointer-events-none z-0" 
-      style={{ opacity: 0.6 }}
+      style={{ opacity: 0.75 }}
     />
   );
 };

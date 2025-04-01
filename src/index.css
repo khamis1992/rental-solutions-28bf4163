@@ -97,4 +97,24 @@
   .section-transition {
     @apply animate-slide-up;
   }
+  
+  /* Gradient buttons */
+  .gradient-button {
+    @apply bg-gradient-to-r from-primary to-blue-500 hover:from-blue-600 hover:to-primary text-white transition-all duration-300;
+  }
+  
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400;
+  }
+  
+  /* Card hover effects */
+  .hover-card {
+    @apply transition-all duration-300 hover:shadow-xl hover:translate-y-[-5px];
+  }
+  
+  /* Feature card */
+  .feature-card {
+    @apply p-6 rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300;
+  }
 }
