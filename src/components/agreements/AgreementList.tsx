@@ -74,6 +74,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -125,8 +127,18 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
-        await deleteAgreement.mutateAsync(id);
-        successCount++;
+        // Directly delete from database since the hook isn't working correctly
+        const { error } = await supabase
+          .from('leases')
+          .delete()
+          .eq('id', id);
+          
+        if (error) {
+          console.error(`Failed to delete agreement ${id}:`, error);
+          errorCount++;
+        } else {
+          successCount++;
+        }
       } catch (error) {
         console.error(`Failed to delete agreement ${id}:`, error);
         errorCount++;
@@ -144,6 +156,9 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setRowSelection({});
     setBulkDeleteDialogOpen(false);
     setIsDeleting(false);
+    
+    // Refresh the agreements list
+    queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
   const columns: ColumnDef<Agreement>[] = [
@@ -402,6 +417,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   };
 
   const selectedCount = Object.keys(rowSelection).length;
+
+  const queryClient = useQueryClient();
 
   return (
     <div className="space-y-4">
