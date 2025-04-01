@@ -357,6 +357,7 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         
         console.log(`Creating agreement for customer ${customerId}, vehicle ${vehicleId}`);
         
+        // IMPORTANT: Change the status from 'draft' to 'pending' which is a valid enum value
         const { error: createError } = await supabase
           .from("leases")
           .insert({
@@ -369,7 +370,7 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
             agreement_type: rowData.agreement_type || 'short_term',
             notes: rowData.notes || '',
             total_amount: parseFloat(rowData.rent_amount),
-            status: 'draft',
+            status: 'pending', // Changed from 'draft' to 'pending'
             agreement_number: getAgreementNumber()
           });
           
@@ -449,15 +450,19 @@ function isUUID(str: string): boolean {
 }
 
 async function logImportError(supabase, importId, rowNumber, customerId, errorMessage, rowData) {
-  await supabase
-    .from("agreement_import_errors")
-    .insert({
-      import_log_id: importId,
-      row_number: rowNumber,
-      customer_identifier: customerId,
-      error_message: errorMessage,
-      row_data: rowData
-    });
+  try {
+    await supabase
+      .from("agreement_import_errors")
+      .insert({
+        import_log_id: importId,
+        row_number: rowNumber,
+        customer_identifier: customerId,
+        error_message: errorMessage,
+        row_data: rowData
+      });
+  } catch (error) {
+    console.error("Failed to log import error:", error);
+  }
 }
 
 function getAgreementNumber(): string {
