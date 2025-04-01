@@ -98,10 +98,17 @@ const ParticleBackground: React.FC = () => {
             particle.x, particle.y, particle.size * 2
           );
           
-          // Fixed: Use proper RGBA format for glow effect
-          const particleColorBase = particle.color.substring(0, particle.color.lastIndexOf(','));
-          glow.addColorStop(0, `${particleColorBase}, 0.8)`);
-          glow.addColorStop(1, `${particleColorBase}, 0)`);
+          // Fix: Extract color base and add opacity properly
+          const rgbaMatch = particle.color.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+          if (rgbaMatch) {
+            const [_, r, g, b, a] = rgbaMatch;
+            glow.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.8)`);
+            glow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+          } else {
+            // Fallback
+            glow.addColorStop(0, particle.color);
+            glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          }
           
           ctx.fillStyle = glow;
           ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
@@ -146,12 +153,20 @@ const ParticleBackground: React.FC = () => {
             particle.x, particle.y, other.x, other.y
           );
           
-          // Fixed: Extract base color and add proper opacity format
-          const particleColorBase = particle.color.substring(0, particle.color.lastIndexOf(','));
-          const otherColorBase = other.color.substring(0, other.color.lastIndexOf(','));
+          // Fix: Extract color components properly for both particles
+          const colorRegex = /rgba\((\d+),\s*(\d+),\s*(\d+)/;
           
-          gradient.addColorStop(0, `${particleColorBase}, ${opacity})`);
-          gradient.addColorStop(1, `${otherColorBase}, ${opacity})`);
+          const particleColorMatch = particle.color.match(colorRegex);
+          const otherColorMatch = other.color.match(colorRegex);
+          
+          if (particleColorMatch && otherColorMatch) {
+            gradient.addColorStop(0, `rgba(${particleColorMatch[1]}, ${particleColorMatch[2]}, ${particleColorMatch[3]}, ${opacity})`);
+            gradient.addColorStop(1, `rgba(${otherColorMatch[1]}, ${otherColorMatch[2]}, ${otherColorMatch[3]}, ${opacity})`);
+          } else {
+            // Fallback to a safe default
+            gradient.addColorStop(0, `rgba(96, 165, 250, ${opacity})`);
+            gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity})`);
+          }
           
           ctx.strokeStyle = gradient;
           ctx.lineWidth = 0.6;
