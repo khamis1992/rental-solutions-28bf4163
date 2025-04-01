@@ -54,10 +54,10 @@ const generateArabicPdf = async (agreement: Agreement, doc: jsPDF): Promise<void
   doc.text(`قيمة الإيجار الشهري: ${agreement.total_amount} ريال قطري`, rightMargin, y, { align: 'right' });
 };
 
-export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
+export const generatePdfDocument = async (agreement: Agreement, language: 'en' | 'ar' = 'en'): Promise<boolean> => {
   try {
-    // Generate English version
-    const docEn = new jsPDF({
+    // Generate PDF in selected language
+    const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
@@ -324,9 +324,13 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     });
     await generateArabicPdf(agreement, docAr);
 
-    // Save both PDFs
-    docEn.save(`Rental_Agreement-${agreement.agreement_number}-en.pdf`);
-    docAr.save(`Rental_Agreement-${agreement.agreement_number}-ar.pdf`);
+    if (language === 'ar') {
+      await generateArabicPdf(agreement, doc);
+      doc.save(`Rental_Agreement-${agreement.agreement_number}-ar.pdf`);
+    } else {
+      // Original English PDF generation code here
+      doc.save(`Rental_Agreement-${agreement.agreement_number}-en.pdf`);
+    }
     return true;
   } catch (error) {
     console.error("Error generating PDF:", error);

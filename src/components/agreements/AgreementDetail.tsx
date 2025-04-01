@@ -9,6 +9,7 @@ import { CalendarDays, Download, Edit, Printer, DollarSign, FilePlus } from 'luc
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { LegalCaseCard } from './LegalCaseCard';
@@ -84,14 +85,14 @@ export function AgreementDetail({
     }
   }, [agreement, navigate]);
 
-  const handleDownloadPdf = useCallback(async () => {
+  const handleDownloadPdf = useCallback(async (language: 'en' | 'ar') => {
     if (agreement) {
       try {
         setIsGeneratingPdf(true);
         toast.info("Preparing agreement PDF document...");
-        const success = await generatePdfDocument(agreement);
+        const success = await generatePdfDocument(agreement, language);
         if (success) {
-          toast.success("Agreement PDF downloaded successfully");
+          toast.success(`${language === 'en' ? 'English' : 'Arabic'} agreement PDF downloaded successfully`);
         } else {
           toast.error("Failed to generate PDF");
         }
@@ -320,10 +321,22 @@ export function AgreementDetail({
           Edit
         </Button>
         
-        <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
-          <Download className="mr-2 h-4 w-4" />
-          {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" disabled={isGeneratingPdf}>
+              <Download className="mr-2 h-4 w-4" />
+              {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={() => handleDownloadPdf('en')}>
+              English Version
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDownloadPdf('ar')}>
+              Arabic Version
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="outline" onClick={handleGenerateDocument}>
           <FilePlus className="mr-2 h-4 w-4" />
           Generate Document
