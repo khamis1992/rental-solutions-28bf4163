@@ -1,7 +1,7 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import AgreementList from '@/components/agreements/AgreementList';
+import { AgreementList } from '@/components/agreements/AgreementList';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Loader2, Search, X, FileUp, AlertTriangle } from 'lucide-react';

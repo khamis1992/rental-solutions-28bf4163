@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, ArrowRight, CheckCircle2, Info, AlertTriangle, X } from "lucide-react";
+import { AlertCircle, ArrowRight, CheckCircle2, Info, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { VehicleStatusBadge } from './VehicleStatusBadge';

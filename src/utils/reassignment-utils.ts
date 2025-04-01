@@ -25,8 +25,30 @@ export const recordVehicleReassignment = async (
     // Get current timestamp for the record
     const reassignedAt = new Date().toISOString();
     
-    // Create an audit log entry since there's no vehicle_reassignments table
+    // First, create the reassignment history record
     const { data, error } = await supabase
+      .from('vehicle_reassignments')
+      .insert({
+        source_agreement_id: details.sourceAgreementId,
+        source_agreement_number: details.sourceAgreementNumber,
+        target_agreement_id: details.targetAgreementId,
+        target_agreement_number: details.targetAgreementNumber,
+        vehicle_id: details.vehicleId,
+        reassigned_at: reassignedAt,
+        reassigned_by: details.userId || null,
+        reason: details.reason || 'Vehicle reassignment',
+        transfer_obligations: details.transferObligations || false
+      })
+      .select('id')
+      .single();
+      
+    if (error) {
+      console.error("Error recording vehicle reassignment:", error);
+      return null;
+    }
+    
+    // Also add an entry to the audit logs for this action
+    await supabase
       .from('audit_logs')
       .insert({
         entity_type: 'vehicle',
@@ -37,19 +59,11 @@ export const recordVehicleReassignment = async (
         changes: {
           source_agreement_id: details.sourceAgreementId,
           target_agreement_id: details.targetAgreementId,
-          reason: details.reason,
-          transfer_obligations: details.transferObligations
+          reason: details.reason
         }
-      })
-      .select('id')
-      .single();
-      
-    if (error) {
-      console.error("Error recording vehicle reassignment:", error);
-      return null;
-    }
+      });
     
-    return data?.id || null;
+    return data.id;
   } catch (error) {
     console.error("Unexpected error in recordVehicleReassignment:", error);
     return null;
@@ -120,9 +134,9 @@ export const revertReassignment = async (
   reason: string = "User-initiated rollback"
 ): Promise<boolean> => {
   try {
-    // Get the reassignment info from audit logs
+    // 1. Fetch the reassignment record
     const { data, error } = await supabase
-      .from('audit_logs')
+      .from('vehicle_reassignments')
       .select('*')
       .eq('id', reassignmentId)
       .single();
@@ -133,39 +147,11 @@ export const revertReassignment = async (
       return false;
     }
     
-    // Extract the data from changes field
-    const changes = data.changes as Record<string, any>;
-    
-    // Check if we have the required data
-    const sourceAgreementId = changes?.source_agreement_id;
-    const targetAgreementId = changes?.target_agreement_id;
-    const vehicleId = data.entity_id;
-    
-    if (!sourceAgreementId || !targetAgreementId || !vehicleId) {
-      toast.error("Incomplete reassignment data found - cannot revert");
-      return false;
-    }
-    
-    // Fetch source and target agreement numbers for the new audit record
-    const { data: agreements, error: agreementsError } = await supabase
-      .from('leases')
-      .select('id, agreement_number')
-      .in('id', [sourceAgreementId, targetAgreementId]);
-      
-    if (agreementsError) {
-      console.error("Error fetching agreement details:", agreementsError);
-      return false;
-    }
-    
-    // Get the agreement numbers for the audit trail
-    const sourceAgreementNumber = agreements?.find(a => a.id === sourceAgreementId)?.agreement_number || 'Unknown';
-    const targetAgreementNumber = agreements?.find(a => a.id === targetAgreementId)?.agreement_number || 'Unknown';
-    
-    // Check if the source agreement is still valid for rollback
+    // 2. Check if the source agreement is still valid for rollback
     const { data: sourceAgreement, error: sourceError } = await supabase
       .from('leases')
       .select('id, status')
-      .eq('id', sourceAgreementId)
+      .eq('id', data.source_agreement_id)
       .single();
       
     if (sourceError || !sourceAgreement) {
@@ -173,27 +159,27 @@ export const revertReassignment = async (
       return false;
     }
     
-    // Check if the target agreement still has the vehicle
+    // 3. Check if the target agreement still has the vehicle
     const { data: targetAgreement, error: targetError } = await supabase
       .from('leases')
       .select('id, vehicle_id')
-      .eq('id', targetAgreementId)
+      .eq('id', data.target_agreement_id)
       .single();
       
-    if (targetError || !targetAgreement || targetAgreement.vehicle_id !== vehicleId) {
+    if (targetError || !targetAgreement || targetAgreement.vehicle_id !== data.vehicle_id) {
       toast.error("Vehicle is no longer assigned to the target agreement");
       return false;
     }
     
-    // Perform the rollback - move vehicle back to source agreement
+    // 4. Perform the rollback - move vehicle back to source agreement
     const { error: updateError } = await supabase
       .from('leases')
       .update({ 
-        vehicle_id: vehicleId,
+        vehicle_id: data.vehicle_id,
         status: 'active',
         updated_at: new Date().toISOString()
       })
-      .eq('id', sourceAgreementId);
+      .eq('id', data.source_agreement_id);
       
     if (updateError) {
       console.error("Error updating source agreement:", updateError);
@@ -201,14 +187,14 @@ export const revertReassignment = async (
       return false;
     }
     
-    // Remove vehicle from target agreement
+    // 5. Remove vehicle from target agreement
     const { error: targetUpdateError } = await supabase
       .from('leases')
       .update({ 
         vehicle_id: null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', targetAgreementId);
+      .eq('id', data.target_agreement_id);
       
     if (targetUpdateError) {
       console.error("Error updating target agreement:", targetUpdateError);
@@ -216,18 +202,18 @@ export const revertReassignment = async (
       // We don't return false here, as the main operation succeeded
     }
     
-    // If original reassignment transferred obligations, move them back
-    if (changes?.transfer_obligations) {
-      await transferObligations(targetAgreementId, sourceAgreementId);
+    // 6. If original reassignment transferred obligations, move them back
+    if (data.transfer_obligations) {
+      await transferObligations(data.target_agreement_id, data.source_agreement_id);
     }
     
-    // Record the rollback action
+    // 7. Record the rollback action
     await recordVehicleReassignment({
-      sourceAgreementId: targetAgreementId,
-      sourceAgreementNumber: targetAgreementNumber,
-      targetAgreementId: sourceAgreementId,
-      targetAgreementNumber: sourceAgreementNumber,
-      vehicleId: vehicleId,
+      sourceAgreementId: data.target_agreement_id,
+      sourceAgreementNumber: data.target_agreement_number,
+      targetAgreementId: data.source_agreement_id,
+      targetAgreementNumber: data.source_agreement_number,
+      vehicleId: data.vehicle_id,
       reason: reason
     });
     
@@ -256,31 +242,28 @@ export const getReassignmentHistory = async (params: {
       return [];
     }
     
-    // We'll use the audit_logs table to get reassignment history
     let query = supabase
-      .from('audit_logs')
+      .from('vehicle_reassignments')
       .select(`
         id,
-        entity_id, 
-        action,
-        performed_by,
-        created_at,
-        description,
-        changes
+        source_agreement_id,
+        source_agreement_number,
+        target_agreement_id,
+        target_agreement_number,
+        vehicle_id,
+        reassigned_at,
+        reassigned_by,
+        reason,
+        vehicles:vehicle_id (make, model, license_plate)
       `)
-      .eq('action', 'reassign')
-      .eq('entity_type', 'vehicle')
-      .order('created_at', { ascending: false });
+      .order('reassigned_at', { ascending: false });
       
     if (params.vehicleId) {
-      query = query.eq('entity_id', params.vehicleId);
+      query = query.eq('vehicle_id', params.vehicleId);
     }
     
     if (params.agreementId) {
-      // We need to search inside the changes JSON field
-      query = query.or(
-        `changes->source_agreement_id.eq.${params.agreementId},changes->target_agreement_id.eq.${params.agreementId}`
-      );
+      query = query.or(`source_agreement_id.eq.${params.agreementId},target_agreement_id.eq.${params.agreementId}`);
     }
     
     if (params.limit) {
@@ -294,22 +277,7 @@ export const getReassignmentHistory = async (params: {
       return [];
     }
     
-    // Transform the data to match the expected format
-    const transformedData = data?.map(item => {
-      const changes = item.changes as Record<string, any>;
-      return {
-        id: item.id,
-        source_agreement_id: changes?.source_agreement_id,
-        target_agreement_id: changes?.target_agreement_id,
-        vehicle_id: item.entity_id,
-        reassigned_at: item.created_at,
-        reassigned_by: item.performed_by,
-        reason: changes?.reason,
-        description: item.description
-      };
-    }) || [];
-    
-    return transformedData;
+    return data || [];
   } catch (error) {
     console.error("Unexpected error in getReassignmentHistory:", error);
     return [];

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -14,10 +15,7 @@ interface SearchParams {
 }
 
 // Use FlattenType to prevent excessive type instantiation
-type SimpleAgreement = Omit<Agreement, 'customers' | 'vehicles'> & {
-  customers?: Record<string, any>;
-  vehicles?: Record<string, any>;
-};
+type SimpleAgreement = FlattenType<Agreement>;
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
@@ -49,6 +47,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         console.error(`No lease data found for ID: ${id}`);
         return null;
       }
+
+      console.log("Raw lease data from Supabase:", data);
 
       let customerData = null;
       let vehicleData = null;
@@ -139,6 +139,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         signature_url: (data as any).signature_url
       };
 
+      console.log("Transformed agreement data:", agreement);
       return agreement;
     } catch (err) {
       console.error("Unexpected error in getAgreement:", err);
@@ -147,24 +148,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  // Helper to map database status values to the enum values
-  const mapStatusFromDatabase = (status: string): any => {
-    switch(status) {
-      case 'active': return AgreementStatus.ACTIVE;
-      case 'pending_payment':
-      case 'pending_deposit': return AgreementStatus.PENDING;
-      case 'cancelled': return AgreementStatus.CANCELLED;
-      case 'completed':
-      case 'terminated': return AgreementStatus.CLOSED;
-      case 'archived': return AgreementStatus.EXPIRED;
-      default: return AgreementStatus.DRAFT;
-    }
-  };
-
-  // Use a type assertion to solve deep type instantiation
-  type QueryResponse = SimpleAgreement[];
-
-  const fetchAgreements = async (): Promise<QueryResponse> => {
+  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
@@ -249,28 +233,53 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return [];
       }
 
-      console.log(`Found ${data.length} agreements`);
+      console.log(`Found ${data.length} agreements`, data);
 
-      // Use type assertion to avoid deep type instantiation
-      const agreements = data.map(item => ({
-        id: item.id,
-        customer_id: item.customer_id,
-        vehicle_id: item.vehicle_id,
-        start_date: new Date(item.start_date),
-        end_date: new Date(item.end_date),
-        status: mapStatusFromDatabase(item.status),
-        created_at: item.created_at ? new Date(item.created_at) : undefined,
-        updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
-        total_amount: item.total_amount || 0,
-        deposit_amount: item.deposit_amount || 0,
-        agreement_number: item.agreement_number || '',
-        notes: item.notes || '',
-        terms_accepted: true,
-        additional_drivers: [],
-        customers: item.profiles,
-        vehicles: item.vehicles,
-        signature_url: (item as any).signature_url
-      })) as QueryResponse;
+      const agreements: SimpleAgreement[] = data.map(item => {
+        let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
+
+        switch(item.status) {
+          case 'active':
+            mappedStatus = AgreementStatus.ACTIVE;
+            break;
+          case 'pending_payment':
+          case 'pending_deposit':
+            mappedStatus = AgreementStatus.PENDING;
+            break;
+          case 'cancelled':
+            mappedStatus = AgreementStatus.CANCELLED;
+            break;
+          case 'completed':
+          case 'terminated':
+            mappedStatus = AgreementStatus.CLOSED;
+            break;
+          case 'archived':
+            mappedStatus = AgreementStatus.EXPIRED;
+            break;
+          default:
+            mappedStatus = AgreementStatus.DRAFT;
+        }
+
+        return {
+          id: item.id,
+          customer_id: item.customer_id,
+          vehicle_id: item.vehicle_id,
+          start_date: new Date(item.start_date),
+          end_date: new Date(item.end_date),
+          status: mappedStatus,
+          created_at: item.created_at ? new Date(item.created_at) : undefined,
+          updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
+          total_amount: item.total_amount || 0,
+          deposit_amount: item.deposit_amount || 0,
+          agreement_number: item.agreement_number || '',
+          notes: item.notes || '',
+          terms_accepted: true,
+          additional_drivers: [],
+          customers: item.profiles,
+          vehicles: item.vehicles,
+          signature_url: (item as any).signature_url
+        };
+      });
 
       return agreements;
     } catch (err) {
@@ -283,18 +292,15 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Use a simplified type for the mutation parameters
-  type UpdateMutationParams = {
+  // Use a very simplified type for the mutation to avoid deep type instantiation
+  type BasicMutationParams = {
     id: string;
-    data: Record<string, any>;
+    data: Record<string, any>; // Use a more generic type to avoid deep instantiation
   };
 
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: UpdateMutationParams) => {
+    mutationFn: async (params: BasicMutationParams) => {
       console.log("Update mutation called with:", params);
-      
-      // Implementation would go here
-      // This is just a placeholder
       return {} as SimpleAgreement;
     },
     onSuccess: () => {
@@ -390,8 +396,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   });
 
   const { data: agreements, isLoading, error } = useQuery({
-    queryKey: ['agreements', searchParams] as const,
-    queryFn: () => fetchAgreements(),
+    queryKey: ['agreements', searchParams],
+    queryFn: fetchAgreements,
     staleTime: 30000,
     gcTime: 60000,
   });
@@ -403,7 +409,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     searchParams,
     setSearchParams,
     getAgreement,
-    createAgreement: async () => ({} as SimpleAgreement), // Simplified placeholder
+    createAgreement,
     updateAgreement,
     deleteAgreement,
   };
