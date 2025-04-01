@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -25,7 +24,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  Search,
   X
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -61,19 +59,12 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-
-interface SearchParams {
-  status?: string;
-  query?: string;
-}
 
 interface AgreementListProps {
   searchQuery?: string;
 }
 
 export function AgreementList({ searchQuery = '' }: AgreementListProps) {
-  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const { 
@@ -83,11 +74,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements({ query: localSearchQuery, status: statusFilter });
+  } = useAgreements({ query: searchQuery, status: statusFilter });
   
-  // Update local search when prop changes
+  // Update search params when props change
   useEffect(() => {
-    setLocalSearchQuery(searchQuery);
     setSearchParams(prev => ({ ...prev, query: searchQuery }));
   }, [searchQuery, setSearchParams]);
   
@@ -306,43 +296,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setSearchParams(prev => ({ ...prev, status: value }));
   };
 
-  const handleSearchChange = (value: string) => {
-    setLocalSearchQuery(value);
-    setSearchParams(prev => ({ ...prev, query: value }));
-  };
-
-  const clearSearch = () => {
-    setLocalSearchQuery('');
-    setSearchParams(prev => ({ ...prev, query: '' }));
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">
-          {/* Show search bar in the component if not provided through props */}
-          {!searchQuery && (
-            <div className="relative w-full sm:w-64 lg:w-80">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                value={localSearchQuery}
-                placeholder="Search agreements..."
-                className="pl-9 pr-9"
-                onChange={(e) => handleSearchChange(e.target.value)}
-              />
-              {localSearchQuery && (
-                <button 
-                  className="absolute right-2.5 top-2.5"
-                  onClick={clearSearch}
-                  aria-label="Clear search"
-                >
-                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                </button>
-              )}
-            </div>
-          )}
-          
           <Select
             value={statusFilter}
             onValueChange={handleStatusFilterChange}
@@ -378,15 +335,12 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       )}
       
       {/* Show active filters */}
-      {(localSearchQuery || statusFilter !== 'all') && (
+      {(searchQuery || statusFilter !== 'all') && (
         <div className="flex items-center text-sm text-muted-foreground mb-1">
           <span>Filtering by:</span>
-          {localSearchQuery && (
+          {searchQuery && (
             <Badge variant="outline" className="ml-2 gap-1">
-              Search: {localSearchQuery}
-              <button onClick={clearSearch}>
-                <X className="h-3 w-3" />
-              </button>
+              Search: {searchQuery}
             </Badge>
           )}
           {statusFilter !== 'all' && (
@@ -420,7 +374,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              // Show skeleton loaders when loading
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   {Array.from({ length: columns.length }).map((_, j) => (
