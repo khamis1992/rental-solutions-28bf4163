@@ -24,6 +24,12 @@ const FinancialDashboard = () => {
   
   const { revenue: revenueData } = useDashboardData();
 
+  // Get current month name for display
+  const currentMonth = useMemo(() => {
+    const date = new Date();
+    return date.toLocaleString('default', { month: 'long' });
+  }, []);
+
   // Initialize values to zero - these will be replaced with real data when available
   const displayValues = {
     totalIncome: financialSummary?.totalIncome || 0,
@@ -60,7 +66,7 @@ const FinancialDashboard = () => {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Revenue ({currentMonth})</CardTitle>
             <TrendingUp className={`h-4 w-4 ${trendData.revenueChange >= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>

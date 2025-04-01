@@ -4,7 +4,6 @@ import { useToast } from './use-toast';
 import { useApiMutation, useApiQuery } from './use-api';
 import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 
-// Replace fixed system date with a function that returns the current date
 const getSystemDate = () => new Date();
 
 export type TransactionType = 'income' | 'expense';
@@ -58,7 +57,6 @@ export function useFinancials() {
   });
 
   useEffect(() => {
-    // Check for monthly payments without specific agreement
     checkAndGenerateMonthlyPayments().then((result) => {
       console.log("Monthly payment check completed:", result);
     });
@@ -69,7 +67,6 @@ export function useFinancials() {
     if (!lastCheck || lastCheck !== today) {
       localStorage.setItem('lastPaymentCheck', today);
       
-      // Run daily payment check for all agreements
       checkAndGenerateMonthlyPayments().then((result) => {
         console.log("Daily payment check completed:", result);
       });
@@ -175,18 +172,29 @@ export function useFinancials() {
       try {
         console.log("Starting financial summary calculation");
         
-        // Query income data
+        const systemDate = getSystemDate();
+        const currentMonth = systemDate.getMonth() + 1; // JavaScript months are 0-based
+        const currentYear = systemDate.getFullYear();
+        
+        const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
+        const endOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
+        
+        console.log(`Filtering income for current month: ${startOfMonth} to ${endOfMonth}`);
+
         const { data: incomeData, error: incomeError } = await supabase
           .from('unified_payments')
           .select('amount, status')
-          .eq('type', 'Income');
+          .eq('type', 'Income')
+          .gte('payment_date', startOfMonth)
+          .lte('payment_date', endOfMonth);
 
         if (incomeError) {
           console.error('Error fetching income data:', incomeError);
           throw incomeError;
         }
+        
+        console.log(`Found ${incomeData?.length || 0} income transactions for current month`);
 
-        // Query expense data
         const { data: expenseData, error: expenseError } = await supabase
           .from('unified_payments')
           .select('amount, status')
@@ -197,7 +205,6 @@ export function useFinancials() {
           throw expenseError;
         }
 
-        // Check if the car_installments table exists
         const { data: carInstallments, error: carInstallmentsError } = await supabase
           .from('car_installment_payments')
           .select('amount, paid_amount, payment_date, status')
@@ -211,20 +218,9 @@ export function useFinancials() {
           console.log("car_installment_payments table exists with data:", carInstallments);
         }
 
-        // Get current month's due amount from car installment payments
-        const systemDate = getSystemDate();
-        const currentMonth = systemDate.getMonth() + 1; // JavaScript months are 0-based
-        const currentYear = systemDate.getFullYear();
-        
-        // Format date strings for the start and end of the current month
-        const startOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`;
-        const endOfMonth = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`;
-        
-        // Format today's date in YYYY-MM-DD format for car installment payments comparison
         const todayStr = systemDate.toISOString().split('T')[0];
         console.log("Today's date for installment query:", todayStr);
         
-        // Fetch car installment payments due today
         const { data: todayInstallments, error: todayInstallmentsError } = await supabase
           .from('car_installment_payments')
           .select('amount, paid_amount')
@@ -238,7 +234,6 @@ export function useFinancials() {
           console.log("Today's installments:", todayInstallments);
         }
         
-        // Calculate total amount due today from car installments
         const todayInstallmentsDue = (todayInstallments || [])
           .reduce((sum, payment) => {
             const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
@@ -247,7 +242,6 @@ export function useFinancials() {
           
         console.log("Today's installments due amount:", todayInstallmentsDue);
         
-        // Fetch all overdue car installment payments
         const { data: overdueInstallments, error: overdueInstallmentsError } = await supabase
           .from('car_installment_payments')
           .select('amount, paid_amount')
@@ -260,7 +254,6 @@ export function useFinancials() {
           console.log("Overdue installments found:", overdueInstallments?.length || 0, overdueInstallments);
         }
         
-        // Calculate total overdue amount
         const overdueExpensesTotal = (overdueInstallments || [])
           .reduce((sum, payment) => {
             const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
@@ -269,7 +262,6 @@ export function useFinancials() {
           
         console.log("Total overdue expenses calculated:", overdueExpensesTotal);
 
-        // Fetch current month's installments
         const { data: currentMonthInstallments, error: currentMonthError } = await supabase
           .from('car_installment_payments')
           .select('amount, paid_amount')
@@ -284,7 +276,6 @@ export function useFinancials() {
           console.log("Current month's installments:", currentMonthInstallments);
         }
           
-        // Calculate the current month's due amount
         const currentMonthDue = (currentMonthInstallments || [])
           .reduce((sum, payment) => {
             const remainingAmount = Number(payment.amount) - (Number(payment.paid_amount) || 0);
@@ -293,7 +284,6 @@ export function useFinancials() {
           
         console.log("Current month's installments due:", currentMonthDue);
 
-        // Get total pending amount for reference
         const { data: contractsData, error: contractsError } = await supabase
           .from('car_installment_contracts')
           .select('amount_pending');
@@ -310,7 +300,6 @@ export function useFinancials() {
 
         console.log("Total pending installments:", installmentsPending);
 
-        // Calculate income, expenses and net revenue - ensure they're numbers
         const totalIncome = (incomeData || [])
           .filter(item => item.status !== 'failed')
           .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
@@ -319,14 +308,12 @@ export function useFinancials() {
           .filter(item => item.status !== 'failed')
           .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
           
-        // All these should now be guaranteed to be numbers
-        console.log("Total income calculated:", totalIncome);
+        console.log("Total income for current month calculated:", totalIncome);
         console.log("Expenses from payments:", expensesFromPayments);
         console.log("Today's installments due:", todayInstallmentsDue);
         console.log("Overdue expenses:", overdueExpensesTotal);
         console.log("Current month due:", currentMonthDue);
           
-        // Include car installment payments in the total expenses with explicit conversion to number
         const totalExpenses = Number(expensesFromPayments) + 
                               Number(todayInstallmentsDue) +
                               Number(overdueExpensesTotal);
@@ -341,7 +328,6 @@ export function useFinancials() {
         
         console.log("Net revenue calculated:", netRevenue);
 
-        // Create the summary object with explicit number conversions
         const summary = {
           totalIncome: Number(totalIncome) || 0,
           totalExpenses: Number(totalExpenses) || 0,
@@ -353,12 +339,10 @@ export function useFinancials() {
           overdueExpenses: Number(overdueExpensesTotal) || 0
         };
         
-        // Log the final calculated summary for debugging
         console.log("Financial summary calculated:", summary);
         return summary;
       } catch (error) {
         console.error('Error calculating financial summary:', error);
-        // Return default values if there's an error
         return {
           totalIncome: 0,
           totalExpenses: 0,

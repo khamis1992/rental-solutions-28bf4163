@@ -17,6 +17,9 @@ interface FinancialSummaryProps {
 }
 
 const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading }) => {
+  // Get current month name for display
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -48,9 +51,9 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <StatCard
-        title="Total Income"
+        title={`${currentMonth} Income`}
         value={formatCurrency(safeData.totalIncome)}
-        description="Revenue from car rentals"
+        description="Current month revenue"
         icon={TrendingUp}
         iconColor="text-green-500"
       />
