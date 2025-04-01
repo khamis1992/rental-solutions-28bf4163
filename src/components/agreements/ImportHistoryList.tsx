@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase, revertAgreementImport, fixImportedAgreementDates } from '@/lib/supabase';
 import { format } from 'date-fns';
@@ -20,6 +21,7 @@ import {
   Trash2,
   RotateCcw,
   Calendar,
+  FileX,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -171,6 +173,19 @@ export function ImportHistoryList() {
     try {
       setIsDeleting(true);
       
+      // Get the file name before deleting the record
+      const { data: importData, error: fetchError } = await supabase
+        .from('agreement_imports')
+        .select('file_name')
+        .eq('id', selectedImportId)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching import data:', fetchError);
+        toast.error(`Error fetching import details: ${fetchError.message}`);
+        return;
+      }
+      
       // Delete the import record
       const { error } = await supabase
         .from('agreement_imports')
@@ -181,15 +196,29 @@ export function ImportHistoryList() {
         throw error;
       }
       
-      toast.success("Import record deleted successfully");
-      await fetchImports(); // Refresh the list
-      
       // Also delete any associated import errors
       await supabase
         .from('agreement_import_errors')
         .delete()
         .eq('import_log_id', selectedImportId);
+      
+      // Delete the file from storage if available
+      if (importData?.file_name) {
+        const { error: storageError } = await supabase.storage
+          .from('agreement-imports')
+          .remove([importData.file_name]);
         
+        if (storageError) {
+          console.warn('Could not delete file from storage:', storageError);
+          // We don't throw here as the record deletion was successful
+          toast.warning(`Record deleted but could not remove file: ${storageError.message}`);
+        } else {
+          console.log(`Successfully deleted file: ${importData.file_name}`);
+        }
+      }
+      
+      toast.success("Import record and file deleted successfully");
+      await fetchImports(); // Refresh the list
     } catch (err) {
       console.error('Error deleting import:', err);
       toast.error(`Error deleting import: ${err.message}`);
@@ -197,6 +226,39 @@ export function ImportHistoryList() {
       setIsDeleting(false);
       setDeleteDialogOpen(false);
       setSelectedImportId(null);
+    }
+  };
+
+  const handleDeleteFile = async (importId: string, fileName: string) => {
+    try {
+      // Delete just the file from storage
+      const { error: storageError } = await supabase.storage
+        .from('agreement-imports')
+        .remove([fileName]);
+      
+      if (storageError) {
+        console.error('Error deleting file from storage:', storageError);
+        toast.error(`Could not delete file: ${storageError.message}`);
+        return;
+      }
+      
+      // Update the import record to indicate the file is deleted
+      const { error: updateError } = await supabase
+        .from('agreement_imports')
+        .update({ file_deleted: true })
+        .eq('id', importId);
+      
+      if (updateError) {
+        console.error('Error updating import record:', updateError);
+        toast.error(`File deleted but could not update record: ${updateError.message}`);
+        return;
+      }
+      
+      toast.success("File deleted successfully");
+      await fetchImports(); // Refresh the list
+    } catch (err) {
+      console.error('Error deleting file:', err);
+      toast.error(`Error deleting file: ${err.message}`);
     }
   };
 
@@ -352,6 +414,12 @@ export function ImportHistoryList() {
                   <div className="flex items-center gap-2">
                     {getStatusIcon(importItem.status)}
                     {getStatusBadge(importItem.status)}
+                    {importItem.file_deleted && (
+                      <Badge variant="outline" className="bg-orange-50 text-orange-800 border-orange-200">
+                        <FileX className="h-3 w-3 mr-1" />
+                        File Removed
+                      </Badge>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -391,14 +459,27 @@ export function ImportHistoryList() {
                         <span>Revert</span>
                       </Button>
                     )}
+                    {importItem.file_name && !importItem.file_deleted && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="flex items-center gap-1 text-orange-600 hover:bg-orange-50"
+                        onClick={() => handleDeleteFile(importItem.id, importItem.file_name)}
+                        title="Delete only the file, keep the import record"
+                      >
+                        <FileX className="h-3 w-3" />
+                        <span className="sr-only sm:not-sr-only sm:inline-block">File</span>
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       size="sm"
                       className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
                       onClick={() => openDeleteDialog(importItem.id)}
+                      title="Delete the import record and associated file"
                     >
                       <Trash2 className="h-3 w-3" />
-                      <span className="sr-only sm:not-sr-only sm:inline-block">Delete</span>
+                      <span className="sr-only sm:not-sr-only sm:inline-block">Record</span>
                     </Button>
                   </div>
                 </TableCell>
@@ -530,7 +611,8 @@ export function ImportHistoryList() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Import Record</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove this import record from your history. This action cannot be undone.
+              This will remove this import record from your history and delete the associated file from storage.
+              This action cannot be undone.
               <br /><br />
               <strong>Note:</strong> This only deletes the import record itself, not the actual imported agreements.
               To delete the agreements, use the "Revert" action instead.
