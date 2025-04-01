@@ -9874,6 +9874,23 @@ export type Database = {
           migration_status: string
         }[]
       }
+      check_pending_imports: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string | null
+          created_by: string | null
+          error_count: number | null
+          errors: Json | null
+          file_name: string
+          id: string
+          mapping_used: Json | null
+          original_file_name: string | null
+          processed_count: number | null
+          row_count: number | null
+          status: Database["public"]["Enums"]["import_progress_status"] | null
+          updated_at: string | null
+        }[]
+      }
       create_default_agreement_if_not_exists: {
         Args: {
           p_agreement_number: string
@@ -10172,7 +10189,12 @@ export type Database = {
         | "legal_notice"
         | "insurance_renewal"
       geofence_type: "circle" | "polygon"
-      import_progress_status: "pending" | "processing" | "completed" | "failed"
+      import_progress_status:
+        | "pending"
+        | "pending_processing"
+        | "processing"
+        | "completed"
+        | "failed"
       import_source_type: "csv" | "manual" | "api" | "bulk_upload"
       import_status: "pending" | "processing" | "completed" | "failed"
       import_status_type:

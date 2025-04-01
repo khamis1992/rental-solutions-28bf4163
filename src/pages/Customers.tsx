@@ -6,9 +6,19 @@ import { Button } from '@/components/ui/button';
 import { FileUp } from 'lucide-react';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
 import { ImportHistoryList } from '@/components/customers/ImportHistoryList';
+import { useCustomers } from '@/hooks/use-customers';
 
 const Customers = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const { searchParams, setSearchParams } = useCustomers();
+  
+  const handleImportComplete = () => {
+    // Reset search params to show all customers and refresh the list
+    setSearchParams({ 
+      query: '', 
+      status: 'all' 
+    });
+  };
   
   return (
     <PageContainer
@@ -33,9 +43,7 @@ const Customers = () => {
         <CSVImportModal 
           open={isImportModalOpen}
           onOpenChange={setIsImportModalOpen}
-          onImportComplete={() => {
-            // Refresh customer data after import
-          }}
+          onImportComplete={handleImportComplete}
         />
       </div>
     </PageContainer>

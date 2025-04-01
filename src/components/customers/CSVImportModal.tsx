@@ -13,8 +13,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, FileUp, Download, Check, Loader2 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { customerCSVFields } from '@/lib/validation-schemas/customer';
+import { supabase } from '@/integrations/supabase/client';
+import { customerCSVFields, customerCSVMap } from '@/lib/validation-schemas/customer';
 import { downloadCSVTemplate } from '@/utils/csv-utils';
 
 interface CSVImportModalProps {
@@ -75,7 +75,8 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
           file_name: fileName,
           original_file_name: file.name,
           status: 'pending',
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: (await supabase.auth.getUser()).data.user?.id,
+          mapping_used: customerCSVMap
         })
         .select()
         .single();
@@ -84,9 +85,15 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         throw new Error(`Error creating import log: ${logError.message}`);
       }
 
-      // Process the file via edge function or trigger
-      // This part depends on your serverless function setup
-      // Here we're just showing a success notification
+      // Call the process-customer-imports function to start processing
+      const { error: processError } = await supabase.functions.invoke('process-customer-imports', {
+        body: { importId: importLog.id }
+      });
+
+      if (processError) {
+        console.warn('Error invoking function, but import is queued:', processError);
+        // We'll still consider this a success as the record is created and will be processed by scheduler
+      }
       
       toast.success('File uploaded successfully', {
         description: 'Your file is being processed. You will be notified when complete.'

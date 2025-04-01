@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -33,6 +33,22 @@ export function ImportHistoryList() {
     }
 
     fetchImportLogs();
+    
+    // Set up real-time subscription for import logs
+    const subscription = supabase
+      .channel('customer_import_logs_changes')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'customer_import_logs' 
+      }, (payload) => {
+        fetchImportLogs();
+      })
+      .subscribe();
+      
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Helper function to format status badges
@@ -44,8 +60,12 @@ export function ImportHistoryList() {
         return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Processing</Badge>;
       case 'failed':
         return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Failed</Badge>;
-      default:
+      case 'pending':
         return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>;
+      case 'completed_with_errors':
+        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Completed with errors</Badge>;
+      default:
+        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">{status}</Badge>;
     }
   };
 
