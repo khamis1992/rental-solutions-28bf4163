@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -197,9 +198,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
                                     searchParams.query.length <= 4;
         
         if (isLicensePlateSearch) {
-          query = query.or(`agreement_number.ilike.%${searchQuery}%,vehicles.license_plate.ilike.%${searchQuery}%`);
+          // Fix: Use separate .or() calls instead of combining them with commas
+          query = query.or('agreement_number.ilike.%' + searchQuery + '%');
+          query = query.or('vehicles.license_plate.ilike.%' + searchQuery + '%');
         } else {
-          query = query.or(`agreement_number.ilike.%${searchQuery}%,profiles.full_name.ilike.%${searchQuery}%`);
+          // Fix: Use separate .or() calls for customer name search
+          query = query.or('agreement_number.ilike.%' + searchQuery + '%');
+          query = query.or('profiles.full_name.ilike.%' + searchQuery + '%');
         }
       }
 
