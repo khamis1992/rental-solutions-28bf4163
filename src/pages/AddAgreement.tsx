@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
 import { diagnoseTemplateUrl, uploadAgreementTemplate, checkSpecificTemplateUrl, fixTemplateUrl } from "@/utils/templateUtils";
+import { checkVehicleAvailability } from "@/utils/agreement-utils";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -111,8 +112,7 @@ const AddAgreement = () => {
       
       // Check vehicle availability if a vehicle is selected
       if (leaseData.vehicle_id && leaseData.status === 'active') {
-        const { isAvailable, existingAgreement } = await import('@/utils/agreement-utils')
-          .then(module => module.checkVehicleAvailability(leaseData.vehicle_id));
+        const { isAvailable, existingAgreement } = await checkVehicleAvailability(leaseData.vehicle_id);
         
         if (!isAvailable && existingAgreement) {
           console.log(`Vehicle is assigned to agreement #${existingAgreement.agreement_number} which will be closed`);
