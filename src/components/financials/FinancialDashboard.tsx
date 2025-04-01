@@ -9,6 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 
+// Helper function to calculate percentage change - DEFINED BEFORE USAGE
+const getPercentageChange = (current, previous) => {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return ((current - previous) / previous) * 100;
+};
+
 const FinancialDashboard = () => {
   const { 
     financialSummary, 
@@ -58,11 +64,6 @@ const FinancialDashboard = () => {
       profitChange
     };
   }, [financialSummary]);
-  
-  const getPercentageChange = (current, previous) => {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
-  };
   
   const prepareRevenueChartData = useMemo(() => {
     if (!revenueData || revenueData.length === 0) {
