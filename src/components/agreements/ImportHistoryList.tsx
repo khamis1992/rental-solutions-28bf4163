@@ -132,6 +132,43 @@ export function ImportHistoryList() {
     try {
       setIsReverting(true);
       
+      // First get the import details to find agreements created in this import
+      const { data: importData, error: importError } = await supabase
+        .from('agreement_imports')
+        .select('*')
+        .eq('id', selectedImportId)
+        .single();
+        
+      if (importError) {
+        throw importError;
+      }
+      
+      // Determine timeframe for imported agreements
+      const startTime = new Date(importData.created_at);
+      const endTime = new Date(importData.updated_at || importData.created_at);
+      // Add a buffer of 5 minutes to the end time
+      endTime.setMinutes(endTime.getMinutes() + 5);
+      
+      console.log(`Reverting import from ${startTime.toISOString()} to ${endTime.toISOString()}`);
+      
+      // Get agreements created during this import
+      const { data: agreements } = await supabase
+        .from('leases')
+        .select('id')
+        .gte('created_at', startTime.toISOString())
+        .lte('created_at', endTime.toISOString());
+        
+      console.log(`Found ${agreements?.length || 0} agreements to delete`);
+      
+      if (!agreements || agreements.length === 0) {
+        toast.warning('No agreements found to delete for this import');
+        setIsReverting(false);
+        setRevertDialogOpen(false);
+        setSelectedImportId(null);
+        setRevertReason('');
+        return;
+      }
+        
       // Call the function to delete agreements
       const { data, error } = await supabase.rpc('delete_agreements_by_import_id', {
         p_import_id: selectedImportId
@@ -205,10 +242,9 @@ export function ImportHistoryList() {
   };
 
   const canRevertImport = (importItem: any): boolean => {
-    // Only allow reverting completed or failed imports with errors
+    // Only allow reverting completed or failed imports that haven't been reverted yet
     return (
       (importItem.status === 'completed' || importItem.status === 'failed') && 
-      importItem.error_count > 0 &&
       importItem.status !== 'reverted'
     );
   };
@@ -380,7 +416,7 @@ export function ImportHistoryList() {
           <DialogHeader>
             <DialogTitle>Revert Agreement Import</DialogTitle>
             <DialogDescription>
-              This will delete all agreements created with errors during this import. 
+              This will delete all agreements created during this import. 
               This action cannot be undone.
             </DialogDescription>
           </DialogHeader>

@@ -207,3 +207,63 @@ export const checkAndGenerateMonthlyPayments = async (agreementId?: string, amou
     return { success: false, error };
   }
 };
+
+// Enhanced function to manage import reverts
+export const revertAgreementImport = async (importId: string, reason?: string) => {
+  try {
+    console.log(`Reverting import ${importId}`);
+    
+    // First get the import details
+    const { data: importData, error: importError } = await supabase
+      .from('agreement_imports')
+      .select('*')
+      .eq('id', importId)
+      .single();
+      
+    if (importError) {
+      console.error('Error fetching import:', importError);
+      return { success: false, error: importError };
+    }
+    
+    if (!importData) {
+      return { success: false, message: 'Import not found' };
+    }
+    
+    // Find creation timeframe
+    const startTime = new Date(importData.created_at);
+    const endTime = new Date(importData.updated_at || importData.created_at);
+    endTime.setMinutes(endTime.getMinutes() + 5); // Add buffer
+    
+    console.log(`Reverting agreements created between ${startTime.toISOString()} and ${endTime.toISOString()}`);
+    
+    // Delete agreements created during this import
+    const { data, error } = await supabase.rpc('delete_agreements_by_import_id', {
+      p_import_id: importId
+    });
+    
+    if (error) {
+      console.error('Error reverting import:', error);
+      return { success: false, error };
+    }
+    
+    // Log the revert operation
+    if (data.success) {
+      await supabase.from('agreement_import_reverts').insert({
+        import_id: importId,
+        deleted_count: data.deleted_count,
+        reason: reason || 'No reason provided'
+      });
+      
+      return { 
+        success: true, 
+        deleted_count: data.deleted_count,
+        message: `Successfully reverted import. ${data.deleted_count} agreements deleted.`
+      };
+    } else {
+      return { success: false, message: data.message || 'Unknown error' };
+    }
+  } catch (error) {
+    console.error('Error in revertAgreementImport:', error);
+    return { success: false, error };
+  }
+};
