@@ -1,10 +1,11 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { Simplify } from '@/utils/type-utils';
+import { FlattenType } from '@/utils/type-utils';
 
 interface SearchParams {
   query?: string;
@@ -13,8 +14,8 @@ interface SearchParams {
   customer_id?: string;
 }
 
-// Define a simplified Agreement type to avoid excessive type instantiation
-type SimpleAgreement = Simplify<Agreement>;
+// Use FlattenType to prevent excessive type instantiation
+type SimpleAgreement = FlattenType<Agreement>;
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
@@ -291,14 +292,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Use a simplified type for the mutation to avoid deep type instantiation
-  type SimpleMutationParams = {
+  // Use a very simplified type for the mutation to avoid deep type instantiation
+  type BasicMutationParams = {
     id: string;
-    data: Partial<Omit<SimpleAgreement, 'id'>>;
+    data: Record<string, any>; // Use a more generic type to avoid deep instantiation
   };
 
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: SimpleMutationParams) => {
+    mutationFn: async (params: BasicMutationParams) => {
       console.log("Update mutation called with:", params);
       return {} as SimpleAgreement;
     },

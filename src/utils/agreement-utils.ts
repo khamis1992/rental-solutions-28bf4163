@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { MutationVariables } from '@/utils/type-utils';
@@ -195,7 +194,7 @@ export const updateAgreementWithCheck = async (
     }
     
     // Convert Date objects to ISO strings for Supabase
-    const preparedData = {
+    const preparedData: Record<string, any> = {
       ...data,
       status: dbStatus,
       // Ensure dates are properly formatted as strings
