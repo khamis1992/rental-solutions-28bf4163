@@ -8,7 +8,7 @@ const generateArabicPdf = async (agreement: Agreement, doc: jsPDF): Promise<void
   // Set Arabic font and RTL mode
   doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7aRnpd8CGxBHpUrtLMA7w.ttf', 'Amiri', 'normal');
   doc.setFont('Amiri');
-  doc.setR2L(true);
+  doc.setR2L();
   doc.setLanguage("ar");
 
   // Arabic content
@@ -90,13 +90,11 @@ export const generatePdfDocument = async (agreement: Agreement, language: 'en' |
   }
 };
 
-// Helper function for date formatting
 export const formatDateForDisplay = (date: Date | string): string => {
   const dateObj = date instanceof Date ? date : new Date(date);
   return format(dateObj, 'MMMM d, yyyy');
 };
 
-// Function to check if a standard template exists
 export const checkStandardTemplateExists = async (): Promise<boolean> => {
   try {
     // This is a placeholder that would normally check for template existence
@@ -107,7 +105,6 @@ export const checkStandardTemplateExists = async (): Promise<boolean> => {
   }
 };
 
-// Function to diagnose template access
 export const diagnosisTemplateAccess = async (): Promise<{
   exists: boolean; 
   accessible: boolean;
@@ -135,6 +132,7 @@ export const diagnosisTemplateAccess = async (): Promise<{
     };
   }
 };
+
 const verifyFontLoading = (doc: jsPDF): boolean => {
   try {
     // Test font loading
