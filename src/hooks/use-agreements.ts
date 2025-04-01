@@ -193,7 +193,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        // Only search by license plate as requested by the user
         query = query.ilike('vehicles.license_plate', `%${searchQuery}%`);
       }
 
