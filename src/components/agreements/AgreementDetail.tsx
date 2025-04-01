@@ -45,19 +45,20 @@ export function AgreementDetail({
     daysLate: number;
   } | null>(null);
 
-  // Add console logs to debug payments
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreement?.id, rentAmount);
+  const {
+    payments,
+    isLoadingPayments,
+    fetchPayments
+  } = usePayments(agreement?.id, rentAmount);
   console.log('Agreement ID from AgreementDetail:', agreement?.id);
   console.log('Payments from usePayments:', payments);
   console.log('Loading state:', isLoadingPayments);
-
   useEffect(() => {
     if (agreement?.id) {
       console.log('Fetching payments for agreement:', agreement.id);
       fetchPayments();
     }
   }, [agreement?.id, fetchPayments]);
-
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
@@ -122,7 +123,7 @@ export function AgreementDetail({
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
-          fetchPayments(); // Explicitly fetch payments after adding a new one
+          fetchPayments();
           toast.success("Payment recorded successfully");
         }
       } catch (error) {
@@ -134,14 +135,14 @@ export function AgreementDetail({
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
-    return months > 0 ? months : 1; // Ensure at least 1 month
+    return months > 0 ? months : 1;
   }, []);
 
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
       const daysLate = today.getDate() - 1;
-      const lateFeeAmount = Math.min(daysLate * 120, 3000); // 120 QAR per day, max 3000
+      const lateFeeAmount = Math.min(daysLate * 120, 3000);
 
       setLateFeeDetails({
         amount: lateFeeAmount,
@@ -318,13 +319,10 @@ export function AgreementDetail({
           <Edit className="mr-2 h-4 w-4" />
           Edit
         </Button>
-        <Button variant="outline" onClick={handlePrint}>
-          <Printer className="mr-2 h-4 w-4" />
-          Print
-        </Button>
+        
         <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
           <Download className="mr-2 h-4 w-4" />
-          {isGeneratingPdf ? 'Generating...' : 'Download PDF'}
+          {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
         </Button>
         <Button variant="outline" onClick={handleGenerateDocument}>
           <FilePlus className="mr-2 h-4 w-4" />
@@ -340,19 +338,10 @@ export function AgreementDetail({
         </Button>
       </div>
 
-      {agreement && (
-        <PaymentHistory 
-          payments={payments || []} 
-          isLoading={isLoadingPayments} 
-          rentAmount={rentAmount}
-          onPaymentDeleted={() => {
-            onPaymentDeleted();
-            fetchPayments(); // Fetch payments after deletion too
-          }}
-          leaseStartDate={agreement.start_date}
-          leaseEndDate={agreement.end_date}
-        />
-      )}
+      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
+      onPaymentDeleted();
+      fetchPayments();
+    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
 
       {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>
@@ -363,10 +352,9 @@ export function AgreementDetail({
             <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
           </CardContent>
         </Card>}
-      
+
       {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -382,7 +370,6 @@ export function AgreementDetail({
         </DialogContent>
       </Dialog>
 
-      {/* Payment Entry Dialog */}
       <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={handlePaymentSubmit} defaultAmount={rentAmount || 0} title="Record Rent Payment" description="Record a new rental payment for this agreement." lateFeeDetails={lateFeeDetails} />
     </div>;
 }
