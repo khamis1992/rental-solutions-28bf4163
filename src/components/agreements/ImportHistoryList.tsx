@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase, revertAgreementImport } from '@/lib/supabase';
 import { format } from 'date-fns';
@@ -136,7 +137,7 @@ export function ImportHistoryList() {
       
       if (result.success) {
         toast.success(result.message);
-        fetchImports(); // Refresh the list
+        await fetchImports(); // Await the fetch to ensure it completes
       } else {
         toast.error(`Failed to revert import: ${result.message || 'Unknown error'}`);
       }
