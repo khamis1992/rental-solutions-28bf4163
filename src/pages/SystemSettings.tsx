@@ -16,7 +16,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-// Type for system settings
 interface SystemSetting {
   id: string;
   setting_key: string;
@@ -35,18 +34,15 @@ const SystemSettings = () => {
     isChecking: true
   });
   
-  // Check edge function availability
   useEffect(() => {
     const checkFunctionAvailability = async () => {
       try {
         setServiceStatus(prev => ({ ...prev, isChecking: true }));
         
-        // Check agreement import function
         const agreementCheck = await supabase.functions.invoke('process-agreement-imports', {
           body: { test: true },
         });
         
-        // Check customer import function
         const customerCheck = await supabase.functions.invoke('process-customer-imports', {
           body: { test: true },
         });
@@ -69,7 +65,6 @@ const SystemSettings = () => {
     checkFunctionAvailability();
   }, []);
   
-  // Fetch system settings
   const { data: settings, isLoading } = useQuery({
     queryKey: ['system-settings'],
     queryFn: async () => {
@@ -81,7 +76,6 @@ const SystemSettings = () => {
         throw new Error(error.message);
       }
       
-      // Convert array to an object for easier access
       const settingsObj: Record<string, any> = {};
       data.forEach((setting: SystemSetting) => {
         settingsObj[setting.setting_key] = setting.setting_value;
@@ -91,7 +85,6 @@ const SystemSettings = () => {
     }
   });
   
-  // Form state
   const [formData, setFormData] = useState({
     company_name: '',
     business_email: '',
@@ -109,7 +102,6 @@ const SystemSettings = () => {
     time_zone: 'UTC',
   });
   
-  // Update form data when settings are loaded
   React.useEffect(() => {
     if (settings) {
       setFormData(prevData => ({
@@ -119,7 +111,6 @@ const SystemSettings = () => {
     }
   }, [settings]);
   
-  // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -128,7 +119,6 @@ const SystemSettings = () => {
     }));
   };
   
-  // Handle switch changes
   const handleSwitchChange = (name: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -136,7 +126,6 @@ const SystemSettings = () => {
     }));
   };
   
-  // Handle select changes
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -144,7 +133,6 @@ const SystemSettings = () => {
     }));
   };
   
-  // Save settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Record<string, any>) => {
       const operations = Object.entries(newSettings).map(([key, value]) => {
@@ -177,7 +165,6 @@ const SystemSettings = () => {
     }
   });
   
-  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveSettingsMutation.mutate(formData);
@@ -211,7 +198,6 @@ const SystemSettings = () => {
         />
       </div>
       
-      {/* System Status Alert */}
       {(!serviceStatus.agreementImport || !serviceStatus.customerImport) && (
         <Alert variant="warning" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
