@@ -9,6 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, FileUp, Download, CheckCircle, AlertCircle, Info } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 interface CSVImportModalProps {
   open: boolean;
@@ -20,6 +22,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'processing' | 'success' | 'error'>('idle');
+  const [overwriteExisting, setOverwriteExisting] = useState(false);
   const { user } = useAuth();
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -72,8 +75,8 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         return;
       }
 
-      // Create an import log entry
-      const importId = await createImportLog(fileName, file.name, user.id);
+      // Create an import log entry with overwrite flag
+      const importId = await createImportLog(fileName, file.name, user.id, overwriteExisting);
       if (!importId) {
         setUploadProgress('error');
         setIsUploading(false);
@@ -87,7 +90,10 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       // Call the Edge Function to process the file
       try {
         const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
-          body: { importId },
+          body: { 
+            importId,
+            overwriteExisting 
+          },
         });
 
         if (error) {
@@ -95,7 +101,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
           toast.error(`Import processing failed: ${error.message}`);
           setUploadProgress('error');
         } else {
-          const resultMessage = `Import submitted for processing: ${data?.processed || 0} agreements will be imported`;
+          const resultMessage = `Import submitted for processing: ${data?.processed || 0} agreements will be ${overwriteExisting ? 'imported/updated' : 'imported'}`;
           toast.success(resultMessage);
           console.log('Import result:', data);
           setUploadProgress('success');
@@ -117,6 +123,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         onOpenChange(false);
         setFile(null);
         setUploadProgress('idle');
+        setOverwriteExisting(false);
       }, 2000);
     }
   };
@@ -206,6 +213,19 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
               >
                 Remove
               </Button>
+            </div>
+          )}
+
+          {file && uploadProgress === 'idle' && (
+            <div className="flex items-center space-x-2 mt-4">
+              <Checkbox 
+                id="overwrite" 
+                checked={overwriteExisting}
+                onCheckedChange={(checked) => setOverwriteExisting(checked === true)}
+              />
+              <Label htmlFor="overwrite" className="text-sm text-muted-foreground cursor-pointer">
+                Overwrite existing agreements with matching identifiers
+              </Label>
             </div>
           )}
 

@@ -86,7 +86,7 @@ export const uploadCSV = async (file: File, fileName: string): Promise<string | 
       .from('agreement-imports')
       .upload(fileName, file, {
         contentType: 'text/csv',
-        upsert: false
+        upsert: true // Allow overwriting existing files
       });
 
     if (error) {
@@ -107,16 +107,42 @@ export const uploadCSV = async (file: File, fileName: string): Promise<string | 
 export const createImportLog = async (
   fileName: string,
   originalFileName: string,
-  userId: string
+  userId: string,
+  overwriteExisting: boolean = false
 ): Promise<string | null> => {
   try {
+    // If overwriteExisting is true, check for existing imports with the same original filename
+    if (overwriteExisting) {
+      const { data: existingImports } = await supabase
+        .from('agreement_imports')
+        .select('id')
+        .eq('original_file_name', originalFileName)
+        .eq('created_by', userId)
+        .neq('status', 'reverted');
+      
+      // If existing imports found, mark them for replacement
+      if (existingImports && existingImports.length > 0) {
+        console.log(`Found ${existingImports.length} existing imports to replace`);
+        
+        // Update existing imports to mark them as being replaced
+        await supabase
+          .from('agreement_imports')
+          .update({ 
+            status: 'pending_replacement',
+            updated_at: new Date().toISOString()
+          })
+          .in('id', existingImports.map(imp => imp.id));
+      }
+    }
+
     const { data, error } = await supabase
       .from('agreement_imports')
       .insert({
         file_name: fileName,
         original_file_name: originalFileName,
         created_by: userId,
-        status: 'pending'
+        status: 'pending',
+        overwrite_existing: overwriteExisting
       })
       .select('id')
       .single();
