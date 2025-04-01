@@ -8,7 +8,7 @@ const generateArabicPdf = async (agreement: Agreement, doc: jsPDF): Promise<void
   // Set Arabic font and RTL mode
   doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7aRnpd8CGxBHpUrtLMA7w.ttf', 'Amiri', 'normal');
   doc.setFont('Amiri');
-  doc.setR2L();
+  doc.setR2L(true);
   doc.setLanguage("ar");
 
   // Arabic content
