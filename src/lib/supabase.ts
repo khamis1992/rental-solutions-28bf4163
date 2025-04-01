@@ -1,4 +1,3 @@
-
 import { createClient } from "@supabase/supabase-js";
 import { generateMonthlyPayment } from "./validation-schemas/agreement";
 
@@ -175,6 +174,18 @@ export const forceCheckAllAgreementsForPayments = async () => {
 // Helper function to check and generate monthly payments
 export const checkAndGenerateMonthlyPayments = async (agreementId?: string, amount?: number) => {
   try {
+    // Add a check to prevent excessive calls
+    const lastCheckTime = localStorage.getItem('lastMonthlyPaymentCheck');
+    const currentTime = Date.now();
+    
+    // Only run the check if it hasn't been run in the last hour (3600000 ms)
+    if (lastCheckTime && currentTime - parseInt(lastCheckTime) < 3600000) {
+      console.log("Skipping monthly payment check - already checked recently");
+      return { success: true, message: "Check skipped - already run recently" };
+    }
+    
+    localStorage.setItem('lastMonthlyPaymentCheck', currentTime.toString());
+    
     if (agreementId && amount) {
       console.log(`Checking monthly payments for agreement ${agreementId} with amount ${amount}`);
       const today = new Date();

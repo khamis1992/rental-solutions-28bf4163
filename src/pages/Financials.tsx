@@ -29,6 +29,7 @@ const Financials = () => {
     setInvoiceDialog(true);
   };
   
+  // Prevent unmounting and remounting tab content by using permanence
   return (
     <PageContainer>
       <SectionHeader 
@@ -70,20 +71,21 @@ const Financials = () => {
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="dashboard" className="space-y-6">
-          <FinancialDashboard />
+        {/* Use permanence to avoid unmounting and remounting tabs */}
+        <TabsContent value="dashboard" className="space-y-6" forceMount={activeTab === "dashboard"}>
+          {activeTab === "dashboard" && <FinancialDashboard />}
         </TabsContent>
         
-        <TabsContent value="invoices" className="space-y-6">
-          <InvoiceTemplateEditor />
+        <TabsContent value="invoices" className="space-y-6" forceMount={activeTab === "invoices"}>
+          {activeTab === "invoices" && <InvoiceTemplateEditor />}
         </TabsContent>
         
-        <TabsContent value="payments" className="space-y-6">
-          <PaymentGatewaySettings />
+        <TabsContent value="payments" className="space-y-6" forceMount={activeTab === "payments"}>
+          {activeTab === "payments" && <PaymentGatewaySettings />}
         </TabsContent>
         
-        <TabsContent value="installments" className="space-y-6">
-          <CarInstallmentContracts />
+        <TabsContent value="installments" className="space-y-6" forceMount={activeTab === "installments"}>
+          {activeTab === "installments" && <CarInstallmentContracts />}
         </TabsContent>
       </Tabs>
       

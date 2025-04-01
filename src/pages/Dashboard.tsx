@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import DashboardStats from '@/components/dashboard/DashboardStats';
@@ -28,9 +29,15 @@ if (typeof window !== 'undefined') {
 
 const Dashboard = () => {
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const handleRefresh = () => {
-    window.location.reload();
+    setIsRefreshing(true);
+    
+    // Use a timeout to prevent rapid refreshes
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
   };
 
   return (
@@ -40,9 +47,14 @@ const Dashboard = () => {
         description="Overview of your rental operations"
         icon={LayoutDashboard}
         actions={
-          <CustomButton size="sm" variant="outline" onClick={handleRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
+          <CustomButton 
+            size="sm" 
+            variant="outline" 
+            onClick={handleRefresh} 
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Refreshing...' : 'Refresh'}
           </CustomButton>
         }
       />
@@ -76,12 +88,10 @@ const Dashboard = () => {
           <>
             <DashboardStats stats={stats} />
             
-            {/* Vehicle Status chart - now after the stats */}
             <div className="grid grid-cols-1 gap-6 section-transition">
               <VehicleStatusChart data={stats?.vehicleStats} />
             </div>
             
-            {/* Revenue chart now below the Vehicle Status */}
             <div className="grid grid-cols-1 gap-6 section-transition">
               <RevenueChart data={revenue} fullWidth={true} />
             </div>
