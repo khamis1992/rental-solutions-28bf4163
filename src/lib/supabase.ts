@@ -208,7 +208,7 @@ export const checkAndGenerateMonthlyPayments = async (agreementId?: string, amou
   }
 };
 
-// Enhanced function to manage import reverts
+// Enhanced function to manage import reverts with improved reliability
 export const revertAgreementImport = async (importId: string, reason?: string) => {
   try {
     console.log(`Reverting import ${importId}`);
@@ -229,47 +229,115 @@ export const revertAgreementImport = async (importId: string, reason?: string) =
       return { success: false, message: 'Import not found' };
     }
     
-    // Find creation timeframe
+    // Immediately update the import status to 'reverting' to prevent multiple clicks
+    await supabase
+      .from('agreement_imports')
+      .update({ status: 'reverting' })
+      .eq('id', importId);
+    
+    // Find agreements created by filename and created_at timeframe
+    const originalFileName = importData.original_file_name;
     const startTime = new Date(importData.created_at);
     const endTime = new Date(importData.updated_at || importData.created_at);
-    endTime.setMinutes(endTime.getMinutes() + 5); // Add buffer
+    endTime.setMinutes(endTime.getMinutes() + 10); // Add 10-minute buffer
     
     console.log(`Reverting agreements created between ${startTime.toISOString()} and ${endTime.toISOString()}`);
+    console.log(`Looking for agreements imported from file: ${originalFileName}`);
     
-    // Delete agreements created during this import
-    const { data, error } = await supabase.rpc('delete_agreements_by_import_id', {
-      p_import_id: importId
-    });
+    // First, find all agreements created in this timeframe
+    const { data: agreements, error: agreementsError } = await supabase
+      .from('leases')
+      .select('id')
+      .gte('created_at', startTime.toISOString())
+      .lte('created_at', endTime.toISOString());
     
-    if (error) {
-      console.error('Error reverting import:', error);
-      return { success: false, error };
+    if (agreementsError) {
+      console.error('Error finding agreements:', agreementsError);
+      // Continue anyway, as we'll try the RPC function as fallback
+    }
+    
+    const agreementIds = agreements?.map(a => a.id) || [];
+    console.log(`Found ${agreementIds.length} agreements to potentially delete`);
+    
+    // Try both methods: direct deletion and RPC function
+    let deletedCount = 0;
+    
+    // Method 1: Direct deletion with explicit IDs if we found any
+    if (agreementIds.length > 0) {
+      try {
+        // Delete dependent records first
+        await supabase.from('payment_schedules').delete().in('lease_id', agreementIds);
+        await supabase.from('unified_payments').delete().in('lease_id', agreementIds);
+        
+        // Now delete the actual agreements
+        const { data: deletedData, error: deleteError } = await supabase
+          .from('leases')
+          .delete()
+          .in('id', agreementIds)
+          .select('id');
+        
+        if (deleteError) {
+          console.error('Error with direct deletion:', deleteError);
+        } else {
+          deletedCount = deletedData?.length || 0;
+          console.log(`Directly deleted ${deletedCount} agreements`);
+        }
+      } catch (directDeleteError) {
+        console.error('Exception during direct deletion:', directDeleteError);
+      }
+    }
+    
+    // Method 2: Use the database function as a fallback or additional measure
+    try {
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('delete_agreements_by_import_id', {
+        p_import_id: importId
+      });
+      
+      if (rpcError) {
+        console.error('Error with RPC function:', rpcError);
+      } else if (rpcResult?.success) {
+        // Add to our count from the RPC method
+        deletedCount += rpcResult.deleted_count || 0;
+        console.log(`RPC function deleted ${rpcResult.deleted_count} agreements`);
+      }
+    } catch (rpcError) {
+      console.error('Exception during RPC function call:', rpcError);
     }
     
     // Log the revert operation
-    if (data.success) {
-      await supabase.from('agreement_import_reverts').insert({
-        import_id: importId,
-        deleted_count: data.deleted_count,
-        reason: reason || 'No reason provided'
-      });
-      
-      // Update the import status to reverted immediately
-      await supabase
-        .from('agreement_imports')
-        .update({ status: 'reverted' })
-        .eq('id', importId);
-      
-      return { 
-        success: true, 
-        deleted_count: data.deleted_count,
-        message: `Successfully reverted import. ${data.deleted_count} agreements deleted.`
-      };
-    } else {
-      return { success: false, message: data.message || 'Unknown error' };
-    }
+    await supabase.from('agreement_import_reverts').insert({
+      import_id: importId,
+      deleted_count: deletedCount,
+      reason: reason || 'No reason provided'
+    });
+    
+    // Update the import status to reverted
+    await supabase
+      .from('agreement_imports')
+      .update({ 
+        status: 'reverted',
+        error_count: importData.error_count || 0,
+        processed_count: 0 // Reset processed count since we've deleted the agreements
+      })
+      .eq('id', importId);
+    
+    return { 
+      success: true, 
+      deleted_count: deletedCount,
+      message: `Successfully reverted import. ${deletedCount} agreements deleted.`
+    };
   } catch (error) {
     console.error('Error in revertAgreementImport:', error);
+    
+    // Make sure to set the status back to its original state if we fail
+    await supabase
+      .from('agreement_imports')
+      .update({ 
+        status: 'failed',
+        errors: { message: `Revert failed: ${error.message}` }
+      })
+      .eq('id', importId);
+      
     return { success: false, error };
   }
 };

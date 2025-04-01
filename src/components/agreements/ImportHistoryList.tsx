@@ -136,8 +136,8 @@ export function ImportHistoryList() {
       const result = await revertAgreementImport(selectedImportId, revertReason.trim() || 'No reason provided');
       
       if (result.success) {
-        toast.success(result.message);
-        await fetchImports(); // Await the fetch to ensure it completes
+        toast.success(result.message || "Import successfully reverted");
+        await fetchImports(); // Refresh the list to show the updated status
       } else {
         toast.error(`Failed to revert import: ${result.message || 'Unknown error'}`);
       }
@@ -169,6 +169,8 @@ export function ImportHistoryList() {
         return <FileText className="h-4 w-4 text-muted-foreground" />;
       case 'reverted':
         return <RotateCcw className="h-4 w-4 text-blue-500" />;
+      case 'reverting':
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
       default:
         return null;
     }
@@ -186,16 +188,18 @@ export function ImportHistoryList() {
         return <Badge variant="outline" className="capitalize">Pending</Badge>;
       case 'reverted':
         return <Badge variant="secondary" className="capitalize bg-blue-100 text-blue-800">Reverted</Badge>;
+      case 'reverting':
+        return <Badge variant="secondary" className="capitalize bg-blue-100 text-blue-800 animate-pulse">Reverting...</Badge>;
       default:
         return <Badge variant="secondary" className="capitalize">{status}</Badge>;
     }
   };
 
   const canRevertImport = (importItem: any): boolean => {
-    // Only allow reverting completed or failed imports that haven't been reverted yet
+    // Allow reverting completed, failed, or processing imports that haven't been reverted yet
     return (
-      (importItem.status === 'completed' || importItem.status === 'failed') && 
-      importItem.status !== 'reverted'
+      ['completed', 'failed', 'processing'].includes(importItem.status) && 
+      !['reverted', 'reverting'].includes(importItem.status)
     );
   };
 
