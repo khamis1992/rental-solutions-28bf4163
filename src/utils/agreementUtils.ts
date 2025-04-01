@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { loadFontFile, arrayBufferToBase64, toArabicNumerals } from './fontUtils';
@@ -131,7 +130,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       }
     }
     
-    // Set font for English text - FIXED: removed extra parameters
+    // Set font for English text - FIXED: using proper font setting
     doc.setFont('helvetica');
     console.log("English font set");
     
@@ -183,7 +182,8 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       console.log("Generating English content");
       // Title
       doc.setFontSize(18);
-      // FIXED: Using proper setFont calls
+      
+      // FIXED: Correct way to set font in jsPDF 3.0+
       doc.setFont('helvetica', 'bold');
       doc.text('RENTAL AGREEMENT', 105, 20, { align: 'center' });
       doc.text(`Agreement #: ${agreement.agreement_number}`, 105, 30, { align: 'center' });
@@ -265,13 +265,16 @@ export async function generatePdfDocument(agreement: Agreement, language: string
           hasAmiriNormal 
         });
         
-        // FIXED: Properly set font
+        // FIXED: Correct way to set font in jsPDF 3.0+
+        // Handle bold font setting properly
         if (hasAmiriBold) {
-          doc.setFont('Amiri', 'bold');
+          doc.setFont('Amiri');
+          doc.setFontStyle('bold');
           console.log("Using Amiri Bold font for Arabic content");
         } else {
           // Fallback to a system font
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('helvetica');
+          doc.setFontStyle('bold');
           console.log("Using fallback font for Arabic as Amiri not loaded");
         }
         
@@ -284,11 +287,14 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.setFontSize(12);
         doc.text('معلومات العميل', 190, 45, { align: 'right' });
         
-        // FIXED: Properly set font 
+        // FIXED: Correct way to set font in jsPDF 3.0+
+        // Handle normal font setting properly
         if (hasAmiriNormal) {
-          doc.setFont('Amiri', 'normal');
+          doc.setFont('Amiri');
+          doc.setFontStyle('normal');
         } else {
-          doc.setFont('helvetica', 'normal');
+          doc.setFont('helvetica');
+          doc.setFontStyle('normal');
         }
         
         doc.text(`الاسم: ${customerName}`, 190, 55, { align: 'right' });
@@ -299,17 +305,21 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Vehicle information in Arabic
         if (hasAmiriBold) {
-          doc.setFont('Amiri', 'bold');
+          doc.setFont('Amiri');
+          doc.setFontStyle('bold');
         } else {
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('helvetica');
+          doc.setFontStyle('bold');
         }
         
         doc.text('معلومات المركبة', 190, 90, { align: 'right' });
         
         if (hasAmiriNormal) {
-          doc.setFont('Amiri', 'normal');
+          doc.setFont('Amiri');
+          doc.setFontStyle('normal');
         } else {
-          doc.setFont('helvetica', 'normal');
+          doc.setFont('helvetica');
+          doc.setFontStyle('normal');
         }
         
         doc.text(`الصنع: ${vehicleMake}`, 190, 100, { align: 'right' });
@@ -329,17 +339,21 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Agreement details in Arabic
         if (hasAmiriBold) {
-          doc.setFont('Amiri', 'bold');
+          doc.setFont('Amiri');
+          doc.setFontStyle('bold');
         } else {
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('helvetica');
+          doc.setFontStyle('bold');
         }
         
         doc.text('فترة الإيجار', 190, 135, { align: 'right' });
         
         if (hasAmiriNormal) {
-          doc.setFont('Amiri', 'normal');
+          doc.setFont('Amiri');
+          doc.setFontStyle('normal');
         } else {
-          doc.setFont('helvetica', 'normal');
+          doc.setFont('helvetica');
+          doc.setFontStyle('normal');
         }
         
         // Convert dates to Arabic format - safely handle date formatting
@@ -357,17 +371,21 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Payment information in Arabic
         if (hasAmiriBold) {
-          doc.setFont('Amiri', 'bold');
+          doc.setFont('Amiri');
+          doc.setFontStyle('bold');
         } else {
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('helvetica');
+          doc.setFontStyle('bold');
         }
         
         doc.text('معلومات الدفع', 190, 165, { align: 'right' });
         
         if (hasAmiriNormal) {
-          doc.setFont('Amiri', 'normal');
+          doc.setFont('Amiri');
+          doc.setFontStyle('normal');
         } else {
-          doc.setFont('helvetica', 'normal');
+          doc.setFont('helvetica');
+          doc.setFontStyle('normal');
         }
         
         // Safely convert numbers to strings before using toArabicNumerals
@@ -377,17 +395,21 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Signatures in Arabic
         if (hasAmiriBold) {
-          doc.setFont('Amiri', 'bold');
+          doc.setFont('Amiri');
+          doc.setFontStyle('bold');
         } else {
-          doc.setFont('helvetica', 'bold');
+          doc.setFont('helvetica');
+          doc.setFontStyle('bold');
         }
         
         doc.text('التوقيعات', 190, 200, { align: 'right' });
         
         if (hasAmiriNormal) {
-          doc.setFont('Amiri', 'normal');
+          doc.setFont('Amiri');
+          doc.setFontStyle('normal');
         } else {
-          doc.setFont('helvetica', 'normal');
+          doc.setFont('helvetica');
+          doc.setFontStyle('normal');
         }
         
         doc.text('توقيع العميل: _______________________', 190, 210, { align: 'right' });
@@ -464,4 +486,3 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
     
   return processedTemplate;
 };
-
