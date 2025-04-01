@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -10,7 +9,8 @@ import {
   getSortedRowModel,
   getPaginationRowModel,
   ColumnFiltersState,
-  getFilteredRowModel
+  getFilteredRowModel,
+  RowSelectionState
 } from "@tanstack/react-table";
 import { 
   MoreHorizontal, 
@@ -26,7 +26,8 @@ import {
   ChevronRight,
   Info,
   X,
-  ArrowUpDown
+  ArrowUpDown,
+  Trash2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -61,6 +62,18 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from 'sonner';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -68,6 +81,9 @@ interface AgreementListProps {
 
 export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const { 
     agreements, 
@@ -92,7 +108,71 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
 
+  // Clear row selection when agreements or filters change
+  useEffect(() => {
+    setRowSelection({});
+  }, [agreements, statusFilter, searchQuery]);
+
+  const handleBulkDelete = async () => {
+    if (!agreements) return;
+    
+    setIsDeleting(true);
+    
+    const selectedIds = Object.keys(rowSelection).map(
+      index => agreements[parseInt(index)].id as string
+    );
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    // Process deletions one by one to track failures
+    for (const id of selectedIds) {
+      try {
+        await deleteAgreement.mutateAsync(id);
+        successCount++;
+      } catch (error) {
+        console.error(`Failed to delete agreement ${id}:`, error);
+        errorCount++;
+      }
+    }
+    
+    // Show appropriate toast based on results
+    if (errorCount === 0) {
+      toast.success(`Successfully deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}`);
+    } else if (successCount === 0) {
+      toast.error(`Failed to delete any agreements`);
+    } else {
+      toast.warning(`Deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}, but failed to delete ${errorCount}`);
+    }
+    
+    setRowSelection({});
+    setBulkDeleteDialogOpen(false);
+    setIsDeleting(false);
+  };
+
   const columns: ColumnDef<Agreement>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "agreement_number",
       header: "Agreement #",
@@ -306,9 +386,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFiltersState,
+    onRowSelectionChange: setRowSelection,
     state: {
       sorting,
       columnFilters,
+      rowSelection,
       pagination: {
         pageIndex: 0,
         pageSize: 10,
@@ -322,6 +404,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setStatusFilter(value);
     setSearchParams(prev => ({ ...prev, status: value }));
   };
+
+  const selectedCount = Object.keys(rowSelection).length;
 
   return (
     <div className="space-y-4">
@@ -345,12 +429,24 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </Select>
         </div>
         
-        <Button asChild>
-          <Link to="/agreements/add">
-            <FilePlus className="h-4 w-4 mr-2" />
-            New Agreement
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          {selectedCount > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              className="flex items-center gap-1"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete ({selectedCount})
+            </Button>
+          )}
+          <Button asChild>
+            <Link to="/agreements/add">
+              <FilePlus className="h-4 w-4 mr-2" />
+              New Agreement
+            </Link>
+          </Button>
+        </div>
       </div>
       
       {error && (
@@ -488,6 +584,39 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedCount} Agreements</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedCount} selected agreements? 
+              This action cannot be undone and will permanently remove the selected agreements from the system.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Agreements'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
