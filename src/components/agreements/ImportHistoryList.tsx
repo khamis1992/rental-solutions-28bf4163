@@ -9,7 +9,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
+} from "@/components/ui/table";
 import {
   AlertCircle,
   AlertTriangle,
@@ -23,13 +23,13 @@ import {
   Calendar,
   FileX,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { 
   Collapsible, 
   CollapsibleContent, 
   CollapsibleTrigger 
-} from '@/components/ui/collapsible';
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
@@ -186,7 +186,19 @@ export function ImportHistoryList() {
         return;
       }
       
-      // Delete the import record
+      // First, delete any revert records that reference this import
+      const { error: revertDeleteError } = await supabase
+        .from('agreement_import_reverts')
+        .delete()
+        .eq('import_id', selectedImportId);
+        
+      if (revertDeleteError) {
+        console.error('Error deleting revert records:', revertDeleteError);
+        toast.error(`Error deleting related revert records: ${revertDeleteError.message}`);
+        return;
+      }
+      
+      // Now we can safely delete the import record
       const { error } = await supabase
         .from('agreement_imports')
         .delete()
