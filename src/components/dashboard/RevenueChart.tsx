@@ -10,22 +10,29 @@ interface RevenueChartProps {
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
-  // Get current month and year for the title
-  const currentDate = new Date();
-  const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
-  const currentYear = currentDate.getFullYear();
-  
-  // Handle the case of a single month's data
+  // Ensure we have data to display, showing at least the last 6 months
   const ensureCompleteData = (inputData: { name: string; revenue: number }[]) => {
-    if (!inputData || inputData.length === 0) {
-      // Return current month with zero revenue if no data
-      return [{
-        name: currentDate.toLocaleString('default', { month: 'short' }),
-        revenue: 0
-      }];
+    if (!inputData || inputData.length === 0) return [];
+    
+    // List of expected months (last 6 months)
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(month.toLocaleString('default', { month: 'short' }));
     }
     
-    return inputData;
+    // Create a map of existing data
+    const dataMap: Record<string, number> = {};
+    inputData.forEach(item => {
+      dataMap[item.name] = item.revenue;
+    });
+    
+    // Ensure all months have data
+    return months.map(month => ({
+      name: month,
+      revenue: dataMap[month] || 0
+    }));
   };
   
   const completeData = ensureCompleteData(data);
@@ -33,7 +40,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
       <CardHeader className="pb-0">
-        <CardTitle>Revenue - {currentMonth} {currentYear}</CardTitle>
+        <CardTitle>Revenue Overview</CardTitle>
       </CardHeader>
       <CardContent>
         <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>
