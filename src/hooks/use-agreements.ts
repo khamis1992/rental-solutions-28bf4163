@@ -161,7 +161,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
+  // Use a type assertion to solve deep type instantiation
+  type QueryResponse = SimpleAgreement[];
+
+  const fetchAgreements = async (): Promise<QueryResponse> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
@@ -248,8 +251,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`);
 
-      // Simplify the mapping to avoid deep type instantiation
-      const agreements: SimpleAgreement[] = data.map(item => ({
+      // Use type assertion to avoid deep type instantiation
+      const agreements = data.map(item => ({
         id: item.id,
         customer_id: item.customer_id,
         vehicle_id: item.vehicle_id,
@@ -267,7 +270,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         customers: item.profiles,
         vehicles: item.vehicles,
         signature_url: (item as any).signature_url
-      }));
+      })) as QueryResponse;
 
       return agreements;
     } catch (err) {
@@ -280,15 +283,18 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Use a very simplified type for the mutation to avoid deep type instantiation
-  type BasicMutationParams = {
+  // Use a simplified type for the mutation parameters
+  type UpdateMutationParams = {
     id: string;
-    data: Record<string, any>; // Use a more generic type to avoid deep instantiation
+    data: Record<string, any>;
   };
 
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: BasicMutationParams) => {
+    mutationFn: async (params: UpdateMutationParams) => {
       console.log("Update mutation called with:", params);
+      
+      // Implementation would go here
+      // This is just a placeholder
       return {} as SimpleAgreement;
     },
     onSuccess: () => {

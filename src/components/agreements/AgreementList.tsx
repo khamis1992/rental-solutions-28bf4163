@@ -1,16 +1,20 @@
+
 import React from 'react';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Button } from "@/components/ui/button";
 import { Table } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { VehicleStatusBadge } from './VehicleStatusBadge';
+import { Link } from 'react-router-dom';
 
 interface AgreementListProps {
   searchQuery?: string;
 }
 
 const AgreementList: React.FC<AgreementListProps> = ({ searchQuery = '' }) => {
-  const { agreements, isLoading, error, searchParams, setSearchParams } = useAgreements();
+  const { agreements, isLoading, error, searchParams, setSearchParams } = useAgreements(
+    searchQuery ? { query: searchQuery } : {}
+  );
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error loading agreements</div>;
@@ -41,7 +45,9 @@ const AgreementList: React.FC<AgreementListProps> = ({ searchQuery = '' }) => {
                 </Badge>
               </td>
               <td>
-                <Button variant="outline">Edit</Button>
+                <Link to={`/agreements/edit/${agreement.id}`}>
+                  <Button variant="outline">Edit</Button>
+                </Link>
                 <Button variant="destructive">Delete</Button>
               </td>
             </tr>

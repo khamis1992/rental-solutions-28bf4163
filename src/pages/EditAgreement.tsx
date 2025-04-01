@@ -71,8 +71,8 @@ const EditAgreement = () => {
     navigate('/agreements');
   };
 
-  // The function to navigate back after save
-  const handleAfterSave = () => {
+  // Define a callback function that will be called after save
+  const afterSave = () => {
     navigate('/agreements');
   };
 
@@ -83,7 +83,7 @@ const EditAgreement = () => {
         onSubmit={onSubmit}
         isSubmitting={updateAgreement.isPending}
         initialData={form.getValues()}
-        onAfterSave={handleAfterSave} 
+        afterSave={afterSave} // Use the property name that matches what the component expects
       />
     </div>
   );
