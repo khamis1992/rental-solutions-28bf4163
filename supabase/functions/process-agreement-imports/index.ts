@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { z } from 'https://deno.land/x/zod@v3.16.1/mod.ts';
@@ -11,8 +10,8 @@ const corsHeaders = {
 
 // Define the schema for validating CSV row data
 const agreementImportSchema = z.object({
-  customer_id: z.string().uuid('Customer ID must be a valid UUID'),
-  vehicle_id: z.string().uuid('Vehicle ID must be a valid UUID'),
+  customer_id: z.string().min(1, 'Customer ID is required'),
+  vehicle_id: z.string().min(1, 'Vehicle ID is required'),
   start_date: z.string().refine(
     (date) => {
       const parsedDate = new Date(date);
@@ -246,12 +245,62 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
           continue;
         }
         
+        // Find the customer by ID or other identifier
+        let customerId = rowData.customer_id;
+        if (!customerId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          // If not a UUID, try to find the customer by other means (email, etc.)
+          const { data: customerData, error: customerError } = await supabase
+            .from("profiles")
+            .select("id")
+            .or(`email.eq.${rowData.customer_id},phone_number.eq.${rowData.customer_id},full_name.eq.${rowData.customer_id}`)
+            .limit(1)
+            .single();
+            
+          if (customerError || !customerData) {
+            await logImportError(supabase, importId, i, rowData.customer_id, "Customer not found with provided identifier", rowData);
+            errors++;
+            details.push({
+              row: i,
+              errors: "Customer not found with provided identifier",
+              data: rowData
+            });
+            continue;
+          }
+          
+          customerId = customerData.id;
+        }
+        
+        // Find the vehicle by ID or license plate
+        let vehicleId = rowData.vehicle_id;
+        if (!vehicleId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          // If not a UUID, try to find the vehicle by license plate or VIN
+          const { data: vehicleData, error: vehicleError } = await supabase
+            .from("vehicles")
+            .select("id")
+            .or(`license_plate.eq.${rowData.vehicle_id},vin.eq.${rowData.vehicle_id}`)
+            .limit(1)
+            .single();
+            
+          if (vehicleError || !vehicleData) {
+            await logImportError(supabase, importId, i, rowData.customer_id, "Vehicle not found with provided identifier", rowData);
+            errors++;
+            details.push({
+              row: i,
+              errors: "Vehicle not found with provided identifier",
+              data: rowData
+            });
+            continue;
+          }
+          
+          vehicleId = vehicleData.id;
+        }
+        
         // Create a new agreement record
         const { error: createError } = await supabase
           .from("leases")
           .insert({
-            customer_id: rowData.customer_id,
-            vehicle_id: rowData.vehicle_id,
+            customer_id: customerId,
+            vehicle_id: vehicleId,
             start_date: new Date(rowData.start_date).toISOString(),
             end_date: new Date(rowData.end_date).toISOString(),
             rent_amount: parseFloat(rowData.rent_amount),

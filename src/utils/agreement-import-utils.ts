@@ -1,4 +1,3 @@
-
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -6,8 +5,8 @@ import { toast } from 'sonner';
 
 // Schema for validating CSV row data
 export const agreementImportSchema = z.object({
-  customer_id: z.string().uuid('Customer ID must be a valid UUID'),
-  vehicle_id: z.string().uuid('Vehicle ID must be a valid UUID'),
+  customer_id: z.string().min(1, 'Customer ID is required'),
+  vehicle_id: z.string().min(1, 'Vehicle ID is required'),
   start_date: z.string().refine(
     (date) => {
       const parsedDate = new Date(date);

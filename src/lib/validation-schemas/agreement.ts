@@ -323,10 +323,10 @@ export interface AgreementImportRow {
   notes?: string;
 }
 
-// Schema for CSV rows with readable identifiers (before UUID conversion)
-export const agreementImportReadableSchema = z.object({
-  customer_name: z.string().min(1, 'Customer name is required'),
-  vehicle_identifier: z.string().min(1, 'Vehicle identifier is required'),
+// Schema for validating CSV row data
+export const agreementImportSchema = z.object({
+  customer_id: z.string().min(1, 'Customer ID is required'),
+  vehicle_id: z.string().min(1, 'Vehicle ID is required'),
   start_date: z.string().refine(
     (date) => {
       const parsedDate = new Date(date);
@@ -353,8 +353,6 @@ export const agreementImportReadableSchema = z.object({
   notes: z.string().optional(),
 });
 
-export type AgreementImportReadableRow = z.infer<typeof agreementImportReadableSchema>;
-
 // Fields for agreement import with readable identifiers
 export const agreementHumanReadableCSVFields = [
   'Customer Name or Email',
@@ -371,6 +369,30 @@ export const agreementHumanReadableCSVFields = [
 export const agreementReadableCSVMap: Record<string, keyof AgreementImportReadableRow> = {
   'Customer Name or Email': 'customer_name',
   'Vehicle License Plate or VIN': 'vehicle_identifier',
+  'Start Date': 'start_date',
+  'End Date': 'end_date',
+  'Rent Amount': 'rent_amount',
+  'Deposit Amount': 'deposit_amount',
+  'Agreement Type': 'agreement_type',
+  'Notes': 'notes'
+};
+
+// CSV field names for agreement import
+export const agreementCSVFields = [
+  'Customer ID',
+  'Vehicle ID',
+  'Start Date',
+  'End Date',
+  'Rent Amount',
+  'Deposit Amount',
+  'Agreement Type',
+  'Notes'
+];
+
+// Map from CSV column names to agreement schema field names
+export const agreementCSVMap: Record<string, keyof AgreementImportRow> = {
+  'Customer ID': 'customer_id',
+  'Vehicle ID': 'vehicle_id',
   'Start Date': 'start_date',
   'End Date': 'end_date',
   'Rent Amount': 'rent_amount',
