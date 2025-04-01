@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, CheckCircle2, ExternalLink, Upload } from "lucide-react";
 import PageContainer from "@/components/layout/PageContainer";
-import AgreementForm from "@/components/agreements/AgreementForm";
-import { useToast } from "@/hooks/use-toast";
+import AgreementFormWithVehicleCheck from "@/components/agreements/AgreementFormWithVehicleCheck";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
@@ -14,7 +14,6 @@ import { diagnoseTemplateUrl, uploadAgreementTemplate, checkSpecificTemplateUrl,
 
 const AddAgreement = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [standardTemplateExists, setStandardTemplateExists] = useState<boolean>(false);
   const [checkingTemplate, setCheckingTemplate] = useState<boolean>(true);
@@ -122,11 +121,7 @@ const AddAgreement = () => {
           .then(module => module.checkVehicleAvailability(leaseData.vehicle_id));
         
         if (!isAvailable && existingAgreement) {
-          toast({
-            title: "Warning",
-            description: `Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`,
-            variant: "destructive"
-          });
+          console.log(`Vehicle is assigned to agreement #${existingAgreement.agreement_number} which will be closed`);
         }
       }
       
@@ -136,17 +131,19 @@ const AddAgreement = () => {
       if (error) {
         throw error;
       }
-      toast({
-        title: "Agreement created",
-        description: "The agreement has been successfully created."
-      });
+      
+      // If agreement is active and we need to close an existing agreement
+      if (leaseData.status === 'active' && leaseData.vehicle_id) {
+        await import('@/utils/agreement-utils')
+          .then(module => module.activateAgreement(data.id, leaseData.vehicle_id));
+      }
+      
+      toast.success("Agreement created successfully");
       navigate(`/agreements/${data.id}`);
     } catch (error: any) {
       console.error("Error creating agreement:", error);
-      toast({
-        title: "Error creating agreement",
-        description: error.message || "Something went wrong.",
-        variant: "destructive"
+      toast.error("Failed to create agreement", {
+        description: error.message || "Something went wrong"
       });
     } finally {
       setIsSubmitting(false);
@@ -320,7 +317,7 @@ const AddAgreement = () => {
           <CardTitle>Agreement Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <AgreementForm 
+          <AgreementFormWithVehicleCheck 
             onSubmit={handleSubmit} 
             isSubmitting={isSubmitting} 
             standardTemplateExists={standardTemplateExists || (specificUrlCheck && specificUrlCheck.accessible) || false} 

@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { MutationVariables } from '@/utils/type-utils';
@@ -72,12 +73,30 @@ export const activateAgreement = async (
     // Check vehicle availability first
     const { isAvailable, existingAgreement } = await checkVehicleAvailability(vehicleId, id);
     
+    // If vehicle is not available, close the existing agreement
     if (!isAvailable && existingAgreement) {
-      // Show warning toast about closing other agreement
-      toast.warning(
-        `Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`,
-        { duration: 5000 }
-      );
+      // Show toast about closing other agreement
+      toast(`Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`, {
+        duration: 5000
+      });
+      
+      // Close the existing agreement
+      const { error: closeError } = await supabase
+        .from('leases')
+        .update({ 
+          status: 'closed', 
+          updated_at: new Date().toISOString(),
+          notes: `Agreement automatically closed when vehicle was reassigned to agreement ${id}`
+        })
+        .eq('id', existingAgreement.id);
+        
+      if (closeError) {
+        console.error("Error closing existing agreement:", closeError);
+        toast.error("Failed to close existing agreement");
+      } else {
+        console.log(`Successfully closed agreement ${existingAgreement.id}`);
+        toast.success(`Agreement #${existingAgreement.agreement_number} was closed successfully`);
+      }
     }
 
     // Proceed with activation
@@ -122,11 +141,29 @@ export const updateAgreementWithCheck = async (
         id
       );
       
+      // If vehicle is not available, close the existing agreement
       if (!isAvailable && existingAgreement) {
         // Show warning toast about closing other agreement
         toast(`Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`, {
           duration: 5000
         });
+        
+        // Close the existing agreement
+        const { error: closeError } = await supabase
+          .from('leases')
+          .update({ 
+            status: 'closed', 
+            updated_at: new Date().toISOString(),
+            notes: `Agreement automatically closed when vehicle was reassigned to agreement ${id}`
+          })
+          .eq('id', existingAgreement.id);
+          
+        if (closeError) {
+          console.error("Error closing existing agreement:", closeError);
+          toast.error("Failed to close existing agreement");
+        } else {
+          console.log(`Successfully closed agreement ${existingAgreement.id}`);
+        }
       }
     }
     
