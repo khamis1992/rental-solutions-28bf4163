@@ -131,6 +131,19 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
+        console.log(`Starting deletion process for agreement ${id}`);
+        
+        const { error: overduePaymentsDeleteError } = await supabase
+          .from('overdue_payments')
+          .delete()
+          .eq('agreement_id', id);
+          
+        if (overduePaymentsDeleteError) {
+          console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
+        } else {
+          console.log(`Successfully deleted related overdue payments for ${id}`);
+        }
+        
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
@@ -138,6 +151,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
+        } else {
+          console.log(`Successfully deleted related payments for ${id}`);
         }
         
         const { data: relatedReverts } = await supabase
@@ -153,6 +168,28 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
+          } else {
+            console.log(`Successfully deleted related revert records for ${id}`);
+          }
+        }
+        
+        const { data: trafficFines, error: trafficFinesError } = await supabase
+          .from('traffic_fines')
+          .select('id')
+          .eq('agreement_id', id);
+          
+        if (trafficFinesError) {
+          console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
+        } else if (trafficFines && trafficFines.length > 0) {
+          const { error: finesDeleteError } = await supabase
+            .from('traffic_fines')
+            .delete()
+            .eq('agreement_id', id);
+            
+          if (finesDeleteError) {
+            console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
+          } else {
+            console.log(`Successfully deleted related traffic fines for ${id}`);
           }
         }
         
@@ -163,6 +200,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);
+          toast.error(`Failed to delete agreement: ${error.message}`);
           errorCount++;
         } else {
           console.log(`Successfully deleted agreement ${id}`);

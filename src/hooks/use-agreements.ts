@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -299,10 +298,86 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
-      return id;
+      console.log(`Starting deletion process for agreement ${id}`);
+      
+      try {
+        // Step 1: Delete related overdue_payments records first (foreign key constraint)
+        const { error: overduePaymentsDeleteError } = await supabase
+          .from('overdue_payments')
+          .delete()
+          .eq('agreement_id', id);
+          
+        if (overduePaymentsDeleteError) {
+          console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
+        }
+        
+        // Step 2: Delete related unified_payments records
+        const { error: paymentDeleteError } = await supabase
+          .from('unified_payments')
+          .delete()
+          .eq('lease_id', id);
+          
+        if (paymentDeleteError) {
+          console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
+        }
+        
+        // Step 3: Delete related import revert records
+        const { data: relatedReverts } = await supabase
+          .from('agreement_import_reverts')
+          .select('id')
+          .eq('import_id', id);
+          
+        if (relatedReverts && relatedReverts.length > 0) {
+          const { error: revertDeleteError } = await supabase
+            .from('agreement_import_reverts')
+            .delete()
+            .eq('import_id', id);
+            
+          if (revertDeleteError) {
+            console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
+          }
+        }
+        
+        // Step 4: Check for any other potential related records
+        const { data: trafficFines, error: trafficFinesError } = await supabase
+          .from('traffic_fines')
+          .select('id')
+          .eq('agreement_id', id);
+          
+        if (!trafficFinesError && trafficFines && trafficFines.length > 0) {
+          const { error: finesDeleteError } = await supabase
+            .from('traffic_fines')
+            .delete()
+            .eq('agreement_id', id);
+            
+          if (finesDeleteError) {
+            console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
+          }
+        }
+        
+        // Finally: Delete the agreement itself
+        const { error } = await supabase
+          .from('leases')
+          .delete()
+          .eq('id', id);
+          
+        if (error) {
+          console.error(`Failed to delete agreement ${id}:`, error);
+          throw new Error(`Failed to delete agreement: ${error.message}`);
+        }
+        
+        return id;
+      } catch (error) {
+        console.error('Error in deleteAgreement:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
+      toast.success('Agreement deleted successfully');
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
     },
   });
 
