@@ -6,7 +6,7 @@ import {
   XCircle, 
   AlertTriangle, 
   Clock, 
-  Tool, 
+  Wrench, 
   HelpCircle 
 } from "lucide-react";
 
@@ -51,7 +51,7 @@ export const VehicleStatusBadge: React.FC<VehicleStatusBadgeProps> = ({
       case 'maintenance':
         return {
           color: 'bg-amber-500 hover:bg-amber-600',
-          icon: Tool,
+          icon: Wrench, // Changed from Tool to Wrench
           text: 'Maintenance'
         };
       case 'reserved':
