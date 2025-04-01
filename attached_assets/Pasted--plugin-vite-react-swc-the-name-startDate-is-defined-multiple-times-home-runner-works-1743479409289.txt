@@ -1,0 +1,539 @@
+[plugin:vite:react-swc] × the name `startDate` is defined multiple times
+     ╭─[/home/runner/workspace/src/utils/agreementUtils.ts:81:1]
+  78 │       doc.text('Vehicle Rental Contract', 105, 20, { align: 'center' });
+  79 │ 
+  80 │     // Format dates
+  81 │     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+     ·           ────┬────
+     ·               ╰── previous definition of `startDate` here
+  82 │     const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+  83 │ 
+  84 │     // Calculate agreement duration in months
+  85 │     const durationMonths = differenceInMonths(endDate, startDate);
+  86 │     const duration = `${durationMonths} ${durationMonths === 1 ? 'month' : 'months'}`;
+  87 │ 
+  88 │     // Start position for text
+  89 │     let y = 30;
+  90 │     const leftMargin = 20;
+  91 │     const lineHeight = 5;
+  92 │ 
+  93 │     // Set regular font for body text
+  94 │     docEn.setFontSize(10);
+  95 │     docEn.setFont('helvetica', 'normal');
+  96 │ 
+  97 │     // Add contract introduction
+  98 │     docEn.text(`This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(startDate)}.`, leftMargin, y);
+  99 │     y += lineHeight * 2;
+ 100 │ 
+ 101 │     // Parties section
+ 102 │     docEn.setFont('helvetica', 'bold');
+ 103 │     docEn.text('Between:', leftMargin, y);
+ 104 │     y += lineHeight * 2;
+ 105 │ 
+ 106 │     docEn.setFont('helvetica', 'normal');
+ 107 │     const partyOneText = 'Party One: Al-Araf Rent-a-Car LLC, a limited liability company legally registered under the laws of Qatar, with commercial registration number 146832 and located at Umm Salal Ali, Doha, Qatar, P.O. Box 36126. Represented by Mr. Khamees Hashem Al-Jaber, the authorized signatory for the company, referred to hereafter as the Lessor | Party One.';
+ 108 │ 
+ 109 │     // Handle long text wrapping
+ 110 │     const splitPartyOne = docEn.splitTextToSize(partyOneText, 170);
+ 111 │     docEn.text(splitPartyOne, leftMargin, y);
+ 112 │     y += splitPartyOne.length * lineHeight + lineHeight;
+ 113 │ 
+ 114 │     docEn.text('And:', leftMargin, y);
+ 115 │     y += lineHeight * 2;
+ 116 │ 
+ 117 │     const customerName = agreement.customers?.full_name || 'N/A';
+ 118 │     const customerLicense = agreement.customers?.driver_license || 'N/A';
+ 119 │     const customerNationality = agreement.customers?.nationality || 'N/A';
+ 120 │     const customerEmail = agreement.customers?.email || 'N/A';
+ 121 │     const customerPhone = agreement.customers?.phone_number || 'N/A';
+ 122 │ 
+ 123 │     const partyTwoText = `Party Two: ${customerName}, holder of driver's license ${customerLicense}, nationality ${customerNationality}, residing in Qatar, email ${customerEmail}, mobile number ${customerPhone}. Referred to hereafter as the Lessee | Party Two.`;
+ 124 │ 
+ 125 │     const splitPartyTwo = docEn.splitTextToSize(partyTwoText, 170);
+ 126 │     docEn.text(splitPartyTwo, leftMargin, y);
+ 127 │     y += splitPartyTwo.length * lineHeight + lineHeight;
+ 128 │ 
+ 129 │     const partiesText = 'Each party shall individually be referred to as a "Party" and collectively as the "Parties."';
+ 130 │     docEn.text(partiesText, leftMargin, y);
+ 131 │     y += lineHeight * 2;
+ 132 │ 
+ 133 │     // Preamble
+ 134 │     docEn.setFont('helvetica', 'bold');
+ 135 │     docEn.text('Preamble', leftMargin, y);
+ 136 │     y += lineHeight * 2;
+ 137 │ 
+ 138 │     docEn.setFont('helvetica', 'normal');
+ 139 │     docEn.text('Whereas Party One is a legally licensed car rental company and owns the vehicle described below:', leftMargin, y);
+ 140 │     y += lineHeight * 2;
+ 141 │ 
+ 142 │     // Vehicle information
+ 143 │     const vehicleMake = agreement.vehicles?.make || 'N/A';
+ 144 │     const vehicleModel = agreement.vehicles?.model || 'N/A';
+ 145 │     const vehiclePlate = agreement.vehicles?.license_plate || 'N/A';
+ 146 │     const vehicleVin = agreement.vehicles?.vin || 'N/A';
+ 147 │ 
+ 148 │     docEn.text(`Vehicle Type:`, leftMargin, y);
+ 149 │     y += lineHeight;
+ 150 │     docEn.text(`License Plate Number: ${vehiclePlate}`, leftMargin, y);
+ 151 │     y += lineHeight;
+ 152 │     docEn.text(`VIN: ${vehicleVin}`, leftMargin, y);
+ 153 │     y += lineHeight;
+ 154 │     docEn.text(`Vehicle Model: ${vehicleModel} - ${vehicleMake}`, leftMargin, y);
+ 155 │     y += lineHeight * 2;
+ 156 │ 
+ 157 │     const preambleText = 'And whereas Party Two wishes to rent this vehicle from Party One under the terms and conditions of this Agreement, and Party One agrees to rent the vehicle to Party Two, both Parties hereby agree to the following:';
+ 158 │     const splitPreamble = docEn.splitTextToSize(preambleText, 170);
+ 159 │     docEn.text(splitPreamble, leftMargin, y);
+ 160 │     y += splitPreamble.length * lineHeight + lineHeight;
+ 161 │ 
+ 162 │     // Articles
+ 163 │     docEn.setFont('helvetica', 'bold');
+ 164 │     docEn.text('Article 1:', leftMargin, y);
+ 165 │     y += lineHeight;
+ 166 │     docEn.setFont('helvetica', 'normal');
+ 167 │     docEn.text('The preamble above forms an integral part of this Agreement and shall be interpreted within its terms and conditions.', leftMargin + 15, y);
+ 168 │     y += lineHeight * 2;
+ 169 │ 
+ 170 │     // Article 2 - Vehicle Information
+ 171 │     docEn.setFont('helvetica', 'bold');
+ 172 │     docEn.text('Article 2 - Vehicle Information:', leftMargin, y);
+ 173 │     y += lineHeight;
+ 174 │     docEn.setFont('helvetica', 'normal');
+ 175 │     docEn.text('Party One hereby rents to Party Two the following vehicle:', leftMargin + 15, y);
+ 176 │     y += lineHeight * 2;
+ 177 │ 
+ 178 │     docEn.text(`Vehicle Type:`, leftMargin + 15, y);
+ 179 │     y += lineHeight;
+ 180 │     docEn.text(`License Plate Number: ${vehiclePlate}`, leftMargin + 15, y);
+ 181 │     y += lineHeight;
+ 182 │     docEn.text(`VIN: ${vehicleVin}`, leftMargin + 15, y);
+ 183 │     y += lineHeight;
+ 184 │     docEn.text(`Model: ${vehicleModel} - ${vehicleMake}`, leftMargin + 15, y);
+ 185 │     y += lineHeight * 2;
+ 186 │ 
+ 187 │     // Check if we need a new page
+ 188 │     if (y > 250) {
+ 189 │       docEn.addPage();
+ 190 │       y = 20;
+ 191 │     }
+ 192 │ 
+ 193 │     // Article 3 - Rental Duration
+ 194 │     docEn.setFont('helvetica', 'bold');
+ 195 │     docEn.text('Article 3 - Rental Duration:', leftMargin, y);
+ 196 │     y += lineHeight;
+ 197 │     docEn.setFont('helvetica', 'normal');
+ 198 │     const durationText = `The rental duration of this Agreement is ${duration}, commencing from the effective date of this Agreement. The Agreement is non-renewable and will terminate upon the expiration of the term. Party Two may not terminate the Agreement before its expiration without written consent from Party One.`;
+ 199 │     const splitDuration = docEn.splitTextToSize(durationText, 170);
+ 200 │     docEn.text(splitDuration, leftMargin + 15, y);
+ 201 │     y += splitDuration.length * lineHeight + lineHeight;
+ 202 │ 
+ 203 │     // Article 4 - Rental Fee
+ 204 │     docEn.setFont('helvetica', 'bold');
+ 205 │     docEn.text('Article 4 - Rental Fee:', leftMargin, y);
+ 206 │     y += lineHeight;
+ 207 │     docEn.setFont('helvetica', 'normal');
+ 208 │     const feeText = `Party Two agrees to pay Party One a monthly rental fee of ${formatCurrency(agreement.total_amount || 0)}, in accordance with the attached payment schedule. Party Two agrees to make full monthly rental payments regularly and without deductions for any fees, taxes, or other charges.`;
+ 209 │     const splitFee = docEn.splitTextToSize(feeText, 170);
+ 210 │     docEn.text(splitFee, leftMargin + 15, y);
+ 211 │     y += splitFee.length * lineHeight + lineHeight;
+ 212 │ 
+ 213 │     // Check if we need a new page
+ 214 │     if (y > 250) {
+ 215 │       docEn.addPage();
+ 216 │       y = 20;
+ 217 │     }
+ 218 │ 
+ 219 │     // Article 5 - Late Payment Penalties
+ 220 │     docEn.setFont('helvetica', 'bold');
+ 221 │     docEn.text('Article 5 - Late Payment Penalties:', leftMargin, y);
+ 222 │     y += lineHeight;
+ 223 │     docEn.setFont('helvetica', 'normal');
+ 224 │     const penaltyText = `Payments are due on the first day of each month. If Party Two fails to make a payment on time, a late fee of 120 Qatari Riyals will apply for each day of delay from the due date until the overdue payments are settled.`;
+ 225 │     const splitPenalty = docEn.splitTextToSize(penaltyText, 170);
+ 226 │     docEn.text(splitPenalty, leftMargin + 15, y);
+ 227 │     y += splitPenalty.length * lineHeight + lineHeight;
+ 228 │ 
+ 229 │     // Article 6 - Security Deposit
+ 230 │     docEn.setFont('helvetica', 'bold');
+ 231 │     docEn.text('Article 6 - Security Deposit:', leftMargin, y);
+ 232 │     y += lineHeight;
+ 233 │     docEn.setFont('helvetica', 'normal');
+ 234 │     const depositText = `Party Two agrees to pay a security deposit of ${formatCurrency(agreement.deposit_amount || 0)} to Party One upon signing this Agreement, to guarantee Party Two's obligations under this Agreement and to compensate Party One for any damages caused to the vehicle during the rental period.`;
+ 235 │     const splitDeposit = docEn.splitTextToSize(depositText, 170);
+ 236 │     docEn.text(splitDeposit, leftMargin + 15, y);
+ 237 │     y += splitDeposit.length * lineHeight + lineHeight;
+ 238 │ 
+ 239 │     // Continue with remaining articles (adding new pages as needed)
+ 240 │     if (y > 230) {
+ 241 │       docEn.addPage();
+ 242 │       y = 20;
+ 243 │     }
+ 244 │ 
+ 245 │     // Articles 7-15 (add more as needed)
+ 246 │     const remainingArticles = [
+ 247 │       {
+ 248 │         title: 'Article 7 - Inspection:',
+ 249 │         content: "Party Two acknowledges that by signing this Agreement, they have inspected the vehicle and accept it as it is, confirming it is in good condition and free from defects. Party One makes no warranties, either express or implied, regarding the vehicle's condition."
+ 250 │       },
+ 251 │       {
+ 252 │         title: 'Article 8 - Vehicle Delivery:',
+ 253 │         content: "Upon signing this Agreement, Party One will deliver the rented vehicle to Party Two according to the attached delivery receipt, which both Parties will sign. Party Two is responsible for any damage or violations related to the vehicle during the rental period."
+ 254 │       },
+ 255 │       {
+ 256 │         title: "Article 9 - Lessee's Representations and Warranties:",
+ 257 │         content: "Party Two agrees to the following:\n• Responsibility for traffic violations during the rental period, to be settled within 30 days.\n• All operating costs for the vehicle, including fuel, oils, and consumables.\n• Responsibility for regular and non-regular maintenance of the vehicle.\n• Party Two is solely responsible for the vehicle's damage, either partial or total, due to negligence.\n• Party Two shall drive the vehicle solely for personal use and may not allow anyone else to drive it."
+ 258 │       },
+ 259 │       {
+ 260 │         title: 'Article 10 - Insurance Requirements:',
+ 261 │         content: "Party Two must provide comprehensive insurance coverage for the rented vehicle from an approved insurance company and maintain the policy throughout the rental period."
+ 262 │       },
+ 263 │       {
+ 264 │         title: 'Article 11 - Purchase Option:',
+ 265 │         content: "If Party Two wishes to purchase the vehicle at the end of the rental term, they must notify Party One in writing. The vehicle price is equal to the monthly rental value."
+ 266 │       },
+ 267 │       {
+ 268 │         title: 'Article 12 - Default by Party Two:',
+ 269 │         content: "The following actions will constitute a breach by Party Two:\n• Failure to pay rental payments or any amount due under this Agreement.\n• Breach of any non-financial obligation under this Agreement.\n• Bankruptcy or insolvency of Party Two.\n• Abandonment of the vehicle.\n• Departure or deportation of Party Two from the country.\n• Failure to pay traffic fines within 30 days of the violation."
+ 270 │       },
+ 271 │       {
+ 272 │         title: 'Article 13 - Consequences of Default:',
+ 273 │         content: "In the event of a default by Party Two, Party One may terminate the Agreement, immediately retrieve the vehicle, and impose a penalty of 5000 Qatari Riyals."
+ 274 │       },
+ 275 │       {
+ 276 │         title: 'Article 14 - Early Payment:',
+ 277 │         content: "Party Two may not terminate the Agreement early without Party One's prior written consent and must notify Party One a month in advance if they wish to pay off the remaining balance."
+ 278 │       },
+ 279 │       {
+ 280 │         title: 'Article 15 - General Provisions:',
+ 281 │         content: "• Governing Law and Jurisdiction: This Agreement is governed by the laws of Qatar, and the Parties agree to the exclusive jurisdiction of Qatari courts.\n• Communications: Any notices or communications under this Agreement may be made via WhatsApp, email, or text message.\n• Assignment: Party Two may not assign or transfer their rights or obligations under this Agreement without prior written consent from Party One.\n• Severability: If any provision of this Agreement is deemed unenforceable, the remainder of the Agreement shall remain in effect.\n• Entire Agreement: This Agreement constitutes the entire understanding between the Parties and supersedes any prior discussions or agreements.\n• Copies: This Agreement may be executed in multiple counterparts, each of which is considered an original."
+ 282 │       }
+ 283 │     ];
+ 284 │ 
+ 285 │     for (const article of remainingArticles) {
+ 286 │       // Check if we need a new page
+ 287 │       if (y > 230) {
+ 288 │         docEn.addPage();
+ 289 │         y = 20;
+ 290 │       }
+ 291 │ 
+ 292 │       docEn.setFont('helvetica', 'bold');
+ 293 │       docEn.text(article.title, leftMargin, y);
+ 294 │       y += lineHeight;
+ 295 │ 
+ 296 │       docEn.setFont('helvetica', 'normal');
+ 297 │       const contentLines = article.content.split('\n');
+ 298 │ 
+ 299 │       for (const line of contentLines) {
+ 300 │         const splitContent = docEn.splitTextToSize(line, 160);
+ 301 │         docEn.text(splitContent, leftMargin + 15, y);
+ 302 │         y += splitContent.length * lineHeight;
+ 303 │       }
+ 304 │ 
+ 305 │       y += lineHeight;
+ 306 │     }
+ 307 │ 
+ 308 │     // Add signature section
+ 309 │     if (y > 240) {
+ 310 │       docEn.addPage();
+ 311 │       y = 20;
+ 312 │     }
+ 313 │ 
+ 314 │     docEn.setFont('helvetica', 'bold');
+ 315 │     docEn.text('In witness whereof, this Agreement is signed by the Parties in two copies, one for each Party.', leftMargin, y);
+ 316 │     y += lineHeight * 3;
+ 317 │ 
+ 318 │     docEn.text('Party One:', leftMargin, y);
+ 319 │     docEn.text('Party Two:', leftMargin + 100, y);
+ 320 │     y += lineHeight;
+ 321 │ 
+ 322 │     docEn.setFont('helvetica', 'normal');
+ 323 │     docEn.text('Represented by Mr. Khamees Hashem Al-Jaber', leftMargin, y);
+ 324 │     docEn.text(`Represented by Mr. ${customerName}`, leftMargin + 100, y);
+ 325 │ 
+ 326 │     // Generate Arabic version
+ 327 │     const docAr = new jsPDF({
+ 328 │         orientation: 'portrait',
+ 329 │         unit: 'mm',
+ 330 │         format: 'a4',
+ 331 │         putOnlyUsedFonts: true
+ 332 │     });
+ 333 │     // Generate English content
+ 334 │       // Format dates
+ 335 │       const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+     ·             ────┬────
+     ·                 ╰── `startDate` redefined here
+ 336 │       const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+ 337 │       
+ 338 │       // Add contract content
+     ╰────
+  × the name `endDate` is defined multiple times
+     ╭─[/home/runner/workspace/src/utils/agreementUtils.ts:82:1]
+  79 │ 
+  80 │     // Format dates
+  81 │     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+  82 │     const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+     ·           ───┬───
+     ·              ╰── previous definition of `endDate` here
+  83 │ 
+  84 │     // Calculate agreement duration in months
+  85 │     const durationMonths = differenceInMonths(endDate, startDate);
+  86 │     const duration = `${durationMonths} ${durationMonths === 1 ? 'month' : 'months'}`;
+  87 │ 
+  88 │     // Start position for text
+  89 │     let y = 30;
+  90 │     const leftMargin = 20;
+  91 │     const lineHeight = 5;
+  92 │ 
+  93 │     // Set regular font for body text
+  94 │     docEn.setFontSize(10);
+  95 │     docEn.setFont('helvetica', 'normal');
+  96 │ 
+  97 │     // Add contract introduction
+  98 │     docEn.text(`This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(startDate)}.`, leftMargin, y);
+  99 │     y += lineHeight * 2;
+ 100 │ 
+ 101 │     // Parties section
+ 102 │     docEn.setFont('helvetica', 'bold');
+ 103 │     docEn.text('Between:', leftMargin, y);
+ 104 │     y += lineHeight * 2;
+ 105 │ 
+ 106 │     docEn.setFont('helvetica', 'normal');
+ 107 │     const partyOneText = 'Party One: Al-Araf Rent-a-Car LLC, a limited liability company legally registered under the laws of Qatar, with commercial registration number 146832 and located at Umm Salal Ali, Doha, Qatar, P.O. Box 36126. Represented by Mr. Khamees Hashem Al-Jaber, the authorized signatory for the company, referred to hereafter as the Lessor | Party One.';
+ 108 │ 
+ 109 │     // Handle long text wrapping
+ 110 │     const splitPartyOne = docEn.splitTextToSize(partyOneText, 170);
+ 111 │     docEn.text(splitPartyOne, leftMargin, y);
+ 112 │     y += splitPartyOne.length * lineHeight + lineHeight;
+ 113 │ 
+ 114 │     docEn.text('And:', leftMargin, y);
+ 115 │     y += lineHeight * 2;
+ 116 │ 
+ 117 │     const customerName = agreement.customers?.full_name || 'N/A';
+ 118 │     const customerLicense = agreement.customers?.driver_license || 'N/A';
+ 119 │     const customerNationality = agreement.customers?.nationality || 'N/A';
+ 120 │     const customerEmail = agreement.customers?.email || 'N/A';
+ 121 │     const customerPhone = agreement.customers?.phone_number || 'N/A';
+ 122 │ 
+ 123 │     const partyTwoText = `Party Two: ${customerName}, holder of driver's license ${customerLicense}, nationality ${customerNationality}, residing in Qatar, email ${customerEmail}, mobile number ${customerPhone}. Referred to hereafter as the Lessee | Party Two.`;
+ 124 │ 
+ 125 │     const splitPartyTwo = docEn.splitTextToSize(partyTwoText, 170);
+ 126 │     docEn.text(splitPartyTwo, leftMargin, y);
+ 127 │     y += splitPartyTwo.length * lineHeight + lineHeight;
+ 128 │ 
+ 129 │     const partiesText = 'Each party shall individually be referred to as a "Party" and collectively as the "Parties."';
+ 130 │     docEn.text(partiesText, leftMargin, y);
+ 131 │     y += lineHeight * 2;
+ 132 │ 
+ 133 │     // Preamble
+ 134 │     docEn.setFont('helvetica', 'bold');
+ 135 │     docEn.text('Preamble', leftMargin, y);
+ 136 │     y += lineHeight * 2;
+ 137 │ 
+ 138 │     docEn.setFont('helvetica', 'normal');
+ 139 │     docEn.text('Whereas Party One is a legally licensed car rental company and owns the vehicle described below:', leftMargin, y);
+ 140 │     y += lineHeight * 2;
+ 141 │ 
+ 142 │     // Vehicle information
+ 143 │     const vehicleMake = agreement.vehicles?.make || 'N/A';
+ 144 │     const vehicleModel = agreement.vehicles?.model || 'N/A';
+ 145 │     const vehiclePlate = agreement.vehicles?.license_plate || 'N/A';
+ 146 │     const vehicleVin = agreement.vehicles?.vin || 'N/A';
+ 147 │ 
+ 148 │     docEn.text(`Vehicle Type:`, leftMargin, y);
+ 149 │     y += lineHeight;
+ 150 │     docEn.text(`License Plate Number: ${vehiclePlate}`, leftMargin, y);
+ 151 │     y += lineHeight;
+ 152 │     docEn.text(`VIN: ${vehicleVin}`, leftMargin, y);
+ 153 │     y += lineHeight;
+ 154 │     docEn.text(`Vehicle Model: ${vehicleModel} - ${vehicleMake}`, leftMargin, y);
+ 155 │     y += lineHeight * 2;
+ 156 │ 
+ 157 │     const preambleText = 'And whereas Party Two wishes to rent this vehicle from Party One under the terms and conditions of this Agreement, and Party One agrees to rent the vehicle to Party Two, both Parties hereby agree to the following:';
+ 158 │     const splitPreamble = docEn.splitTextToSize(preambleText, 170);
+ 159 │     docEn.text(splitPreamble, leftMargin, y);
+ 160 │     y += splitPreamble.length * lineHeight + lineHeight;
+ 161 │ 
+ 162 │     // Articles
+ 163 │     docEn.setFont('helvetica', 'bold');
+ 164 │     docEn.text('Article 1:', leftMargin, y);
+ 165 │     y += lineHeight;
+ 166 │     docEn.setFont('helvetica', 'normal');
+ 167 │     docEn.text('The preamble above forms an integral part of this Agreement and shall be interpreted within its terms and conditions.', leftMargin + 15, y);
+ 168 │     y += lineHeight * 2;
+ 169 │ 
+ 170 │     // Article 2 - Vehicle Information
+ 171 │     docEn.setFont('helvetica', 'bold');
+ 172 │     docEn.text('Article 2 - Vehicle Information:', leftMargin, y);
+ 173 │     y += lineHeight;
+ 174 │     docEn.setFont('helvetica', 'normal');
+ 175 │     docEn.text('Party One hereby rents to Party Two the following vehicle:', leftMargin + 15, y);
+ 176 │     y += lineHeight * 2;
+ 177 │ 
+ 178 │     docEn.text(`Vehicle Type:`, leftMargin + 15, y);
+ 179 │     y += lineHeight;
+ 180 │     docEn.text(`License Plate Number: ${vehiclePlate}`, leftMargin + 15, y);
+ 181 │     y += lineHeight;
+ 182 │     docEn.text(`VIN: ${vehicleVin}`, leftMargin + 15, y);
+ 183 │     y += lineHeight;
+ 184 │     docEn.text(`Model: ${vehicleModel} - ${vehicleMake}`, leftMargin + 15, y);
+ 185 │     y += lineHeight * 2;
+ 186 │ 
+ 187 │     // Check if we need a new page
+ 188 │     if (y > 250) {
+ 189 │       docEn.addPage();
+ 190 │       y = 20;
+ 191 │     }
+ 192 │ 
+ 193 │     // Article 3 - Rental Duration
+ 194 │     docEn.setFont('helvetica', 'bold');
+ 195 │     docEn.text('Article 3 - Rental Duration:', leftMargin, y);
+ 196 │     y += lineHeight;
+ 197 │     docEn.setFont('helvetica', 'normal');
+ 198 │     const durationText = `The rental duration of this Agreement is ${duration}, commencing from the effective date of this Agreement. The Agreement is non-renewable and will terminate upon the expiration of the term. Party Two may not terminate the Agreement before its expiration without written consent from Party One.`;
+ 199 │     const splitDuration = docEn.splitTextToSize(durationText, 170);
+ 200 │     docEn.text(splitDuration, leftMargin + 15, y);
+ 201 │     y += splitDuration.length * lineHeight + lineHeight;
+ 202 │ 
+ 203 │     // Article 4 - Rental Fee
+ 204 │     docEn.setFont('helvetica', 'bold');
+ 205 │     docEn.text('Article 4 - Rental Fee:', leftMargin, y);
+ 206 │     y += lineHeight;
+ 207 │     docEn.setFont('helvetica', 'normal');
+ 208 │     const feeText = `Party Two agrees to pay Party One a monthly rental fee of ${formatCurrency(agreement.total_amount || 0)}, in accordance with the attached payment schedule. Party Two agrees to make full monthly rental payments regularly and without deductions for any fees, taxes, or other charges.`;
+ 209 │     const splitFee = docEn.splitTextToSize(feeText, 170);
+ 210 │     docEn.text(splitFee, leftMargin + 15, y);
+ 211 │     y += splitFee.length * lineHeight + lineHeight;
+ 212 │ 
+ 213 │     // Check if we need a new page
+ 214 │     if (y > 250) {
+ 215 │       docEn.addPage();
+ 216 │       y = 20;
+ 217 │     }
+ 218 │ 
+ 219 │     // Article 5 - Late Payment Penalties
+ 220 │     docEn.setFont('helvetica', 'bold');
+ 221 │     docEn.text('Article 5 - Late Payment Penalties:', leftMargin, y);
+ 222 │     y += lineHeight;
+ 223 │     docEn.setFont('helvetica', 'normal');
+ 224 │     const penaltyText = `Payments are due on the first day of each month. If Party Two fails to make a payment on time, a late fee of 120 Qatari Riyals will apply for each day of delay from the due date until the overdue payments are settled.`;
+ 225 │     const splitPenalty = docEn.splitTextToSize(penaltyText, 170);
+ 226 │     docEn.text(splitPenalty, leftMargin + 15, y);
+ 227 │     y += splitPenalty.length * lineHeight + lineHeight;
+ 228 │ 
+ 229 │     // Article 6 - Security Deposit
+ 230 │     docEn.setFont('helvetica', 'bold');
+ 231 │     docEn.text('Article 6 - Security Deposit:', leftMargin, y);
+ 232 │     y += lineHeight;
+ 233 │     docEn.setFont('helvetica', 'normal');
+ 234 │     const depositText = `Party Two agrees to pay a security deposit of ${formatCurrency(agreement.deposit_amount || 0)} to Party One upon signing this Agreement, to guarantee Party Two's obligations under this Agreement and to compensate Party One for any damages caused to the vehicle during the rental period.`;
+ 235 │     const splitDeposit = docEn.splitTextToSize(depositText, 170);
+ 236 │     docEn.text(splitDeposit, leftMargin + 15, y);
+ 237 │     y += splitDeposit.length * lineHeight + lineHeight;
+ 238 │ 
+ 239 │     // Continue with remaining articles (adding new pages as needed)
+ 240 │     if (y > 230) {
+ 241 │       docEn.addPage();
+ 242 │       y = 20;
+ 243 │     }
+ 244 │ 
+ 245 │     // Articles 7-15 (add more as needed)
+ 246 │     const remainingArticles = [
+ 247 │       {
+ 248 │         title: 'Article 7 - Inspection:',
+ 249 │         content: "Party Two acknowledges that by signing this Agreement, they have inspected the vehicle and accept it as it is, confirming it is in good condition and free from defects. Party One makes no warranties, either express or implied, regarding the vehicle's condition."
+ 250 │       },
+ 251 │       {
+ 252 │         title: 'Article 8 - Vehicle Delivery:',
+ 253 │         content: "Upon signing this Agreement, Party One will deliver the rented vehicle to Party Two according to the attached delivery receipt, which both Parties will sign. Party Two is responsible for any damage or violations related to the vehicle during the rental period."
+ 254 │       },
+ 255 │       {
+ 256 │         title: "Article 9 - Lessee's Representations and Warranties:",
+ 257 │         content: "Party Two agrees to the following:\n• Responsibility for traffic violations during the rental period, to be settled within 30 days.\n• All operating costs for the vehicle, including fuel, oils, and consumables.\n• Responsibility for regular and non-regular maintenance of the vehicle.\n• Party Two is solely responsible for the vehicle's damage, either partial or total, due to negligence.\n• Party Two shall drive the vehicle solely for personal use and may not allow anyone else to drive it."
+ 258 │       },
+ 259 │       {
+ 260 │         title: 'Article 10 - Insurance Requirements:',
+ 261 │         content: "Party Two must provide comprehensive insurance coverage for the rented vehicle from an approved insurance company and maintain the policy throughout the rental period."
+ 262 │       },
+ 263 │       {
+ 264 │         title: 'Article 11 - Purchase Option:',
+ 265 │         content: "If Party Two wishes to purchase the vehicle at the end of the rental term, they must notify Party One in writing. The vehicle price is equal to the monthly rental value."
+ 266 │       },
+ 267 │       {
+ 268 │         title: 'Article 12 - Default by Party Two:',
+ 269 │         content: "The following actions will constitute a breach by Party Two:\n• Failure to pay rental payments or any amount due under this Agreement.\n• Breach of any non-financial obligation under this Agreement.\n• Bankruptcy or insolvency of Party Two.\n• Abandonment of the vehicle.\n• Departure or deportation of Party Two from the country.\n• Failure to pay traffic fines within 30 days of the violation."
+ 270 │       },
+ 271 │       {
+ 272 │         title: 'Article 13 - Consequences of Default:',
+ 273 │         content: "In the event of a default by Party Two, Party One may terminate the Agreement, immediately retrieve the vehicle, and impose a penalty of 5000 Qatari Riyals."
+ 274 │       },
+ 275 │       {
+ 276 │         title: 'Article 14 - Early Payment:',
+ 277 │         content: "Party Two may not terminate the Agreement early without Party One's prior written consent and must notify Party One a month in advance if they wish to pay off the remaining balance."
+ 278 │       },
+ 279 │       {
+ 280 │         title: 'Article 15 - General Provisions:',
+ 281 │         content: "• Governing Law and Jurisdiction: This Agreement is governed by the laws of Qatar, and the Parties agree to the exclusive jurisdiction of Qatari courts.\n• Communications: Any notices or communications under this Agreement may be made via WhatsApp, email, or text message.\n• Assignment: Party Two may not assign or transfer their rights or obligations under this Agreement without prior written consent from Party One.\n• Severability: If any provision of this Agreement is deemed unenforceable, the remainder of the Agreement shall remain in effect.\n• Entire Agreement: This Agreement constitutes the entire understanding between the Parties and supersedes any prior discussions or agreements.\n• Copies: This Agreement may be executed in multiple counterparts, each of which is considered an original."
+ 282 │       }
+ 283 │     ];
+ 284 │ 
+ 285 │     for (const article of remainingArticles) {
+ 286 │       // Check if we need a new page
+ 287 │       if (y > 230) {
+ 288 │         docEn.addPage();
+ 289 │         y = 20;
+ 290 │       }
+ 291 │ 
+ 292 │       docEn.setFont('helvetica', 'bold');
+ 293 │       docEn.text(article.title, leftMargin, y);
+ 294 │       y += lineHeight;
+ 295 │ 
+ 296 │       docEn.setFont('helvetica', 'normal');
+ 297 │       const contentLines = article.content.split('\n');
+ 298 │ 
+ 299 │       for (const line of contentLines) {
+ 300 │         const splitContent = docEn.splitTextToSize(line, 160);
+ 301 │         docEn.text(splitContent, leftMargin + 15, y);
+ 302 │         y += splitContent.length * lineHeight;
+ 303 │       }
+ 304 │ 
+ 305 │       y += lineHeight;
+ 306 │     }
+ 307 │ 
+ 308 │     // Add signature section
+ 309 │     if (y > 240) {
+ 310 │       docEn.addPage();
+ 311 │       y = 20;
+ 312 │     }
+ 313 │ 
+ 314 │     docEn.setFont('helvetica', 'bold');
+ 315 │     docEn.text('In witness whereof, this Agreement is signed by the Parties in two copies, one for each Party.', leftMargin, y);
+ 316 │     y += lineHeight * 3;
+ 317 │ 
+ 318 │     docEn.text('Party One:', leftMargin, y);
+ 319 │     docEn.text('Party Two:', leftMargin + 100, y);
+ 320 │     y += lineHeight;
+ 321 │ 
+ 322 │     docEn.setFont('helvetica', 'normal');
+ 323 │     docEn.text('Represented by Mr. Khamees Hashem Al-Jaber', leftMargin, y);
+ 324 │     docEn.text(`Represented by Mr. ${customerName}`, leftMargin + 100, y);
+ 325 │ 
+ 326 │     // Generate Arabic version
+ 327 │     const docAr = new jsPDF({
+ 328 │         orientation: 'portrait',
+ 329 │         unit: 'mm',
+ 330 │         format: 'a4',
+ 331 │         putOnlyUsedFonts: true
+ 332 │     });
+ 333 │     // Generate English content
+ 334 │       // Format dates
+ 335 │       const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+ 336 │       const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+     ·             ───┬───
+     ·                ╰── `endDate` redefined here
+ 337 │       
+ 338 │       // Add contract content
+ 339 │       generateEnglishContent(doc, agreement, startDate, endDate);
+     ╰────
+/home/runner/workspace/src/utils/agreementUtils.ts:81:1
+Click outside, press Esc key, or fix the code to dismiss.
+You can also disable this overlay by setting server.hmr.overlay to false in vite.config.ts.
