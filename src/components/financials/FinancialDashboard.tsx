@@ -18,13 +18,14 @@ const getPercentageChange = (current, previous) => {
 const FinancialDashboard = () => {
   const { 
     financialSummary, 
-    isLoadingSummary
+    isLoadingSummary,
+    transactions = [] 
   } = useFinancials();
   
   const { revenue: revenueData } = useDashboardData();
 
   const trendData = useMemo(() => {
-    if (!financialSummary) return { 
+    if (!financialSummary || !transactions.length) return { 
       currentMonthRevenue: 0, 
       previousMonthRevenue: 0,
       currentMonthExpenses: 0,
@@ -36,18 +37,47 @@ const FinancialDashboard = () => {
       profitChange: 0
     };
 
-    // Use actual values from financial summary
-    const currentMonthRevenue = Number(financialSummary.totalIncome || 0);
-    // Avoid calculation if there's no historical data
-    const previousMonthRevenue = currentMonthRevenue > 0 ? currentMonthRevenue * 0.8 : 0;
+    // Get current date info for filtering
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const previousYear = currentMonth === 0 ? currentYear - 1 : currentYear;
     
-    const currentMonthExpenses = Number(financialSummary.totalExpenses || 0);
-    const previousMonthExpenses = currentMonthExpenses > 0 ? currentMonthExpenses * 0.9 : 0;
+    // Filter transactions by month
+    const currentMonthTransactions = transactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return txDate.getMonth() === currentMonth && txDate.getFullYear() === currentYear;
+    });
     
+    const previousMonthTransactions = transactions.filter(tx => {
+      const txDate = new Date(tx.date);
+      return txDate.getMonth() === previousMonth && txDate.getFullYear() === previousYear;
+    });
+    
+    // Calculate current month totals
+    const currentMonthRevenue = currentMonthTransactions
+      .filter(tx => tx.type === 'income')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+      
+    const currentMonthExpenses = currentMonthTransactions
+      .filter(tx => tx.type === 'expense')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    
+    // Calculate previous month totals
+    const previousMonthRevenue = previousMonthTransactions
+      .filter(tx => tx.type === 'income')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+      
+    const previousMonthExpenses = previousMonthTransactions
+      .filter(tx => tx.type === 'expense')
+      .reduce((sum, tx) => sum + Number(tx.amount || 0), 0);
+    
+    // Calculate profits
     const currentMonthProfit = currentMonthRevenue - currentMonthExpenses;
     const previousMonthProfit = previousMonthRevenue - previousMonthExpenses;
     
-    // Calculate percentage changes safely
+    // Calculate percentage changes
     const revenueChange = getPercentageChange(currentMonthRevenue, previousMonthRevenue);
     const expenseChange = getPercentageChange(currentMonthExpenses, previousMonthExpenses);
     const profitChange = getPercentageChange(currentMonthProfit, previousMonthProfit);
@@ -63,7 +93,7 @@ const FinancialDashboard = () => {
       expenseChange,
       profitChange
     };
-  }, [financialSummary]);
+  }, [financialSummary, transactions]);
   
   const prepareRevenueChartData = useMemo(() => {
     if (!revenueData || revenueData.length === 0) {
