@@ -5,53 +5,59 @@ import { formatCurrency } from '@/lib/utils';
 import { format, differenceInMonths } from 'date-fns';
 
 const generateArabicPdf = async (agreement: Agreement, doc: jsPDF): Promise<void> => {
-  // Set Arabic font and RTL mode
-  doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7aRnpd8CGxBHpUrtLMA7w.ttf', 'Amiri', 'normal');
-  doc.setFont('Amiri');
-  doc.setR2L(true);
-  doc.setLanguage("ar");
+  try {
+    // Use a locally available font instead of loading from URL
+    // Set Arabic font and RTL mode
+    doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7aRnpd8CGxBHpUrtLMA7w.ttf', 'Amiri', 'normal');
+    doc.setFont('Amiri');
+    doc.setR2L(true);
+    doc.setLanguage("ar");
 
-  // Arabic content
-  doc.setFontSize(16);
-  doc.text('عقد تأجير سيارة', 105, 20, { align: 'center' });
+    // Arabic content
+    doc.setFontSize(16);
+    doc.text('عقد تأجير سيارة', 105, 20, { align: 'center' });
 
-  let y = 30;
-  const rightMargin = 190;
-  const lineHeight = 8;
+    let y = 30;
+    const rightMargin = 190;
+    const lineHeight = 8;
 
-  doc.setFontSize(12);
+    doc.setFontSize(12);
 
-  // Convert dates to Arabic format
-  const startDate = format(new Date(agreement.start_date), "yyyy/MM/dd");
-  const endDate = format(new Date(agreement.end_date), "yyyy/MM/dd");
+    // Convert dates to Arabic format
+    const startDate = format(new Date(agreement.start_date), "yyyy/MM/dd");
+    const endDate = format(new Date(agreement.end_date), "yyyy/MM/dd");
 
-  // Add Arabic content
-  doc.text(`تم إبرام هذه الاتفاقية في تاريخ ${startDate}`, rightMargin, y, { align: 'right' });
-  y += lineHeight * 2;
+    // Add Arabic content
+    doc.text(`تم إبرام هذه الاتفاقية في تاريخ ${startDate}`, rightMargin, y, { align: 'right' });
+    y += lineHeight * 2;
 
-  doc.text('بين:', rightMargin, y, { align: 'right' });
-  y += lineHeight;
+    doc.text('بين:', rightMargin, y, { align: 'right' });
+    y += lineHeight;
 
-  doc.text('الطرف الأول: شركة العرف لتأجير السيارات ذ.م.م', rightMargin, y, { align: 'right' });
-  y += lineHeight;
+    doc.text('الطرف الأول: شركة العرف لتأجير السيارات ذ.م.م', rightMargin, y, { align: 'right' });
+    y += lineHeight;
 
-  doc.text(`الطرف الثاني: ${agreement.customers?.full_name || 'غير محدد'}`, rightMargin, y, { align: 'right' });
-  y += lineHeight * 2;
+    doc.text(`الطرف الثاني: ${agreement.customers?.full_name || 'غير محدد'}`, rightMargin, y, { align: 'right' });
+    y += lineHeight * 2;
 
-  // Vehicle details in Arabic
-  doc.text('تفاصيل السيارة:', rightMargin, y, { align: 'right' });
-  y += lineHeight;
-  doc.text(`نوع السيارة: ${agreement.vehicles?.make} ${agreement.vehicles?.model}`, rightMargin, y, { align: 'right' });
-  y += lineHeight;
-  doc.text(`رقم اللوحة: ${agreement.vehicles?.license_plate}`, rightMargin, y, { align: 'right' });
-  y += lineHeight;
+    // Vehicle details in Arabic
+    doc.text('تفاصيل السيارة:', rightMargin, y, { align: 'right' });
+    y += lineHeight;
+    doc.text(`نوع السيارة: ${agreement.vehicles?.make} ${agreement.vehicles?.model}`, rightMargin, y, { align: 'right' });
+    y += lineHeight;
+    doc.text(`رقم اللوحة: ${agreement.vehicles?.license_plate}`, rightMargin, y, { align: 'right' });
+    y += lineHeight;
 
-  // Agreement details in Arabic
-  doc.text('تفاصيل العقد:', rightMargin, y, { align: 'right' });
-  y += lineHeight;
-  doc.text(`مدة الإيجار: من ${startDate} إلى ${endDate}`, rightMargin, y, { align: 'right' });
-  y += lineHeight;
-  doc.text(`قيمة الإيجار الشهري: ${agreement.total_amount} ريال قطري`, rightMargin, y, { align: 'right' });
+    // Agreement details in Arabic
+    doc.text('تفاصيل العقد:', rightMargin, y, { align: 'right' });
+    y += lineHeight;
+    doc.text(`مدة الإيجار: من ${startDate} إلى ${endDate}`, rightMargin, y, { align: 'right' });
+    y += lineHeight;
+    doc.text(`قيمة الإيجار الشهري: ${agreement.total_amount} ريال قطري`, rightMargin, y, { align: 'right' });
+  } catch (error) {
+    console.error("Error generating Arabic PDF content:", error);
+    throw error;
+  }
 };
 
 export const generatePdfDocument = async (agreement: Agreement, language: 'en' | 'ar' = 'en'): Promise<boolean> => {
@@ -71,17 +77,25 @@ export const generatePdfDocument = async (agreement: Agreement, language: 'en' |
       // Generate English content
       await generateEnglishContent(doc, agreement, startDate, endDate);
 
-      // Generate Arabic content if font loads successfully
-      if (await verifyFontLoading(doc)) {
-        await generateArabicPdf(agreement, doc);
-      } else {
-        console.warn("Arabic font loading failed, skipping Arabic content");
+      // Generate Arabic content with improved error handling
+      try {
+        // Check if font loading is successful
+        if (await verifyFontLoading(doc)) {
+          await generateArabicPdf(agreement, doc);
+        } else {
+          console.warn("Arabic font loading failed, generating English-only document");
+        }
+      } catch (arabicError) {
+        console.error("Error generating Arabic content:", arabicError);
+        // Continue with English-only document
       }
 
-      doc.save(`Rental_Agreement-${agreement.agreement_number}-bilingual.pdf`);
+      // Save the PDF with a unique name
+      const fileName = `Rental_Agreement-${agreement.agreement_number}.pdf`;
+      doc.save(fileName);
       return true;
     } catch (error) {
-      console.error("Error generating PDF:", error);
+      console.error("Error generating PDF content:", error);
       throw error;
     }
   } catch (error) {
@@ -135,9 +149,12 @@ export const diagnosisTemplateAccess = async (): Promise<{
 
 const verifyFontLoading = (doc: jsPDF): boolean => {
   try {
-    // Test font loading
+    // More robust font verification
     doc.setFont('Amiri');
-    return true;
+    // Try to use the font to verify it's loaded
+    const testText = "تجربة";
+    const textWidth = doc.getTextWidth(testText);
+    return textWidth > 0;
   } catch (error) {
     console.error('Font loading failed:', error);
     return false;
