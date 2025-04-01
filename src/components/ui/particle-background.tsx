@@ -97,8 +97,11 @@ const ParticleBackground: React.FC = () => {
             particle.x, particle.y, 0,
             particle.x, particle.y, particle.size * 2
           );
-          glow.addColorStop(0, particle.color.replace(')', ', 0.8)'));
-          glow.addColorStop(1, particle.color.replace(')', ', 0)'));
+          
+          // Fixed: Use proper RGBA format for glow effect
+          const particleColorBase = particle.color.substring(0, particle.color.lastIndexOf(','));
+          glow.addColorStop(0, `${particleColorBase}, 0.8)`);
+          glow.addColorStop(1, `${particleColorBase}, 0)`);
           
           ctx.fillStyle = glow;
           ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
@@ -143,8 +146,12 @@ const ParticleBackground: React.FC = () => {
             particle.x, particle.y, other.x, other.y
           );
           
-          gradient.addColorStop(0, particle.color.replace(/[\d.]+\)$/, `${opacity})`));
-          gradient.addColorStop(1, other.color.replace(/[\d.]+\)$/, `${opacity})`));
+          // Fixed: Extract base color and add proper opacity format
+          const particleColorBase = particle.color.substring(0, particle.color.lastIndexOf(','));
+          const otherColorBase = other.color.substring(0, other.color.lastIndexOf(','));
+          
+          gradient.addColorStop(0, `${particleColorBase}, ${opacity})`);
+          gradient.addColorStop(1, `${otherColorBase}, ${opacity})`);
           
           ctx.strokeStyle = gradient;
           ctx.lineWidth = 0.6;
