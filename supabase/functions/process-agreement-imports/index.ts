@@ -206,6 +206,7 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
     }
     
     console.log(`CSV text length: ${text.length} characters`);
+    console.log(`CSV content preview: ${text.substring(0, 200)}...`);
     
     if (!text || text.trim() === "") {
       console.error("CSV file is empty after decoding");
@@ -264,6 +265,9 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
       try {
         console.log(`Processing line ${i}: ${line}`);
         const values = parseCSVLine(line);
+        
+        // Log all raw CSV values for debugging
+        console.log(`Raw CSV values for line ${i}:`, values);
         
         const rowData: Record<string, string> = {};
         headers.forEach((header, index) => {
@@ -360,30 +364,38 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         // Calculate agreement duration (end_date - start_date)
         const startDate = new Date(rowData.start_date);
         const endDate = new Date(rowData.end_date);
-        // Calculate the difference in months for agreement_duration
+        // Calculate the difference in days for agreement_duration
         const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const agreementDuration = `${diffDays} days`;
         
-        const { error: createError } = await supabase
+        // Create new agreement with all required fields
+        const newAgreement = {
+          customer_id: customerId,
+          vehicle_id: vehicleId,
+          start_date: new Date(rowData.start_date).toISOString(),
+          end_date: new Date(rowData.end_date).toISOString(),
+          rent_amount: parseFloat(rowData.rent_amount),
+          deposit_amount: rowData.deposit_amount ? parseFloat(rowData.deposit_amount) : 0,
+          agreement_type: rowData.agreement_type || 'short_term',
+          notes: rowData.notes || '',
+          total_amount: parseFloat(rowData.rent_amount),
+          status: 'active',
+          agreement_number: getAgreementNumber(),
+          agreement_duration: agreementDuration
+        };
+        
+        console.log('Inserting new agreement:', JSON.stringify(newAgreement));
+        
+        const { data: createdAgreement, error: createError } = await supabase
           .from("leases")
-          .insert({
-            customer_id: customerId,
-            vehicle_id: vehicleId,
-            start_date: new Date(rowData.start_date).toISOString(),
-            end_date: new Date(rowData.end_date).toISOString(),
-            rent_amount: parseFloat(rowData.rent_amount),
-            deposit_amount: rowData.deposit_amount ? parseFloat(rowData.deposit_amount) : 0,
-            agreement_type: rowData.agreement_type || 'short_term',
-            notes: rowData.notes || '',
-            total_amount: parseFloat(rowData.rent_amount),
-            status: 'active', // Changed to 'active' which should be a valid enum value
-            agreement_number: getAgreementNumber(),
-            agreement_duration: agreementDuration // Add the agreement_duration field
-          });
+          .insert(newAgreement)
+          .select()
+          .single();
           
         if (createError) {
           console.error(`Error creating agreement: ${createError.message}`);
+          console.error(`Error details:`, createError);
           
           await logImportError(supabase, importId, i, customerId, createError.message, rowData);
           
@@ -396,7 +408,7 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
           continue;
         }
         
-        console.log(`Successfully created agreement for row ${i}`);
+        console.log(`Successfully created agreement for row ${i}. ID: ${createdAgreement?.id}`);
         processed++;
       } catch (err) {
         console.error(`Error processing row ${i}:`, err);
