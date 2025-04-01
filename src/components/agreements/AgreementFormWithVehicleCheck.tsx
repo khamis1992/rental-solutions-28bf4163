@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -395,315 +396,316 @@ const AgreementFormWithVehicleCheck = ({
                           initialFocus
                         />
                       </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             
-            <FormItem>
-              <FormLabel>Duration (Months)</FormLabel>
-              <Select 
-                value={durationMonths.toString()} 
-                onValueChange={(value) => {
-                  const months = parseInt(value);
-                  setDurationMonths(months);
-                  updateEndDate(form.getValues("start_date"), months);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select duration" />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 3, 6, 12, 24, 36].map((month) => (
-                    <SelectItem key={month} value={month.toString()}>
-                      {month} {month === 1 ? "month" : "months"}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </FormItem>
-            
-            <FormField
-              control={form.control}
-              name="end_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>End Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                        disabled={(date) => date < form.getValues("start_date")}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">Customer & Vehicle</h3>
-            
-            <FormField
-              control={form.control}
-              name="customer_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Customer</FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      handleCustomerChange(value);
-                    }} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select customer" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {customers.map((customer) => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {selectedCustomer && (
-              <div className="bg-muted p-3 rounded-md text-sm">
-                <p><strong>Email:</strong> {selectedCustomer.email}</p>
-                <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
-                <p><strong>Driver License:</strong> {selectedCustomer.driver_license}</p>
-                <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
-              </div>
-            )}
-            
-            <FormField
-              control={form.control}
-              name="vehicle_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Vehicle</FormLabel>
-                  <Select 
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      handleVehicleChange(value);
-                    }} 
-                    defaultValue={field.value}
-                    disabled={isCheckingVehicle}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={isCheckingVehicle ? "Checking vehicle..." : "Select vehicle"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {vehicles.map((vehicle) => {
-                        const isAvailable = vehicle.status === 'available';
-                        return (
-                          <SelectItem 
-                            key={vehicle.id} 
-                            value={vehicle.id}
-                            className={!isAvailable ? "text-amber-500" : ""}
+              <FormItem>
+                <FormLabel>Duration (Months)</FormLabel>
+                <Select 
+                  value={durationMonths.toString()} 
+                  onValueChange={(value) => {
+                    const months = parseInt(value);
+                    setDurationMonths(months);
+                    updateEndDate(form.getValues("start_date"), months);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 3, 6, 12, 24, 36].map((month) => (
+                      <SelectItem key={month} value={month.toString()}>
+                        {month} {month === 1 ? "month" : "months"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+              
+              <FormField
+                control={form.control}
+                name="end_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>End Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
                           >
-                            {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                            {!isAvailable && " [Assigned]"}
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          initialFocus
+                          disabled={(date) => date < form.getValues("start_date")}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="draft">Draft</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Customer & Vehicle</h3>
+              
+              <FormField
+                control={form.control}
+                name="customer_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Customer</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleCustomerChange(value);
+                      }} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select customer" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {customers.map((customer) => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.full_name}
                           </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {selectedCustomer && (
+                <div className="bg-muted p-3 rounded-md text-sm">
+                  <p><strong>Email:</strong> {selectedCustomer.email}</p>
+                  <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
+                  <p><strong>Driver License:</strong> {selectedCustomer.driver_license}</p>
+                  <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
+                </div>
               )}
-            />
-            
-            {vehicleAvailabilityResult && !vehicleAvailabilityResult.isAvailable && !isVehicleDialogOpen && (
-              <Alert variant="warning" className="bg-amber-50 border-amber-200">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="text-amber-800">Vehicle Already Assigned</AlertTitle>
-                <AlertDescription className="text-amber-700">
-                  This vehicle is currently assigned to Agreement #{vehicleAvailabilityResult.existingAgreement.agreement_number}.
-                  When you submit this form, that agreement will be closed automatically.
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {selectedVehicle && (
-              <div className="bg-muted p-3 rounded-md text-sm">
-                <p><strong>Make:</strong> {selectedVehicle.make}</p>
-                <p><strong>Model:</strong> {selectedVehicle.model}</p>
-                <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
-                <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
-              </div>
-            )}
-          </div>
-        </div>
-        
-        <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-lg font-medium">Payment Information</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormField
-              control={form.control}
-              name="rent_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Monthly Rent Amount</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              
+              <FormField
+                control={form.control}
+                name="vehicle_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle</FormLabel>
+                    <Select 
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        handleVehicleChange(value);
+                      }} 
+                      defaultValue={field.value}
+                      disabled={isCheckingVehicle}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={isCheckingVehicle ? "Checking vehicle..." : "Select vehicle"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicles.map((vehicle) => {
+                          const isAvailable = vehicle.status === 'available';
+                          return (
+                            <SelectItem 
+                              key={vehicle.id} 
+                              value={vehicle.id}
+                              className={!isAvailable ? "text-amber-500" : ""}
+                            >
+                              {vehicle.make} {vehicle.model} ({vehicle.license_plate})
+                              {!isAvailable && " [Assigned]"}
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {vehicleAvailabilityResult && !vehicleAvailabilityResult.isAvailable && !isVehicleDialogOpen && (
+                <Alert variant="warning" className="bg-amber-50 border-amber-200">
+                  <AlertTriangle className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-800">Vehicle Already Assigned</AlertTitle>
+                  <AlertDescription className="text-amber-700">
+                    This vehicle is currently assigned to Agreement #{vehicleAvailabilityResult.existingAgreement.agreement_number}.
+                    When you submit this form, that agreement will be closed automatically.
+                  </AlertDescription>
+                </Alert>
               )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="deposit_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Deposit Amount</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+              
+              {selectedVehicle && (
+                <div className="bg-muted p-3 rounded-md text-sm">
+                  <p><strong>Make:</strong> {selectedVehicle.make}</p>
+                  <p><strong>Model:</strong> {selectedVehicle.model}</p>
+                  <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
+                  <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
+                </div>
               )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="daily_late_fee"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Daily Late Fee</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      {...field} 
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            </div>
           </div>
           
-          <FormField
-            control={form.control}
-            name="total_amount"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Total Contract Amount</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number" 
-                    {...field} 
-                    disabled 
-                    className="font-bold"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-4 pt-4 border-t">
+            <h3 className="text-lg font-medium">Payment Information</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="rent_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Monthly Rent Amount</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="deposit_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Deposit Amount</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="daily_late_fee"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Daily Late Fee</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="total_amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Total Contract Amount</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      disabled 
+                      className="font-bold"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <textarea 
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
           
-          <FormField
-            control={form.control}
-            name="notes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <textarea 
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    {...field} 
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        {renderAgreementPreview()}
-        
-        <div className="flex justify-end">
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || isCheckingVehicle}
-            className="w-full md:w-auto"
-          >
-            {isSubmitting ? "Creating Agreement..." : "Create Agreement"}
-          </Button>
-        </div>
-      </form>
+          {renderAgreementPreview()}
+          
+          <div className="flex justify-end">
+            <Button 
+              type="submit" 
+              disabled={isSubmitting || isCheckingVehicle}
+              className="w-full md:w-auto"
+            >
+              {isSubmitting ? "Creating Agreement..." : "Create Agreement"}
+            </Button>
+          </div>
+        </form>
+      </Form>
 
       {/* Vehicle Assignment Confirmation Dialog */}
       <VehicleAssignmentDialog
