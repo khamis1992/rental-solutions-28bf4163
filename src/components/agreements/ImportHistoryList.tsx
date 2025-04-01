@@ -37,6 +37,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { Textarea } from "@/components/ui/textarea";
 
@@ -51,6 +61,8 @@ export function ImportHistoryList() {
   const [revertReason, setRevertReason] = useState('');
   const [isReverting, setIsReverting] = useState(false);
   const [isFixingDates, setIsFixingDates] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchImports();
@@ -154,6 +166,41 @@ export function ImportHistoryList() {
     }
   };
 
+  const handleDeleteImport = async () => {
+    if (!selectedImportId) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      // Delete the import record
+      const { error } = await supabase
+        .from('agreement_imports')
+        .delete()
+        .eq('id', selectedImportId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success("Import record deleted successfully");
+      await fetchImports(); // Refresh the list
+      
+      // Also delete any associated import errors
+      await supabase
+        .from('agreement_import_errors')
+        .delete()
+        .eq('import_log_id', selectedImportId);
+        
+    } catch (err) {
+      console.error('Error deleting import:', err);
+      toast.error(`Error deleting import: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setSelectedImportId(null);
+    }
+  };
+
   const handleFixDates = async (importId: string) => {
     try {
       setIsFixingDates(true);
@@ -178,6 +225,11 @@ export function ImportHistoryList() {
   const openRevertDialog = (importId: string) => {
     setSelectedImportId(importId);
     setRevertDialogOpen(true);
+  };
+
+  const openDeleteDialog = (importId: string) => {
+    setSelectedImportId(importId);
+    setDeleteDialogOpen(true);
   };
 
   const getStatusIcon = (status: string) => {
@@ -340,6 +392,15 @@ export function ImportHistoryList() {
                         <span>Revert</span>
                       </Button>
                     )}
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="flex items-center gap-1 text-destructive hover:bg-destructive/10"
+                      onClick={() => openDeleteDialog(importItem.id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span className="sr-only sm:not-sr-only sm:inline-block">Delete</span>
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -464,6 +525,40 @@ export function ImportHistoryList() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Import Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove this import record from your history. This action cannot be undone.
+              <br /><br />
+              <strong>Note:</strong> This only deletes the import record itself, not the actual imported agreements.
+              To delete the agreements, use the "Revert" action instead.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteImport();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Record'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
