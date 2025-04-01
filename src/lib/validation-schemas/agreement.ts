@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 
 // Define agreement statuses
@@ -310,4 +309,72 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
     .replace(/\{\{CURRENT_DATE\}\}/g, new Date().toLocaleDateString());
     
   return processedTemplate;
+};
+
+// CSV import specific types and schemas
+export interface AgreementImportRow {
+  customer_id: string;
+  vehicle_id: string;
+  start_date: string;
+  end_date: string;
+  rent_amount: string;
+  deposit_amount?: string;
+  agreement_type?: string;
+  notes?: string;
+}
+
+// Schema for CSV rows with readable identifiers (before UUID conversion)
+export const agreementImportReadableSchema = z.object({
+  customer_name: z.string().min(1, 'Customer name is required'),
+  vehicle_identifier: z.string().min(1, 'Vehicle identifier is required'),
+  start_date: z.string().refine(
+    (date) => {
+      const parsedDate = new Date(date);
+      return !isNaN(parsedDate.getTime());
+    },
+    { message: 'Start date must be a valid date (YYYY-MM-DD)' }
+  ),
+  end_date: z.string().refine(
+    (date) => {
+      const parsedDate = new Date(date);
+      return !isNaN(parsedDate.getTime());
+    },
+    { message: 'End date must be a valid date (YYYY-MM-DD)' }
+  ),
+  rent_amount: z.string().refine(
+    (value) => !isNaN(parseFloat(value)) && parseFloat(value) >= 0,
+    { message: 'Rent amount must be a valid number' }
+  ),
+  deposit_amount: z.string().optional().refine(
+    (value) => value === undefined || value === '' || (!isNaN(parseFloat(value)) && parseFloat(value) >= 0),
+    { message: 'Deposit amount must be a valid number or empty' }
+  ),
+  agreement_type: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type AgreementImportReadableRow = z.infer<typeof agreementImportReadableSchema>;
+
+// Fields for agreement import with readable identifiers
+export const agreementHumanReadableCSVFields = [
+  'Customer Name or Email',
+  'Vehicle License Plate or VIN',
+  'Start Date',
+  'End Date',
+  'Rent Amount',
+  'Deposit Amount',
+  'Agreement Type',
+  'Notes'
+];
+
+// Map from readable CSV column names to schema field names
+export const agreementReadableCSVMap: Record<string, keyof AgreementImportReadableRow> = {
+  'Customer Name or Email': 'customer_name',
+  'Vehicle License Plate or VIN': 'vehicle_identifier',
+  'Start Date': 'start_date',
+  'End Date': 'end_date',
+  'Rent Amount': 'rent_amount',
+  'Deposit Amount': 'deposit_amount',
+  'Agreement Type': 'agreement_type',
+  'Notes': 'notes'
 };

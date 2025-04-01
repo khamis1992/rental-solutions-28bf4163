@@ -107,3 +107,63 @@ export function parseCSVFile<T>(file: File, headerMap: Record<string, string>): 
     reader.readAsText(file);
   });
 }
+
+/**
+ * Format a value for CSV export
+ * @param value The value to format
+ * @returns Properly formatted CSV value
+ */
+export function formatCSVValue(value: any): string {
+  if (value === null || value === undefined) return '';
+  
+  const stringValue = String(value);
+  
+  // If the value contains quotes, commas, or newlines, wrap it in quotes and escape existing quotes
+  if (stringValue.includes('"') || stringValue.includes(',') || stringValue.includes('\n')) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+  
+  return stringValue;
+}
+
+/**
+ * Generate a CSV file from an array of objects
+ * @param data Array of objects to convert to CSV
+ * @param headers Optional custom headers (defaults to Object.keys of first item)
+ * @returns CSV content as a string
+ */
+export function generateCSV(data: Record<string, any>[], headers?: string[]): string {
+  if (data.length === 0) return '';
+  
+  // Use provided headers or extract from first object
+  const csvHeaders = headers || Object.keys(data[0]);
+  
+  // Generate CSV content
+  const headerRow = csvHeaders.join(',');
+  const rows = data.map(item => 
+    csvHeaders.map(header => formatCSVValue(item[header])).join(',')
+  );
+  
+  return [headerRow, ...rows].join('\n');
+}
+
+/**
+ * Download data as a CSV file
+ * @param data Array of objects to convert to CSV
+ * @param filename Name of the file to download
+ * @param headers Optional custom headers (defaults to Object.keys of first item)
+ */
+export function downloadCSV(data: Record<string, any>[], filename: string, headers?: string[]): void {
+  const csvContent = generateCSV(data, headers);
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  URL.revokeObjectURL(url);
+}

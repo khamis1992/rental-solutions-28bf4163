@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -12,8 +11,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail } from 'lucide-react';
+import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Tool } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { IdConverterTool } from '@/components/settings/IdConverterTool';
 
 // Type for system settings
 interface SystemSetting {
@@ -173,11 +173,12 @@ const SystemSettings = () => {
       
       <form onSubmit={handleSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 mb-8 w-full max-w-4xl">
+          <TabsList className="grid grid-cols-6 mb-8 w-full max-w-4xl">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="localization">Localization</TabsTrigger>
+            <TabsTrigger value="tools">Tools</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
           </TabsList>
           
@@ -411,6 +412,17 @@ const SystemSettings = () => {
                       </Select>
                     </div>
                   </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="tools" className="mt-0 space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">System Tools</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Specialized tools to help with system operations and data management.
+                  </p>
+                  
+                  <IdConverterTool />
                 </div>
               </TabsContent>
               
