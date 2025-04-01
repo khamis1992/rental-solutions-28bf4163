@@ -244,26 +244,7 @@ const Index = () => {
         </motion.div>
         
         {/* Testimonial section with enhanced styling */}
-        <motion.div className="mt-16 text-center max-w-3xl bg-gradient-to-r from-primary/5 to-blue-400/5 p-10 rounded-2xl border border-border/30 shadow-lg" initial={{
-        opacity: 0
-      }} animate={{
-        opacity: 1
-      }} transition={{
-        delay: 1.4,
-        duration: 0.8
-      }}>
-          <p className="text-xl italic mb-6 text-foreground/90 leading-relaxed">
-            "Rental Solutions transformed our operations by streamlining processes and providing crucial insights that helped us expand our fleet by 30% while reducing administrative overhead."
-          </p>
-          <p className="font-medium text-lg">— Sarah Johnson, Fleet Manager</p>
-          
-          <div className="mt-10 pt-6 border-t border-border/30">
-            <p className="text-sm text-muted-foreground">
-              Trusted by leading rental companies worldwide to manage fleets, 
-              streamline operations, and boost efficiency.
-            </p>
-          </div>
-        </motion.div>
+        
       </div>
     </div>;
 };
