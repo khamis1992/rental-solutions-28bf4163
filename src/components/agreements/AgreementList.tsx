@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -24,7 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  X
+  X,
+  ArrowUpDown
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -84,7 +86,9 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
   
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'created_at', desc: true } // Default sorting by creation date (newest first)
+  ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
 
@@ -223,6 +227,29 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             )}
             {status}
           </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "created_at",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="px-0 font-medium"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Created Date
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const createdAt = row.original.created_at;
+        return (
+          <div className="whitespace-nowrap">
+            {createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : 'N/A'}
+          </div>
         );
       },
     },
