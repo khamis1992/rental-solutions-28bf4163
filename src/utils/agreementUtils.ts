@@ -146,10 +146,10 @@ const verifyFontLoading = (doc: jsPDF): boolean => {
   }
 };
 
-const generateEnglishContent = (doc: jsPDF, agreement: Agreement, startDate: Date, endDate: Date) => {
+const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStartDate: Date, agreementEndDate: Date) => {
   try {
-    // Your existing English content generation code
-    const durationMonths = differenceInMonths(endDate, startDate);
+    // Calculate agreement duration in months
+    const durationMonths = differenceInMonths(agreementEndDate, agreementStartDate);
     const duration = `${durationMonths} ${durationMonths === 1 ? 'month' : 'months'}`;
 
     let y = 30;
@@ -161,7 +161,7 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, startDate: Dat
     doc.setFont('helvetica', 'normal');
 
     // Add contract introduction
-    doc.text(`This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(startDate)}.`, leftMargin, y);
+    doc.text(`This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(agreementStartDate)}.`, leftMargin, y);
     y += lineHeight * 2;
 
     // Parties section
