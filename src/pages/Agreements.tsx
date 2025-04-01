@@ -1,24 +1,17 @@
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { Button } from '@/components/ui/button';
 
 const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [inputValue, setInputValue] = useState('');
   
   const handleSearchChange = useDebouncedCallback((value: string) => {
     setSearchQuery(value);
   }, 300);
-
-  const clearSearch = () => {
-    setInputValue('');
-    setSearchQuery('');
-  };
 
   return (
     <PageContainer 
@@ -31,24 +24,9 @@ const Agreements = () => {
           <Input
             type="text"
             placeholder="Search by customer name or vehicle license plate..."
-            className="w-full pl-9 pr-9"
-            value={inputValue}
-            onChange={(e) => {
-              setInputValue(e.target.value);
-              handleSearchChange(e.target.value);
-            }}
+            className="w-full pl-9 pr-4"
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
-          {inputValue && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="absolute right-1 top-1 h-8 w-8 p-0"
-              onClick={clearSearch}
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Clear search</span>
-            </Button>
-          )}
         </div>
       </div>
       
