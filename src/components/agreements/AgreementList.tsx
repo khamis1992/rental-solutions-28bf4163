@@ -74,7 +74,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface AgreementListProps {
@@ -86,6 +86,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  const queryClient = useQueryClient();
   
   const { 
     agreements, 
@@ -127,7 +129,22 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
-        // Directly delete from database since the hook isn't working correctly
+        const { data: relatedReverts } = await supabase
+          .from('agreement_import_reverts')
+          .select('id')
+          .eq('import_id', id);
+          
+        if (relatedReverts && relatedReverts.length > 0) {
+          const { error: revertDeleteError } = await supabase
+            .from('agreement_import_reverts')
+            .delete()
+            .eq('import_id', id);
+            
+          if (revertDeleteError) {
+            console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
+          }
+        }
+        
         const { error } = await supabase
           .from('leases')
           .delete()
@@ -157,7 +174,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setBulkDeleteDialogOpen(false);
     setIsDeleting(false);
     
-    // Refresh the agreements list
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
@@ -417,8 +433,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   };
 
   const selectedCount = Object.keys(rowSelection).length;
-
-  const queryClient = useQueryClient();
 
   return (
     <div className="space-y-4">
