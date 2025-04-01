@@ -153,7 +153,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         .select(`
           *,
           profiles:customer_id (id, full_name, email, phone_number),
-          vehicles:vehicle_id (id, make, model, license_plate, image_url)
+          vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
 
       if (searchParams.status && searchParams.status !== 'all') {
@@ -194,11 +194,25 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        // Modified search approach to focus only on license plate
-        // Each filter condition is applied separately
+        // First try to get any agreements where the vehicle license plate matches the query
         if (searchQuery) {
-          // Apply filter only to vehicles.license_plate
-          query = query.ilike('vehicles.license_plate', `%${searchQuery}%`);
+          // Use a join pattern that ensures we don't lose the related data
+          const { data: vehicleIds, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('id')
+            .ilike('license_plate', `%${searchQuery}%`);
+          
+          if (vehicleError) {
+            console.error("Error searching vehicles:", vehicleError);
+          } else if (vehicleIds && vehicleIds.length > 0) {
+            // If we found matching vehicles, filter leases by those vehicle IDs
+            const ids = vehicleIds.map(v => v.id);
+            query = query.in('vehicle_id', ids);
+            console.log("Filtering by vehicle IDs:", ids);
+          } else {
+            // If no vehicles match, try to match against customer names
+            query = query.ilike('profiles.full_name', `%${searchQuery}%`);
+          }
         }
       }
 
