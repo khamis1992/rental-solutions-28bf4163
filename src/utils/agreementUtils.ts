@@ -131,7 +131,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       }
     }
     
-    // Set font for English text - FIXED: using proper font setting
+    // Set font for English text - Using string-based font setting
     doc.setFont('helvetica');
     console.log("English font set");
     
@@ -184,16 +184,16 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       // Title
       doc.setFontSize(18);
       
-      // FIXED: Correct way to set font in jsPDF 3.0+
-      doc.setFont({ family: 'helvetica', style: 'bold' });
+      // Set font style and weight as separate operations
+      doc.setFont('helvetica', 'bold');
       doc.text('RENTAL AGREEMENT', 105, 20, { align: 'center' });
       doc.text(`Agreement #: ${agreement.agreement_number}`, 105, 30, { align: 'center' });
       
       // Customer information
       doc.setFontSize(12);
-      doc.setFont({ family: 'helvetica', style: 'bold' });
+      doc.setFont('helvetica', 'bold');
       doc.text('CUSTOMER INFORMATION', 20, 45);
-      doc.setFont({ family: 'helvetica', style: 'normal' });
+      doc.setFont('helvetica', 'normal');
       doc.text(`Name: ${customerName}`, 20, 55);
       doc.text(`Phone: ${customerPhone}`, 20, 60);
       doc.text(`Email: ${customerEmail}`, 20, 65);
@@ -201,9 +201,9 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       doc.text(`Driver License: ${driverLicense}`, 20, 75);
       
       // Vehicle information
-      doc.setFont({ family: 'helvetica', style: 'bold' });
+      doc.setFont('helvetica', 'bold');
       doc.text('VEHICLE INFORMATION', 20, 90);
-      doc.setFont({ family: 'helvetica', style: 'normal' });
+      doc.setFont('helvetica', 'normal');
       doc.text(`Make: ${vehicleMake}`, 20, 100);
       doc.text(`Model: ${vehicleModel}`, 20, 105);
       doc.text(`Year: ${vehicleYear}`, 20, 110);
@@ -211,24 +211,24 @@ export async function generatePdfDocument(agreement: Agreement, language: string
       doc.text(`VIN: ${vehicleVin}`, 20, 120);
       
       // Agreement details
-      doc.setFont({ family: 'helvetica', style: 'bold' });
+      doc.setFont('helvetica', 'bold');
       doc.text('RENTAL PERIOD', 20, 135);
-      doc.setFont({ family: 'helvetica', style: 'normal' });
+      doc.setFont('helvetica', 'normal');
       doc.text(`Start Date: ${formattedStartDate}`, 20, 145);
       doc.text(`End Date: ${formattedEndDate}`, 20, 150);
       
       // Payment information
-      doc.setFont({ family: 'helvetica', style: 'bold' });
+      doc.setFont('helvetica', 'bold');
       doc.text('PAYMENT INFORMATION', 20, 165);
-      doc.setFont({ family: 'helvetica', style: 'normal' });
+      doc.setFont('helvetica', 'normal');
       doc.text(`Monthly Rent: QAR ${rentAmount.toLocaleString()}`, 20, 175);
       doc.text(`Total Amount: QAR ${totalAmount.toLocaleString()}`, 20, 180);
       doc.text(`Deposit Amount: QAR ${depositAmount.toLocaleString()}`, 20, 185);
       
       // Signatures
-      doc.setFont({ family: 'helvetica', style: 'bold' });
+      doc.setFont('helvetica', 'bold');
       doc.text('SIGNATURES', 20, 200);
-      doc.setFont({ family: 'helvetica', style: 'normal' });
+      doc.setFont('helvetica', 'normal');
       doc.text('Customer Signature: _______________________', 20, 210);
       doc.text('Company Signature: _______________________', 20, 220);
       doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 230);
@@ -268,13 +268,13 @@ export async function generatePdfDocument(agreement: Agreement, language: string
           hasArabicFont = false;
         }
         
-        // FIXED: Font handling for jsPDF 3.0+
+        // Set font with string parameters for style
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'bold' });
+          doc.setFont('Amiri', 'bold');
           console.log("Using Amiri Bold font for Arabic content");
         } else {
           // Fallback to a system font
-          doc.setFont({ family: 'helvetica', style: 'bold' });
+          doc.setFont('helvetica', 'bold');
           console.log("Using fallback font for Arabic as Amiri not loaded");
         }
         
@@ -289,9 +289,9 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Set normal font for content
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'normal' });
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'normal' });
+          doc.setFont('helvetica', 'normal');
         }
         
         doc.text(`الاسم: ${customerName}`, 190, 55, { align: 'right' });
@@ -302,17 +302,17 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Vehicle information in Arabic
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'bold' });
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'bold' });
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('معلومات المركبة', 190, 90, { align: 'right' });
         
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'normal' });
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'normal' });
+          doc.setFont('helvetica', 'normal');
         }
         
         doc.text(`الصنع: ${vehicleMake}`, 190, 100, { align: 'right' });
@@ -332,17 +332,17 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Agreement details in Arabic
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'bold' });
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'bold' });
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('فترة الإيجار', 190, 135, { align: 'right' });
         
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'normal' });
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'normal' });
+          doc.setFont('helvetica', 'normal');
         }
         
         // Convert dates to Arabic format - safely handle date formatting
@@ -360,17 +360,17 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Payment information in Arabic
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'bold' });
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'bold' });
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('معلومات الدفع', 190, 165, { align: 'right' });
         
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'normal' });
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'normal' });
+          doc.setFont('helvetica', 'normal');
         }
         
         // Safely convert numbers to strings before using toArabicNumerals
@@ -380,17 +380,17 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         
         // Signatures in Arabic
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'bold' });
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'bold' });
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('التوقيعات', 190, 200, { align: 'right' });
         
         if (hasArabicFont) {
-          doc.setFont({ family: 'Amiri', style: 'normal' });
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont({ family: 'helvetica', style: 'normal' });
+          doc.setFont('helvetica', 'normal');
         }
         
         doc.text('توقيع العميل: _______________________', 190, 210, { align: 'right' });
@@ -467,4 +467,3 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
     
   return processedTemplate;
 };
-
