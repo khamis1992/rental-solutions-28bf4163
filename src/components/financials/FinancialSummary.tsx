@@ -3,7 +3,6 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { 
-  TrendingUp, 
   TrendingDown, 
   DollarSign, 
   Clock
@@ -22,8 +21,8 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(4)].map((_, index) => (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(3)].map((_, index) => (
           <Card key={index} className="animate-pulse h-32">
             <CardContent className="p-6">
               <div className="h-full flex items-center justify-center">
@@ -49,15 +48,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      <StatCard
-        title={`${currentMonth} Income`}
-        value={formatCurrency(safeData.totalIncome)}
-        description="Current month revenue"
-        icon={TrendingUp}
-        iconColor="text-green-500"
-      />
-      
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <StatCard
         title="Total Expenses"
         value={formatCurrency(safeData.currentMonthDue)}
