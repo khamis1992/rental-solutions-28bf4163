@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -287,11 +288,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as Agreement;
   };
 
+  // Define a clear interface for the update agreement parameters
   interface UpdateAgreementParams {
     id: string;
     data: Partial<Agreement>;
   }
 
+  // Explicitly type the mutation with the interface we defined
   const updateAgreementMutation = useMutation<Agreement, Error, UpdateAgreementParams>({
     mutationFn: async ({ id, data }: UpdateAgreementParams): Promise<Agreement> => {
       // Implementation would go here in a real application
