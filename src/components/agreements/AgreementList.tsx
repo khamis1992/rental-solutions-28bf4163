@@ -94,7 +94,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     deleteAgreement 
   } = useAgreements({ query: searchQuery, status: statusFilter });
   
-  // Update search params when props change
   useEffect(() => {
     setSearchParams(prev => ({ ...prev, query: searchQuery }));
   }, [searchQuery, setSearchParams]);
@@ -103,12 +102,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   useVehicleRealtimeUpdates();
   
   const [sorting, setSorting] = useState<SortingState>([
-    { id: 'created_at', desc: true } // Default sorting by creation date (newest first)
+    { id: 'created_at', desc: true }
   ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
 
-  // Clear row selection when agreements or filters change
   useEffect(() => {
     setRowSelection({});
   }, [agreements, statusFilter, searchQuery]);
@@ -125,7 +123,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     let successCount = 0;
     let errorCount = 0;
     
-    // Process deletions one by one to track failures
     for (const id of selectedIds) {
       try {
         await deleteAgreement.mutateAsync(id);
@@ -136,7 +133,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       }
     }
     
-    // Show appropriate toast based on results
     if (errorCount === 0) {
       toast.success(`Successfully deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}`);
     } else if (successCount === 0) {
@@ -157,7 +153,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         <Checkbox
           checked={
             table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
+            (table.getIsSomePageRowsSelected() ? "indeterminate" : false)
           }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
@@ -457,7 +453,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         </Alert>
       )}
       
-      {/* Show active filters */}
       {(searchQuery || statusFilter !== 'all') && (
         <div className="flex items-center text-sm text-muted-foreground mb-1">
           <span>Filtering by:</span>
@@ -585,7 +580,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         </Pagination>
       )}
 
-      {/* Bulk Delete Confirmation Dialog */}
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
