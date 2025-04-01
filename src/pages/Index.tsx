@@ -1,10 +1,10 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
-import { ArrowRight, CarFront, Clock, FileText, Boxes, Shield } from 'lucide-react';
+import { ArrowRight, CarFront, Clock, FileText, Boxes, Shield, ChevronRight, Star, BarChart3 } from 'lucide-react';
 import ParticleBackground from '@/components/ui/particle-background';
 
 const Index = () => {
@@ -39,18 +39,18 @@ const Index = () => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-background/90 via-background/80 to-background/95">
       {/* Enhanced particle background */}
       <ParticleBackground />
       
-      {/* Gradient overlays */}
-      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-background/95 via-background/80 to-background/95 z-10" />
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent z-10" />
+      {/* Gradient overlays with more vibrant colors */}
+      <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-background/90 via-background/70 to-background/90 z-10" />
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent z-10" />
       
-      <div className="container relative flex flex-col items-center justify-center min-h-screen py-12 space-y-12 z-20">
+      <div className="container relative flex flex-col items-center justify-center min-h-screen py-12 space-y-16 z-20">
         {/* Hero section with enhanced animations */}
         <motion.div 
-          className="space-y-8 text-center max-w-3xl"
+          className="space-y-10 text-center max-w-3xl pt-10"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
@@ -61,7 +61,7 @@ const Index = () => {
             transition={{ delay: 0.2, duration: 0.8 }}
             className="mb-6"
           >
-            <div className="inline-block p-2 px-4 text-sm font-medium rounded-full bg-primary/10 text-primary mb-4">
+            <div className="inline-block p-2 px-4 text-sm font-medium rounded-full bg-gradient-to-r from-primary/20 to-blue-400/20 text-primary mb-6 shadow-md">
               Fleet Management Solution
             </div>
           </motion.div>
@@ -72,7 +72,7 @@ const Index = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.8 }}
           >
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-400 to-blue-300">
               Rental Solutions
             </span>
           </motion.h1>
@@ -88,26 +88,27 @@ const Index = () => {
           </motion.p>
           
           <motion.div 
-            className="pt-6 flex flex-wrap gap-4 justify-center"
+            className="pt-8 flex flex-wrap gap-4 justify-center"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.8 }}
           >
             <Link to="/auth/login">
-              <Button size="lg" className="group transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-primary to-blue-500 hover:from-blue-600 hover:to-primary shadow-md hover:shadow-lg">
+              <Button size="lg" className="group transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-primary to-blue-500 hover:from-blue-600 hover:to-primary shadow-lg hover:shadow-xl">
                 Get Started 
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
             <Link to="/auth/register">
-              <Button size="lg" variant="outline" className="group transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md border-2">
+              <Button size="lg" variant="outline" className="group transition-all duration-300 transform hover:scale-105 shadow-sm hover:shadow-md border-2 border-border/80">
                 Create Account
+                <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
           </motion.div>
         </motion.div>
 
-        {/* Features section with floating card effect */}
+        {/* Features section with enhanced floating card effect */}
         <motion.div 
           className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-5xl mt-12"
           variants={containerVariants}
@@ -115,8 +116,9 @@ const Index = () => {
           animate="visible"
         >
           <motion.div 
-            className="flex flex-col p-6 bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm rounded-lg shadow-lg border border-border/50 transition-all duration-300 hover:shadow-xl hover:translate-y-[-5px]"
+            className="flex flex-col p-8 glass-card bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-md rounded-lg shadow-lg border border-border/50 transition-all duration-300 hover:shadow-xl hover:translate-y-[-5px]"
             variants={itemVariants}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
           >
             <div className="bg-gradient-to-br from-primary/20 to-blue-400/20 p-3 rounded-full w-fit mb-4">
               <CarFront className="h-6 w-6 text-primary" />
@@ -126,8 +128,9 @@ const Index = () => {
           </motion.div>
           
           <motion.div 
-            className="flex flex-col p-6 bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm rounded-lg shadow-lg border border-border/50 transition-all duration-300 hover:shadow-xl hover:translate-y-[-5px]"
+            className="flex flex-col p-8 glass-card bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-md rounded-lg shadow-lg border border-border/50 transition-all duration-300 hover:shadow-xl hover:translate-y-[-5px]"
             variants={itemVariants}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
           >
             <div className="bg-gradient-to-br from-primary/20 to-blue-400/20 p-3 rounded-full w-fit mb-4">
               <FileText className="h-6 w-6 text-primary" />
@@ -137,8 +140,9 @@ const Index = () => {
           </motion.div>
           
           <motion.div 
-            className="flex flex-col p-6 bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-sm rounded-lg shadow-lg border border-border/50 transition-all duration-300 hover:shadow-xl hover:translate-y-[-5px]"
+            className="flex flex-col p-8 glass-card bg-gradient-to-br from-card/90 to-card/70 backdrop-blur-md rounded-lg shadow-lg border border-border/50 transition-all duration-300 hover:shadow-xl hover:translate-y-[-5px]"
             variants={itemVariants}
+            whileHover={{ y: -8, transition: { duration: 0.2 } }}
           >
             <div className="bg-gradient-to-br from-primary/20 to-blue-400/20 p-3 rounded-full w-fit mb-4">
               <Clock className="h-6 w-6 text-primary" />
@@ -148,7 +152,7 @@ const Index = () => {
           </motion.div>
         </motion.div>
         
-        {/* Additional Features Section */}
+        {/* Additional Features Section with enhanced animations */}
         <motion.div 
           className="w-full max-w-5xl mt-8"
           initial={{ opacity: 0, y: 20 }}
@@ -156,14 +160,14 @@ const Index = () => {
           transition={{ delay: 1.2, duration: 0.8 }}
         >
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold">Complete Rental Management</h2>
+            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-400">Complete Rental Management</h2>
             <p className="text-muted-foreground mt-2">Everything you need to run your rental business efficiently</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <motion.div 
-              className="p-6 rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300"
-              whileHover={{ y: -5 }}
+              className="p-6 rounded-lg border border-border/50 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300"
+              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
             >
               <div className="flex items-start">
                 <div className="bg-gradient-to-br from-primary/20 to-blue-400/20 p-2 rounded-full mr-4">
@@ -177,8 +181,8 @@ const Index = () => {
             </motion.div>
             
             <motion.div 
-              className="p-6 rounded-lg border border-border/50 bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300"
-              whileHover={{ y: -5 }}
+              className="p-6 rounded-lg border border-border/50 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300"
+              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
             >
               <div className="flex items-start">
                 <div className="bg-gradient-to-br from-primary/20 to-blue-400/20 p-2 rounded-full mr-4">
@@ -190,22 +194,52 @@ const Index = () => {
                 </div>
               </div>
             </motion.div>
+            
+            <motion.div 
+              className="p-6 rounded-lg border border-border/50 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300"
+              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+            >
+              <div className="flex items-start">
+                <div className="bg-gradient-to-br from-primary/20 to-blue-400/20 p-2 rounded-full mr-4">
+                  <Star className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Customer Management</h3>
+                  <p className="text-muted-foreground">Build and maintain customer relationships with detailed profiles and communication history.</p>
+                </div>
+              </div>
+            </motion.div>
+            
+            <motion.div 
+              className="p-6 rounded-lg border border-border/50 bg-gradient-to-br from-card/60 to-card/40 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300"
+              whileHover={{ y: -5, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)" }}
+            >
+              <div className="flex items-start">
+                <div className="bg-gradient-to-br from-primary/20 to-blue-400/20 p-2 rounded-full mr-4">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Financial Reporting</h3>
+                  <p className="text-muted-foreground">Track revenue, expenses, and profitability with detailed financial reports and insights.</p>
+                </div>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
         
-        {/* Testimonial section */}
+        {/* Testimonial section with enhanced styling */}
         <motion.div 
-          className="mt-16 text-center max-w-3xl bg-gradient-to-r from-primary/5 to-blue-400/5 p-8 rounded-2xl"
+          className="mt-16 text-center max-w-3xl bg-gradient-to-r from-primary/5 to-blue-400/5 p-10 rounded-2xl border border-border/30 shadow-lg"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.4, duration: 0.8 }}
         >
-          <p className="text-lg italic mb-6">
+          <p className="text-xl italic mb-6 text-foreground/90 leading-relaxed">
             "Rental Solutions transformed our operations by streamlining processes and providing crucial insights that helped us expand our fleet by 30% while reducing administrative overhead."
           </p>
-          <p className="font-medium">— Sarah Johnson, Fleet Manager</p>
+          <p className="font-medium text-lg">— Sarah Johnson, Fleet Manager</p>
           
-          <div className="mt-8 pt-6 border-t border-border/30">
+          <div className="mt-10 pt-6 border-t border-border/30">
             <p className="text-sm text-muted-foreground">
               Trusted by leading rental companies worldwide to manage fleets, 
               streamline operations, and boost efficiency.

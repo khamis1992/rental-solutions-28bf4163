@@ -9,6 +9,7 @@ interface Particle {
   speedY: number;
   opacity: number;
   color: string;
+  glowing?: boolean;
 }
 
 const ParticleBackground: React.FC = () => {
@@ -36,35 +37,38 @@ const ParticleBackground: React.FC = () => {
     
     // Initialize particles with better colors and distribution
     function initializeParticles() {
-      const particleCount = Math.min(Math.floor(window.innerWidth * 0.07), 120); // More particles
+      const particleCount = Math.min(Math.floor(window.innerWidth * 0.08), 150); // More particles
       particles.current = [];
       
-      // Color palette for particles
+      // Enhanced color palette for particles
       const colors = [
         'rgba(59, 130, 246, opacity)', // Primary blue
         'rgba(96, 165, 250, opacity)', // Light blue
         'rgba(37, 99, 235, opacity)',  // Darker blue
-        'rgba(147, 197, 253, opacity)' // Very light blue
+        'rgba(147, 197, 253, opacity)', // Very light blue
+        'rgba(29, 78, 216, opacity)'   // Royal blue
       ];
       
       for (let i = 0; i < particleCount; i++) {
         const colorIndex = Math.floor(Math.random() * colors.length);
         const baseOpacity = Math.random() * 0.5 + 0.1;
         const color = colors[colorIndex].replace('opacity', baseOpacity.toString());
+        const isGlowing = Math.random() > 0.9; // 10% of particles will glow
         
         particles.current.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 3 + 0.5, // Slightly bigger particles
+          size: Math.random() * 3 + (isGlowing ? 2 : 0.5), // Bigger for glowing particles
           speedX: (Math.random() - 0.5) * 0.4,
           speedY: (Math.random() - 0.5) * 0.4,
           opacity: baseOpacity,
-          color: color
+          color: color,
+          glowing: isGlowing
         });
       }
     }
     
-    // Animation loop
+    // Animation loop with improved effects
     function animate() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
@@ -74,9 +78,9 @@ const ParticleBackground: React.FC = () => {
         particle.x += particle.speedX;
         particle.y += particle.speedY;
         
-        // Add slight random movement
-        particle.x += (Math.random() - 0.5) * 0.2;
-        particle.y += (Math.random() - 0.5) * 0.2;
+        // Add slight random movement for more natural flow
+        particle.x += (Math.random() - 0.5) * 0.3;
+        particle.y += (Math.random() - 0.5) * 0.3;
         
         // Wrap around screen edges
         if (particle.x < 0) particle.x = canvas.width;
@@ -84,7 +88,24 @@ const ParticleBackground: React.FC = () => {
         if (particle.y < 0) particle.y = canvas.height;
         if (particle.y > canvas.height) particle.y = 0;
         
-        // Draw particle
+        // Draw particle with optional glow effect
+        ctx.beginPath();
+        
+        // Add glow effect for special particles
+        if (particle.glowing) {
+          const glow = ctx.createRadialGradient(
+            particle.x, particle.y, 0,
+            particle.x, particle.y, particle.size * 2
+          );
+          glow.addColorStop(0, particle.color.replace(')', ', 0.8)'));
+          glow.addColorStop(1, particle.color.replace(')', ', 0)'));
+          
+          ctx.fillStyle = glow;
+          ctx.arc(particle.x, particle.y, particle.size * 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Draw the actual particle
         ctx.beginPath();
         ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
         ctx.fillStyle = particle.color;
@@ -100,7 +121,7 @@ const ParticleBackground: React.FC = () => {
     
     // Draw lines between nearby particles with improved aesthetics
     function connectParticles(particle: Particle, index: number) {
-      const connectionDistance = 180; // Increased max distance for connection
+      const connectionDistance = 200; // Increased max distance for connection
       
       for (let i = index + 1; i < particles.current.length; i++) {
         const other = particles.current[i];
@@ -110,7 +131,7 @@ const ParticleBackground: React.FC = () => {
         
         if (distance < connectionDistance) {
           // Calculate opacity based on distance - smoother gradient
-          const opacity = (1 - distance / connectionDistance) * 0.15;
+          const opacity = (1 - distance / connectionDistance) * 0.2;
           
           // Draw connecting line with gradient
           ctx.beginPath();
@@ -149,7 +170,7 @@ const ParticleBackground: React.FC = () => {
     <canvas 
       ref={canvasRef} 
       className="absolute top-0 left-0 w-full h-full pointer-events-none z-0" 
-      style={{ opacity: 0.75 }}
+      style={{ opacity: 0.8 }}
     />
   );
 };
