@@ -357,7 +357,14 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         
         console.log(`Creating agreement for customer ${customerId}, vehicle ${vehicleId}`);
         
-        // Use 'draft' status which should be a valid enum value in the database schema
+        // Calculate agreement duration (end_date - start_date)
+        const startDate = new Date(rowData.start_date);
+        const endDate = new Date(rowData.end_date);
+        // Calculate the difference in months for agreement_duration
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const agreementDuration = `${diffDays} days`;
+        
         const { error: createError } = await supabase
           .from("leases")
           .insert({
@@ -371,7 +378,8 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
             notes: rowData.notes || '',
             total_amount: parseFloat(rowData.rent_amount),
             status: 'active', // Changed to 'active' which should be a valid enum value
-            agreement_number: getAgreementNumber()
+            agreement_number: getAgreementNumber(),
+            agreement_duration: agreementDuration // Add the agreement_duration field
           });
           
         if (createError) {
