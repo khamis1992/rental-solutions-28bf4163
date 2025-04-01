@@ -287,17 +287,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as Agreement;
   };
 
-  type UpdateAgreementMutation = {
-    mutationFn: (params: { id: string; data: Partial<Agreement> }) => Promise<Agreement>;
-    onSuccess: () => void;
-  };
-
+  // Fix the update agreement mutation by simplifying the type structure
   const updateAgreementMutation = useMutation<
     Agreement, 
     Error, 
     { id: string; data: Partial<Agreement> }
   >({
     mutationFn: async ({ id, data }) => {
+      // Implementation would go here in a real application
       return {} as Agreement;
     },
     onSuccess: () => {
@@ -305,6 +302,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
+  // Simply reference the mutation directly to avoid circular type references
   const updateAgreement = updateAgreementMutation;
 
   const deleteAgreement = useMutation({
