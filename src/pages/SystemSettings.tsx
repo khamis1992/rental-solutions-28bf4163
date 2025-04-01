@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -11,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Tool } from 'lucide-react';
+import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 
