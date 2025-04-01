@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -193,7 +194,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        query = query.ilike('vehicles.license_plate', `%${searchQuery}%`);
+        // Modified search approach to focus only on license plate
+        // Each filter condition is applied separately
+        if (searchQuery) {
+          // Apply filter only to vehicles.license_plate
+          query = query.ilike('vehicles.license_plate', `%${searchQuery}%`);
+        }
       }
 
       console.log("Executing Supabase query...");
