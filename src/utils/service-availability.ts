@@ -17,16 +17,16 @@ export const checkEdgeFunctionAvailability = async (
     try {
       console.log(`Checking edge function availability: ${functionName} (attempt ${attempt + 1}/${retries + 1})`);
       
-      const { error } = await supabase.functions.invoke(functionName, {
+      const response = await supabase.functions.invoke(functionName, {
         body: { test: true },
       });
       
-      if (!error) {
+      if (!response.error) {
         console.log(`Edge function ${functionName} is available`);
         return true;
       }
       
-      console.warn(`Edge function ${functionName} check failed:`, error);
+      console.warn(`Edge function ${functionName} check failed:`, response.error);
       attempt++;
       
       if (attempt <= retries) {
@@ -56,7 +56,7 @@ export const getSystemServicesStatus = async (): Promise<{
   customerImport: boolean;
 }> => {
   const agreementImport = await checkEdgeFunctionAvailability('process-agreement-imports');
-  const customerImport = await checkEdgeFunctionAvailability('process-customer-imports');
+  const customerImport = await checkEdgeFunctionAvailability('process-customer-imports', 2);
   
   return {
     agreementImport,

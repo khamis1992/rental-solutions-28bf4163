@@ -14,8 +14,17 @@ serve(async (req) => {
   }
 
   try {
-    // Get request body
-    const { importId } = await req.json();
+    // Check if this is a test request
+    const body = await req.json();
+    if (body.test === true) {
+      console.log("Test request received, returning success");
+      return new Response(
+        JSON.stringify({ success: true, message: "Customer import function is available" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
+      );
+    }
+    
+    const { importId } = body;
     
     if (!importId) {
       return new Response(
