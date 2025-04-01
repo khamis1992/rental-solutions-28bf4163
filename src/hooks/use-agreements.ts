@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -288,9 +287,17 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as Agreement;
   };
 
-  // Fixed the type error by separating the mutation definition from its usage
-  const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<Agreement> }) => {
+  type UpdateAgreementMutation = {
+    mutationFn: (params: { id: string; data: Partial<Agreement> }) => Promise<Agreement>;
+    onSuccess: () => void;
+  };
+
+  const updateAgreementMutation = useMutation<
+    Agreement, 
+    Error, 
+    { id: string; data: Partial<Agreement> }
+  >({
+    mutationFn: async ({ id, data }) => {
       return {} as Agreement;
     },
     onSuccess: () => {
@@ -298,7 +305,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Now using the mutation separately
   const updateAgreement = updateAgreementMutation;
 
   const deleteAgreement = useMutation({

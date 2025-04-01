@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -86,6 +87,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
   
   const queryClient = useQueryClient();
   
@@ -113,6 +118,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
   useEffect(() => {
     setRowSelection({});
+    // Reset pagination when filters change
+    setPagination({
+      pageIndex: 0,
+      pageSize: 10,
+    });
   }, [agreements, statusFilter, searchQuery]);
 
   const handleBulkDelete = async () => {
@@ -464,14 +474,12 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFiltersState,
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPagination,
     state: {
       sorting,
       columnFilters,
       rowSelection,
-      pagination: {
-        pageIndex: 0,
-        pageSize: 10,
-      },
+      pagination,
     },
     manualPagination: false,
     pageCount: Math.ceil((agreements?.length || 0) / 10),
