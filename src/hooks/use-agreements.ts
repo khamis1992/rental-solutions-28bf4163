@@ -30,7 +30,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         .from('leases')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching agreement from Supabase:", error);
@@ -195,23 +195,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         
         const isLicensePlateSearch = isLicensePlatePattern(searchQuery) || 
                                     searchParams.query.length <= 4;
-
-        let orConditions = [];
-        
-        orConditions.push(`agreement_number.ilike.%${searchQuery}%`);
         
         if (isLicensePlateSearch) {
-          orConditions.push(`vehicles.license_plate.ilike.${searchQuery}%`);
-          orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}`);
-          orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}%`);
-          if (/^\d+$/.test(searchQuery) && searchQuery.length >= 2) {
-            orConditions.push(`vehicles.license_plate.ilike.%${searchQuery}%`);
-          }
+          query = query.or(`agreement_number.ilike.%${searchQuery}%,vehicles.license_plate.ilike.%${searchQuery}%`);
         } else {
-          orConditions.push(`profiles.full_name.ilike.%${searchQuery}%`);
+          query = query.or(`agreement_number.ilike.%${searchQuery}%,profiles.full_name.ilike.%${searchQuery}%`);
         }
-        
-        query = query.or(orConditions.join(','));
       }
 
       console.log("Executing Supabase query...");
