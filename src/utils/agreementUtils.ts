@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { loadFontFile, arrayBufferToBase64, toArabicNumerals } from './fontUtils';
@@ -255,7 +254,7 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         }
         
         // Set RTL - fix the setR2L call that's causing the error
-        doc.setR2L(true);
+        doc.setR2L(); // Call without arguments
         
         // Check if Amiri font was loaded successfully, otherwise use a fallback
         let hasArabicFont = false;
