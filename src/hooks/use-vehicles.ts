@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -455,6 +454,56 @@ export const useVehicles = () => {
           supabase.removeChannel(subscription);
         };
       }, [queryClient]);
+    },
+    
+    useSearchVehicles: (query: string = '') => {
+      const { data: vehicles, isLoading, error } = useQuery({
+        queryKey: ['vehicles', 'search', query],
+        queryFn: async () => {
+          try {
+            console.log(`Searching vehicles with query: "${query}"`);
+            
+            // Start with the base query
+            let supabaseQuery = supabase
+              .from('vehicles')
+              .select('*, vehicle_types(*)');
+            
+            // If search query is provided
+            if (query && query.trim().length > 0) {
+              const searchTerm = query.trim().toLowerCase();
+              
+              // Use OR condition to search across multiple fields
+              supabaseQuery = supabaseQuery.or(
+                `make.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%,license_plate.ilike.%${searchTerm}%,vin.ilike.%${searchTerm}%`
+              );
+            }
+            
+            // Execute the query and sort by make and model
+            const { data, error } = await supabaseQuery.order('make').order('model');
+            
+            if (error) {
+              throw error;
+            }
+            
+            // Map the database records to our application model
+            return data.map(record => mapDatabaseRecordToVehicle(record));
+          } catch (error) {
+            console.error('Error searching vehicles:', error);
+            handleApiError(error, 'Failed to search vehicles');
+            throw error;
+          }
+        },
+        // Only run the query if the search term is at least 2 characters
+        enabled: query === '' || query.trim().length >= 2,
+        staleTime: 1000 * 60 * 1, // 1 minute cache
+      });
+      
+      // Return the search results
+      return {
+        vehicles: vehicles || [],
+        isLoading,
+        error
+      };
     }
   };
 };
