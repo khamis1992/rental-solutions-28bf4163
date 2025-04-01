@@ -330,13 +330,9 @@ export const generatePdfDocument = async (agreement: Agreement, language: 'en' |
         format: 'a4',
         putOnlyUsedFonts: true
     });
-    // Generate English content
-      // Format dates
-      const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-      const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-      
-      // Add contract content
-      generateEnglishContent(doc, agreement, startDate, endDate);
+    
+    // Add contract content for Arabic version
+    await generateArabicPdf(agreement, docAr);
       
       doc.save(`Rental_Agreement-${agreement.agreement_number}-en.pdf`);
     }
