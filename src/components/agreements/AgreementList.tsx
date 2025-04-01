@@ -16,10 +16,16 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
+
 interface SearchParams {
   status?: string;
 }
-export function AgreementList() {
+
+interface AgreementListProps {
+  searchQuery?: string;
+}
+
+export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const {
     agreements,
     isLoading,
@@ -28,13 +34,26 @@ export function AgreementList() {
     setSearchParams,
     deleteAgreement
   } = useAgreements();
+  
   const {
     useRealtimeUpdates: useVehicleRealtimeUpdates
   } = useVehicles();
+  
   useVehicleRealtimeUpdates();
+  
+  useState(() => {
+    if (searchQuery.trim() !== '') {
+      setSearchParams({
+        ...searchParams,
+        query: searchQuery
+      });
+    }
+  });
+  
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
+
   const columns: ColumnDef<Agreement>[] = [{
     accessorKey: "agreement_number",
     header: "Agreement #",
@@ -158,6 +177,7 @@ export function AgreementList() {
           </DropdownMenu>;
     }
   }];
+
   const table = useReactTable({
     data: agreements || [],
     columns,
@@ -178,6 +198,7 @@ export function AgreementList() {
     manualPagination: false,
     pageCount: Math.ceil((agreements?.length || 0) / 10)
   });
+
   return <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">
@@ -236,7 +257,9 @@ export function AgreementList() {
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
                     <p>
-                      {searchParams.status && searchParams.status !== 'all' ? 'No agreements found with the selected status.' : 'Add your first agreement using the button above.'}
+                      {searchParams.status && searchParams.status !== 'all' ? 'No agreements found with the selected status.' : 
+                       searchParams.query ? `No agreements found matching "${searchParams.query}".` :
+                      'Add your first agreement using the button above.'}
                     </p>
                   </div>
                 </TableCell>
