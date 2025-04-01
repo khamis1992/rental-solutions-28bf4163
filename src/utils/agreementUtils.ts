@@ -4,228 +4,84 @@ import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { format, differenceInMonths } from 'date-fns';
 
-const generateArabicPdf = async (agreement: Agreement, doc: jsPDF): Promise<void> => {
+export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
   try {
-    // Use a locally available font instead of loading from URL
-    // Set Arabic font and RTL mode
-    doc.addFont('https://fonts.gstatic.com/s/amiri/v17/J7aRnpd8CGxBHpUrtLMA7w.ttf', 'Amiri', 'normal');
-    doc.setFont('Amiri');
-    doc.setR2L(true);
-    doc.setLanguage("ar");
-
-    // Arabic content
+    // Create a new PDF document
+    const doc = new jsPDF();
+    
+    // Set font size and style for the header
     doc.setFontSize(16);
-    doc.text('عقد تأجير سيارة', 105, 20, { align: 'center' });
-
-    let y = 30;
-    const rightMargin = 190;
-    const lineHeight = 8;
-
-    doc.setFontSize(12);
-
-    // Convert dates to Arabic format
-    const startDate = format(new Date(agreement.start_date), "yyyy/MM/dd");
-    const endDate = format(new Date(agreement.end_date), "yyyy/MM/dd");
-
-    // Add Arabic content
-    doc.text(`تم إبرام هذه الاتفاقية في تاريخ ${startDate}`, rightMargin, y, { align: 'right' });
-    y += lineHeight * 2;
-
-    doc.text('بين:', rightMargin, y, { align: 'right' });
-    y += lineHeight;
-
-    doc.text('الطرف الأول: شركة العرف لتأجير السيارات ذ.م.م', rightMargin, y, { align: 'right' });
-    y += lineHeight;
-
-    doc.text(`الطرف الثاني: ${agreement.customers?.full_name || 'غير محدد'}`, rightMargin, y, { align: 'right' });
-    y += lineHeight * 2;
-
-    // Vehicle details in Arabic
-    doc.text('تفاصيل السيارة:', rightMargin, y, { align: 'right' });
-    y += lineHeight;
-    doc.text(`نوع السيارة: ${agreement.vehicles?.make} ${agreement.vehicles?.model}`, rightMargin, y, { align: 'right' });
-    y += lineHeight;
-    doc.text(`رقم اللوحة: ${agreement.vehicles?.license_plate}`, rightMargin, y, { align: 'right' });
-    y += lineHeight;
-
-    // Agreement details in Arabic
-    doc.text('تفاصيل العقد:', rightMargin, y, { align: 'right' });
-    y += lineHeight;
-    doc.text(`مدة الإيجار: من ${startDate} إلى ${endDate}`, rightMargin, y, { align: 'right' });
-    y += lineHeight;
-    doc.text(`قيمة الإيجار الشهري: ${agreement.total_amount} ريال قطري`, rightMargin, y, { align: 'right' });
-  } catch (error) {
-    console.error("Error generating Arabic PDF content:", error);
-    throw error;
-  }
-};
-
-export const generatePdfDocument = async (agreement: Agreement, language: 'en' | 'ar' = 'en'): Promise<boolean> => {
-  try {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      putOnlyUsedFonts: true
-    });
-
-    try {
-      // Format dates once
-      const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-      const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-
-      // Generate English content
-      await generateEnglishContent(doc, agreement, startDate, endDate);
-
-      // Generate Arabic content with improved error handling
-      try {
-        // Check if font loading is successful
-        if (await verifyFontLoading(doc)) {
-          await generateArabicPdf(agreement, doc);
-        } else {
-          console.warn("Arabic font loading failed, generating English-only document");
-        }
-      } catch (arabicError) {
-        console.error("Error generating Arabic content:", arabicError);
-        // Continue with English-only document
-      }
-
-      // Save the PDF with a unique name
-      const fileName = `Rental_Agreement-${agreement.agreement_number}.pdf`;
-      doc.save(fileName);
-      return true;
-    } catch (error) {
-      console.error("Error generating PDF content:", error);
-      throw error;
-    }
-  } catch (error) {
-    console.error("Error generating PDF:", error);
-    return false;
-  }
-};
-
-export const formatDateForDisplay = (date: Date | string): string => {
-  const dateObj = date instanceof Date ? date : new Date(date);
-  return format(dateObj, 'MMMM d, yyyy');
-};
-
-export const checkStandardTemplateExists = async (): Promise<boolean> => {
-  try {
-    // This is a placeholder that would normally check for template existence
-    return true;
-  } catch (error) {
-    console.error("Error checking template existence:", error);
-    return false;
-  }
-};
-
-export const diagnosisTemplateAccess = async (): Promise<{
-  exists: boolean; 
-  accessible: boolean;
-  bucketExists: boolean;
-  templateExists: boolean;
-  errors: string[];
-}> => {
-  try {
-    // This is a placeholder function that would diagnose template access
-    return {
-      exists: true,
-      accessible: true,
-      bucketExists: true,
-      templateExists: true,
-      errors: []
-    };
-  } catch (error) {
-    console.error("Error diagnosing template access:", error);
-    return {
-      exists: false,
-      accessible: false,
-      bucketExists: false,
-      templateExists: false,
-      errors: [error instanceof Error ? error.message : String(error)]
-    };
-  }
-};
-
-const verifyFontLoading = (doc: jsPDF): boolean => {
-  try {
-    // More robust font verification
-    doc.setFont('Amiri');
-    // Try to use the font to verify it's loaded
-    const testText = "تجربة";
-    const textWidth = doc.getTextWidth(testText);
-    return textWidth > 0;
-  } catch (error) {
-    console.error('Font loading failed:', error);
-    return false;
-  }
-};
-
-const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStartDate: Date, agreementEndDate: Date) => {
-  try {
+    doc.setFont('helvetica', 'bold');
+    doc.text('Vehicle Rental Contract', 105, 20, { align: 'center' });
+    
+    // Format dates
+    const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
+    const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+    
     // Calculate agreement duration in months
-    const durationMonths = differenceInMonths(agreementEndDate, agreementStartDate);
+    const durationMonths = differenceInMonths(endDate, startDate);
     const duration = `${durationMonths} ${durationMonths === 1 ? 'month' : 'months'}`;
-
+    
+    // Start position for text
     let y = 30;
     const leftMargin = 20;
     const lineHeight = 5;
-
+    
     // Set regular font for body text
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-
+    
     // Add contract introduction
-    doc.text(`This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(agreementStartDate)}.`, leftMargin, y);
+    doc.text(`This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(startDate)}.`, leftMargin, y);
     y += lineHeight * 2;
-
+    
     // Parties section
     doc.setFont('helvetica', 'bold');
     doc.text('Between:', leftMargin, y);
     y += lineHeight * 2;
-
+    
     doc.setFont('helvetica', 'normal');
     const partyOneText = 'Party One: Al-Araf Rent-a-Car LLC, a limited liability company legally registered under the laws of Qatar, with commercial registration number 146832 and located at Umm Salal Ali, Doha, Qatar, P.O. Box 36126. Represented by Mr. Khamees Hashem Al-Jaber, the authorized signatory for the company, referred to hereafter as the Lessor | Party One.';
-
+    
     // Handle long text wrapping
     const splitPartyOne = doc.splitTextToSize(partyOneText, 170);
     doc.text(splitPartyOne, leftMargin, y);
     y += splitPartyOne.length * lineHeight + lineHeight;
-
+    
     doc.text('And:', leftMargin, y);
     y += lineHeight * 2;
-
+    
     const customerName = agreement.customers?.full_name || 'N/A';
     const customerLicense = agreement.customers?.driver_license || 'N/A';
     const customerNationality = agreement.customers?.nationality || 'N/A';
     const customerEmail = agreement.customers?.email || 'N/A';
     const customerPhone = agreement.customers?.phone_number || 'N/A';
-
+    
     const partyTwoText = `Party Two: ${customerName}, holder of driver's license ${customerLicense}, nationality ${customerNationality}, residing in Qatar, email ${customerEmail}, mobile number ${customerPhone}. Referred to hereafter as the Lessee | Party Two.`;
-
+    
     const splitPartyTwo = doc.splitTextToSize(partyTwoText, 170);
     doc.text(splitPartyTwo, leftMargin, y);
     y += splitPartyTwo.length * lineHeight + lineHeight;
-
+    
     const partiesText = 'Each party shall individually be referred to as a "Party" and collectively as the "Parties."';
     doc.text(partiesText, leftMargin, y);
     y += lineHeight * 2;
-
+    
     // Preamble
     doc.setFont('helvetica', 'bold');
     doc.text('Preamble', leftMargin, y);
     y += lineHeight * 2;
-
+    
     doc.setFont('helvetica', 'normal');
     doc.text('Whereas Party One is a legally licensed car rental company and owns the vehicle described below:', leftMargin, y);
     y += lineHeight * 2;
-
+    
     // Vehicle information
     const vehicleMake = agreement.vehicles?.make || 'N/A';
     const vehicleModel = agreement.vehicles?.model || 'N/A';
     const vehiclePlate = agreement.vehicles?.license_plate || 'N/A';
     const vehicleVin = agreement.vehicles?.vin || 'N/A';
-
+    
     doc.text(`Vehicle Type:`, leftMargin, y);
     y += lineHeight;
     doc.text(`License Plate Number: ${vehiclePlate}`, leftMargin, y);
@@ -234,12 +90,12 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     y += lineHeight;
     doc.text(`Vehicle Model: ${vehicleModel} - ${vehicleMake}`, leftMargin, y);
     y += lineHeight * 2;
-
+    
     const preambleText = 'And whereas Party Two wishes to rent this vehicle from Party One under the terms and conditions of this Agreement, and Party One agrees to rent the vehicle to Party Two, both Parties hereby agree to the following:';
     const splitPreamble = doc.splitTextToSize(preambleText, 170);
     doc.text(splitPreamble, leftMargin, y);
     y += splitPreamble.length * lineHeight + lineHeight;
-
+    
     // Articles
     doc.setFont('helvetica', 'bold');
     doc.text('Article 1:', leftMargin, y);
@@ -247,7 +103,7 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     doc.setFont('helvetica', 'normal');
     doc.text('The preamble above forms an integral part of this Agreement and shall be interpreted within its terms and conditions.', leftMargin + 15, y);
     y += lineHeight * 2;
-
+    
     // Article 2 - Vehicle Information
     doc.setFont('helvetica', 'bold');
     doc.text('Article 2 - Vehicle Information:', leftMargin, y);
@@ -255,7 +111,7 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     doc.setFont('helvetica', 'normal');
     doc.text('Party One hereby rents to Party Two the following vehicle:', leftMargin + 15, y);
     y += lineHeight * 2;
-
+    
     doc.text(`Vehicle Type:`, leftMargin + 15, y);
     y += lineHeight;
     doc.text(`License Plate Number: ${vehiclePlate}`, leftMargin + 15, y);
@@ -264,13 +120,13 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     y += lineHeight;
     doc.text(`Model: ${vehicleModel} - ${vehicleMake}`, leftMargin + 15, y);
     y += lineHeight * 2;
-
+    
     // Check if we need a new page
     if (y > 250) {
       doc.addPage();
       y = 20;
     }
-
+    
     // Article 3 - Rental Duration
     doc.setFont('helvetica', 'bold');
     doc.text('Article 3 - Rental Duration:', leftMargin, y);
@@ -280,7 +136,7 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     const splitDuration = doc.splitTextToSize(durationText, 170);
     doc.text(splitDuration, leftMargin + 15, y);
     y += splitDuration.length * lineHeight + lineHeight;
-
+    
     // Article 4 - Rental Fee
     doc.setFont('helvetica', 'bold');
     doc.text('Article 4 - Rental Fee:', leftMargin, y);
@@ -290,13 +146,13 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     const splitFee = doc.splitTextToSize(feeText, 170);
     doc.text(splitFee, leftMargin + 15, y);
     y += splitFee.length * lineHeight + lineHeight;
-
+    
     // Check if we need a new page
     if (y > 250) {
       doc.addPage();
       y = 20;
     }
-
+    
     // Article 5 - Late Payment Penalties
     doc.setFont('helvetica', 'bold');
     doc.text('Article 5 - Late Payment Penalties:', leftMargin, y);
@@ -306,7 +162,7 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     const splitPenalty = doc.splitTextToSize(penaltyText, 170);
     doc.text(splitPenalty, leftMargin + 15, y);
     y += splitPenalty.length * lineHeight + lineHeight;
-
+    
     // Article 6 - Security Deposit
     doc.setFont('helvetica', 'bold');
     doc.text('Article 6 - Security Deposit:', leftMargin, y);
@@ -316,13 +172,13 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
     const splitDeposit = doc.splitTextToSize(depositText, 170);
     doc.text(splitDeposit, leftMargin + 15, y);
     y += splitDeposit.length * lineHeight + lineHeight;
-
+    
     // Continue with remaining articles (adding new pages as needed)
     if (y > 230) {
       doc.addPage();
       y = 20;
     }
-
+    
     // Articles 7-15 (add more as needed)
     const remainingArticles = [
       {
@@ -362,50 +218,100 @@ const generateEnglishContent = (doc: jsPDF, agreement: Agreement, agreementStart
         content: "• Governing Law and Jurisdiction: This Agreement is governed by the laws of Qatar, and the Parties agree to the exclusive jurisdiction of Qatari courts.\n• Communications: Any notices or communications under this Agreement may be made via WhatsApp, email, or text message.\n• Assignment: Party Two may not assign or transfer their rights or obligations under this Agreement without prior written consent from Party One.\n• Severability: If any provision of this Agreement is deemed unenforceable, the remainder of the Agreement shall remain in effect.\n• Entire Agreement: This Agreement constitutes the entire understanding between the Parties and supersedes any prior discussions or agreements.\n• Copies: This Agreement may be executed in multiple counterparts, each of which is considered an original."
       }
     ];
-
+    
     for (const article of remainingArticles) {
       // Check if we need a new page
       if (y > 230) {
         doc.addPage();
         y = 20;
       }
-
+      
       doc.setFont('helvetica', 'bold');
       doc.text(article.title, leftMargin, y);
       y += lineHeight;
-
+      
       doc.setFont('helvetica', 'normal');
       const contentLines = article.content.split('\n');
-
+      
       for (const line of contentLines) {
         const splitContent = doc.splitTextToSize(line, 160);
         doc.text(splitContent, leftMargin + 15, y);
         y += splitContent.length * lineHeight;
       }
-
+      
       y += lineHeight;
     }
-
+    
     // Add signature section
     if (y > 240) {
       doc.addPage();
       y = 20;
     }
-
+    
     doc.setFont('helvetica', 'bold');
     doc.text('In witness whereof, this Agreement is signed by the Parties in two copies, one for each Party.', leftMargin, y);
     y += lineHeight * 3;
-
+    
     doc.text('Party One:', leftMargin, y);
     doc.text('Party Two:', leftMargin + 100, y);
     y += lineHeight;
-
+    
     doc.setFont('helvetica', 'normal');
     doc.text('Represented by Mr. Khamees Hashem Al-Jaber', leftMargin, y);
     doc.text(`Represented by Mr. ${customerName}`, leftMargin + 100, y);
-
+    
+    // Save the PDF with the agreement number
+    doc.save(`Rental_Agreement-${agreement.agreement_number}.pdf`);
+    
+    return true;
   } catch (error) {
-    console.error('Error generating English content:', error);
-    throw error;
+    console.error("Error generating PDF:", error);
+    return false;
+  }
+};
+
+// Helper function for date formatting
+export const formatDateForDisplay = (date: Date | string): string => {
+  const dateObj = date instanceof Date ? date : new Date(date);
+  return format(dateObj, 'MMMM d, yyyy');
+};
+
+// Function to check if a standard template exists
+export const checkStandardTemplateExists = async (): Promise<boolean> => {
+  try {
+    // This is a placeholder that would normally check for template existence
+    return true;
+  } catch (error) {
+    console.error("Error checking template existence:", error);
+    return false;
+  }
+};
+
+// Function to diagnose template access
+export const diagnosisTemplateAccess = async (): Promise<{
+  exists: boolean; 
+  accessible: boolean;
+  bucketExists: boolean;
+  templateExists: boolean;
+  errors: string[];
+}> => {
+  try {
+    // This is a placeholder function that would diagnose template access
+    return {
+      exists: true,
+      accessible: true,
+      bucketExists: true,
+      templateExists: true,
+      errors: []
+    };
+  } catch (error) {
+    console.error("Error diagnosing template access:", error);
+    return {
+      exists: false,
+      accessible: false,
+      bucketExists: false,
+      templateExists: false,
+      errors: [error instanceof Error ? error.message : String(error)]
+    };
   }
 };
