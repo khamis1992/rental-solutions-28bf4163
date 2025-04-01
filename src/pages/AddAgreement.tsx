@@ -122,10 +122,11 @@ const AddAgreement = () => {
           .then(module => module.checkVehicleAvailability(leaseData.vehicle_id));
         
         if (!isAvailable && existingAgreement) {
-          toast.warning(
-            `Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`,
-            { duration: 5000 }
-          );
+          toast({
+            title: "Warning",
+            description: `Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`,
+            variant: "destructive"
+          });
         }
       }
       

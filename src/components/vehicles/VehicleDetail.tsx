@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
-import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Wrench, FileText } from 'lucide-react';
+import { Calendar, MapPin, Fuel, Activity, Key, CreditCard, Car, Palette, Settings, Info, Shield, Wrench, FileText, AlertCircle } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { format, isAfter, parseISO } from 'date-fns';
 import { useMaintenance } from '@/hooks/use-maintenance';
@@ -15,8 +15,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { toast } from 'sonner';
-import { Alert, AlertCircle } from 'lucide-react';
-import { AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;

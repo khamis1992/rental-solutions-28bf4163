@@ -125,20 +125,24 @@ export const updateAgreementWithCheck = async (
       
       if (!isAvailable && existingAgreement) {
         // Show warning toast about closing other agreement
-        toast.warning(
-          `Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`,
-          { duration: 5000 }
-        );
+        toast(`Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`, {
+          duration: 5000
+        });
       }
     }
+    
+    // Convert Date objects to ISO strings for Supabase
+    const preparedData = {
+      ...data,
+      // Ensure dates are properly formatted as strings
+      created_at: data.created_at instanceof Date ? data.created_at.toISOString() : data.created_at,
+      updated_at: new Date().toISOString()
+    };
     
     // Proceed with the update
     const { error } = await supabase
       .from('leases')
-      .update({ 
-        ...data,
-        updated_at: new Date().toISOString() 
-      })
+      .update(preparedData)
       .eq('id', id);
       
     if (error) {
