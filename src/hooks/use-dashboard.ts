@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -223,36 +222,29 @@ export function useDashboardData() {
     queryFn: async () => {
       try {
         const currentDate = new Date();
-        const eightMonthsAgo = new Date(currentDate.getFullYear(), currentDate.getMonth() - 7, 1);
+        const firstDayCurrentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         
-        // Get real payment data for chart
+        // Get real payment data for the current month only
         const { data, error } = await supabase
           .from('unified_payments')
           .select('amount, amount_paid, payment_date')
-          .gte('payment_date', eightMonthsAgo.toISOString())
+          .gte('payment_date', firstDayCurrentMonth.toISOString())
           .order('payment_date', { ascending: true });
           
         if (error) throw error;
         
-        // Process payment data into monthly totals
-        const monthlyData = data.reduce((acc: Record<string, number>, payment) => {
-          const date = new Date(payment.payment_date);
-          const monthKey = date.toLocaleString('default', { month: 'short' });
-          
-          if (!acc[monthKey]) {
-            acc[monthKey] = 0;
-          }
-          
-          // Use amount_paid if available, otherwise use amount
-          acc[monthKey] += payment.amount_paid || payment.amount || 0;
-          return acc;
-        }, {});
+        // Calculate the total revenue for the current month
+        const monthlyTotal = data.reduce((total, payment) => {
+          const paymentAmount = payment.amount_paid || payment.amount || 0;
+          return total + paymentAmount;
+        }, 0);
         
-        // Convert to array for the chart
-        return Object.entries(monthlyData).map(([name, revenue]) => ({
-          name,
-          revenue
-        }));
+        // Return the data in the expected format with the current month only
+        const currentMonth = currentDate.toLocaleString('default', { month: 'short' });
+        return [{
+          name: currentMonth,
+          revenue: monthlyTotal
+        }];
       } catch (error) {
         handleApiError(error);
         throw error;
