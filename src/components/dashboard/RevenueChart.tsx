@@ -10,6 +10,9 @@ interface RevenueChartProps {
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
+  // Get current month name for dynamic title
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+  
   // Ensure we have data to display, showing at least the last 6 months
   const ensureCompleteData = (inputData: { name: string; revenue: number }[]) => {
     if (!inputData || inputData.length === 0) return [];
@@ -40,7 +43,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
       <CardHeader className="pb-0">
-        <CardTitle>Revenue Overview</CardTitle>
+        <CardTitle>{`${currentMonth} Revenue Overview`}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>

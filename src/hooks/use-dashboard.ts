@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -77,7 +76,7 @@ export function useDashboardData() {
         // Fetch real payment data for current month
         const { data: currentMonthPayments, error: paymentsError } = await supabase
           .from('unified_payments')
-          .select('amount, amount_paid')
+          .select('amount_paid')
           .gte('payment_date', firstDayCurrentMonth.toISOString());
           
         if (paymentsError) throw paymentsError;
@@ -85,7 +84,7 @@ export function useDashboardData() {
         // Fetch real payment data for last month for growth calculation
         const { data: lastMonthPayments, error: lastMonthError } = await supabase
           .from('unified_payments')
-          .select('amount, amount_paid')
+          .select('amount_paid')
           .gte('payment_date', firstDayLastMonth.toISOString())
           .lt('payment_date', firstDayCurrentMonth.toISOString());
           
@@ -137,15 +136,16 @@ export function useDashboardData() {
           critical: (statusCounts['accident'] || 0) + (statusCounts['stolen'] || 0)
         };
         
-        // Calculate financial stats from real payment data
+        // Calculate financial stats from real payment data - IMPORTANT CHANGE:
+        // Only use amount_paid for revenue calculation, NOT amount
         const currentMonthTotal = currentMonthPayments.reduce((sum, payment) => {
-          const amountToAdd = payment.amount_paid || payment.amount || 0;
-          return sum + amountToAdd;
+          // Only consider amount_paid and treat null/undefined as 0
+          return sum + (payment.amount_paid || 0);
         }, 0);
         
         const lastMonthTotal = lastMonthPayments.reduce((sum, payment) => {
-          const amountToAdd = payment.amount_paid || payment.amount || 0;
-          return sum + amountToAdd;
+          // Only consider amount_paid and treat null/undefined as 0
+          return sum + (payment.amount_paid || 0);
         }, 0);
         
         // Calculate real growth percentage
@@ -228,13 +228,14 @@ export function useDashboardData() {
         // Get real payment data for chart
         const { data, error } = await supabase
           .from('unified_payments')
-          .select('amount, amount_paid, payment_date')
+          .select('amount_paid, payment_date')
           .gte('payment_date', eightMonthsAgo.toISOString())
           .order('payment_date', { ascending: true });
           
         if (error) throw error;
         
-        // Process payment data into monthly totals
+        // Process payment data into monthly totals - IMPORTANT CHANGE:
+        // Only use amount_paid, NOT amount for revenue calculation
         const monthlyData = data.reduce((acc: Record<string, number>, payment) => {
           const date = new Date(payment.payment_date);
           const monthKey = date.toLocaleString('default', { month: 'short' });
@@ -243,8 +244,8 @@ export function useDashboardData() {
             acc[monthKey] = 0;
           }
           
-          // Use amount_paid if available, otherwise use amount
-          acc[monthKey] += payment.amount_paid || payment.amount || 0;
+          // Only add amount_paid and handle null/undefined as 0
+          acc[monthKey] += payment.amount_paid || 0;
           return acc;
         }, {});
         
