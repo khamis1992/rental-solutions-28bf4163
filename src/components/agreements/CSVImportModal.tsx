@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { uploadCSV, createImportLog, downloadAgreementCSVTemplate } from '@/utils/agreement-import-utils';
+import { uploadCSV, createImportLog, downloadAgreementCSVTemplate, checkEdgeFunctionAvailability } from '@/utils/agreement-import-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, FileUp, Download, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
@@ -49,6 +49,15 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
     setUploadProgress('uploading');
 
     try {
+      // First check if the edge function is available
+      const isEdgeFunctionAvailable = await checkEdgeFunctionAvailability();
+      if (!isEdgeFunctionAvailable) {
+        toast.error('Import service is currently unavailable. Please try again later.');
+        setUploadProgress('error');
+        setIsUploading(false);
+        return;
+      }
+
       // Generate a unique filename
       const timestamp = new Date().getTime();
       const fileExt = file.name.split('.').pop();
@@ -121,7 +130,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
         <DialogHeader>
           <DialogTitle>Import Agreements from CSV</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to create multiple agreements at once.
+            Upload a CSV file to create multiple agreements at once. You can use Customer ID, Email, Phone Number, or Full Name to identify customers, and Vehicle ID, License Plate or VIN to identify vehicles.
           </DialogDescription>
         </DialogHeader>
 

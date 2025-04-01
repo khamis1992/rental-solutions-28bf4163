@@ -2,13 +2,11 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { z } from 'https://deno.land/x/zod@v3.16.1/mod.ts';
 
-// Define CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Define the schema for validating CSV row data
 const agreementImportSchema = z.object({
   customer_id: z.string().min(1, 'Customer ID is required'),
   vehicle_id: z.string().min(1, 'Vehicle ID is required'),
@@ -47,7 +45,6 @@ type ProcessingResult = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -55,7 +52,6 @@ serve(async (req) => {
   try {
     console.log("Process agreement imports function called");
     
-    // Get the request body
     let reqBody;
     try {
       reqBody = await req.json();
@@ -68,7 +64,6 @@ serve(async (req) => {
       );
     }
     
-    // Handle test request
     if (reqBody.test === true) {
       console.log("Test request received, returning success");
       return new Response(
@@ -86,12 +81,10 @@ serve(async (req) => {
       );
     }
 
-    // Create a Supabase client
     const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    // Get the import record
     const { data: importData, error: importError } = await supabase
       .from("agreement_imports")
       .select("*")
@@ -105,13 +98,11 @@ serve(async (req) => {
       );
     }
     
-    // Update import status to processing
     await supabase
       .from("agreement_imports")
       .update({ status: "processing" })
       .eq("id", importId);
       
-    // Get the file from storage
     const { data: fileData, error: fileError } = await supabase.storage
       .from("agreement-imports")
       .download(importData.file_name);
@@ -127,10 +118,8 @@ serve(async (req) => {
       );
     }
     
-    // Process the CSV file
     const result = await processCSV(supabase, fileData, importId);
     
-    // Update import status based on processing result
     if (result.success) {
       await updateImportStatus(supabase, importId, "completed", {
         processed_count: result.processed,
@@ -169,7 +158,6 @@ async function updateImportStatus(supabase, importId, status, updates = {}) {
 
 async function processCSV(supabase, fileData, importId): Promise<ProcessingResult> {
   try {
-    // Parse the CSV file
     const text = new TextDecoder().decode(fileData);
     const lines = text.split("\n").filter(line => line.trim() !== "");
     
@@ -182,10 +170,8 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
       };
     }
     
-    // Parse headers
     const headers = lines[0].split(",").map(h => h.trim());
     
-    // Map headers to field names
     const fieldMap = {
       'Customer ID': 'customer_id',
       'Vehicle ID': 'vehicle_id',
@@ -197,7 +183,6 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
       'Notes': 'notes'
     };
     
-    // Update the row count in the import record
     await supabase
       .from("agreement_imports")
       .update({ row_count: lines.length - 1 })
@@ -207,16 +192,13 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
     let errors = 0;
     const details = [];
     
-    // Process each row
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i].trim();
       if (!line) continue;
       
       try {
-        // Split the line into values, handling quoted values properly
         const values = parseCSVLine(line);
         
-        // Create an object with the mapped fields
         const rowData: Record<string, string> = {};
         headers.forEach((header, index) => {
           const fieldName = fieldMap[header];
@@ -225,11 +207,9 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
           }
         });
         
-        // Validate the row data
         const validationResult = agreementImportSchema.safeParse(rowData);
         
         if (!validationResult.success) {
-          // Log validation error
           const errorMessages = validationResult.error.errors.map(err => 
             `${err.path.join('.')}: ${err.message}`
           ).join(', ');
@@ -245,10 +225,8 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
           continue;
         }
         
-        // Find the customer by ID or other identifier
         let customerId = rowData.customer_id;
         if (!customerId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          // If not a UUID, try to find the customer by other means (email, etc.)
           const { data: customerData, error: customerError } = await supabase
             .from("profiles")
             .select("id")
@@ -270,10 +248,8 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
           customerId = customerData.id;
         }
         
-        // Find the vehicle by ID or license plate
         let vehicleId = rowData.vehicle_id;
         if (!vehicleId.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          // If not a UUID, try to find the vehicle by license plate or VIN
           const { data: vehicleData, error: vehicleError } = await supabase
             .from("vehicles")
             .select("id")
@@ -295,7 +271,6 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
           vehicleId = vehicleData.id;
         }
         
-        // Create a new agreement record
         const { error: createError } = await supabase
           .from("leases")
           .insert({

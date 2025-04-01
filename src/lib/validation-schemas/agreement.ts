@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 // Define agreement statuses
@@ -315,6 +316,18 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
 export interface AgreementImportRow {
   customer_id: string;
   vehicle_id: string;
+  start_date: string;
+  end_date: string;
+  rent_amount: string;
+  deposit_amount?: string;
+  agreement_type?: string;
+  notes?: string;
+}
+
+// Define the readable row type for human-friendly CSV imports
+export interface AgreementImportReadableRow {
+  customer_name: string;
+  vehicle_identifier: string;
   start_date: string;
   end_date: string;
   rent_amount: string;
