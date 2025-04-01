@@ -5,7 +5,29 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
+
+// Simplified type to avoid excessive deep instantiation
+type SimpleAgreement = {
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date: Date;
+  end_date: Date;
+  status: any; // Using any for the enum to avoid deep instantiation
+  created_at?: Date;
+  updated_at?: Date;
+  total_amount: number;
+  deposit_amount: number;
+  agreement_number: string;
+  notes: string;
+  terms_accepted: boolean;
+  additional_drivers: any[];
+  customers?: any;
+  vehicles?: any;
+  signature_url?: string;
+  rent_amount?: number;
+  daily_late_fee?: number;
+};
 
 interface SearchParams {
   query?: string;
@@ -13,9 +35,6 @@ interface SearchParams {
   vehicle_id?: string;
   customer_id?: string;
 }
-
-// Use FlattenType to prevent excessive type instantiation
-type SimpleAgreement = FlattenType<Agreement>;
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
@@ -95,7 +114,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
+      let mappedStatus: any;
 
       switch(data.status) {
         case 'active':
@@ -295,7 +314,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   // Use a very simplified type for the mutation to avoid deep type instantiation
   type BasicMutationParams = {
     id: string;
-    data: Record<string, any>; // Use a more generic type to avoid deep instantiation
+    data: Record<string, any>;
   };
 
   const updateAgreementMutation = useMutation({

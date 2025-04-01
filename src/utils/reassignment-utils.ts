@@ -25,8 +25,9 @@ export const recordVehicleReassignment = async (
     // Get current timestamp for the record
     const reassignedAt = new Date().toISOString();
     
-    // First, create the reassignment history record
-    const { data, error } = await supabase
+    // First, create the reassignment history record using generic insert to avoid type issues
+    // Using 'any' type to bypass TypeScript's deep instantiation issue
+    const { data, error } = await (supabase as any)
       .from('vehicle_reassignments')
       .insert({
         source_agreement_id: details.sourceAgreementId,
@@ -48,7 +49,7 @@ export const recordVehicleReassignment = async (
     }
     
     // Also add an entry to the audit logs for this action
-    await supabase
+    await (supabase as any)
       .from('audit_logs')
       .insert({
         entity_type: 'vehicle',
@@ -63,7 +64,8 @@ export const recordVehicleReassignment = async (
         }
       });
     
-    return data.id;
+    // Cast data to any to avoid type errors
+    return (data as any)?.id || null;
   } catch (error) {
     console.error("Unexpected error in recordVehicleReassignment:", error);
     return null;
@@ -135,7 +137,7 @@ export const revertReassignment = async (
 ): Promise<boolean> => {
   try {
     // 1. Fetch the reassignment record
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('vehicle_reassignments')
       .select('*')
       .eq('id', reassignmentId)
@@ -147,11 +149,14 @@ export const revertReassignment = async (
       return false;
     }
     
+    // Safely access properties using type assertion
+    const reassignmentData = data as any;
+    
     // 2. Check if the source agreement is still valid for rollback
     const { data: sourceAgreement, error: sourceError } = await supabase
       .from('leases')
       .select('id, status')
-      .eq('id', data.source_agreement_id)
+      .eq('id', reassignmentData.source_agreement_id)
       .single();
       
     if (sourceError || !sourceAgreement) {
@@ -163,10 +168,10 @@ export const revertReassignment = async (
     const { data: targetAgreement, error: targetError } = await supabase
       .from('leases')
       .select('id, vehicle_id')
-      .eq('id', data.target_agreement_id)
+      .eq('id', reassignmentData.target_agreement_id)
       .single();
       
-    if (targetError || !targetAgreement || targetAgreement.vehicle_id !== data.vehicle_id) {
+    if (targetError || !targetAgreement || targetAgreement.vehicle_id !== reassignmentData.vehicle_id) {
       toast.error("Vehicle is no longer assigned to the target agreement");
       return false;
     }
@@ -175,11 +180,11 @@ export const revertReassignment = async (
     const { error: updateError } = await supabase
       .from('leases')
       .update({ 
-        vehicle_id: data.vehicle_id,
+        vehicle_id: reassignmentData.vehicle_id,
         status: 'active',
         updated_at: new Date().toISOString()
       })
-      .eq('id', data.source_agreement_id);
+      .eq('id', reassignmentData.source_agreement_id);
       
     if (updateError) {
       console.error("Error updating source agreement:", updateError);
@@ -194,7 +199,7 @@ export const revertReassignment = async (
         vehicle_id: null,
         updated_at: new Date().toISOString()
       })
-      .eq('id', data.target_agreement_id);
+      .eq('id', reassignmentData.target_agreement_id);
       
     if (targetUpdateError) {
       console.error("Error updating target agreement:", targetUpdateError);
@@ -203,17 +208,17 @@ export const revertReassignment = async (
     }
     
     // 6. If original reassignment transferred obligations, move them back
-    if (data.transfer_obligations) {
-      await transferObligations(data.target_agreement_id, data.source_agreement_id);
+    if (reassignmentData.transfer_obligations) {
+      await transferObligations(reassignmentData.target_agreement_id, reassignmentData.source_agreement_id);
     }
     
     // 7. Record the rollback action
     await recordVehicleReassignment({
-      sourceAgreementId: data.target_agreement_id,
-      sourceAgreementNumber: data.target_agreement_number,
-      targetAgreementId: data.source_agreement_id,
-      targetAgreementNumber: data.source_agreement_number,
-      vehicleId: data.vehicle_id,
+      sourceAgreementId: reassignmentData.target_agreement_id,
+      sourceAgreementNumber: reassignmentData.target_agreement_number,
+      targetAgreementId: reassignmentData.source_agreement_id,
+      targetAgreementNumber: reassignmentData.source_agreement_number,
+      vehicleId: reassignmentData.vehicle_id,
       reason: reason
     });
     
@@ -242,7 +247,8 @@ export const getReassignmentHistory = async (params: {
       return [];
     }
     
-    let query = supabase
+    // Using type assertion to bypass TypeScript errors
+    let query = (supabase as any)
       .from('vehicle_reassignments')
       .select(`
         id,

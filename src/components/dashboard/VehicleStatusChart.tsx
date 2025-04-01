@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -114,17 +113,14 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   
   if (!data) return null;
   
-  // Make sure all statuses have values
   const normalizedData = { ...data };
   
-  // Set default values for all statuses if they don't exist
   statusConfig.forEach(status => {
     if (normalizedData[status.key as keyof typeof normalizedData] === undefined) {
       normalizedData[status.key as keyof typeof normalizedData] = 0;
     }
   });
   
-  // Create chart data from real vehicle stats
   const chartData = statusConfig
     .filter(status => normalizedData[status.key as keyof typeof normalizedData] > 0)
     .map(status => ({
@@ -135,7 +131,6 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
       filterValue: status.filterValue
     }));
   
-  // Calculate the total count of critical vehicles (stolen, accident, critical)
   const criticalVehicles = (normalizedData.stolen || 0) + 
                           (normalizedData.accident || 0) + 
                           (normalizedData.critical || 0);
@@ -143,7 +138,6 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   const hasCriticalVehicles = criticalVehicles > 0;
   
   const handleStatusClick = (data: any) => {
-    // Navigate to vehicles page filtered by status
     navigate(`/vehicles?status=${data.filterValue}`);
   };
 
@@ -196,7 +190,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
             <div className="text-sm text-center lg:text-left text-muted-foreground mb-4">
               <div className="text-lg font-semibold text-foreground">Total Fleet: {data.total} vehicles</div>
               {hasCriticalVehicles && (
-                <Badge variant="danger" className="mt-2 text-xs px-3 py-1">
+                <Badge variant="destructive" className="mt-2 text-xs px-3 py-1">
                   {criticalVehicles} vehicle{criticalVehicles !== 1 ? 's' : ''} requiring immediate attention
                 </Badge>
               )}
