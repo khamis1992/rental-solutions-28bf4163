@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import PageContainer from '@/components/layout/PageContainer';
@@ -12,9 +11,10 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench } from 'lucide-react';
+import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Type for system settings
 interface SystemSetting {
@@ -29,6 +29,45 @@ const SystemSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
+  const [serviceStatus, setServiceStatus] = useState({
+    agreementImport: true,
+    customerImport: true,
+    isChecking: true
+  });
+  
+  // Check edge function availability
+  useEffect(() => {
+    const checkFunctionAvailability = async () => {
+      try {
+        setServiceStatus(prev => ({ ...prev, isChecking: true }));
+        
+        // Check agreement import function
+        const agreementCheck = await supabase.functions.invoke('process-agreement-imports', {
+          body: { test: true },
+        });
+        
+        // Check customer import function
+        const customerCheck = await supabase.functions.invoke('process-customer-imports', {
+          body: { test: true },
+        });
+        
+        setServiceStatus({
+          agreementImport: !agreementCheck.error,
+          customerImport: !customerCheck.error,
+          isChecking: false
+        });
+      } catch (err) {
+        console.error("Error checking service availability:", err);
+        setServiceStatus({
+          agreementImport: false,
+          customerImport: false,
+          isChecking: false
+        });
+      }
+    };
+    
+    checkFunctionAvailability();
+  }, []);
   
   // Fetch system settings
   const { data: settings, isLoading } = useQuery({
@@ -171,6 +210,23 @@ const SystemSettings = () => {
           icon={Settings} 
         />
       </div>
+      
+      {/* System Status Alert */}
+      {(!serviceStatus.agreementImport || !serviceStatus.customerImport) && (
+        <Alert variant="warning" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="flex flex-col gap-1">
+            <span className="font-semibold">System Service Limitations</span>
+            {!serviceStatus.agreementImport && (
+              <span>• Agreement import function is unavailable</span>
+            )}
+            {!serviceStatus.customerImport && (
+              <span>• Customer import function is unavailable</span>
+            )}
+            <span className="text-sm mt-1">Some system features may not work properly. Please contact system administrator.</span>
+          </AlertDescription>
+        </Alert>
+      )}
       
       <form onSubmit={handleSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -422,6 +478,15 @@ const SystemSettings = () => {
                   <p className="text-sm text-muted-foreground mb-6">
                     Specialized tools to help with system operations and data management.
                   </p>
+                  
+                  {(!serviceStatus.agreementImport || !serviceStatus.customerImport) && (
+                    <Alert variant="warning" className="mb-4">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        Some tools may have limited functionality due to unavailable import services.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   
                   <IdConverterTool />
                 </div>
