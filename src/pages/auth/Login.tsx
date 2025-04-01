@@ -36,8 +36,6 @@ const Login = () => {
     try {
       setIsLoading(true);
       await signIn(data.email, data.password);
-      
-      // Redirect to the page they tried to visit or to dashboard
       const from = (location.state as any)?.from?.pathname || "/dashboard";
       navigate(from, { replace: true });
     } catch (error) {
@@ -48,11 +46,19 @@ const Login = () => {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <div className="w-full max-w-md px-4">
-        <Card>
+    <div className="flex items-center justify-center min-h-screen relative overflow-hidden bg-gradient-radial">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-secondary/20 animate-gradient-shift" />
+      <div className="absolute inset-0">
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/30 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob" />
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-secondary/30 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-accent/30 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-4000" />
+      </div>
+      <div className="w-full max-w-md px-4 relative z-10">
+        <Card className="backdrop-blur-sm bg-card/80 border-border/50 shadow-2xl transition-all duration-300 hover:shadow-primary/20">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold text-center">Sign in</CardTitle>
+            <CardTitle className="text-2xl font-bold text-center bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              Sign in
+            </CardTitle>
             <CardDescription className="text-center">
               Enter your credentials to access your account
             </CardDescription>
@@ -67,7 +73,7 @@ const Login = () => {
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="name@example.com" {...field} />
+                        <Input placeholder="name@example.com" {...field} className="backdrop-blur-sm bg-background/50" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -80,13 +86,13 @@ const Login = () => {
                     <FormItem>
                       <FormLabel>Password</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="••••••••" {...field} />
+                        <Input type="password" placeholder="••••••••" {...field} className="backdrop-blur-sm bg-background/50" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity" disabled={isLoading}>
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -99,7 +105,7 @@ const Login = () => {
               </form>
             </Form>
             <div className="mt-4 text-center">
-              <Link to="/auth/forgot-password" className="text-sm text-primary hover:underline">
+              <Link to="/auth/forgot-password" className="text-sm text-primary hover:text-accent transition-colors">
                 Forgot password?
               </Link>
             </div>
@@ -107,7 +113,7 @@ const Login = () => {
           <CardFooter className="flex flex-col">
             <div className="text-sm text-center text-muted-foreground">
               Don't have an account?{" "}
-              <Link to="/auth/register" className="text-primary hover:underline">
+              <Link to="/auth/register" className="text-primary hover:text-accent transition-colors">
                 Sign up
               </Link>
             </div>
