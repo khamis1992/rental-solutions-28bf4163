@@ -208,6 +208,201 @@ export const checkAndGenerateMonthlyPayments = async (agreementId?: string, amou
   }
 };
 
+// Function to fix date formats for agreements in a specific import
+export const fixImportedAgreementDates = async (importId: string) => {
+  try {
+    console.log(`Fixing date formats for import ${importId}`);
+    
+    // First get the import details
+    const { data: importData, error: importError } = await supabase
+      .from('agreement_imports')
+      .select('*')
+      .eq('id', importId)
+      .single();
+      
+    if (importError) {
+      console.error('Error fetching import:', importError);
+      return { success: false, error: importError };
+    }
+    
+    if (!importData) {
+      return { success: false, message: 'Import not found' };
+    }
+    
+    // Update the import status to 'fixing' to show that we're working on it
+    await supabase
+      .from('agreement_imports')
+      .update({ status: 'fixing' })
+      .eq('id', importId);
+    
+    // Find agreements created by this import
+    const originalFileName = importData.original_file_name;
+    const startTime = new Date(importData.created_at);
+    const endTime = new Date(importData.updated_at || importData.created_at);
+    endTime.setMinutes(endTime.getMinutes() + 10); // Add 10-minute buffer
+    
+    console.log(`Finding agreements created between ${startTime.toISOString()} and ${endTime.toISOString()}`);
+    console.log(`Looking for agreements imported from file: ${originalFileName}`);
+    
+    // Get all agreements created in this timeframe
+    const { data: agreements, error: agreementsError } = await supabase
+      .from('leases')
+      .select('*')
+      .gte('created_at', startTime.toISOString())
+      .lte('created_at', endTime.toISOString());
+    
+    if (agreementsError) {
+      console.error('Error finding agreements:', agreementsError);
+      return { success: false, error: agreementsError };
+    }
+
+    if (!agreements || agreements.length === 0) {
+      console.log('No agreements found to fix');
+      
+      // Update import status back to completed
+      await supabase
+        .from('agreement_imports')
+        .update({ status: 'completed' })
+        .eq('id', importId);
+        
+      return { success: true, message: 'No agreements found to fix', affected: 0 };
+    }
+    
+    console.log(`Found ${agreements.length} agreements to check for date fixing`);
+    
+    let fixedCount = 0;
+    const results = [];
+    
+    // Process each agreement to fix the dates
+    for (const agreement of agreements) {
+      try {
+        let startDate = new Date(agreement.start_date);
+        let endDate = new Date(agreement.end_date);
+        let dateFixed = false;
+        
+        // Check if dates are in the wrong format (MM/DD/YYYY instead of DD/MM/YYYY)
+        // We'll detect this by checking if the month value (0-11) is > 12, which would indicate
+        // that the month and day were swapped
+        if (startDate.getDate() > 12) {
+          // This might be a swapped date, let's fix it
+          console.log(`Fixing start date for agreement ${agreement.id}: ${startDate.toISOString()}`);
+          
+          // Get the original parts
+          const month = startDate.getDate(); // This was actually the month
+          const day = startDate.getMonth() + 1; // This was actually the day
+          const year = startDate.getFullYear();
+          
+          // Create the correct date (with day and month in the right places)
+          const correctedStartDate = new Date(year, month - 1, day);
+          console.log(`Corrected start date: ${correctedStartDate.toISOString()}`);
+          
+          startDate = correctedStartDate;
+          dateFixed = true;
+        }
+        
+        if (endDate.getDate() > 12) {
+          // This might be a swapped date, let's fix it
+          console.log(`Fixing end date for agreement ${agreement.id}: ${endDate.toISOString()}`);
+          
+          // Get the original parts
+          const month = endDate.getDate(); // This was actually the month
+          const day = endDate.getMonth() + 1; // This was actually the day
+          const year = endDate.getFullYear();
+          
+          // Create the correct date (with day and month in the right places)
+          const correctedEndDate = new Date(year, month - 1, day);
+          console.log(`Corrected end date: ${correctedEndDate.toISOString()}`);
+          
+          endDate = correctedEndDate;
+          dateFixed = true;
+        }
+        
+        if (dateFixed) {
+          // Calculate agreement duration with the fixed dates
+          const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const agreementDuration = `${diffDays} days`;
+          
+          // Update the agreement with corrected dates
+          const { data: updatedAgreement, error: updateError } = await supabase
+            .from('leases')
+            .update({
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+              agreement_duration: agreementDuration
+            })
+            .eq('id', agreement.id)
+            .select();
+            
+          if (updateError) {
+            console.error(`Error updating agreement ${agreement.id}:`, updateError);
+            results.push({
+              agreement_id: agreement.id,
+              status: 'error',
+              message: updateError.message
+            });
+          } else {
+            console.log(`Successfully fixed dates for agreement ${agreement.id}`);
+            fixedCount++;
+            results.push({
+              agreement_id: agreement.id,
+              status: 'fixed',
+              old_start_date: agreement.start_date,
+              new_start_date: startDate.toISOString(),
+              old_end_date: agreement.end_date,
+              new_end_date: endDate.toISOString()
+            });
+          }
+        } else {
+          console.log(`No date fixing needed for agreement ${agreement.id}`);
+          results.push({
+            agreement_id: agreement.id,
+            status: 'no_change',
+            message: 'Dates were already in the correct format'
+          });
+        }
+      } catch (error) {
+        console.error(`Error processing agreement ${agreement.id}:`, error);
+        results.push({
+          agreement_id: agreement.id,
+          status: 'error',
+          message: error.message
+        });
+      }
+    }
+    
+    // Update import status back to completed
+    await supabase
+      .from('agreement_imports')
+      .update({ 
+        status: 'completed',
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', importId);
+    
+    return {
+      success: true,
+      affected: fixedCount,
+      total: agreements.length,
+      message: `Fixed dates for ${fixedCount} out of ${agreements.length} agreements`,
+      results
+    };
+  } catch (error) {
+    console.error('Error in fixImportedAgreementDates:', error);
+    
+    // Make sure to set the status back to its original state if we fail
+    await supabase
+      .from('agreement_imports')
+      .update({ 
+        status: 'failed',
+        errors: { message: `Date fixing failed: ${error.message}` }
+      })
+      .eq('id', importId);
+      
+    return { success: false, error };
+  }
+};
+
 // Enhanced function to manage import reverts with improved reliability
 export const revertAgreementImport = async (importId: string, reason?: string) => {
   try {

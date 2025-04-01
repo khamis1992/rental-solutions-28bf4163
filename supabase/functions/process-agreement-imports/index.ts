@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { z } from 'https://deno.land/x/zod@v3.16.1/mod.ts';
@@ -16,14 +15,14 @@ const agreementImportSchema = z.object({
       const parsedDate = new Date(date);
       return !isNaN(parsedDate.getTime());
     },
-    { message: 'Start date must be a valid date (YYYY-MM-DD)' }
+    { message: 'Start date must be a valid date (DD/MM/YYYY or YYYY-MM-DD)' }
   ),
   end_date: z.string().refine(
     (date) => {
       const parsedDate = new Date(date);
       return !isNaN(parsedDate.getTime());
     },
-    { message: 'End date must be a valid date (YYYY-MM-DD)' }
+    { message: 'End date must be a valid date (DD/MM/YYYY or YYYY-MM-DD)' }
   ),
   rent_amount: z.string().refine(
     (value) => !isNaN(parseFloat(value)) && parseFloat(value) >= 0,
@@ -44,6 +43,30 @@ type ProcessingResult = {
   errors: number;
   details: any[];
 };
+
+function parseCorrectDateFormat(dateStr: string): Date {
+  let date = new Date(dateStr);
+  
+  if (!isNaN(date.getTime())) {
+    console.log(`Parsed date ${dateStr} as ISO format: ${date.toISOString()}`);
+    return date;
+  }
+  
+  if (dateStr.includes('/')) {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      
+      date = new Date(year, month, day);
+      console.log(`Parsed date ${dateStr} as DD/MM/YYYY format: ${date.toISOString()}`);
+      return date;
+    }
+  }
+  
+  throw new Error(`Invalid date format: ${dateStr}. Please use DD/MM/YYYY or YYYY-MM-DD format.`);
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -184,22 +207,16 @@ async function updateImportStatus(supabase, importId, status, updates = {}) {
 
 async function processCSV(supabase, fileData, importId): Promise<ProcessingResult> {
   try {
-    // First, handle the file data correctly regardless of its type
     let text = "";
     
-    // Check what type of data we're dealing with and handle it accordingly
     if (fileData instanceof Uint8Array) {
-      // If it's a Uint8Array (binary data)
       text = new TextDecoder().decode(fileData);
     } else if (typeof fileData === 'string') {
-      // If it's already a string
       text = fileData;
     } else if (fileData instanceof Blob) {
-      // If it's a Blob object
       const arrayBuffer = await fileData.arrayBuffer();
       text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
     } else {
-      // For any other format, try the Blob approach as a fallback
       const blob = new Blob([fileData]);
       const arrayBuffer = await blob.arrayBuffer();
       text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
@@ -218,7 +235,6 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
       };
     }
     
-    // Split by newlines and filter out empty lines and comment lines
     const lines = text.split("\n").filter(line => {
       const trimmed = line.trim();
       return trimmed !== "" && !trimmed.startsWith("#");
@@ -266,7 +282,6 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         console.log(`Processing line ${i}: ${line}`);
         const values = parseCSVLine(line);
         
-        // Log all raw CSV values for debugging
         console.log(`Raw CSV values for line ${i}:`, values);
         
         const rowData: Record<string, string> = {};
@@ -300,7 +315,6 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         }
         
         let customerId = rowData.customer_id;
-        // If not a UUID, try to find the customer by other identifiers
         if (!isUUID(customerId)) {
           console.log(`Looking up customer with identifier: ${customerId}`);
           
@@ -330,7 +344,6 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         }
         
         let vehicleId = rowData.vehicle_id;
-        // If not a UUID, try to find the vehicle by license plate or VIN
         if (!isUUID(vehicleId)) {
           console.log(`Looking up vehicle with identifier: ${vehicleId}`);
           
@@ -361,20 +374,41 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
         
         console.log(`Creating agreement for customer ${customerId}, vehicle ${vehicleId}`);
         
-        // Calculate agreement duration (end_date - start_date)
-        const startDate = new Date(rowData.start_date);
-        const endDate = new Date(rowData.end_date);
-        // Calculate the difference in days for agreement_duration
+        let startDate, endDate;
+        try {
+          startDate = parseCorrectDateFormat(rowData.start_date);
+          endDate = parseCorrectDateFormat(rowData.end_date);
+          
+          console.log(`Parsed start date: ${startDate.toISOString()}`);
+          console.log(`Parsed end date: ${endDate.toISOString()}`);
+          
+          if (endDate < startDate) {
+            throw new Error("End date cannot be before start date");
+          }
+        } catch (dateError) {
+          console.error(`Error parsing dates: ${dateError.message}`);
+          
+          await logImportError(supabase, importId, i, customerId, 
+            `Date format error: ${dateError.message}`, rowData);
+          
+          errors++;
+          details.push({
+            row: i,
+            errors: `Date format error: ${dateError.message}`,
+            data: rowData
+          });
+          continue;
+        }
+        
         const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const agreementDuration = `${diffDays} days`;
         
-        // Create new agreement with all required fields
         const newAgreement = {
           customer_id: customerId,
           vehicle_id: vehicleId,
-          start_date: new Date(rowData.start_date).toISOString(),
-          end_date: new Date(rowData.end_date).toISOString(),
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
           rent_amount: parseFloat(rowData.rent_amount),
           deposit_amount: rowData.deposit_amount ? parseFloat(rowData.deposit_amount) : 0,
           agreement_type: rowData.agreement_type || 'short_term',

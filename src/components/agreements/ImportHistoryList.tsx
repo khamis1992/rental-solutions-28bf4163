@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase, revertAgreementImport } from '@/lib/supabase';
+import { supabase, revertAgreementImport, fixImportedAgreementDates } from '@/lib/supabase';
 import { format } from 'date-fns';
 import {
   Table,
@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Trash2,
   RotateCcw,
+  Calendar,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,6 +50,7 @@ export function ImportHistoryList() {
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [revertReason, setRevertReason] = useState('');
   const [isReverting, setIsReverting] = useState(false);
+  const [isFixingDates, setIsFixingDates] = useState(false);
 
   useEffect(() => {
     fetchImports();
@@ -152,6 +154,27 @@ export function ImportHistoryList() {
     }
   };
 
+  const handleFixDates = async (importId: string) => {
+    try {
+      setIsFixingDates(true);
+      toast.info("Fixing date formats for this import...");
+      
+      const result = await fixImportedAgreementDates(importId);
+      
+      if (result.success) {
+        toast.success(result.message || "Date formats successfully fixed");
+        await fetchImports(); // Refresh the list
+      } else {
+        toast.error(`Failed to fix date formats: ${result.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error fixing date formats:', err);
+      toast.error(`Error fixing date formats: ${err.message}`);
+    } finally {
+      setIsFixingDates(false);
+    }
+  };
+
   const openRevertDialog = (importId: string) => {
     setSelectedImportId(importId);
     setRevertDialogOpen(true);
@@ -171,6 +194,8 @@ export function ImportHistoryList() {
         return <RotateCcw className="h-4 w-4 text-blue-500" />;
       case 'reverting':
         return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
+      case 'fixing':
+        return <Loader2 className="h-4 w-4 animate-spin text-purple-500" />;
       default:
         return null;
     }
@@ -190,6 +215,8 @@ export function ImportHistoryList() {
         return <Badge variant="secondary" className="capitalize bg-blue-100 text-blue-800">Reverted</Badge>;
       case 'reverting':
         return <Badge variant="secondary" className="capitalize bg-blue-100 text-blue-800 animate-pulse">Reverting...</Badge>;
+      case 'fixing':
+        return <Badge variant="secondary" className="capitalize bg-purple-100 text-purple-800 animate-pulse">Fixing Dates...</Badge>;
       default:
         return <Badge variant="secondary" className="capitalize">{status}</Badge>;
     }
@@ -199,7 +226,15 @@ export function ImportHistoryList() {
     // Allow reverting completed, failed, or processing imports that haven't been reverted yet
     return (
       ['completed', 'failed', 'processing'].includes(importItem.status) && 
-      !['reverted', 'reverting'].includes(importItem.status)
+      !['reverted', 'reverting', 'fixing'].includes(importItem.status)
+    );
+  };
+
+  const canFixDates = (importItem: any): boolean => {
+    // Only allow fixing dates for completed imports that haven't been reverted
+    return (
+      importItem.status === 'completed' && 
+      !['reverted', 'reverting', 'fixing'].includes(importItem.status)
     );
   };
 
@@ -236,7 +271,7 @@ export function ImportHistoryList() {
             <TableHead>Date</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Records</TableHead>
-            <TableHead className="w-24"></TableHead>
+            <TableHead className="w-36"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -281,17 +316,31 @@ export function ImportHistoryList() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {canRevertImport(importItem) && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => openRevertDialog(importItem.id)}
-                      className="flex items-center gap-1"
-                    >
-                      <RotateCcw className="h-3 w-3" />
-                      <span>Revert</span>
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {canFixDates(importItem) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => handleFixDates(importItem.id)}
+                        className="flex items-center gap-1"
+                        disabled={isFixingDates}
+                      >
+                        <Calendar className="h-3 w-3" />
+                        <span>Fix Dates</span>
+                      </Button>
+                    )}
+                    {canRevertImport(importItem) && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => openRevertDialog(importItem.id)}
+                        className="flex items-center gap-1"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                        <span>Revert</span>
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
               <TableRow className="hover:bg-transparent">
