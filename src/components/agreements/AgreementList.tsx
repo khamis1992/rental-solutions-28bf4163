@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   ColumnDef, 
@@ -24,7 +24,9 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  Info
+  Info,
+  Search,
+  X
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -59,12 +61,21 @@ import {
 } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface SearchParams {
   status?: string;
+  query?: string;
 }
 
-export function AgreementList() {
+interface AgreementListProps {
+  searchQuery?: string;
+}
+
+export function AgreementList({ searchQuery = '' }: AgreementListProps) {
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
   const { 
     agreements, 
     isLoading, 
@@ -72,7 +83,13 @@ export function AgreementList() {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements();
+  } = useAgreements({ query: localSearchQuery, status: statusFilter });
+  
+  // Update local search when prop changes
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+    setSearchParams(prev => ({ ...prev, query: searchQuery }));
+  }, [searchQuery, setSearchParams]);
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -284,13 +301,51 @@ export function AgreementList() {
     pageCount: Math.ceil((agreements?.length || 0) / 10),
   });
 
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setSearchParams(prev => ({ ...prev, status: value }));
+  };
+
+  const handleSearchChange = (value: string) => {
+    setLocalSearchQuery(value);
+    setSearchParams(prev => ({ ...prev, query: value }));
+  };
+
+  const clearSearch = () => {
+    setLocalSearchQuery('');
+    setSearchParams(prev => ({ ...prev, query: '' }));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">
+          {/* Show search bar in the component if not provided through props */}
+          {!searchQuery && (
+            <div className="relative w-full sm:w-64 lg:w-80">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                value={localSearchQuery}
+                placeholder="Search agreements..."
+                className="pl-9 pr-9"
+                onChange={(e) => handleSearchChange(e.target.value)}
+              />
+              {localSearchQuery && (
+                <button 
+                  className="absolute right-2.5 top-2.5"
+                  onClick={clearSearch}
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                </button>
+              )}
+            </div>
+          )}
+          
           <Select
-            value={searchParams.status || 'all'}
-            onValueChange={(value) => setSearchParams({...searchParams, status: value})}
+            value={statusFilter}
+            onValueChange={handleStatusFilterChange}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select status" />
@@ -320,6 +375,29 @@ export function AgreementList() {
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
         </Alert>
+      )}
+      
+      {/* Show active filters */}
+      {(localSearchQuery || statusFilter !== 'all') && (
+        <div className="flex items-center text-sm text-muted-foreground mb-1">
+          <span>Filtering by:</span>
+          {localSearchQuery && (
+            <Badge variant="outline" className="ml-2 gap-1">
+              Search: {localSearchQuery}
+              <button onClick={clearSearch}>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {statusFilter !== 'all' && (
+            <Badge variant="outline" className="ml-2 gap-1">
+              Status: {statusFilter}
+              <button onClick={() => handleStatusFilterChange('all')}>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+        </div>
       )}
       
       <div className="rounded-md border">

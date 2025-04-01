@@ -1,8 +1,10 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 
 interface SearchParams {
   query?: string;
@@ -192,8 +194,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
+        // Improve search logic to better detect what the user is searching for
         const isLicensePlateSearch = isLicensePlatePattern(searchQuery) || 
-                                     searchParams.query.length <= 4;
+                                    searchParams.query.length <= 4;
 
         let orConditions = [];
         
