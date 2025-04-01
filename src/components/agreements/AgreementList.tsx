@@ -124,11 +124,22 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       index => agreements[parseInt(index)].id as string
     );
     
+    console.log("Selected IDs for deletion:", selectedIds);
+    
     let successCount = 0;
     let errorCount = 0;
     
     for (const id of selectedIds) {
       try {
+        const { error: paymentDeleteError } = await supabase
+          .from('unified_payments')
+          .delete()
+          .eq('lease_id', id);
+          
+        if (paymentDeleteError) {
+          console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
+        }
+        
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
@@ -154,6 +165,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           console.error(`Failed to delete agreement ${id}:`, error);
           errorCount++;
         } else {
+          console.log(`Successfully deleted agreement ${id}`);
           successCount++;
         }
       } catch (error) {
