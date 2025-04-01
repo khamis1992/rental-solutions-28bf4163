@@ -111,8 +111,19 @@ export const createImportLog = async (
   overwriteExisting: boolean = false
 ): Promise<string | null> => {
   try {
-    // If overwriteExisting is true, check for existing imports with the same original filename
-    if (overwriteExisting) {
+    // Check if the overwrite_existing column exists in the table
+    const { data: columnInfo, error: columnCheckError } = await supabase
+      .rpc('column_exists', { table_name: 'agreement_imports', column_name: 'overwrite_existing' });
+    
+    const hasOverwriteColumn = columnInfo === true;
+    
+    if (columnCheckError) {
+      console.warn("Unable to check for column existence:", columnCheckError);
+      // Proceed anyway with a basic insert without the overwrite flag
+    }
+
+    // If overwriteExisting is true and the column exists, handle existing imports
+    if (overwriteExisting && hasOverwriteColumn) {
       const { data: existingImports } = await supabase
         .from('agreement_imports')
         .select('id')
@@ -135,15 +146,22 @@ export const createImportLog = async (
       }
     }
 
+    // Create insert object dynamically based on column existence
+    const insertObj: any = {
+      file_name: fileName,
+      original_file_name: originalFileName,
+      created_by: userId,
+      status: 'pending'
+    };
+    
+    // Only add overwrite_existing if the column exists
+    if (hasOverwriteColumn) {
+      insertObj.overwrite_existing = overwriteExisting;
+    }
+
     const { data, error } = await supabase
       .from('agreement_imports')
-      .insert({
-        file_name: fileName,
-        original_file_name: originalFileName,
-        created_by: userId,
-        status: 'pending',
-        overwrite_existing: overwriteExisting
-      })
+      .insert(insertObj)
       .select('id')
       .single();
 
