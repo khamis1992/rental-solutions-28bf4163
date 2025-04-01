@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -83,7 +84,10 @@ export const uploadCSV = async (file: File, fileName: string): Promise<string | 
   try {
     const { data, error } = await supabase.storage
       .from('agreement-imports')
-      .upload(fileName, file);
+      .upload(fileName, file, {
+        contentType: 'text/csv',
+        upsert: false
+      });
 
     if (error) {
       console.error('Error uploading CSV:', error);

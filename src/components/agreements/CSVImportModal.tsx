@@ -77,7 +77,7 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
       // Call the Edge Function to process the file
       try {
         const { data, error } = await supabase.functions.invoke('process-agreement-imports', {
-          body: { importId: importId },
+          body: { importId },
         });
 
         if (error) {
@@ -85,7 +85,9 @@ export function CSVImportModal({ open, onOpenChange, onImportComplete }: CSVImpo
           toast.error(`Import processing failed: ${error.message}`);
           setUploadProgress('error');
         } else {
-          toast.success(`Import submitted for processing: ${data?.processed || 0} agreements will be imported`);
+          const resultMessage = `Import submitted for processing: ${data?.processed || 0} agreements will be imported`;
+          toast.success(resultMessage);
+          console.log('Import result:', data);
           setUploadProgress('success');
           onImportComplete();
         }
