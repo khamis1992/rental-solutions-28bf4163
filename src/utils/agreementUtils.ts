@@ -1,3 +1,4 @@
+
 import jsPDF from 'jspdf';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { loadFontFile, arrayBufferToBase64, toArabicNumerals } from './fontUtils';
@@ -257,24 +258,23 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.setR2L(true);
         
         // Check if Amiri font was loaded successfully, otherwise use a fallback
-        const hasAmiriBold = doc.getFont('Amiri', 'bold').fontName === 'Amiri';
-        const hasAmiriNormal = doc.getFont('Amiri', 'normal').fontName === 'Amiri';
+        let hasArabicFont = false;
+        try {
+          // Try to get the Amiri font - will throw an error if not available
+          hasArabicFont = doc.getFont('Amiri', 'bold').fontName === 'Amiri';
+          console.log("Amiri font is available:", hasArabicFont);
+        } catch (e) {
+          console.log("Amiri font not available, using fallback");
+          hasArabicFont = false;
+        }
         
-        console.log("Font availability:", { 
-          hasAmiriBold, 
-          hasAmiriNormal 
-        });
-        
-        // FIXED: Correct way to set font in jsPDF 3.0+
-        // Handle bold font setting properly
-        if (hasAmiriBold) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('bold');
+        // FIXED: Font handling for jsPDF 3.0+
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'bold');
           console.log("Using Amiri Bold font for Arabic content");
         } else {
           // Fallback to a system font
-          doc.setFont('helvetica');
-          doc.setFontStyle('bold');
+          doc.setFont('helvetica', 'bold');
           console.log("Using fallback font for Arabic as Amiri not loaded");
         }
         
@@ -287,14 +287,11 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.setFontSize(12);
         doc.text('معلومات العميل', 190, 45, { align: 'right' });
         
-        // FIXED: Correct way to set font in jsPDF 3.0+
-        // Handle normal font setting properly
-        if (hasAmiriNormal) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('normal');
+        // Set normal font for content
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('normal');
+          doc.setFont('helvetica', 'normal');
         }
         
         doc.text(`الاسم: ${customerName}`, 190, 55, { align: 'right' });
@@ -304,22 +301,18 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.text(`رخصة القيادة: ${driverLicense}`, 190, 75, { align: 'right' });
         
         // Vehicle information in Arabic
-        if (hasAmiriBold) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('bold');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('bold');
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('معلومات المركبة', 190, 90, { align: 'right' });
         
-        if (hasAmiriNormal) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('normal');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('normal');
+          doc.setFont('helvetica', 'normal');
         }
         
         doc.text(`الصنع: ${vehicleMake}`, 190, 100, { align: 'right' });
@@ -338,22 +331,18 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.text(`رقم الهيكل: ${vehicleVin}`, 190, 120, { align: 'right' });
         
         // Agreement details in Arabic
-        if (hasAmiriBold) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('bold');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('bold');
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('فترة الإيجار', 190, 135, { align: 'right' });
         
-        if (hasAmiriNormal) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('normal');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('normal');
+          doc.setFont('helvetica', 'normal');
         }
         
         // Convert dates to Arabic format - safely handle date formatting
@@ -370,22 +359,18 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         }
         
         // Payment information in Arabic
-        if (hasAmiriBold) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('bold');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('bold');
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('معلومات الدفع', 190, 165, { align: 'right' });
         
-        if (hasAmiriNormal) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('normal');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('normal');
+          doc.setFont('helvetica', 'normal');
         }
         
         // Safely convert numbers to strings before using toArabicNumerals
@@ -394,22 +379,18 @@ export async function generatePdfDocument(agreement: Agreement, language: string
         doc.text(`مبلغ التأمين: ${toArabicNumerals(String(depositAmount))} ر.ق`, 190, 185, { align: 'right' });
         
         // Signatures in Arabic
-        if (hasAmiriBold) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('bold');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'bold');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('bold');
+          doc.setFont('helvetica', 'bold');
         }
         
         doc.text('التوقيعات', 190, 200, { align: 'right' });
         
-        if (hasAmiriNormal) {
-          doc.setFont('Amiri');
-          doc.setFontStyle('normal');
+        if (hasArabicFont) {
+          doc.setFont('Amiri', 'normal');
         } else {
-          doc.setFont('helvetica');
-          doc.setFontStyle('normal');
+          doc.setFont('helvetica', 'normal');
         }
         
         doc.text('توقيع العميل: _______________________', 190, 210, { align: 'right' });
@@ -486,3 +467,4 @@ export const processAgreementTemplate = (templateText: string, data: any): strin
     
   return processedTemplate;
 };
+
