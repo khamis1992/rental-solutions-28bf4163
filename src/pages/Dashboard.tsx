@@ -31,6 +31,9 @@ const Dashboard = () => {
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
+  // Get current month for display
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+  
   const handleRefresh = () => {
     setIsRefreshing(true);
     
@@ -44,7 +47,7 @@ const Dashboard = () => {
     <PageContainer>
       <SectionHeader
         title="Dashboard"
-        description="Overview of your rental operations"
+        description={`Overview of your rental operations - ${currentMonth}`}
         icon={LayoutDashboard}
         actions={
           <CustomButton 
