@@ -141,7 +141,6 @@ serve(async (req) => {
       );
     }
     
-    // Here's the fix - process the file properly
     const result = await processCSV(supabase, fileData, importId);
     
     console.log(`Processing completed. Result: ${JSON.stringify(result)}`);
@@ -185,11 +184,26 @@ async function updateImportStatus(supabase, importId, status, updates = {}) {
 
 async function processCSV(supabase, fileData, importId): Promise<ProcessingResult> {
   try {
-    // Properly handle the file data from Supabase Storage
-    // Fixed: Ensure we're working with a Blob/ArrayBuffer before using TextDecoder
-    const blob = new Blob([fileData]);
-    const arrayBuffer = await blob.arrayBuffer();
-    const text = new TextDecoder().decode(arrayBuffer);
+    // First, handle the file data correctly regardless of its type
+    let text = "";
+    
+    // Check what type of data we're dealing with and handle it accordingly
+    if (fileData instanceof Uint8Array) {
+      // If it's a Uint8Array (binary data)
+      text = new TextDecoder().decode(fileData);
+    } else if (typeof fileData === 'string') {
+      // If it's already a string
+      text = fileData;
+    } else if (fileData instanceof Blob) {
+      // If it's a Blob object
+      const arrayBuffer = await fileData.arrayBuffer();
+      text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
+    } else {
+      // For any other format, try the Blob approach as a fallback
+      const blob = new Blob([fileData]);
+      const arrayBuffer = await blob.arrayBuffer();
+      text = new TextDecoder().decode(new Uint8Array(arrayBuffer));
+    }
     
     console.log(`CSV text length: ${text.length} characters`);
     
@@ -203,10 +217,9 @@ async function processCSV(supabase, fileData, importId): Promise<ProcessingResul
       };
     }
     
-    // Split by newlines and filter out empty lines
+    // Split by newlines and filter out empty lines and comment lines
     const lines = text.split("\n").filter(line => {
       const trimmed = line.trim();
-      // Skip empty lines and comment lines
       return trimmed !== "" && !trimmed.startsWith("#");
     });
     
