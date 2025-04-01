@@ -7,6 +7,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +16,7 @@ const EditAgreement = () => {
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     // Guard against multiple fetches in rapid succession
@@ -55,15 +57,17 @@ const EditAgreement = () => {
     if (!id) return;
     
     try {
-      await updateAgreement.mutateAsync({ 
-        id, 
-        data: updatedAgreement 
-      });
-      toast.success("Agreement updated successfully");
-      navigate(`/agreements/${id}`);
+      setIsSubmitting(true);
+      await updateAgreementWithCheck(
+        { id, data: updatedAgreement },
+        () => navigate(`/agreements/${id}`),
+        (error) => console.error("Error updating agreement:", error)
+      );
     } catch (error) {
       console.error("Error updating agreement:", error);
       toast.error("Failed to update agreement");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,7 +86,7 @@ const EditAgreement = () => {
         <AgreementForm 
           initialData={agreement} 
           onSubmit={handleSubmit}
-          isSubmitting={updateAgreement.isPending}
+          isSubmitting={isSubmitting}
         />
       ) : (
         <div className="text-center py-12">

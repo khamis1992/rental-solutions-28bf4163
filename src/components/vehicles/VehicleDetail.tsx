@@ -15,6 +15,8 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { toast } from 'sonner';
+import { Alert, AlertCircle } from 'lucide-react';
+import { AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -48,6 +50,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     retired: 'bg-red-100 text-red-800'
   };
   const defaultCarImage = 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=2071&auto=format&fit=crop';
+
+  const [multipleActiveAgreements, setMultipleActiveAgreements] = useState(false);
 
   useEffect(() => {
     async function fetchVehicleImage() {
@@ -227,6 +231,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     return status.charAt(0).toUpperCase() + status.slice(1);
   };
 
+  useEffect(() => {
+    if (agreements && agreements.length > 0) {
+      const activeCount = agreements.filter(a => a.status === 'active').length;
+      setMultipleActiveAgreements(activeCount > 1);
+    }
+  }, [agreements]);
+
   return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
@@ -252,6 +263,17 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       </div>
       
       <CardContent className="p-6">
+        {multipleActiveAgreements && (
+          <Alert variant="warning" className="mb-6 border-amber-500 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <AlertTitle className="text-amber-700">Multiple Active Agreements</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              This vehicle is assigned to multiple active agreements. This could be a temporary state during agreement transitions.
+              The system will ensure only one agreement remains active.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <CardTitle className="mb-4 text-lg">Vehicle Details</CardTitle>
@@ -364,7 +386,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="text-lg">Rental Agreements</CardTitle>
-            
+            <CustomButton
+              size="sm"
+              onClick={() => handleCreateAgreement()}>
+              Add Agreement
+            </CustomButton>
           </div>
           
           {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">

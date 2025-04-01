@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -116,6 +115,19 @@ const AddAgreement = () => {
     setIsSubmitting(true);
     try {
       const { customer_data, vehicle_data, terms_accepted, ...leaseData } = formData;
+      
+      // Check vehicle availability if a vehicle is selected
+      if (leaseData.vehicle_id && leaseData.status === 'active') {
+        const { isAvailable, existingAgreement } = await import('@/utils/agreement-utils')
+          .then(module => module.checkVehicleAvailability(leaseData.vehicle_id));
+        
+        if (!isAvailable && existingAgreement) {
+          toast.warning(
+            `Vehicle is currently assigned to agreement #${existingAgreement.agreement_number}. That agreement will be automatically closed.`,
+            { duration: 5000 }
+          );
+        }
+      }
       
       console.log("Submitting lease data:", leaseData);
       
