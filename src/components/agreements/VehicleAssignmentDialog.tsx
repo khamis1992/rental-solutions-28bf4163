@@ -6,6 +6,7 @@ import { AlertCircle, AlertTriangle, CheckCircle, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { TrafficFine } from "@/hooks/use-traffic-fines";
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -22,13 +23,6 @@ interface Payment {
   id: string;
   amount: number;
   status: string;
-}
-
-interface TrafficFine {
-  id: string;
-  fine_amount: number;
-  violation_date: Date;
-  payment_status: string;
 }
 
 export function VehicleAssignmentDialog({
@@ -78,7 +72,21 @@ export function VehicleAssignmentDialog({
       if (finesError) {
         console.error("Error fetching traffic fines:", finesError);
       } else {
-        setTrafficFines(finesData || []);
+        // Transform the data to ensure violation_date is a Date object
+        const transformedFines = (finesData || []).map(fine => ({
+          ...fine,
+          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+          violationNumber: fine.violation_number || "",
+          licensePlate: fine.license_plate || "",
+          fineAmount: fine.fine_amount || 0,
+          violationCharge: fine.violation_charge,
+          paymentStatus: fine.payment_status,
+          location: fine.fine_location,
+          vehicleId: fine.vehicle_id,
+          leaseId: fine.lease_id,
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
+        }));
+        setTrafficFines(transformedFines);
       }
     } catch (error) {
       console.error("Error fetching associated data:", error);

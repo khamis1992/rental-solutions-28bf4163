@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -54,10 +55,8 @@ const AddAgreement = () => {
           } else {
             setTemplateError(`Storage setup error: ${result.error}`);
           }
-          toast({
-            title: "Storage Setup Error",
-            description: "There was an error setting up storage buckets. Template creation may fail.",
-            variant: "destructive"
+          toast.error("Storage Setup Error", {
+            description: "There was an error setting up storage buckets. Template creation may fail."
           });
         } else {
           console.log("Storage buckets setup complete");
@@ -69,10 +68,8 @@ const AddAgreement = () => {
         setStandardTemplateExists(exists);
         if (!exists) {
           setTemplateError("Template not found. Please upload a template file or create the agreements bucket manually in Supabase dashboard.");
-          toast({
-            title: "Template Not Found",
-            description: "The standard agreement template was not found. Please upload a template file.",
-            variant: "destructive"
+          toast.error("Template Not Found", {
+            description: "The standard agreement template was not found. Please upload a template file."
           });
           const diagnosis = await diagnosisTemplateAccess();
           setTemplateDiagnosis(diagnosis);
@@ -82,8 +79,7 @@ const AddAgreement = () => {
           }
         } else {
           setTemplateError(null);
-          toast({
-            title: "Template Found",
+          toast.success("Template Found", {
             description: "The agreement template was found and will be used for new agreements."
           });
         }
@@ -98,17 +94,15 @@ const AddAgreement = () => {
         console.error("Error during template setup:", error);
         setStandardTemplateExists(false);
         setTemplateError("Error checking template. Please upload a template file.");
-        toast({
-          title: "Error Checking Template",
-          description: "There was an error checking for the agreement template. Please upload a template file.",
-          variant: "destructive"
+        toast.error("Error Checking Template", {
+            description: "There was an error checking for the agreement template. Please upload a template file."
         });
       } finally {
         setCheckingTemplate(false);
       }
     };
     setupStorage();
-  }, [toast]);
+  }, []);
 
   const handleSubmit = async (formData: any) => {
     setIsSubmitting(true);
@@ -160,8 +154,7 @@ const AddAgreement = () => {
     try {
       const result = await uploadAgreementTemplate(file);
       if (result.success) {
-        toast({
-          title: "Template Uploaded",
+        toast.success("Template Uploaded", {
           description: "The agreement template has been successfully uploaded."
         });
 
@@ -172,18 +165,14 @@ const AddAgreement = () => {
         setTemplateUrlDiagnosis(urlDiagnosis);
       } else {
         setUploadError(result.error || "Unknown error uploading template");
-        toast({
-          title: "Upload Failed",
-          description: result.error || "Failed to upload template.",
-          variant: "destructive"
+        toast.error("Upload Failed", {
+          description: result.error || "Failed to upload template."
         });
       }
     } catch (error: any) {
       setUploadError(error.message || "Error uploading template");
-      toast({
-        title: "Upload Error",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive"
+      toast.error("Upload Error", {
+        description: error.message || "An unexpected error occurred."
       });
     } finally {
       setIsUploading(false);

@@ -1,9 +1,11 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { Simplify } from '@/utils/type-utils';
 
 interface SearchParams {
   query?: string;
@@ -12,11 +14,14 @@ interface SearchParams {
   customer_id?: string;
 }
 
+// Define a simplified Agreement type to avoid excessive type instantiation
+type SimpleAgreement = Simplify<Agreement>;
+
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
 
-  const getAgreement = async (id: string): Promise<Agreement | null> => {
+  const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
 
@@ -114,7 +119,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           mappedStatus = AgreementStatus.DRAFT;
       }
 
-      const agreement: Agreement = {
+      const agreement: SimpleAgreement = {
         id: data.id,
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
@@ -143,7 +148,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const fetchAgreements = async (): Promise<Agreement[]> => {
+  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
@@ -230,7 +235,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: Agreement[] = data.map(item => {
+      const agreements: SimpleAgreement[] = data.map(item => {
         let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
 
         switch(item.status) {
@@ -283,20 +288,20 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const createAgreement = async (data: Partial<Agreement>) => {
-    return {} as Agreement;
+  const createAgreement = async (data: Partial<SimpleAgreement>) => {
+    return {} as SimpleAgreement;
   };
 
   // Use a simplified type for the mutation to avoid deep type instantiation
   type SimpleMutationParams = {
     id: string;
-    data: Partial<Omit<Agreement, 'id'>>;
+    data: Partial<Omit<SimpleAgreement, 'id'>>;
   };
 
   const updateAgreementMutation = useMutation({
     mutationFn: async (params: SimpleMutationParams) => {
       console.log("Update mutation called with:", params);
-      return {} as Agreement;
+      return {} as SimpleAgreement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });

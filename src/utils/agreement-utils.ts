@@ -167,9 +167,20 @@ export const updateAgreementWithCheck = async (
       }
     }
     
+    // Map the status values to those expected by the database
+    let dbStatus = data.status;
+    if (data.status === 'draft') {
+      dbStatus = 'pending_payment'; // Map 'draft' to 'pending_payment'
+    } else if (data.status === 'pending') {
+      dbStatus = 'pending_payment'; // Map 'pending' to 'pending_payment'
+    } else if (data.status === 'expired') {
+      dbStatus = 'archived'; // Map 'expired' to 'archived'
+    }
+    
     // Convert Date objects to ISO strings for Supabase
     const preparedData = {
       ...data,
+      status: dbStatus,
       // Ensure dates are properly formatted as strings
       created_at: data.created_at instanceof Date ? data.created_at.toISOString() : data.created_at,
       updated_at: new Date().toISOString(),
