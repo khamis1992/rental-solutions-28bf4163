@@ -254,6 +254,12 @@ export const revertAgreementImport = async (importId: string, reason?: string) =
         reason: reason || 'No reason provided'
       });
       
+      // Update the import status to reverted immediately
+      await supabase
+        .from('agreement_imports')
+        .update({ status: 'reverted' })
+        .eq('id', importId);
+      
       return { 
         success: true, 
         deleted_count: data.deleted_count,
