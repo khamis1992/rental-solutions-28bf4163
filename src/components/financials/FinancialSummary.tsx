@@ -19,7 +19,7 @@ interface FinancialSummaryProps {
 const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[...Array(4)].map((_, index) => (
           <Card key={index} className="animate-pulse h-32">
             <CardContent className="p-6">
@@ -33,15 +33,23 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
     );
   }
 
-  if (!summary) {
-    return <div>No financial data available.</div>;
-  }
+  // Handle case when no summary data is available
+  const safeData = summary || {
+    totalIncome: 0,
+    totalExpenses: 0,
+    netRevenue: 0,
+    pendingPayments: 0,
+    unpaidInvoices: 0,
+    installmentsPending: 0,
+    currentMonthDue: 0,
+    overdueExpenses: 0
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       <StatCard
         title="Total Income"
-        value={formatCurrency(summary.totalIncome)}
+        value={formatCurrency(safeData.totalIncome)}
         description="Revenue from car rentals"
         icon={TrendingUp}
         iconColor="text-green-500"
@@ -49,7 +57,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Total Expenses"
-        value={formatCurrency(summary.currentMonthDue)}
+        value={formatCurrency(safeData.currentMonthDue)}
         description="Current month's due installments"
         icon={TrendingDown}
         iconColor="text-red-500"
@@ -57,7 +65,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Net Revenue"
-        value={formatCurrency(summary.netRevenue)}
+        value={formatCurrency(safeData.netRevenue)}
         description="Income after expenses"
         icon={DollarSign}
         iconColor="text-blue-500"
@@ -65,7 +73,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
       
       <StatCard
         title="Pending Payments"
-        value={formatCurrency(summary.pendingPayments)}
+        value={formatCurrency(safeData.pendingPayments)}
         description="Upcoming rental payments"
         icon={Clock}
         iconColor="text-amber-500"

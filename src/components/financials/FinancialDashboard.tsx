@@ -16,7 +16,7 @@ const getPercentageChange = (current, previous) => {
 };
 
 const FinancialDashboard = () => {
-  // Use bare minimum of required data and loading states
+  // Use financial summary to display real data
   const { 
     financialSummary, 
     isLoadingSummary
@@ -24,19 +24,19 @@ const FinancialDashboard = () => {
   
   const { revenue: revenueData } = useDashboardData();
 
-  // Hard-coded values for cards as specified - to ensure precise specific values
+  // Initialize values to zero - these will be replaced with real data when available
   const displayValues = {
-    totalIncome: 1416814,
-    totalExpenses: 183325,
-    netRevenue: 1068584,
-    pendingPayments: 1410744
+    totalIncome: financialSummary?.totalIncome || 0,
+    totalExpenses: financialSummary?.totalExpenses || 0,
+    netRevenue: financialSummary?.netRevenue || 0,
+    pendingPayments: financialSummary?.pendingPayments || 0
   };
   
-  // Simulated trend data to avoid dependency on transactions
+  // Simulated trend data - could be enhanced later with real trend calculation 
   const trendData = {
-    revenueChange: 5.3,
-    expenseChange: -2.1,
-    profitChange: 6.8
+    revenueChange: financialSummary ? getPercentageChange(financialSummary.totalIncome, financialSummary.totalIncome * 0.95) : 0,
+    expenseChange: financialSummary ? getPercentageChange(financialSummary.totalExpenses, financialSummary.totalExpenses * 1.02) : 0,
+    profitChange: financialSummary ? getPercentageChange(financialSummary.netRevenue, financialSummary.netRevenue * 0.93) : 0
   };
   
   const prepareRevenueChartData = useMemo(() => {
@@ -110,7 +110,7 @@ const FinancialDashboard = () => {
         pendingPayments: displayValues.pendingPayments,
         unpaidInvoices: displayValues.pendingPayments,
         installmentsPending: displayValues.totalExpenses,
-        currentMonthDue: displayValues.totalExpenses,
+        currentMonthDue: financialSummary?.currentMonthDue || 0,
         overdueExpenses: financialSummary?.overdueExpenses || 0
       }} isLoading={isLoadingSummary} />
       

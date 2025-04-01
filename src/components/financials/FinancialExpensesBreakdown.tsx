@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
 import { useFinancials } from '@/hooks/use-financials';
@@ -37,11 +37,21 @@ const FinancialExpensesBreakdown: React.FC = () => {
   }, [financialSummary]);
 
   if (isLoadingSummary) {
-    return <div>Loading expense data...</div>;
-  }
-
-  if (!financialSummary) {
-    return <div>No expense data available</div>;
+    return (
+      <Card className="col-span-full animate-pulse">
+        <CardHeader>
+          <CardTitle>Expense Analysis</CardTitle>
+          <CardDescription>Loading expense data...</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="h-24 bg-gray-200 rounded-md"></div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
