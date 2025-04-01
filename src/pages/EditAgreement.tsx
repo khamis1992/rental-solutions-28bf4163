@@ -1,102 +1,80 @@
-
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import AgreementForm from '@/components/agreements/AgreementForm';
-import PageContainer from '@/components/layout/PageContainer';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { AgreementFormWithVehicleCheck } from "@/components/agreements/AgreementFormWithVehicleCheck";
 import { useAgreements } from '@/hooks/use-agreements';
-import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { updateAgreementWithCheck } from '@/utils/agreement-utils';
+
+const formSchema = z.object({
+  agreement_number: z.string().min(1, "Agreement number is required"),
+  start_date: z.date(),
+  end_date: z.date(),
+  customer_id: z.string().min(1, "Customer is required"),
+  vehicle_id: z.string().min(1, "Vehicle is required"),
+  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
+  rent_amount: z.number().positive("Rent amount must be positive"),
+  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
+  total_amount: z.number().positive("Total amount must be positive"),
+  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
+  agreement_duration: z.string().optional(),
+  notes: z.string().optional(),
+  terms_accepted: z.boolean().default(false),
+});
 
 const EditAgreement = () => {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { id } = useParams();
   const { getAgreement, updateAgreement } = useAgreements();
-  const [agreement, setAgreement] = useState<Agreement | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      agreement_number: '',
+      start_date: new Date(),
+      end_date: new Date(),
+      customer_id: '',
+      vehicle_id: '',
+      status: 'draft',
+      rent_amount: 0,
+      deposit_amount: 0,
+      total_amount: 0,
+      daily_late_fee: 0,
+      agreement_duration: '',
+      notes: '',
+      terms_accepted: false,
+    },
+  });
 
   useEffect(() => {
-    // Guard against multiple fetches in rapid succession
-    if (hasAttemptedFetch) return;
-    
     const fetchAgreement = async () => {
-      if (!id) {
-        toast.error("Agreement ID is required");
-        navigate("/agreements");
-        return;
-      }
-      
-      console.log("Fetching agreement with ID:", id);
-      setIsLoading(true);
-      try {
-        const data = await getAgreement(id);
-        console.log("Fetched agreement data:", data);
-        if (data) {
-          setAgreement(data);
-        } else {
-          toast.error("Agreement not found");
-          navigate("/agreements");
-        }
-      } catch (error) {
-        console.error("Error fetching agreement for edit:", error);
+      const agreement = await getAgreement(id);
+      if (agreement) {
+        form.reset(agreement);
+      } else {
         toast.error("Failed to load agreement details");
-        navigate("/agreements");
-      } finally {
-        setIsLoading(false);
-        setHasAttemptedFetch(true);
       }
     };
 
     fetchAgreement();
-  }, [id, getAgreement, navigate, hasAttemptedFetch]);
+  }, [id, getAgreement, form]);
 
-  const handleSubmit = async (updatedAgreement: Agreement) => {
-    if (!id) return;
-    
-    try {
-      setIsSubmitting(true);
-      await updateAgreementWithCheck(
-        { id, data: updatedAgreement },
-        () => navigate(`/agreements/${id}`),
-        (error) => console.error("Error updating agreement:", error)
-      );
-    } catch (error) {
-      console.error("Error updating agreement:", error);
-      toast.error("Failed to update agreement");
-    } finally {
-      setIsSubmitting(false);
-    }
+  const onSubmit = async (data) => {
+    await updateAgreement.mutateAsync({ id, data });
+    navigate('/agreements');
   };
 
   return (
-    <PageContainer
-      title="Edit Agreement"
-      description="Modify existing rental agreement details"
-      backLink={`/agreements/${id}`}
-    >
-      {isLoading ? (
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-2/3" />
-          <Skeleton className="h-96 w-full" />
-        </div>
-      ) : agreement ? (
-        <AgreementForm 
-          initialData={agreement} 
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-        />
-      ) : (
-        <div className="text-center py-12">
-          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
-          <p className="text-muted-foreground">
-            The agreement you're looking for doesn't exist or has been removed.
-          </p>
-        </div>
-      )}
-    </PageContainer>
+    <div>
+      <h1>Edit Agreement</h1>
+      <AgreementFormWithVehicleCheck
+        onSubmit={onSubmit}
+        isSubmitting={updateAgreement.isLoading}
+        initialData={form.getValues()}
+      />
+    </div>
   );
 };
 
