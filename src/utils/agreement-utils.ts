@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from "@/integrations/supabase/client";
 import { MutationVariables } from '@/utils/type-utils';
@@ -136,7 +135,9 @@ export const updateAgreementWithCheck = async (
       ...data,
       // Ensure dates are properly formatted as strings
       created_at: data.created_at instanceof Date ? data.created_at.toISOString() : data.created_at,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
+      start_date: data.start_date instanceof Date ? data.start_date.toISOString() : data.start_date,
+      end_date: data.end_date instanceof Date ? data.end_date.toISOString() : data.end_date
     };
     
     // Proceed with the update

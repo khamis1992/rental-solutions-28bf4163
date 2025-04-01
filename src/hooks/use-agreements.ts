@@ -287,8 +287,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as Agreement;
   };
 
+  // Use a simplified type for the mutation to avoid deep type instantiation
+  type SimpleMutationParams = {
+    id: string;
+    data: Partial<Omit<Agreement, 'id'>>;
+  };
+
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: { id: string; data: Partial<Agreement> }) => {
+    mutationFn: async (params: SimpleMutationParams) => {
       console.log("Update mutation called with:", params);
       return {} as Agreement;
     },
