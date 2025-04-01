@@ -1,13 +1,13 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { FlattenType } from '@/utils/type-utils';
 
 // Simplified type to avoid excessive deep instantiation
-type SimpleAgreement = {
+export type SimpleAgreement = FlattenType<{
   id: string;
   customer_id: string;
   vehicle_id: string;
@@ -27,7 +27,7 @@ type SimpleAgreement = {
   signature_url?: string;
   rent_amount?: number;
   daily_late_fee?: number;
-};
+}>;
 
 interface SearchParams {
   query?: string;

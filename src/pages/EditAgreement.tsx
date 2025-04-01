@@ -60,9 +60,9 @@ const EditAgreement = () => {
       setIsSubmitting(true);
       await updateAgreementWithCheck(
         { id, data: updatedAgreement },
-        undefined, // Fix: Pass undefined instead of a function for userId
-        () => navigate(`/agreements/${id}`),
-        (error) => console.error("Error updating agreement:", error)
+        undefined, // Pass undefined instead of a function for userId
+        () => navigate(`/agreements/${id}`), // Success callback
+        (error: any) => console.error("Error updating agreement:", error) // Error callback
       );
     } catch (error) {
       console.error("Error updating agreement:", error);
