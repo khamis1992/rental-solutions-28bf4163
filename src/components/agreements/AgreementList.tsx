@@ -246,7 +246,7 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<SimpleRecord>[] = [
+  const columns: ColumnDef<any>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -474,7 +474,7 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
   ];
 
   const table = useReactTable({
-    data: (agreements || []) as SimpleRecord[],
+    data: (agreements || []) as any[],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -640,10 +640,16 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <PaginationPrevious 
+              <Button
+                variant="outline"
+                size="default"
+                className="gap-1 pl-2.5"
                 onClick={() => table.previousPage()} 
                 disabled={!table.getCanPreviousPage() || isLoading}
-              />
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span>Previous</span>
+              </Button>
             </PaginationItem>
             
             {Array.from({ length: table.getPageCount() }).map((_, index) => (
@@ -663,10 +669,16 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
             )}
             
             <PaginationItem>
-              <PaginationNext 
+              <Button
+                variant="outline"
+                size="default"
+                className="gap-1 pr-2.5"
                 onClick={() => table.nextPage()} 
                 disabled={!table.getCanNextPage() || isLoading}
-              />
+              >
+                <span>Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </PaginationItem>
           </PaginationContent>
         </Pagination>

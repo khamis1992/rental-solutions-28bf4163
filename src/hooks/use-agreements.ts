@@ -103,11 +103,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         
       // Apply status filter if provided and not 'all'
       if (searchParams.status && searchParams.status !== 'all') {
-        // Fix: Do not pass the searchParams.status directly to the query
-        // Instead, determine the valid status value based on the input
-        const statusValue = Object.values(AgreementStatus).includes(searchParams.status as any) 
-          ? searchParams.status 
-          : AgreementStatus.ACTIVE;
+        // Fix: Validate the status value before using it in the query
+        // We check if the provided status is a valid AgreementStatus enum value
+        const validStatuses = Object.values(AgreementStatus);
+        const isValidStatus = validStatuses.includes(searchParams.status as any);
+        
+        // Only apply the filter if the status is valid, otherwise default to a safe value
+        const statusValue = isValidStatus ? searchParams.status : AgreementStatus.ACTIVE;
         query = query.eq('status', statusValue);
       }
       
