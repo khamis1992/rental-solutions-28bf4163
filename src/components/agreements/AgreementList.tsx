@@ -117,7 +117,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
   useEffect(() => {
     setRowSelection({});
-    // Reset pagination when filters change
     setPagination({
       pageIndex: 0,
       pageSize: 10,
@@ -236,7 +235,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<SimpleAgreement>[] = [
+  const columns: ColumnDef<any>[] = [
     {
       id: "select",
       header: ({ table }) => (
