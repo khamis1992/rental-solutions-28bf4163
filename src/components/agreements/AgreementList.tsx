@@ -78,6 +78,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
+// Define a simplified type for the agreement rows to avoid deep recursive types
 interface BasicAgreementRow {
   id: string;
   agreement_number?: string;

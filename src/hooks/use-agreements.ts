@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -68,6 +67,26 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
   }
 };
 
+// Map UI enum status to database status
+const mapEnumToDBStatus = (uiStatus: string): ValidDbStatus | null => {
+  switch(uiStatus) {
+    case AgreementStatus.ACTIVE:
+      return 'active';
+    case AgreementStatus.PENDING:
+      return 'pending_payment';
+    case AgreementStatus.CANCELLED:
+      return 'cancelled';
+    case AgreementStatus.CLOSED:
+      return 'completed';
+    case AgreementStatus.EXPIRED:
+      return 'archived';
+    case AgreementStatus.DRAFT:
+      return 'draft';
+    default:
+      return null;
+  }
+};
+
 interface SearchParams {
   query?: string;
   status?: string;
@@ -118,17 +137,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       // Apply status filter if provided and not 'all'
       if (searchParams.status && searchParams.status !== 'all') {
         // Check if the status matches one of our enum values
-        if (Object.values(AgreementStatus).includes(searchParams.status as any)) {
-          // Find the corresponding DB status from the enum value
-          const dbStatus = Object.entries(AgreementStatus)
-            .find(([key, value]) => value === searchParams.status)?.[1];
-            
-          if (dbStatus) {
-            query = query.eq('status', dbStatus);
-          }
+        const dbStatus = mapEnumToDBStatus(searchParams.status);
+        
+        if (dbStatus) {
+          // If we have a valid DB status from the enum mapping, use it
+          query = query.eq('status', dbStatus);
         } else if (VALID_DB_STATUSES.includes(searchParams.status as ValidDbStatus)) {
-          // It's already a valid DB status
-          query = query.eq('status', searchParams.status);
+          // Otherwise, if it's already a valid DB status, use it directly
+          query = query.eq('status', searchParams.status as ValidDbStatus);
         } else {
           console.warn(`Invalid status filter value: ${searchParams.status}`);
         }
