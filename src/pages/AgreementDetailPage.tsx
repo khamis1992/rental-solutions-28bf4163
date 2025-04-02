@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -16,6 +15,7 @@ import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { supabase } from '@/lib/supabase';
 import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
+import { usePayments } from '@/hooks/use-payments';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,7 +31,7 @@ const AgreementDetailPage = () => {
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', null);
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', rentAmount);
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -41,11 +41,8 @@ const AgreementDetailPage = () => {
       const data = await getAgreement(id);
       
       if (data) {
-        // Make sure we properly adapt the agreement data to avoid date issues
         const adaptedAgreement = adaptSimpleToFullAgreement(data);
         
-        // Ensure start_date and end_date are properly parsed as Date objects
-        // Using getDateObject from date-utils to safely handle dates
         if (adaptedAgreement.start_date) {
           const safeDate = getDateObject(adaptedAgreement.start_date);
           adaptedAgreement.start_date = safeDate || new Date();
