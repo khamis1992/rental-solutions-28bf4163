@@ -1,6 +1,10 @@
 
 import { supabase } from '@/lib/supabase';
 
+// Cache for storing availability check results
+const availabilityCache: Record<string, { available: boolean; timestamp: number }> = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 /**
  * Check if a Supabase Edge Function is available
  * @param functionName Name of the edge function to check
@@ -11,6 +15,15 @@ export const checkEdgeFunctionAvailability = async (
   functionName: string,
   retries = 1
 ): Promise<boolean> => {
+  // Check cache first to avoid repeated calls
+  const cachedResult = availabilityCache[functionName];
+  const now = Date.now();
+  
+  if (cachedResult && (now - cachedResult.timestamp < CACHE_TTL)) {
+    console.log(`Using cached availability result for ${functionName}: ${cachedResult.available}`);
+    return cachedResult.available;
+  }
+  
   let attempt = 0;
   
   while (attempt <= retries) {
@@ -23,6 +36,8 @@ export const checkEdgeFunctionAvailability = async (
       
       if (!response.error) {
         console.log(`Edge function ${functionName} is available`);
+        // Cache the positive result
+        availabilityCache[functionName] = { available: true, timestamp: now };
         return true;
       }
       
@@ -44,6 +59,8 @@ export const checkEdgeFunctionAvailability = async (
   }
   
   console.error(`Edge function ${functionName} is unavailable after ${retries + 1} attempts`);
+  // Cache the negative result
+  availabilityCache[functionName] = { available: false, timestamp: now };
   return false;
 };
 

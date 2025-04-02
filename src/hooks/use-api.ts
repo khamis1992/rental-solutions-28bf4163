@@ -76,6 +76,7 @@ export function handleApiSuccess(message: string): void {
 
 /**
  * Custom hook for API queries with standardized error handling
+ * Enhanced with improved caching and stale time settings
  */
 export function useApiQuery<TData>(
   queryKey: unknown[],
@@ -92,6 +93,10 @@ export function useApiQuery<TData>(
         throw error;
       }
     },
+    // Add reasonable default staleTime to prevent excessive refreshing
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Only refetch on window focus if data is stale
+    refetchOnWindowFocus: false,
     ...options
   });
 }

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -11,19 +10,21 @@ export type SimpleAgreement = {
   id: string;
   customer_id: string;
   vehicle_id: string;
-  start_date: Date;
-  end_date: Date;
-  status: any; // Using any for the enum to avoid deep instantiation
-  created_at?: Date;
-  updated_at?: Date;
-  total_amount: number;
-  deposit_amount: number;
-  agreement_number: string;
-  notes: string;
-  terms_accepted: boolean;
-  additional_drivers: any[];
-  customers?: any;
-  vehicles?: any;
+  start_date?: string | null;
+  end_date?: string | null;
+  agreement_type?: string;
+  agreement_number?: string;
+  status?: AgreementStatus;
+  total_amount?: number;
+  monthly_payment?: number;
+  agreement_duration?: any;
+  customer_name?: string;
+  license_plate?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
+  vehicle_year?: number;
+  created_at?: string;
+  updated_at?: string;
   signature_url?: string;
   rent_amount?: number;
   daily_late_fee?: number;
