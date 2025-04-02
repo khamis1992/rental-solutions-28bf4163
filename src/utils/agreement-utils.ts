@@ -243,7 +243,7 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
     // Find active agreements
     const { data: activeAgreements, error: agreementsError } = await supabase
       .from('leases')
-      .select('id, rent_amount, agreement_number, start_date')
+      .select('id, rent_amount, agreement_number, start_date, daily_late_fee')
       .eq('status', 'active');
       
     if (agreementsError) {

@@ -53,19 +53,48 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
         return;
       }
       
-      const formattedPayments = unifiedPayments.map(payment => ({
-        id: payment.id,
-        amount: payment.amount,
-        payment_date: payment.payment_date,
-        payment_method: payment.payment_method || 'cash',
-        reference_number: payment.transaction_id,
-        notes: payment.description,
-        type: payment.type,
-        status: payment.status,
-        late_fine_amount: payment.late_fine_amount,
-        days_overdue: payment.days_overdue,
-        lease_id: payment.lease_id
-      }));
+      const formattedPayments = unifiedPayments.map(payment => {
+        // Calculate days overdue for pending payments
+        let daysOverdue = payment.days_overdue || 0;
+        let lateFineAmount = payment.late_fine_amount || 0;
+        
+        // If payment is pending and has an original_due_date, calculate current overdue days
+        if (payment.status === 'pending' && payment.original_due_date) {
+          const dueDate = new Date(payment.original_due_date);
+          const today = new Date();
+          
+          if (today > dueDate) {
+            // Calculate days difference (excluding time)
+            const todayNoTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const dueDateNoTime = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+            
+            const diffTime = todayNoTime.getTime() - dueDateNoTime.getTime();
+            const currentDaysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            // Update days overdue if current calculation is greater
+            daysOverdue = Math.max(daysOverdue, currentDaysOverdue);
+            
+            // Calculate current late fine (120 QAR per day, capped at 3000 QAR)
+            const dailyLateFee = payment.daily_late_fee || 120;
+            lateFineAmount = Math.min(daysOverdue * dailyLateFee, 3000);
+          }
+        }
+        
+        return {
+          id: payment.id,
+          amount: payment.amount,
+          payment_date: payment.payment_date,
+          payment_method: payment.payment_method || 'cash',
+          reference_number: payment.transaction_id,
+          notes: payment.description,
+          type: payment.type,
+          status: payment.status,
+          late_fine_amount: lateFineAmount,
+          days_overdue: daysOverdue,
+          lease_id: payment.lease_id,
+          original_due_date: payment.original_due_date
+        };
+      });
       
       setPayments(formattedPayments);
       console.log(`Formatted payments set for ${agreementId}:`, formattedPayments);
@@ -81,7 +110,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       fetchInProgress.current = false;
       initialFetchCompleted.current = true;
     }
-  }, [agreementId, rentAmount]);
+  }, [agreementId]);
 
   useEffect(() => {
     console.log(`usePayments hook initialized with agreementId: ${agreementId}, initialFetch: ${initialFetchCompleted.current}`);

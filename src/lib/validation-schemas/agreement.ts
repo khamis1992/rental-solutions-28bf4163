@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -71,7 +70,7 @@ export const forceGeneratePaymentForAgreement = async (
     // Get the agreement details
     const { data: agreement, error } = await supabase
       .from('leases')
-      .select('id, agreement_number, rent_amount, start_date, status')
+      .select('id, agreement_number, rent_amount, start_date, status, daily_late_fee')
       .eq('id', agreementId)
       .single();
       
@@ -125,6 +124,10 @@ export const forceGeneratePaymentForAgreement = async (
     const isOverdue = today > dueDate;
     const daysOverdue = isOverdue ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
     
+    // Calculate late fee if applicable
+    const dailyLateFee = agreement.daily_late_fee || 120; // Default to 120 QAR per day if not specified
+    const lateFineAmount = isOverdue ? Math.min(daysOverdue * dailyLateFee, 3000) : 0; // Cap at 3000 QAR
+    
     // Create the payment record
     const { data: newPayment, error: createError } = await supabase
       .from('unified_payments')
@@ -136,7 +139,9 @@ export const forceGeneratePaymentForAgreement = async (
         status: 'pending',
         payment_date: null,
         original_due_date: dueDate.toISOString(),
-        days_overdue: daysOverdue
+        days_overdue: daysOverdue,
+        late_fine_amount: lateFineAmount,
+        daily_late_fee: dailyLateFee
       })
       .select()
       .single();

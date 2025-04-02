@@ -27,6 +27,7 @@ export interface Payment {
   late_fine_amount?: number;
   days_overdue?: number;
   lease_id?: string;
+  original_due_date?: string | null;
 }
 
 interface PaymentHistoryProps {
@@ -157,6 +158,31 @@ export function PaymentHistory({
     }
   };
 
+  // Format displayed amount including late fee for pending payments
+  const formatAmount = (payment: Payment) => {
+    const baseAmount = payment.amount || 0;
+    const displayAmount = baseAmount.toLocaleString();
+    
+    // For pending payments with overdue days, show the current late fee
+    if ((payment.status === 'pending' || payment.status === 'overdue') && 
+        payment.days_overdue && payment.days_overdue > 0 && 
+        payment.late_fine_amount && payment.late_fine_amount > 0) {
+      return (
+        <>
+          QAR {displayAmount}
+          <div className="text-xs text-red-500 mt-1">
+            +QAR {payment.late_fine_amount.toLocaleString()} late fee
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Total: QAR {(baseAmount + payment.late_fine_amount).toLocaleString()}
+          </div>
+        </>
+      );
+    }
+    
+    return `QAR ${displayAmount}`;
+  };
+
   // Make sure leaseStartDate and leaseEndDate are Date objects 
   const startDate = leaseStartDate ? new Date(leaseStartDate) : null;
   const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
@@ -168,15 +194,26 @@ export function PaymentHistory({
           <CardTitle>Payment History</CardTitle>
           <CardDescription>Track all payments for this agreement</CardDescription>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRecordManualPayment}
-          className="h-8"
-        >
-          <DollarSign className="mr-2 h-4 w-4" />
-          Record Manual Payment
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onPaymentDeleted}
+            className="h-8"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRecordManualPayment}
+            className="h-8"
+          >
+            <DollarSign className="mr-2 h-4 w-4" />
+            Record Manual Payment
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -203,15 +240,12 @@ export function PaymentHistory({
                   <TableCell>
                     {payment.payment_date 
                       ? formatDate(new Date(payment.payment_date), 'PPP') 
+                      : payment.original_due_date 
+                      ? <span className="text-yellow-600">Due: {formatDate(new Date(payment.original_due_date), 'PPP')}</span>
                       : 'Pending'}
                   </TableCell>
                   <TableCell>
-                    QAR {payment.amount?.toLocaleString() || '0'}
-                    {payment.late_fine_amount && payment.late_fine_amount > 0 && (
-                      <div className="text-xs text-red-500 mt-1">
-                        +QAR {payment.late_fine_amount.toLocaleString()} late fee
-                      </div>
-                    )}
+                    {formatAmount(payment)}
                   </TableCell>
                   <TableCell>
                     {payment.payment_method ? payment.payment_method : 'N/A'}

@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { toast } from 'sonner';
@@ -252,7 +251,7 @@ export const revertAgreementImport = async (
   }
 };
 
-// Background job to check for missing payment schedules
+// Function to check for active agreements without payment schedules and create them
 export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
   try {
     console.log("Running payment schedule maintenance job");
@@ -269,21 +268,126 @@ export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boo
       };
     }
     
-    if (result.generatedCount > 0) {
-      console.log(`Successfully generated ${result.generatedCount} payment schedules`);
+    // Now update late fees for all pending payments
+    const lateFeesResult = await updateLateFees();
+    
+    if (result.generatedCount > 0 || lateFeesResult.updatedCount > 0) {
+      console.log(`Successfully generated ${result.generatedCount} payment schedules and updated ${lateFeesResult.updatedCount} late fees`);
     } else {
-      console.log("No payment schedules needed to be generated");
+      console.log("No payment schedules needed to be generated or late fees updated");
     }
     
     return {
       success: true,
-      message: `Payment schedule maintenance job completed successfully. ${result.message}`
+      message: `Payment schedule maintenance job completed successfully. ${result.message} Updated ${lateFeesResult.updatedCount} late fee amounts.`
     };
   } catch (error) {
     console.error("Unexpected error in payment schedule maintenance job:", error);
     return {
       success: false,
       message: `Unexpected error in payment schedule maintenance job: ${error instanceof Error ? error.message : String(error)}`,
+      error
+    };
+  }
+};
+
+// Function to update late fees for pending payments
+export const updateLateFees = async (): Promise<{ success: boolean; updatedCount: number; message?: string; error?: any }> => {
+  try {
+    console.log("Updating late fees for pending payments");
+    
+    // Get all pending payments with due dates in the past
+    const { data: pendingPayments, error: fetchError } = await supabase
+      .from('unified_payments')
+      .select('id, lease_id, original_due_date, amount, days_overdue, late_fine_amount, daily_late_fee')
+      .eq('status', 'pending')
+      .lt('original_due_date', new Date().toISOString());
+    
+    if (fetchError) {
+      console.error("Error fetching pending payments:", fetchError);
+      return {
+        success: false,
+        updatedCount: 0,
+        message: `Error fetching pending payments: ${fetchError.message}`,
+        error: fetchError
+      };
+    }
+    
+    if (!pendingPayments || pendingPayments.length === 0) {
+      console.log("No pending payments found that need late fee updates");
+      return {
+        success: true,
+        updatedCount: 0,
+        message: "No pending payments need late fee updates"
+      };
+    }
+    
+    console.log(`Found ${pendingPayments.length} pending payments to update`);
+    
+    let updatedCount = 0;
+    
+    // Update each payment with current late fee calculation
+    for (const payment of pendingPayments) {
+      const dueDate = new Date(payment.original_due_date);
+      const today = new Date();
+      
+      // Calculate days overdue (excluding time portion)
+      const todayNoTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const dueDateNoTime = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+      
+      const diffTime = todayNoTime.getTime() - dueDateNoTime.getTime();
+      const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Skip if days overdue hasn't changed
+      if (daysOverdue <= (payment.days_overdue || 0)) {
+        continue;
+      }
+      
+      // Get daily late fee from the payment or lease, or use default
+      let dailyLateFee = payment.daily_late_fee;
+      
+      if (!dailyLateFee) {
+        // Try to get daily_late_fee from the lease
+        const { data: leaseData } = await supabase
+          .from('leases')
+          .select('daily_late_fee')
+          .eq('id', payment.lease_id)
+          .single();
+        
+        dailyLateFee = leaseData?.daily_late_fee || 120; // Default to 120 QAR if not specified
+      }
+      
+      // Calculate late fee (capped at 3000 QAR)
+      const lateFineAmount = Math.min(daysOverdue * dailyLateFee, 3000);
+      
+      // Update the payment record
+      const { error: updateError } = await supabase
+        .from('unified_payments')
+        .update({
+          days_overdue: daysOverdue,
+          late_fine_amount: lateFineAmount
+        })
+        .eq('id', payment.id);
+      
+      if (updateError) {
+        console.error(`Error updating payment ${payment.id}:`, updateError);
+        continue;
+      }
+      
+      updatedCount++;
+    }
+    
+    return {
+      success: true,
+      updatedCount,
+      message: `Updated late fees for ${updatedCount} payments`
+    };
+  } catch (error) {
+    console.error("Unexpected error in updateLateFees:", error);
+    return {
+      success: false,
+      updatedCount: 0,
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
       error
     };
   }
@@ -296,7 +400,7 @@ export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolea
     const result = await runPaymentScheduleMaintenanceJob();
     
     if (result.success) {
-      if (result.message?.includes("Generated 0 payment")) {
+      if (result.message?.includes("Generated 0 payment") && !result.message?.includes("Updated")) {
         toast.info(result.message || "All payment schedules are up to date");
       } else {
         toast.success(result.message || "Payment maintenance completed successfully");
