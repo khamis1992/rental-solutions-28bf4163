@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
@@ -36,6 +35,25 @@ export const updateAgreementWithCheck = async (
       console.warn("User ID is not available. Proceeding without user-specific checks.");
     }
 
+    // Check if status is being changed to active
+    const isChangingToActive = params.data.status === 'active';
+    
+    // If changing to active, first check the current status
+    let currentStatus: string | null = null;
+    if (isChangingToActive) {
+      const { data: currentAgreement, error: fetchError } = await supabase
+        .from('leases')
+        .select('status')
+        .eq('id', params.id)
+        .single();
+        
+      if (fetchError) {
+        console.warn("Could not fetch current agreement status:", fetchError);
+      } else if (currentAgreement) {
+        currentStatus = currentAgreement.status;
+      }
+    }
+
     // Optimistic update
     toast.success("Agreement update initiated...");
 
@@ -53,6 +71,24 @@ export const updateAgreementWithCheck = async (
     } else {
       console.log("Agreement updated successfully:", data);
       toast.success("Agreement updated successfully!");
+      
+      // If the status was changed to active and it wasn't active before, generate payment schedule
+      if (isChangingToActive && currentStatus !== 'active') {
+        console.log(`Agreement ${params.id} status changed to active. Generating payment schedule...`);
+        try {
+          const result = await forceGeneratePaymentForAgreement(supabase, params.id);
+          if (result.success) {
+            toast.success("Payment schedule generated automatically");
+          } else {
+            console.warn("Could not generate payment schedule:", result.message);
+            toast.warning(`Agreement updated, but payment schedule generation had an issue: ${result.message}`);
+          }
+        } catch (paymentError) {
+          console.error("Error generating payment schedule:", paymentError);
+          toast.warning("Agreement updated, but payment schedule could not be generated");
+        }
+      }
+      
       onSuccess();
     }
   } catch (error) {
@@ -186,5 +222,104 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
     console.error("Error in activateAgreement:", error);
     toast.error("An unexpected error occurred during agreement activation");
     return false;
+  }
+};
+
+// New function to check for active agreements without payment schedules
+export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
+  success: boolean;
+  generatedCount: number;
+  message: string;
+  error?: any;
+}> => {
+  try {
+    console.log("Checking for active agreements without payment schedules");
+    
+    // Get current month and year
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Find active agreements
+    const { data: activeAgreements, error: agreementsError } = await supabase
+      .from('leases')
+      .select('id, rent_amount, agreement_number')
+      .eq('status', 'active');
+      
+    if (agreementsError) {
+      console.error("Error fetching active agreements:", agreementsError);
+      return { 
+        success: false, 
+        generatedCount: 0,
+        message: `Error fetching agreements: ${agreementsError.message}`,
+        error: agreementsError
+      };
+    }
+    
+    if (!activeAgreements || activeAgreements.length === 0) {
+      console.log("No active agreements found");
+      return { 
+        success: true, 
+        generatedCount: 0,
+        message: "No active agreements found"
+      };
+    }
+    
+    console.log(`Found ${activeAgreements.length} active agreements, checking for missing payment schedules`);
+    
+    let generatedCount = 0;
+    let skippedCount = 0;
+    
+    // For each active agreement, check if there's a payment for the current month
+    for (const agreement of activeAgreements) {
+      // Check if there's already a payment for the current month
+      const { data: existingPayments, error: paymentsError } = await supabase
+        .from('unified_payments')
+        .select('id')
+        .eq('lease_id', agreement.id)
+        .gte('payment_date', new Date(currentYear, currentMonth, 1).toISOString())
+        .lt('payment_date', new Date(currentYear, currentMonth + 1, 1).toISOString());
+        
+      if (paymentsError) {
+        console.error(`Error checking payments for agreement ${agreement.id}:`, paymentsError);
+        continue;
+      }
+      
+      // If there's no payment for the current month, generate one
+      if (!existingPayments || existingPayments.length === 0) {
+        console.log(`Generating payment for agreement ${agreement.agreement_number} (${agreement.id})`);
+        
+        try {
+          const result = await forceGeneratePaymentForAgreement(supabase, agreement.id);
+          
+          if (result.success) {
+            console.log(`Successfully generated payment for agreement ${agreement.agreement_number}`);
+            generatedCount++;
+          } else {
+            console.warn(`Failed to generate payment for agreement ${agreement.agreement_number}:`, result.message);
+          }
+        } catch (error) {
+          console.error(`Error generating payment for agreement ${agreement.id}:`, error);
+        }
+      } else {
+        skippedCount++;
+      }
+    }
+    
+    console.log(`Completed checking ${activeAgreements.length} agreements. Generated ${generatedCount} payment schedules. Skipped ${skippedCount} agreements with existing payments.`);
+    
+    return {
+      success: true,
+      generatedCount,
+      message: `Generated ${generatedCount} payment schedules. Skipped ${skippedCount} agreements with existing payments.`
+    };
+  } catch (error) {
+    console.error("Unexpected error in checkAndCreateMissingPaymentSchedules:", error);
+    return {
+      success: false,
+      generatedCount: 0,
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
+      error
+    };
   }
 };

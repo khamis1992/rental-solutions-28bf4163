@@ -1,5 +1,5 @@
-
 import { createClient } from '@supabase/supabase-js'
+import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -246,6 +246,61 @@ export const revertAgreementImport = async (
       success: false, 
       message: `Unexpected error: ${err.message}`,
       error: err 
+    };
+  }
+};
+
+// Background job to check for missing payment schedules
+export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
+  try {
+    console.log("Running payment schedule maintenance job");
+    
+    // Check for active agreements without payment schedules and create them
+    const result = await checkAndCreateMissingPaymentSchedules();
+    
+    if (!result.success) {
+      console.error("Error in payment schedule maintenance job:", result.error);
+      return {
+        success: false,
+        message: `Payment schedule maintenance job failed: ${result.message}`,
+        error: result.error
+      };
+    }
+    
+    return {
+      success: true,
+      message: `Payment schedule maintenance job completed successfully. ${result.message}`
+    };
+  } catch (error) {
+    console.error("Unexpected error in payment schedule maintenance job:", error);
+    return {
+      success: false,
+      message: `Unexpected error in payment schedule maintenance job: ${error instanceof Error ? error.message : String(error)}`,
+      error
+    };
+  }
+};
+
+// Function to manually run the maintenance job (can be called from UI)
+export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
+  try {
+    toast.info("Running payment schedule maintenance...");
+    const result = await runPaymentScheduleMaintenanceJob();
+    
+    if (result.success) {
+      toast.success(result.message || "Payment maintenance completed successfully");
+    } else {
+      toast.error(result.message || "Payment maintenance failed");
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("Error in manual payment maintenance:", error);
+    toast.error("Failed to run payment maintenance");
+    return {
+      success: false,
+      message: `Manual payment maintenance failed: ${error instanceof Error ? error.message : String(error)}`,
+      error
     };
   }
 };

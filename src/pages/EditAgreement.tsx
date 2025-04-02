@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ const EditAgreement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     // Guard against multiple fetches in rapid succession
@@ -60,9 +62,18 @@ const EditAgreement = () => {
     
     try {
       setIsSubmitting(true);
+      
+      // Check if status is being changed to active
+      const isChangingToActive = updatedAgreement.status === 'active' && 
+                              agreement?.status !== 'active';
+                              
+      if (isChangingToActive) {
+        console.log("Status is being changed to active, payment schedule will be generated");
+      }
+      
       await updateAgreementWithCheck(
         { id, data: updatedAgreement },
-        undefined, // Pass undefined instead of a function for userId
+        user?.id, // Pass the user ID for audit tracking
         () => navigate(`/agreements/${id}`), // Success callback
         (error: any) => console.error("Error updating agreement:", error) // Error callback
       );
