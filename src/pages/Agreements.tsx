@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 import { useAgreements } from '@/hooks/use-agreements';
-import { checkEdgeFunctionAvailability } from '@/utils/agreement-import-utils';
+import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 
 const Agreements = () => {
@@ -20,7 +20,7 @@ const Agreements = () => {
   
   useEffect(() => {
     const checkAvailability = async () => {
-      const available = await checkEdgeFunctionAvailability();
+      const available = await checkEdgeFunctionAvailability('process-agreement-imports');
       setIsEdgeFunctionAvailable(available);
       if (!available) {
         toast.error("CSV import feature is unavailable. Please try again later or contact support.", {

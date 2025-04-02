@@ -1,6 +1,7 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
 // Helper function to adapt SimpleAgreement to Agreement type for detail pages

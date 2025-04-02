@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 
 // Cache for storing availability check results
 const availabilityCache: Record<string, { available: boolean; timestamp: number }> = {};
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
 
 /**
  * Check if a Supabase Edge Function is available
