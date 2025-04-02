@@ -16,6 +16,7 @@ import { supabase } from '@/lib/supabase';
 import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
+import { fixAgreementPayments } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -83,6 +84,31 @@ const AgreementDetailPage = () => {
       fetchAgreementData();
     }
   }, [id, refreshTrigger]);
+
+  useEffect(() => {
+    if (id && !isLoading && agreement && payments && payments.length > 0) {
+      const paymentDates = payments
+        .filter(p => p.original_due_date)
+        .map(p => {
+          const date = new Date(p.original_due_date as string);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        });
+      
+      const monthCounts = paymentDates.reduce((acc, date) => {
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const hasDuplicates = Object.values(monthCounts).some(count => count > 1);
+      
+      if (hasDuplicates) {
+        console.log("Detected duplicate payments - will fix automatically");
+        fixAgreementPayments(id).then(() => {
+          fetchPayments();
+        });
+      }
+    }
+  }, [id, isLoading, agreement, payments]);
 
   const handleDelete = async (agreementId: string) => {
     try {

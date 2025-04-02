@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, Edit, Trash2, CheckSquare, AlertCircle, Clock, RefreshCw, FileText } from 'lucide-react';
+import { DollarSign, Edit, Trash2, CheckSquare, AlertCircle, Clock, RefreshCw, FileText, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PaymentEditDialog } from './PaymentEditDialog';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
@@ -13,6 +13,8 @@ import { isAfter, subMonths, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
+
 export interface Payment {
   id: string;
   amount: number;
@@ -29,6 +31,7 @@ export interface Payment {
   amount_paid?: number;
   balance?: number;
 }
+
 interface PaymentHistoryProps {
   payments: Payment[];
   isLoading: boolean;
@@ -37,6 +40,7 @@ interface PaymentHistoryProps {
   leaseStartDate?: Date | string;
   leaseEndDate?: Date | string;
 }
+
 export function PaymentHistory({
   payments,
   isLoading,
@@ -52,10 +56,12 @@ export function PaymentHistory({
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeletingPayment, setIsDeletingPayment] = useState(false);
+  const [isFixingPayments, setIsFixingPayments] = useState(false);
   const [lateFeeDetails, setLateFeeDetails] = useState<{
     amount: number;
     daysLate: number;
   } | null>(null);
+  
   useEffect(() => {
     const today = new Date();
     if (today.getDate() > 1) {
@@ -69,22 +75,27 @@ export function PaymentHistory({
       setLateFeeDetails(null);
     }
   }, []);
+  
   const handleEditPayment = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsEditDialogOpen(true);
   };
+  
   const handleRecordPayment = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsPaymentDialogOpen(true);
   };
+  
   const handleRecordManualPayment = () => {
     setSelectedPayment(null);
     setIsPaymentDialogOpen(true);
   };
+  
   const handleDeletePayment = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsDeleteConfirmOpen(true);
   };
+  
   const confirmDeletePayment = async () => {
     if (!selectedPayment) return;
     try {
@@ -106,6 +117,38 @@ export function PaymentHistory({
       setIsDeleteConfirmOpen(false);
     }
   };
+  
+  const handleFixPayments = async () => {
+    if (!payments.length || !payments[0].lease_id) {
+      toast.error("Cannot fix payments: No lease ID available");
+      return;
+    }
+    
+    setIsFixingPayments(true);
+    toast.info("Checking and fixing payments...");
+    
+    try {
+      const leaseId = payments[0].lease_id;
+      const result = await ensureAllMonthlyPayments(leaseId);
+      
+      if (result.success) {
+        if (result.generatedCount === 0 && result.updatedCount === 0) {
+          toast.success("Payment records are up to date");
+        } else {
+          toast.success(result.message || "Payment records fixed successfully");
+          onPaymentDeleted(); // Refresh the payment list
+        }
+      } else {
+        toast.error(result.message || "Failed to fix payment records");
+      }
+    } catch (error) {
+      console.error("Error fixing payments:", error);
+      toast.error("An unexpected error occurred while fixing payments");
+    } finally {
+      setIsFixingPayments(false);
+    }
+  };
+  
   const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number) => {
     if (!status) return <Badge className="bg-gray-500">Unknown</Badge>;
     switch (status.toLowerCase()) {
@@ -128,6 +171,7 @@ export function PaymentHistory({
         return <Badge className="bg-gray-500">{status}</Badge>;
     }
   };
+  
   const getStatusIcon = (status?: string) => {
     if (!status) return <AlertCircle className="h-4 w-4 text-gray-500" />;
     switch (status.toLowerCase()) {
@@ -146,6 +190,7 @@ export function PaymentHistory({
         return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
   };
+  
   const formatAmount = (payment: Payment) => {
     const baseAmount = payment.amount || 0;
     const amountPaid = payment.amount_paid || 0;
@@ -175,8 +220,10 @@ export function PaymentHistory({
     }
     return `QAR ${displayAmount}`;
   };
+  
   const startDate = leaseStartDate ? new Date(leaseStartDate) : null;
   const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
+  
   return <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
@@ -188,7 +235,25 @@ export function PaymentHistory({
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFixPayments}
+            disabled={isFixingPayments}
+            className="h-8"
+          >
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            {isFixingPayments ? "Fixing..." : "Fix Payments"}
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleRecordManualPayment}
+            className="h-8"
+          >
+            <DollarSign className="mr-2 h-4 w-4" />
+            Record Payment
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -234,7 +299,7 @@ export function PaymentHistory({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {payment.status === 'partially_paid' || payment.status === 'pending' ? <Button variant="ghost" size="sm" onClick={() => handleRecordPayment(payment)} title="Record Payment">
+                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={() => handleRecordPayment(payment)} title="Record Payment">
                           <DollarSign className="h-4 w-4" />
                         </Button> : <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)} title="Edit payment">
                           <Edit className="h-4 w-4" />
@@ -258,7 +323,7 @@ export function PaymentHistory({
         console.log("Recording payment with payment ID:", targetPaymentId);
         setIsPaymentDialogOpen(false);
         onPaymentDeleted();
-      }} defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} title={selectedPayment ? "Record Additional Payment" : "Record Manual Payment"} description={selectedPayment ? "Record an additional payment for this partially paid item." : "Record a new manual payment for this agreement."} lateFeeDetails={lateFeeDetails} selectedPayment={selectedPayment} />
+      }} defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} title={selectedPayment ? "Record Payment" : "Record Manual Payment"} description={selectedPayment ? "Record payment for this item." : "Record a new manual payment for this agreement."} lateFeeDetails={lateFeeDetails} selectedPayment={selectedPayment} />
 
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
           <DialogContent>

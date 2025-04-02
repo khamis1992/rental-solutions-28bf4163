@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { toast } from 'sonner';
+import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -416,6 +417,34 @@ export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolea
     return {
       success: false,
       message: `Manual payment maintenance failed: ${error instanceof Error ? error.message : String(error)}`,
+      error
+    };
+  }
+};
+
+// Function to check and fix payments for a specific agreement
+export const fixAgreementPayments = async (agreementId: string): Promise<{ success: boolean; message?: string; error?: any }> => {
+  try {
+    toast.info("Checking and fixing payments for this agreement...");
+    const result = await ensureAllMonthlyPayments(agreementId);
+    
+    if (result.success) {
+      if ((result.generatedCount || 0) === 0 && (result.updatedCount || 0) === 0) {
+        toast.info("All payment records are up to date");
+      } else {
+        toast.success(result.message || "Payment records fixed successfully");
+      }
+    } else {
+      toast.error(result.message || "Failed to fix payment records");
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("Error fixing agreement payments:", error);
+    toast.error("Failed to fix agreement payments");
+    return {
+      success: false,
+      message: `Failed to fix agreement payments: ${error instanceof Error ? error.message : String(error)}`,
       error
     };
   }
