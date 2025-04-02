@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -48,7 +49,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useAgreements } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -463,7 +464,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
-  const table = useReactTable<SimpleRecord>({
+  const table = useReactTable({
     data: (agreements || []) as SimpleRecord[],
     columns,
     getCoreRowModel: getCoreRowModel(),
