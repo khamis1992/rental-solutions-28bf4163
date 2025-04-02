@@ -105,7 +105,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     }
   };
 
-  const updateStatus = async (newStatus: AgreementStatus) => {
+  const updateStatus = async (newStatus: typeof AgreementStatus) => {
     if (!agreement.id) return;
     
     setIsStatusChanging(true);
