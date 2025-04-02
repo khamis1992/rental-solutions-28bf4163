@@ -105,18 +105,14 @@ export const auditAndFixDoubleBookedVehicles = async () => {
     console.log("Starting system-wide double-booking audit...");
     
     // First, find all vehicles that have more than one active agreement
-    const { data: doubleBookedVehiclesResult, error: queryError } = await supabase
+    const { data: doubleBookedVehicles, error: queryError } = await supabase
       .from('leases')
-      .select('vehicle_id, count')
-      .eq('status', AgreementStatus.ACTIVE)
       .select('vehicle_id, count(*)')
       .eq('status', AgreementStatus.ACTIVE)
-      .having('count.count', 'gt', 1)
-      .execute();
+      .group('vehicle_id')
+      .having('count', 'gt', 1);
     
     // Extract the double-booked vehicles from the result
-    const doubleBookedVehicles = doubleBookedVehiclesResult?.data || [];
-      
     if (queryError) {
       console.error("Error finding double-booked vehicles:", queryError);
       return { 

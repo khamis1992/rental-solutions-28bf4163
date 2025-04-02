@@ -105,7 +105,7 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
     }
   };
 
-  const updateStatus = async (newStatus: typeof AgreementStatus) => {
+  const updateStatus = async (newStatus: typeof AgreementStatus[keyof typeof AgreementStatus]) => {
     if (!agreement.id) return;
     
     setIsStatusChanging(true);
@@ -173,7 +173,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Status change alert for non-active agreements */}
       {agreement.status === AgreementStatus.PENDING && (
         <Alert variant="warning" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
@@ -194,7 +193,6 @@ export const AgreementDetail: React.FC<AgreementDetailProps> = ({
         </Alert>
       )}
 
-      {/* Vehicle double booking alert */}
       {agreement.vehicle_id && (
         <ConflictAlert 
           agreementId={agreement.id} 
