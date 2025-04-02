@@ -1,13 +1,13 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
@@ -16,11 +16,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { formatCurrency } from '@/lib/utils';
 
 interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean) => void;
+  onSubmit: (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean, isPartialPayment?: boolean) => void;
   defaultAmount: number;
   title: string;
   description: string;
@@ -39,6 +41,7 @@ const paymentSchema = z.object({
   referenceNumber: z.string().optional(),
   notes: z.string().optional(),
   includeLatePaymentFee: z.boolean().default(false),
+  isPartialPayment: z.boolean().default(false),
 });
 
 export function PaymentEntryDialog({
@@ -50,6 +53,8 @@ export function PaymentEntryDialog({
   description,
   lateFeeDetails,
 }: PaymentEntryDialogProps) {
+  const [originalAmount, setOriginalAmount] = useState(defaultAmount);
+  
   const form = useForm<z.infer<typeof paymentSchema>>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
@@ -59,8 +64,18 @@ export function PaymentEntryDialog({
       referenceNumber: '',
       notes: '',
       includeLatePaymentFee: false,
+      isPartialPayment: false,
     },
   });
+
+  // Update form when defaultAmount changes
+  useEffect(() => {
+    form.setValue('amount', defaultAmount);
+    setOriginalAmount(defaultAmount);
+  }, [defaultAmount, form]);
+  
+  const isPartialPayment = form.watch('isPartialPayment');
+  const amount = form.watch('amount');
 
   const handleSubmit = (values: z.infer<typeof paymentSchema>) => {
     onSubmit(
@@ -69,7 +84,8 @@ export function PaymentEntryDialog({
       values.notes,
       values.paymentMethod,
       values.referenceNumber,
-      values.includeLatePaymentFee
+      values.includeLatePaymentFee,
+      values.isPartialPayment
     );
     form.reset({
       amount: defaultAmount,
@@ -78,6 +94,7 @@ export function PaymentEntryDialog({
       referenceNumber: '',
       notes: '',
       includeLatePaymentFee: false,
+      isPartialPayment: false,
     });
   };
 
@@ -97,6 +114,27 @@ export function PaymentEntryDialog({
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <FormField
               control={form.control}
+              name="isPartialPayment"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Partial Payment</FormLabel>
+                    <FormDescription>
+                      Enable if customer is paying only part of the amount
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="amount"
               render={({ field }) => (
                 <FormItem>
@@ -104,6 +142,17 @@ export function PaymentEntryDialog({
                   <FormControl>
                     <Input type="number" min="0" step="0.01" {...field} />
                   </FormControl>
+                  {isPartialPayment && originalAmount > 0 && (
+                    <FormDescription className="flex justify-between">
+                      <span>Payment amount</span>
+                      <span className={amount > originalAmount ? "text-red-500" : ""}>
+                        {amount > originalAmount ? 
+                          "Amount exceeds original amount" : 
+                          `Remaining: ${formatCurrency(originalAmount - amount)}`
+                        }
+                      </span>
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

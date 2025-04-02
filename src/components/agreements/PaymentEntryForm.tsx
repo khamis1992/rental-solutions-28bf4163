@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +18,7 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
 
 // Define the pending payment interface to match our state structure
 interface PendingPayment {
@@ -33,6 +35,7 @@ const paymentFormSchema = z.object({
   paymentDate: z.date(),
   includeLatePaymentFee: z.boolean().default(false),
   pendingPaymentId: z.string().optional(),
+  isPartialPayment: z.boolean().default(false),
 });
 
 type PaymentFormData = z.infer<typeof paymentFormSchema>;
@@ -50,6 +53,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   } | null>(null);
   const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
   const [selectedPendingPayment, setSelectedPendingPayment] = useState<string | null>(null);
+  const [originalAmount, setOriginalAmount] = useState<number>(0);
 
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentFormSchema),
@@ -61,6 +65,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
       paymentDate: new Date(),
       includeLatePaymentFee: false,
       pendingPaymentId: undefined,
+      isPartialPayment: false,
     },
   });
 
@@ -68,11 +73,14 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
   useEffect(() => {
     if (defaultAmount && !selectedPendingPayment) {
       form.setValue("amount", defaultAmount);
+      setOriginalAmount(defaultAmount);
     }
   }, [defaultAmount, form, selectedPendingPayment]);
 
   const paymentDate = form.watch("paymentDate");
   const includeLatePaymentFee = form.watch("includeLatePaymentFee");
+  const isPartialPayment = form.watch("isPartialPayment");
+  const amount = form.watch("amount");
 
   // Fetch pending payments when component mounts
   useEffect(() => {
@@ -106,6 +114,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         setSelectedPendingPayment(firstPending.id);
         form.setValue("pendingPaymentId", firstPending.id);
         form.setValue("amount", firstPending.amount);
+        setOriginalAmount(firstPending.amount);
         
         // Calculate late fee based on the pending payment date
         const pendingDate = new Date(firstPending.date);
@@ -152,6 +161,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
     const payment = pendingPayments.find(p => p.id === paymentId);
     if (payment) {
       form.setValue("amount", payment.amount);
+      setOriginalAmount(payment.amount);
       
       // Recalculate late fee based on the pending payment date
       const pendingDate = new Date(payment.date);
@@ -161,17 +171,23 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
 
   const onSubmit = async (data: PaymentFormData) => {
     try {
+      const isFullPayment = !data.isPartialPayment || data.amount >= originalAmount;
+      const paymentStatus = isFullPayment ? "completed" : "partially_paid";
+      const remainingBalance = isFullPayment ? 0 : originalAmount - data.amount;
+
       if (data.pendingPaymentId) {
         // Update the pending payment to paid status
         const { error: updateError } = await supabase
           .from("unified_payments")
           .update({
-            status: "completed",
+            status: paymentStatus,
             payment_method: data.paymentMethod,
             reference_number: data.referenceNumber || null,
             notes: data.notes || null,
             payment_date: data.paymentDate.toISOString(), // Use the actual payment date
             days_overdue: lateFeeDetails?.daysLate || 0,
+            amount_paid: data.amount,
+            balance: remainingBalance
           })
           .eq("id", data.pendingPaymentId);
 
@@ -180,12 +196,12 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         // Record a new payment if not updating a pending one
         const { data: paymentData, error: paymentError } = await supabase.from("unified_payments").insert({
           lease_id: agreementId,
-          amount: data.amount,
+          amount: originalAmount,
           amount_paid: data.amount,
-          balance: 0, // Fully paid
+          balance: remainingBalance,
           payment_date: data.paymentDate.toISOString(),
           payment_method: data.paymentMethod,
-          status: "completed",
+          status: paymentStatus,
           type: "Income",
           reference_number: data.referenceNumber || null,
           notes: data.notes || null,
@@ -224,7 +240,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
         }
       }
 
-      toast.success("Payment recorded successfully");
+      toast.success(isFullPayment ? "Payment recorded successfully" : "Partial payment recorded successfully");
       form.reset();
       onPaymentComplete();
     } catch (error) {
@@ -272,6 +288,27 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
             
             <FormField
               control={form.control}
+              name="isPartialPayment"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <div className="space-y-0.5">
+                    <FormLabel>Partial Payment</FormLabel>
+                    <FormDescription>
+                      Enable if customer is paying only part of the amount
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
               name="amount"
               render={({ field }) => (
                 <FormItem>
@@ -282,12 +319,16 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
                       placeholder="0.00" 
                       {...field} 
                       onChange={(e) => field.onChange(e.target.valueAsNumber)}
-                      disabled={!!selectedPendingPayment}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Enter the payment amount in QAR
-                  </FormDescription>
+                  {isPartialPayment && originalAmount > 0 && (
+                    <FormDescription className="flex justify-between">
+                      <span>Enter the payment amount in QAR</span>
+                      <span className={amount > originalAmount ? "text-red-500" : ""}>
+                        {amount > originalAmount ? "Amount exceeds original amount" : `Remaining: ${formatCurrency(originalAmount - amount)}`}
+                      </span>
+                    </FormDescription>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

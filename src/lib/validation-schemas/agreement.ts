@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
@@ -28,6 +29,15 @@ export const agreementSchema = z.object({
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false),
 });
+
+// Enum for payment status
+export const PaymentStatus = {
+  PENDING: 'pending',
+  COMPLETED: 'completed',
+  PARTIALLY_PAID: 'partially_paid',
+  OVERDUE: 'overdue',
+  CANCELLED: 'cancelled',
+} as const;
 
 // Agreement interface
 export interface Agreement {
@@ -134,6 +144,8 @@ export const forceGeneratePaymentForAgreement = async (
       .insert({
         lease_id: agreementId,
         amount: agreement.rent_amount,
+        amount_paid: 0,
+        balance: agreement.rent_amount,
         description: `Monthly Rent - ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
         type: 'rent',
         status: 'pending',

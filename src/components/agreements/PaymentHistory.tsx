@@ -28,6 +28,8 @@ export interface Payment {
   days_overdue?: number;
   lease_id?: string;
   original_due_date?: string | null;
+  amount_paid?: number;
+  balance?: number;
 }
 
 interface PaymentHistoryProps {
@@ -114,13 +116,15 @@ export function PaymentHistory({
     }
   };
 
-  const getStatusBadge = (status?: string, daysOverdue?: number) => {
+  const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number) => {
     if (!status) return <Badge className="bg-gray-500">Unknown</Badge>;
 
     switch (status.toLowerCase()) {
       case 'completed':
       case 'paid':
         return <Badge className="bg-green-500">Paid</Badge>;
+      case 'partially_paid':
+        return <Badge className="bg-blue-500">Partially Paid</Badge>;
       case 'pending':
         return (
           <Badge className="bg-yellow-500">
@@ -147,6 +151,8 @@ export function PaymentHistory({
       case 'completed':
       case 'paid':
         return <CheckSquare className="h-4 w-4 text-green-500" />;
+      case 'partially_paid':
+        return <CheckSquare className="h-4 w-4 text-blue-500" />;
       case 'pending':
         return <Clock className="h-4 w-4 text-yellow-500" />;
       case 'overdue':
@@ -161,6 +167,8 @@ export function PaymentHistory({
   // Format displayed amount including late fee for pending payments
   const formatAmount = (payment: Payment) => {
     const baseAmount = payment.amount || 0;
+    const amountPaid = payment.amount_paid || 0;
+    const balance = payment.balance || 0;
     const displayAmount = baseAmount.toLocaleString();
     
     // For pending payments with overdue days, show the current late fee
@@ -175,6 +183,21 @@ export function PaymentHistory({
           </div>
           <div className="text-xs text-muted-foreground mt-1">
             Total: QAR {(baseAmount + payment.late_fine_amount).toLocaleString()}
+          </div>
+        </>
+      );
+    }
+    
+    // For partially paid payments
+    if (payment.status === 'partially_paid' && amountPaid > 0 && balance > 0) {
+      return (
+        <>
+          QAR {displayAmount}
+          <div className="text-xs text-blue-500 mt-1">
+            Paid: QAR {amountPaid.toLocaleString()}
+          </div>
+          <div className="text-xs text-amber-500 mt-1">
+            Remaining: QAR {balance.toLocaleString()}
           </div>
         </>
       );
@@ -258,7 +281,7 @@ export function PaymentHistory({
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       {getStatusIcon(payment.status)}
-                      <span>{getStatusBadge(payment.status, payment.days_overdue)}</span>
+                      <span>{getStatusBadge(payment.status, payment.days_overdue, payment.balance, payment.amount)}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -310,7 +333,9 @@ export function PaymentHistory({
         <PaymentEntryDialog
           open={isPaymentDialogOpen}
           onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={() => {
+          onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment) => {
+            // Process the payment with the new isPartialPayment parameter
+            console.log("Recording payment with partial payment:", isPartialPayment);
             setIsPaymentDialogOpen(false);
             onPaymentDeleted();
           }}

@@ -59,7 +59,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
         let lateFineAmount = payment.late_fine_amount || 0;
         
         // If payment is pending and has an original_due_date, calculate current overdue days
-        if (payment.status === 'pending' && payment.original_due_date) {
+        if ((payment.status === 'pending' || payment.status === 'partially_paid') && payment.original_due_date) {
           const dueDate = new Date(payment.original_due_date);
           const today = new Date();
           
@@ -92,7 +92,9 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
           late_fine_amount: lateFineAmount,
           days_overdue: daysOverdue,
           lease_id: payment.lease_id,
-          original_due_date: payment.original_due_date
+          original_due_date: payment.original_due_date,
+          amount_paid: payment.amount_paid,
+          balance: payment.balance
         };
       });
       
