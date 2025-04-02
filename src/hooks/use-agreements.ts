@@ -5,6 +5,7 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { FlattenType } from '@/utils/type-utils';
 
 // Simplified type to avoid excessive deep instantiation
 export type SimpleAgreement = {
@@ -118,8 +119,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
+  // Simplified the type for the deleteAgreement mutation to avoid excessive type instantiation
   const deleteAgreement = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: string): Promise<string> => {
       try {
         const { error } = await supabase
           .from('leases')

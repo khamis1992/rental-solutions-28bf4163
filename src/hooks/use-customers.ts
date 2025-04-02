@@ -47,7 +47,8 @@ export const useCustomers = () => {
           .order('created_at', { ascending: false });
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status);
+          // Use type assertion to tell TypeScript this is a valid status
+          query = query.eq('status', searchParams.status as Customer['status']);
         }
 
         if (searchParams.query) {
