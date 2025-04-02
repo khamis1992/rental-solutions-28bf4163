@@ -84,7 +84,15 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const newBalance = existingPaymentAmount - totalPaid;
         const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
         
-        // Update the existing payment record - removing notes field as it doesn't exist
+        console.log("Updating existing payment:", {
+          existingPaymentId,
+          totalPaid,
+          newBalance,
+          newStatus,
+          paymentDate: paymentDate.toISOString()
+        });
+        
+        // Update the existing payment record
         const { error: updateError } = await supabase
           .from('unified_payments')
           .update({
