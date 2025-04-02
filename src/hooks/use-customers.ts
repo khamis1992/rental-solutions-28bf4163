@@ -1,29 +1,22 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 
-// Change the table name from 'customers' to 'profiles'
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
 
-// Function to format Qatar phone number - ensure it has the +974 prefix
 const formatQatarPhoneNumber = (phone: string): string => {
-  // Remove any existing country code if present
   const cleanPhone = phone.replace(/^\+974/, '').trim();
   
-  // Add the +974 prefix if it's a valid 8-digit Qatar number
   if (/^[3-9]\d{7}$/.test(cleanPhone)) {
     return `+974${cleanPhone}`;
   }
   
-  // Return original if not matching format (validation will catch this)
   return phone;
 };
 
-// Function to strip country code for display/edit
 const stripCountryCode = (phone: string): string => {
   return phone.replace(/^\+974/, '').trim();
 };
@@ -35,11 +28,11 @@ export const useCustomers = () => {
     status: 'all',
   });
 
-  // Fetch all customers with optional filtering
   const { 
     data: customers, 
     isLoading, 
-    error 
+    error,
+    refetch
   } = useQuery({
     queryKey: ['customers', searchParams],
     queryFn: async () => {
@@ -49,16 +42,13 @@ export const useCustomers = () => {
         let query = supabase
           .from(PROFILES_TABLE)
           .select('*')
-          .eq('role', CUSTOMER_ROLE) // Only select profiles with role='customer'
+          .eq('role', CUSTOMER_ROLE)
           .order('created_at', { ascending: false });
 
-        // Apply status filter if not 'all'
         if (searchParams.status !== 'all' && searchParams.status) {
-          // Cast the status to a valid value for the query
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted");
+          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
         }
 
-        // Apply search query if provided
         if (searchParams.query) {
           query = query.or(
             `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone_number.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
@@ -72,20 +62,18 @@ export const useCustomers = () => {
           throw new Error(error.message);
         }
         
-        // Log raw data for debugging
         console.log('Raw customer data from profiles table:', data);
         
-        // Process customers to ensure they have required fields
         const processedCustomers = (data || []).map(profile => ({
           id: profile.id,
           full_name: profile.full_name || '',
           email: profile.email || '',
-          phone: stripCountryCode(profile.phone_number || ''), // Strip +974 for UI display
+          phone: stripCountryCode(profile.phone_number || ''),
           driver_license: profile.driver_license || '',
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted",
+          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
           created_at: profile.created_at,
           updated_at: profile.updated_at,
         }));
@@ -100,12 +88,14 @@ export const useCustomers = () => {
     initialData: []
   });
 
-  // Create a new customer
+  const refreshCustomers = () => {
+    return refetch();
+  };
+
   const createCustomer = useMutation({
     mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
       console.log('Creating new customer with data:', newCustomer);
       
-      // Format phone number to include +974 country code
       const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
       console.log('Formatted phone number:', formattedPhone);
       
@@ -114,13 +104,13 @@ export const useCustomers = () => {
         .insert([{ 
           full_name: newCustomer.full_name,
           email: newCustomer.email,
-          phone_number: formattedPhone, // Store with +974 prefix
+          phone_number: formattedPhone,
           address: newCustomer.address,
           driver_license: newCustomer.driver_license,
           nationality: newCustomer.nationality,
           notes: newCustomer.notes,
           status: newCustomer.status || 'active',
-          role: CUSTOMER_ROLE, // Ensure role is set to customer
+          role: CUSTOMER_ROLE,
           created_at: new Date().toISOString() 
         }])
         .select()
@@ -131,7 +121,6 @@ export const useCustomers = () => {
         throw new Error(error.message);
       }
       
-      // Return customer with country code stripped from phone for UI consistency
       console.log('Created customer:', data);
       return {
         ...data,
@@ -147,10 +136,8 @@ export const useCustomers = () => {
     },
   });
 
-  // Update a customer
   const updateCustomer = useMutation({
     mutationFn: async (customer: Customer) => {
-      // Format phone number to include +974 country code
       const formattedPhone = formatQatarPhoneNumber(customer.phone);
       console.log('Updating customer with formatted phone:', formattedPhone);
       
@@ -159,7 +146,7 @@ export const useCustomers = () => {
         .update({ 
           full_name: customer.full_name,
           email: customer.email,
-          phone_number: formattedPhone, // Store with +974 prefix
+          phone_number: formattedPhone,
           address: customer.address,
           driver_license: customer.driver_license,
           nationality: customer.nationality,
@@ -172,7 +159,6 @@ export const useCustomers = () => {
 
       if (error) throw new Error(error.message);
       
-      // Return customer with country code stripped for UI consistency
       return {
         ...data[0],
         phone: stripCountryCode(data[0].phone_number || '')
@@ -187,7 +173,6 @@ export const useCustomers = () => {
     },
   });
 
-  // Delete a customer
   const deleteCustomer = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -207,7 +192,6 @@ export const useCustomers = () => {
     },
   });
 
-  // Get a single customer by ID
   const getCustomer = async (id: string): Promise<Customer | null> => {
     try {
       console.log('Fetching customer with ID:', id);
@@ -216,7 +200,7 @@ export const useCustomers = () => {
         .from(PROFILES_TABLE)
         .select('*')
         .eq('id', id)
-        .maybeSingle(); // Using maybeSingle instead of single to handle not found case
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching customer by ID:', error);
@@ -231,17 +215,16 @@ export const useCustomers = () => {
 
       console.log('Raw customer data from profiles:', data);
 
-      // Map the data properly to the Customer type
       const customerData: Customer = {
         id: data.id,
         full_name: data.full_name || '',
         email: data.email || '',
-        phone: stripCountryCode(data.phone_number || ''), // Strip country code for UI
+        phone: stripCountryCode(data.phone_number || ''),
         driver_license: data.driver_license || '',
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted",
+        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
@@ -264,5 +247,6 @@ export const useCustomers = () => {
     updateCustomer,
     deleteCustomer,
     getCustomer,
+    refreshCustomers,
   };
 };

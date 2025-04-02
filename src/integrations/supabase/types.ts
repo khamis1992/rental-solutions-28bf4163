@@ -10216,7 +10216,15 @@ export type Database = {
         }
         Returns: string
       }
+      trigger_customer_status_updates: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_agreement_payment_dates: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_customer_statuses: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -10258,6 +10266,7 @@ export type Database = {
         | "suspended"
         | "pending_review"
         | "blacklisted"
+        | "pending_payment"
       damage_severity: "none" | "minor" | "moderate" | "severe"
       discount_type: "percentage" | "fixed_amount"
       document_category: "registration" | "insurance" | "maintenance" | "other"

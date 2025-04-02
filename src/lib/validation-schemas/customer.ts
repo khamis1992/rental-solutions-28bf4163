@@ -11,7 +11,7 @@ export const customerSchema = z.object({
   driver_license: z.string().min(3, "Driver license number is required"),
   nationality: z.string().min(2, "Nationality is required"),
   notes: z.string().optional(),
-  status: z.enum(["active", "inactive", "blacklisted", "pending_review"]).default("active"),
+  status: z.enum(["active", "inactive", "blacklisted", "pending_review", "pending_payment"]).default("active"),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
@@ -20,7 +20,7 @@ export type Customer = z.infer<typeof customerSchema>;
 
 export const customerSearchSchema = z.object({
   query: z.string().optional(),
-  status: z.enum(["all", "active", "inactive", "blacklisted", "pending_review"]).default("all"),
+  status: z.enum(["all", "active", "inactive", "blacklisted", "pending_review", "pending_payment"]).default("all"),
 });
 
 export type CustomerSearch = z.infer<typeof customerSearchSchema>;

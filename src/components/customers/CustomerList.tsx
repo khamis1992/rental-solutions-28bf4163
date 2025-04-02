@@ -1,7 +1,8 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel } from "@tanstack/react-table";
-import { MoreHorizontal, UserPlus, Search, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { MoreHorizontal, UserPlus, Search, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
 export function CustomerList() {
   const {
     customers,
@@ -18,11 +22,39 @@ export function CustomerList() {
     error,
     searchParams,
     setSearchParams,
-    deleteCustomer
+    deleteCustomer,
+    refreshCustomers
   } = useCustomers();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [isUpdatingStatuses, setIsUpdatingStatuses] = useState(false);
+  
   console.log("CustomerList received customers:", customers);
+  
+  // Function to trigger customer status updates
+  const handleUpdateCustomerStatuses = async () => {
+    setIsUpdatingStatuses(true);
+    try {
+      const { error } = await supabase.rpc('update_customer_statuses');
+      
+      if (error) {
+        console.error("Error updating customer statuses:", error);
+        toast.error("Failed to update customer statuses", {
+          description: error.message
+        });
+      } else {
+        toast.success("Customer statuses updated successfully");
+        // Refresh customer list to show updated statuses
+        refreshCustomers();
+      }
+    } catch (err) {
+      console.error("Unexpected error updating customer statuses:", err);
+      toast.error("An unexpected error occurred while updating customer statuses");
+    } finally {
+      setIsUpdatingStatuses(false);
+    }
+  };
+  
   const columns: ColumnDef<Customer>[] = [{
     accessorKey: "full_name",
     header: "Customer Name",
@@ -79,6 +111,10 @@ export function CustomerList() {
           break;
         case "pending_review":
           badgeClass = "bg-amber-500 text-white border-amber-600";
+          Icon = AlertTriangle;
+          break;
+        case "pending_payment":
+          badgeClass = "bg-blue-500 text-white border-blue-600";
           Icon = AlertTriangle;
           break;
         default:
@@ -173,12 +209,27 @@ export function CustomerList() {
               <SelectItem value="inactive">Inactive</SelectItem>
               <SelectItem value="blacklisted">Blacklisted</SelectItem>
               <SelectItem value="pending_review">Pending Review</SelectItem>
+              <SelectItem value="pending_payment">Pending Payment</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <Button asChild>
-          
-        </Button>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleUpdateCustomerStatuses}
+            disabled={isUpdatingStatuses}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isUpdatingStatuses ? 'animate-spin' : ''}`} />
+            Update Statuses
+          </Button>
+          <Button asChild>
+            <Link to="/customers/add">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Customer
+            </Link>
+          </Button>
+        </div>
       </div>
       
       <div className="rounded-md border">
