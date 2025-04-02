@@ -409,9 +409,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {agreements?.map((simpleAgreement) => {
+                  {agreements.map((simpleAgreement) => {
                     const agreement = adaptSimpleToFullAgreement(simpleAgreement);
-                    return <TableRow key={agreement.id}>
+                    return (
+                      <TableRow key={agreement.id}>
                         <TableCell className="font-medium">
                           {agreement.agreement_number}
                         </TableCell>
@@ -435,7 +436,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                             View
                           </CustomButton>
                         </TableCell>
-                      </TableRow>);
+                      </TableRow>
+                    );
                   })}
                 </TableBody>
               </Table>
