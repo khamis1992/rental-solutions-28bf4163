@@ -114,13 +114,16 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         
         if (isPartialPayment) {
           paymentStatus = 'partially_paid';
-          balance = Math.max(0, agreement.rent_amount - amount);
+          // Safe access to rent_amount with a fallback
+          const rentAmount = agreement.rent_amount || 0;
+          balance = Math.max(0, rentAmount - amount);
         }
         
         // Form the payment record
         const paymentRecord = {
           lease_id: agreementId,
-          amount: agreement.rent_amount,
+          // Safe access to rent_amount with a fallback
+          amount: agreement.rent_amount || 0,
           amount_paid: amountPaid,
           balance: balance,
           payment_date: paymentDate.toISOString(),
