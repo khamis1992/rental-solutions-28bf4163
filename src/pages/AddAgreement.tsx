@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/agreementUtils";
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
 import { diagnoseTemplateUrl, uploadAgreementTemplate, checkSpecificTemplateUrl, fixTemplateUrl } from "@/utils/templateUtils";
-import { checkVehicleAvailability } from "@/utils/agreement-utils";
+import { checkVehicleAvailability, activateAgreement } from "@/utils/agreement-utils";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -27,6 +26,29 @@ const AddAgreement = () => {
   const [specificUrlCheck, setSpecificUrlCheck] = useState<any>(null);
 
   useEffect(() => {
+    if (typeof sessionStorage !== 'undefined') {
+      const cachedTemplateCheck = sessionStorage.getItem('template_check_result');
+      if (cachedTemplateCheck) {
+        try {
+          const { exists, timestamp, diagnosis, specificCheck, urlDiagnosis } = JSON.parse(cachedTemplateCheck);
+          const now = Date.now();
+          
+          if (now - timestamp < 60 * 60 * 1000) {
+            console.log('Using cached template check results');
+            setStandardTemplateExists(exists);
+            if (diagnosis) setTemplateDiagnosis(diagnosis);
+            if (specificCheck) setSpecificUrlCheck(specificCheck);
+            if (urlDiagnosis) setTemplateUrlDiagnosis(urlDiagnosis);
+            setCheckingTemplate(false);
+            setTemplateError(exists ? null : "Template not found. Please upload a template file or create the agreements bucket manually in Supabase dashboard.");
+            return;
+          }
+        } catch (err) {
+          console.warn('Error parsing template check cache:', err);
+        }
+      }
+    }
+    
     const setupStorage = async () => {
       try {
         console.log("Setting up storage and ensuring buckets exist...");
@@ -42,6 +64,15 @@ const AddAgreement = () => {
           setStandardTemplateExists(true);
           setTemplateError(null);
           setCheckingTemplate(false);
+          
+          if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('template_check_result', JSON.stringify({
+              exists: true,
+              timestamp: Date.now(),
+              specificCheck
+            }));
+          }
+          
           return;
         } else {
           console.log("Specific URL is not accessible:", specificCheck.error);
@@ -91,6 +122,16 @@ const AddAgreement = () => {
         if (urlDiagnosis.status === "error") {
           console.error("Template URL issues:", urlDiagnosis.issues);
         }
+        
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('template_check_result', JSON.stringify({
+            exists,
+            timestamp: Date.now(),
+            diagnosis: templateDiagnosis,
+            specificCheck: specificUrlCheck,
+            urlDiagnosis
+          }));
+        }
       } catch (error) {
         console.error("Error during template setup:", error);
         setStandardTemplateExists(false);
@@ -110,7 +151,6 @@ const AddAgreement = () => {
     try {
       const { customer_data, vehicle_data, terms_accepted, ...leaseData } = formData;
       
-      // Check vehicle availability if a vehicle is selected
       if (leaseData.vehicle_id && leaseData.status === 'active') {
         const { isAvailable, existingAgreement } = await checkVehicleAvailability(leaseData.vehicle_id);
         
@@ -126,10 +166,8 @@ const AddAgreement = () => {
         throw error;
       }
       
-      // If agreement is active and we need to close an existing agreement
       if (leaseData.status === 'active' && leaseData.vehicle_id) {
-        await import('@/utils/agreement-utils')
-          .then(module => module.activateAgreement(data.id, leaseData.vehicle_id));
+        await activateAgreement(data.id, leaseData.vehicle_id);
       }
       
       toast.success("Agreement created successfully");
@@ -163,6 +201,14 @@ const AddAgreement = () => {
 
         const urlDiagnosis = await diagnoseTemplateUrl();
         setTemplateUrlDiagnosis(urlDiagnosis);
+        
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem('template_check_result', JSON.stringify({
+            exists: true,
+            timestamp: Date.now(),
+            urlDiagnosis
+          }));
+        }
       } else {
         setUploadError(result.error || "Unknown error uploading template");
         toast.error("Upload Failed", {

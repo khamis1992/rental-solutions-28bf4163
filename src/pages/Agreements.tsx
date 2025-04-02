@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
@@ -19,6 +18,22 @@ const Agreements = () => {
   const { setSearchParams } = useAgreements();
   
   useEffect(() => {
+    if (typeof sessionStorage !== 'undefined') {
+      const cachedStatus = sessionStorage.getItem('edge_function_available_process-agreement-imports');
+      if (cachedStatus) {
+        try {
+          const { available, timestamp } = JSON.parse(cachedStatus);
+          const now = Date.now();
+          if (now - timestamp < 60 * 60 * 1000) {
+            setIsEdgeFunctionAvailable(available);
+            return;
+          }
+        } catch (e) {
+          console.warn('Error parsing cached edge function status:', e);
+        }
+      }
+    }
+    
     const checkAvailability = async () => {
       const available = await checkEdgeFunctionAvailability('process-agreement-imports');
       setIsEdgeFunctionAvailable(available);
@@ -41,7 +56,6 @@ const Agreements = () => {
   };
   
   const handleImportComplete = () => {
-    // Reset search params to show all agreements and refresh the list
     setSearchParams({ 
       query: '', 
       status: 'all' 

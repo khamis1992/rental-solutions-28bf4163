@@ -15,12 +15,41 @@ export const checkEdgeFunctionAvailability = async (
   functionName: string,
   retries = 1
 ): Promise<boolean> => {
-  // Check cache first to avoid repeated calls
+  // First check browser session storage if available
+  if (typeof sessionStorage !== 'undefined') {
+    const sessionCacheKey = `edge_function_available_${functionName}`;
+    const cachedResult = sessionStorage.getItem(sessionCacheKey);
+    
+    if (cachedResult) {
+      try {
+        const { available, timestamp } = JSON.parse(cachedResult);
+        const now = Date.now();
+        
+        // If still valid in cache, return immediately
+        if (now - timestamp < CACHE_TTL) {
+          console.log(`Using session storage cache for ${functionName}: ${available}`);
+          return available;
+        }
+      } catch (err) {
+        // If there's an error parsing, just continue to the next cache level
+        console.warn('Error parsing session storage cache:', err);
+      }
+    }
+  }
+  
+  // Check memory cache second
   const cachedResult = availabilityCache[functionName];
   const now = Date.now();
   
   if (cachedResult && (now - cachedResult.timestamp < CACHE_TTL)) {
-    console.log(`Using cached availability result for ${functionName}: ${cachedResult.available}`);
+    console.log(`Using in-memory cache for ${functionName}: ${cachedResult.available}`);
+    
+    // Update session storage with this value
+    if (typeof sessionStorage !== 'undefined') {
+      const sessionCacheKey = `edge_function_available_${functionName}`;
+      sessionStorage.setItem(sessionCacheKey, JSON.stringify(cachedResult));
+    }
+    
     return cachedResult.available;
   }
   
@@ -36,8 +65,16 @@ export const checkEdgeFunctionAvailability = async (
       
       if (!response.error) {
         console.log(`Edge function ${functionName} is available`);
-        // Cache the positive result
-        availabilityCache[functionName] = { available: true, timestamp: now };
+        
+        // Cache the positive result both in memory and session storage
+        const cacheValue = { available: true, timestamp: now };
+        availabilityCache[functionName] = cacheValue;
+        
+        if (typeof sessionStorage !== 'undefined') {
+          const sessionCacheKey = `edge_function_available_${functionName}`;
+          sessionStorage.setItem(sessionCacheKey, JSON.stringify(cacheValue));
+        }
+        
         return true;
       }
       
@@ -59,8 +96,16 @@ export const checkEdgeFunctionAvailability = async (
   }
   
   console.error(`Edge function ${functionName} is unavailable after ${retries + 1} attempts`);
-  // Cache the negative result
-  availabilityCache[functionName] = { available: false, timestamp: now };
+  
+  // Cache the negative result both in memory and session storage
+  const cacheValue = { available: false, timestamp: now };
+  availabilityCache[functionName] = cacheValue;
+  
+  if (typeof sessionStorage !== 'undefined') {
+    const sessionCacheKey = `edge_function_available_${functionName}`;
+    sessionStorage.setItem(sessionCacheKey, JSON.stringify(cacheValue));
+  }
+  
   return false;
 };
 
@@ -72,11 +117,41 @@ export const getSystemServicesStatus = async (): Promise<{
   agreementImport: boolean;
   customerImport: boolean;
 }> => {
+  // Check session storage cache first
+  if (typeof sessionStorage !== 'undefined') {
+    const cachedServices = sessionStorage.getItem('system_services_status');
+    
+    if (cachedServices) {
+      try {
+        const { status, timestamp } = JSON.parse(cachedServices);
+        const now = Date.now();
+        
+        // Cache valid for 1 hour
+        if (now - timestamp < CACHE_TTL) {
+          console.log('Using cached system services status');
+          return status;
+        }
+      } catch (err) {
+        console.warn('Error parsing services cache:', err);
+      }
+    }
+  }
+  
   const agreementImport = await checkEdgeFunctionAvailability('process-agreement-imports');
   const customerImport = await checkEdgeFunctionAvailability('process-customer-imports', 2);
   
-  return {
+  const status = {
     agreementImport,
     customerImport
   };
+  
+  // Cache the result in session storage
+  if (typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('system_services_status', JSON.stringify({
+      status,
+      timestamp: Date.now()
+    }));
+  }
+  
+  return status;
 };

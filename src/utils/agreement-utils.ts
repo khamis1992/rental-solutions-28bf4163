@@ -62,7 +62,7 @@ export const updateAgreementWithCheck = async (
   }
 };
 
-// Add the missing checkVehicleAvailability function
+// Check if a vehicle is available or assigned to another active agreement
 export const checkVehicleAvailability = async (vehicleId: string): Promise<{ 
   isAvailable: boolean; 
   existingAgreement?: any 
@@ -98,7 +98,7 @@ export const checkVehicleAvailability = async (vehicleId: string): Promise<{
   }
 };
 
-// Add the missing activateAgreement function
+// Function to activate an agreement and handle existing agreements for the same vehicle
 export const activateAgreement = async (agreementId: string, vehicleId: string): Promise<boolean> => {
   try {
     console.log(`Activating agreement ${agreementId} for vehicle ${vehicleId}`);
