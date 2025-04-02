@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -237,7 +236,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  // Using SimpleRecord instead of SafeRecord to avoid excessive type instantiation
   const columns: ColumnDef<SimpleRecord>[] = [
     {
       id: "select",
