@@ -102,10 +102,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         
       // Apply status filter if provided and not 'all'
       if (searchParams.status && searchParams.status !== 'all') {
-        // Fix: Cast the status string to any before using it in the query
-        // This is necessary because the AgreementStatus enum and the database column
-        // might not have exactly the same type definition
-        query = query.eq('status', searchParams.status as any);
+        // Check if the status is a valid value before using it
+        const validStatuses = Object.values(AgreementStatus);
+        if (validStatuses.includes(searchParams.status as any)) {
+          query = query.eq('status', searchParams.status);
+        } else {
+          console.warn(`Invalid status filter value: ${searchParams.status}`);
+        }
       }
       
       // Apply vehicle filter if provided

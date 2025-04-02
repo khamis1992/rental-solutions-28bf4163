@@ -79,10 +79,20 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
-type BasicAgreementRow = {
+interface BasicAgreementRow {
   id: string;
+  agreement_number?: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  status?: string;
+  total_amount?: number;
+  created_at?: string;
+  start_date?: string;
+  end_date?: string;
+  customers?: any;
+  vehicles?: any;
   [key: string]: any;
-};
+}
 
 interface AgreementListProps {
   refreshTrigger?: number;
@@ -476,8 +486,10 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
     },
   ];
 
+  const tableData = (agreements || []) as BasicAgreementRow[];
+  
   const table = useReactTable({
-    data: (agreements || []) as BasicAgreementRow[],
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
