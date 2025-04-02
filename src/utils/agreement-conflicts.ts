@@ -104,117 +104,27 @@ export const auditAndFixDoubleBookedVehicles = async () => {
   try {
     console.log("Starting system-wide double-booking audit...");
     
-    // First, find all vehicles that have more than one active agreement
-    // We need to use raw SQL for the group by and having clause
-    const { data: doubleBookedVehicles, error: queryError } = await supabase
-      .rpc('find_double_booked_vehicles');
+    // Find vehicles with more than one active agreement using direct query
+    // with GROUP BY and HAVING clauses
+    const { data: vehicleIds, error: vehicleError } = await supabase
+      .from('leases')
+      .select('vehicle_id, COUNT(*)')
+      .eq('status', AgreementStatus.ACTIVE)
+      .not('vehicle_id', 'is', null)
+      .group('vehicle_id')
+      .having('count(*)', 'gt', 1);
     
-    // If the RPC function doesn't exist, we'll need to query differently
-    if (queryError && queryError.message.includes('function "find_double_booked_vehicles" does not exist')) {
-      console.log("RPC function not found, using alternative query method");
-      
-      // Get all active agreements
-      const { data: activeAgreements, error: agreementsError } = await supabase
-        .from('leases')
-        .select('id, vehicle_id, created_at')
-        .eq('status', AgreementStatus.ACTIVE);
-        
-      if (agreementsError) {
-        console.error("Error finding active agreements:", agreementsError);
-        return { 
-          success: false, 
-          message: `Error finding active agreements: ${agreementsError.message}`,
-          error: agreementsError 
-        };
-      }
-      
-      // Manually find vehicles with multiple active agreements
-      const vehicleCounts = {};
-      activeAgreements?.forEach(agreement => {
-        if (!agreement.vehicle_id) return;
-        vehicleCounts[agreement.vehicle_id] = (vehicleCounts[agreement.vehicle_id] || 0) + 1;
-      });
-      
-      // Extract the double-booked vehicles
-      const doubleBookedVehicleIds = Object.keys(vehicleCounts).filter(
-        vehicleId => vehicleCounts[vehicleId] > 1
-      );
-      
-      console.log(`Found ${doubleBookedVehicleIds.length} vehicles with multiple active agreements`);
-      
-      if (doubleBookedVehicleIds.length === 0) {
-        return {
-          success: true,
-          message: "No double-booked vehicles found",
-          vehiclesFixed: 0,
-          agreementsCancelled: 0
-        };
-      }
-      
-      let agreementsCancelled = 0;
-      let vehiclesFixed = 0;
-      
-      // For each double-booked vehicle
-      for (const vehicleId of doubleBookedVehicleIds) {
-        // Get all active agreements for this vehicle, ordered by created date (newest first)
-        const vehicleAgreements = activeAgreements
-          .filter(a => a.vehicle_id === vehicleId)
-          .sort((a, b) => 
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        
-        if (vehicleAgreements.length <= 1) {
-          console.log(`Expected multiple agreements for vehicle ${vehicleId} but found ${vehicleAgreements.length}`);
-          continue;
-        }
-        
-        // Keep the newest agreement, cancel all others
-        const newestAgreementId = vehicleAgreements[0].id;
-        console.log(`Keeping newest agreement ${newestAgreementId} for vehicle ${vehicleId}`);
-        
-        // Cancel all other agreements
-        const agreementsToCancel = vehicleAgreements.slice(1);
-        for (const agreement of agreementsToCancel) {
-          const { error: updateError } = await supabase
-            .from('leases')
-            .update({ 
-              status: AgreementStatus.CANCELLED,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', agreement.id);
-            
-          if (updateError) {
-            console.error(`Failed to cancel agreement ${agreement.id}:`, updateError);
-            continue;
-          }
-          
-          console.log(`Cancelled agreement ${agreement.id}`);
-          agreementsCancelled++;
-        }
-        
-        vehiclesFixed++;
-      }
-      
-      return {
-        success: true,
-        message: `Fixed ${vehiclesFixed} double-booked vehicles, cancelled ${agreementsCancelled} agreements`,
-        vehiclesFixed,
-        agreementsCancelled
-      };
-    }
-    
-    if (queryError) {
-      console.error("Error finding double-booked vehicles:", queryError);
+    if (vehicleError) {
+      console.error("Error finding double-booked vehicles:", vehicleError);
       return { 
         success: false, 
-        message: `Error finding double-booked vehicles: ${queryError.message}`,
-        error: queryError 
+        message: `Error finding double-booked vehicles: ${vehicleError.message}`,
+        error: vehicleError 
       };
     }
     
-    console.log(`Found ${doubleBookedVehicles?.length || 0} vehicles with multiple active agreements`);
-    
-    if (!doubleBookedVehicles || doubleBookedVehicles.length === 0) {
+    if (!vehicleIds || vehicleIds.length === 0) {
+      console.log("No double-booked vehicles found");
       return {
         success: true,
         message: "No double-booked vehicles found",
@@ -223,12 +133,14 @@ export const auditAndFixDoubleBookedVehicles = async () => {
       };
     }
     
+    console.log(`Found ${vehicleIds.length} vehicles with multiple active agreements`);
+    
     let agreementsCancelled = 0;
     let vehiclesFixed = 0;
     
     // For each double-booked vehicle
-    for (const vehicle of doubleBookedVehicles) {
-      const vehicleId = vehicle.vehicle_id;
+    for (const vehicleInfo of vehicleIds) {
+      const vehicleId = vehicleInfo.vehicle_id;
       
       // Get all active agreements for this vehicle, ordered by created date (newest first)
       const { data: agreements, error: agreementsError } = await supabase
