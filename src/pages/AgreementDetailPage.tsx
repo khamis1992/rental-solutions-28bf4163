@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { usePayments } from '@/hooks/use-payments';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,7 +39,8 @@ const AgreementDetailPage = () => {
       const data = await getAgreement(id);
       
       if (data) {
-        setAgreement(data);
+        // Convert SimpleAgreement to Agreement type
+        setAgreement(adaptSimpleToFullAgreement(data));
         // Fetch payments when agreement data is loaded
         fetchPayments();
       } else {

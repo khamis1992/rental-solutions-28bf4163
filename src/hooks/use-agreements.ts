@@ -1,9 +1,11 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { FlattenType } from '@/utils/type-utils';
 
 // Simplified type to avoid excessive deep instantiation
 export type SimpleAgreement = {
@@ -14,7 +16,7 @@ export type SimpleAgreement = {
   end_date?: string | null;
   agreement_type?: string;
   agreement_number?: string;
-  status?: AgreementStatus;
+  status?: typeof AgreementStatus[keyof typeof AgreementStatus];
   total_amount?: number;
   monthly_payment?: number;
   agreement_duration?: any;
@@ -28,6 +30,11 @@ export type SimpleAgreement = {
   signature_url?: string;
   rent_amount?: number;
   daily_late_fee?: number;
+  // Added properties to fix errors
+  customers?: any;
+  vehicles?: any;
+  deposit_amount?: number;
+  notes?: string;
 };
 
 interface SearchParams {
@@ -143,17 +150,15 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         id: data.id,
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
-        start_date: new Date(data.start_date),
-        end_date: new Date(data.end_date),
+        start_date: data.start_date,
+        end_date: data.end_date,
         status: mappedStatus,
-        created_at: data.created_at ? new Date(data.created_at) : undefined,
-        updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
         total_amount: data.total_amount || 0,
         deposit_amount: data.deposit_amount || 0, 
         agreement_number: data.agreement_number || '',
         notes: data.notes || '',
-        terms_accepted: true,
-        additional_drivers: [],
         customers: customerData,
         vehicles: vehicleData,
         signature_url: (data as any).signature_url
@@ -284,17 +289,15 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           id: item.id,
           customer_id: item.customer_id,
           vehicle_id: item.vehicle_id,
-          start_date: new Date(item.start_date),
-          end_date: new Date(item.end_date),
+          start_date: item.start_date,
+          end_date: item.end_date,
           status: mappedStatus,
-          created_at: item.created_at ? new Date(item.created_at) : undefined,
-          updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
           total_amount: item.total_amount || 0,
           deposit_amount: item.deposit_amount || 0,
           agreement_number: item.agreement_number || '',
           notes: item.notes || '',
-          terms_accepted: true,
-          additional_drivers: [],
           customers: item.profiles,
           vehicles: item.vehicles,
           signature_url: (item as any).signature_url
@@ -418,8 +421,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 30000,
-    gcTime: 60000,
+    staleTime: 300000, // 5 minutes
+    gcTime: 600000, // 10 minutes
   });
 
   return {

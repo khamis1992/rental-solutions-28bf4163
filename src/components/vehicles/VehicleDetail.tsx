@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -408,31 +409,34 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {agreements.map((agreement: Agreement) => <TableRow key={agreement.id}>
-                      <TableCell className="font-medium">
-                        {agreement.agreement_number}
-                      </TableCell>
-                      <TableCell>
-                        {agreement.customers?.full_name || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {agreement.start_date ? format(new Date(agreement.start_date), 'MMM d, yyyy') : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {agreement.end_date ? format(new Date(agreement.end_date), 'MMM d, yyyy') : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getAgreementStatusColor(agreement.status)}>
-                          {formatAgreementStatus(agreement.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{formatCurrency(agreement.total_amount)}</TableCell>
-                      <TableCell className="text-right">
-                        <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(agreement.id)}>
-                          View
-                        </CustomButton>
-                      </TableCell>
-                    </TableRow>)}
+                  {agreements?.map((simpleAgreement) => {
+                    const agreement = adaptSimpleToFullAgreement(simpleAgreement);
+                    return <TableRow key={agreement.id}>
+                        <TableCell className="font-medium">
+                          {agreement.agreement_number}
+                        </TableCell>
+                        <TableCell>
+                          {agreement.customers?.full_name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {agreement.start_date ? format(new Date(agreement.start_date), 'MMM d, yyyy') : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {agreement.end_date ? format(new Date(agreement.end_date), 'MMM d, yyyy') : 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getAgreementStatusColor(agreement.status)}>
+                            {formatAgreementStatus(agreement.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatCurrency(agreement.total_amount)}</TableCell>
+                        <TableCell className="text-right">
+                          <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(agreement.id)}>
+                            View
+                          </CustomButton>
+                        </TableCell>
+                      </TableRow>);
+                  })}
                 </TableBody>
               </Table>
             </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">

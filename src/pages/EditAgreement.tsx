@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,7 +36,8 @@ const EditAgreement = () => {
         const data = await getAgreement(id);
         console.log("Fetched agreement data:", data);
         if (data) {
-          setAgreement(data);
+          // Convert SimpleAgreement to Agreement type
+          setAgreement(adaptSimpleToFullAgreement(data));
         } else {
           toast.error("Agreement not found");
           navigate("/agreements");
