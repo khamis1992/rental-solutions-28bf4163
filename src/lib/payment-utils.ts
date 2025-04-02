@@ -61,17 +61,77 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
       if (monthPayments.length > 1) {
         console.log(`Found ${monthPayments.length} payments for ${yearMonth}`);
         
-        // Sort by status priority: completed > partially_paid > pending
+        // Enhanced sorting with more comprehensive status priority
+        // paid/completed > partially_paid > overdue > pending
         monthPayments.sort((a, b) => {
-          const statusOrder = { completed: 0, paid: 0, partially_paid: 1, pending: 2 };
-          return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
+          const statusOrder = { 
+            completed: 0, 
+            paid: 0, 
+            partially_paid: 1, 
+            overdue: 2,
+            pending: 3 
+          };
+          
+          // Get status priorities (defaulting to lowest priority if status not recognized)
+          const statusA = statusOrder[a.status] ?? 4;
+          const statusB = statusOrder[b.status] ?? 4;
+          
+          // If same status priority but one has amount_paid and the other doesn't,
+          // prioritize the one with payment
+          if (statusA === statusB) {
+            if (a.amount_paid && !b.amount_paid) return -1;
+            if (!a.amount_paid && b.amount_paid) return 1;
+            
+            // If both have amount_paid, prioritize the one with higher amount_paid
+            if (a.amount_paid && b.amount_paid) {
+              return b.amount_paid - a.amount_paid;
+            }
+            
+            // If both are overdue, keep the one with more days_overdue
+            if (a.status === 'overdue' && b.status === 'overdue') {
+              return (b.days_overdue || 0) - (a.days_overdue || 0);
+            }
+            
+            // If same priority and no other differentiators, keep the most recently updated
+            return new Date(b.updated_at || 0).getTime() - new Date(a.updated_at || 0).getTime();
+          }
+          
+          return statusA - statusB;
         });
         
         // Keep the first (highest priority) payment and mark others for deletion
         const [keepPayment, ...duplicates] = monthPayments;
         
+        console.log(`Keeping payment ${keepPayment.id} with status ${keepPayment.status} for ${yearMonth}`);
+        
         // Delete duplicates
         for (const duplicate of duplicates) {
+          console.log(`Deleting duplicate payment ${duplicate.id} with status ${duplicate.status} for ${yearMonth}`);
+          
+          // If we're deleting a payment with some amount_paid but keeping one without payment
+          // (shouldn't happen with our sorting, but just to be safe)
+          if (duplicate.amount_paid && !keepPayment.amount_paid) {
+            console.log(`Warning: Deleting payment with amount_paid: ${duplicate.amount_paid}`);
+            
+            // Update the kept payment with the amount_paid info
+            const { error: updateError } = await supabase
+              .from('unified_payments')
+              .update({
+                amount_paid: duplicate.amount_paid,
+                payment_date: duplicate.payment_date,
+                status: duplicate.status,
+                payment_method: duplicate.payment_method || keepPayment.payment_method,
+                transaction_id: duplicate.transaction_id || keepPayment.transaction_id
+              })
+              .eq('id', keepPayment.id);
+              
+            if (updateError) {
+              console.error(`Error updating payment info: ${updateError.message}`);
+            } else {
+              console.log(`Transferred payment info to kept payment ${keepPayment.id}`);
+            }
+          }
+          
           const { error: deleteError } = await supabase
             .from('unified_payments')
             .delete()
