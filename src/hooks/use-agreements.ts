@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -289,12 +290,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the excessive type instantiation by using a simpler type annotation
+  // Fix the excessive type instantiation by completely simplifying return type
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: { id: string; data: any }) => {
+    mutationFn: async (params: { id: string; data: any }): Promise<any> => {
       console.log("Update mutation called with:", params);
-      // Use a simpler return type to avoid excessive type instantiation
-      return {} as SimpleAgreement;
+      return {};
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });

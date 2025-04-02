@@ -24,7 +24,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     includeLatePaymentFee: boolean = false,
     isPartialPayment: boolean = false
   ) => {
-    if (!agreement || !agreementId) {
+    if (!agreement && !agreementId) {
       toast.error("Agreement information is missing");
       return false;
     }
@@ -69,7 +69,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         
         // Use agreement's daily_late_fee or default to 120 QAR
         // First check if the property exists in the agreement object
-        const dailyLateFee = 'daily_late_fee' in agreement && typeof agreement.daily_late_fee === 'number' 
+        const dailyLateFee = agreement && 'daily_late_fee' in agreement && typeof agreement.daily_late_fee === 'number' 
           ? agreement.daily_late_fee 
           : 120;
         
@@ -115,7 +115,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         if (isPartialPayment) {
           paymentStatus = 'partially_paid';
           // Safe access to rent_amount with a fallback
-          const rentAmount = agreement.rent_amount || 0;
+          const rentAmount = agreement?.rent_amount || 0;
           balance = Math.max(0, rentAmount - amount);
         }
         
@@ -123,14 +123,14 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const paymentRecord = {
           lease_id: agreementId,
           // Safe access to rent_amount with a fallback
-          amount: agreement.rent_amount || 0,
+          amount: agreement?.rent_amount || 0,
           amount_paid: amountPaid,
           balance: balance,
           payment_date: paymentDate.toISOString(),
           payment_method: paymentMethod,
           reference_number: referenceNumber || null,
           notes: notes || null,
-          description: notes || `Monthly rent payment for ${agreement.agreement_number}`,
+          description: notes || `Monthly rent payment for ${agreement?.agreement_number}`,
           status: paymentStatus,
           type: 'rent',
           days_overdue: daysLate,

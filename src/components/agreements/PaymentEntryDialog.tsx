@@ -1,300 +1,264 @@
 
 import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
 import { Input } from '@/components/ui/input';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { usePaymentGeneration } from '@/hooks/use-payment-generation';
-import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Switch } from '@/components/ui/switch';
-import { formatCurrency } from '@/lib/utils';
+import { format as dateFormat } from 'date-fns';
 import { Payment } from './PaymentHistory';
+import { usePaymentGeneration } from '@/hooks/use-payment-generation';
+import { useAgreements } from '@/hooks/use-agreements';
+import { useParams } from 'react-router-dom';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean, isPartialPayment?: boolean) => void;
-  defaultAmount: number;
-  title: string;
-  description: string;
-  lateFeeDetails: {
+  onSubmit: (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean
+  ) => void;
+  defaultAmount?: number;
+  title?: string;
+  description?: string;
+  lateFeeDetails?: {
     amount: number;
     daysLate: number;
   } | null;
   selectedPayment?: Payment | null;
 }
 
-const paymentSchema = z.object({
-  amount: z.coerce.number().positive('Amount must be positive'),
-  paymentDate: z.date({
-    required_error: 'Payment date is required',
-  }),
-  paymentMethod: z.string().min(1, 'Payment method is required'),
-  referenceNumber: z.string().optional(),
-  notes: z.string().optional(),
-  includeLatePaymentFee: z.boolean().default(false),
-  isPartialPayment: z.boolean().default(false),
-});
-
 export function PaymentEntryDialog({
   open,
   onOpenChange,
   onSubmit,
-  defaultAmount,
-  title,
-  description,
+  defaultAmount = 0,
+  title = "Record Payment",
+  description = "Enter payment details to record a payment",
   lateFeeDetails,
-  selectedPayment,
+  selectedPayment
 }: PaymentEntryDialogProps) {
-  const [originalAmount, setOriginalAmount] = useState(defaultAmount);
+  const { id: agreementId } = useParams();
+  const { getAgreement } = useAgreements();
+  const { handleSpecialAgreementPayments, isProcessing } = usePaymentGeneration(null, agreementId);
   
-  const form = useForm<z.infer<typeof paymentSchema>>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: {
-      amount: defaultAmount,
-      paymentDate: new Date(),
-      paymentMethod: 'cash',
-      referenceNumber: '',
-      notes: '',
-      includeLatePaymentFee: false,
-      isPartialPayment: false,
-    },
-  });
-
-  // Update form when defaultAmount changes
+  const [amount, setAmount] = useState<number>(selectedPayment?.balance || defaultAmount);
+  const [paymentDate, setPaymentDate] = useState<Date>(new Date());
+  const [notes, setNotes] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
+  const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
+  
+  // Reset the form when the dialog is opened/closed
   useEffect(() => {
-    form.setValue('amount', defaultAmount);
-    setOriginalAmount(defaultAmount);
-    
-    // If this is an additional payment for a partially paid item, hide partial payment option
-    if (selectedPayment && selectedPayment.status === 'partially_paid') {
-      form.setValue('isPartialPayment', false);
+    if (open) {
+      setAmount(selectedPayment?.balance || defaultAmount);
+      setPaymentDate(new Date());
+      setNotes('');
+      setPaymentMethod('cash');
+      setReferenceNumber('');
+      setIncludeLatePaymentFee(false);
+      setIsPartialPayment(false);
     }
-  }, [defaultAmount, form, selectedPayment]);
-  
-  const isPartialPayment = form.watch('isPartialPayment');
-  const amount = form.watch('amount');
+  }, [open, defaultAmount, selectedPayment]);
 
-  const handleSubmit = (values: z.infer<typeof paymentSchema>) => {
-    onSubmit(
-      values.amount,
-      values.paymentDate,
-      values.notes,
-      values.paymentMethod,
-      values.referenceNumber,
-      values.includeLatePaymentFee,
-      values.isPartialPayment
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Do validation
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount greater than zero");
+      return;
+    }
+    
+    const paymentResult = await handleSpecialAgreementPayments(
+      amount,
+      paymentDate,
+      notes,
+      paymentMethod,
+      referenceNumber,
+      includeLatePaymentFee,
+      isPartialPayment
     );
-    form.reset({
-      amount: defaultAmount,
-      paymentDate: new Date(),
-      paymentMethod: 'cash',
-      referenceNumber: '',
-      notes: '',
-      includeLatePaymentFee: false,
-      isPartialPayment: false,
-    });
+    
+    if (paymentResult) {
+      onSubmit(
+        amount, 
+        paymentDate, 
+        notes, 
+        paymentMethod, 
+        referenceNumber, 
+        includeLatePaymentFee,
+        isPartialPayment
+      );
+    }
   };
 
-  const formatDateForInput = (date: Date): string => {
-    return date.toISOString().split('T')[0];
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseFloat(e.target.value);
+    setAmount(isNaN(value) ? 0 : value);
+    
+    // If the amount is less than the default amount, suggest partial payment
+    if (!isNaN(value) && defaultAmount > 0 && value < defaultAmount) {
+      setIsPartialPayment(true);
+    } else if (selectedPayment && !isNaN(value) && value < (selectedPayment.balance || 0)) {
+      setIsPartialPayment(true);
+    } else {
+      setIsPartialPayment(false);
+    }
   };
+
+  // Determine if we show the late payment fee option based on the current date
+  const showLateFeeOption = lateFeeDetails !== null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            {/* Only show partial payment toggle for new payments, not for additional payments on partially paid items */}
-            {!selectedPayment?.status && (
-              <FormField
-                control={form.control}
-                name="isPartialPayment"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                    <div className="space-y-0.5">
-                      <FormLabel>Partial Payment</FormLabel>
-                      <FormDescription>
-                        Enable if customer is paying only part of the amount
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="amount">Payment Amount (QAR)</Label>
+            <Input
+              id="amount"
+              type="number"
+              value={amount}
+              onChange={handleAmountChange}
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+
+          {defaultAmount > 0 && (
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="partial-payment" 
+                checked={isPartialPayment} 
+                onCheckedChange={(checked) => setIsPartialPayment(checked as boolean)}
               />
-            )}
-
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (QAR)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="0" step="0.01" {...field} />
-                  </FormControl>
-                  {isPartialPayment && originalAmount > 0 && (
-                    <FormDescription className="flex justify-between">
-                      <span>Payment amount</span>
-                      <span className={amount > originalAmount ? "text-red-500" : ""}>
-                        {amount > originalAmount ? 
-                          "Amount exceeds original amount" : 
-                          `Remaining: ${formatCurrency(originalAmount - amount)}`
-                        }
-                      </span>
-                    </FormDescription>
-                  )}
-                  {selectedPayment?.status === 'partially_paid' && (
-                    <FormDescription className="text-blue-500">
-                      Remaining balance: {formatCurrency(selectedPayment.balance || 0)}
-                    </FormDescription>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="paymentDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Date</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="date"
-                      value={formatDateForInput(field.value)}
-                      onChange={(e) => {
-                        const date = e.target.value ? new Date(e.target.value) : new Date();
-                        field.onChange(date);
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="paymentMethod"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Method</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment method" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                      <SelectItem value="cheque">Cheque</SelectItem>
-                      <SelectItem value="credit_card">Credit Card</SelectItem>
-                      <SelectItem value="debit_card">Debit Card</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="referenceNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Reference Number (Optional)</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {lateFeeDetails && lateFeeDetails.amount > 0 && !selectedPayment?.status && (
-              <>
-                <Alert variant="warning" className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Late Payment Fee Applicable</AlertTitle>
-                  <AlertDescription>
-                    This payment is {lateFeeDetails.daysLate} days late. A late fee of QAR {lateFeeDetails.amount.toLocaleString()} applies.
-                  </AlertDescription>
-                </Alert>
-
-                <FormField
-                  control={form.control}
-                  name="includeLatePaymentFee"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Include Late Payment Fee (QAR {lateFeeDetails.amount.toLocaleString()})
-                        </FormLabel>
-                        <p className="text-sm text-muted-foreground">
-                          Add the late payment fee as a separate transaction
-                        </p>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </>
-            )}
-
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Submit Payment</Button>
+              <Label htmlFor="partial-payment" className="text-sm cursor-pointer">
+                This is a partial payment
+              </Label>
             </div>
-          </form>
-        </Form>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="payment-date">Payment Date</Label>
+            <div className="relative">
+              <Input
+                id="payment-date"
+                value={dateFormat(paymentDate, 'PPP')}
+                readOnly
+                onClick={() => setCalendarOpen(true)}
+                className="cursor-pointer"
+              />
+              {calendarOpen && (
+                <div className="absolute top-full mt-1 z-10 bg-white border rounded-md shadow-lg">
+                  <Calendar
+                    mode="single"
+                    selected={paymentDate}
+                    onSelect={(date) => {
+                      if (date) {
+                        setPaymentDate(date);
+                        setCalendarOpen(false);
+                      }
+                    }}
+                    initialFocus
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="payment-method">Payment Method</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select payment method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="cheque">Cheque</SelectItem>
+                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                <SelectItem value="credit_card">Credit Card</SelectItem>
+                <SelectItem value="debit_card">Debit Card</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="reference-number">Reference Number (Optional)</Label>
+            <Input
+              id="reference-number"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+              placeholder="Transaction or receipt reference"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Notes (Optional)</Label>
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any additional information"
+              rows={3}
+            />
+          </div>
+
+          {showLateFeeOption && lateFeeDetails && (
+            <div className="border p-3 rounded-md bg-amber-50">
+              <div className="flex items-start space-x-3">
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-amber-800">Late Payment Fee</h4>
+                  <p className="text-xs text-amber-700 mt-1">
+                    {lateFeeDetails.daysLate} days late: QAR {lateFeeDetails.amount.toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="late-fee"
+                    checked={includeLatePaymentFee}
+                    onCheckedChange={setIncludeLatePaymentFee}
+                  />
+                  <Label htmlFor="late-fee" className="text-xs">Include Fee</Label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-3 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isProcessing}>
+              {isProcessing ? "Processing..." : "Record Payment"}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
   );
