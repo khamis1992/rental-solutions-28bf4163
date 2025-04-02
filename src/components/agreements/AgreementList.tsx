@@ -88,8 +88,22 @@ interface BasicAgreementRow {
   created_at?: string;
   start_date?: string;
   end_date?: string;
-  customers?: any;
-  vehicles?: any;
+  customers?: {
+    id?: string;
+    full_name?: string;
+    email?: string;
+    phone_number?: string;
+  };
+  vehicles?: {
+    id?: string;
+    make?: string;
+    model?: string;
+    license_plate?: string;
+    image_url?: string;
+    year?: number;
+    color?: string;
+    vin?: string;
+  };
   [key: string]: any;
 }
 

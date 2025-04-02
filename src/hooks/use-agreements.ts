@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -32,6 +33,20 @@ export type SimpleAgreement = {
   customers?: any;
   vehicles?: any;
 };
+
+// Valid database status values
+const VALID_DB_STATUSES = [
+  'active',
+  'pending_payment',
+  'pending_deposit',
+  'cancelled',
+  'completed',
+  'terminated',
+  'archived',
+  'draft'
+] as const;
+
+type ValidDbStatus = typeof VALID_DB_STATUSES[number];
 
 // Function to convert database status to AgreementStatus enum value
 export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
@@ -102,9 +117,17 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         
       // Apply status filter if provided and not 'all'
       if (searchParams.status && searchParams.status !== 'all') {
-        // Check if the status is a valid value before using it
-        const validStatuses = Object.values(AgreementStatus);
-        if (validStatuses.includes(searchParams.status as any)) {
+        // Check if the status matches one of our enum values
+        if (Object.values(AgreementStatus).includes(searchParams.status as any)) {
+          // Find the corresponding DB status from the enum value
+          const dbStatus = Object.entries(AgreementStatus)
+            .find(([key, value]) => value === searchParams.status)?.[1];
+            
+          if (dbStatus) {
+            query = query.eq('status', dbStatus);
+          }
+        } else if (VALID_DB_STATUSES.includes(searchParams.status as ValidDbStatus)) {
+          // It's already a valid DB status
           query = query.eq('status', searchParams.status);
         } else {
           console.warn(`Invalid status filter value: ${searchParams.status}`);
