@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -29,10 +28,8 @@ const AgreementDetailPage = () => {
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
 
-  // Pass the agreement object directly and the ID as a fallback
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  // Get payments data
   const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', null);
 
   const fetchAgreementData = async () => {
@@ -43,9 +40,7 @@ const AgreementDetailPage = () => {
       const data = await getAgreement(id);
       
       if (data) {
-        // Convert SimpleAgreement to Agreement type
         setAgreement(adaptSimpleToFullAgreement(data));
-        // Fetch payments when agreement data is loaded
         fetchPayments();
       } else {
         toast.error("Agreement not found");
@@ -94,7 +89,6 @@ const AgreementDetailPage = () => {
       
       if (result.success) {
         toast.success("Payment schedule generated successfully");
-        // Refresh the data to show the new payment
         refreshAgreementData();
       } else {
         toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
@@ -112,11 +106,15 @@ const AgreementDetailPage = () => {
     
     setIsRunningMaintenance(true);
     try {
+      toast.info("Running payment maintenance check...");
       const result = await manuallyRunPaymentMaintenance();
       
       if (result.success) {
-        // Refresh the data to show any new payments
+        toast.success(result.message || "Payment schedule maintenance completed");
         refreshAgreementData();
+        fetchPayments();
+      } else {
+        toast.error(result.message || "Payment maintenance failed");
       }
     } catch (error) {
       console.error("Error running maintenance job:", error);

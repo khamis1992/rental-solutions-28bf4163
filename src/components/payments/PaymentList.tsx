@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +12,7 @@ import { formatDate } from '@/lib/date-utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { differenceInDays } from 'date-fns';
 
 export interface Payment {
   id: string;
@@ -46,16 +46,61 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
   }, [agreementId, fetchPayments]);
 
   useEffect(() => {
-    setMissingPayments([
-      {
-        month: "March 2025",
-        amount: 1200,
-        daysOverdue: 21,
-        lateFee: 2520,
-        totalDue: 3720
+    const calculateMissingPayments = async () => {
+      try {
+        const { data: lease, error } = await supabase
+          .from('leases')
+          .select('start_date, rent_amount')
+          .eq('id', agreementId)
+          .single();
+          
+        if (error || !lease) {
+          console.error("Error fetching lease details:", error);
+          return;
+        }
+        
+        const today = new Date();
+        const startDate = new Date(lease.start_date);
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+        
+        const { data: currentMonthPayment } = await supabase
+          .from('unified_payments')
+          .select('id')
+          .eq('lease_id', agreementId)
+          .gte('payment_date', new Date(currentYear, currentMonth, 1).toISOString())
+          .lt('payment_date', new Date(currentYear, currentMonth + 1, 0).toISOString());
+          
+        if (currentMonthPayment && currentMonthPayment.length > 0) {
+          setMissingPayments([]);
+          return;
+        }
+        
+        const dueDate = new Date(currentYear, currentMonth, 1);
+        const daysOverdue = differenceInDays(today, dueDate);
+        const dailyLateFee = 120;
+        const lateFee = Math.min(daysOverdue * dailyLateFee, 3000);
+        
+        if (daysOverdue > 0) {
+          setMissingPayments([{
+            month: today.toLocaleString('default', { month: 'long', year: 'numeric' }),
+            amount: lease.rent_amount || 0,
+            daysOverdue: daysOverdue,
+            lateFee: lateFee,
+            totalDue: (lease.rent_amount || 0) + lateFee
+          }]);
+        } else {
+          setMissingPayments([]);
+        }
+      } catch (err) {
+        console.error("Error calculating missing payments:", err);
       }
-    ]);
-  }, []);
+    };
+    
+    if (agreementId) {
+      calculateMissingPayments();
+    }
+  }, [agreementId, payments]);
 
   const confirmDeletePayment = (id: string) => {
     setPaymentToDelete(id);

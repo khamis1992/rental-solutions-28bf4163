@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -68,7 +69,7 @@ export const PaymentHistory: React.FC<PaymentHistoryProps> = ({
     
     const startDate = new Date(leaseStartDate);
     const endDate = new Date(leaseEndDate);
-    const currentDate = new Date(2025, 2, 22);
+    const currentDate = new Date(); // Use the actual current date instead of hardcoded date
     const effectiveEndDate = isBefore(endDate, currentDate) ? endDate : currentDate;
     
     const allMonths = eachMonthOfInterval({ 

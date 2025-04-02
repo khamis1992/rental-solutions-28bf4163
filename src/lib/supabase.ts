@@ -269,6 +269,12 @@ export const runPaymentScheduleMaintenanceJob = async (): Promise<{ success: boo
       };
     }
     
+    if (result.generatedCount > 0) {
+      console.log(`Successfully generated ${result.generatedCount} payment schedules`);
+    } else {
+      console.log("No payment schedules needed to be generated");
+    }
+    
     return {
       success: true,
       message: `Payment schedule maintenance job completed successfully. ${result.message}`
@@ -290,7 +296,11 @@ export const manuallyRunPaymentMaintenance = async (): Promise<{ success: boolea
     const result = await runPaymentScheduleMaintenanceJob();
     
     if (result.success) {
-      toast.success(result.message || "Payment maintenance completed successfully");
+      if (result.message?.includes("Generated 0 payment")) {
+        toast.info(result.message || "All payment schedules are up to date");
+      } else {
+        toast.success(result.message || "Payment maintenance completed successfully");
+      }
     } else {
       toast.error(result.message || "Payment maintenance failed");
     }
