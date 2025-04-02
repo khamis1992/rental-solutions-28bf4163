@@ -104,46 +104,45 @@ export const auditAndFixDoubleBookedVehicles = async () => {
   try {
     console.log("Starting system-wide double-booking audit...");
     
-    // Find vehicles with more than one active agreement using direct query
-    // with GROUP BY and HAVING clauses
-    const { data: vehicleIds, error: vehicleError } = await supabase
+    // First, we'll find all distinct vehicle IDs that have leases
+    const { data: vehiclesWithLeases, error: vehiclesError } = await supabase
       .from('leases')
-      .select('vehicle_id, COUNT(*)')
-      .eq('status', AgreementStatus.ACTIVE)
+      .select('vehicle_id')
       .not('vehicle_id', 'is', null)
-      .group('vehicle_id')
-      .having('count(*)', 'gt', 1);
+      .order('vehicle_id');
     
-    if (vehicleError) {
-      console.error("Error finding double-booked vehicles:", vehicleError);
+    if (vehiclesError) {
+      console.error("Error finding vehicles with leases:", vehiclesError);
       return { 
         success: false, 
-        message: `Error finding double-booked vehicles: ${vehicleError.message}`,
-        error: vehicleError 
+        message: `Error finding vehicles with leases: ${vehiclesError.message}`,
+        error: vehiclesError 
       };
     }
     
-    if (!vehicleIds || vehicleIds.length === 0) {
-      console.log("No double-booked vehicles found");
+    if (!vehiclesWithLeases || vehiclesWithLeases.length === 0) {
+      console.log("No vehicles with leases found");
       return {
         success: true,
-        message: "No double-booked vehicles found",
+        message: "No vehicles with leases found",
         vehiclesFixed: 0,
         agreementsCancelled: 0
       };
     }
     
-    console.log(`Found ${vehicleIds.length} vehicles with multiple active agreements`);
+    // Get unique vehicle IDs
+    const vehicleIds = [...new Set(vehiclesWithLeases.map(v => v.vehicle_id))];
+    console.log(`Found ${vehicleIds.length} unique vehicles with leases`);
     
     let agreementsCancelled = 0;
     let vehiclesFixed = 0;
     
-    // For each double-booked vehicle
-    for (const vehicleInfo of vehicleIds) {
-      const vehicleId = vehicleInfo.vehicle_id;
+    // For each vehicle, check if it has multiple active agreements
+    for (const vehicleId of vehicleIds) {
+      if (!vehicleId) continue; // Skip null vehicle IDs
       
-      // Get all active agreements for this vehicle, ordered by created date (newest first)
-      const { data: agreements, error: agreementsError } = await supabase
+      // Get all active agreements for this vehicle
+      const { data: activeAgreements, error: agreementsError } = await supabase
         .from('leases')
         .select('id, agreement_number, created_at')
         .eq('vehicle_id', vehicleId)
@@ -155,17 +154,19 @@ export const auditAndFixDoubleBookedVehicles = async () => {
         continue;
       }
       
-      if (!agreements || agreements.length <= 1) {
-        console.log(`Expected multiple agreements for vehicle ${vehicleId} but found ${agreements?.length || 0}`);
+      if (!activeAgreements || activeAgreements.length <= 1) {
+        // No conflict for this vehicle
         continue;
       }
       
-      // Keep the newest agreement, cancel all others
-      const newestAgreementId = agreements[0].id;
-      console.log(`Keeping newest agreement ${agreements[0].agreement_number} (${newestAgreementId}) for vehicle ${vehicleId}`);
+      // Vehicle has multiple active agreements - keep newest, cancel others
+      console.log(`Vehicle ${vehicleId} has ${activeAgreements.length} active agreements`);
+      
+      const newestAgreementId = activeAgreements[0].id;
+      console.log(`Keeping newest agreement ${activeAgreements[0].agreement_number} (${newestAgreementId})`);
       
       // Cancel all other agreements
-      const agreementsToCancel = agreements.slice(1);
+      const agreementsToCancel = activeAgreements.slice(1);
       for (const agreement of agreementsToCancel) {
         const { error: updateError } = await supabase
           .from('leases')
