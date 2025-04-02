@@ -59,6 +59,26 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         }
       }
       
+      // Get lease data to access daily_late_fee
+      let dailyLateFee = 120; // Default value
+      if (!agreement) {
+        // If agreement isn't passed in props, fetch it from supabase
+        const { data: leaseData, error: leaseError } = await supabase
+          .from('leases')
+          .select('daily_late_fee')
+          .eq('id', agreementId)
+          .single();
+          
+        if (leaseError) {
+          console.error("Error fetching lease data for late fee:", leaseError);
+        } else if (leaseData) {
+          dailyLateFee = leaseData.daily_late_fee || 120;
+        }
+      } else {
+        // Use the daily_late_fee from the provided agreement
+        dailyLateFee = agreement.daily_late_fee || 120;
+      }
+      
       // Calculate if there's a late fee applicable
       let lateFeeAmount = 0;
       let daysLate = 0;
@@ -67,12 +87,6 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
       if (paymentDate.getDate() > 1) {
         // Calculate days late (payment date - 1st of month)
         daysLate = paymentDate.getDate() - 1;
-        
-        // Use agreement's daily_late_fee or default to 120 QAR
-        // First check if the property exists in the agreement object
-        const dailyLateFee = agreement && 'daily_late_fee' in agreement && typeof agreement.daily_late_fee === 'number' 
-          ? agreement.daily_late_fee 
-          : 120;
         
         // Calculate late fee amount (capped at 3000 QAR)
         lateFeeAmount = Math.min(daysLate * dailyLateFee, 3000);

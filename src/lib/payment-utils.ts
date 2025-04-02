@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -150,7 +151,7 @@ export const fixDuplicatePayments = async (leaseId: string): Promise<{
     // Check for missing months between start and end dates
     const { data: leaseData, error: leaseError } = await supabase
       .from('leases')
-      .select('start_date, end_date, rent_amount, id')
+      .select('start_date, end_date, rent_amount, id, daily_late_fee, rent_due_day')
       .eq('id', leaseId)
       .single();
     
@@ -357,8 +358,8 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
           
           // If days overdue changed or status needs update
           if (daysOverdue > (payment.days_overdue || 0) || payment.status !== 'overdue') {
-            // Calculate late fee
-            const dailyLateFee = payment.daily_late_fee || leaseData.daily_late_fee || 120;
+            // Calculate late fee - use lease data for daily late fee
+            const dailyLateFee = leaseData.daily_late_fee || 120;
             const lateFeeAmount = Math.min(daysOverdue * dailyLateFee, 3000);
             
             const { error: updateError } = await supabase
@@ -396,3 +397,4 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
     };
   }
 };
+
