@@ -15,6 +15,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { useParams } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface PaymentEntryDialogProps {
   open: boolean;
@@ -26,7 +27,8 @@ interface PaymentEntryDialogProps {
     paymentMethod?: string, 
     referenceNumber?: string,
     includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
+    isPartialPayment?: boolean,
+    targetPaymentId?: string
   ) => void;
   defaultAmount?: number;
   title?: string;
@@ -60,6 +62,10 @@ export function PaymentEntryDialog({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
   const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
+  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | undefined>(
+    selectedPayment?.id
+  );
   
   // Reset the form when the dialog is opened/closed
   useEffect(() => {
@@ -71,8 +77,39 @@ export function PaymentEntryDialog({
       setReferenceNumber('');
       setIncludeLatePaymentFee(false);
       setIsPartialPayment(false);
+      setSelectedPaymentId(selectedPayment?.id);
+      
+      // Fetch pending payments when dialog opens
+      if (agreementId) {
+        fetchPendingPayments(agreementId);
+      }
     }
-  }, [open, defaultAmount, selectedPayment]);
+  }, [open, defaultAmount, selectedPayment, agreementId]);
+
+  // Fetch pending payments for this agreement
+  const fetchPendingPayments = async (agreementId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreementId)
+        .in('status', ['pending', 'partially_paid'])
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching pending payments:", error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        setPendingPayments(data as Payment[]);
+      } else {
+        setPendingPayments([]);
+      }
+    } catch (err) {
+      console.error("Unexpected error fetching pending payments:", err);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,7 +127,8 @@ export function PaymentEntryDialog({
       paymentMethod,
       referenceNumber,
       includeLatePaymentFee,
-      isPartialPayment
+      isPartialPayment,
+      selectedPaymentId
     );
     
     if (paymentResult) {
@@ -101,8 +139,23 @@ export function PaymentEntryDialog({
         paymentMethod, 
         referenceNumber, 
         includeLatePaymentFee,
-        isPartialPayment
+        isPartialPayment,
+        selectedPaymentId
       );
+    }
+  };
+
+  // Handle payment selection
+  const handlePaymentSelect = (paymentId: string) => {
+    setSelectedPaymentId(paymentId);
+    
+    // Find the selected payment to auto-fill amount
+    const payment = pendingPayments.find(p => p.id === paymentId);
+    if (payment) {
+      // For partially paid payments, use the balance
+      setAmount(payment.balance || payment.amount || 0);
+      // Auto-check partial payment if applicable
+      setIsPartialPayment(false);
     }
   };
 
@@ -123,6 +176,23 @@ export function PaymentEntryDialog({
   // Determine if we show the late payment fee option based on the current date
   const showLateFeeOption = lateFeeDetails !== null;
 
+  // Helper function to format payment description
+  const formatPaymentDescription = (payment: Payment) => {
+    let description = payment.description || 
+                      `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
+    
+    // Add status indicator
+    let status = "";
+    if (payment.status === 'partially_paid') {
+      status = " (Partially Paid)";
+    } else if (payment.status === 'pending') {
+      status = " (Pending)";
+    }
+    
+    return `${description}${status} - ${payment.amount_paid ? 
+      `Paid: ${payment.amount_paid.toLocaleString()} / ` : ''}QAR ${payment.amount?.toLocaleString() || 0}`;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -132,6 +202,29 @@ export function PaymentEntryDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Payment Selection dropdown - only show if we have pending payments */}
+          {pendingPayments.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="payment-select">Record Payment For</Label>
+              <Select 
+                value={selectedPaymentId} 
+                onValueChange={handlePaymentSelect}
+              >
+                <SelectTrigger id="payment-select">
+                  <SelectValue placeholder="Select a payment" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pendingPayments.map((payment) => (
+                    <SelectItem key={payment.id} value={payment.id}>
+                      {formatPaymentDescription(payment)}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="manual">Record a new manual payment</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="amount">Payment Amount (QAR)</Label>
             <Input

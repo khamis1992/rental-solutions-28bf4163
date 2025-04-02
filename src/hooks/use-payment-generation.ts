@@ -22,7 +22,8 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
     paymentMethod: string = 'cash',
     referenceNumber?: string,
     includeLatePaymentFee: boolean = false,
-    isPartialPayment: boolean = false
+    isPartialPayment: boolean = false,
+    targetPaymentId?: string
   ) => {
     if (!agreement && !agreementId) {
       toast.error("Agreement information is missing");
@@ -37,9 +38,9 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
       let existingAmountPaid: number = 0;
       let existingBalance: number = 0;
       
-      // If we're updating an existing payment (coming from the "Record Payment" button on a partially paid item)
+      // If we're updating an existing payment (either explicitly provided or from query param)
       const queryParams = new URLSearchParams(window.location.search);
-      const paymentId = queryParams.get('paymentId');
+      const paymentId = targetPaymentId || queryParams.get('paymentId');
       
       if (paymentId) {
         const { data: existingPayment, error: queryError } = await supabase

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -170,14 +169,12 @@ export function PaymentHistory({
     }
   };
 
-  // Format displayed amount including late fee for pending payments
   const formatAmount = (payment: Payment) => {
     const baseAmount = payment.amount || 0;
     const amountPaid = payment.amount_paid || 0;
     const balance = payment.balance || 0;
     const displayAmount = baseAmount.toLocaleString();
     
-    // For pending payments with overdue days, show the current late fee
     if ((payment.status === 'pending' || payment.status === 'overdue') && 
         payment.days_overdue && payment.days_overdue > 0 && 
         payment.late_fine_amount && payment.late_fine_amount > 0) {
@@ -194,7 +191,6 @@ export function PaymentHistory({
       );
     }
     
-    // For partially paid payments
     if (payment.status === 'partially_paid' && amountPaid > 0 && balance > 0) {
       return (
         <>
@@ -212,7 +208,6 @@ export function PaymentHistory({
     return `QAR ${displayAmount}`;
   };
 
-  // Make sure leaseStartDate and leaseEndDate are Date objects 
   const startDate = leaseStartDate ? new Date(leaseStartDate) : null;
   const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
 
@@ -297,7 +292,7 @@ export function PaymentHistory({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {payment.status === 'partially_paid' ? (
+                      {payment.status === 'partially_paid' || payment.status === 'pending' ? (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -350,9 +345,8 @@ export function PaymentHistory({
         <PaymentEntryDialog
           open={isPaymentDialogOpen}
           onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment) => {
-            // Process the payment with the new isPartialPayment parameter
-            console.log("Recording payment with partial payment:", isPartialPayment);
+          onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
+            console.log("Recording payment with payment ID:", targetPaymentId);
             setIsPaymentDialogOpen(false);
             onPaymentDeleted();
           }}
