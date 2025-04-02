@@ -1,7 +1,7 @@
 
-// If the file doesn't exist, I'll create it with the necessary function
 import { toast } from 'sonner';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 
 // Enum for agreement status
 export const AgreementStatus = {
@@ -12,6 +12,23 @@ export const AgreementStatus = {
   EXPIRED: 'expired',
   DRAFT: 'draft'
 } as const;
+
+// Add the missing agreementSchema
+export const agreementSchema = z.object({
+  agreement_number: z.string().min(1, "Agreement number is required"),
+  start_date: z.date(),
+  end_date: z.date(),
+  customer_id: z.string().min(1, "Customer is required"),
+  vehicle_id: z.string().min(1, "Vehicle is required"),
+  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
+  rent_amount: z.number().positive("Rent amount must be positive"),
+  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
+  total_amount: z.number().positive("Total amount must be positive"),
+  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
+  agreement_duration: z.string().optional(),
+  notes: z.string().optional(),
+  terms_accepted: z.boolean().default(false),
+});
 
 // Agreement interface
 export interface Agreement {
