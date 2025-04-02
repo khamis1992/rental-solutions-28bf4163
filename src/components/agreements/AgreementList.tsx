@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -76,9 +77,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { TableDataType } from '@/utils/type-utils';
-
-type AgreementTableData = TableDataType<SimpleAgreement>;
+import { SimpleRecord } from '@/utils/type-utils';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -238,7 +237,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<AgreementTableData>[] = [
+  // Use SimpleRecord to avoid deep type instantiation issues
+  const columns: ColumnDef<SimpleRecord>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -465,8 +465,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
-  const table = useReactTable<AgreementTableData>({
-    data: (agreements || []) as AgreementTableData[],
+  const table = useReactTable<SimpleRecord>({
+    data: (agreements || []) as SimpleRecord[],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),

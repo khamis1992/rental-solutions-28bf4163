@@ -66,4 +66,12 @@ export type FlattenType<T> = {
  * 
  * @template T The data type for table rows
  */
-export type TableDataType<T> = T extends object ? { [K in keyof T]: any } : any;
+export type TableDataType<T> = {
+  [K in keyof T]?: any;
+};
+
+/**
+ * Basic record type with string keys for table data
+ * A simpler alternative to TableDataType that avoids deeply nested types
+ */
+export type SimpleRecord = Record<string, any>;
