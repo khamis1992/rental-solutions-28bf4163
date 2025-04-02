@@ -44,6 +44,7 @@ export function AgreementDetail({
     amount: number;
     daysLate: number;
   } | null>(null);
+  const [selectedPayment, setSelectedPayment] = useState(null);
 
   const {
     payments,
@@ -116,10 +117,26 @@ export function AgreementDetail({
     }
   }, [agreement, onGenerateDocument]);
 
-  const handlePaymentSubmit = useCallback(async (amount: number, paymentDate: Date, notes?: string, paymentMethod?: string, referenceNumber?: string, includeLatePaymentFee?: boolean) => {
+  const handlePaymentSubmit = useCallback(async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string, 
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean
+  ) => {
     if (agreement && agreement.id) {
       try {
-        const success = await handleSpecialAgreementPayments(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee);
+        const success = await handleSpecialAgreementPayments(
+          amount, 
+          paymentDate, 
+          notes, 
+          paymentMethod, 
+          referenceNumber, 
+          includeLatePaymentFee,
+          isPartialPayment
+        );
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
@@ -370,6 +387,15 @@ export function AgreementDetail({
         </DialogContent>
       </Dialog>
 
-      <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={handlePaymentSubmit} defaultAmount={rentAmount || 0} title="Record Rent Payment" description="Record a new rental payment for this agreement." lateFeeDetails={lateFeeDetails} />
+      <PaymentEntryDialog 
+        open={isPaymentDialogOpen} 
+        onOpenChange={setIsPaymentDialogOpen} 
+        onSubmit={handlePaymentSubmit} 
+        defaultAmount={rentAmount || 0} 
+        title="Record Rent Payment" 
+        description="Record a new rental payment for this agreement." 
+        lateFeeDetails={lateFeeDetails} 
+        selectedPayment={selectedPayment}
+      />
     </div>;
 }

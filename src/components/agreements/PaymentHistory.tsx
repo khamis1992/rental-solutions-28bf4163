@@ -82,7 +82,13 @@ export function PaymentHistory({
     setIsEditDialogOpen(true);
   };
 
+  const handleRecordPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsPaymentDialogOpen(true);
+  };
+
   const handleRecordManualPayment = () => {
+    setSelectedPayment(null);
     setIsPaymentDialogOpen(true);
   };
 
@@ -122,9 +128,9 @@ export function PaymentHistory({
     switch (status.toLowerCase()) {
       case 'completed':
       case 'paid':
-        return <Badge className="bg-green-500">Paid</Badge>;
+        return <Badge variant="success">Paid</Badge>;
       case 'partially_paid':
-        return <Badge className="bg-blue-500">Partially Paid</Badge>;
+        return <Badge variant="partial">Partially Paid</Badge>;
       case 'pending':
         return (
           <Badge className="bg-yellow-500">
@@ -133,7 +139,7 @@ export function PaymentHistory({
         );
       case 'overdue':
         return (
-          <Badge className="bg-red-500">
+          <Badge variant="destructive">
             Overdue {daysOverdue && daysOverdue > 0 ? `(${daysOverdue} days)` : ''}
           </Badge>
         );
@@ -291,14 +297,25 @@ export function PaymentHistory({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditPayment(payment)}
-                        title="Edit payment"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      {payment.status === 'partially_paid' ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRecordPayment(payment)}
+                          title="Record Payment"
+                        >
+                          <DollarSign className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditPayment(payment)}
+                          title="Edit payment"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -339,10 +356,11 @@ export function PaymentHistory({
             setIsPaymentDialogOpen(false);
             onPaymentDeleted();
           }}
-          defaultAmount={rentAmount || 0}
-          title="Record Manual Payment"
-          description="Record a new manual payment for this agreement."
+          defaultAmount={selectedPayment ? (selectedPayment.balance || 0) : (rentAmount || 0)}
+          title={selectedPayment ? "Record Additional Payment" : "Record Manual Payment"}
+          description={selectedPayment ? "Record an additional payment for this partially paid item." : "Record a new manual payment for this agreement."}
           lateFeeDetails={lateFeeDetails}
+          selectedPayment={selectedPayment}
         />
 
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>

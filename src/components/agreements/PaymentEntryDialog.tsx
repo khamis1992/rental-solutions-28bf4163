@@ -18,6 +18,7 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { formatCurrency } from '@/lib/utils';
+import { Payment } from './PaymentHistory';
 
 interface PaymentEntryDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ interface PaymentEntryDialogProps {
     amount: number;
     daysLate: number;
   } | null;
+  selectedPayment?: Payment | null;
 }
 
 const paymentSchema = z.object({
@@ -52,6 +54,7 @@ export function PaymentEntryDialog({
   title,
   description,
   lateFeeDetails,
+  selectedPayment,
 }: PaymentEntryDialogProps) {
   const [originalAmount, setOriginalAmount] = useState(defaultAmount);
   
@@ -72,7 +75,12 @@ export function PaymentEntryDialog({
   useEffect(() => {
     form.setValue('amount', defaultAmount);
     setOriginalAmount(defaultAmount);
-  }, [defaultAmount, form]);
+    
+    // If this is an additional payment for a partially paid item, hide partial payment option
+    if (selectedPayment && selectedPayment.status === 'partially_paid') {
+      form.setValue('isPartialPayment', false);
+    }
+  }, [defaultAmount, form, selectedPayment]);
   
   const isPartialPayment = form.watch('isPartialPayment');
   const amount = form.watch('amount');
@@ -112,26 +120,29 @@ export function PaymentEntryDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="isPartialPayment"
-              render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                  <div className="space-y-0.5">
-                    <FormLabel>Partial Payment</FormLabel>
-                    <FormDescription>
-                      Enable if customer is paying only part of the amount
-                    </FormDescription>
-                  </div>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+            {/* Only show partial payment toggle for new payments, not for additional payments on partially paid items */}
+            {!selectedPayment?.status && (
+              <FormField
+                control={form.control}
+                name="isPartialPayment"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                    <div className="space-y-0.5">
+                      <FormLabel>Partial Payment</FormLabel>
+                      <FormDescription>
+                        Enable if customer is paying only part of the amount
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -151,6 +162,11 @@ export function PaymentEntryDialog({
                           `Remaining: ${formatCurrency(originalAmount - amount)}`
                         }
                       </span>
+                    </FormDescription>
+                  )}
+                  {selectedPayment?.status === 'partially_paid' && (
+                    <FormDescription className="text-blue-500">
+                      Remaining balance: {formatCurrency(selectedPayment.balance || 0)}
                     </FormDescription>
                   )}
                   <FormMessage />
@@ -232,7 +248,7 @@ export function PaymentEntryDialog({
               )}
             />
 
-            {lateFeeDetails && lateFeeDetails.amount > 0 && (
+            {lateFeeDetails && lateFeeDetails.amount > 0 && !selectedPayment?.status && (
               <>
                 <Alert variant="warning" className="mt-4">
                   <AlertCircle className="h-4 w-4" />
