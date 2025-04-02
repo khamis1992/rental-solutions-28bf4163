@@ -15,3 +15,11 @@ export interface SimpleRecord {
 export type FlattenType<T> = {
   [K in keyof T]: T[K];
 } & {};
+
+/**
+ * Used for safely typing potentially complex nested objects
+ * Helps prevent "Type instantiation is excessively deep and possibly infinite" errors
+ */
+export type SafeRecord<T = any> = {
+  [K in keyof T]: T[K] extends object ? SafeRecord<T[K]> : T[K];
+};
