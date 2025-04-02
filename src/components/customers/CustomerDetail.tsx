@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle } from 'lucide-react';
@@ -27,6 +28,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 import { CustomerTrafficFines } from './CustomerTrafficFines';
+import { CustomerAgreementHistory } from './CustomerAgreementHistory';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
 
@@ -221,6 +223,9 @@ export function CustomerDetail() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Add the new Agreement History section */}
+      {customer.id && <CustomerAgreementHistory customerId={customer.id} />}
 
       <Card>
         <CardHeader>
