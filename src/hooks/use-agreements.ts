@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -290,16 +289,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Use a very simplified type for the mutation to avoid deep type instantiation
-  type UpdateAgreementMutationParams = {
-    id: string;
-    data: Record<string, any>; // Use Record<string, any> instead of more complex types
-  };
-
-  // FIXED: Using simpler type definition to avoid excessive type instantiation
+  // FIXED: Using an even simpler approach with type literals to avoid deep type instantiation
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: UpdateAgreementMutationParams) => {
-      console.log("Update mutation called with:", { id, data });
+    mutationFn: async (params: { id: string; data: any }) => {
+      console.log("Update mutation called with:", params);
       return {} as SimpleAgreement;
     },
     onSuccess: () => {
