@@ -1,401 +1,464 @@
-import { useCallback, useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, differenceInMonths } from 'date-fns';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  FileCheck, 
+  FileEdit, 
+  Calendar, 
+  MailCheck, 
+  FileClock, 
+  AlertTriangle, 
+  Settings, 
+  Car, 
+  User, 
+  Phone, 
+  Mail, 
+  Delete, 
+  FileText,
+  Calendar as CalendarIcon,
+  CheckCircle,
+  X,
+  ArrowUpDown,
+  FileX,
+  FileMinus2
+} from 'lucide-react';
+import { format } from 'date-fns';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, DollarSign, FilePlus } from 'lucide-react';
-import { generatePdfDocument } from '@/utils/agreementUtils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { PaymentHistory } from "@/components/payments/PaymentHistory";
+import { AgreementDocuments } from "./AgreementDocuments";
+import { formatCurrency, formatAsQatariPhone } from '@/lib/utils';
+import { activateAgreement } from '@/utils/agreement-utils';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { usePaymentGeneration } from '@/hooks/use-payment-generation';
-import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { LegalCaseCard } from './LegalCaseCard';
-import { PaymentHistory } from './PaymentHistory';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { usePayments } from '@/hooks/use-payments';
+import { ConflictAlert } from './ConflictAlert';
 
 interface AgreementDetailProps {
-  agreement: Agreement | null;
+  agreement: Agreement;
   onDelete: (id: string) => void;
-  rentAmount: number | null;
-  contractAmount: number | null;
-  onPaymentDeleted: () => void;
-  onDataRefresh: () => void;
+  onPaymentDeleted?: () => void;
+  onDataRefresh?: () => void;
   onGenerateDocument?: () => void;
+  rentAmount?: number;
+  contractAmount?: number;
 }
 
-export function AgreementDetail({
+export const AgreementDetail: React.FC<AgreementDetailProps> = ({
   agreement,
   onDelete,
-  rentAmount,
-  contractAmount,
   onPaymentDeleted,
   onDataRefresh,
-  onGenerateDocument
-}: AgreementDetailProps) {
+  onGenerateDocument,
+  rentAmount,
+  contractAmount
+}) => {
+  const [isStatusChanging, setIsStatusChanging] = useState(false);
   const navigate = useNavigate();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
-  const [lateFeeDetails, setLateFeeDetails] = useState<{
-    amount: number;
-    daysLate: number;
-  } | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState(null);
 
-  const {
-    payments,
-    isLoadingPayments,
-    fetchPayments
-  } = usePayments(agreement?.id, rentAmount);
-  console.log('Agreement ID from AgreementDetail:', agreement?.id);
-  console.log('Payments from usePayments:', payments);
-  console.log('Loading state:', isLoadingPayments);
-  useEffect(() => {
-    if (agreement?.id) {
-      console.log('Fetching payments for agreement:', agreement.id);
-      fetchPayments();
+  const handleActivateAgreement = async () => {
+    if (!agreement || !agreement.id || !agreement.vehicle_id) {
+      toast.error("Missing required information to activate agreement");
+      return;
     }
-  }, [agreement?.id, fetchPayments]);
-  const {
-    handleSpecialAgreementPayments
-  } = usePaymentGeneration(agreement, agreement?.id);
-
-  const handleDelete = useCallback(() => {
-    setIsDeleteDialogOpen(true);
-  }, []);
-
-  const confirmDelete = useCallback(() => {
-    if (agreement) {
-      onDelete(agreement.id);
-      setIsDeleteDialogOpen(false);
-    }
-  }, [agreement, onDelete]);
-
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
-
-  const handleEdit = useCallback(() => {
-    if (agreement) {
-      navigate(`/agreements/edit/${agreement.id}`);
-    }
-  }, [agreement, navigate]);
-
-  const handleDownloadPdf = useCallback(async () => {
-    if (agreement) {
-      try {
-        setIsGeneratingPdf(true);
-        toast.info("Preparing agreement PDF document...");
-        const success = await generatePdfDocument(agreement);
-        if (success) {
-          toast.success("Agreement PDF downloaded successfully");
-        } else {
-          toast.error("Failed to generate PDF");
-        }
-      } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF");
-      } finally {
-        setIsGeneratingPdf(false);
-      }
-    }
-  }, [agreement]);
-
-  const handleRecordPayment = useCallback(() => {
-    setIsPaymentDialogOpen(true);
-  }, []);
-
-  const handleGenerateDocument = useCallback(() => {
-    if (agreement && onGenerateDocument) {
-      onGenerateDocument();
-    } else {
-      toast.info("Document generation functionality is being configured");
-    }
-  }, [agreement, onGenerateDocument]);
-
-  const handlePaymentSubmit = useCallback(async (
-    amount: number, 
-    paymentDate: Date, 
-    notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string, 
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
-  ) => {
-    if (agreement && agreement.id) {
-      try {
-        const success = await handleSpecialAgreementPayments(
-          amount, 
-          paymentDate, 
-          notes, 
-          paymentMethod, 
-          referenceNumber, 
-          includeLatePaymentFee,
-          isPartialPayment
-        );
-        if (success) {
-          setIsPaymentDialogOpen(false);
+    
+    setIsStatusChanging(true);
+    
+    try {
+      const success = await activateAgreement(agreement.id, agreement.vehicle_id);
+      
+      if (success) {
+        toast.success("Agreement activated successfully");
+        if (onDataRefresh) {
           onDataRefresh();
-          fetchPayments();
-          toast.success("Payment recorded successfully");
         }
-      } catch (error) {
-        console.error("Error recording payment:", error);
-        toast.error("Failed to record payment");
       }
-    }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
-
-  const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
-    const months = differenceInMonths(endDate, startDate);
-    return months > 0 ? months : 1;
-  }, []);
-
-  useEffect(() => {
-    const today = new Date();
-    if (today.getDate() > 1) {
-      const daysLate = today.getDate() - 1;
-      const lateFeeAmount = Math.min(daysLate * 120, 3000);
-
-      setLateFeeDetails({
-        amount: lateFeeAmount,
-        daysLate: daysLate
-      });
-    } else {
-      setLateFeeDetails(null);
-    }
-  }, []);
-
-  if (!agreement) {
-    return <Alert>
-        <AlertDescription>Agreement details not available.</AlertDescription>
-      </Alert>;
-  }
-
-  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-  const duration = calculateDuration(startDate, endDate);
-
-  const formattedStatus = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
-      case 'closed':
-        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
-      case 'expired':
-        return <Badge className="bg-gray-500 text-white ml-2">EXPIRED</Badge>;
-      case 'draft':
-        return <Badge className="bg-purple-500 text-white ml-2">DRAFT</Badge>;
-      default:
-        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
+    } catch (error) {
+      console.error("Error activating agreement:", error);
+      toast.error("Failed to activate agreement");
+    } finally {
+      setIsStatusChanging(false);
     }
   };
 
-  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
+  const updateStatus = async (newStatus: AgreementStatus) => {
+    if (!agreement.id) return;
+    
+    setIsStatusChanging(true);
+    
+    try {
+      const { error } = await supabase
+        .from('leases')
+        .update({ status: newStatus })
+        .eq('id', agreement.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast.success(`Agreement marked as ${newStatus}`);
+      
+      if (onDataRefresh) {
+        onDataRefresh();
+      }
+    } catch (error) {
+      console.error("Error updating agreement status:", error);
+      toast.error("Failed to update agreement status");
+    } finally {
+      setIsStatusChanging(false);
+    }
+  };
 
-  return <div className="space-y-8">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
-          Agreement {agreement.agreement_number}
-          {formattedStatus(agreement.status)}
-        </h2>
-        <p className="text-muted-foreground">
-          Created on {format(createdDate, 'MMMM d, yyyy')}
-        </p>
-      </div>
+  const getStatusIcon = () => {
+    switch(agreement.status) {
+      case AgreementStatus.ACTIVE:
+        return <FileCheck className="h-5 w-5 text-green-500" />;
+      case AgreementStatus.DRAFT:
+        return <FileEdit className="h-5 w-5 text-gray-500" />;
+      case AgreementStatus.PENDING:
+        return <FileClock className="h-5 w-5 text-orange-500" />;
+      case AgreementStatus.EXPIRED:
+        return <FileText className="h-5 w-5 text-gray-500" />;
+      case AgreementStatus.CANCELLED:
+        return <FileX className="h-5 w-5 text-red-500" />;
+      case AgreementStatus.CLOSED:
+        return <FileMinus2 className="h-5 w-5 text-blue-500" />;
+      default:
+        return <FileText className="h-5 w-5" />;
+    }
+  };
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Information</CardTitle>
-            <CardDescription>Details about the customer</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Name</p>
-                <p>{agreement.customers?.full_name || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Email</p>
-                <p>{agreement.customers?.email || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Phone</p>
-                <p>{agreement.customers?.phone_number || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Address</p>
-                <p>{agreement.customers?.address || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">Driver License</p>
-                <p>{agreement.customers?.driver_license || 'N/A'}</p>
-              </div>
+  const getStatusBadgeVariant = () => {
+    switch(agreement.status) {
+      case AgreementStatus.ACTIVE:
+        return "success";
+      case AgreementStatus.DRAFT:
+        return "secondary";
+      case AgreementStatus.PENDING:
+        return "warning";
+      case AgreementStatus.EXPIRED:
+        return "outline";
+      case AgreementStatus.CANCELLED:
+        return "destructive";
+      case AgreementStatus.CLOSED:
+        return "default";
+      default:
+        return "outline";
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Status change alert for non-active agreements */}
+      {agreement.status === AgreementStatus.PENDING && (
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Agreement is Pending</AlertTitle>
+          <AlertDescription className="flex flex-col gap-2">
+            <p>This agreement is in pending status. Would you like to activate it?</p>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                size="sm" 
+                onClick={handleActivateAgreement}
+                disabled={isStatusChanging}
+              >
+                <CheckCircle className="h-4 w-4 mr-1" />
+                {isStatusChanging ? "Activating..." : "Activate Agreement"}
+              </Button>
             </div>
-          </CardContent>
-        </Card>
+          </AlertDescription>
+        </Alert>
+      )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Vehicle Information</CardTitle>
-            <CardDescription>Details about the rented vehicle</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Vehicle</p>
-                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
-              </div>
-              <div>
-                <p className="font-medium">License Plate</p>
-                <p>{agreement.vehicles?.license_plate}</p>
-              </div>
-              <div>
-                <p className="font-medium">Color</p>
-                <p>{agreement.vehicles?.color || 'N/A'}</p>
-              </div>
-              <div>
-                <p className="font-medium">VIN</p>
-                <p>{agreement.vehicles?.vin || 'N/A'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Vehicle double booking alert */}
+      {agreement.vehicle_id && (
+        <ConflictAlert 
+          agreementId={agreement.id} 
+          vehicleId={agreement.vehicle_id} 
+          onResolved={onDataRefresh}
+        />
+      )}
+
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-2">
+          {getStatusIcon()}
+          <h2 className="text-2xl font-bold">
+            Agreement #{agreement.agreement_number || '[No Number]'}
+          </h2>
+          <Badge variant={getStatusBadgeVariant()} className="capitalize ml-2">
+            {agreement.status}
+          </Badge>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onGenerateDocument}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            Generate Document
+          </Button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4 mr-1" />
+                Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Agreement Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
+                <FileEdit className="h-4 w-4 mr-2" />
+                Edit Agreement
+              </DropdownMenuItem>
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>Update Status</DropdownMenuLabel>
+              
+              {agreement.status !== AgreementStatus.ACTIVE && (
+                <DropdownMenuItem 
+                  onClick={handleActivateAgreement}
+                  disabled={isStatusChanging}
+                >
+                  <FileCheck className="h-4 w-4 mr-2 text-green-500" />
+                  Mark as Active
+                </DropdownMenuItem>
+              )}
+              
+              {agreement.status !== AgreementStatus.PENDING && (
+                <DropdownMenuItem 
+                  onClick={() => updateStatus(AgreementStatus.PENDING)}
+                  disabled={isStatusChanging}
+                >
+                  <FileClock className="h-4 w-4 mr-2 text-amber-500" />
+                  Mark as Pending
+                </DropdownMenuItem>
+              )}
+              
+              {agreement.status !== AgreementStatus.CLOSED && (
+                <DropdownMenuItem 
+                  onClick={() => updateStatus(AgreementStatus.CLOSED)}
+                  disabled={isStatusChanging}
+                >
+                  <FileMinus2 className="h-4 w-4 mr-2 text-blue-500" />
+                  Mark as Closed
+                </DropdownMenuItem>
+              )}
+              
+              {agreement.status !== AgreementStatus.EXPIRED && (
+                <DropdownMenuItem 
+                  onClick={() => updateStatus(AgreementStatus.EXPIRED)}
+                  disabled={isStatusChanging}
+                >
+                  <FileText className="h-4 w-4 mr-2 text-gray-500" />
+                  Mark as Expired
+                </DropdownMenuItem>
+              )}
+              
+              {agreement.status !== AgreementStatus.CANCELLED && (
+                <DropdownMenuItem 
+                  onClick={() => updateStatus(AgreementStatus.CANCELLED)}
+                  disabled={isStatusChanging}
+                >
+                  <FileX className="h-4 w-4 mr-2 text-red-500" />
+                  Mark as Cancelled
+                </DropdownMenuItem>
+              )}
+              
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive" 
+                onClick={() => agreement.id && onDelete(agreement.id)}
+              >
+                <Delete className="h-4 w-4 mr-2" />
+                Delete Agreement
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Agreement Details</CardTitle>
-          <CardDescription>Rental terms and payment information</CardDescription>
+          <CardTitle>Agreement Summary</CardTitle>
+          <CardDescription>
+            Details about the rental agreement
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Rental Period</p>
-                <p className="flex items-center">
-                  <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
-                </p>
-                <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Additional Drivers</p>
-                <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Notes</p>
-                <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
-              </div>
+        <CardContent className="grid gap-4">
+          <div className="flex items-center space-x-4">
+            <Car className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold">Vehicle Information</h3>
+              <p className="text-sm text-muted-foreground">
+                {agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.license_plate})
+              </p>
             </div>
-            
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">Monthly Rent Amount</p>
-                <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Total Contract Amount</p>
-                <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
-                <p className="text-xs text-muted-foreground">Monthly rent × {duration} months</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Deposit Amount</p>
-                <p>QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Terms Accepted</p>
-                <p>{agreement.terms_accepted ? 'Yes' : 'No'}</p>
-              </div>
-              
-              <div>
-                <p className="font-medium">Signature</p>
-                <p>{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
-              </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <User className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold">Customer Information</h3>
+              <p className="text-sm text-muted-foreground">
+                {agreement.customers?.full_name}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+            <div>
+              <h3 className="text-lg font-semibold">Rental Period</h3>
+              <p className="text-sm text-muted-foreground">
+                {format(new Date(agreement.start_date || new Date()), 'MMM d, yyyy')} - {format(new Date(agreement.end_date || new Date()), 'MMM d, yyyy')}
+              </p>
             </div>
           </div>
         </CardContent>
+        <CardFooter className="justify-between">
+          <div>
+            <h3 className="text-lg font-semibold">Total Amount</h3>
+            <p className="text-sm text-muted-foreground">
+              {formatCurrency(agreement.total_amount || 0)}
+            </p>
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold">Monthly Rent</h3>
+            <p className="text-sm text-muted-foreground">
+              {formatCurrency(rentAmount || 0)}
+            </p>
+          </div>
+        </CardFooter>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
-        <Button variant="outline" onClick={handleEdit}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
-        </Button>
-        
-        <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
-          <Download className="mr-2 h-4 w-4" />
-          {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
-        </Button>
-        <Button variant="outline" onClick={handleGenerateDocument}>
-          <FilePlus className="mr-2 h-4 w-4" />
-          Generate Document
-        </Button>
-        <Button variant="default" className="bg-blue-500 hover:bg-blue-600" onClick={handleRecordPayment}>
-          <DollarSign className="mr-2 h-4 w-4" />
-          Record Payment
-        </Button>
-        <div className="flex-grow"></div>
-        <Button variant="destructive" onClick={handleDelete} className="ml-auto">
-          Delete
-        </Button>
-      </div>
+      <Tabs defaultValue="payments" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="payments">Payment History</TabsTrigger>
+          <TabsTrigger value="customer">Customer Details</TabsTrigger>
+          <TabsTrigger value="vehicle">Vehicle Details</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="notes">Notes</TabsTrigger>
+        </TabsList>
+        <TabsContent value="payments" className="space-y-2">
+          <PaymentHistory 
+            agreementId={agreement.id} 
+            onPaymentDeleted={onPaymentDeleted}
+          />
+        </TabsContent>
+        <TabsContent value="customer" className="space-y-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer Details</CardTitle>
+              <CardDescription>Information about the customer associated with this agreement</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="flex items-center space-x-4">
+                <User className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">{agreement.customers?.full_name}</h3>
+                  <p className="text-sm text-muted-foreground">Customer Name</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Mail className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">{agreement.customers?.email}</h3>
+                  <p className="text-sm text-muted-foreground">Email Address</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Phone className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">{formatAsQatariPhone(agreement.customers?.phone_number)}</h3>
+                  <p className="text-sm text-muted-foreground">Phone Number</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="vehicle" className="space-y-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Vehicle Details</CardTitle>
+              <CardDescription>Information about the vehicle associated with this agreement</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="flex items-center space-x-4">
+                <Car className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">{agreement.vehicles?.make} {agreement.vehicles?.model}</h3>
+                  <p className="text-sm text-muted-foreground">Vehicle Make and Model</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">{agreement.vehicles?.year}</h3>
+                  <p className="text-sm text-muted-foreground">Year of Manufacture</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <MailCheck className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <h3 className="text-lg font-semibold">{agreement.vehicles?.license_plate}</h3>
+                  <p className="text-sm text-muted-foreground">License Plate</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="documents" className="space-y-2">
+          <AgreementDocuments agreement={agreement} />
+        </TabsContent>
+        <TabsContent value="notes" className="space-y-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agreement Notes</CardTitle>
+              <CardDescription>Additional notes and information about this agreement</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>{agreement.notes || 'No notes available.'}</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
-      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
-      onPaymentDeleted();
-      fetchPayments();
-    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
+      <Separator />
 
-      {agreement.start_date && agreement.end_date && <Card>
-          <CardHeader>
-            <CardTitle>Traffic Fines</CardTitle>
-            <CardDescription>Violations during the rental period</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
-          </CardContent>
-        </Card>}
-
-      {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
-
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <PaymentEntryDialog 
-        open={isPaymentDialogOpen} 
-        onOpenChange={setIsPaymentDialogOpen} 
-        onSubmit={handlePaymentSubmit} 
-        defaultAmount={rentAmount || 0} 
-        title="Record Rent Payment" 
-        description="Record a new rental payment for this agreement." 
-        lateFeeDetails={lateFeeDetails} 
-        selectedPayment={selectedPayment}
-      />
-    </div>;
-}
+      <Accordion type="single" collapsible>
+        <AccordionItem value="terms">
+          <AccordionTrigger>Terms and Conditions</AccordionTrigger>
+          <AccordionContent>
+            Unfortunately, we do not have any specific terms and conditions to display at this time.
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+};
