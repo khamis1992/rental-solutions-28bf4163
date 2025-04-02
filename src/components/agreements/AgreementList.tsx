@@ -19,7 +19,6 @@ import {
   FileX, 
   FileClock, 
   FileEdit,
-  FilePlus,
   AlertTriangle,
   Loader2,
   ChevronLeft,
@@ -552,12 +551,6 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
               Delete ({selectedCount})
             </Button>
           )}
-          <Button asChild>
-            <Link to="/agreements/add">
-              <FilePlus className="h-4 w-4 mr-2" />
-              New Agreement
-            </Link>
-          </Button>
         </div>
       </div>
       
