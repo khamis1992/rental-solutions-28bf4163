@@ -41,7 +41,19 @@ const AgreementDetailPage = () => {
       const data = await getAgreement(id);
       
       if (data) {
-        setAgreement(adaptSimpleToFullAgreement(data));
+        // Make sure we properly adapt the agreement data to avoid date issues
+        const adaptedAgreement = adaptSimpleToFullAgreement(data);
+        
+        // Ensure start_date and end_date are properly parsed as Date objects
+        if (adaptedAgreement.start_date && typeof adaptedAgreement.start_date === 'string') {
+          adaptedAgreement.start_date = new Date(adaptedAgreement.start_date);
+        }
+        
+        if (adaptedAgreement.end_date && typeof adaptedAgreement.end_date === 'string') {
+          adaptedAgreement.end_date = new Date(adaptedAgreement.end_date);
+        }
+        
+        setAgreement(adaptedAgreement);
         fetchPayments();
       } else {
         toast.error("Agreement not found");

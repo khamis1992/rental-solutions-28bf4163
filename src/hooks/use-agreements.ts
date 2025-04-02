@@ -290,10 +290,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fixed: Using a simpler approach to completely avoid deep type instantiation
+  // Fix the excessive type instantiation by using a simple type annotation
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      console.log("Update mutation called with:", { id, data });
+    mutationFn: async (params: { id: string; data: any }) => {
+      console.log("Update mutation called with:", params);
       return {} as SimpleAgreement;
     },
     onSuccess: () => {
