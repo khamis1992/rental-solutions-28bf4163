@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { checkStandardTemplateExists, diagnosisTemplateAccess } from "@/utils/ag
 import { ensureStorageBuckets } from "@/utils/setupBuckets";
 import { diagnoseTemplateUrl, uploadAgreementTemplate, checkSpecificTemplateUrl, fixTemplateUrl } from "@/utils/templateUtils";
 import { checkVehicleAvailability, activateAgreement } from "@/utils/agreement-utils";
+import { forceGeneratePaymentForAgreement } from "@/lib/validation-schemas/agreement";
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -168,6 +170,17 @@ const AddAgreement = () => {
       
       if (leaseData.status === 'active' && leaseData.vehicle_id) {
         await activateAgreement(data.id, leaseData.vehicle_id);
+      } else if (leaseData.status === 'active') {
+        // If agreement is active but not tied to a vehicle, still generate payment
+        try {
+          console.log("Generating initial payment schedule for new agreement");
+          const result = await forceGeneratePaymentForAgreement(supabase, data.id);
+          if (!result.success) {
+            console.warn("Could not generate payment schedule:", result.message);
+          }
+        } catch (paymentError) {
+          console.error("Error generating payment schedule:", paymentError);
+        }
       }
       
       toast.success("Agreement created successfully");

@@ -1,7 +1,7 @@
 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
 // Helper function to adapt SimpleAgreement to Agreement type for detail pages
@@ -150,6 +150,34 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
       console.error("Failed to update vehicle status:", vehicleUpdateError);
       toast.error("Failed to update vehicle status");
       return false;
+    }
+    
+    // Generate payment record for the agreement
+    try {
+      // First get the agreement details to have the rent amount
+      const { data: agreement, error: agreementError } = await supabase
+        .from('leases')
+        .select('rent_amount, agreement_number')
+        .eq('id', agreementId)
+        .single();
+      
+      if (agreementError) {
+        console.error("Error fetching agreement details for payment generation:", agreementError);
+        toast.warning("Agreement activated, but could not generate payment schedule");
+      } else if (agreement) {
+        console.log(`Generating payment schedule for agreement ${agreement.agreement_number}`);
+        const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
+        
+        if (result.success) {
+          toast.success("Payment schedule generated successfully");
+        } else {
+          console.warn("Could not generate payment schedule:", result.message);
+          toast.warning(`Agreement activated, but payment schedule generation had an issue: ${result.message}`);
+        }
+      }
+    } catch (paymentError) {
+      console.error("Error generating payment schedule:", paymentError);
+      toast.warning("Agreement activated, but payment schedule could not be generated");
     }
     
     console.log(`Successfully activated agreement ${agreementId}`);

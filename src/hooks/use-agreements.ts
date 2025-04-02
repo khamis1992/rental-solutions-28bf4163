@@ -15,7 +15,7 @@ export type SimpleAgreement = {
   end_date?: string | null;
   agreement_type?: string;
   agreement_number?: string;
-  status?: typeof AgreementStatus[keyof typeof AgreementStatus];
+  status?: string;
   total_amount?: number;
   monthly_payment?: number;
   agreement_duration?: any;
@@ -27,11 +27,30 @@ export type SimpleAgreement = {
   created_at?: string;
   updated_at?: string;
   signature_url?: string;
-  // Added properties to fix errors
-  customers?: any;
-  vehicles?: any;
   deposit_amount?: number;
   notes?: string;
+  customers?: any;
+  vehicles?: any;
+};
+
+// Function to convert database status to AgreementStatus enum value
+export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
+  switch(dbStatus) {
+    case 'active':
+      return AgreementStatus.ACTIVE;
+    case 'pending_payment':
+    case 'pending_deposit':
+      return AgreementStatus.PENDING;
+    case 'cancelled':
+      return AgreementStatus.CANCELLED;
+    case 'completed':
+    case 'terminated':
+      return AgreementStatus.CLOSED;
+    case 'archived':
+      return AgreementStatus.EXPIRED;
+    default:
+      return AgreementStatus.DRAFT;
+  }
 };
 
 interface SearchParams {
@@ -119,29 +138,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      let mappedStatus: any;
-
-      switch(data.status) {
-        case 'active':
-          mappedStatus = AgreementStatus.ACTIVE;
-          break;
-        case 'pending_payment':
-        case 'pending_deposit':
-          mappedStatus = AgreementStatus.PENDING;
-          break;
-        case 'cancelled':
-          mappedStatus = AgreementStatus.CANCELLED;
-          break;
-        case 'completed':
-        case 'terminated':
-          mappedStatus = AgreementStatus.CLOSED;
-          break;
-        case 'archived':
-          mappedStatus = AgreementStatus.EXPIRED;
-          break;
-        default:
-          mappedStatus = AgreementStatus.DRAFT;
-      }
+      // Use the helper function to map status
+      const mappedStatus = mapDBStatusToEnum(data.status);
 
       const agreement: SimpleAgreement = {
         id: data.id,
@@ -258,29 +256,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       console.log(`Found ${data.length} agreements`, data);
 
       const agreements: SimpleAgreement[] = data.map(item => {
-        let mappedStatus: typeof AgreementStatus[keyof typeof AgreementStatus] = AgreementStatus.DRAFT;
-
-        switch(item.status) {
-          case 'active':
-            mappedStatus = AgreementStatus.ACTIVE;
-            break;
-          case 'pending_payment':
-          case 'pending_deposit':
-            mappedStatus = AgreementStatus.PENDING;
-            break;
-          case 'cancelled':
-            mappedStatus = AgreementStatus.CANCELLED;
-            break;
-          case 'completed':
-          case 'terminated':
-            mappedStatus = AgreementStatus.CLOSED;
-            break;
-          case 'archived':
-            mappedStatus = AgreementStatus.EXPIRED;
-            break;
-          default:
-            mappedStatus = AgreementStatus.DRAFT;
-        }
+        // Use the helper function to map status
+        const mappedStatus = mapDBStatusToEnum(item.status);
 
         return {
           id: item.id,

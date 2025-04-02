@@ -6,14 +6,15 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePayments } from '@/hooks/use-payments';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { supabase } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ const AgreementDetailPage = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
 
   // Pass the agreement object directly and the ID as a fallback
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
@@ -81,11 +83,47 @@ const AgreementDetailPage = () => {
     setIsDocumentDialogOpen(true);
   };
 
+  const handleGeneratePayment = async () => {
+    if (!id || !agreement) return;
+    
+    setIsGeneratingPayment(true);
+    try {
+      const result = await forceGeneratePaymentForAgreement(supabase, id);
+      
+      if (result.success) {
+        toast.success("Payment schedule generated successfully");
+        // Refresh the data to show the new payment
+        refreshAgreementData();
+      } else {
+        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Error generating payment:", error);
+      toast.error("Failed to generate payment schedule");
+    } finally {
+      setIsGeneratingPayment(false);
+    }
+  };
+
   return (
     <PageContainer
       title="Agreement Details"
       description="View and manage rental agreement details"
       backLink="/agreements"
+      actions={
+        agreement && agreement.status === AgreementStatus.ACTIVE && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGeneratePayment}
+            disabled={isGeneratingPayment}
+            className="gap-2"
+          >
+            <Calendar className="h-4 w-4" />
+            {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
+          </Button>
+        )
+      }
     >
       {isLoading ? (
         <div className="space-y-6">
