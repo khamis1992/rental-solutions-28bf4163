@@ -80,10 +80,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { SimpleRecord } from '@/utils/type-utils';
 
 interface AgreementListProps {
+  refreshTrigger?: number;
   searchQuery?: string;
 }
 
-export function AgreementList({ searchQuery = '' }: AgreementListProps) {
+export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: AgreementListProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -107,6 +108,12 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   useEffect(() => {
     setSearchParams(prev => ({ ...prev, query: searchQuery }));
   }, [searchQuery, setSearchParams]);
+
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    }
+  }, [refreshTrigger, queryClient]);
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -117,6 +124,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
 
+  // Reset pagination and selection when filters change
   useEffect(() => {
     setRowSelection({});
     setPagination({
@@ -481,13 +489,18 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       rowSelection,
       pagination,
     },
-    manualPagination: false,
-    pageCount: Math.ceil((agreements?.length || 0) / 10),
+    // Use server-side pagination
+    manualPagination: true,
+    pageCount: Math.ceil((agreements?.length || 0) / pagination.pageSize),
   });
 
   const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value);
-    setSearchParams(prev => ({ ...prev, status: value }));
+    // Update status filter but prevent rapid changes
+    if (value !== statusFilter) {
+      setStatusFilter(value);
+      // Set the status in searchParams, which will trigger a new query
+      setSearchParams(prev => ({ ...prev, status: value === 'all' ? undefined : value }));
+    }
   };
 
   const selectedCount = Object.keys(rowSelection).length;
@@ -499,6 +512,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           <Select
             value={statusFilter}
             onValueChange={handleStatusFilterChange}
+            disabled={isLoading}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select status" />
@@ -548,6 +562,9 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           {searchQuery && (
             <Badge variant="outline" className="ml-2 gap-1">
               Search: {searchQuery}
+              <button onClick={() => setSearchParams(prev => ({ ...prev, query: undefined }))}>
+                <X className="h-3 w-3" />
+              </button>
             </Badge>
           )}
           {statusFilter !== 'all' && (
@@ -630,7 +647,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 size="default"
                 className="gap-1 pl-2.5"
                 onClick={() => table.previousPage()} 
-                disabled={!table.getCanPreviousPage()}
+                disabled={!table.getCanPreviousPage() || isLoading}
                 aria-label="Go to previous page"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -643,6 +660,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 <PaginationLink
                   isActive={table.getState().pagination.pageIndex === index}
                   onClick={() => table.setPageIndex(index)}
+                  disabled={isLoading}
                 >
                   {index + 1}
                 </PaginationLink>
@@ -658,7 +676,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 size="default"
                 className="gap-1 pr-2.5"
                 onClick={() => table.nextPage()} 
-                disabled={!table.getCanNextPage()}
+                disabled={!table.getCanNextPage() || isLoading}
                 aria-label="Go to next page"
               >
                 <span>Next</span>

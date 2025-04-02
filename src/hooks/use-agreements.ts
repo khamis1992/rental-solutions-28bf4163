@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -59,15 +58,20 @@ interface SearchParams {
   status?: string;
   vehicle_id?: string;
   customer_id?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
-  const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    ...initialFilters,
+    page: initialFilters.page || 0,
+    pageSize: initialFilters.pageSize || 10
+  });
   const queryClient = useQueryClient();
 
-  // Core functions definition
+  // Get a single agreement by ID
   const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
-    // Simplified implementation
     try {
       const { data, error } = await supabase
         .from('leases')
@@ -83,10 +87,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
+  // Fetch agreements with server-side filtering
   const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
-    // Simplified implementation
+    console.log("Fetching agreements with params:", searchParams);
     try {
-      const { data, error } = await supabase
+      // Start building the query
+      let query = supabase
         .from('leases')
         .select(`
           *,
@@ -94,19 +100,59 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
         
-      if (error || !data) return [];
+      // Apply status filter if provided and not 'all'
+      if (searchParams.status && searchParams.status !== 'all') {
+        query = query.eq('status', searchParams.status);
+      }
+      
+      // Apply vehicle filter if provided
+      if (searchParams.vehicle_id) {
+        query = query.eq('vehicle_id', searchParams.vehicle_id);
+      }
+      
+      // Apply customer filter if provided
+      if (searchParams.customer_id) {
+        query = query.eq('customer_id', searchParams.customer_id);
+      }
+      
+      // Apply search query if provided (for license plate or agreement number)
+      if (searchParams.query && searchParams.query.trim()) {
+        const searchTerm = searchParams.query.trim();
+        if (isLicensePlatePattern(searchTerm)) {
+          // If it looks like a license plate, search by license plate through the join
+          query = query.filter('vehicles.license_plate', 'ilike', `%${searchTerm}%`);
+        } else {
+          // Otherwise search by agreement number
+          query = query.filter('agreement_number', 'ilike', `%${searchTerm}%`);
+        }
+      }
+      
+      // Apply sorting - default to newest first
+      query = query.order('created_at', { ascending: false });
+      
+      // Execute the query
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error("Error in fetchAgreements:", error);
+        throw error;
+      }
+      
+      if (!data) return [];
+      
       return data as SimpleAgreement[];
     } catch (err) {
       console.error("Error fetching agreements:", err);
-      return [];
+      throw err;
     }
   };
 
+  // Create a new agreement
   const createAgreement = async (data: Partial<SimpleAgreement>) => {
     return {} as SimpleAgreement;
   };
 
-  // Fixed type for the update mutation to avoid excessive instantiation
+  // Update an existing agreement
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -119,7 +165,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
-  // Simplified the type for the deleteAgreement mutation to avoid excessive type instantiation
+  // Delete an agreement
   const deleteAgreement = useMutation({
     mutationFn: async (id: string): Promise<string> => {
       try {
@@ -144,11 +190,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  const { data: agreements, isLoading, error } = useQuery({
+  // Main query to fetch agreements
+  const { data: agreements, isLoading, error, refetch } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    staleTime: 60000, // 1 minute - reduced to prevent stale data issues
+    gcTime: 300000, // 5 minutes
+    retry: 1, // Only retry once to prevent excessive calls on error
   });
 
   return {
@@ -161,5 +209,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     createAgreement,
     updateAgreement,
     deleteAgreement,
+    refetch
   };
 };
