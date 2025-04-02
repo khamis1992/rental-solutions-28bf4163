@@ -17,6 +17,11 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
+// Extend the Payment type to include the missing description property
+interface ExtendedPayment extends Payment {
+  description?: string;
+}
+
 interface PaymentEntryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,7 +67,7 @@ export function PaymentEntryDialog({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
   const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
-  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<ExtendedPayment[]>([]);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | undefined>(
     selectedPayment?.id
   );
@@ -102,7 +107,7 @@ export function PaymentEntryDialog({
       }
       
       if (data && data.length > 0) {
-        setPendingPayments(data as Payment[]);
+        setPendingPayments(data as ExtendedPayment[]);
       } else {
         setPendingPayments([]);
       }
@@ -177,9 +182,9 @@ export function PaymentEntryDialog({
   const showLateFeeOption = lateFeeDetails !== null;
 
   // Helper function to format payment description
-  const formatPaymentDescription = (payment: Payment) => {
-    let description = payment.description || 
-                      `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
+  const formatPaymentDescription = (payment: ExtendedPayment) => {
+    let desc = payment.description || 
+               `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
     
     // Add status indicator
     let status = "";
@@ -189,7 +194,7 @@ export function PaymentEntryDialog({
       status = " (Pending)";
     }
     
-    return `${description}${status} - ${payment.amount_paid ? 
+    return `${desc}${status} - ${payment.amount_paid ? 
       `Paid: ${payment.amount_paid.toLocaleString()} / ` : ''}QAR ${payment.amount?.toLocaleString() || 0}`;
   };
 
