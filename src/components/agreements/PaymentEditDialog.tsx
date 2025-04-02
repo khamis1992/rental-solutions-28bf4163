@@ -17,12 +17,12 @@ import { Payment } from "./PaymentHistory";
 
 interface PaymentEditDialogProps {
   payment: Payment | null;
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: () => void;
+  open: boolean; // Changed from isOpen to open for consistency
+  onOpenChange: (open: boolean) => void; // Changed from onClose to match Shadcn Dialog
+  onSaved: () => void;
 }
 
-export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentEditDialogProps) {
+export function PaymentEditDialog({ payment, open, onOpenChange, onSaved }: PaymentEditDialogProps) {
   const [amount, setAmount] = useState(payment?.amount || 0);
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(
     payment?.payment_date ? new Date(payment.payment_date) : undefined
@@ -97,8 +97,8 @@ export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentE
       if (error) throw error;
       
       toast.success("Payment updated successfully");
-      onSave();
-      onClose();
+      onSaved();
+      onOpenChange(false); // Use onOpenChange instead of onClose
     } catch (error) {
       console.error("Error updating payment:", error);
       toast.error("Failed to update payment");
@@ -108,7 +108,7 @@ export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentE
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Edit Payment</DialogTitle>
@@ -174,6 +174,7 @@ export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentE
                     selected={paymentDate}
                     onSelect={setPaymentDate}
                     initialFocus
+                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -218,7 +219,7 @@ export function PaymentEditDialog({ payment, isOpen, onClose, onSave }: PaymentE
           </div>
           
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

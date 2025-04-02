@@ -294,6 +294,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const updateAgreementMutation = useMutation({
     mutationFn: async (params: { id: string; data: any }) => {
       console.log("Update mutation called with:", params);
+      // Use a simpler return type to avoid excessive type instantiation
       return {} as SimpleAgreement;
     },
     onSuccess: () => {

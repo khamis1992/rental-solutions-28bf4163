@@ -10,12 +10,12 @@ import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { usePayments } from '@/hooks/use-payments';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { supabase } from '@/lib/supabase';
 import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
+import { getDateObject } from '@/lib/date-utils';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -45,12 +45,25 @@ const AgreementDetailPage = () => {
         const adaptedAgreement = adaptSimpleToFullAgreement(data);
         
         // Ensure start_date and end_date are properly parsed as Date objects
-        if (adaptedAgreement.start_date && typeof adaptedAgreement.start_date === 'string') {
-          adaptedAgreement.start_date = new Date(adaptedAgreement.start_date);
+        // Using getDateObject from date-utils to safely handle dates
+        if (adaptedAgreement.start_date) {
+          const safeDate = getDateObject(adaptedAgreement.start_date);
+          adaptedAgreement.start_date = safeDate || new Date();
         }
         
-        if (adaptedAgreement.end_date && typeof adaptedAgreement.end_date === 'string') {
-          adaptedAgreement.end_date = new Date(adaptedAgreement.end_date);
+        if (adaptedAgreement.end_date) {
+          const safeDate = getDateObject(adaptedAgreement.end_date);
+          adaptedAgreement.end_date = safeDate || new Date();
+        }
+        
+        if (adaptedAgreement.created_at) {
+          const safeDate = getDateObject(adaptedAgreement.created_at);
+          adaptedAgreement.created_at = safeDate;
+        }
+        
+        if (adaptedAgreement.updated_at) {
+          const safeDate = getDateObject(adaptedAgreement.updated_at);
+          adaptedAgreement.updated_at = safeDate;
         }
         
         setAgreement(adaptedAgreement);

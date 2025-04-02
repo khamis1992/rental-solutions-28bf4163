@@ -7,7 +7,7 @@ import { DollarSign, Edit, Trash2, CheckSquare, AlertCircle, Clock, RefreshCw, F
 import { Skeleton } from '@/components/ui/skeleton';
 import { PaymentEditDialog } from './PaymentEditDialog';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { isAfter, subMonths, isWithinInterval } from 'date-fns';
