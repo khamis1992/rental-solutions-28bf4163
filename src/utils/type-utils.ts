@@ -59,3 +59,11 @@ export type PaginatedResponse<T> = {
 export type FlattenType<T> = {
   [P in keyof T]: T[P];
 };
+
+/**
+ * Simplifies table data type for TanStack Table
+ * Prevents excessive type instantiation in table components
+ * 
+ * @template T The data type for table rows
+ */
+export type TableDataType<T> = T extends object ? { [K in keyof T]: any } : any;

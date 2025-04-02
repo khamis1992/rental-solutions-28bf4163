@@ -76,6 +76,9 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { TableDataType } from '@/utils/type-utils';
+
+type AgreementTableData = TableDataType<SimpleAgreement>;
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -235,7 +238,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<AgreementTableData>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -462,8 +465,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
-  const table = useReactTable({
-    data: agreements || [],
+  const table = useReactTable<AgreementTableData>({
+    data: (agreements || []) as AgreementTableData[],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
