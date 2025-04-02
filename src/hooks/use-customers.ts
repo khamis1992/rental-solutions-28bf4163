@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,7 +47,7 @@ export const useCustomers = () => {
           .order('created_at', { ascending: false });
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
+          query = query.eq('status', searchParams.status);
         }
 
         if (searchParams.query) {
@@ -73,7 +74,7 @@ export const useCustomers = () => {
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+          status: (profile.status || 'active') as Customer['status'],
           created_at: profile.created_at,
           updated_at: profile.updated_at,
         }));
@@ -224,7 +225,7 @@ export const useCustomers = () => {
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+        status: (data.status || 'active') as Customer['status'],
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
@@ -234,6 +235,23 @@ export const useCustomers = () => {
       console.error('Unexpected error fetching customer:', error);
       toast.error('Failed to fetch customer');
       return null;
+    }
+  };
+
+  // Function to update customer statuses
+  const updateCustomerStatuses = async () => {
+    try {
+      const { error } = await supabase.rpc('update_customer_statuses');
+      
+      if (error) {
+        console.error('Error updating customer statuses:', error);
+        throw error;
+      }
+      
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to update customer statuses:', err);
+      throw err;
     }
   };
 
@@ -248,5 +266,6 @@ export const useCustomers = () => {
     deleteCustomer,
     getCustomer,
     refreshCustomers,
+    updateCustomerStatuses
   };
 };
