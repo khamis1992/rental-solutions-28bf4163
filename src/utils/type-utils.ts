@@ -23,3 +23,4 @@ export type FlattenType<T> = {
 export type SafeRecord<T = any> = {
   [K in keyof T]: T[K] extends object ? SafeRecord<T[K]> : T[K];
 };
+

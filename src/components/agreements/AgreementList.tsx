@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -76,7 +77,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { SafeRecord } from '@/utils/type-utils';
+import { SimpleRecord } from '@/utils/type-utils';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -236,7 +237,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<SafeRecord>[] = [
+  // Using SimpleRecord instead of SafeRecord to avoid excessive type instantiation
+  const columns: ColumnDef<SimpleRecord>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -464,7 +466,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   ];
 
   const table = useReactTable({
-    data: (agreements || []) as SafeRecord[],
+    data: (agreements || []) as SimpleRecord[],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
