@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,6 @@ export interface Payment {
   original_due_date?: string | null;
   amount_paid?: number;
   balance?: number;
-  description?: string;
 }
 
 interface PaymentHistoryProps {
@@ -81,6 +79,11 @@ export function PaymentHistory({
   const handleEditPayment = (payment: Payment) => {
     setSelectedPayment(payment);
     setIsEditDialogOpen(true);
+  };
+
+  const handleRecordPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsPaymentDialogOpen(true);
   };
 
   const handleRecordManualPayment = () => {
@@ -232,7 +235,7 @@ export function PaymentHistory({
             className="h-8"
           >
             <DollarSign className="mr-2 h-4 w-4" />
-            Record Payment
+            Record Manual Payment
           </Button>
         </div>
       </CardHeader>
@@ -293,10 +296,7 @@ export function PaymentHistory({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            setSelectedPayment(payment);
-                            setIsPaymentDialogOpen(true);
-                          }}
+                          onClick={() => handleRecordPayment(payment)}
                           title="Record Payment"
                         >
                           <DollarSign className="h-4 w-4" />
@@ -351,8 +351,8 @@ export function PaymentHistory({
             onPaymentDeleted();
           }}
           defaultAmount={selectedPayment ? (selectedPayment.balance || 0) : (rentAmount || 0)}
-          title={selectedPayment ? "Record Additional Payment" : "Record Payment"}
-          description={selectedPayment ? "Record an additional payment for this partially paid item." : "Record a new payment for this agreement."}
+          title={selectedPayment ? "Record Additional Payment" : "Record Manual Payment"}
+          description={selectedPayment ? "Record an additional payment for this partially paid item." : "Record a new manual payment for this agreement."}
           lateFeeDetails={lateFeeDetails}
           selectedPayment={selectedPayment}
         />
