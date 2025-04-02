@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -103,14 +102,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         
       // Apply status filter if provided and not 'all'
       if (searchParams.status && searchParams.status !== 'all') {
-        // Fix: Validate the status value before using it in the query
-        // We check if the provided status is a valid AgreementStatus enum value
-        const validStatuses = Object.values(AgreementStatus);
-        const isValidStatus = validStatuses.includes(searchParams.status as any);
-        
-        // Only apply the filter if the status is valid, otherwise default to a safe value
-        const statusValue = isValidStatus ? searchParams.status : AgreementStatus.ACTIVE;
-        query = query.eq('status', statusValue);
+        // Fix: Cast the status string to any before using it in the query
+        // This is necessary because the AgreementStatus enum and the database column
+        // might not have exactly the same type definition
+        query = query.eq('status', searchParams.status as any);
       }
       
       // Apply vehicle filter if provided

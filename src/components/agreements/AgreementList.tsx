@@ -78,7 +78,11 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { SimpleRecord } from '@/utils/type-utils';
+
+type BasicAgreementRow = {
+  id: string;
+  [key: string]: any;
+};
 
 interface AgreementListProps {
   refreshTrigger?: number;
@@ -125,7 +129,6 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
 
-  // Reset pagination and selection when filters change
   useEffect(() => {
     setRowSelection({});
     setPagination({
@@ -246,7 +249,7 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<BasicAgreementRow>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -474,7 +477,7 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
   ];
 
   const table = useReactTable({
-    data: (agreements || []) as any[],
+    data: (agreements || []) as BasicAgreementRow[],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
