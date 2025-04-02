@@ -9,7 +9,7 @@ export interface Profile {
   full_name: string;
   role: "admin" | "manager" | "user" | "staff" | "customer" | string;
   email: string;
-  status: "active" | "inactive" | "suspended" | "pending_review" | "blacklisted";
+  status: "active" | "inactive" | "suspended" | "pending_review" | "blacklisted" | "pending_payment";
   created_at: string;
   updated_at: string;
 }
@@ -54,7 +54,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
       
       console.log("Fetched profile:", data);
-      setProfile(data);
+      setProfile(data as Profile);
     } catch (error: any) {
       console.error("Error fetching profile:", error.message);
       toast.error(`Failed to load profile: ${error.message}`);
@@ -68,7 +68,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     
     try {
       // Ensure status is one of the allowed values if it's being updated
-      if (updates.status && !["active", "inactive", "suspended", "pending_review", "blacklisted"].includes(updates.status)) {
+      if (updates.status && !["active", "inactive", "suspended", "pending_review", "blacklisted", "pending_payment"].includes(updates.status)) {
         throw new Error(`Invalid status value: ${updates.status}`);
       }
       
