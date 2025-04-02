@@ -84,7 +84,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
         const newBalance = existingPaymentAmount - totalPaid;
         const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
         
-        // Update the existing payment record
+        // Update the existing payment record - removing notes field as it doesn't exist
         const { error: updateError } = await supabase
           .from('unified_payments')
           .update({
@@ -92,8 +92,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             balance: Math.max(0, newBalance),
             status: newStatus,
             payment_date: paymentDate.toISOString(),
-            payment_method: paymentMethod,
-            notes: notes || null
+            payment_method: paymentMethod
           })
           .eq('id', existingPaymentId);
           
@@ -130,7 +129,6 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           payment_date: paymentDate.toISOString(),
           payment_method: paymentMethod,
           reference_number: referenceNumber || null,
-          notes: notes || null,
           description: notes || `Monthly rent payment for ${agreement?.agreement_number}`,
           status: paymentStatus,
           type: 'rent',
@@ -163,7 +161,6 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             payment_date: paymentDate.toISOString(),
             payment_method: paymentMethod,
             reference_number: referenceNumber || null,
-            notes: notes || null,
             description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
             status: 'completed',
             type: 'LATE_PAYMENT_FEE',
