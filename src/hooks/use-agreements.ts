@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -28,8 +27,6 @@ export type SimpleAgreement = {
   created_at?: string;
   updated_at?: string;
   signature_url?: string;
-  rent_amount?: number;
-  daily_late_fee?: number;
   // Added properties to fix errors
   customers?: any;
   vehicles?: any;
