@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -59,7 +58,9 @@ import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
 } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
@@ -489,16 +490,13 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
       rowSelection,
       pagination,
     },
-    // Use server-side pagination
     manualPagination: true,
     pageCount: Math.ceil((agreements?.length || 0) / pagination.pageSize),
   });
 
   const handleStatusFilterChange = (value: string) => {
-    // Update status filter but prevent rapid changes
     if (value !== statusFilter) {
       setStatusFilter(value);
-      // Set the status in searchParams, which will trigger a new query
       setSearchParams(prev => ({ ...prev, status: value === 'all' ? undefined : value }));
     }
   };
@@ -642,28 +640,22 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <Button 
-                variant="outline" 
-                size="default"
-                className="gap-1 pl-2.5"
+              <PaginationPrevious 
                 onClick={() => table.previousPage()} 
                 disabled={!table.getCanPreviousPage() || isLoading}
-                aria-label="Go to previous page"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                <span>Previous</span>
-              </Button>
+              />
             </PaginationItem>
             
             {Array.from({ length: table.getPageCount() }).map((_, index) => (
               <PaginationItem key={index}>
-                <PaginationLink
-                  isActive={table.getState().pagination.pageIndex === index}
+                <Button
+                  variant={table.getState().pagination.pageIndex === index ? "outline" : "ghost"}
+                  size="icon"
                   onClick={() => table.setPageIndex(index)}
                   disabled={isLoading}
                 >
                   {index + 1}
-                </PaginationLink>
+                </Button>
               </PaginationItem>
             )).slice(
               Math.max(0, table.getState().pagination.pageIndex - 1),
@@ -671,17 +663,10 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
             )}
             
             <PaginationItem>
-              <Button 
-                variant="outline" 
-                size="default"
-                className="gap-1 pr-2.5"
+              <PaginationNext 
                 onClick={() => table.nextPage()} 
                 disabled={!table.getCanNextPage() || isLoading}
-                aria-label="Go to next page"
-              >
-                <span>Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+              />
             </PaginationItem>
           </PaginationContent>
         </Pagination>
