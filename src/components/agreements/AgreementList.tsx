@@ -1,5 +1,3 @@
-
-// At the top of the file, update the BasicAgreementRow interface to be more concise:
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -80,8 +78,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
-// Define a simplified type for the agreement rows to avoid deep recursive types
-interface BasicAgreementRow {
+type BasicAgreementRow = {
   id: string;
   agreement_number?: string;
   customer_id?: string;
@@ -108,7 +105,7 @@ interface BasicAgreementRow {
     vin?: string;
   };
   [key: string]: any;
-}
+};
 
 interface AgreementListProps {
   refreshTrigger?: number;
