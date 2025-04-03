@@ -5,6 +5,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
 import { formatCurrency } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
@@ -12,15 +13,16 @@ interface DashboardStatsProps {
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   if (!stats) return null;
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 section-transition">
       <StatCard
-        title="Total Vehicles"
+        title={t('dashboard.totalVehicles')}
         value={stats.vehicleStats.total.toString()}
-        description={`Available: ${stats.vehicleStats.available}`}
+        description={`${t('vehicles.available')}: ${stats.vehicleStats.available}`}
         icon={Car}
         iconColor="text-blue-500"
         trend={stats.vehicleStats.available > 0 ? 
@@ -31,37 +33,37 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       />
       
       <StatCard
-        title="Revenue"
+        title={t('financials.revenue')}
         value={formatCurrency(stats.financialStats.currentMonthRevenue)}
-        description="This month"
+        description={t('financials.thisMonth')}
         icon={DollarSign}
         iconColor="text-green-500"
         trend={stats.financialStats.revenueGrowth}
-        trendLabel="vs last month"
+        trendLabel={t('financials.vsLastMonth')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/financials')}
       />
       
       <StatCard
-        title="Active Customers"
+        title={t('dashboard.activeCustomers')}
         value={stats.customerStats.active.toString()}
-        description={`Total: ${stats.customerStats.total}`}
+        description={`${t('common.total')}: ${stats.customerStats.total}`}
         icon={Users}
         iconColor="text-violet-500"
         trend={stats.customerStats.growth}
-        trendLabel="vs last month"
+        trendLabel={t('financials.vsLastMonth')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/customers')}
       />
       
       <StatCard
-        title="Contracts"
+        title={t('agreements.title')}
         value={stats.agreementStats.active.toString()}
-        description="Active agreements"
+        description={t('agreements.activeAgreements')}
         icon={FileText}
         iconColor="text-amber-500"
         trend={stats.agreementStats.growth}
-        trendLabel="vs last month"
+        trendLabel={t('financials.vsLastMonth')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/agreements')}
       />

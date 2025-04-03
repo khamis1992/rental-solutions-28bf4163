@@ -12,5 +12,7 @@ port = 54322
 [studio]
 port = 54323
 
+[functions]
 [functions.translate]
 verify_jwt = true
+

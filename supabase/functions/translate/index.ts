@@ -34,8 +34,11 @@ serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
+  console.log("Translation request received");
+
   // Validate API key is available
   if (!GOOGLE_TRANSLATE_API_KEY) {
+    console.error("Google Translate API key not configured");
     return new Response(
       JSON.stringify({ error: 'Google Translate API key not configured' }),
       { 
@@ -47,10 +50,26 @@ serve(async (req) => {
 
   try {
     // Get request body
-    const { text, targetLanguage, sourceLanguage = 'en' } = await req.json() as TranslateRequest;
+    let body;
+    try {
+      body = await req.json();
+      console.log("Request body parsed:", JSON.stringify(body));
+    } catch (parseError) {
+      console.error("Error parsing request body:", parseError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    const { text, targetLanguage, sourceLanguage = 'en' } = body as TranslateRequest;
     
     // Validate request parameters
     if (!text || !targetLanguage) {
+      console.error("Missing required parameters:", { text, targetLanguage });
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: text or targetLanguage' }),
         { 
@@ -62,11 +81,13 @@ serve(async (req) => {
 
     // Format text for the API (handles both strings and arrays)
     const textArray = Array.isArray(text) ? text : [text];
+    console.log(`Translating ${textArray.length} items from ${sourceLanguage} to ${targetLanguage}`);
     
     // Call Google Translate API
     const url = new URL(GOOGLE_TRANSLATE_URL);
     url.searchParams.append('key', GOOGLE_TRANSLATE_API_KEY);
     
+    console.log(`Calling Google Translate API at ${GOOGLE_TRANSLATE_URL}`);
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
@@ -93,16 +114,20 @@ serve(async (req) => {
     }
 
     const data = await response.json();
+    console.log("Translation successful, processing results");
     
     // Process and return the translations
     const translations = data.data.translations.map((t: any) => t.translatedText);
     
+    const result = { 
+      translations: Array.isArray(text) ? translations : translations[0],
+      source: sourceLanguage,
+      target: targetLanguage
+    };
+    console.log(`Returning ${translations.length} translated items`);
+    
     return new Response(
-      JSON.stringify({ 
-        translations: Array.isArray(text) ? translations : translations[0],
-        source: sourceLanguage,
-        target: targetLanguage
-      }),
+      JSON.stringify(result),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
