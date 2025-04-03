@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -33,8 +34,8 @@ export type SimpleAgreement = {
   vehicles?: any;
 };
 
-// Valid database status values
-const VALID_DB_STATUSES = [
+// Valid database status values - make sure to include 'draft'
+export const VALID_DB_STATUSES = [
   'active',
   'pending_payment',
   'pending_deposit',
