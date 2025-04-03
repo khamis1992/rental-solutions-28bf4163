@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -155,6 +154,7 @@ const Reports = () => {
     }
   };
   
+  // Modified to handle async data synchronously for reports
   const getReportData = () => {
     switch (selectedTab) {
       case 'fleet':
@@ -167,7 +167,55 @@ const Reports = () => {
           daily_rate: v.dailyRate
         }));
       case 'financial':
-        return getFinancialReportData();
+        // Return cached data to avoid async issues with download
+        const prepareFinancialData = () => {
+          if (!agreements) return [];
+          
+          return agreements.map(agreement => {
+            // Get related payments for this agreement
+            const paymentsForAgreement = transactions.filter(t => 
+              t.agreement_number === agreement.agreement_number);
+            
+            // Get related fines for this agreement
+            const finesForAgreement = trafficFines ? 
+              trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
+            
+            // Calculate totals
+            const totalPaid = paymentsForAgreement.reduce((sum, payment) => 
+              payment.status === 'paid' ? sum + (payment.amount || 0) : sum, 0);
+              
+            const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
+            
+            const totalFinesAmount = finesForAgreement.reduce((sum, fine) => 
+              sum + (fine.fineAmount || 0), 0);
+              
+            const paidFinesAmount = finesForAgreement.reduce((sum, fine) => 
+              fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
+              
+            // Payment status determination
+            let paymentStatus = 'Paid';
+            if (outstandingBalance > 0) {
+              paymentStatus = 'Partially Paid';
+            }
+            if (totalPaid === 0) {
+              paymentStatus = 'Unpaid';
+            }
+            
+            return {
+              ...agreement,
+              customer_name: agreement.customers?.full_name || 'N/A',
+              payments: paymentsForAgreement,
+              fines: finesForAgreement,
+              totalPaid,
+              outstandingBalance,
+              totalFinesAmount,
+              paidFinesAmount,
+              paymentStatus
+            };
+          });
+        };
+        
+        return prepareFinancialData();
       case 'customers':
         return customers.map(customer => ({
           id: customer.id,
