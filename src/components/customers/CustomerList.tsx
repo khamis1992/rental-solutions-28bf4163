@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel } from "@tanstack/react-table";
-import { MoreHorizontal, UserPlus, Search, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { MoreHorizontal, Search, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -222,12 +221,6 @@ export function CustomerList() {
           >
             <RefreshCw className={`h-4 w-4 ${isUpdatingStatuses ? 'animate-spin' : ''}`} />
             Update Statuses
-          </Button>
-          <Button asChild>
-            <Link to="/customers/add">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Customer
-            </Link>
           </Button>
         </div>
       </div>

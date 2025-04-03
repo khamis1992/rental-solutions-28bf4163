@@ -5,7 +5,8 @@ import { CustomerList } from '@/components/customers/CustomerList';
 import { ImportHistoryList } from '@/components/customers/ImportHistoryList';
 import { CSVImportModal } from '@/components/customers/CSVImportModal';
 import { Button } from '@/components/ui/button';
-import { FileUp, AlertTriangle } from 'lucide-react';
+import { FileUp, AlertTriangle, UserPlus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 
 const Customers = () => {
@@ -38,6 +39,12 @@ const Customers = () => {
             )}
             <FileUp className="h-4 w-4" />
             Import CSV
+          </Button>
+          <Button asChild>
+            <Link to="/customers/add">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Customer
+            </Link>
           </Button>
         </div>
       }
