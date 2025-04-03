@@ -40,7 +40,11 @@ const SystemSettings = () => {
     customerImport: true,
     isChecking: true
   });
-  
+  const [testTranslationInput, setTestTranslationInput] = useState('');
+  const [testTranslationResult, setTestTranslationResult] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
+  const { translateText: translate } = useTranslation();
+
   useEffect(() => {
     const checkServices = async () => {
       try {
@@ -64,7 +68,7 @@ const SystemSettings = () => {
     
     checkServices();
   }, []);
-  
+
   const { data: settings, isLoading } = useQuery({
     queryKey: ['system-settings'],
     queryFn: async () => {
@@ -84,7 +88,7 @@ const SystemSettings = () => {
       return settingsObj;
     }
   });
-  
+
   const [formData, setFormData] = useState({
     company_name: '',
     business_email: '',
@@ -101,7 +105,7 @@ const SystemSettings = () => {
     date_format: 'MM/DD/YYYY',
     time_zone: 'UTC',
   });
-  
+
   React.useEffect(() => {
     if (settings) {
       setFormData(prevData => ({
@@ -110,7 +114,7 @@ const SystemSettings = () => {
       }));
     }
   }, [settings]);
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -118,21 +122,21 @@ const SystemSettings = () => {
       [name]: value
     }));
   };
-  
+
   const handleSwitchChange = (name: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       [name]: checked
     }));
   };
-  
+
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
-  
+
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Record<string, any>) => {
       const operations = Object.entries(newSettings).map(([key, value]) => {
@@ -164,12 +168,31 @@ const SystemSettings = () => {
       console.error("Error saving settings:", error);
     }
   });
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveSettingsMutation.mutate(formData);
   };
-  
+
+  const handleTestTranslation = async () => {
+    if (!testTranslationInput.trim()) return;
+    
+    try {
+      setIsTranslating(true);
+      const translated = await translate(testTranslationInput, language === 'en' ? 'ar' : 'en');
+      setTestTranslationResult(translated);
+    } catch (error) {
+      console.error('Translation test error:', error);
+      toast({
+        title: "Translation Failed",
+        description: "An error occurred during translation.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <PageContainer 
@@ -456,6 +479,41 @@ const SystemSettings = () => {
                       </Select>
                     </div>
 
+                    <div className="col-span-2 border p-4 rounded-md bg-gray-50">
+                      <h4 className="font-semibold mb-4">Translation Test Tool</h4>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="test-translation">{t('settings.testTranslation')}</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="test-translation"
+                              value={testTranslationInput}
+                              onChange={(e) => setTestTranslationInput(e.target.value)}
+                              placeholder="Enter text to translate"
+                              className="flex-1"
+                            />
+                            <Button 
+                              type="button" 
+                              variant="secondary" 
+                              onClick={handleTestTranslation}
+                              disabled={isTranslating || !testTranslationInput.trim()}
+                            >
+                              {isTranslating ? 'Translating...' : `Translate to ${language === 'en' ? 'Arabic' : 'English'}`}
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {testTranslationResult && (
+                          <div className="bg-white p-3 border rounded-md">
+                            <p className="text-sm font-medium">Translation Result:</p>
+                            <p className={language === 'ar' ? 'font-mono' : language === 'en' ? 'font-mono text-right' : ''}>
+                              {testTranslationResult}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     <div className="space-y-2 col-span-2 border p-4 rounded-md bg-gray-50">
                       <h4 className="font-semibold">Translation Debug Info</h4>
                       <div className="text-sm">
@@ -476,7 +534,7 @@ const SystemSettings = () => {
                   </p>
                   
                   {(!serviceStatus.agreementImport || !serviceStatus.customerImport) && (
-                    <Alert variant="warning" className="mb-4">
+                    <Alert variant="warning" className="mb-6">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
                         Some tools may have limited functionality due to unavailable import services.

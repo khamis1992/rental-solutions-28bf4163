@@ -13,6 +13,15 @@ export const useDirectionalValue = <T,>(ltrValue: T, rtlValue: T): T => {
 };
 
 /**
+ * Returns whether the current language direction is RTL
+ * @returns Boolean indicating if current direction is RTL
+ */
+export const useIsRTL = (): boolean => {
+  const { direction } = useTranslation();
+  return direction === 'rtl';
+};
+
+/**
  * Conditionally adds RTL-specific classes to a className string
  * @param baseClasses The base classes to always include
  * @param ltrClasses Classes to add in LTR mode
@@ -39,4 +48,54 @@ export const useDirectionalStyles = <T extends Record<string, any>, U extends Re
 ): T | U => {
   const { direction } = useTranslation();
   return direction === 'rtl' ? rtlStyles : ltrStyles;
+};
+
+/**
+ * Returns the opposite direction of the current language
+ */
+export const useOppositeDirection = (): 'ltr' | 'rtl' => {
+  const { direction } = useTranslation();
+  return direction === 'rtl' ? 'ltr' : 'rtl';
+};
+
+/**
+ * Returns the correct float value based on the current direction
+ * Useful for floating elements to the correct side in RTL layouts
+ * @param defaultSide The default side in LTR mode ('left' or 'right')
+ */
+export const useDirectionalFloat = (defaultSide: 'left' | 'right'): string => {
+  const { direction } = useTranslation();
+  if (defaultSide === 'left') {
+    return direction === 'rtl' ? 'float-right' : 'float-left';
+  } else {
+    return direction === 'rtl' ? 'float-left' : 'float-right';
+  }
+};
+
+/**
+ * Returns the correct margin classes based on direction
+ * @param side The side to apply margin to ('left' or 'right')
+ * @param size The size of the margin (1-12)
+ */
+export const useDirectionalMargin = (side: 'left' | 'right', size: number): string => {
+  const { direction } = useTranslation();
+  const actualSide = direction === 'rtl' 
+    ? (side === 'left' ? 'right' : 'left') 
+    : side;
+    
+  return `m${actualSide[0]}-${size}`;
+};
+
+/**
+ * Returns the correct padding classes based on direction
+ * @param side The side to apply padding to ('left' or 'right')
+ * @param size The size of the padding (1-12)
+ */
+export const useDirectionalPadding = (side: 'left' | 'right', size: number): string => {
+  const { direction } = useTranslation();
+  const actualSide = direction === 'rtl' 
+    ? (side === 'left' ? 'right' : 'left') 
+    : side;
+    
+  return `p${actualSide[0]}-${size}`;
 };

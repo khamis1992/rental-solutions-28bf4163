@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const GOOGLE_TRANSLATE_API_KEY = Deno.env.get("GOOGLE_TRANSLATE_API_KEY");
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -13,21 +15,29 @@ serve(async (req) => {
   }
 
   try {
+    if (!GOOGLE_TRANSLATE_API_KEY) {
+      throw new Error('Google Translate API key is not configured');
+    }
+
     const { text, sourceLang, targetLang } = await req.json();
 
     if (!text || !targetLang) {
       throw new Error('Text and target language are required');
     }
 
-    // Using LibreTranslate API (an open-source alternative to Google Translate)
-    const response = await fetch('https://libretranslate.com/translate', {
+    console.log(`Translating from ${sourceLang || 'auto'} to ${targetLang}: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
+    
+    // Google Translate API v2 endpoint
+    const url = `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_TRANSLATE_API_KEY}`;
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         q: text,
-        source: sourceLang || 'auto',
+        source: sourceLang || '',  // Empty string defaults to auto-detect
         target: targetLang,
         format: 'text',
       }),
@@ -36,12 +46,16 @@ serve(async (req) => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Translation API error:', errorData);
-      throw new Error(`Translation failed: ${errorData.error || 'Unknown error'}`);
+      throw new Error(`Translation failed: ${errorData.error?.message || 'Unknown error'}`);
     }
 
     const data = await response.json();
+    const translatedText = data.data.translations[0].translatedText;
+    
+    console.log(`Translation success. Result: "${translatedText.substring(0, 50)}${translatedText.length > 50 ? '...' : ''}"`);
+    
     return new Response(
-      JSON.stringify({ translatedText: data.translatedText }),
+      JSON.stringify({ translatedText }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {

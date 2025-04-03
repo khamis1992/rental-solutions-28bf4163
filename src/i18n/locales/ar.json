@@ -12,13 +12,33 @@
     "reports": "التقارير",
     "userManagement": "إدارة المستخدمين",
     "settings": "الإعدادات",
-    "systemSettings": "إعدادات النظام"
+    "systemSettings": "إعدادات النظام",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "loading": "جاري التحميل...",
+    "search": "بحث",
+    "filter": "تصفية",
+    "noResults": "لم يتم العثور على نتائج",
+    "actions": "إجراءات",
+    "status": "الحالة",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي"
   },
   "dashboard": {
     "title": "لوحة القيادة",
     "description": "نظرة عامة على عمليات التأجير الخاصة بك",
     "refresh": "تحديث",
-    "refreshing": "جاري التحديث..."
+    "refreshing": "جاري التحديث...",
+    "totalVehicles": "إجمالي المركبات",
+    "activeRentals": "الإيجارات النشطة",
+    "totalRevenue": "إجمالي الإيرادات",
+    "pendingServices": "الخدمات المعلقة",
+    "recentActivity": "النشاط الأخير",
+    "fleetUtilization": "استخدام الأسطول",
+    "revenueOverview": "نظرة عامة على الإيرادات"
   },
   "settings": {
     "title": "إعدادات النظام",
@@ -45,6 +65,23 @@
     "saveSettings": "حفظ الإعدادات",
     "saving": "جاري الحفظ...",
     "enableAutomaticUpdates": "تمكين التحديثات التلقائية للنظام",
-    "enableDarkMode": "تمكين الوضع المظلم للنظام"
+    "enableDarkMode": "تمكين الوضع المظلم للنظام",
+    "notificationsPreferences": "تفضيلات الإشعارات",
+    "emailNotifications": "إشعارات البريد الإلكتروني",
+    "systemNotifications": "إشعارات النظام",
+    "reportNotifications": "إشعارات التقارير",
+    "receiveEmailNotifications": "تلقي إشعارات البريد الإلكتروني للأحداث المهمة",
+    "receiveSystemNotifications": "تلقي إشعارات داخل التطبيق لأحداث النظام",
+    "receiveReportNotifications": "تلقي إشعارات لإنشاء التقارير",
+    "securitySettings": "إعدادات الأمان",
+    "testTranslation": "اختبار الترجمة"
+  },
+  "legal": {
+    "dashboard": "لوحة إدارة الشؤون القانونية",
+    "documents": "المستندات القانونية",
+    "caseManagement": "إدارة القضايا",
+    "complianceCalendar": "تقويم الامتثال",
+    "riskAssessment": "تقييم المخاطر",
+    "complianceReporting": "تقارير الامتثال"
   }
 }
