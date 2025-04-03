@@ -141,7 +141,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           balance = Math.max(0, rentAmount - amount);
         }
         
-        // Form the payment record - Remove daily_late_fee from the insert
+        // Form the payment record
         const paymentRecord = {
           lease_id: agreementId,
           // Safe access to rent_amount with a fallback
