@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
@@ -168,81 +169,4 @@
     0%, 100% { opacity: 1; }
     50% { opacity: 0.5; }
   }
-}
-
-/* RTL Support */
-html.rtl {
-  direction: rtl;
-  text-align: right;
-}
-
-html.rtl .rtl-flip {
-  transform: scaleX(-1);
-}
-
-html.rtl .rtl-mirror {
-  transform: rotateY(180deg);
-}
-
-html.rtl .rtl-replace-start-rounded {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-top-right-radius: 0.375rem;
-  border-bottom-right-radius: 0.375rem;
-}
-
-html.rtl .rtl-replace-end-rounded {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-top-left-radius: 0.375rem;
-  border-bottom-left-radius: 0.375rem;
-}
-
-/* RTL Flexbox Adjustments */
-html.rtl .flex-row {
-  flex-direction: row-reverse;
-}
-
-html.rtl .items-start {
-  align-items: flex-end;
-}
-
-html.rtl .justify-start {
-  justify-content: flex-end;
-}
-
-html.rtl .text-left {
-  text-align: right;
-}
-
-html.rtl .text-right {
-  text-align: left;
-}
-
-/* Fix padding/margin for RTL */
-html.rtl .ml-1 { margin-left: 0; margin-right: 0.25rem; }
-html.rtl .ml-2 { margin-left: 0; margin-right: 0.5rem; }
-html.rtl .ml-3 { margin-left: 0; margin-right: 0.75rem; }
-html.rtl .ml-4 { margin-left: 0; margin-right: 1rem; }
-html.rtl .ml-auto { margin-left: 0; margin-right: auto; }
-
-html.rtl .mr-1 { margin-right: 0; margin-left: 0.25rem; }
-html.rtl .mr-2 { margin-right: 0; margin-left: 0.5rem; }
-html.rtl .mr-3 { margin-right: 0; margin-left: 0.75rem; }
-html.rtl .mr-4 { margin-right: 0; margin-left: 1rem; }
-html.rtl .mr-auto { margin-right: 0; margin-left: auto; }
-
-html.rtl .pl-1 { padding-left: 0; padding-right: 0.25rem; }
-html.rtl .pl-2 { padding-left: 0; padding-right: 0.5rem; }
-html.rtl .pl-3 { padding-left: 0; padding-right: 0.75rem; }
-html.rtl .pl-4 { padding-left: 0; padding-right: 1rem; }
-
-html.rtl .pr-1 { padding-right: 0; padding-left: 0.25rem; }
-html.rtl .pr-2 { padding-right: 0; padding-left: 0.5rem; }
-html.rtl .pr-3 { padding-right: 0; padding-left: 0.75rem; }
-html.rtl .pr-4 { padding-right: 0; padding-left: 1rem; }
-
-/* RTL Icon Direction */
-html.rtl .transform-rtl {
-  transform: rotate(180deg);
 }
