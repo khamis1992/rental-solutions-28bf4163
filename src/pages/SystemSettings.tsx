@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
@@ -12,10 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getSystemServicesStatus } from '@/utils/service-availability';
+import { useTranslation } from 'react-i18next';
+import { useTranslationContext } from '@/contexts/TranslationContext';
 
 interface SystemSetting {
   id: string;
@@ -34,6 +37,9 @@ const SystemSettings = () => {
     customerImport: true,
     isChecking: true
   });
+  
+  const { t } = useTranslation();
+  const { currentLanguage, setLanguage, isRTL } = useTranslationContext();
   
   useEffect(() => {
     const checkServices = async () => {
@@ -94,6 +100,7 @@ const SystemSettings = () => {
     currency: 'USD',
     date_format: 'MM/DD/YYYY',
     time_zone: 'UTC',
+    default_language: 'en',
   });
   
   React.useEffect(() => {
@@ -101,9 +108,10 @@ const SystemSettings = () => {
       setFormData(prevData => ({
         ...prevData,
         ...settings,
+        default_language: settings.default_language || currentLanguage || 'en',
       }));
     }
-  }, [settings]);
+  }, [settings, currentLanguage]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -125,6 +133,11 @@ const SystemSettings = () => {
       ...prev,
       [name]: value
     }));
+    
+    // If changing the default language, also update the current language
+    if (name === 'default_language') {
+      setLanguage(value as any);
+    }
   };
   
   const saveSettingsMutation = useMutation({
@@ -145,14 +158,14 @@ const SystemSettings = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['system-settings'] });
       toast({
-        title: "Settings saved",
-        description: "Your settings have been updated successfully.",
+        title: t('settings.saveSettings'),
+        description: t('settings.saveSuccess'),
       });
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to save settings. Please try again.",
+        title: t('errors.error'),
+        description: t('settings.saveError'),
         variant: "destructive",
       });
       console.error("Error saving settings:", error);
@@ -167,12 +180,12 @@ const SystemSettings = () => {
   if (isLoading) {
     return (
       <PageContainer 
-        title="System Settings" 
-        description="Configure your system settings"
+        title={t('settings.title')}
+        description={t('settings.description')}
       >
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-bold tracking-tight">Loading settings...</h2>
+            <h2 className="text-3xl font-bold tracking-tight">{t('common.loading')}</h2>
           </div>
         </div>
       </PageContainer>
@@ -181,13 +194,13 @@ const SystemSettings = () => {
 
   return (
     <PageContainer 
-      title="System Settings" 
-      description="Configure your system settings"
+      title={t('settings.title')}
+      description={t('settings.description')}
     >
       <div className="flex items-center mb-6">
         <SectionHeader 
-          title="System Settings" 
-          description="Configure your system-wide settings and preferences" 
+          title={t('settings.title')}
+          description={t('settings.description')}
           icon={Settings} 
         />
       </div>
@@ -196,14 +209,14 @@ const SystemSettings = () => {
         <Alert variant="warning" className="mb-6">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="flex flex-col gap-1">
-            <span className="font-semibold">System Service Limitations</span>
+            <span className="font-semibold">{t('settings.serviceStatus')}</span>
             {!serviceStatus.agreementImport && (
-              <span>• Agreement import function is unavailable</span>
+              <span>• {t('settings.agreementImportUnavailable')}</span>
             )}
             {!serviceStatus.customerImport && (
-              <span>• Customer import function is unavailable</span>
+              <span>• {t('settings.customerImportUnavailable')}</span>
             )}
-            <span className="text-sm mt-1">Some system features may not work properly. Please contact system administrator.</span>
+            <span className="text-sm mt-1">{t('settings.contactAdmin')}</span>
           </AlertDescription>
         </Alert>
       )}
@@ -211,72 +224,72 @@ const SystemSettings = () => {
       <form onSubmit={handleSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-6 mb-8 w-full max-w-4xl">
-            <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="localization">Localization</TabsTrigger>
-            <TabsTrigger value="tools">Tools</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
+            <TabsTrigger value="general">{t('settings.general')}</TabsTrigger>
+            <TabsTrigger value="notifications">{t('settings.notifications')}</TabsTrigger>
+            <TabsTrigger value="security">{t('settings.security')}</TabsTrigger>
+            <TabsTrigger value="localization">{t('settings.localization')}</TabsTrigger>
+            <TabsTrigger value="tools">{t('settings.tools')}</TabsTrigger>
+            <TabsTrigger value="integrations">{t('settings.integrations')}</TabsTrigger>
           </TabsList>
           
           <Card className="mb-6">
             <CardContent className="pt-6">
               <TabsContent value="general" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Company Information</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('settings.companyInfo')}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="company_name">Company Name</Label>
+                      <Label htmlFor="company_name">{t('settings.companyName')}</Label>
                       <Input 
                         id="company_name"
                         name="company_name"
                         value={formData.company_name}
                         onChange={handleInputChange}
-                        placeholder="Enter company name"
+                        placeholder={t('settings.companyNamePlaceholder')}
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="business_email">Business Email</Label>
+                      <Label htmlFor="business_email">{t('settings.businessEmail')}</Label>
                       <Input 
                         id="business_email"
                         name="business_email"
                         value={formData.business_email}
                         onChange={handleInputChange}
-                        placeholder="Enter business email"
+                        placeholder={t('settings.businessEmailPlaceholder')}
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number</Label>
+                      <Label htmlFor="phone">{t('settings.phone')}</Label>
                       <Input 
                         id="phone"
                         name="phone"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder="Enter phone number"
+                        placeholder={t('settings.phonePlaceholder')}
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="address">Business Address</Label>
+                      <Label htmlFor="address">{t('settings.address')}</Label>
                       <Input 
                         id="address"
                         name="address"
                         value={formData.address}
                         onChange={handleInputChange}
-                        placeholder="Enter business address"
+                        placeholder={t('settings.addressPlaceholder')}
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="logo_url">Logo URL</Label>
+                      <Label htmlFor="logo_url">{t('settings.logoUrl')}</Label>
                       <Input 
                         id="logo_url"
                         name="logo_url"
                         value={formData.logo_url}
                         onChange={handleInputChange}
-                        placeholder="Enter logo URL"
+                        placeholder={t('settings.logoUrlPlaceholder')}
                       />
                     </div>
                   </div>
@@ -285,12 +298,12 @@ const SystemSettings = () => {
                 <Separator />
                 
                 <div>
-                  <h3 className="text-lg font-medium mb-4">System Preferences</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('settings.systemPreferences')}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="automatic_updates" className="font-medium">Automatic Updates</Label>
-                        <p className="text-sm text-muted-foreground">Enable automatic updates for the system</p>
+                        <Label htmlFor="automatic_updates" className="font-medium">{t('settings.automaticUpdates')}</Label>
+                        <p className="text-sm text-muted-foreground">{t('settings.automaticUpdatesDescription')}</p>
                       </div>
                       <Switch 
                         id="automatic_updates" 
@@ -301,8 +314,8 @@ const SystemSettings = () => {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="dark_mode" className="font-medium">Dark Mode</Label>
-                        <p className="text-sm text-muted-foreground">Enable dark mode for the system</p>
+                        <Label htmlFor="dark_mode" className="font-medium">{t('settings.darkMode')}</Label>
+                        <p className="text-sm text-muted-foreground">{t('settings.darkModeDescription')}</p>
                       </div>
                       <Switch 
                         id="dark_mode" 
@@ -316,12 +329,12 @@ const SystemSettings = () => {
               
               <TabsContent value="notifications" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Notification Preferences</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('settings.notificationPreferences')}</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="notification_emails" className="font-medium">Email Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Receive important notifications via email</p>
+                        <Label htmlFor="notification_emails" className="font-medium">{t('settings.emailNotifications')}</Label>
+                        <p className="text-sm text-muted-foreground">{t('settings.emailNotificationsDescription')}</p>
                       </div>
                       <Switch 
                         id="notification_emails" 
@@ -332,8 +345,8 @@ const SystemSettings = () => {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="notification_system" className="font-medium">System Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Receive in-app notifications about system events</p>
+                        <Label htmlFor="notification_system" className="font-medium">{t('settings.systemNotifications')}</Label>
+                        <p className="text-sm text-muted-foreground">{t('settings.systemNotificationsDescription')}</p>
                       </div>
                       <Switch 
                         id="notification_system" 
@@ -344,8 +357,8 @@ const SystemSettings = () => {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="notification_reports" className="font-medium">Report Notifications</Label>
-                        <p className="text-sm text-muted-foreground">Receive notifications when reports are generated</p>
+                        <Label htmlFor="notification_reports" className="font-medium">{t('settings.reportNotifications')}</Label>
+                        <p className="text-sm text-muted-foreground">{t('settings.reportNotificationsDescription')}</p>
                       </div>
                       <Switch 
                         id="notification_reports" 
@@ -359,66 +372,67 @@ const SystemSettings = () => {
               
               <TabsContent value="security" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Security Settings</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('settings.security')}</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Security settings are managed through Supabase authentication. Visit the Supabase dashboard to configure advanced security settings.
+                    {t('settings.securityDescription')}
                   </p>
                   
                   <Button variant="outline" className="flex items-center gap-2">
                     <Shield className="h-4 w-4" />
-                    <span>Open Security Dashboard</span>
+                    <span>{t('settings.openSecurityDashboard')}</span>
                   </Button>
                 </div>
               </TabsContent>
               
               <TabsContent value="localization" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Localization Settings</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('settings.localization')}</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="language">Language</Label>
+                      <Label htmlFor="default_language">{t('settings.defaultLanguage')}</Label>
                       <Select 
-                        value={formData.language} 
-                        onValueChange={(value) => handleSelectChange('language', value)}
+                        value={formData.default_language} 
+                        onValueChange={(value) => handleSelectChange('default_language', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select language" />
+                          <SelectValue placeholder={t('settings.selectLanguage')} />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="english">English</SelectItem>
-                          <SelectItem value="arabic">Arabic</SelectItem>
-                          <SelectItem value="french">French</SelectItem>
-                          <SelectItem value="spanish">Spanish</SelectItem>
+                          <SelectItem value="en">{t('languages.en')}</SelectItem>
+                          <SelectItem value="ar">{t('languages.ar')}</SelectItem>
+                          <SelectItem value="fr">{t('languages.fr')}</SelectItem>
+                          <SelectItem value="es">{t('languages.es')}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="currency">Currency</Label>
+                      <Label htmlFor="currency">{t('settings.currency')}</Label>
                       <Select 
                         value={formData.currency} 
                         onValueChange={(value) => handleSelectChange('currency', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select currency" />
+                          <SelectValue placeholder={t('settings.selectCurrency')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="USD">US Dollar ($)</SelectItem>
                           <SelectItem value="EUR">Euro (€)</SelectItem>
                           <SelectItem value="GBP">British Pound (£)</SelectItem>
                           <SelectItem value="AED">UAE Dirham (د.إ)</SelectItem>
+                          <SelectItem value="QAR">Qatari Riyal (ر.ق)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="date_format">Date Format</Label>
+                      <Label htmlFor="date_format">{t('settings.dateFormat')}</Label>
                       <Select 
                         value={formData.date_format} 
                         onValueChange={(value) => handleSelectChange('date_format', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select date format" />
+                          <SelectValue placeholder={t('settings.selectDateFormat')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
@@ -429,13 +443,13 @@ const SystemSettings = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="time_zone">Time Zone</Label>
+                      <Label htmlFor="time_zone">{t('settings.timeZone')}</Label>
                       <Select 
                         value={formData.time_zone} 
                         onValueChange={(value) => handleSelectChange('time_zone', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select time zone" />
+                          <SelectValue placeholder={t('settings.selectTimeZone')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="UTC">UTC</SelectItem>
@@ -445,6 +459,7 @@ const SystemSettings = () => {
                           <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
                           <SelectItem value="Europe/London">London (GMT)</SelectItem>
                           <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
+                          <SelectItem value="Asia/Qatar">Qatar (AST)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -454,16 +469,16 @@ const SystemSettings = () => {
               
               <TabsContent value="tools" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">System Tools</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('settings.tools')}</h3>
                   <p className="text-sm text-muted-foreground mb-6">
-                    Specialized tools to help with system operations and data management.
+                    {t('settings.toolsDescription')}
                   </p>
                   
                   {(!serviceStatus.agreementImport || !serviceStatus.customerImport) && (
                     <Alert variant="warning" className="mb-4">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
-                        Some tools may have limited functionality due to unavailable import services.
+                        {t('settings.toolsLimitedFunctionality')}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -474,48 +489,48 @@ const SystemSettings = () => {
               
               <TabsContent value="integrations" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">Integrations</h3>
+                  <h3 className="text-lg font-medium mb-4">{t('settings.integrations')}</h3>
                   <p className="text-sm text-muted-foreground mb-6">
-                    Configure third-party service integrations to extend the functionality of your system.
+                    {t('settings.integrationsDescription')}
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <Card>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">Payment Gateway</CardTitle>
+                          <CardTitle className="text-lg">{t('settings.paymentGateway')}</CardTitle>
                           <CreditCard className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <CardDescription>Configure payment gateway settings</CardDescription>
+                        <CardDescription>{t('settings.paymentGatewayDescription')}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <Button variant="outline" size="sm" className="w-full">Configure</Button>
+                        <Button variant="outline" size="sm" className="w-full">{t('settings.configure')}</Button>
                       </CardContent>
                     </Card>
                     
                     <Card>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">Email Provider</CardTitle>
+                          <CardTitle className="text-lg">{t('settings.emailProvider')}</CardTitle>
                           <Mail className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <CardDescription>Configure email provider settings</CardDescription>
+                        <CardDescription>{t('settings.emailProviderDescription')}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <Button variant="outline" size="sm" className="w-full">Configure</Button>
+                        <Button variant="outline" size="sm" className="w-full">{t('settings.configure')}</Button>
                       </CardContent>
                     </Card>
                     
                     <Card>
                       <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">Maps API</CardTitle>
+                          <CardTitle className="text-lg">{t('settings.mapsAPI')}</CardTitle>
                           <Globe className="h-5 w-5 text-muted-foreground" />
                         </div>
-                        <CardDescription>Configure maps API settings</CardDescription>
+                        <CardDescription>{t('settings.mapsAPIDescription')}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <Button variant="outline" size="sm" className="w-full">Configure</Button>
+                        <Button variant="outline" size="sm" className="w-full">{t('settings.configure')}</Button>
                       </CardContent>
                     </Card>
                   </div>
@@ -531,7 +546,7 @@ const SystemSettings = () => {
               disabled={saveSettingsMutation.isPending}
             >
               <Save className="h-4 w-4" />
-              {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
+              {saveSettingsMutation.isPending ? t('common.saving') : t('settings.saveSettings')}
             </Button>
           </div>
         </Tabs>

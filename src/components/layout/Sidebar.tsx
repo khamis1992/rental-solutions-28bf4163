@@ -27,6 +27,9 @@ import {
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useTranslation } from "react-i18next";
+import { useTranslationContext } from "@/contexts/TranslationContext";
+import LanguageSelector from "@/components/LanguageSelector";
 
 type NavLinkProps = {
   to: string;
@@ -37,6 +40,8 @@ type NavLinkProps = {
 };
 
 const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount }) => {
+  const { isRTL } = useTranslationContext();
+  
   return (
     <Link
       to={to}
@@ -48,7 +53,10 @@ const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount
       {icon}
       <span>{label}</span>
       {badgeCount !== undefined && badgeCount > 0 && (
-        <div className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+        <div className={cn(
+          "flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground",
+          isRTL ? "mr-auto" : "ml-auto"
+        )}>
           {badgeCount}
         </div>
       )}
@@ -65,6 +73,7 @@ type NavGroupProps = {
 
 const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
+  const { isRTL } = useTranslationContext();
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
@@ -72,7 +81,7 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
         <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800">
           {icon}
           <span>{label}</span>
-          <div className="ml-auto">
+          <div className={isRTL ? "mr-auto" : "ml-auto"}>
             {isOpen ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
@@ -81,7 +90,10 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
           </div>
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent className="pl-10 space-y-1 mt-1">
+      <CollapsibleContent className={cn(
+        "space-y-1 mt-1",
+        isRTL ? "pr-10" : "pl-10"
+      )}>
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -93,6 +105,8 @@ const Sidebar = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
+  const { t } = useTranslation();
+  const { isRTL } = useTranslationContext();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -121,16 +135,23 @@ const Sidebar = () => {
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#111827] border-r border-gray-800 transition-all duration-300 ease-in-out",
           expanded ? "w-64" : "w-0 md:w-20",
-          expanded ? "" : "md:px-2 md:py-4"
+          expanded ? "" : "md:px-2 md:py-4",
+          isRTL ? "left-auto right-0" : "right-auto left-0"
         )}
       >
         <Button
           variant="ghost"
           size="icon"
-          className="hidden md:flex absolute -right-12 top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white"
+          className={cn(
+            "hidden md:flex absolute top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white",
+            isRTL ? "right-auto -left-12" : "left-auto -right-12"
+          )}
           onClick={toggleSidebar}
         >
-          {expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          {expanded ? 
+            <ChevronLeft className={cn("h-4 w-4", isRTL && "transform-rtl")} /> : 
+            <ChevronRight className={cn("h-4 w-4", isRTL && "transform-rtl")} />
+          }
         </Button>
 
         <div className={cn(
@@ -156,70 +177,70 @@ const Sidebar = () => {
                 <NavLink
                   to="/dashboard"
                   icon={<LayoutDashboard className="h-5 w-5" />}
-                  label="Dashboard"
+                  label={t('navigation.dashboard')}
                   isActive={isActive('/dashboard')}
                 />
 
                 <NavLink
                   to="/customers"
                   icon={<Users className="h-5 w-5" />}
-                  label="Customers"
+                  label={t('navigation.customers')}
                   isActive={isActive('/customers')}
                 />
 
                 <NavLink
                   to="/agreements"
                   icon={<FileText className="h-5 w-5" />}
-                  label="Agreements"
+                  label={t('navigation.agreements')}
                   isActive={isActive('/agreements')}
                 />
 
                 <NavLink
                   to="/vehicles"
                   icon={<Car className="h-5 w-5" />}
-                  label="Vehicles"
+                  label={t('navigation.vehicles')}
                   isActive={isActive('/vehicles')}
                 />
 
                 <NavLink
                   to="/maintenance"
                   icon={<Wrench className="h-5 w-5" />}
-                  label="Maintenance"
+                  label={t('navigation.maintenance')}
                   isActive={isActive('/maintenance')}
                 />
 
                 <NavLink
                   to="/fines"
                   icon={<AlertTriangle className="h-5 w-5" />}
-                  label="Traffic Fines"
+                  label={t('navigation.fines')}
                   isActive={isActive('/fines')}
                 />
 
                 <NavLink
                   to="/financials"
                   icon={<DollarSign className="h-5 w-5" />}
-                  label="Financials"
+                  label={t('navigation.financials')}
                   isActive={isActive('/financials')}
                 />
 
                 <NavLink
                   to="/legal"
                   icon={<Scale className="h-5 w-5" />}
-                  label="Legal"
+                  label={t('navigation.legal')}
                   isActive={isActive('/legal')}
                 />
 
                 <NavLink
                   to="/reports"
                   icon={<BarChart2 className="h-5 w-5" />}
-                  label="Reports"
+                  label={t('navigation.reports')}
                   isActive={isActive('/reports')}
                 />
 
                 <NavLink
                   to="/user-management"
                   icon={<Users className="h-5 w-5" />}
-                  label="User Management"
+                  label={t('navigation.userManagement')}
                   isActive={isActive('/user-management')}
                 />
 
@@ -228,14 +249,14 @@ const Sidebar = () => {
                     <NavLink
                       to="/settings"
                       icon={<UserCog className="h-5 w-5" />}
-                      label="User Settings"
+                      label={t('navigation.userSettings')}
                       isActive={isActive('/settings') && !isActive('/settings/system')}
                     />
                     
                     <NavLink
                       to="/settings/system"
                       icon={<Sliders className="h-5 w-5" />}
-                      label="System Settings"
+                      label={t('navigation.systemSettings')}
                       isActive={isActive('/settings/system')}
                     />
                   </>
@@ -243,7 +264,7 @@ const Sidebar = () => {
                 
                 {expanded && (
                   <NavGroup 
-                    label="Settings" 
+                    label={t('navigation.settings')}
                     icon={<Settings className="h-5 w-5" />}
                     defaultOpen={hasActiveChild(['/settings', '/settings/system'])}
                   >
@@ -255,7 +276,7 @@ const Sidebar = () => {
                       )}
                     >
                       <UserCog className="h-4 w-4" />
-                      <span>User Settings</span>
+                      <span>{t('navigation.userSettings')}</span>
                     </Link>
                     
                     <Link
@@ -266,7 +287,7 @@ const Sidebar = () => {
                       )}
                     >
                       <Sliders className="h-4 w-4" />
-                      <span>System Settings</span>
+                      <span>{t('navigation.systemSettings')}</span>
                     </Link>
                   </NavGroup>
                 )}
@@ -291,16 +312,20 @@ const Sidebar = () => {
                   Admin
                 </span>
               </div>
-              <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">
-                <LogOut className="h-4 w-4" />
-              </Button>
+              <div className={cn("flex gap-1", isRTL ? "mr-auto" : "ml-auto")}>
+                <LanguageSelector variant="ghost" />
+                <Button variant="ghost" size="icon" onClick={signOut} className="text-gray-400 hover:text-white hover:bg-gray-800">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="hidden md:flex justify-center">
+            <div className="hidden md:flex flex-col items-center gap-2">
               <Avatar className="h-9 w-9 border border-gray-700">
                 <AvatarImage src="" />
                 <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
+              <LanguageSelector variant="ghost" />
             </div>
           )}
         </div>

@@ -1,1 +1,16 @@
+
 project_id = "vqdlsidkucrownbfuouq"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[functions.translate]
+verify_jwt = true
