@@ -1,6 +1,7 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle } from 'lucide-react';
+import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
@@ -29,11 +30,14 @@ import { toast } from 'sonner';
 import { CustomerTrafficFines } from './CustomerTrafficFines';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getCustomer, deleteCustomer } = useCustomers();
+  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ customer_id: id });
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -221,6 +225,94 @@ export function CustomerDetail() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FileText className="mr-2 h-5 w-5" />
+            Agreement History
+          </CardTitle>
+          <CardDescription>
+            List of rental agreements associated with this customer
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Agreement Number</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Start Date</TableHead>
+                  <TableHead>End Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Total Amount</TableHead>
+                  <TableHead></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingAgreements ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={`skeleton-${i}`}>
+                      {Array.from({ length: 7 }).map((_, j) => (
+                        <TableCell key={`skeleton-cell-${i}-${j}`}>
+                          <Skeleton className="h-6 w-full" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : agreements && agreements.length > 0 ? (
+                  agreements.map((agreement) => (
+                    <TableRow key={agreement.id}>
+                      <TableCell className="font-medium">{agreement.agreement_number || 'N/A'}</TableCell>
+                      <TableCell>
+                        {agreement.vehicles ? (
+                          <span>
+                            {agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.license_plate})
+                          </span>
+                        ) : (
+                          'Unknown vehicle'
+                        )}
+                      </TableCell>
+                      <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : 'N/A'}</TableCell>
+                      <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            agreement.status === 'ACTIVE' ? 'success' :
+                            agreement.status === 'PENDING' ? 'warning' :
+                            agreement.status === 'CANCELLED' ? 'destructive' :
+                            agreement.status === 'CLOSED' ? 'outline' :
+                            agreement.status === 'EXPIRED' ? 'secondary' :
+                            'default'
+                          }
+                          className="capitalize"
+                        >
+                          {agreement.status?.toLowerCase().replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : 'N/A'}</TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to={`/agreements/${agreement.id}`}>
+                            View
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      No agreements found for this customer.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
