@@ -21,6 +21,8 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     notes: simpleAgreement.notes || '',
     terms_accepted: true,
     additional_drivers: [],
+    rent_amount: simpleAgreement.rent_amount || 0,
+    daily_late_fee: simpleAgreement.daily_late_fee || 0
   };
 };
 
