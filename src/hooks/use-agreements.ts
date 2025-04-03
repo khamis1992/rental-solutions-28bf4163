@@ -1,13 +1,11 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
 
-// Simplified type to avoid excessive deep instantiation
+// Simplify the type to avoid excessive type instantiation
 export type SimpleAgreement = {
   id: string;
   customer_id: string;

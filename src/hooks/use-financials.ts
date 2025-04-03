@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -8,7 +7,7 @@ import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 const getSystemDate = () => new Date();
 
 export type TransactionType = 'income' | 'expense';
-export type TransactionStatusType = 'completed' | 'pending' | 'failed';
+export type TransactionStatusType = 'completed' | 'pending' | 'failed' | 'paid' | 'success';
 
 export interface FinancialTransaction {
   id: string;
@@ -26,6 +25,7 @@ export interface FinancialTransaction {
   isRecurring?: boolean;
   recurringInterval?: string;
   nextPaymentDate?: Date;
+  lease_id?: string;
 }
 
 export interface FinancialSummary {
@@ -702,7 +702,7 @@ export function useFinancials() {
       if (data.description) updateData.description = data.description;
       if (data.status) updateData.status = data.status;
       if (data.reference !== undefined) updateData.reference = data.reference;
-      if (data.paymentMethod) updateData.payment_method = data.paymentMethod;
+      if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
       if (data.isRecurring !== undefined) updateData.is_recurring = data.isRecurring;
       if (data.recurringInterval) updateData.recurring_interval = data.recurringInterval;
       if (data.nextPaymentDate) updateData.next_payment_date = data.nextPaymentDate.toISOString();

@@ -63,30 +63,22 @@ const Reports = () => {
     }, 2000);
   };
   
-  // Prepare financial report data with payments and fines - synchronous version
   const getFinancialReportData = () => {
     if (!agreements) return [];
     
     try {
-      // Create helper arrays for synchronous processing
       const reportData = agreements.map(agreement => {
-        // Find payments for this agreement from transactions
         const paymentsForAgreement = transactions ? transactions.filter(t => 
-          // Use agreement ID for matching since lease_id might not exist
-          t.agreement_id === agreement.id) : [];
+          t.lease_id === agreement.id) : [];
         
-        // Find fines for this agreement
         const finesForAgreement = trafficFines ? 
           trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
         
-        // Calculate totals
         const totalPaid = paymentsForAgreement.reduce((sum, payment) => {
-          // Check for status that indicates payment completion
-          // Need to handle different status values that might be used
           const isPaid = 
-            payment.status === 'paid' || 
             payment.status === 'completed' || 
-            payment.status === 'success';
+            payment.status === 'success' || 
+            payment.status.toLowerCase() === 'paid';
           return isPaid ? sum + (payment.amount || 0) : sum;
         }, 0);
           
@@ -100,7 +92,6 @@ const Reports = () => {
           
         const outstandingFines = totalFinesAmount - paidFinesAmount;
         
-        // Determine overall payment status
         let paymentStatus = 'Paid';
         if (outstandingBalance > 0) {
           paymentStatus = 'Partially Paid';
@@ -109,12 +100,12 @@ const Reports = () => {
           paymentStatus = 'Unpaid';
         }
         
-        // Get most recent payment date
         const lastPayment = paymentsForAgreement.length > 0 ? 
-          paymentsForAgreement.sort((a, b) => 
-            new Date(b.payment_date || '1970-01-01').getTime() - 
-            new Date(a.payment_date || '1970-01-01').getTime()
-          )[0] : null;
+          paymentsForAgreement.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            return dateB - dateA;
+          })[0] : null;
         
         return {
           ...agreement,
@@ -126,7 +117,7 @@ const Reports = () => {
           paidFinesAmount,
           outstandingFines,
           paymentStatus,
-          lastPaymentDate: lastPayment?.payment_date || null
+          lastPaymentDate: lastPayment?.date || null
         };
       });
       
@@ -137,8 +128,7 @@ const Reports = () => {
     }
   };
   
-  // Modified to handle data synchronously for reports
-  const getReportData = () => {
+  const getReportData = (): Record<string, any>[] => {
     switch (selectedTab) {
       case 'fleet':
         return vehicles.map(v => ({
@@ -150,7 +140,6 @@ const Reports = () => {
           daily_rate: v.dailyRate
         }));
       case 'financial':
-        // Return directly processed data to avoid async issues with download
         return getFinancialReportData();
       case 'customers':
         return customers.map(customer => ({
@@ -177,7 +166,6 @@ const Reports = () => {
           notes: record.notes || 'N/A'
         }));
       case 'legal':
-        // Legal reports data would be implemented here
         return [];
       default:
         return [];
