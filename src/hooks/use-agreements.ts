@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -49,6 +48,8 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
       return AgreementStatus.CLOSED;
     case 'archived':
       return AgreementStatus.EXPIRED;
+    case 'draft':
+      return AgreementStatus.DRAFT;
     default:
       return AgreementStatus.DRAFT;
   }
