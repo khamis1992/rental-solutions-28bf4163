@@ -183,8 +183,8 @@ export function useFinancials() {
 
         const { data: incomeData, error: incomeError } = await supabase
           .from('unified_payments')
-          .select('amount, status')
-          .eq('type', 'Income')
+          .select('amount, status, type')
+          .or(`type.eq.Income,type.eq.rent,type.ilike.%income%,type.ilike.%rent%`)
           .gte('payment_date', startOfMonth)
           .lte('payment_date', endOfMonth);
 
@@ -194,6 +194,7 @@ export function useFinancials() {
         }
         
         console.log(`Found ${incomeData?.length || 0} income transactions for current month`);
+        console.log("Income data:", incomeData);
 
         const { data: expenseData, error: expenseError } = await supabase
           .from('unified_payments')
