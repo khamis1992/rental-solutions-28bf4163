@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -7,6 +8,8 @@ import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 const getSystemDate = () => new Date();
 
 export type TransactionType = 'income' | 'expense';
+
+// Update to include all possible status values
 export type TransactionStatusType = 'completed' | 'pending' | 'failed' | 'paid' | 'success';
 
 export interface FinancialTransaction {
@@ -25,7 +28,7 @@ export interface FinancialTransaction {
   isRecurring?: boolean;
   recurringInterval?: string;
   nextPaymentDate?: Date;
-  lease_id?: string;
+  lease_id?: string; // Added to fix Reports.tsx errors
 }
 
 export interface FinancialSummary {

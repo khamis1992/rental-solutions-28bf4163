@@ -1,9 +1,11 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { FlattenType } from '@/utils/type-utils';
 
 // Simplify the type to avoid excessive type instantiation
 export type SimpleAgreement = {
@@ -297,7 +299,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the excessive type instantiation by using a simpler type for the mutation
+  // Simplify mutation type to avoid excessive instantiation
+  // Using Record<string, any> instead of complex nested types
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });

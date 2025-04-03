@@ -38,9 +38,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { FinancialTransaction } from '@/hooks/use-financials';
+import { FinancialTransaction, TransactionStatusType } from '@/hooks/use-financials';
 
-// Schema for transaction form validation
+// Schema for transaction form validation - updated to include all status types
 const transactionSchema = z.object({
   type: z.enum(['income', 'expense']),
   amount: z.number().positive('Amount must be positive'),
@@ -49,7 +49,8 @@ const transactionSchema = z.object({
   date: z.date(),
   reference: z.string().optional(),
   paymentMethod: z.string().optional(),
-  status: z.enum(['completed', 'pending', 'failed']),
+  // Update to match all possible TransactionStatusType values
+  status: z.enum(['completed', 'pending', 'failed', 'paid', 'success']),
 });
 
 type TransactionForm = z.infer<typeof transactionSchema>;
@@ -292,6 +293,8 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({
                       <SelectItem value="completed">Completed</SelectItem>
                       <SelectItem value="pending">Pending</SelectItem>
                       <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="success">Success</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
