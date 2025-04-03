@@ -16,9 +16,12 @@ import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import { useAgreements } from '@/hooks/use-agreements';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -27,6 +30,8 @@ const Reports = () => {
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
+  const { agreements } = useAgreements();
+  const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
   useEffect(() => {
@@ -59,6 +64,97 @@ const Reports = () => {
     }, 2000);
   };
   
+  // Prepare financial report data with payments and fines
+  const getFinancialReportData = async () => {
+    if (!agreements) return [];
+    
+    try {
+      // Create a map to store payment info by agreement ID
+      const paymentsMap = {};
+      
+      // Fetch all payments for these agreements
+      const { data: allPayments } = await supabase
+        .from('unified_payments')
+        .select('*');
+        
+      if (allPayments) {
+        // Group payments by lease_id
+        allPayments.forEach(payment => {
+          if (payment.lease_id) {
+            if (!paymentsMap[payment.lease_id]) {
+              paymentsMap[payment.lease_id] = [];
+            }
+            paymentsMap[payment.lease_id].push(payment);
+          }
+        });
+      }
+      
+      // Map traffic fines by agreement ID
+      const finesMap = {};
+      if (trafficFines) {
+        trafficFines.forEach(fine => {
+          if (fine.leaseId) {
+            if (!finesMap[fine.leaseId]) {
+              finesMap[fine.leaseId] = [];
+            }
+            finesMap[fine.leaseId].push(fine);
+          }
+        });
+      }
+      
+      // Process agreement data with payments and fines
+      return agreements.map(agreement => {
+        const payments = paymentsMap[agreement.id] || [];
+        const fines = finesMap[agreement.id] || [];
+        
+        const totalPaid = payments.reduce((sum, payment) => 
+          payment.status === 'paid' ? sum + (payment.amount_paid || 0) : sum, 0);
+          
+        const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
+        
+        const totalFinesAmount = fines.reduce((sum, fine) => 
+          sum + (fine.fineAmount || 0), 0);
+          
+        const paidFinesAmount = fines.reduce((sum, fine) => 
+          fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
+          
+        const outstandingFines = totalFinesAmount - paidFinesAmount;
+        
+        // Determine overall payment status
+        let paymentStatus = 'Paid';
+        if (outstandingBalance > 0) {
+          paymentStatus = 'Partially Paid';
+        } 
+        if (totalPaid === 0) {
+          paymentStatus = 'Unpaid';
+        }
+        
+        // Get most recent payment date
+        const lastPayment = payments.length > 0 ? 
+          payments.sort((a, b) => 
+            new Date(b.payment_date || '1970-01-01').getTime() - 
+            new Date(a.payment_date || '1970-01-01').getTime()
+          )[0] : null;
+        
+        return {
+          ...agreement,
+          payments,
+          fines,
+          totalPaid,
+          outstandingBalance,
+          totalFinesAmount,
+          paidFinesAmount,
+          outstandingFines,
+          paymentStatus,
+          lastPaymentDate: lastPayment?.payment_date || null
+        };
+      });
+    } catch (error) {
+      console.error('Error preparing financial report data:', error);
+      return [];
+    }
+  };
+  
   const getReportData = () => {
     switch (selectedTab) {
       case 'fleet':
@@ -71,7 +167,7 @@ const Reports = () => {
           daily_rate: v.dailyRate
         }));
       case 'financial':
-        return transactions;
+        return getFinancialReportData();
       case 'customers':
         return customers.map(customer => ({
           id: customer.id,

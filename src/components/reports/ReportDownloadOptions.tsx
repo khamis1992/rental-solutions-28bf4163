@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { jsPDF } from 'jspdf';
 import { addReportHeader, addReportFooter, downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -71,10 +72,84 @@ const ReportDownloadOptions = ({
                   doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
                   break;
                 case 'financial':
-                  doc.text('• Revenue Summary', 20, yPos); yPos += 10;
-                  doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                  doc.text('• Profit Margin', 20, yPos); yPos += 10;
-                  doc.text('• Financial Projections', 20, yPos); yPos += 10;
+                  // Financial report specific content
+                  if (reportData.length === 0) {
+                    doc.text('No financial data available for the selected period.', 20, yPos);
+                    yPos += 20;
+                  } else {
+                    // Add financial overview
+                    doc.text('• Financial Overview', 20, yPos); yPos += 10;
+                    
+                    // Calculate totals
+                    const totalAmount = reportData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0);
+                    const totalPaid = reportData.reduce((sum, item) => sum + (parseFloat(item.totalPaid) || 0), 0);
+                    const totalOutstanding = reportData.reduce((sum, item) => sum + (parseFloat(item.outstandingBalance) || 0), 0);
+                    const totalFines = reportData.reduce((sum, item) => sum + (parseFloat(item.totalFinesAmount) || 0), 0);
+                    
+                    doc.text(`   Total Agreements: ${reportData.length}`, 20, yPos); yPos += 8;
+                    doc.text(`   Total Amount: QAR ${totalAmount.toFixed(2)}`, 20, yPos); yPos += 8;
+                    doc.text(`   Total Paid: QAR ${totalPaid.toFixed(2)}`, 20, yPos); yPos += 8;
+                    doc.text(`   Outstanding Balance: QAR ${totalOutstanding.toFixed(2)}`, 20, yPos); yPos += 8;
+                    doc.text(`   Total Traffic Fines: QAR ${totalFines.toFixed(2)}`, 20, yPos); yPos += 20;
+                    
+                    // Add detailed table
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Agreement Details:', 14, yPos);
+                    yPos += 15;
+                    
+                    // Table headers
+                    const headers = ['Customer', 'Agreement #', 'Status', 'Amount Paid', 'Balance', 'Last Payment'];
+                    const columnWidths = [50, 30, 25, 30, 30, 30];
+                    let xPos = 14;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    
+                    headers.forEach((header, i) => {
+                      doc.text(header, xPos, yPos);
+                      xPos += columnWidths[i];
+                    });
+                    
+                    yPos += 8;
+                    doc.setLineWidth(0.3);
+                    doc.line(14, yPos - 4, 195, yPos - 4);
+                    
+                    // Table rows
+                    doc.setFont('helvetica', 'normal');
+                    
+                    for (const item of reportData) {
+                      // Check if we need a new page
+                      if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                      }
+                      
+                      xPos = 14;
+                      
+                      const customerName = item.customers?.full_name || 'N/A';
+                      doc.text(customerName.length > 20 ? customerName.substring(0, 18) + '...' : customerName, xPos, yPos);
+                      xPos += columnWidths[0];
+                      
+                      doc.text(item.agreement_number || 'N/A', xPos, yPos);
+                      xPos += columnWidths[1];
+                      
+                      doc.text(item.paymentStatus || 'N/A', xPos, yPos);
+                      xPos += columnWidths[2];
+                      
+                      doc.text(`QAR ${(item.totalPaid || 0).toFixed(2)}`, xPos, yPos);
+                      xPos += columnWidths[3];
+                      
+                      doc.text(`QAR ${(item.outstandingBalance || 0).toFixed(2)}`, xPos, yPos);
+                      xPos += columnWidths[4];
+                      
+                      const lastPaymentDate = item.lastPaymentDate ? 
+                        new Date(item.lastPaymentDate).toLocaleDateString() : 'None';
+                      doc.text(lastPaymentDate, xPos, yPos);
+                      
+                      yPos += 8;
+                    }
+                  }
                   break;
                 case 'customers':
                   doc.text('• Customer Demographics', 20, yPos); yPos += 10;
