@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -64,58 +63,39 @@ const Reports = () => {
     }, 2000);
   };
   
-  // Prepare financial report data with payments and fines
-  const getFinancialReportData = async () => {
+  // Prepare financial report data with payments and fines - synchronous version
+  const getFinancialReportData = () => {
     if (!agreements) return [];
     
     try {
-      // Create a map to store payment info by agreement ID
-      const paymentsMap = {};
-      
-      // Fetch all payments for these agreements
-      const { data: allPayments } = await supabase
-        .from('unified_payments')
-        .select('*');
+      // Create helper arrays for synchronous processing
+      const reportData = agreements.map(agreement => {
+        // Find payments for this agreement from transactions
+        const paymentsForAgreement = transactions ? transactions.filter(t => 
+          // Use agreement ID for matching since lease_id might not exist
+          t.agreement_id === agreement.id) : [];
         
-      if (allPayments) {
-        // Group payments by lease_id
-        allPayments.forEach(payment => {
-          if (payment.lease_id) {
-            if (!paymentsMap[payment.lease_id]) {
-              paymentsMap[payment.lease_id] = [];
-            }
-            paymentsMap[payment.lease_id].push(payment);
-          }
-        });
-      }
-      
-      // Map traffic fines by agreement ID
-      const finesMap = {};
-      if (trafficFines) {
-        trafficFines.forEach(fine => {
-          if (fine.leaseId) {
-            if (!finesMap[fine.leaseId]) {
-              finesMap[fine.leaseId] = [];
-            }
-            finesMap[fine.leaseId].push(fine);
-          }
-        });
-      }
-      
-      // Process agreement data with payments and fines
-      return agreements.map(agreement => {
-        const payments = paymentsMap[agreement.id] || [];
-        const fines = finesMap[agreement.id] || [];
+        // Find fines for this agreement
+        const finesForAgreement = trafficFines ? 
+          trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
         
-        const totalPaid = payments.reduce((sum, payment) => 
-          payment.status === 'paid' ? sum + (payment.amount_paid || 0) : sum, 0);
+        // Calculate totals
+        const totalPaid = paymentsForAgreement.reduce((sum, payment) => {
+          // Check for status that indicates payment completion
+          // Need to handle different status values that might be used
+          const isPaid = 
+            payment.status === 'paid' || 
+            payment.status === 'completed' || 
+            payment.status === 'success';
+          return isPaid ? sum + (payment.amount || 0) : sum;
+        }, 0);
           
         const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
         
-        const totalFinesAmount = fines.reduce((sum, fine) => 
+        const totalFinesAmount = finesForAgreement.reduce((sum, fine) => 
           sum + (fine.fineAmount || 0), 0);
           
-        const paidFinesAmount = fines.reduce((sum, fine) => 
+        const paidFinesAmount = finesForAgreement.reduce((sum, fine) => 
           fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
           
         const outstandingFines = totalFinesAmount - paidFinesAmount;
@@ -130,16 +110,16 @@ const Reports = () => {
         }
         
         // Get most recent payment date
-        const lastPayment = payments.length > 0 ? 
-          payments.sort((a, b) => 
+        const lastPayment = paymentsForAgreement.length > 0 ? 
+          paymentsForAgreement.sort((a, b) => 
             new Date(b.payment_date || '1970-01-01').getTime() - 
             new Date(a.payment_date || '1970-01-01').getTime()
           )[0] : null;
         
         return {
           ...agreement,
-          payments,
-          fines,
+          payments: paymentsForAgreement,
+          fines: finesForAgreement,
           totalPaid,
           outstandingBalance,
           totalFinesAmount,
@@ -149,13 +129,15 @@ const Reports = () => {
           lastPaymentDate: lastPayment?.payment_date || null
         };
       });
+      
+      return reportData;
     } catch (error) {
       console.error('Error preparing financial report data:', error);
       return [];
     }
   };
   
-  // Modified to handle async data synchronously for reports
+  // Modified to handle data synchronously for reports
   const getReportData = () => {
     switch (selectedTab) {
       case 'fleet':
@@ -168,57 +150,8 @@ const Reports = () => {
           daily_rate: v.dailyRate
         }));
       case 'financial':
-        // Return cached data to avoid async issues with download
-        const prepareFinancialData = () => {
-          if (!agreements) return [];
-          
-          return agreements.map(agreement => {
-            // Get related payments for this agreement
-            const paymentsForAgreement = transactions.filter(t => 
-              // Fix: Check if transaction has a matching lease_id instead of agreement_number
-              t.lease_id === agreement.id);
-            
-            // Get related fines for this agreement
-            const finesForAgreement = trafficFines ? 
-              trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
-            
-            // Calculate totals
-            const totalPaid = paymentsForAgreement.reduce((sum, payment) => 
-              // Fix: Use correct comparison for the payment status
-              payment.status === 'paid' || payment.status === 'completed' ? sum + (payment.amount || 0) : sum, 0);
-              
-            const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
-            
-            const totalFinesAmount = finesForAgreement.reduce((sum, fine) => 
-              sum + (fine.fineAmount || 0), 0);
-              
-            const paidFinesAmount = finesForAgreement.reduce((sum, fine) => 
-              fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
-              
-            // Payment status determination
-            let paymentStatus = 'Paid';
-            if (outstandingBalance > 0) {
-              paymentStatus = 'Partially Paid';
-            }
-            if (totalPaid === 0) {
-              paymentStatus = 'Unpaid';
-            }
-            
-            return {
-              ...agreement,
-              customer_name: agreement.customers?.full_name || 'N/A',
-              payments: paymentsForAgreement,
-              fines: finesForAgreement,
-              totalPaid,
-              outstandingBalance,
-              totalFinesAmount,
-              paidFinesAmount,
-              paymentStatus
-            };
-          });
-        };
-        
-        return prepareFinancialData();
+        // Return directly processed data to avoid async issues with download
+        return getFinancialReportData();
       case 'customers':
         return customers.map(customer => ({
           id: customer.id,

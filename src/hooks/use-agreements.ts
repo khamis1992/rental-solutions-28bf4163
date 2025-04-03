@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -261,6 +262,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
+      // Transform the data: Use explicit type casting to avoid deep instantiation
       const agreements: SimpleAgreement[] = data.map(item => {
         // Use the helper function to map status
         const mappedStatus = mapDBStatusToEnum(item.status);
