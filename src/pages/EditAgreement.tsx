@@ -72,7 +72,7 @@ const EditAgreement = () => {
       }
       
       // Extract only the fields we want to update in the database
-      // Remove customer_data and vehicle_data which are not actual database columns
+      // Remove customer_data, vehicle_data, terms_accepted, and additional_drivers which are not actual database columns
       const agreementToUpdate = {
         ...updatedAgreement,
         // Preserve these IDs from the form data
@@ -85,6 +85,8 @@ const EditAgreement = () => {
       if ('vehicle_data' in agreementToUpdate) delete agreementToUpdate.vehicle_data;
       if ('vehicles' in agreementToUpdate) delete agreementToUpdate.vehicles;
       if ('customers' in agreementToUpdate) delete agreementToUpdate.customers;
+      if ('terms_accepted' in agreementToUpdate) delete agreementToUpdate.terms_accepted;
+      if ('additional_drivers' in agreementToUpdate) delete agreementToUpdate.additional_drivers;
       
       await updateAgreementWithCheck(
         { id, data: agreementToUpdate },

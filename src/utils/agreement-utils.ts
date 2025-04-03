@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
@@ -60,7 +61,15 @@ export const updateAgreementWithCheck = async (
     const cleanData = { ...params.data };
     
     // Remove potential non-database fields that might cause issues
-    const fieldsToExclude = ['customer_data', 'vehicle_data', 'vehicles', 'customers', '__typename'];
+    const fieldsToExclude = [
+      'customer_data', 
+      'vehicle_data', 
+      'vehicles', 
+      'customers', 
+      '__typename', 
+      'terms_accepted', 
+      'additional_drivers'
+    ];
     fieldsToExclude.forEach(field => {
       if (field in cleanData) delete cleanData[field];
     });
