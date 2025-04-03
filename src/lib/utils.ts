@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -62,27 +63,4 @@ export const truncateText = (text: string, maxLength: number): string => {
   return text.length > maxLength
     ? `${text.substring(0, maxLength)}...`
     : text;
-};
-
-/**
- * Formats a phone number in Qatari format
- * @param phone The phone number to format
- * @returns Formatted phone number string
- */
-export const formatAsQatariPhone = (phone: string | null | undefined): string => {
-  if (!phone) return 'N/A';
-  
-  // Remove all non-numeric characters
-  const numericPhone = phone.replace(/\D/g, '');
-  
-  // Basic formatting for Qatar numbers
-  if (numericPhone.length === 8) {
-    return `+974 ${numericPhone.substring(0, 4)} ${numericPhone.substring(4)}`;
-  } else if (numericPhone.startsWith('974') && numericPhone.length === 11) {
-    const digits = numericPhone.substring(3);
-    return `+974 ${digits.substring(0, 4)} ${digits.substring(4)}`;
-  }
-  
-  // Return original if not matching known patterns
-  return phone;
 };

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel } from "@tanstack/react-table";
@@ -12,6 +13,7 @@ import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export function CustomerList() {
   const {
@@ -21,8 +23,7 @@ export function CustomerList() {
     searchParams,
     setSearchParams,
     deleteCustomer,
-    refreshCustomers,
-    updateCustomerStatuses
+    refreshCustomers
   } = useCustomers();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -34,10 +35,18 @@ export function CustomerList() {
   const handleUpdateCustomerStatuses = async () => {
     setIsUpdatingStatuses(true);
     try {
-      await updateCustomerStatuses();
-      toast.success("Customer statuses updated successfully");
-      // Refresh customer list to show updated statuses
-      refreshCustomers();
+      const { error } = await supabase.rpc('update_customer_statuses');
+      
+      if (error) {
+        console.error("Error updating customer statuses:", error);
+        toast.error("Failed to update customer statuses", {
+          description: error.message
+        });
+      } else {
+        toast.success("Customer statuses updated successfully");
+        // Refresh customer list to show updated statuses
+        refreshCustomers();
+      }
     } catch (err) {
       console.error("Unexpected error updating customer statuses:", err);
       toast.error("An unexpected error occurred while updating customer statuses");

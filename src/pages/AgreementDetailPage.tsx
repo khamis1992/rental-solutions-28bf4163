@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -8,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw, Shield } from 'lucide-react';
+import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -18,8 +17,6 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
-import { auditAndFixDoubleBookedVehicles } from '@/utils/agreement-conflicts';
-import { DoubleBookingChecker } from '@/components/admin/DoubleBookingChecker';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,8 +29,6 @@ const AgreementDetailPage = () => {
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  const [isDoubleBookingDialogOpen, setIsDoubleBookingDialogOpen] = useState(false);
-  const [isCheckingDoubleBookings, setIsCheckingDoubleBookings] = useState(false);
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
@@ -178,24 +173,6 @@ const AgreementDetailPage = () => {
     }
   };
 
-  const handleCheckDoubleBookings = async () => {
-    setIsCheckingDoubleBookings(true);
-    try {
-      const result = await auditAndFixDoubleBookedVehicles();
-      if (result.success) {
-        toast.success(result.message || "Double booking check completed");
-        refreshAgreementData();
-      } else {
-        toast.error(result.message || "Double booking check failed");
-      }
-    } catch (error) {
-      console.error("Error checking double bookings:", error);
-      toast.error("Failed to check double bookings");
-    } finally {
-      setIsCheckingDoubleBookings(false);
-    }
-  };
-
   return (
     <PageContainer
       title="Agreement Details"
@@ -220,19 +197,10 @@ const AgreementDetailPage = () => {
             size="sm"
             onClick={handleRunMaintenanceJob}
             disabled={isRunningMaintenance}
-            className="gap-2 mr-2"
+            className="gap-2"
           >
             <RefreshCcw className="h-4 w-4" />
             {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsDoubleBookingDialogOpen(true)}
-            className="gap-2"
-          >
-            <Shield className="h-4 w-4" />
-            Double-Booking Check
           </Button>
         </>
       }
@@ -265,12 +233,6 @@ const AgreementDetailPage = () => {
                 recordId={agreement.id} 
                 onClose={() => setIsDocumentDialogOpen(false)} 
               />
-            </DialogContent>
-          </Dialog>
-          
-          <Dialog open={isDoubleBookingDialogOpen} onOpenChange={setIsDoubleBookingDialogOpen}>
-            <DialogContent className="max-w-xl">
-              <DoubleBookingChecker onChecked={refreshAgreementData} />
             </DialogContent>
           </Dialog>
         </>
