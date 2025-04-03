@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -181,9 +182,10 @@ export function useFinancials() {
         
         console.log(`Filtering income for current month: ${startOfMonth} to ${endOfMonth}`);
 
+        // Query for income with consistent approach between both dashboard components
         const { data: incomeData, error: incomeError } = await supabase
           .from('unified_payments')
-          .select('amount, status, type')
+          .select('amount_paid, amount, status, type')
           .or(`type.eq.Income,type.eq.rent,type.ilike.%income%,type.ilike.%rent%`)
           .gte('payment_date', startOfMonth)
           .lte('payment_date', endOfMonth);
@@ -301,9 +303,16 @@ export function useFinancials() {
 
         console.log("Total pending installments:", installmentsPending);
 
+        // Use amount_paid for consistent calculation with dashboard
         const totalIncome = (incomeData || [])
           .filter(item => item.status !== 'failed')
-          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          .reduce((sum, item) => {
+            // Prefer amount_paid if available (consistent with dashboard), otherwise fallback to amount
+            const value = (item.amount_paid !== null && item.amount_paid !== undefined) 
+              ? Number(item.amount_paid) 
+              : Number(item.amount) || 0;
+            return sum + value;
+          }, 0);
           
         const expensesFromPayments = (expenseData || [])
           .filter(item => item.status !== 'failed')
@@ -323,7 +332,13 @@ export function useFinancials() {
         
         const pendingPayments = (incomeData || [])
           .filter(item => item.status === 'pending')
-          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          .reduce((sum, item) => {
+            // Prefer amount_paid if available, otherwise fallback to amount
+            const value = (item.amount_paid !== null && item.amount_paid !== undefined) 
+              ? Number(item.amount_paid) 
+              : Number(item.amount) || 0;
+            return sum + value;
+          }, 0);
 
         const netRevenue = Number(totalIncome) - Number(totalExpenses);
         
