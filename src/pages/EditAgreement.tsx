@@ -71,8 +71,23 @@ const EditAgreement = () => {
         console.log("Status is being changed to active, payment schedule will be generated");
       }
       
+      // Extract only the fields we want to update in the database
+      // Remove customer_data and vehicle_data which are not actual database columns
+      const agreementToUpdate = {
+        ...updatedAgreement,
+        // Preserve these IDs from the form data
+        customer_id: updatedAgreement.customer_id,
+        vehicle_id: updatedAgreement.vehicle_id
+      };
+      
+      // Explicitly remove non-database fields
+      if ('customer_data' in agreementToUpdate) delete agreementToUpdate.customer_data;
+      if ('vehicle_data' in agreementToUpdate) delete agreementToUpdate.vehicle_data;
+      if ('vehicles' in agreementToUpdate) delete agreementToUpdate.vehicles;
+      if ('customers' in agreementToUpdate) delete agreementToUpdate.customers;
+      
       await updateAgreementWithCheck(
-        { id, data: updatedAgreement },
+        { id, data: agreementToUpdate },
         user?.id, // Pass the user ID for audit tracking
         () => navigate(`/agreements/${id}`), // Success callback
         (error: any) => console.error("Error updating agreement:", error) // Error callback

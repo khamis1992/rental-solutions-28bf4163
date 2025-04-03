@@ -295,7 +295,20 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
-      return {};
+      
+      try {
+        const { data: result, error } = await supabase
+          .from('leases')
+          .update(data)
+          .eq('id', id)
+          .select();
+        
+        if (error) throw error;
+        return result;
+      } catch (error) {
+        console.error("Error in updateAgreement mutation:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });

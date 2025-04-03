@@ -54,12 +54,23 @@ export const updateAgreementWithCheck = async (
       }
     }
 
+    // Remove any non-database fields to prevent errors
+    const cleanData = { ...params.data };
+    
+    // Remove potential non-database fields that might cause issues
+    const fieldsToExclude = ['customer_data', 'vehicle_data', 'vehicles', 'customers', '__typename'];
+    fieldsToExclude.forEach(field => {
+      if (field in cleanData) delete cleanData[field];
+    });
+
     // Optimistic update
     toast.success("Agreement update initiated...");
 
+    console.log("Sending data to update:", cleanData);
+
     const { data, error } = await supabase
       .from('leases')
-      .update(params.data)
+      .update(cleanData)
       .eq('id', params.id)
       .select()
       .single();
