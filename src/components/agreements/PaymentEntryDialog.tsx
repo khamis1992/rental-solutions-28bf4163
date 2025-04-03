@@ -98,7 +98,7 @@ export function PaymentEntryDialog({
         .from('unified_payments')
         .select('*')
         .eq('lease_id', agreementId)
-        .in('status', ['pending', 'partially_paid'])
+        .in('status', ['pending', 'partially_paid', 'overdue']) // Added 'overdue' to include overdue payments
         .order('created_at', { ascending: false });
       
       if (error) {
