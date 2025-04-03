@@ -1,0 +1,50 @@
+
+{
+  "common": {
+    "dashboard": "لوحة القيادة",
+    "customers": "العملاء",
+    "agreements": "الاتفاقيات",
+    "vehicles": "المركبات",
+    "maintenance": "الصيانة",
+    "trafficFines": "مخالفات المرور",
+    "financials": "الماليات",
+    "legal": "القانونية",
+    "reports": "التقارير",
+    "userManagement": "إدارة المستخدمين",
+    "settings": "الإعدادات",
+    "systemSettings": "إعدادات النظام"
+  },
+  "dashboard": {
+    "title": "لوحة القيادة",
+    "description": "نظرة عامة على عمليات التأجير الخاصة بك",
+    "refresh": "تحديث",
+    "refreshing": "جاري التحديث..."
+  },
+  "settings": {
+    "title": "إعدادات النظام",
+    "description": "تكوين إعدادات النظام الخاص بك",
+    "general": "عام",
+    "notifications": "الإشعارات",
+    "security": "الأمان",
+    "localization": "الترجمة والتوطين",
+    "tools": "الأدوات",
+    "integrations": "التكاملات",
+    "companyInformation": "معلومات الشركة",
+    "companyName": "اسم الشركة",
+    "businessEmail": "البريد الإلكتروني للأعمال",
+    "phoneNumber": "رقم الهاتف",
+    "businessAddress": "عنوان العمل",
+    "logoUrl": "رابط الشعار",
+    "systemPreferences": "تفضيلات النظام",
+    "automaticUpdates": "التحديثات التلقائية",
+    "darkMode": "الوضع المظلم",
+    "language": "اللغة",
+    "currency": "العملة",
+    "dateFormat": "تنسيق التاريخ",
+    "timeZone": "المنطقة الزمنية",
+    "saveSettings": "حفظ الإعدادات",
+    "saving": "جاري الحفظ...",
+    "enableAutomaticUpdates": "تمكين التحديثات التلقائية للنظام",
+    "enableDarkMode": "تمكين الوضع المظلم للنظام"
+  }
+}

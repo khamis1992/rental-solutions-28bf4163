@@ -1,0 +1,50 @@
+
+{
+  "common": {
+    "dashboard": "Dashboard",
+    "customers": "Customers",
+    "agreements": "Agreements",
+    "vehicles": "Vehicles",
+    "maintenance": "Maintenance",
+    "trafficFines": "Traffic Fines",
+    "financials": "Financials",
+    "legal": "Legal",
+    "reports": "Reports",
+    "userManagement": "User Management",
+    "settings": "Settings",
+    "systemSettings": "System Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "description": "Overview of your rental operations",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing..."
+  },
+  "settings": {
+    "title": "System Settings",
+    "description": "Configure your system settings",
+    "general": "General",
+    "notifications": "Notifications",
+    "security": "Security",
+    "localization": "Localization",
+    "tools": "Tools",
+    "integrations": "Integrations",
+    "companyInformation": "Company Information",
+    "companyName": "Company Name",
+    "businessEmail": "Business Email",
+    "phoneNumber": "Phone Number",
+    "businessAddress": "Business Address",
+    "logoUrl": "Logo URL",
+    "systemPreferences": "System Preferences",
+    "automaticUpdates": "Automatic Updates",
+    "darkMode": "Dark Mode",
+    "language": "Language",
+    "currency": "Currency",
+    "dateFormat": "Date Format",
+    "timeZone": "Time Zone",
+    "saveSettings": "Save Settings",
+    "saving": "Saving...",
+    "enableAutomaticUpdates": "Enable automatic updates for the system",
+    "enableDarkMode": "Enable dark mode for the system"
+  }
+}
