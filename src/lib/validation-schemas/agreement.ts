@@ -140,7 +140,7 @@ export const forceGeneratePaymentForAgreement = async (
     const dailyLateFee = agreement.daily_late_fee || 120; // Default to 120 QAR per day if not specified
     const lateFineAmount = isOverdue ? Math.min(daysOverdue * dailyLateFee, 3000) : 0; // Cap at 3000 QAR
     
-    // Create the payment record
+    // Create the payment record - Remove daily_late_fee from the insert operation
     const { data: newPayment, error: createError } = await supabase
       .from('unified_payments')
       .insert({
@@ -154,8 +154,7 @@ export const forceGeneratePaymentForAgreement = async (
         payment_date: null,
         original_due_date: dueDate.toISOString(),
         days_overdue: daysOverdue,
-        late_fine_amount: lateFineAmount,
-        daily_late_fee: dailyLateFee
+        late_fine_amount: lateFineAmount
       })
       .select()
       .single();
