@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -19,6 +20,7 @@ import {
   FileX, 
   FileClock, 
   FileEdit,
+  FilePlus,
   AlertTriangle,
   Loader2,
   ChevronLeft,
@@ -57,9 +59,7 @@ import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious
+  PaginationLink
 } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Car } from 'lucide-react';
@@ -77,42 +77,13 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-
-type BasicAgreementRow = {
-  id: string;
-  agreement_number?: string;
-  customer_id?: string;
-  vehicle_id?: string;
-  status?: string;
-  total_amount?: number;
-  created_at?: string;
-  start_date?: string;
-  end_date?: string;
-  customers?: {
-    id?: string;
-    full_name?: string;
-    email?: string;
-    phone_number?: string;
-  };
-  vehicles?: {
-    id?: string;
-    make?: string;
-    model?: string;
-    license_plate?: string;
-    image_url?: string;
-    year?: number;
-    color?: string;
-    vin?: string;
-  };
-  [key: string]: any;
-};
+import { SimpleRecord } from '@/utils/type-utils';
 
 interface AgreementListProps {
-  refreshTrigger?: number;
   searchQuery?: string;
 }
 
-export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: AgreementListProps) {
+export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -136,12 +107,6 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
   useEffect(() => {
     setSearchParams(prev => ({ ...prev, query: searchQuery }));
   }, [searchQuery, setSearchParams]);
-
-  useEffect(() => {
-    if (refreshTrigger > 0) {
-      queryClient.invalidateQueries({ queryKey: ['agreements'] });
-    }
-  }, [refreshTrigger, queryClient]);
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -272,7 +237,7 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const columns: ColumnDef<BasicAgreementRow>[] = [
+  const columns: ColumnDef<SimpleRecord>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -499,10 +464,8 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
     },
   ];
 
-  const tableData = (agreements || []) as BasicAgreementRow[];
-  
   const table = useReactTable({
-    data: tableData,
+    data: (agreements || []) as SimpleRecord[],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -518,15 +481,13 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
       rowSelection,
       pagination,
     },
-    manualPagination: true,
-    pageCount: Math.ceil((agreements?.length || 0) / pagination.pageSize),
+    manualPagination: false,
+    pageCount: Math.ceil((agreements?.length || 0) / 10),
   });
 
   const handleStatusFilterChange = (value: string) => {
-    if (value !== statusFilter) {
-      setStatusFilter(value);
-      setSearchParams(prev => ({ ...prev, status: value === 'all' ? undefined : value }));
-    }
+    setStatusFilter(value);
+    setSearchParams(prev => ({ ...prev, status: value }));
   };
 
   const selectedCount = Object.keys(rowSelection).length;
@@ -538,7 +499,6 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
           <Select
             value={statusFilter}
             onValueChange={handleStatusFilterChange}
-            disabled={isLoading}
           >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select status" />
@@ -565,6 +525,12 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
               Delete ({selectedCount})
             </Button>
           )}
+          <Button asChild>
+            <Link to="/agreements/add">
+              <FilePlus className="h-4 w-4 mr-2" />
+              New Agreement
+            </Link>
+          </Button>
         </div>
       </div>
       
@@ -582,9 +548,6 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
           {searchQuery && (
             <Badge variant="outline" className="ml-2 gap-1">
               Search: {searchQuery}
-              <button onClick={() => setSearchParams(prev => ({ ...prev, query: undefined }))}>
-                <X className="h-3 w-3" />
-              </button>
             </Badge>
           )}
           {statusFilter !== 'all' && (
@@ -662,12 +625,13 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
         <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <Button
-                variant="outline"
+              <Button 
+                variant="outline" 
                 size="default"
                 className="gap-1 pl-2.5"
                 onClick={() => table.previousPage()} 
-                disabled={!table.getCanPreviousPage() || isLoading}
+                disabled={!table.getCanPreviousPage()}
+                aria-label="Go to previous page"
               >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Previous</span>
@@ -676,14 +640,12 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
             
             {Array.from({ length: table.getPageCount() }).map((_, index) => (
               <PaginationItem key={index}>
-                <Button
-                  variant={table.getState().pagination.pageIndex === index ? "outline" : "ghost"}
-                  size="icon"
+                <PaginationLink
+                  isActive={table.getState().pagination.pageIndex === index}
                   onClick={() => table.setPageIndex(index)}
-                  disabled={isLoading}
                 >
                   {index + 1}
-                </Button>
+                </PaginationLink>
               </PaginationItem>
             )).slice(
               Math.max(0, table.getState().pagination.pageIndex - 1),
@@ -691,12 +653,13 @@ export function AgreementList({ refreshTrigger = 0, searchQuery = '' }: Agreemen
             )}
             
             <PaginationItem>
-              <Button
-                variant="outline"
+              <Button 
+                variant="outline" 
                 size="default"
                 className="gap-1 pr-2.5"
                 onClick={() => table.nextPage()} 
-                disabled={!table.getCanNextPage() || isLoading}
+                disabled={!table.getCanNextPage()}
+                aria-label="Go to next page"
               >
                 <span>Next</span>
                 <ChevronRight className="h-4 w-4" />

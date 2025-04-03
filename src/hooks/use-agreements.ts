@@ -34,20 +34,6 @@ export type SimpleAgreement = {
   vehicles?: any;
 };
 
-// Valid database status values - make sure to include 'draft'
-export const VALID_DB_STATUSES = [
-  'active',
-  'pending_payment',
-  'pending_deposit',
-  'cancelled',
-  'completed',
-  'terminated',
-  'archived',
-  'draft'
-] as const;
-
-type ValidDbStatus = typeof VALID_DB_STATUSES[number];
-
 // Function to convert database status to AgreementStatus enum value
 export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
   switch(dbStatus) {
@@ -68,45 +54,20 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
   }
 };
 
-// Map UI enum status to database status
-const mapEnumToDBStatus = (uiStatus: string): ValidDbStatus | null => {
-  switch(uiStatus) {
-    case AgreementStatus.ACTIVE:
-      return 'active';
-    case AgreementStatus.PENDING:
-      return 'pending_payment';
-    case AgreementStatus.CANCELLED:
-      return 'cancelled';
-    case AgreementStatus.CLOSED:
-      return 'completed';
-    case AgreementStatus.EXPIRED:
-      return 'archived';
-    case AgreementStatus.DRAFT:
-      return 'draft';
-    default:
-      return null;
-  }
-};
-
 interface SearchParams {
   query?: string;
   status?: string;
   vehicle_id?: string;
   customer_id?: string;
-  page?: number;
-  pageSize?: number;
 }
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
-  const [searchParams, setSearchParams] = useState<SearchParams>({
-    ...initialFilters,
-    page: initialFilters.page || 0,
-    pageSize: initialFilters.pageSize || 10
-  });
+  const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
 
-  // Get a single agreement by ID
+  // Core functions definition
   const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
+    // Simplified implementation
     try {
       const { data, error } = await supabase
         .from('leases')
@@ -122,12 +83,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  // Fetch agreements with server-side filtering
   const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
-    console.log("Fetching agreements with params:", searchParams);
+    // Simplified implementation
     try {
-      // Start building the query
-      let query = supabase
+      const { data, error } = await supabase
         .from('leases')
         .select(`
           *,
@@ -135,70 +94,19 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
         
-      // Apply status filter if provided and not 'all'
-      if (searchParams.status && searchParams.status !== 'all') {
-        // Check if the status matches one of our enum values
-        const dbStatus = mapEnumToDBStatus(searchParams.status);
-        
-        if (dbStatus) {
-          // If we have a valid DB status from the enum mapping, use it
-          query = query.eq('status', dbStatus);
-        } else if (VALID_DB_STATUSES.includes(searchParams.status as ValidDbStatus)) {
-          // Otherwise, if it's already a valid DB status, use it directly
-          query = query.eq('status', searchParams.status as ValidDbStatus);
-        } else {
-          console.warn(`Invalid status filter value: ${searchParams.status}`);
-        }
-      }
-      
-      // Apply vehicle filter if provided
-      if (searchParams.vehicle_id) {
-        query = query.eq('vehicle_id', searchParams.vehicle_id);
-      }
-      
-      // Apply customer filter if provided
-      if (searchParams.customer_id) {
-        query = query.eq('customer_id', searchParams.customer_id);
-      }
-      
-      // Apply search query if provided (for license plate or agreement number)
-      if (searchParams.query && searchParams.query.trim()) {
-        const searchTerm = searchParams.query.trim();
-        if (isLicensePlatePattern(searchTerm)) {
-          // If it looks like a license plate, search by license plate through the join
-          query = query.filter('vehicles.license_plate', 'ilike', `%${searchTerm}%`);
-        } else {
-          // Otherwise search by agreement number
-          query = query.filter('agreement_number', 'ilike', `%${searchTerm}%`);
-        }
-      }
-      
-      // Apply sorting - default to newest first
-      query = query.order('created_at', { ascending: false });
-      
-      // Execute the query
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error("Error in fetchAgreements:", error);
-        throw error;
-      }
-      
-      if (!data) return [];
-      
+      if (error || !data) return [];
       return data as SimpleAgreement[];
     } catch (err) {
       console.error("Error fetching agreements:", err);
-      throw err;
+      return [];
     }
   };
 
-  // Create a new agreement
   const createAgreement = async (data: Partial<SimpleAgreement>) => {
     return {} as SimpleAgreement;
   };
 
-  // Update an existing agreement
+  // Fixed type for the update mutation to avoid excessive instantiation
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -211,7 +119,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
-  // Delete an agreement
+  // Simplified the type for the deleteAgreement mutation to avoid excessive type instantiation
   const deleteAgreement = useMutation({
     mutationFn: async (id: string): Promise<string> => {
       try {
@@ -236,13 +144,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Main query to fetch agreements
-  const { data: agreements, isLoading, error, refetch } = useQuery({
+  const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 60000, // 1 minute - reduced to prevent stale data issues
-    gcTime: 300000, // 5 minutes
-    retry: 1, // Only retry once to prevent excessive calls on error
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000, // 15 minutes
   });
 
   return {
@@ -255,6 +161,5 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     createAgreement,
     updateAgreement,
     deleteAgreement,
-    refetch
   };
 };
