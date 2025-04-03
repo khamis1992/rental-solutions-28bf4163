@@ -101,6 +101,7 @@ const EditAgreement = () => {
           initialData={agreement} 
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
+          mode="edit" // Specify that we're in edit mode
         />
       ) : (
         <div className="text-center py-12">

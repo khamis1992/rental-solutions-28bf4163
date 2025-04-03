@@ -38,6 +38,7 @@ interface AgreementFormProps {
   initialData?: any;
   standardTemplateExists?: boolean;
   isCheckingTemplate?: boolean;
+  mode?: 'create' | 'edit';
 }
 
 const formSchema = z.object({
@@ -62,6 +63,7 @@ const AgreementForm = ({
   initialData,
   standardTemplateExists = true,
   isCheckingTemplate = false,
+  mode = 'create',
 }: AgreementFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -654,7 +656,9 @@ const AgreementForm = ({
             disabled={isSubmitting}
             className="w-full md:w-auto"
           >
-            {isSubmitting ? "Creating Agreement..." : "Create Agreement"}
+            {isSubmitting 
+              ? (mode === 'edit' ? "Updating Agreement..." : "Creating Agreement...")
+              : (mode === 'edit' ? "Update Agreement" : "Create Agreement")}
           </Button>
         </div>
       </form>
