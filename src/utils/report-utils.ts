@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -66,21 +67,92 @@ export const downloadExcel = (data: Record<string, any>[], filename: string): vo
 };
 
 /**
+ * Safely loads an image into a PDF document with error handling
+ * @param doc jsPDF document instance
+ * @param imagePath Path to the image
+ * @param x X position
+ * @param y Y position
+ * @param width Width of the image
+ * @param height Height of the image
+ * @returns Promise that resolves when image is loaded or rejects on error
+ */
+const safelyAddImage = (
+  doc: jsPDF,
+  imagePath: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        doc.addImage(img, 'PNG', x, y, width, height);
+        resolve();
+      } catch (error) {
+        console.error(`Error adding image to PDF: ${imagePath}`, error);
+        // Resolve anyway to continue with report generation
+        resolve();
+      }
+    };
+    img.onerror = () => {
+      console.warn(`Image not found or unable to load: ${imagePath}`);
+      // Resolve anyway to continue with report generation
+      resolve();
+    };
+    img.src = imagePath;
+  });
+};
+
+/**
+ * Check if an image exists and can be loaded
+ * @param imagePath Path to the image
+ * @returns Promise that resolves to true if image exists, false otherwise
+ */
+const imageExists = (imagePath: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = imagePath;
+  });
+};
+
+/**
  * Generates a PDF report header with company logo
  * @param doc jsPDF document instance
  * @param title Report title
  * @param dateRange Date range for the report
- * @returns Y position after adding header elements
+ * @returns Promise resolving to Y position after adding header elements
  */
-export const addReportHeader = (
+export const addReportHeader = async (
   doc: jsPDF, 
   title: string, 
   dateRange: { from: Date | undefined; to: Date | undefined }
-): number => {
+): Promise<number> => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add company logo
-  doc.addImage('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'PNG', 14, 10, 40, 15);
+  // Company logo path - could be made configurable in the future
+  const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+  
+  // Check if logo exists
+  const logoExists = await imageExists(logoPath);
+  
+  // Add company logo if it exists
+  if (logoExists) {
+    try {
+      await safelyAddImage(doc, logoPath, 14, 10, 40, 15);
+    } catch (error) {
+      console.error('Error adding company logo:', error);
+      // Continue without logo
+    }
+  } else {
+    // Fallback - add company name as text instead of logo
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ALARAF CAR RENTAL', 14, 20);
+  }
   
   // Add a separator line
   doc.setDrawColor(200, 200, 200);
@@ -107,8 +179,9 @@ export const addReportHeader = (
 /**
  * Adds footer to PDF report
  * @param doc jsPDF document instance
+ * @returns Promise that resolves when the footer is added
  */
-export const addReportFooter = (doc: jsPDF): void => {
+export const addReportFooter = async (doc: jsPDF): Promise<void> => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
@@ -120,9 +193,21 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFont('helvetica', 'normal');
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
   
-  // Add footer logo - removed as per image example
-  // Only show the Arabic text image at the right side
-  doc.addImage('/lovable-uploads/d6cc5f20-2b4e-4882-a50c-2377f75ff46d.png', 'PNG', pageWidth - 80, pageHeight - 30, 70, 15);
+  // Arabic text image path - could be made configurable in the future
+  const arabicTextPath = '/lovable-uploads/d6cc5f20-2b4e-4882-a50c-2377f75ff46d.png';
+  
+  // Check if Arabic text image exists
+  const arabicTextExists = await imageExists(arabicTextPath);
+  
+  // Add Arabic text image if it exists
+  if (arabicTextExists) {
+    try {
+      await safelyAddImage(doc, arabicTextPath, pageWidth - 80, pageHeight - 30, 70, 15);
+    } catch (error) {
+      console.error('Error adding Arabic text image:', error);
+      // Continue without the image
+    }
+  }
   
   // Add page bottom elements with correct spacing/positioning
   doc.setFontSize(8);
@@ -151,28 +236,33 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
  * @param title Report title
  * @param dateRange Date range for the report 
  * @param contentGenerator Function that adds content to the document
- * @returns PDF document
+ * @returns Promise resolving to PDF document
  */
-export const generateStandardReport = (
+export const generateStandardReport = async (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
-  contentGenerator: (doc: jsPDF, startY: number) => number
-): jsPDF => {
-  // Initialize the PDF document
-  const doc = new jsPDF();
-  
-  // Add header and get the Y position to start content
-  const startY = addReportHeader(doc, title, dateRange);
-  
-  // Add content using the provided generator function
-  contentGenerator(doc, startY);
-  
-  // Apply footer to all pages
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    addReportFooter(doc);
+  contentGenerator: (doc: jsPDF, startY: number) => number | Promise<number>
+): Promise<jsPDF> => {
+  try {
+    // Initialize the PDF document
+    const doc = new jsPDF();
+    
+    // Add header and get the Y position to start content
+    const startY = await addReportHeader(doc, title, dateRange);
+    
+    // Add content using the provided generator function
+    await contentGenerator(doc, startY);
+    
+    // Apply footer to all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      await addReportFooter(doc);
+    }
+    
+    return doc;
+  } catch (error) {
+    console.error('Error generating report:', error);
+    throw new Error('Failed to generate report: ' + (error instanceof Error ? error.message : String(error)));
   }
-  
-  return doc;
 };
