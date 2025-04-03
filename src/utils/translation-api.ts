@@ -89,13 +89,13 @@ export const batchTranslate = async (
  * @param targetLang Target language code
  * @returns Promise with translated object
  */
-export const translateObject = async <T extends Record<string, any>>(
+export const translateObject = async <T extends Record<string, unknown>>(
   obj: T,
   sourceLang: string = 'auto',
   targetLang: string
 ): Promise<T> => {
   try {
-    const result = { ...obj };
+    const result = { ...obj } as T;
     const keys = Object.keys(obj);
     const values = Object.values(obj).filter(v => typeof v === 'string') as string[];
     
@@ -108,7 +108,8 @@ export const translateObject = async <T extends Record<string, any>>(
     
     for (const key of keys) {
       if (typeof obj[key] === 'string') {
-        result[key] = translatedValues[valueIndex++];
+        // Use type assertion to avoid the TypeScript error
+        (result as Record<string, unknown>)[key] = translatedValues[valueIndex++];
       }
     }
     
