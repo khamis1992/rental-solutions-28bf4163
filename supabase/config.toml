@@ -14,5 +14,5 @@ port = 54323
 
 [functions]
 [functions.translate]
-verify_jwt = true
+verify_jwt = false
 

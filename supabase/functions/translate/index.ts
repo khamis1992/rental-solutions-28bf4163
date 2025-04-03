@@ -25,28 +25,12 @@ interface TranslateRequest {
   sourceLanguage?: string;
 }
 
-// Set up Google Translation API
-const GOOGLE_TRANSLATE_API_KEY = Deno.env.get('GOOGLE_TRANSLATE_API_KEY');
-const GOOGLE_TRANSLATE_URL = 'https://translation.googleapis.com/language/translate/v2';
-
 serve(async (req) => {
   // Handle CORS
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
   console.log("Translation request received");
-
-  // Validate API key is available
-  if (!GOOGLE_TRANSLATE_API_KEY) {
-    console.error("Google Translate API key not configured");
-    return new Response(
-      JSON.stringify({ error: 'Google Translate API key not configured' }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
-  }
 
   try {
     // Get request body
@@ -83,41 +67,37 @@ serve(async (req) => {
     const textArray = Array.isArray(text) ? text : [text];
     console.log(`Translating ${textArray.length} items from ${sourceLanguage} to ${targetLanguage}`);
     
-    // Call Google Translate API
-    const url = new URL(GOOGLE_TRANSLATE_URL);
-    url.searchParams.append('key', GOOGLE_TRANSLATE_API_KEY);
+    // Use LibreTranslate API (open source alternative)
+    const url = 'https://translate.fedilab.app/translate';
     
-    console.log(`Calling Google Translate API at ${GOOGLE_TRANSLATE_URL}`);
-    const response = await fetch(url.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        q: textArray,
-        target: targetLanguage,
-        source: sourceLanguage,
-        format: 'text',
-      }),
-    });
+    const translations = [];
+    for (const item of textArray) {
+      console.log(`Translating text: "${item}"`);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: item,
+          source: sourceLanguage,
+          target: targetLanguage,
+          format: 'text',
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Translation API error:', errorData);
-      return new Response(
-        JSON.stringify({ error: 'Translation API error', details: errorData }),
-        { 
-          status: response.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+      if (!response.ok) {
+        console.error('Translation API error:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('Error details:', errorText);
+        throw new Error(`Translation API returned ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("Translation result:", data);
+      translations.push(data.translatedText);
     }
-
-    const data = await response.json();
-    console.log("Translation successful, processing results");
-    
-    // Process and return the translations
-    const translations = data.data.translations.map((t: any) => t.translatedText);
     
     const result = { 
       translations: Array.isArray(text) ? translations : translations[0],
