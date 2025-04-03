@@ -18,9 +18,6 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { VehicleStatus } from '@/types/vehicle';
-import { useTranslation } from 'react-i18next';
-import { useTranslationContext } from '@/contexts/TranslationContext';
-import { dirAwareSpacing, dirAwareOrder } from '@/utils/rtl-utils';
 
 interface VehicleStatusChartProps {
   data?: {
@@ -37,87 +34,85 @@ interface VehicleStatusChartProps {
   };
 }
 
+const statusConfig = [
+  { 
+    key: 'available', 
+    name: 'Available', 
+    color: '#22c55e', 
+    icon: ShieldCheck,
+    description: 'Ready for rental',
+    filterValue: 'available' as VehicleStatus
+  },
+  { 
+    key: 'rented', 
+    name: 'Rented Out', 
+    color: '#3b82f6', 
+    icon: Car,
+    description: 'Currently with customer',
+    filterValue: 'rented' as VehicleStatus
+  },
+  { 
+    key: 'maintenance', 
+    name: 'In Maintenance', 
+    color: '#f59e0b', 
+    icon: WrenchIcon,
+    description: 'Undergoing service or repair',
+    filterValue: 'maintenance' as VehicleStatus
+  },
+  { 
+    key: 'reserved', 
+    name: 'Reserved', 
+    color: '#8b5cf6', 
+    icon: Clock,
+    description: 'Reserved for future rental',
+    filterValue: 'reserved' as VehicleStatus
+  },
+  { 
+    key: 'attention', 
+    name: 'Needs Attention', 
+    color: '#ec4899', 
+    icon: AlertTriangle,
+    description: 'Requires review',
+    filterValue: 'maintenance' as VehicleStatus
+  },
+  { 
+    key: 'police_station', 
+    name: 'At Police Station', 
+    color: '#64748b', 
+    icon: ShieldAlert,
+    description: 'Held at police station',
+    filterValue: 'police_station' as VehicleStatus
+  },
+  { 
+    key: 'accident', 
+    name: 'In Accident', 
+    color: '#ef4444', 
+    icon: CircleOff,
+    description: 'Involved in accident',
+    filterValue: 'accident' as VehicleStatus
+  },
+  { 
+    key: 'stolen', 
+    name: 'Reported Stolen', 
+    color: '#dc2626', 
+    icon: ShieldX,
+    description: 'Vehicle reported stolen',
+    filterValue: 'stolen' as VehicleStatus
+  },
+  { 
+    key: 'critical', 
+    name: 'Critical Issues', 
+    color: '#b91c1c', 
+    icon: CircleDashed,
+    description: 'Critical issues pending',
+    filterValue: 'maintenance' as VehicleStatus
+  }
+];
+
 const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { currentLanguage } = useTranslationContext();
   
   if (!data) return null;
-  
-  const statusConfig = [
-    { 
-      key: 'available', 
-      name: t('vehicles.available'), 
-      color: '#22c55e', 
-      icon: ShieldCheck,
-      description: t('dashboard.availableVehicles'),
-      filterValue: 'available' as VehicleStatus
-    },
-    { 
-      key: 'rented', 
-      name: t('vehicles.rented'), 
-      color: '#3b82f6', 
-      icon: Car,
-      description: t('vehicles.status'),
-      filterValue: 'rented' as VehicleStatus
-    },
-    { 
-      key: 'maintenance', 
-      name: t('vehicles.maintenance'), 
-      color: '#f59e0b', 
-      icon: WrenchIcon,
-      description: t('maintenance.description'),
-      filterValue: 'maintenance' as VehicleStatus
-    },
-    { 
-      key: 'reserved', 
-      name: t('dashboard.reserved'), 
-      color: '#8b5cf6', 
-      icon: Clock,
-      description: t('dashboard.reservedDesc'),
-      filterValue: 'reserved' as VehicleStatus
-    },
-    { 
-      key: 'attention', 
-      name: t('dashboard.needsAttention'), 
-      color: '#ec4899', 
-      icon: AlertTriangle,
-      description: t('dashboard.requiresReview'),
-      filterValue: 'maintenance' as VehicleStatus
-    },
-    { 
-      key: 'police_station', 
-      name: t('dashboard.atPoliceStation'), 
-      color: '#64748b', 
-      icon: ShieldAlert,
-      description: t('dashboard.heldAtPolice'),
-      filterValue: 'police_station' as VehicleStatus
-    },
-    { 
-      key: 'accident', 
-      name: t('dashboard.inAccident'), 
-      color: '#ef4444', 
-      icon: CircleOff,
-      description: t('dashboard.accidentInvolved'),
-      filterValue: 'accident' as VehicleStatus
-    },
-    { 
-      key: 'stolen', 
-      name: t('dashboard.reportedStolen'), 
-      color: '#dc2626', 
-      icon: ShieldX,
-      description: t('dashboard.vehicleStolen'),
-      filterValue: 'stolen' as VehicleStatus
-    },
-    { 
-      key: 'critical', 
-      name: t('dashboard.criticalIssues'), 
-      color: '#b91c1c', 
-      icon: CircleDashed,
-      description: t('dashboard.criticalPending'),
-      filterValue: 'maintenance' as VehicleStatus
-    }
-  ];
   
   const normalizedData = { ...data };
   
@@ -150,7 +145,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   return (
     <Card className="col-span-full lg:col-span-4 card-transition">
       <CardHeader className="pb-2">
-        <CardTitle>{t('dashboard.fleetStatus')}</CardTitle>
+        <CardTitle>Fleet Status Overview</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col lg:flex-row items-start justify-between h-auto lg:h-96">
@@ -180,7 +175,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value) => [`${value} ${t('vehicles.title').toLowerCase()}`, '']}
+                  formatter={(value) => [`${value} vehicles`, '']}
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e2e8f0',
@@ -192,18 +187,12 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
             </ResponsiveContainer>
           </div>
           
-          <div className={cn(
-            "w-full lg:w-1/3 mt-4 lg:mt-0 flex flex-col h-full",
-            dirAwareSpacing(currentLanguage, 'padding', 'start', 0),
-            dirAwareSpacing(currentLanguage, 'padding', 'end', 4)
-          )}>
+          <div className="w-full lg:w-1/3 mt-4 lg:mt-0 pl-0 lg:pl-4 flex flex-col h-full">
             <div className="text-sm text-center lg:text-left text-muted-foreground mb-4">
-              <div className="text-lg font-semibold text-foreground">
-                {t('dashboard.totalFleet')}: {data.total} {t('vehicles.title').toLowerCase()}
-              </div>
+              <div className="text-lg font-semibold text-foreground">Total Fleet: {data.total} vehicles</div>
               {hasCriticalVehicles && (
                 <Badge variant="destructive" className="mt-2 text-xs px-3 py-1">
-                  {criticalVehicles} {t('vehicles.title').toLowerCase()}{criticalVehicles !== 1 ? 's' : ''} {t('dashboard.requiringAttention')}
+                  {criticalVehicles} vehicle{criticalVehicles !== 1 ? 's' : ''} requiring immediate attention
                 </Badge>
               )}
             </div>
@@ -234,10 +223,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                         style={{ color: status.color }} 
                       />
                     </div>
-                    <div className={cn(
-                      "flex-grow",
-                      dirAwareOrder(currentLanguage, "order-2", "order-1")
-                    )}>
+                    <div className="flex-grow">
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium">{status.name}</span>
                         <span className="text-sm font-semibold">{count}</span>

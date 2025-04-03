@@ -3,7 +3,6 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '@/i18n/i18n';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 type SupportedLanguage = 'en' | 'ar' | 'fr' | 'es';
 
@@ -52,14 +51,8 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       // Store user preference in localStorage
       localStorage.setItem('i18nextLng', language);
-      
-      // Provide visual feedback
-      toast.success(`Language changed to ${language === 'en' ? 'English' : 
-                    language === 'ar' ? 'Arabic' : 
-                    language === 'fr' ? 'French' : 'Spanish'}`);
     } catch (error) {
       console.error('Failed to change language:', error);
-      toast.error(`Failed to change language: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -72,8 +65,6 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const target = targetLang || currentLanguage;
     if (target === 'en') return text;
     
-    console.log(`Translating text: "${text}" to ${target}`);
-    
     try {
       const { data, error } = await supabase.functions.invoke('translate', {
         body: {
@@ -85,21 +76,12 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       if (error) {
         console.error('Translation error:', error);
-        toast.error(`Translation failed: ${error.message}`);
-        return text;
-      }
-      
-      console.log('Translation result:', data);
-      
-      if (!data || !data.translations) {
-        console.error('Invalid translation response:', data);
         return text;
       }
       
       return data.translations || text;
     } catch (error) {
       console.error('Translation error:', error);
-      toast.error(`Translation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return text;
     }
   };
@@ -110,9 +92,6 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     
     const target = targetLang || currentLanguage;
     if (target === 'en') return texts;
-    
-    console.log(`Batch translating ${texts.length} items to ${target}`);
-    console.log('Texts to translate:', texts);
     
     try {
       const { data, error } = await supabase.functions.invoke('translate', {
@@ -125,21 +104,12 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       
       if (error) {
         console.error('Batch translation error:', error);
-        toast.error(`Batch translation failed: ${error.message}`);
-        return texts;
-      }
-      
-      console.log('Batch translation result:', data);
-      
-      if (!data || !data.translations) {
-        console.error('Invalid batch translation response:', data);
         return texts;
       }
       
       return data.translations || texts;
     } catch (error) {
       console.error('Batch translation error:', error);
-      toast.error(`Batch translation error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return texts;
     }
   };

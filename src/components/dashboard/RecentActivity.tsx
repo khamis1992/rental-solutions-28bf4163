@@ -4,9 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Car, User, CreditCard, Wrench, AlertTriangle, Clock } from 'lucide-react';
 import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useTranslationContext } from '@/contexts/TranslationContext';
-import { dirAwareSpacing } from '@/utils/rtl-utils';
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
@@ -14,8 +11,6 @@ interface RecentActivityProps {
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { currentLanguage } = useTranslationContext();
 
   const handleActivityClick = (activity: RecentActivityType) => {
     // Navigate to the relevant page based on activity type
@@ -33,12 +28,12 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   return (
     <Card className="col-span-4 card-transition">
       <CardHeader>
-        <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
+        <CardTitle>Recent Activity</CardTitle>
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            {t('common.noResults')}
+            No recent activity to display
           </div>
         ) : (
           <div className="space-y-5">
@@ -48,7 +43,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                 className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                 onClick={() => handleActivityClick(activity)}
               >
-                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} ${dirAwareSpacing(currentLanguage, 'margin', 'end', 4)}`}>
+                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} mr-4`}>
                   {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1">

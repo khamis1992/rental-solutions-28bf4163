@@ -8,7 +8,6 @@ import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
-import { useTranslation } from 'react-i18next';
 
 // Helper function to calculate percentage change - DEFINED BEFORE USAGE
 const getPercentageChange = (current, previous) => {
@@ -17,8 +16,6 @@ const getPercentageChange = (current, previous) => {
 };
 
 const FinancialDashboard = () => {
-  const { t } = useTranslation();
-  
   // Use financial summary to display real data
   const { 
     financialSummary, 
@@ -64,44 +61,44 @@ const FinancialDashboard = () => {
   
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight">{t('financials.title')}</h2>
+      <h2 className="text-2xl font-bold tracking-tight">Financial Dashboard</h2>
       
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('financials.revenue')} ({currentMonth})</CardTitle>
+            <CardTitle className="text-sm font-medium">Revenue ({currentMonth})</CardTitle>
             <TrendingUp className={`h-4 w-4 ${trendData.revenueChange >= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.totalIncome)}</div>
             <p className="text-xs text-muted-foreground">
-              {trendData.revenueChange >= 0 ? '+' : ''}{trendData.revenueChange.toFixed(1)}% {t('financials.fromLastMonth')}
+              {trendData.revenueChange >= 0 ? '+' : ''}{trendData.revenueChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('financials.expenses')}</CardTitle>
+            <CardTitle className="text-sm font-medium">Expenses</CardTitle>
             <TrendingDown className={`h-4 w-4 ${trendData.expenseChange <= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
-              {trendData.expenseChange >= 0 ? '+' : ''}{trendData.expenseChange.toFixed(1)}% {t('financials.fromLastMonth')}
+              {trendData.expenseChange >= 0 ? '+' : ''}{trendData.expenseChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{t('financials.profit')}</CardTitle>
+            <CardTitle className="text-sm font-medium">Profit</CardTitle>
             <BarChartBig className={`h-4 w-4 ${trendData.profitChange >= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.netRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              {trendData.profitChange >= 0 ? '+' : ''}{trendData.profitChange.toFixed(1)}% {t('financials.fromLastMonth')}
+              {trendData.profitChange >= 0 ? '+' : ''}{trendData.profitChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
