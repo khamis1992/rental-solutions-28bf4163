@@ -84,6 +84,7 @@ export const batchTranslate = async (
 
 /**
  * Translate a JSON object by translating all string values
+ * Using simplified generic type to avoid excessive type instantiation
  * @param obj Object with string values to translate
  * @param sourceLang Source language code
  * @param targetLang Target language code
@@ -93,29 +94,41 @@ export const translateObject = async <T extends Record<string, unknown>>(
   obj: T,
   sourceLang: string = 'auto',
   targetLang: string
-): Promise<T> => {
+): Promise<Record<string, unknown>> => {
   try {
-    const result = { ...obj } as T;
+    // Create a simple plain object to avoid type recursion
+    const result: Record<string, unknown> = {};
     const keys = Object.keys(obj);
-    const values = Object.values(obj).filter(v => typeof v === 'string') as string[];
+    const stringValues: string[] = [];
+    const stringKeys: string[] = [];
     
-    if (values.length === 0) {
-      return obj;
-    }
-    
-    const translatedValues = await batchTranslate(values, sourceLang, targetLang);
-    let valueIndex = 0;
-    
+    // First pass: collect all string values and their keys
     for (const key of keys) {
       if (typeof obj[key] === 'string') {
-        // Use type assertion to avoid the TypeScript error
-        (result as Record<string, unknown>)[key] = translatedValues[valueIndex++];
+        stringValues.push(obj[key] as string);
+        stringKeys.push(key);
+      } else {
+        // Copy non-string values directly
+        result[key] = obj[key];
       }
     }
     
-    return result;
+    if (stringValues.length === 0) {
+      return obj; // No strings to translate
+    }
+    
+    // Translate all string values in a batch
+    const translatedValues = await batchTranslate(stringValues, sourceLang, targetLang);
+    
+    // Second pass: assign translated values
+    for (let i = 0; i < stringKeys.length; i++) {
+      result[stringKeys[i]] = translatedValues[i];
+    }
+    
+    // Cast back to original type - this is safe as we've preserved the structure
+    return result as unknown as T;
   } catch (error) {
     console.error('Object translation error:', error);
-    return obj;
+    return obj; // Return original object on error
   }
 };
