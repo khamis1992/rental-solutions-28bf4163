@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -174,7 +175,8 @@ const Reports = () => {
           return agreements.map(agreement => {
             // Get related payments for this agreement
             const paymentsForAgreement = transactions.filter(t => 
-              t.agreement_number === agreement.agreement_number);
+              // Fix: Check if transaction has a matching lease_id instead of agreement_number
+              t.lease_id === agreement.id);
             
             // Get related fines for this agreement
             const finesForAgreement = trafficFines ? 
@@ -182,7 +184,8 @@ const Reports = () => {
             
             // Calculate totals
             const totalPaid = paymentsForAgreement.reduce((sum, payment) => 
-              payment.status === 'paid' ? sum + (payment.amount || 0) : sum, 0);
+              // Fix: Use correct comparison for the payment status
+              payment.status === 'paid' || payment.status === 'completed' ? sum + (payment.amount || 0) : sum, 0);
               
             const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
             
