@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -97,7 +98,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const queryClient = useQueryClient();
   
   const { 
-    agreements, 
+    agreements = [], // Provide empty array as default 
     isLoading, 
     error,
     searchParams, 
@@ -125,6 +126,13 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       pageSize: 10,
     });
   }, [agreements, statusFilter, searchQuery]);
+
+  const handleStatusFilterChange = (status: string) => {
+    setStatusFilter(status);
+    setSearchParams(prev => ({ ...prev, status }));
+  };
+
+  const selectedCount = Object.keys(rowSelection).length;
 
   const handleBulkDelete = async () => {
     if (!agreements || agreements.length === 0) return;
@@ -404,6 +412,14 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
+  const statusCounts = Array.isArray(agreements) 
+    ? agreements.reduce((acc: Record<string, number>, agreement) => {
+        const status = agreement.status || 'unknown';
+        acc[status] = (acc[status] || 0) + 1;
+        return acc;
+      }, {}) 
+    : {};
+
   const table = useReactTable({
     data: agreements || [],
     columns,
@@ -424,19 +440,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     manualPagination: false,
     pageCount: Math.ceil((agreements?.length || 0) / 10),
   });
-
-  const handleStatusFilterChange = (value: string) => {
-    setStatusFilter(value);
-    setSearchParams(prev => ({ ...prev, status: value }));
-  };
-
-  const selectedCount = Object.keys(rowSelection).length;
-
-  const statusCounts: Record<string, number> = (agreements || []).reduce((acc: Record<string, number>, agreement) => {
-    const status = agreement.status || 'unknown';
-    acc[status] = (acc[status] || 0) + 1;
-    return acc;
-  }, {});
 
   return (
     <div className="space-y-4">

@@ -74,6 +74,8 @@ interface SearchParams {
 // Define valid status types to fix the type error
 type ValidStatusType = 'active' | 'pending' | 'draft' | 'expired' | 'cancelled' | 'closed';
 
+type DatabaseStatus = 'active' | 'pending_payment' | 'pending_deposit' | 'draft' | 'expired' | 'cancelled' | 'closed' | 'terminated';
+
 const mapDatabaseStatus = (status: string): string => {
   const statusMap: Record<string, ValidStatusType> = {
     'active': 'active',
@@ -86,7 +88,9 @@ const mapDatabaseStatus = (status: string): string => {
     'terminated': 'cancelled'
   };
   
-  return statusMap[status.toLowerCase()] || status;
+  // Convert status to lowercase and get mapped value, fallback to original
+  const lowerStatus = status.toLowerCase();
+  return statusMap[lowerStatus] || status;
 };
 
 // Default empty objects for customer and vehicle to prevent null errors
@@ -140,7 +144,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
         }
 
         if (searchParams.status && searchParams.status !== 'all') {
-          query = query.eq('status', searchParams.status);
+          query = query.eq('status', searchParams.status as DatabaseStatus);
         }
 
         if (searchParams.customerId || searchParams.customer_id) {
@@ -167,31 +171,31 @@ export const useAgreements = (initialParams?: SearchParams) => {
 
         return (data || []).map(item => {
           // We need to check if the customer data actually exists and handle null/undefined cases
-          const customerData = item.customer || DEFAULT_CUSTOMER;
+          const customerData = item.customer || null;
           
           // Ensure customer data is properly initialized to prevent null errors
           const safeCustomerData = {
-            id: customerData.id || DEFAULT_CUSTOMER.id,
-            full_name: customerData.full_name || DEFAULT_CUSTOMER.full_name,
-            email: customerData.email || DEFAULT_CUSTOMER.email,
-            phone: customerData.phone || customerData.phone_number || DEFAULT_CUSTOMER.phone,
-            phone_number: customerData.phone_number || customerData.phone || DEFAULT_CUSTOMER.phone_number,
-            address: customerData.address || DEFAULT_CUSTOMER.address,
-            driver_license: customerData.driver_license || DEFAULT_CUSTOMER.driver_license
+            id: customerData?.id || DEFAULT_CUSTOMER.id,
+            full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
+            email: customerData?.email || DEFAULT_CUSTOMER.email,
+            phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
+            phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
+            address: customerData?.address || DEFAULT_CUSTOMER.address,
+            driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
           };
 
           // We need to check if the vehicle data actually exists and handle null/undefined cases
-          const vehicleData = item.vehicle || DEFAULT_VEHICLE;
+          const vehicleData = item.vehicle || null;
           
           // Ensure vehicle data is properly initialized to prevent null errors
           const safeVehicleData = {
-            id: vehicleData.id || DEFAULT_VEHICLE.id,
-            make: vehicleData.make || DEFAULT_VEHICLE.make,
-            model: vehicleData.model || DEFAULT_VEHICLE.model,
-            license_plate: vehicleData.license_plate || DEFAULT_VEHICLE.license_plate,
-            year: vehicleData.year || DEFAULT_VEHICLE.year,
-            color: vehicleData.color || DEFAULT_VEHICLE.color,
-            vin: vehicleData.vin || DEFAULT_VEHICLE.vin
+            id: vehicleData?.id || DEFAULT_VEHICLE.id,
+            make: vehicleData?.make || DEFAULT_VEHICLE.make,
+            model: vehicleData?.model || DEFAULT_VEHICLE.model,
+            license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
+            year: vehicleData?.year || DEFAULT_VEHICLE.year,
+            color: vehicleData?.color || DEFAULT_VEHICLE.color,
+            vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
           };
 
           const agreement: FlattenType<SimpleAgreement> = {
@@ -294,31 +298,31 @@ export const useAgreements = (initialParams?: SearchParams) => {
     }
 
     // We need to check if the customer data actually exists and handle null/undefined cases
-    const customerData = data.customer || DEFAULT_CUSTOMER;
+    const customerData = data.customer || null;
     
     // Ensure customer data is properly initialized to prevent null errors
     const safeCustomerData = {
-      id: customerData.id || DEFAULT_CUSTOMER.id,
-      full_name: customerData.full_name || DEFAULT_CUSTOMER.full_name,
-      email: customerData.email || DEFAULT_CUSTOMER.email,
-      phone: customerData.phone || customerData.phone_number || DEFAULT_CUSTOMER.phone,
-      phone_number: customerData.phone_number || customerData.phone || DEFAULT_CUSTOMER.phone_number,
-      address: customerData.address || DEFAULT_CUSTOMER.address,
-      driver_license: customerData.driver_license || DEFAULT_CUSTOMER.driver_license
+      id: customerData?.id || DEFAULT_CUSTOMER.id,
+      full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
+      email: customerData?.email || DEFAULT_CUSTOMER.email,
+      phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
+      phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
+      address: customerData?.address || DEFAULT_CUSTOMER.address,
+      driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
     };
 
     // We need to check if the vehicle data actually exists and handle null/undefined cases
-    const vehicleData = data.vehicle || DEFAULT_VEHICLE;
+    const vehicleData = data.vehicle || null;
     
     // Ensure vehicle data is properly initialized to prevent null errors
     const safeVehicleData = {
-      id: vehicleData.id || DEFAULT_VEHICLE.id,
-      make: vehicleData.make || DEFAULT_VEHICLE.make,
-      model: vehicleData.model || DEFAULT_VEHICLE.model,
-      license_plate: vehicleData.license_plate || DEFAULT_VEHICLE.license_plate,
-      year: vehicleData.year || DEFAULT_VEHICLE.year,
-      color: vehicleData.color || DEFAULT_VEHICLE.color,
-      vin: vehicleData.vin || DEFAULT_VEHICLE.vin
+      id: vehicleData?.id || DEFAULT_VEHICLE.id,
+      make: vehicleData?.make || DEFAULT_VEHICLE.make,
+      model: vehicleData?.model || DEFAULT_VEHICLE.model,
+      license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
+      year: vehicleData?.year || DEFAULT_VEHICLE.year,
+      color: vehicleData?.color || DEFAULT_VEHICLE.color,
+      vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
     };
 
     const agreement: FlattenType<SimpleAgreement> = {
@@ -362,31 +366,31 @@ export const useAgreements = (initialParams?: SearchParams) => {
 
     return (data || []).map(item => {
       // We need to check if the customer data actually exists and handle null/undefined cases
-      const customerData = item.customer || DEFAULT_CUSTOMER;
+      const customerData = item.customer || null;
       
       // Ensure customer data is properly initialized to prevent null errors
       const safeCustomerData = {
-        id: customerData.id || DEFAULT_CUSTOMER.id,
-        full_name: customerData.full_name || DEFAULT_CUSTOMER.full_name,
-        email: customerData.email || DEFAULT_CUSTOMER.email,
-        phone: customerData.phone || customerData.phone_number || DEFAULT_CUSTOMER.phone,
-        phone_number: customerData.phone_number || customerData.phone || DEFAULT_CUSTOMER.phone_number,
-        address: customerData.address || DEFAULT_CUSTOMER.address,
-        driver_license: customerData.driver_license || DEFAULT_CUSTOMER.driver_license
+        id: customerData?.id || DEFAULT_CUSTOMER.id,
+        full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
+        email: customerData?.email || DEFAULT_CUSTOMER.email,
+        phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
+        phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
+        address: customerData?.address || DEFAULT_CUSTOMER.address,
+        driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
       };
 
       // We need to check if the vehicle data actually exists and handle null/undefined cases
-      const vehicleData = item.vehicle || DEFAULT_VEHICLE;
+      const vehicleData = item.vehicle || null;
       
       // Ensure vehicle data is properly initialized to prevent null errors
       const safeVehicleData = {
-        id: vehicleData.id || DEFAULT_VEHICLE.id,
-        make: vehicleData.make || DEFAULT_VEHICLE.make,
-        model: vehicleData.model || DEFAULT_VEHICLE.model,
-        license_plate: vehicleData.license_plate || DEFAULT_VEHICLE.license_plate,
-        year: vehicleData.year || DEFAULT_VEHICLE.year,
-        color: vehicleData.color || DEFAULT_VEHICLE.color,
-        vin: vehicleData.vin || DEFAULT_VEHICLE.vin
+        id: vehicleData?.id || DEFAULT_VEHICLE.id,
+        make: vehicleData?.make || DEFAULT_VEHICLE.make,
+        model: vehicleData?.model || DEFAULT_VEHICLE.model,
+        license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
+        year: vehicleData?.year || DEFAULT_VEHICLE.year,
+        color: vehicleData?.color || DEFAULT_VEHICLE.color,
+        vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
       };
 
       const agreement: FlattenType<SimpleAgreement> = {
