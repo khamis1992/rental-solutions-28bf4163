@@ -33,7 +33,7 @@ const StatCard = ({
   return (
     <Card 
       className={cn("overflow-hidden card-transition", 
-        onClick ? "hover:bg-accent/5 cursor-pointer" : "", 
+        onClick ? "hover:bg-accent/5" : "", 
         className
       )}
       onClick={onClick}
@@ -46,7 +46,7 @@ const StatCard = ({
             {description && <p className="text-sm text-muted-foreground mt-1 truncate">{description}</p>}
             
             {trend !== undefined && (
-              <div className={cn("flex items-center mt-2", isRTL ? "flex-row-reverse" : "")}>
+              <div className="flex items-center mt-2">
                 <span className={cn(
                   "text-xs font-medium px-2 py-0.5 rounded-full",
                   trend > 0 ? "bg-green-100 text-green-700" : 
@@ -55,11 +55,7 @@ const StatCard = ({
                 )}>
                   {trend > 0 ? '+' : ''}{trend}%
                 </span>
-                {trendLabel && (
-                  <span className={cn("text-xs text-muted-foreground", isRTL ? "ml-0 mr-2" : "mr-0 ml-2")}>
-                    {trendLabel}
-                  </span>
-                )}
+                {trendLabel && <span className={`text-xs text-muted-foreground ${isRTL ? 'mr-2' : 'ml-2'}`}>{trendLabel}</span>}
               </div>
             )}
           </div>
@@ -69,7 +65,7 @@ const StatCard = ({
               "p-3 rounded-full shrink-0",
               "bg-primary/10",
               iconColor,
-              isRTL ? "mr-4" : "ml-4"
+              isRTL ? "mr-3" : "ml-3"
             )}>
               <Icon className="h-5 w-5" />
             </div>
