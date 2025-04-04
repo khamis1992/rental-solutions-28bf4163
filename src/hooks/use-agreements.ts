@@ -115,9 +115,12 @@ const DEFAULT_VEHICLE = {
   vin: ""
 };
 
-// Type guard to check if an object is a Supabase error
-function isSupabaseError(obj: any): boolean {
-  return obj && typeof obj === 'object' && 'code' in obj && 'message' in obj;
+// Improved type guard to check if an object is a Supabase error
+function isSupabaseError(obj: any): obj is { code: string; message: string } {
+  return obj && 
+         typeof obj === 'object' && 
+         'code' in obj && 
+         'message' in obj;
 }
 
 export const useAgreements = (initialParams?: SearchParams) => {
