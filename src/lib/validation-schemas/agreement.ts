@@ -1,181 +1,91 @@
 
-import { toast } from 'sonner';
-import { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// Enum for agreement status
+// Agreement Status Enum
 export const AgreementStatus = {
   ACTIVE: 'active',
   PENDING: 'pending',
+  DRAFT: 'draft',
   CANCELLED: 'cancelled',
-  CLOSED: 'closed',
   EXPIRED: 'expired',
-  DRAFT: 'draft'
+  CLOSED: 'closed'
 } as const;
 
-// Add the missing agreementSchema
+// Define the Agreement schema
 export const agreementSchema = z.object({
-  agreement_number: z.string().min(1, "Agreement number is required"),
+  id: z.string().uuid().optional(),
+  customer_id: z.string().uuid(),
+  vehicle_id: z.string().uuid(),
   start_date: z.date(),
   end_date: z.date(),
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
-  rent_amount: z.number().positive("Rent amount must be positive"),
-  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
-  total_amount: z.number().positive("Total amount must be positive"),
-  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
-  agreement_duration: z.string().optional(),
+  status: z.enum(['active', 'pending', 'draft', 'cancelled', 'expired', 'closed']),
+  total_amount: z.number().nonnegative(),
+  deposit_amount: z.number().nonnegative().optional(),
+  rent_amount: z.number().nonnegative().optional(),
+  daily_late_fee: z.number().nonnegative().optional(),
+  agreement_number: z.string().optional(),
   notes: z.string().optional(),
-  terms_accepted: z.boolean().default(false),
+  terms_accepted: z.boolean(),
+  additional_drivers: z.array(z.string()).optional(),
 });
 
-// Enum for payment status
-export const PaymentStatus = {
-  PENDING: 'pending',
-  COMPLETED: 'completed',
-  PARTIALLY_PAID: 'partially_paid',
-  OVERDUE: 'overdue',
-  CANCELLED: 'cancelled',
-} as const;
+// Export the type for use in components
+export type Agreement = z.infer<typeof agreementSchema>;
 
-// Agreement interface
-export interface Agreement {
-  id: string;
-  customer_id: string;
-  vehicle_id: string;
-  start_date: Date;
-  end_date: Date;
-  agreement_type?: string;
-  agreement_number?: string;
-  status: typeof AgreementStatus[keyof typeof AgreementStatus];
-  total_amount?: number;
-  monthly_payment?: number;
-  agreement_duration?: any;
-  customer_name?: string;
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-  vehicle_year?: number;
-  created_at?: Date;
-  updated_at?: Date;
-  signature_url?: string;
-  deposit_amount?: number;
-  notes?: string;
-  customers?: any;
-  vehicles?: any;
-  terms_accepted: boolean;
-  additional_drivers: string[];
-  rent_amount?: number; // Added this property to fix the error
-  daily_late_fee?: number; // Added for consistency
-}
-
-// Function to force generate payment for a specific agreement
+// Function to generate a payment schedule for an agreement
 export const forceGeneratePaymentForAgreement = async (
-  supabase: SupabaseClient,
-  agreementId: string, 
-  specificMonth?: Date // Optional parameter to specify which month to generate for
-): Promise<{ success: boolean; message?: string }> => {
+  supabaseClient: typeof supabase,
+  agreementId: string,
+  specificMonth?: Date
+) => {
   try {
-    console.log(`Generating payment schedule for agreement ${agreementId}${specificMonth ? ` for ${specificMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}` : ''}`);
-    
-    // Get the agreement details
-    const { data: agreement, error } = await supabase
+    // Check if the agreement exists
+    const { data: agreement, error } = await supabaseClient
       .from('leases')
-      .select('id, agreement_number, rent_amount, start_date, status, daily_late_fee')
+      .select('*')
       .eq('id', agreementId)
       .single();
-      
+
     if (error) {
-      console.error("Error fetching agreement:", error);
-      return { success: false, message: `Error fetching agreement: ${error.message}` };
+      console.error('Error fetching agreement:', error);
+      return { success: false, message: `Failed to find agreement: ${error.message}` };
     }
-    
+
     if (!agreement) {
-      return { success: false, message: "Agreement not found" };
+      return { success: false, message: 'Agreement not found' };
     }
-    
-    if (agreement.status !== 'active') {
-      return { success: false, message: `Agreement is not active (status: ${agreement.status})` };
-    }
-    
-    if (!agreement.rent_amount) {
-      return { success: false, message: "Agreement has no rent amount" };
-    }
-    
-    // Determine which month to generate for
-    const today = new Date();
-    const monthToGenerate = specificMonth || today;
-    
-    // Check if payment already exists for this month
-    const monthStart = new Date(monthToGenerate.getFullYear(), monthToGenerate.getMonth(), 1);
-    const monthEnd = new Date(monthToGenerate.getFullYear(), monthToGenerate.getMonth() + 1, 0);
-    
-    const { data: existingPayments, error: checkError } = await supabase
-      .from('unified_payments')
-      .select('id')
-      .eq('lease_id', agreementId)
-      .eq('type', 'rent')
-      .gte('original_due_date', monthStart.toISOString())
-      .lt('original_due_date', monthEnd.toISOString());
-      
-    if (checkError) {
-      console.error("Error checking existing payments:", checkError);
-      return { success: false, message: `Error checking existing payments: ${checkError.message}` };
-    }
-    
-    if (existingPayments && existingPayments.length > 0) {
-      console.log(`Payment already exists for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
-      return { success: false, message: `Payment already exists for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}` };
-    }
-    
-    // Calculate due date (1st of the month)
-    const dueDate = new Date(monthToGenerate.getFullYear(), monthToGenerate.getMonth(), 1);
-    
-    // Calculate if payment is overdue
-    const isOverdue = today > dueDate;
-    const daysOverdue = isOverdue ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-    
-    // Calculate late fee if applicable
-    const dailyLateFee = agreement.daily_late_fee || 120; // Default to 120 QAR per day if not specified
-    const lateFineAmount = isOverdue ? Math.min(daysOverdue * dailyLateFee, 3000) : 0; // Cap at 3000 QAR
-    
+
+    // Generate payment data
+    const paymentData = {
+      lease_id: agreementId,
+      amount: agreement.rent_amount || agreement.monthly_payment || 0,
+      type: 'rent',
+      description: 'Monthly rent payment',
+      status: 'pending',
+      payment_method: null,
+      payment_date: null,
+      due_date: specificMonth || new Date(),
+      is_recurring: true,
+      recurring_interval: '1 month'
+    };
+
     // Create the payment record
-    const { data: newPayment, error: createError } = await supabase
+    const { data: paymentRecord, error: paymentError } = await supabaseClient
       .from('unified_payments')
-      .insert({
-        lease_id: agreementId,
-        amount: agreement.rent_amount,
-        amount_paid: 0,
-        balance: agreement.rent_amount,
-        description: `Monthly Rent - ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
-        type: 'rent',
-        status: 'pending',
-        payment_date: null,
-        original_due_date: dueDate.toISOString(),
-        days_overdue: daysOverdue,
-        late_fine_amount: lateFineAmount
-        // Removed daily_late_fee field from the insert operation
-      })
+      .insert(paymentData)
       .select()
       .single();
-      
-    if (createError) {
-      console.error("Error creating payment:", createError);
-      return { success: false, message: `Error creating payment: ${createError.message}` };
+
+    if (paymentError) {
+      console.error('Error creating payment record:', paymentError);
+      return { success: false, message: `Failed to create payment record: ${paymentError.message}` };
     }
-    
-    console.log(`Successfully generated payment schedule for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
-    return { 
-      success: true, 
-      message: `Successfully generated payment for ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}` 
-    };
-    
+
+    return { success: true, paymentId: paymentRecord.id };
   } catch (error) {
-    console.error("Unexpected error in forceGeneratePaymentForAgreement:", error);
-    return { 
-      success: false, 
-      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
-    };
+    console.error('Unexpected error in forceGeneratePaymentForAgreement:', error);
+    return { success: false, message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` };
   }
 };

@@ -147,7 +147,17 @@ export const useAgreements = (initialParams?: SearchParams) => {
         
         // Transform the data to match the SimpleAgreement interface
         return (data || []).map(item => {
-          const customerData = item.customer || {};
+          // Create default customer object if none exists
+          const customerData = item.customer || {
+            id: "",
+            full_name: "Unknown Customer"
+          };
+          
+          // Create default vehicle object if none exists
+          const vehicleData = item.vehicle || {
+            id: "",
+            license_plate: "Unknown"
+          };
           
           // Ensure the data structure has all required fields
           const agreement: FlattenType<SimpleAgreement> = {
@@ -159,9 +169,10 @@ export const useAgreements = (initialParams?: SearchParams) => {
             agreement_number: item.agreement_number || '',
             // Add aliases for compatibility
             customers: customerData,
-            vehicles: item.vehicle,
+            vehicles: vehicleData,
             total_cost: item.total_amount || 0,
-            customer: customerData
+            customer: customerData,
+            vehicle: vehicleData
           };
           return agreement;
         });
@@ -256,9 +267,19 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
-    // Make sure the returned data conforms to SimpleAgreement structure
-    const customerData = data.customer || {};
+    // Create default customer object if none exists
+    const customerData = data.customer || {
+      id: "",
+      full_name: "Unknown Customer"
+    };
     
+    // Create default vehicle object if none exists
+    const vehicleData = data.vehicle || {
+      id: "",
+      license_plate: "Unknown"
+    };
+    
+    // Make sure the returned data conforms to SimpleAgreement structure
     const agreement: FlattenType<SimpleAgreement> = {
       ...data,
       // Map status to expected format
@@ -268,9 +289,10 @@ export const useAgreements = (initialParams?: SearchParams) => {
       agreement_number: data.agreement_number || '',
       // Add aliases for compatibility
       customers: customerData,
-      vehicles: data.vehicle,
+      vehicles: vehicleData,
       total_cost: data.total_amount || 0,
-      customer: customerData
+      customer: customerData,
+      vehicle: vehicleData
     };
 
     return agreement;
@@ -304,7 +326,17 @@ export const useAgreements = (initialParams?: SearchParams) => {
 
     // Transform the data to match the SimpleAgreement interface
     return (data || []).map(item => {
-      const customerData = item.customer || {};
+      // Create default customer object if none exists
+      const customerData = item.customer || {
+        id: "",
+        full_name: "Unknown Customer"
+      };
+      
+      // Create default vehicle object if none exists
+      const vehicleData = item.vehicle || {
+        id: "",
+        license_plate: "Unknown"
+      };
       
       const agreement: FlattenType<SimpleAgreement> = {
         ...item,
@@ -315,9 +347,10 @@ export const useAgreements = (initialParams?: SearchParams) => {
         agreement_number: item.agreement_number || '',
         // Add aliases for compatibility
         customers: customerData,
-        vehicles: item.vehicle,
+        vehicles: vehicleData,
         total_cost: item.total_amount || 0,
-        customer: customerData
+        customer: customerData,
+        vehicle: vehicleData
       };
       return agreement;
     });

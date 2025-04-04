@@ -252,7 +252,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     }
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns: ColumnDef<SimpleAgreement>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -298,7 +298,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       accessorKey: "customers.full_name",
       header: "Customer",
       cell: ({ row }) => {
-        const customer = row.original.customers;
+        const customer = row.original.customer || row.original.customers;
         return (
           <div>
             {customer && customer.id ? (
@@ -319,7 +319,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       accessorKey: "vehicles",
       header: "Vehicle",
       cell: ({ row }) => {
-        const vehicle = row.original.vehicles;
+        const vehicle = row.original.vehicle || row.original.vehicles;
         return (
           <div>
             {vehicle && vehicle.id ? (
