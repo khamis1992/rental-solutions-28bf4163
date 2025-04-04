@@ -6,11 +6,13 @@ import AgreementFormWithVehicleCheck from '@/components/agreements/AgreementForm
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import type { Agreement } from '@/lib/validation-schemas/agreement';
+import { useTranslation } from 'react-i18next';
 
 const AddAgreement = () => {
   const navigate = useNavigate();
   const { createAgreement } = useAgreements();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useTranslation();
 
   const handleCreateAgreement = async (agreementData: Agreement) => {
     try {
@@ -28,11 +30,11 @@ const AddAgreement = () => {
       };
       
       await createAgreement.mutateAsync(formattedData);
-      toast.success('Agreement created successfully');
+      toast.success(t('agreements.createSuccess'));
       navigate('/agreements');
     } catch (error) {
       console.error('Error creating agreement:', error);
-      toast.error('Failed to create agreement');
+      toast.error(t('agreements.createError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -40,8 +42,8 @@ const AddAgreement = () => {
 
   return (
     <PageContainer
-      title="Add Agreement"
-      description="Create a new rental agreement"
+      title={t('agreements.add')}
+      description={t('agreements.description')}
       backLink="/agreements"
     >
       <AgreementFormWithVehicleCheck

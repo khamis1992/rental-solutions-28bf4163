@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -27,6 +28,7 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
+import { useTranslation } from 'react-i18next';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +42,7 @@ const AgreementDetailPage = () => {
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const { t } = useTranslation();
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
@@ -78,12 +81,12 @@ const AgreementDetailPage = () => {
         setAgreement(adaptedAgreement);
         fetchPayments();
       } else {
-        toast.error("Agreement not found");
+        toast.error(t('agreements.notFound'));
         navigate("/agreements");
       }
     } catch (error) {
       console.error('Error fetching agreement:', error);
-      toast.error('Failed to load agreement details');
+      toast.error(t('agreements.loadError'));
     } finally {
       setIsLoading(false);
       setHasAttemptedFetch(true);
@@ -124,11 +127,11 @@ const AgreementDetailPage = () => {
   const handleDelete = async (agreementId: string) => {
     try {
       await deleteAgreement.mutateAsync(agreementId);
-      toast.success("Agreement deleted successfully");
+      toast.success(t('agreements.deleteSuccess'));
       navigate("/agreements");
     } catch (error) {
       console.error("Error deleting agreement:", error);
-      toast.error("Failed to delete agreement");
+      toast.error(t('agreements.deleteError'));
     }
   };
 
@@ -153,14 +156,14 @@ const AgreementDetailPage = () => {
       const result = await forceGeneratePaymentForAgreement(supabase, id);
       
       if (result.success) {
-        toast.success("Payment schedule generated successfully");
+        toast.success(t('agreements.paymentScheduleGenerated'));
         refreshAgreementData();
       } else {
-        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
+        toast.error(`${t('agreements.paymentScheduleError')}: ${result.message || t('agreements.unknownError')}`);
       }
     } catch (error) {
       console.error("Error generating payment:", error);
-      toast.error("Failed to generate payment schedule");
+      toast.error(t('agreements.paymentScheduleError'));
     } finally {
       setIsGeneratingPayment(false);
     }
@@ -171,19 +174,19 @@ const AgreementDetailPage = () => {
     
     setIsRunningMaintenance(true);
     try {
-      toast.info("Running payment maintenance check...");
+      toast.info(t('agreements.runningMaintenanceCheck'));
       const result = await manuallyRunPaymentMaintenance();
       
       if (result.success) {
-        toast.success(result.message || "Payment schedule maintenance completed");
+        toast.success(result.message || t('agreements.maintenanceCompleted'));
         refreshAgreementData();
         fetchPayments();
       } else {
-        toast.error(result.message || "Payment maintenance failed");
+        toast.error(result.message || t('agreements.maintenanceFailed'));
       }
     } catch (error) {
       console.error("Error running maintenance job:", error);
-      toast.error("Failed to run maintenance job");
+      toast.error(t('agreements.maintenanceFailed'));
     } finally {
       setIsRunningMaintenance(false);
     }
@@ -191,8 +194,8 @@ const AgreementDetailPage = () => {
 
   return (
     <PageContainer
-      title="Agreement Details"
-      description="View and manage rental agreement details"
+      title={t('agreements.details')}
+      description={t('agreements.viewDetails')}
       backLink="/agreements"
       actions={
         <>
@@ -205,7 +208,7 @@ const AgreementDetailPage = () => {
               className="gap-2 mr-2"
             >
               <Calendar className="h-4 w-4" />
-              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
+              {isGeneratingPayment ? t('common.loading') : t('agreements.generatePaymentSchedule')}
             </Button>
           )}
           <Button
@@ -216,7 +219,7 @@ const AgreementDetailPage = () => {
             className="gap-2"
           >
             <RefreshCcw className="h-4 w-4" />
-            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
+            {isRunningMaintenance ? t('common.loading') : t('agreements.runPaymentMaintenance')}
           </Button>
         </>
       }
@@ -255,19 +258,18 @@ const AgreementDetailPage = () => {
           <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete Agreement</AlertDialogTitle>
+                <AlertDialogTitle>{t('agreements.delete')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete agreement {agreement.agreement_number}?
-                  This action cannot be undone and will permanently remove all associated data including payments and records.
+                  {t('agreements.deleteConfirmation', { number: agreement.agreement_number })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={() => handleDelete(agreement.id)}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Delete
+                  {t('common.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -278,12 +280,12 @@ const AgreementDetailPage = () => {
           <div className="flex items-center justify-center mb-4">
             <AlertTriangle className="h-12 w-12 text-amber-500" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
+          <h3 className="text-lg font-semibold mb-2">{t('agreements.notFound')}</h3>
           <p className="text-muted-foreground mb-4">
-            The agreement you're looking for doesn't exist or has been removed.
+            {t('agreements.notFoundDesc')}
           </p>
           <Button variant="outline" onClick={() => navigate("/agreements")}>
-            Return to Agreements
+            {t('agreements.returnToAgreements')}
           </Button>
         </div>
       )}

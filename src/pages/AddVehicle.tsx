@@ -22,18 +22,23 @@ const AddVehicle = () => {
   const handleSubmit = (formData: any) => {
     createVehicle(formData, {
       onSuccess: () => {
+        toast.success(t('vehicles.addSuccess'));
         navigate('/vehicles');
       },
       onError: (error) => {
         toast.error(t('common.error'), {
-          description: error instanceof Error ? error.message : t('customers.unknownError')
+          description: error instanceof Error ? error.message : t('vehicles.unknownError')
         });
       }
     });
   };
   
   return (
-    <PageContainer>
+    <PageContainer
+      title={t('vehicles.addNew')}
+      description={t('vehicles.addToFleet')}
+      backLink="/vehicles"
+    >
       <SectionHeader
         title={t('vehicles.addNew')}
         description={t('vehicles.addToFleet')}

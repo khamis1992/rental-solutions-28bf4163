@@ -65,20 +65,24 @@ const AddMaintenance = () => {
       
       toast({
         title: t('common.success'),
-        description: t('maintenance.records')
+        description: t('maintenance.createSuccess')
       });
       
       navigate('/maintenance');
     } catch (err) {
       console.error('Error creating maintenance record:', err);
-      setError(t('common.error'));
+      setError(t('maintenance.createError'));
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <PageContainer>
+    <PageContainer
+      title={t('maintenance.add')}
+      description={t('maintenance.description')}
+      backLink="/maintenance"
+    >
       <SectionHeader
         title={t('maintenance.add')}
         description={t('maintenance.description')}
