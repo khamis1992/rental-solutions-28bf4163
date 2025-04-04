@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "Dashboard",
@@ -309,7 +308,8 @@
     "trafficFines": "Traffic Fines",
     "trafficViolations": "Traffic violations associated with this customer",
     "additionalNotes": "Additional Notes",
-    "noAdditionalNotes": "No additional notes for this customer."
+    "noAdditionalNotes": "No additional notes for this customer.",
+    "noTrafficFines": "No traffic fines found for this customer."
   },
   "agreements": {
     "title": "Rental Agreements",

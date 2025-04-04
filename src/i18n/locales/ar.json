@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -172,7 +171,7 @@
     "dashboard": "لوحة إدارة الشؤون القانونية",
     "documents": "المستندات القانونية",
     "caseManagement": "إدارة القضايا",
-    "complianceCalendar": "تقويم الامتثال",
+    "complianceCalendar": "تقوي�� الامتثال",
     "riskAssessment": "تقييم المخاطر",
     "complianceReporting": "تق��رير الامتثال"
   },
@@ -314,7 +313,8 @@
     "trafficFines": "مخالفات المرور",
     "trafficViolations": "مخالفات المرور المرتبطة بهذا العميل",
     "additionalNotes": "ملاحظات إضافية",
-    "noAdditionalNotes": "لا توجد ملاحظات إضافية لهذا العميل."
+    "noAdditionalNotes": "لا توجد ملاحظات إضافية لهذا العميل.",
+    "noTrafficFines": "لا توجد مخالفات مرورية لهذا العميل."
   },
   "agreements": {
     "title": "اتفاقيات الإيجار",
@@ -394,7 +394,7 @@
       "status": "الحالة",
       "scheduledDate": "تاريخ الجدولة",
       "completionDate": "تاريخ الإكمال",
-      "description": "الوصف",
+      "description": "الوص��",
       "cost": "التكلفة ($)",
       "serviceProvider": "مزود الخدمة",
       "invoiceNumber": "رقم الفاتورة",

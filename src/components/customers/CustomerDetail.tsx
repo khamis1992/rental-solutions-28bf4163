@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -183,7 +182,7 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.phoneNumber')}</h4>
-              <p className="text-foreground">{customer.phone || customer.phone_number}</p>
+              <p className="text-foreground">{customer.phone}</p>
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.address')}</h4>
@@ -191,7 +190,7 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
             </div>
             {customer.nationality && (
               <div>
-                <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.nationality')}</h4>
+                <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('common.nationality')}</h4>
                 <p className="text-foreground">{customer.nationality}</p>
               </div>
             )}

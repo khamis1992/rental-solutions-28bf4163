@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
@@ -12,6 +11,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateDataConsistency, logOperation } from '@/utils/monitoring-utils';
+import { t } from '@/i18n';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -211,7 +211,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   };
 
   if (loading) {
-    return <div className="py-4 text-center text-muted-foreground">Loading traffic fines...</div>;
+    return <div className="py-4 text-center text-muted-foreground">{t('common.loading')}</div>;
   }
 
   if (error) {
@@ -225,7 +225,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   }
 
   if (fines.length === 0) {
-    return <div className="py-4 text-center text-muted-foreground">No traffic fines found for this customer.</div>;
+    return <div className="py-4 text-center text-muted-foreground">{t('customers.noTrafficFines')}</div>;
   }
 
   return (
