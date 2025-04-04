@@ -6,6 +6,7 @@ import { ChevronDown } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { useTranslation } from "@/contexts/TranslationContext"
+import { getIconTextOrder } from "@/utils/rtl-utils"
 
 const NavigationMenu = React.forwardRef<
   React.ElementRef<typeof NavigationMenuPrimitive.Root>,
@@ -56,6 +57,7 @@ const NavigationMenuTrigger = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof NavigationMenuPrimitive.Trigger>
 >(({ className, children, ...props }, ref) => {
   const { isRTL } = useTranslation();
+  const { iconOrder, textOrder } = getIconTextOrder();
   
   return (
     <NavigationMenuPrimitive.Trigger
@@ -63,11 +65,11 @@ const NavigationMenuTrigger = React.forwardRef<
       className={cn(navigationMenuTriggerStyle(), "group", className)}
       {...props}
     >
-      {children}{" "}
+      <span className={textOrder}>{children}</span>{" "}
       <ChevronDown
         className={cn(
           "relative top-[1px] h-3 w-3 transition duration-200 group-data-[state=open]:rotate-180",
-          isRTL ? "mr-1 order-1" : "ml-1 order-2"
+          iconOrder
         )}
         aria-hidden="true"
       />

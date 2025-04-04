@@ -126,7 +126,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
         className={`w-full flex items-center ${flexDirectionClass} justify-center gap-2`}
         onClick={onOpenAIDialog}
       >
-        <Sparkles className={`h-4 w-4 ${iconOrder}`} />
+        <div className={iconOrder}><Sparkles className="h-4 w-4" /></div>
         <span className={textOrder}>Generate with AI</span>
       </Button>
       
