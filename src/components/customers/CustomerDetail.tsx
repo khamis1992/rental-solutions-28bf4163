@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
@@ -37,7 +36,9 @@ export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getCustomer, deleteCustomer } = useCustomers();
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ customer_id: id });
+  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ 
+    customerId: id
+  });
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -266,9 +267,9 @@ export function CustomerDetail() {
                     <TableRow key={agreement.id}>
                       <TableCell className="font-medium">{agreement.agreement_number || 'N/A'}</TableCell>
                       <TableCell>
-                        {agreement.vehicles ? (
+                        {agreement.vehicle ? (
                           <span>
-                            {agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.license_plate})
+                            {agreement.vehicle.make} {agreement.vehicle.model} ({agreement.vehicle.license_plate})
                           </span>
                         ) : (
                           'Unknown vehicle'

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-// Define the SimpleAgreement interface that was missing
+// Define the SimpleAgreement interface that matches both the database structure and component expectations
 export interface SimpleAgreement {
   id: string;
   customer_id: string;
@@ -14,19 +14,20 @@ export interface SimpleAgreement {
   status: string;
   created_at: string;
   updated_at: string;
-  total_amount: number;
+  total_amount: number;  // Ensure this field exists and is named correctly
   deposit_amount: number;
-  agreement_number: string;
+  agreement_number: string;  // Ensure this field exists and is named correctly
   notes: string;
   rent_amount?: number;
   daily_late_fee?: number;
+  // Nested objects with consistent naming
   customer?: {
     id: string;
     full_name: string;
     email?: string;
     phone?: string;
   };
-  vehicle?: {
+  vehicle?: {  // Using 'vehicle' singular to match Supabase structure
     id: string;
     make?: string;
     model?: string;
@@ -35,16 +36,35 @@ export interface SimpleAgreement {
     color?: string;
   };
   payments?: Array<any>;
+  // Aliases for compatibility
+  customers?: {
+    id: string;
+    full_name: string;
+    email?: string;
+    phone?: string;
+  };
+  vehicles?: {  // Adding 'vehicles' alias for backward compatibility
+    id: string;
+    make?: string;
+    model?: string;
+    license_plate?: string;
+    year?: number;
+    color?: string;
+  };
+  total_cost?: number; // Alias for total_amount for backward compatibility
 }
 
 // Define the search parameters interface
 interface SearchParams {
   query?: string;
   status?: string;
-  customerId?: string;
-  vehicleId?: string;
+  customerId?: string; // Camel case for API param
+  vehicleId?: string;  // Camel case for API param
   startDate?: string;
   endDate?: string;
+  // For backward compatibility
+  customer_id?: string;
+  vehicle_id?: string;
 }
 
 // Main hook for agreements
@@ -82,12 +102,13 @@ export const useAgreements = (initialParams?: SearchParams) => {
           query = query.eq('status', searchParams.status);
         }
         
-        if (searchParams.customerId) {
-          query = query.eq('customer_id', searchParams.customerId);
+        // Support both camelCase and snake_case for backward compatibility
+        if (searchParams.customerId || searchParams.customer_id) {
+          query = query.eq('customer_id', searchParams.customerId || searchParams.customer_id);
         }
         
-        if (searchParams.vehicleId) {
-          query = query.eq('vehicle_id', searchParams.vehicleId);
+        if (searchParams.vehicleId || searchParams.vehicle_id) {
+          query = query.eq('vehicle_id', searchParams.vehicleId || searchParams.vehicle_id);
         }
         
         // Date range filtering if provided
@@ -105,7 +126,21 @@ export const useAgreements = (initialParams?: SearchParams) => {
           throw new Error(`Error fetching agreements: ${error.message}`);
         }
         
-        return data || [];
+        // Transform the data to match the SimpleAgreement interface
+        return (data || []).map(item => {
+          // Ensure the data structure has all required fields
+          const agreement: SimpleAgreement = {
+            ...item,
+            // Ensure these fields exist with correct names
+            total_amount: item.total_amount !== undefined ? item.total_amount : item.total_cost,
+            agreement_number: item.agreement_number || '',
+            // Add aliases for compatibility
+            customers: item.customer,
+            vehicles: item.vehicle,
+            total_cost: item.total_amount !== undefined ? item.total_amount : item.total_cost
+          };
+          return agreement;
+        });
       }
     });
   };
@@ -197,7 +232,19 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
-    return data;
+    // Make sure the returned data conforms to SimpleAgreement structure
+    const agreement: SimpleAgreement = {
+      ...data,
+      // Ensure these fields exist with correct names
+      total_amount: data.total_amount !== undefined ? data.total_amount : data.total_cost,
+      agreement_number: data.agreement_number || '',
+      // Add aliases for compatibility
+      customers: data.customer,
+      vehicles: data.vehicle,
+      total_cost: data.total_amount !== undefined ? data.total_amount : data.total_cost
+    };
+
+    return agreement;
   };
 
   // Function to get all agreements
@@ -212,12 +259,12 @@ export const useAgreements = (initialParams?: SearchParams) => {
       .order('created_at', { ascending: false });
 
     // Apply filters if provided
-    if (filters?.customerId) {
-      query = query.eq('customer_id', filters.customerId);
+    if (filters?.customerId || filters?.customer_id) {
+      query = query.eq('customer_id', filters.customerId || filters.customer_id);
     }
 
-    if (filters?.vehicleId) {
-      query = query.eq('vehicle_id', filters.vehicleId);
+    if (filters?.vehicleId || filters?.vehicle_id) {
+      query = query.eq('vehicle_id', filters.vehicleId || filters.vehicle_id);
     }
 
     const { data, error } = await query;
@@ -226,7 +273,20 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreements: ${error.message}`);
     }
 
-    return data || [];
+    // Transform the data to match the SimpleAgreement interface
+    return (data || []).map(item => {
+      const agreement: SimpleAgreement = {
+        ...item,
+        // Ensure these fields exist with correct names
+        total_amount: item.total_amount !== undefined ? item.total_amount : item.total_cost,
+        agreement_number: item.agreement_number || '',
+        // Add aliases for compatibility
+        customers: item.customer,
+        vehicles: item.vehicle,
+        total_cost: item.total_amount !== undefined ? item.total_amount : item.total_cost
+      };
+      return agreement;
+    });
   };
 
   // Return an object with clear properties for agreements, isLoading, error etc.

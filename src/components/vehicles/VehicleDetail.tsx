@@ -34,7 +34,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     isLoading: isLoadingAgreements,
     setSearchParams
   } = useAgreements({
-    vehicle_id: vehicle.id
+    vehicleId: vehicle.id
   });
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
@@ -409,30 +409,30 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {agreements.map((simpleAgreement) => {
-                    const agreement = adaptSimpleToFullAgreement(simpleAgreement);
+                  {agreements.map((agreement) => {
+                    const adaptedAgreement = adaptSimpleToFullAgreement(agreement);
                     return (
-                      <TableRow key={agreement.id}>
+                      <TableRow key={adaptedAgreement.id}>
                         <TableCell className="font-medium">
-                          {agreement.agreement_number}
+                          {adaptedAgreement.agreement_number}
                         </TableCell>
                         <TableCell>
-                          {agreement.customers?.full_name || 'N/A'}
+                          {adaptedAgreement.customers?.full_name || 'N/A'}
                         </TableCell>
                         <TableCell>
-                          {agreement.start_date ? format(new Date(agreement.start_date), 'MMM d, yyyy') : 'N/A'}
+                          {adaptedAgreement.start_date ? format(new Date(adaptedAgreement.start_date), 'MMM d, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          {agreement.end_date ? format(new Date(agreement.end_date), 'MMM d, yyyy') : 'N/A'}
+                          {adaptedAgreement.end_date ? format(new Date(adaptedAgreement.end_date), 'MMM d, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          <Badge className={getAgreementStatusColor(agreement.status)}>
-                            {formatAgreementStatus(agreement.status)}
+                          <Badge className={getAgreementStatusColor(adaptedAgreement.status)}>
+                            {formatAgreementStatus(adaptedAgreement.status)}
                           </Badge>
                         </TableCell>
-                        <TableCell>{formatCurrency(agreement.total_amount)}</TableCell>
+                        <TableCell>{formatCurrency(adaptedAgreement.total_amount)}</TableCell>
                         <TableCell className="text-right">
-                          <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(agreement.id)}>
+                          <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(adaptedAgreement.id)}>
                             View
                           </CustomButton>
                         </TableCell>
