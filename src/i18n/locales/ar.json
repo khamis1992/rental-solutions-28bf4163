@@ -217,7 +217,24 @@
     "markAsRented": "وضع علامة كمؤجر",
     "markAsUnderMaintenance": "وضع علامة تحت الصيانة",
     "title": "مركبة",
-    "titlePlural": "مركبات"
+    "titlePlural": "مركبات",
+    "management": "إدارة المركبات",
+    "manageFleet": "إدارة أسطول المركبات",
+    "backToVehicles": "العودة إلى المركبات",
+    "addNew": "إضافة مركبة جديدة",
+    "addToFleet": "إضافة مركبة جديدة إلى الأسطول",
+    "filterBy": {
+      "status": "تصفية حسب الحالة",
+      "make": "تصفية حسب الشركة المصنعة",
+      "location": "تصفية حسب الموقع",
+      "year": "تصفية حسب السنة",
+      "category": "تصفية حسب الفئة"
+    },
+    "allStatuses": "كل الحالات",
+    "allMakes": "كل الشركات المصنعة",
+    "allLocations": "كل المواقع",
+    "allYears": "كل السنوات",
+    "allCategories": "كل الفئات"
   },
   "reports": {
     "title": "التقارير",
@@ -270,5 +287,34 @@
       "pendingreview": "قيد المراجعة",
       "pendingpayment": "دفع معلق"
     }
+  },
+  "agreements": {
+    "title": "اتفاقيات الإيجار",
+    "description": "إدارة اتفاقيات وعقود إيجار العملاء",
+    "add": "إضافة اتفاقية",
+    "edit": "تعديل الاتفاقية",
+    "details": "تفاصيل الاتفاقية",
+    "delete": "حذف الاتفاقية",
+    "viewDetails": "عرض التفاصيل",
+    "searchPlaceholder": "البحث باسم العميل أو رقم لوحة المركبة...",
+    "importCSV": "استيراد CSV",
+    "statusUpdateSuccess": "تم تحديث حالات الاتفاقيات بنجاح",
+    "statusUpdateFailed": "فشل تحديث حالات الاتفاقيات",
+    "unexpectedError": "حدث خطأ غير متوقع أثناء تحديث حالات الاتفاقيات",
+    "errorLoadingTitle": "خطأ في تحميل الاتفاقيات",
+    "unknownError": "حدث خطأ غير معروف",
+    "noAgreements": "لم يتم العثور على اتفاقيات",
+    "adjustFilters": "حاول تعديل المرشحات الخاصة بك",
+    "addFirstAgreement": "أضف أول اتفاقية باستخدام الزر أعلاه",
+    "status": {
+      "active": "نشط",
+      "pending": "معلق",
+      "cancelled": "ملغي",
+      "closed": "مغلق",
+      "expired": "منتهي",
+      "draft": "مسودة"
+    },
+    "recentActivity": "النشاط الأخير",
+    "loading": "جاري تحميل الاتفاقيات..."
   }
 }

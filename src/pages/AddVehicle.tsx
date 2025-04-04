@@ -8,11 +8,16 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const AddVehicle = () => {
   const navigate = useNavigate();
   const { useCreate } = useVehicles();
   const { mutate: createVehicle, isPending } = useCreate();
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
   
   const handleSubmit = (formData: any) => {
     createVehicle(formData, {
@@ -20,8 +25,8 @@ const AddVehicle = () => {
         navigate('/vehicles');
       },
       onError: (error) => {
-        toast.error('Failed to add vehicle', {
-          description: error instanceof Error ? error.message : 'Unknown error occurred'
+        toast.error(t('common.error'), {
+          description: error instanceof Error ? error.message : t('customers.unknownError')
         });
       }
     });
@@ -30,8 +35,8 @@ const AddVehicle = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title="Add New Vehicle"
-        description="Add a new vehicle to your fleet"
+        title={t('vehicles.addNew')}
+        description={t('vehicles.addToFleet')}
         icon={Car}
         actions={
           <CustomButton 
@@ -39,8 +44,8 @@ const AddVehicle = () => {
             variant="outline" 
             onClick={() => navigate('/vehicles')}
           >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Vehicles
+            <ArrowLeft className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('vehicles.backToVehicles')}
           </CustomButton>
         }
       />

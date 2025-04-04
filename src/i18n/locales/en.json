@@ -194,7 +194,24 @@
     "markAsRented": "Mark as Rented",
     "markAsUnderMaintenance": "Mark as Under Maintenance",
     "title": "Vehicle",
-    "titlePlural": "Vehicles"
+    "titlePlural": "Vehicles",
+    "management": "Vehicle Management",
+    "manageFleet": "Manage your fleet inventory",
+    "backToVehicles": "Back to Vehicles",
+    "addNew": "Add New Vehicle",
+    "addToFleet": "Add a new vehicle to your fleet",
+    "filterBy": {
+      "status": "Filter by status",
+      "make": "Filter by make",
+      "location": "Filter by location",
+      "year": "Filter by year",
+      "category": "Filter by category"
+    },
+    "allStatuses": "All Statuses",
+    "allMakes": "All Makes",
+    "allLocations": "All Locations",
+    "allYears": "All Years",
+    "allCategories": "All Categories"
   },
   "reports": {
     "title": "Reports",
