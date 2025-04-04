@@ -507,6 +507,12 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
   const selectedCount = Object.keys(rowSelection).length;
 
+  const statusCounts: Record<string, number> = agreements.reduce((acc: Record<string, number>, agreement) => {
+    const status = agreement.status || 'unknown';
+    acc[status] = (acc[status] || 0) + 1;
+    return acc;
+  }, {});
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">

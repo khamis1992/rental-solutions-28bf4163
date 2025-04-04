@@ -4,6 +4,16 @@ import 'jspdf-autotable';
 import { format } from 'date-fns';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 
+// Add the missing type definition for jsPDF with autotable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => any;
+    lastAutoTable: {
+      finalY: number;
+    };
+  }
+}
+
 // Generate a PDF document for an agreement
 export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
   try {
@@ -29,7 +39,6 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
       ['ID/License', agreement.customers?.driver_license || 'N/A']
     ];
     
-    // @ts-ignore - jsPDF-autotable types
     doc.autoTable({
       startY: 45,
       head: [],
@@ -56,7 +65,6 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
       ['VIN', agreement.vehicles?.vin || 'N/A']
     ];
     
-    // @ts-ignore - jsPDF-autotable types
     doc.autoTable({
       startY: doc.lastAutoTable.finalY + 20,
       head: [],
@@ -88,7 +96,6 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
       ['Late Fee (Daily)', `QAR ${agreement.daily_late_fee?.toLocaleString() || '0'}`],
     ];
     
-    // @ts-ignore - jsPDF-autotable types
     doc.autoTable({
       startY: doc.lastAutoTable.finalY + 20,
       head: [],

@@ -1,11 +1,9 @@
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { FlattenType } from '@/utils/type-utils';
 
-// Define the SimpleAgreement interface that matches both the database structure and component expectations
 export interface SimpleAgreement {
   id: string;
   customer_id: string;
@@ -15,13 +13,12 @@ export interface SimpleAgreement {
   status: string;
   created_at: string;
   updated_at: string;
-  total_amount: number;  // Primary field for amount
+  total_amount: number;
   deposit_amount: number;
-  agreement_number: string;  // Primary field for agreement number
+  agreement_number: string;
   notes: string;
   rent_amount?: number;
   daily_late_fee?: number;
-  // Nested objects with consistent naming
   customer?: {
     id: string;
     full_name: string;
@@ -31,7 +28,7 @@ export interface SimpleAgreement {
     address?: string;
     driver_license?: string;
   };
-  vehicle?: {  // Using 'vehicle' singular to match Supabase structure
+  vehicle?: {
     id: string;
     make?: string;
     model?: string;
@@ -41,7 +38,6 @@ export interface SimpleAgreement {
     vin?: string;
   };
   payments?: Array<any>;
-  // Aliases for compatibility
   customers?: {
     id: string;
     full_name: string;
@@ -51,7 +47,7 @@ export interface SimpleAgreement {
     address?: string;
     driver_license?: string;
   };
-  vehicles?: {  // Adding 'vehicles' alias for backward compatibility
+  vehicles?: {
     id: string;
     make?: string;
     model?: string;
@@ -60,25 +56,21 @@ export interface SimpleAgreement {
     color?: string;
     vin?: string;
   };
-  total_cost?: number; // Alias for total_amount for backward compatibility
+  total_cost?: number;
 }
 
-// Define the search parameters interface
 interface SearchParams {
   query?: string;
   status?: string;
-  customerId?: string; // Camel case for API param
-  vehicleId?: string;  // Camel case for API param
+  customerId?: string;
+  vehicleId?: string;
   startDate?: string;
   endDate?: string;
-  // For backward compatibility
   customer_id?: string;
   vehicle_id?: string;
 }
 
-// Helper function to map database status to application status
 const mapDatabaseStatus = (status: string): string => {
-  // Map from lease_status (enum from DB) to AgreementStatus (used in UI)
   const statusMap: Record<string, string> = {
     'active': 'active',
     'pending_payment': 'pending',
@@ -93,29 +85,26 @@ const mapDatabaseStatus = (status: string): string => {
   return statusMap[status.toLowerCase()] || status;
 };
 
-// Main hook for agreements
 export const useAgreements = (initialParams?: SearchParams) => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useState<SearchParams>(initialParams || {
     query: '',
     status: 'all'
   });
-  
-  // Query to fetch agreement data based on search parameters
+
   const useAgreementsList = () => {
     return useQuery({
       queryKey: ['agreements', searchParams],
       queryFn: async () => {
         let query = supabase
-          .from('leases')  // Query the leases table
+          .from('leases')
           .select(`
             *,
             customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
             vehicle:vehicle_id(*)
           `)
           .order('created_at', { ascending: false });
-          
-        // Apply filters based on search parameters
+
         if (searchParams.query && searchParams.query.trim() !== '') {
           query = query.or(`
             customer.full_name.ilike.%${searchParams.query}%,
@@ -124,59 +113,49 @@ export const useAgreements = (initialParams?: SearchParams) => {
             agreement_number.ilike.%${searchParams.query}%
           `);
         }
-        
+
         if (searchParams.status && searchParams.status !== 'all') {
-          // Use exact status if it matches a specific status value expected by the database
           query = query.eq('status', searchParams.status);
         }
-        
-        // Support both camelCase and snake_case for backward compatibility
+
         if (searchParams.customerId || searchParams.customer_id) {
           query = query.eq('customer_id', searchParams.customerId || searchParams.customer_id);
         }
-        
+
         if (searchParams.vehicleId || searchParams.vehicle_id) {
           query = query.eq('vehicle_id', searchParams.vehicleId || searchParams.vehicle_id);
         }
-        
-        // Date range filtering if provided
+
         if (searchParams.startDate) {
           query = query.gte('start_date', searchParams.startDate);
         }
-        
+
         if (searchParams.endDate) {
           query = query.lte('end_date', searchParams.endDate);
         }
-        
+
         const { data, error } = await query;
-          
+
         if (error) {
           throw new Error(`Error fetching agreements: ${error.message}`);
         }
-        
-        // Transform the data to match the SimpleAgreement interface
+
         return (data || []).map(item => {
-          // Create default customer object if none exists
           const customerData = item.customer || {
             id: "",
             full_name: "Unknown Customer"
           };
-          
-          // Create default vehicle object if none exists
+
           const vehicleData = item.vehicle || {
             id: "",
             license_plate: "Unknown"
           };
-          
-          // Ensure the data structure has all required fields
+
           const agreement: FlattenType<SimpleAgreement> = {
             ...item,
-            // Map status to expected format
             status: mapDatabaseStatus(item.status || ''),
-            // Ensure these fields exist with correct names
             total_amount: item.total_amount || 0,
             agreement_number: item.agreement_number || '',
-            // Add aliases for compatibility
             customer: customerData,
             vehicle: vehicleData,
             customers: customerData,
@@ -188,23 +167,21 @@ export const useAgreements = (initialParams?: SearchParams) => {
       }
     });
   };
-  
-  // Get agreements using the query hook
+
   const agreementsQuery = useAgreementsList();
-  
-  // Mutation to create a new agreement
+
   const createAgreement = useMutation({
     mutationFn: async (agreementData: any) => {
       const { data, error } = await supabase
-        .from('leases')  // Insert into leases table
+        .from('leases')
         .insert(agreementData)
         .select()
         .single();
-        
+
       if (error) {
         throw new Error(`Error creating agreement: ${error.message}`);
       }
-      
+
       return data;
     },
     onSuccess: () => {
@@ -212,21 +189,20 @@ export const useAgreements = (initialParams?: SearchParams) => {
       toast.success('Agreement created successfully');
     }
   });
-  
-  // Mutation to update an existing agreement
+
   const updateAgreement = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const { data: updatedData, error } = await supabase
-        .from('leases')  // Update in leases table
+        .from('leases')
         .update(data)
         .eq('id', id)
         .select()
         .single();
-        
+
       if (error) {
         throw new Error(`Error updating agreement: ${error.message}`);
       }
-      
+
       return updatedData;
     },
     onSuccess: (_, variables) => {
@@ -235,19 +211,18 @@ export const useAgreements = (initialParams?: SearchParams) => {
       toast.success('Agreement updated successfully');
     }
   });
-  
-  // Mutation to delete an agreement
+
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('leases')  // Delete from leases table
+        .from('leases')
         .delete()
         .eq('id', id);
-        
+
       if (error) {
         throw new Error(`Error deleting agreement: ${error.message}`);
       }
-      
+
       return id;
     },
     onSuccess: (id) => {
@@ -257,12 +232,11 @@ export const useAgreements = (initialParams?: SearchParams) => {
     }
   });
 
-  // Function to get a single agreement by ID
   const getAgreement = async (id: string) => {
     if (!id) return null;
 
     const { data, error } = await supabase
-      .from('leases')  // Get from leases table
+      .from('leases')
       .select(`
         *,
         customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
@@ -276,27 +250,21 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
-    // Create default customer object if none exists
     const customerData = data.customer || {
       id: "",
       full_name: "Unknown Customer"
     };
-    
-    // Create default vehicle object if none exists
+
     const vehicleData = data.vehicle || {
       id: "",
       license_plate: "Unknown"
     };
-    
-    // Make sure the returned data conforms to SimpleAgreement structure
+
     const agreement: FlattenType<SimpleAgreement> = {
       ...data,
-      // Map status to expected format
       status: mapDatabaseStatus(data.status || ''),
-      // Ensure these fields exist with correct names
       total_amount: data.total_amount || 0,
       agreement_number: data.agreement_number || '',
-      // Add aliases for compatibility
       customer: customerData,
       vehicle: vehicleData,
       customers: customerData,
@@ -307,10 +275,9 @@ export const useAgreements = (initialParams?: SearchParams) => {
     return agreement;
   };
 
-  // Function to get all agreements
   const getAgreements = async (filters?: any) => {
     let query = supabase
-      .from('leases')  // Get from leases table
+      .from('leases')
       .select(`
         *,
         customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
@@ -318,7 +285,6 @@ export const useAgreements = (initialParams?: SearchParams) => {
       `)
       .order('created_at', { ascending: false });
 
-    // Apply filters if provided
     if (filters?.customerId || filters?.customer_id) {
       query = query.eq('customer_id', filters.customerId || filters.customer_id);
     }
@@ -333,28 +299,22 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreements: ${error.message}`);
     }
 
-    // Transform the data to match the SimpleAgreement interface
     return (data || []).map(item => {
-      // Create default customer object if none exists
       const customerData = item.customer || {
         id: "",
         full_name: "Unknown Customer"
       };
-      
-      // Create default vehicle object if none exists
+
       const vehicleData = item.vehicle || {
         id: "",
         license_plate: "Unknown"
       };
-      
+
       const agreement: FlattenType<SimpleAgreement> = {
         ...item,
-        // Map status to expected format
         status: mapDatabaseStatus(item.status || ''),
-        // Ensure these fields exist with correct names
         total_amount: item.total_amount || 0,
         agreement_number: item.agreement_number || '',
-        // Add aliases for compatibility
         customer: customerData,
         vehicle: vehicleData,
         customers: customerData,
@@ -365,26 +325,16 @@ export const useAgreements = (initialParams?: SearchParams) => {
     });
   };
 
-  // Return an object with clear properties for agreements, isLoading, error etc.
   return {
-    // Query result properties
     agreements: agreementsQuery.data,
     isLoading: agreementsQuery.isLoading,
     error: agreementsQuery.error,
-    
-    // Query functions
     useAgreementsList,
-    
-    // Direct methods
     getAgreement,
     getAgreements,
-    
-    // Mutations
     createAgreement,
     updateAgreement,
     deleteAgreement,
-    
-    // Search params state
     searchParams,
     setSearchParams,
   };
