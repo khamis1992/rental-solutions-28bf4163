@@ -40,7 +40,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   };
 
   return (
-    <div className={`flex items-center ${getDirectionalFlexClass()} ${isCompact ? 'gap-1' : 'gap-2'} ${className}`}>
+    <div className={`flex items-center ${getDirectionalFlexClass()} ${isCompact ? 'gap-2' : 'gap-3'} ${className}`}>
       {showIcon && <Globe className={`${isCompact ? 'h-4 w-4' : 'h-5 w-5'} text-muted-foreground`} />}
       
       <Select value={language} onValueChange={handleLanguageChange}>

@@ -151,3 +151,28 @@
 .rtl-mode .tooltip {
   text-align: right;
 }
+
+/* Icon spacing adjustments for RTL mode */
+.rtl-mode button svg + span,
+.rtl-mode a svg + span,
+.rtl-mode .icon-text-spacing svg + span {
+  margin-right: 0.75rem;
+}
+
+.rtl-mode button span + svg,
+.rtl-mode a span + svg,
+.rtl-mode .icon-text-spacing span + svg {
+  margin-left: 0.75rem;
+}
+
+/* For flex layouts with icons and text */
+.rtl-mode .flex-row svg,
+.rtl-mode .flex-row-reverse svg {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.rtl-mode .flex items-center svg {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}

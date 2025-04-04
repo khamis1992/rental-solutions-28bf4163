@@ -60,10 +60,12 @@ const Dashboard = () => {
             variant="outline" 
             onClick={handleRefresh} 
             disabled={isRefreshing}
-            className={getDirectionalFlexClass()}
+            className={`${getDirectionalFlexClass()} icon-text-spacing`}
           >
-            <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className={isRTL ? 'mr-2' : 'ml-2'}>
+              {isRefreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
+            </span>
           </CustomButton>
         }
       />
