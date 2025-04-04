@@ -28,7 +28,7 @@ export interface BaseAgreement {
   vehicle_year?: number;
   created_at?: string;
   updated_at?: string;
-  signature_url?: string;
+  signature_url?: string | null;
   deposit_amount?: number;
   notes?: string;
   customers?: any;

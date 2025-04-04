@@ -50,7 +50,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
-import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { AgreementStatus } from '@/types/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -252,10 +252,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     }
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns = [
     {
       id: "select",
-      header: ({ table }) => (
+      header: ({ table }: any) => (
         <Checkbox
           checked={
             table.getIsAllPageRowsSelected() ||
@@ -265,7 +265,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           aria-label="Select all"
         />
       ),
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -278,7 +278,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     {
       accessorKey: "agreement_number",
       header: "Agreement #",
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <div className="font-medium">
           <Link 
             to={`/agreements/${row.original.id}`}
@@ -297,7 +297,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     {
       accessorKey: "customers.full_name",
       header: "Customer",
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         const customer = row.original.customers;
         return (
           <div>
@@ -318,7 +318,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     {
       accessorKey: "vehicles",
       header: "Vehicle",
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         const vehicle = row.original.vehicles;
         return (
           <div>
@@ -359,7 +359,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     {
       accessorKey: "start_date",
       header: "Rental Period",
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         const startDate = row.original.start_date;
         const endDate = row.original.end_date;
         return (
@@ -372,7 +372,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     {
       accessorKey: "total_amount",
       header: "Amount",
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         return (
           <div className="font-medium">
             {formatCurrency(row.original.total_amount)}
@@ -383,7 +383,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         const status = row.getValue("status") as string;
         return (
           <Badge 
@@ -414,7 +414,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
     {
       accessorKey: "created_at",
-      header: ({ column }) => {
+      header: ({ column }: any) => {
         return (
           <Button
             variant="ghost"
@@ -426,7 +426,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </Button>
         );
       },
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         const createdAt = row.original.created_at;
         return (
           <div className="whitespace-nowrap">
@@ -437,7 +437,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
     {
       id: "actions",
-      cell: ({ row }) => {
+      cell: ({ row }: any) => {
         const agreement = row.original;
         
         return (
@@ -477,7 +477,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         );
       },
     },
-  ];
+  ] as ColumnDef<any>[];
 
   const table = useReactTable({
     data: agreements || [],

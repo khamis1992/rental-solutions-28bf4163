@@ -213,17 +213,32 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       
       // Create a flattened version for easier consumption
       const agreement = {
-        ...data,
+        id: data.id,
+        customer_id: data.customer_id,
+        vehicle_id: data.vehicle_id,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        agreement_type: data.agreement_type,
+        agreement_number: data.agreement_number,
+        status: data.status,
+        total_amount: data.total_amount,
+        monthly_payment: data.monthly_payment,
+        agreement_duration: data.agreement_duration,
         customer_name: data.customers?.full_name || 'Unknown Customer',
         license_plate: data.vehicles?.license_plate || 'Unknown',
         vehicle_make: data.vehicles?.make || '',
         vehicle_model: data.vehicles?.model || '',
         vehicle_year: data.vehicles?.year || '',
-        // Handle signature_url with optional chaining
+        created_at: data.created_at,
+        updated_at: data.updated_at,
         signature_url: data.signature_url || null,
-      } as unknown as SimpleAgreement;
+        deposit_amount: data.deposit_amount,
+        notes: data.notes,
+        rent_amount: data.rent_amount,
+        daily_late_fee: data.daily_late_fee
+      };
       
-      return agreement;
+      return agreement as SimpleAgreement;
     } catch (error) {
       console.error('Error fetching agreement:', error);
       return null;
@@ -249,17 +264,32 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         
         // Create a flattened version for easier consumption
         const agreement = {
-          ...data,
+          id: data.id,
+          customer_id: data.customer_id,
+          vehicle_id: data.vehicle_id,
+          start_date: data.start_date,
+          end_date: data.end_date,
+          agreement_type: data.agreement_type,
+          agreement_number: data.agreement_number,
+          status: data.status,
+          total_amount: data.total_amount,
+          monthly_payment: data.monthly_payment,
+          agreement_duration: data.agreement_duration,
           customer_name: data.customers?.full_name || 'Unknown Customer',
           license_plate: data.vehicles?.license_plate || 'Unknown',
           vehicle_make: data.vehicles?.make || '',
           vehicle_model: data.vehicles?.model || '',
           vehicle_year: data.vehicles?.year || '',
-          // Handle signature_url with optional chaining
+          created_at: data.created_at,
+          updated_at: data.updated_at,
           signature_url: data.signature_url || null,
-        } as unknown as SimpleAgreement;
+          deposit_amount: data.deposit_amount,
+          notes: data.notes,
+          rent_amount: data.rent_amount,
+          daily_late_fee: data.daily_late_fee
+        };
         
-        return agreement;
+        return agreement as SimpleAgreement;
       },
     });
   };
