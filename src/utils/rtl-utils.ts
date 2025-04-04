@@ -75,9 +75,31 @@ export const getDirectionalClasses = (classes: string): string => {
     if (cls === 'text-left') return 'text-right';
     if (cls === 'text-right') return 'text-left';
     
+    // Left/right flex alignments
+    if (cls === 'items-start') return 'items-end';
+    if (cls === 'items-end') return 'items-start';
+    if (cls === 'justify-start') return 'justify-end';
+    if (cls === 'justify-end') return 'justify-start';
+    
     // Left/right borders
     if (cls.startsWith('border-l')) return cls.replace('border-l', 'border-r');
     if (cls.startsWith('border-r')) return cls.replace('border-r', 'border-l');
+    
+    // Left/right positioning
+    if (cls.startsWith('left-')) return cls.replace('left-', 'right-');
+    if (cls.startsWith('right-')) return cls.replace('right-', 'left-');
+    
+    // Rounded corners
+    if (cls.includes('rounded-l-')) return cls.replace('rounded-l-', 'rounded-r-');
+    if (cls.includes('rounded-r-')) return cls.replace('rounded-r-', 'rounded-l-');
+    if (cls.includes('rounded-tl-')) return cls.replace('rounded-tl-', 'rounded-tr-');
+    if (cls.includes('rounded-tr-')) return cls.replace('rounded-tr-', 'rounded-tl-');
+    if (cls.includes('rounded-bl-')) return cls.replace('rounded-bl-', 'rounded-br-');
+    if (cls.includes('rounded-br-')) return cls.replace('rounded-br-', 'rounded-bl-');
+    
+    // Space between elements in flexbox
+    if (cls === 'space-x-reverse') return '';
+    if (cls.startsWith('space-x-')) return `${cls} space-x-reverse`;
     
     // Keep other classes unchanged
     return cls;
@@ -85,22 +107,35 @@ export const getDirectionalClasses = (classes: string): string => {
 };
 
 /**
- * Flips icon rotation for RTL support
- * @param degrees - Original rotation in degrees
- * @returns Adjusted rotation for RTL
+ * Returns appropriate directional flex class based on current language
+ * @returns The flex direction class for the current language
  */
-export const getIconRotation = (degrees: number): number => {
+export const getDirectionalFlexClass = (): string => {
+  const { isRTL } = useTranslation();
+  return isRTL ? 'flex-row-reverse' : 'flex-row';
+};
+
+/**
+ * Returns the appropriate text-align class based on current language
+ * @returns The text alignment class for the current language
+ */
+export const getDirectionalTextAlign = (): string => {
+  const { isRTL } = useTranslation();
+  return isRTL ? 'text-right' : 'text-left';
+};
+
+/**
+ * Helper function to get appropriate icon for directional navigation
+ * @param iconType Type of directional icon (e.g., 'arrow', 'chevron')
+ * @returns The icon component to use based on direction
+ */
+export const getDirectionalIcon = (iconType: 'arrow' | 'chevron') => {
   const { isRTL } = useTranslation();
   
-  // For certain rotations, we need to flip them in RTL mode
-  if (isRTL) {
-    if (degrees === 0) return 0; // No rotation stays the same
-    if (degrees === 180) return 180; // 180 stays the same
-    
-    // Flip horizontal rotations
-    if (degrees === 90) return 270;
-    if (degrees === 270) return 90;
+  // You will need to import these from lucide-react where this function is used
+  if (iconType === 'arrow') {
+    return isRTL ? 'ArrowRight' : 'ArrowLeft';
+  } else {
+    return isRTL ? 'ChevronRight' : 'ChevronLeft';
   }
-  
-  return degrees;
 };

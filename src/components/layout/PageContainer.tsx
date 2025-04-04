@@ -7,7 +7,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalClasses } from '@/utils/rtl-utils';
+import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
 
 interface PageContainerProps {
   children: React.ReactNode;
@@ -26,7 +26,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date() // Default to current date instead of fixed date
+  systemDate = new Date() // Default to current date
 }) => {
   const { t } = useI18nTranslation();
   const { direction, isRTL } = useTranslation();
@@ -34,22 +34,25 @@ const PageContainer: React.FC<PageContainerProps> = ({
   // Choose the appropriate arrow icon based on direction
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
   
+  // Calculate the correct padding class based on RTL/LTR
+  const sidebarPaddingClass = isRTL ? 'pr-64' : 'pl-64';
+  
   return (
-    <div className={`min-h-screen ${isRTL ? 'pr-64' : 'pl-64'} w-full`} dir={direction}>
+    <div className={`min-h-screen ${sidebarPaddingClass} w-full transition-all duration-300`} dir={direction}>
       <Header />
       <main className={cn("p-6 animate-fade-in", className)}>
         {backLink && (
           <Link 
             to={backLink} 
-            className={`inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+            className={`inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors ${getDirectionalFlexClass()}`}
           >
-            <BackArrow className={`${getDirectionalClasses(isRTL ? 'ml-1' : 'mr-1')} h-4 w-4`} />
+            <BackArrow className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
             {t('common.back')}
           </Link>
         )}
         
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className={`mb-6 flex flex-col sm:${getDirectionalFlexClass()} sm:items-center sm:justify-between`}>
+          <div className={isRTL ? 'text-right' : ''}>
             {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
             {description && <p className="text-muted-foreground mt-1">{description}</p>}
             <p className="text-xs text-muted-foreground mt-1">{t('common.systemDate')}: {formatDate(systemDate)}</p>
