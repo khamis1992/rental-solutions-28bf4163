@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
@@ -11,13 +13,13 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateDataConsistency, logOperation } from '@/utils/monitoring-utils';
-import { t } from '@/i18n';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
 }
 
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
+  const { t } = useTranslation();
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
