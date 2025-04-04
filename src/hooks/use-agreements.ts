@@ -55,8 +55,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         `);
 
       // Apply filters based on searchParams
-      if (searchParams.status) {
-        query = query.eq('status', searchParams.status);
+      if (searchParams.status && searchParams.status !== 'all') {
+        // Use type assertion to handle the status filter
+        query = query.eq('status', searchParams.status as any);
       }
 
       if (searchParams.vehicle_id) {
@@ -116,15 +117,18 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   // Create a new agreement
   const createAgreement = useMutation({
     mutationFn: async (newAgreement: Omit<SimpleAgreement, 'id'>) => {
+      // Extract only the fields that are expected by the leases table
       const { data, error } = await supabase
         .from('leases')
-        .insert({
+        .insert([{
           customer_id: newAgreement.customer_id,
           vehicle_id: newAgreement.vehicle_id,
           start_date: newAgreement.start_date,
           end_date: newAgreement.end_date,
-          agreement_type: newAgreement.agreement_type,
-          status: newAgreement.status || 'pending',
+          // Ensure agreement_type is properly typed
+          agreement_type: newAgreement.agreement_type as "short_term" | "lease_to_own",
+          // Ensure status is properly typed
+          status: (newAgreement.status || 'pending') as any,
           total_amount: newAgreement.total_amount,
           monthly_payment: newAgreement.monthly_payment,
           agreement_duration: newAgreement.agreement_duration,
@@ -132,9 +136,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           deposit_amount: newAgreement.deposit_amount,
           rent_amount: newAgreement.rent_amount,
           daily_late_fee: newAgreement.daily_late_fee,
-          // Include signature URL if available
           signature_url: newAgreement.signature_url
-        })
+        }])
         .select()
         .single();
 
@@ -162,8 +165,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicle_id: updatedAgreement.vehicle_id,
           start_date: updatedAgreement.start_date,
           end_date: updatedAgreement.end_date,
-          agreement_type: updatedAgreement.agreement_type,
-          status: updatedAgreement.status,
+          // Type assertion for agreement_type
+          agreement_type: updatedAgreement.agreement_type as "short_term" | "lease_to_own",
+          // Type assertion for status
+          status: updatedAgreement.status as any,
           total_amount: updatedAgreement.total_amount,
           monthly_payment: updatedAgreement.monthly_payment,
           agreement_duration: updatedAgreement.agreement_duration,
@@ -171,7 +176,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           deposit_amount: updatedAgreement.deposit_amount,
           rent_amount: updatedAgreement.rent_amount,
           daily_late_fee: updatedAgreement.daily_late_fee,
-          // Include signature URL if available
           signature_url: updatedAgreement.signature_url
         })
         .eq('id', id)
@@ -208,16 +212,18 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (error) throw error;
       
       // Create a flattened version for easier consumption
-      return {
+      const agreement = {
         ...data,
         customer_name: data.customers?.full_name || 'Unknown Customer',
         license_plate: data.vehicles?.license_plate || 'Unknown',
         vehicle_make: data.vehicles?.make || '',
         vehicle_model: data.vehicles?.model || '',
         vehicle_year: data.vehicles?.year || '',
-        // Include signature URL if available
+        // Handle signature_url with optional chaining
         signature_url: data.signature_url || null,
-      } as SimpleAgreement;
+      } as unknown as SimpleAgreement;
+      
+      return agreement;
     } catch (error) {
       console.error('Error fetching agreement:', error);
       return null;
@@ -242,16 +248,18 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         if (error) throw error;
         
         // Create a flattened version for easier consumption
-        return {
+        const agreement = {
           ...data,
           customer_name: data.customers?.full_name || 'Unknown Customer',
           license_plate: data.vehicles?.license_plate || 'Unknown',
           vehicle_make: data.vehicles?.make || '',
           vehicle_model: data.vehicles?.model || '',
           vehicle_year: data.vehicles?.year || '',
-          // Include signature URL if available
+          // Handle signature_url with optional chaining
           signature_url: data.signature_url || null,
-        } as SimpleAgreement;
+        } as unknown as SimpleAgreement;
+        
+        return agreement;
       },
     });
   };
