@@ -222,6 +222,7 @@
     "addNew": "Add New Vehicle",
     "addToFleet": "Add a new vehicle to your fleet",
     "addSuccess": "Vehicle added successfully",
+    "unknown": "Unknown vehicle",
     "unknownError": "An unknown error occurred",
     "notFound": "Vehicle not found",
     "notFoundDesc": "The vehicle you're looking for doesn't exist or has been removed.",
@@ -309,7 +310,9 @@
     "trafficViolations": "Traffic violations associated with this customer",
     "additionalNotes": "Additional Notes",
     "noAdditionalNotes": "No additional notes for this customer.",
-    "noTrafficFines": "No traffic fines found for this customer."
+    "noTrafficFines": "No traffic fines found for this customer.",
+    "awaitingVehicle": "Customer is waiting for vehicle delivery",
+    "vehicleStatus": "Vehicle Status"
   },
   "agreements": {
     "title": "Rental Agreements",

@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -50,7 +51,8 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
-  const { isRTL } = useContextTranslation();
+  const { isRTL, translateText } = useContextTranslation();
+  const [translatedNotes, setTranslatedNotes] = useState<string | null>(null);
 
   const fetchCustomer = useCallback(async () => {
     if (!id || hasLoaded) return;
@@ -63,6 +65,17 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
       if (data) {
         setCustomer(data);
         setHasLoaded(true);
+        
+        // Translate customer notes if available
+        if (data.notes) {
+          try {
+            const translated = await translateText(data.notes);
+            setTranslatedNotes(translated);
+          } catch (error) {
+            console.error("Error translating notes:", error);
+            setTranslatedNotes(data.notes); // Fall back to original notes
+          }
+        }
       } else {
         setFetchError(t('customers.errorLoadingTitle'));
       }
@@ -73,7 +86,7 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
     } finally {
       setLoading(false);
     }
-  }, [id, getCustomer, hasLoaded, t]);
+  }, [id, getCustomer, hasLoaded, t, translateText]);
 
   useEffect(() => {
     fetchCustomer();
@@ -178,11 +191,11 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
           <CardContent className="space-y-4">
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.emailAddress')}</h4>
-              <p className="text-foreground">{customer.email}</p>
+              <p className="text-foreground">{customer.email || t('common.notProvided')}</p>
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.phoneNumber')}</h4>
-              <p className="text-foreground">{customer.phone}</p>
+              <p className="text-foreground">{customer.phone || t('common.notProvided')}</p>
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.address')}</h4>
@@ -349,7 +362,7 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
         <CardContent>
           <div className="prose prose-sm max-w-none">
             {customer.notes ? (
-              <p className="whitespace-pre-line">{customer.notes}</p>
+              <p className="whitespace-pre-line">{translatedNotes || customer.notes}</p>
             ) : (
               <p className="text-muted-foreground italic">{t('customers.noAdditionalNotes')}</p>
             )}
