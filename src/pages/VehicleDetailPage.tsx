@@ -3,7 +3,7 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2 } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
-import { VehicleDetail } from '@/components/vehicles/VehicleDetail';
+import VehicleDetail from '@/components/vehicles/VehicleDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';

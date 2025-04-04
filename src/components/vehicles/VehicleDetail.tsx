@@ -29,7 +29,7 @@ const VehicleDetail = ({ vehicle }) => {
   } = useMaintenance();
   const {
     agreements,
-    isLoading,
+    loading: isLoading,
     setSearchParams
   } = useAgreements();
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);

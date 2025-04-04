@@ -19,6 +19,8 @@ export type AgreementFilters = {
 type SearchParams = {
   query?: string;
   status?: string;
+  vehicleId?: string;
+  customerId?: string;
 };
 
 export const useAgreements = (initialFilters?: AgreementFilters) => {
@@ -28,7 +30,9 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: initialFilters?.query || '',
-    status: initialFilters?.status || 'all'
+    status: initialFilters?.status || 'all',
+    vehicleId: initialFilters?.vehicleId || '',
+    customerId: initialFilters?.customerId || ''
   });
   const isLoading = loading;
 

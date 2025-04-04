@@ -1,4 +1,3 @@
-// Fix status comparison issues
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +15,7 @@ const CustomerDetail = ({ customer }) => {
   const { customerId } = useParams<{ customerId: string }>();
   const [activeAgreements, setActiveAgreements] = useState<SimpleAgreement[]>([]);
   
-  const { agreements, isLoading, error } = useAgreements({ customerId: customer.id });
+  const { agreements, loading: isLoading, error } = useAgreements({ customerId: customer.id });
   
   useEffect(() => {
     if (agreements) {
@@ -26,15 +25,15 @@ const CustomerDetail = ({ customer }) => {
   
   const getBadgeVariant = (status) => {
     switch (status.toLowerCase()) {
-      case AgreementStatus.ACTIVE.toLowerCase():
+      case 'active':
         return "success";
-      case AgreementStatus.PENDING.toLowerCase():
+      case 'pending':
         return "warning";
-      case AgreementStatus.CANCELLED.toLowerCase():
+      case 'cancelled':
         return "destructive";
-      case AgreementStatus.CLOSED.toLowerCase():
+      case 'closed':
         return "outline";
-      case AgreementStatus.EXPIRED.toLowerCase():
+      case 'expired':
         return "secondary";
       default:
         return "default";

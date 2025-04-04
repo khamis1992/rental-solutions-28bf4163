@@ -1,53 +1,48 @@
-
-import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
-import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
+import { toast } from 'sonner';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
-// Helper function to adapt SimpleAgreement to Agreement type for detail pages
 export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Agreement => {
-  return {
+  const agreement: Agreement = {
     ...simpleAgreement,
-    id: simpleAgreement.id,
-    customer_id: simpleAgreement.customer_id,
-    vehicle_id: simpleAgreement.vehicle_id,
-    start_date: simpleAgreement.start_date ? new Date(simpleAgreement.start_date) : new Date(),
-    end_date: simpleAgreement.end_date ? new Date(simpleAgreement.end_date) : new Date(),
-    status: simpleAgreement.status as typeof AgreementStatus[keyof typeof AgreementStatus],
-    created_at: simpleAgreement.created_at ? new Date(simpleAgreement.created_at) : undefined,
-    updated_at: simpleAgreement.updated_at ? new Date(simpleAgreement.updated_at) : undefined,
-    total_amount: simpleAgreement.total_amount || 0,
-    deposit_amount: simpleAgreement.deposit_amount || 0,
-    agreement_number: simpleAgreement.agreement_number || '',
-    notes: simpleAgreement.notes || '',
-    terms_accepted: true,
-    additional_drivers: [],
-    rent_amount: simpleAgreement.rent_amount || 0,
-    daily_late_fee: simpleAgreement.daily_late_fee || 0
+    customer_name: simpleAgreement.customer_name || (simpleAgreement.customers?.full_name || 'Unknown'),
+    license_plate: simpleAgreement.license_plate || (simpleAgreement.vehicles?.license_plate || 'Unknown'),
+    vehicle_make: simpleAgreement.vehicle_make || (simpleAgreement.vehicles?.make || 'Unknown'),
+    vehicle_model: simpleAgreement.vehicle_model || (simpleAgreement.vehicles?.model || 'Unknown'),
+    vehicle_year: simpleAgreement.vehicle_year || (simpleAgreement.vehicles?.year || 'Unknown'),
   };
+
+  if ('created_at' in simpleAgreement) {
+    agreement.created_at = simpleAgreement.created_at;
+  }
+
+  if ('updated_at' in simpleAgreement) {
+    agreement.updated_at = simpleAgreement.updated_at;
+  }
+
+  return agreement;
 };
 
 export const updateAgreementWithCheck = async (
-  params: { id: string; data: any },
-  userId: string | undefined, 
-  onSuccess: () => void,
-  onError: (error: any) => void
+  { id, data }: { id: string; data: Partial<Agreement> },
+  userId?: string,
+  onSuccess?: () => void,
+  onError?: (error: any) => void
 ) => {
   try {
     if (!userId) {
       console.warn("User ID is not available. Proceeding without user-specific checks.");
     }
 
-    // Check if status is being changed to active
-    const isChangingToActive = params.data.status === 'active';
-    
-    // If changing to active, first check the current status
+    const isChangingToActive = data.status === 'active';
+
     let currentStatus: string | null = null;
     if (isChangingToActive) {
       const { data: currentAgreement, error: fetchError } = await supabase
         .from('leases')
         .select('status')
-        .eq('id', params.id)
+        .eq('id', id)
         .single();
         
       if (fetchError) {
@@ -57,10 +52,8 @@ export const updateAgreementWithCheck = async (
       }
     }
 
-    // Remove any non-database fields to prevent errors
-    const cleanData = { ...params.data };
-    
-    // Remove potential non-database fields that might cause issues
+    const cleanData = { ...data };
+
     const fieldsToExclude = [
       'customer_data', 
       'vehicle_data', 
@@ -74,7 +67,6 @@ export const updateAgreementWithCheck = async (
       if (field in cleanData) delete cleanData[field];
     });
 
-    // Optimistic update
     toast.success("Agreement update initiated...");
 
     console.log("Sending data to update:", cleanData);
@@ -82,7 +74,7 @@ export const updateAgreementWithCheck = async (
     const { data, error } = await supabase
       .from('leases')
       .update(cleanData)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -94,11 +86,10 @@ export const updateAgreementWithCheck = async (
       console.log("Agreement updated successfully:", data);
       toast.success("Agreement updated successfully!");
       
-      // If the status was changed to active and it wasn't active before, generate payment schedule
       if (isChangingToActive && currentStatus !== 'active') {
-        console.log(`Agreement ${params.id} status changed to active. Generating payment schedule...`);
+        console.log(`Agreement ${id} status changed to active. Generating payment schedule...`);
         try {
-          const result = await forceGeneratePaymentForAgreement(supabase, params.id);
+          const result = await forceGeneratePaymentForAgreement(supabase, id);
           if (result.success) {
             toast.success("Payment schedule generated automatically");
           } else {
@@ -120,13 +111,11 @@ export const updateAgreementWithCheck = async (
   }
 };
 
-// Check if a vehicle is available or assigned to another active agreement
 export const checkVehicleAvailability = async (vehicleId: string): Promise<{ 
   isAvailable: boolean; 
   existingAgreement?: any 
 }> => {
   try {
-    // Check if vehicle is assigned to any active agreement
     const { data, error } = await supabase
       .from('leases')
       .select('*')
@@ -136,32 +125,26 @@ export const checkVehicleAvailability = async (vehicleId: string): Promise<{
 
     if (error) {
       if (error.code === 'PGRST116') {
-        // No active agreements found for this vehicle - it's available
         return { isAvailable: true };
       }
-      // Other errors
       console.error("Error checking vehicle availability:", error);
       throw error;
     }
 
-    // If we got data, the vehicle is assigned to an active agreement
     return { 
       isAvailable: false,
       existingAgreement: data
     };
   } catch (error) {
     console.error("Error in checkVehicleAvailability:", error);
-    // Default to available in case of unexpected errors to prevent blocking the flow
     return { isAvailable: true };
   }
 };
 
-// Function to activate an agreement and handle existing agreements for the same vehicle
 export const activateAgreement = async (agreementId: string, vehicleId: string): Promise<boolean> => {
   try {
     console.log(`Activating agreement ${agreementId} for vehicle ${vehicleId}`);
     
-    // Check if vehicle is assigned to any active agreements
     const { data: existingAgreements, error: checkError } = await supabase
       .from('leases')
       .select('id, agreement_number')
@@ -174,12 +157,10 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
       return false;
     }
     
-    // Close any existing active agreements for this vehicle
     if (existingAgreements && existingAgreements.length > 0) {
       console.log(`Found ${existingAgreements.length} active agreements to close`);
       
       for (const agreement of existingAgreements) {
-        // Skip if this is the same agreement we're trying to activate
         if (agreement.id === agreementId) continue;
         
         console.log(`Closing agreement ${agreement.agreement_number} (${agreement.id})`);
@@ -198,7 +179,6 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
       }
     }
     
-    // Update vehicle status
     const { error: vehicleUpdateError } = await supabase
       .from('vehicles')
       .update({ status: 'rented' })
@@ -210,9 +190,7 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
       return false;
     }
     
-    // Generate payment record for the agreement
     try {
-      // First get the agreement details to have the rent amount
       const { data: agreement, error: agreementError } = await supabase
         .from('leases')
         .select('rent_amount, agreement_number')
@@ -247,7 +225,6 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
   }
 };
 
-// Function to check for active agreements without payment schedules and create them
 export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
   success: boolean;
   generatedCount: number;
@@ -257,12 +234,10 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
   try {
     console.log("Checking for active agreements without payment schedules");
     
-    // Get current month and year
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentYear = today.getFullYear();
     
-    // Find active agreements
     const { data: activeAgreements, error: agreementsError } = await supabase
       .from('leases')
       .select('id, rent_amount, agreement_number, start_date, daily_late_fee')
@@ -293,7 +268,6 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
     let skippedCount = 0;
     let errorCount = 0;
     
-    // For each active agreement, check if there's a payment for each month from start date to current month
     for (const agreement of activeAgreements) {
       if (!agreement.start_date) {
         console.warn(`Agreement ${agreement.agreement_number} has no start date, skipping`);
@@ -303,16 +277,12 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
       
       const startDate = new Date(agreement.start_date);
       
-      // Only consider agreements that started before or in the current month
       if (startDate <= new Date(currentYear, currentMonth + 1, 0)) {
-        // Calculate all months from start date to current month
         const startMonth = startDate.getMonth();
         const startYear = startDate.getFullYear();
         
-        // Calculate total number of months to check
         const totalMonths = (currentYear - startYear) * 12 + (currentMonth - startMonth) + 1;
         
-        // Get all existing payments for this agreement
         const { data: existingPayments, error: paymentsError } = await supabase
           .from('unified_payments')
           .select('id, payment_date, original_due_date')
@@ -325,11 +295,9 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
           continue;
         }
         
-        // Create a set of months that already have payments
         const paidMonths = new Set<string>();
         if (existingPayments) {
           existingPayments.forEach(payment => {
-            // Use original_due_date if available, otherwise use payment_date
             const dateToUse = payment.original_due_date || payment.payment_date;
             if (dateToUse) {
               const paymentDate = new Date(dateToUse);
@@ -338,13 +306,10 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
           });
         }
         
-        // Check each month from start date to current month
         for (let i = 0; i < totalMonths; i++) {
-          // Calculate the month we're checking
           const monthToCheck = new Date(startYear, startMonth + i, 1);
           const monthKey = `${monthToCheck.getMonth()}-${monthToCheck.getFullYear()}`;
           
-          // If there's no payment for this month, generate one
           if (!paidMonths.has(monthKey)) {
             console.log(`Generating payment for agreement ${agreement.agreement_number} for ${monthToCheck.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
             
