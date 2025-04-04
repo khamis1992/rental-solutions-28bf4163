@@ -85,6 +85,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        {/* Changed the provider order - AuthProvider must wrap ProfileProvider */}
         <AuthProvider>
           <ProfileProvider>
             <TranslationProvider>
@@ -181,6 +182,6 @@ function App() {
       </BrowserRouter>
     </QueryClientProvider>
   );
-};
+}
 
 export default App;
