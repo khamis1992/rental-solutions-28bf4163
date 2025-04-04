@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { FlattenType } from '@/utils/type-utils';
 
 // Define the SimpleAgreement interface that matches both the database structure and component expectations
 export interface SimpleAgreement {
@@ -67,6 +68,23 @@ interface SearchParams {
   vehicle_id?: string;
 }
 
+// Helper function to map database status to application status
+const mapDatabaseStatus = (status: string): string => {
+  // Map from lease_status (enum from DB) to AgreementStatus (used in UI)
+  const statusMap: Record<string, string> = {
+    'active': 'active',
+    'pending_payment': 'pending',
+    'pending_deposit': 'pending',
+    'draft': 'draft',
+    'expired': 'expired',
+    'cancelled': 'cancelled',
+    'closed': 'closed',
+    'terminated': 'cancelled'
+  };
+  
+  return statusMap[status.toLowerCase()] || status;
+};
+
 // Main hook for agreements
 export const useAgreements = (initialParams?: SearchParams) => {
   const queryClient = useQueryClient();
@@ -81,10 +99,10 @@ export const useAgreements = (initialParams?: SearchParams) => {
       queryKey: ['agreements', searchParams],
       queryFn: async () => {
         let query = supabase
-          .from('leases')  // Query the leases table instead of rental_agreements
+          .from('leases')  // Query the leases table
           .select(`
             *,
-            customer:customer_id(id, first_name, last_name, email, phone),
+            customer:customer_id(id, full_name, email, phone),
             vehicle:vehicle_id(*)
           `)
           .order('created_at', { ascending: false });
@@ -92,8 +110,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
         // Apply filters based on search parameters
         if (searchParams.query && searchParams.query.trim() !== '') {
           query = query.or(`
-            customer.first_name.ilike.%${searchParams.query}%,
-            customer.last_name.ilike.%${searchParams.query}%,
+            customer.full_name.ilike.%${searchParams.query}%,
             customer.phone.ilike.%${searchParams.query}%,
             vehicle.license_plate.ilike.%${searchParams.query}%,
             agreement_number.ilike.%${searchParams.query}%
@@ -130,25 +147,21 @@ export const useAgreements = (initialParams?: SearchParams) => {
         
         // Transform the data to match the SimpleAgreement interface
         return (data || []).map(item => {
-          // Combine first_name and last_name for customer's full_name
-          const customer = item.customer ? {
-            ...item.customer,
-            full_name: item.customer.first_name && item.customer.last_name 
-              ? `${item.customer.first_name} ${item.customer.last_name}`
-              : 'Unknown'
-          } : undefined;
+          const customerData = item.customer || {};
           
           // Ensure the data structure has all required fields
-          const agreement: SimpleAgreement = {
+          const agreement: FlattenType<SimpleAgreement> = {
             ...item,
+            // Map status to expected format
+            status: mapDatabaseStatus(item.status || ''),
             // Ensure these fields exist with correct names
-            total_amount: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
+            total_amount: item.total_amount || 0,
             agreement_number: item.agreement_number || '',
             // Add aliases for compatibility
-            customers: customer,
+            customers: customerData,
             vehicles: item.vehicle,
-            total_cost: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
-            customer: customer
+            total_cost: item.total_amount || 0,
+            customer: customerData
           };
           return agreement;
         });
@@ -232,7 +245,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       .from('leases')  // Get from leases table
       .select(`
         *,
-        customer:customer_id(id, first_name, last_name, email, phone),
+        customer:customer_id(id, full_name, email, phone),
         vehicle:vehicle_id(*),
         payments(*)
       `)
@@ -243,25 +256,21 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
-    // Process customer data to add full_name
-    const customer = data.customer ? {
-      ...data.customer,
-      full_name: data.customer.first_name && data.customer.last_name 
-        ? `${data.customer.first_name} ${data.customer.last_name}`
-        : 'Unknown'
-    } : undefined;
-
     // Make sure the returned data conforms to SimpleAgreement structure
-    const agreement: SimpleAgreement = {
+    const customerData = data.customer || {};
+    
+    const agreement: FlattenType<SimpleAgreement> = {
       ...data,
+      // Map status to expected format
+      status: mapDatabaseStatus(data.status || ''),
       // Ensure these fields exist with correct names
-      total_amount: data.total_amount !== undefined ? data.total_amount : (data.total_cost || 0),
+      total_amount: data.total_amount || 0,
       agreement_number: data.agreement_number || '',
       // Add aliases for compatibility
-      customers: customer,
+      customers: customerData,
       vehicles: data.vehicle,
-      total_cost: data.total_amount !== undefined ? data.total_amount : (data.total_cost || 0),
-      customer: customer
+      total_cost: data.total_amount || 0,
+      customer: customerData
     };
 
     return agreement;
@@ -273,7 +282,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       .from('leases')  // Get from leases table
       .select(`
         *,
-        customer:customer_id(id, first_name, last_name, email, phone),
+        customer:customer_id(id, full_name, email, phone),
         vehicle:vehicle_id(*)
       `)
       .order('created_at', { ascending: false });
@@ -295,24 +304,20 @@ export const useAgreements = (initialParams?: SearchParams) => {
 
     // Transform the data to match the SimpleAgreement interface
     return (data || []).map(item => {
-      // Combine first_name and last_name for customer's full_name
-      const customer = item.customer ? {
-        ...item.customer,
-        full_name: item.customer.first_name && item.customer.last_name 
-          ? `${item.customer.first_name} ${item.customer.last_name}`
-          : 'Unknown'
-      } : undefined;
+      const customerData = item.customer || {};
       
-      const agreement: SimpleAgreement = {
+      const agreement: FlattenType<SimpleAgreement> = {
         ...item,
+        // Map status to expected format
+        status: mapDatabaseStatus(item.status || ''),
         // Ensure these fields exist with correct names
-        total_amount: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
+        total_amount: item.total_amount || 0,
         agreement_number: item.agreement_number || '',
         // Add aliases for compatibility
-        customers: customer,
+        customers: customerData,
         vehicles: item.vehicle,
-        total_cost: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
-        customer: customer
+        total_cost: item.total_amount || 0,
+        customer: customerData
       };
       return agreement;
     });
