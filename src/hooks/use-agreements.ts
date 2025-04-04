@@ -26,7 +26,7 @@ export type SimpleAgreement = {
   vehicle_year?: number;
   created_at?: string;
   updated_at?: string;
-  signature_url?: string;
+  signature_url?: string | null; // Add this field to the type definition
   deposit_amount?: number;
   notes?: string;
   customers?: any;
@@ -147,6 +147,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       // Use the helper function to map status
       const mappedStatus = mapDBStatusToEnum(data.status);
 
+      // Create agreement object with proper type signature
       const agreement: SimpleAgreement = {
         id: data.id,
         customer_id: data.customer_id,
@@ -162,7 +163,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         notes: data.notes || '',
         customers: customerData,
         vehicles: vehicleData,
-        signature_url: data.signature_url,
+        signature_url: data.signature_url || null, // Handle signature_url safely
         rent_amount: data.rent_amount || 0,
         daily_late_fee: data.daily_late_fee || 0
       };
@@ -283,7 +284,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           notes: item.notes || '',
           customers: item.profiles,
           vehicles: item.vehicles,
-          signature_url: item.signature_url,
+          signature_url: item.signature_url || null, // Handle signature_url safely
           rent_amount: item.rent_amount || 0,
           daily_late_fee: item.daily_late_fee || 0
         };
@@ -300,7 +301,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement; // Implementation placeholder
   };
 
-  // Simplified update mutation
+  // Simplified update mutation to fix excessive type instantiation
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
