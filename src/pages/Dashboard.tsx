@@ -11,6 +11,7 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -30,6 +31,7 @@ if (typeof window !== 'undefined') {
 const Dashboard = () => {
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { t } = useI18nTranslation();
   
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -43,8 +45,8 @@ const Dashboard = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title="Dashboard"
-        description="Overview of your rental operations"
+        title={t('dashboard.title')}
+        description={t('dashboard.description')}
         icon={LayoutDashboard}
         actions={
           <CustomButton 
@@ -54,7 +56,7 @@ const Dashboard = () => {
             disabled={isRefreshing}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            {isRefreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
           </CustomButton>
         }
       />
@@ -81,7 +83,7 @@ const Dashboard = () => {
           </>
         ) : isError ? (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
-            Failed to load dashboard data. Please try again later.
+            {t('common.loading')}
             {error && <p className="text-sm mt-1">{error.toString()}</p>}
           </div>
         ) : (

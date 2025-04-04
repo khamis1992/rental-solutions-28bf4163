@@ -25,7 +25,9 @@
     "status": "الحالة",
     "confirm": "تأكيد",
     "back": "رجوع",
-    "next": "التالي"
+    "next": "التالي",
+    "total": "المجموع",
+    "available": "متاح"
   },
   "dashboard": {
     "title": "لوحة القيادة",

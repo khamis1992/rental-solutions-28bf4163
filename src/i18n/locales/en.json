@@ -25,7 +25,9 @@
     "status": "Status",
     "confirm": "Confirm",
     "back": "Back",
-    "next": "Next"
+    "next": "Next",
+    "total": "Total",
+    "available": "Available"
   },
   "dashboard": {
     "title": "Dashboard",
