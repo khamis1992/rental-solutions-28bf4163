@@ -83,7 +83,7 @@ export const forceGeneratePaymentForAgreement = async (
     // Get the agreement details
     const { data: agreement, error } = await supabase
       .from('leases')
-      .select('id, agreement_number, rent_amount, start_date, status, daily_late_fee')
+      .select('id, agreement_number, rent_amount, total_amount, start_date, status, daily_late_fee')
       .eq('id', agreementId)
       .single();
       
@@ -100,8 +100,32 @@ export const forceGeneratePaymentForAgreement = async (
       return { success: false, message: `Agreement is not active (status: ${agreement.status})` };
     }
     
-    if (!agreement.rent_amount) {
-      return { success: false, message: "Agreement has no rent amount" };
+    // Check for rent_amount and use total_amount as fallback if needed
+    let rentAmount = agreement.rent_amount;
+    if (!rentAmount) {
+      if (agreement.total_amount) {
+        console.log(`Agreement ${agreement.agreement_number} has no rent_amount, using total_amount ${agreement.total_amount} as fallback`);
+        rentAmount = agreement.total_amount;
+      } else {
+        console.error(`Agreement ${agreement.agreement_number} has no rent amount or total amount`);
+        
+        // Auto-fix: set a default rent amount and update the agreement
+        const defaultRentAmount = 1500; // Default value in QAR
+        console.log(`Setting default rent amount of ${defaultRentAmount} QAR for agreement ${agreement.agreement_number}`);
+        
+        const { error: updateError } = await supabase
+          .from('leases')
+          .update({ rent_amount: defaultRentAmount })
+          .eq('id', agreementId);
+          
+        if (updateError) {
+          console.error("Failed to set default rent amount:", updateError);
+          return { success: false, message: `Agreement has no rent amount and auto-fix failed: ${updateError.message}` };
+        }
+        
+        rentAmount = defaultRentAmount;
+        toast.success(`Set default rent amount of ${defaultRentAmount} QAR for agreement ${agreement.agreement_number}`);
+      }
     }
     
     // Determine which month to generate for
@@ -146,9 +170,9 @@ export const forceGeneratePaymentForAgreement = async (
       .from('unified_payments')
       .insert({
         lease_id: agreementId,
-        amount: agreement.rent_amount,
+        amount: rentAmount,
         amount_paid: 0,
-        balance: agreement.rent_amount,
+        balance: rentAmount,
         description: `Monthly Rent - ${monthToGenerate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
         type: 'rent',
         status: 'pending',

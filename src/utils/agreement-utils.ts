@@ -198,7 +198,7 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
     try {
       const { data: agreement, error: agreementError } = await supabase
         .from('leases')
-        .select('rent_amount, agreement_number')
+        .select('rent_amount, total_amount, agreement_number')
         .eq('id', agreementId)
         .single();
       
@@ -206,6 +206,20 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
         console.error("Error fetching agreement details for payment generation:", agreementError);
         toast.warning("Agreement activated, but could not generate payment schedule");
       } else if (agreement) {
+        // If rent_amount is missing but total_amount exists, update rent_amount
+        if (!agreement.rent_amount && agreement.total_amount) {
+          const { error: updateError } = await supabase
+            .from('leases')
+            .update({ rent_amount: agreement.total_amount })
+            .eq('id', agreementId);
+            
+          if (updateError) {
+            console.error("Error updating rent_amount:", updateError);
+          } else {
+            console.log(`Updated rent_amount to ${agreement.total_amount} for agreement ${agreement.agreement_number}`);
+          }
+        }
+        
         console.log(`Generating payment schedule for agreement ${agreement.agreement_number}`);
         
         const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
@@ -246,7 +260,7 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
     
     const { data: activeAgreements, error: agreementsError } = await supabase
       .from('leases')
-      .select('id, rent_amount, agreement_number, start_date, daily_late_fee')
+      .select('id, rent_amount, total_amount, agreement_number, start_date, daily_late_fee')
       .eq('status', 'active');
       
     if (agreementsError) {
@@ -273,12 +287,50 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
     let generatedCount = 0;
     let skippedCount = 0;
     let errorCount = 0;
+    let fixedMissingRentAmounts = 0;
     
     for (const agreement of activeAgreements) {
       if (!agreement.start_date) {
         console.warn(`Agreement ${agreement.agreement_number} has no start date, skipping`);
         skippedCount++;
         continue;
+      }
+      
+      // Fix agreements with missing rent_amount but with total_amount
+      if (!agreement.rent_amount && agreement.total_amount) {
+        console.log(`Fixing missing rent_amount for agreement ${agreement.agreement_number} using total_amount ${agreement.total_amount}`);
+        
+        const { error: updateError } = await supabase
+          .from('leases')
+          .update({ rent_amount: agreement.total_amount })
+          .eq('id', agreement.id);
+          
+        if (updateError) {
+          console.error(`Failed to update rent_amount for agreement ${agreement.id}:`, updateError);
+        } else {
+          console.log(`Successfully updated rent_amount for agreement ${agreement.agreement_number}`);
+          agreement.rent_amount = agreement.total_amount; // Update the local copy for further processing
+          fixedMissingRentAmounts++;
+        }
+      }
+      
+      // Set default rent amount if both rent_amount and total_amount are missing
+      if (!agreement.rent_amount && !agreement.total_amount) {
+        const defaultRentAmount = 1500; // Default rent in QAR
+        console.log(`Setting default rent amount of ${defaultRentAmount} for agreement ${agreement.agreement_number}`);
+        
+        const { error: updateError } = await supabase
+          .from('leases')
+          .update({ rent_amount: defaultRentAmount })
+          .eq('id', agreement.id);
+          
+        if (updateError) {
+          console.error(`Failed to set default rent_amount for agreement ${agreement.id}:`, updateError);
+        } else {
+          console.log(`Successfully set default rent_amount for agreement ${agreement.agreement_number}`);
+          agreement.rent_amount = defaultRentAmount; // Update the local copy for further processing
+          fixedMissingRentAmounts++;
+        }
       }
       
       const startDate = new Date(agreement.start_date);
@@ -320,7 +372,6 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
             console.log(`Generating payment for agreement ${agreement.agreement_number} for ${monthToCheck.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
             
             try {
-              const { forceGeneratePaymentForAgreement } = await import('@/lib/validation-schemas/agreement');
               const result = await forceGeneratePaymentForAgreement(supabase, agreement.id, monthToCheck);
               
               if (result.success) {
@@ -344,12 +395,12 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
       }
     }
     
-    console.log(`Completed checking ${activeAgreements.length} agreements. Generated ${generatedCount} payment schedules. Skipped ${skippedCount} months with existing payments. Encountered ${errorCount} errors.`);
+    console.log(`Completed checking ${activeAgreements.length} agreements. Generated ${generatedCount} payment schedules. Skipped ${skippedCount} months with existing payments. Fixed ${fixedMissingRentAmounts} agreements with missing rent amounts. Encountered ${errorCount} errors.`);
     
     return {
       success: true,
       generatedCount,
-      message: `Generated ${generatedCount} payment schedules. Skipped ${skippedCount} months with existing payments. Encountered ${errorCount} errors.`
+      message: `Generated ${generatedCount} payment schedules. Fixed ${fixedMissingRentAmounts} agreements with missing rent amounts. Skipped ${skippedCount} months with existing payments. Encountered ${errorCount} errors.`
     };
   } catch (error) {
     console.error("Unexpected error in checkAndCreateMissingPaymentSchedules:", error);
