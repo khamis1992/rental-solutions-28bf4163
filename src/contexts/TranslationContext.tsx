@@ -1,124 +1,80 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import en from '@/i18n/locales/en.json';
-import ar from '@/i18n/locales/ar.json';
+import i18n from '@/i18n';
+import { translateText } from '@/utils/translation-api';
 
-type TranslationContextType = {
-  t: (key: string) => string;
-  setLanguage: (lang: string) => void;
+type Direction = 'ltr' | 'rtl';
+
+interface TranslationContextProps {
   language: string;
-  translations: Record<string, any>;
+  direction: Direction;
   isRTL: boolean;
-  direction: string;
   changeLanguage: (lang: string) => void;
   translateText: (text: string, targetLang?: string) => Promise<string>;
-};
+}
 
-const languages = {
-  en,
-  ar,
-};
-
-const defaultLanguage = 'en';
-
-const TranslationContext = createContext<TranslationContextType>({
-  t: () => '',
-  setLanguage: () => {},
-  language: defaultLanguage,
-  translations: languages[defaultLanguage as keyof typeof languages],
-  isRTL: false,
+const TranslationContext = createContext<TranslationContextProps>({
+  language: 'en',
   direction: 'ltr',
+  isRTL: false,
   changeLanguage: () => {},
   translateText: async () => '',
 });
 
+export const useTranslation = () => useContext(TranslationContext);
+
 export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguage] = useState(defaultLanguage);
-  const [translations, setTranslations] = useState(languages[defaultLanguage as keyof typeof languages]);
-
-  useEffect(() => {
-    // Check for stored language preference
-    const storedLanguage = localStorage.getItem('language');
-    if (storedLanguage && (storedLanguage === 'en' || storedLanguage === 'ar')) {
-      setLanguage(storedLanguage);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Update translations when language changes
-    setTranslations(languages[language as keyof typeof languages] || languages.en);
-    localStorage.setItem('language', language);
-    
-    // Set document direction based on language
-    if (language === 'ar') {
-      document.documentElement.dir = 'rtl';
-      document.documentElement.lang = 'ar';
-      document.body.classList.add('rtl');
-    } else {
-      document.documentElement.dir = 'ltr';
-      document.documentElement.lang = 'en';
-      document.body.classList.remove('rtl');
-    }
-  }, [language]);
-
-  const translate = (key: string): string => {
-    if (!key) return '';
-    
-    // Navigate nested translation objects (e.g., "common.save")
-    const keys = key.split('.');
-    let result = translations;
-    
-    for (const k of keys) {
-      if (result && result[k]) {
-        result = result[k];
-      } else {
-        // Return key if translation not found
-        return key;
-      }
-    }
-    
-    return typeof result === 'string' ? result : key;
-  };
-
-  // Function to translate text using an external service
-  const translateText = async (text: string, targetLang: string = language): Promise<string> => {
-    if (!text) return '';
-    
-    try {
-      // In a real implementation, this would call a translation API
-      // For now, we'll just return the original text as a placeholder
-      console.log(`Would translate "${text}" to ${targetLang}`);
-      return text;
-    } catch (error) {
-      console.error('Translation error:', error);
-      return text;
-    }
-  };
+  const [language, setLanguage] = useState(localStorage.getItem('language') || 'en');
+  const [direction, setDirection] = useState<Direction>(language === 'ar' ? 'rtl' : 'ltr');
+  const isRTL = direction === 'rtl';
 
   const changeLanguage = (lang: string) => {
-    if (lang && (lang === 'en' || lang === 'ar')) {
+    try {
+      console.log(`Changing language to: ${lang}`);
+      i18n.changeLanguage(lang);
       setLanguage(lang);
+      localStorage.setItem('language', lang);
+      
+      const newDirection = lang === 'ar' ? 'rtl' : 'ltr';
+      setDirection(newDirection);
+      
+      // Set HTML dir attribute for the entire document
+      document.documentElement.dir = newDirection;
+      document.documentElement.lang = lang;
+      
+      console.log(`Language changed successfully to: ${lang}, direction: ${newDirection}`);
+    } catch (error) {
+      console.error('Error changing language:', error);
     }
   };
 
-  const contextValue: TranslationContextType = {
-    t: translate,
-    setLanguage,
-    language,
-    translations,
-    isRTL: language === 'ar',
-    direction: language === 'ar' ? 'rtl' : 'ltr',
-    changeLanguage,
-    translateText,
+  // Function to translate text dynamically
+  const translateTextFn = async (text: string, targetLang?: string): Promise<string> => {
+    if (!text) return '';
+    
+    const target = targetLang || language;
+    if (target === 'en') return text; // Don't translate if target is English
+    
+    return await translateText(text, 'en', target);
   };
 
+  // Initialize direction on mount
+  useEffect(() => {
+    document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.lang = language;
+  }, [language]);
+
   return (
-    <TranslationContext.Provider value={contextValue}>
+    <TranslationContext.Provider 
+      value={{ 
+        language, 
+        direction, 
+        isRTL,
+        changeLanguage, 
+        translateText: translateTextFn
+      }}
+    >
       {children}
     </TranslationContext.Provider>
   );
 };
-
-export const useTranslation = () => useContext(TranslationContext);
-
-export default TranslationContext;

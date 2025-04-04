@@ -3,8 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 interface RevenueChartProps {
   data: { name: string; revenue: number }[];
@@ -12,9 +10,6 @@ interface RevenueChartProps {
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
-  const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
-  
   // Get current month name for dynamic title
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   
@@ -43,22 +38,18 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
     }));
   };
   
-  // In RTL mode, reverse the array order for correct display
   const completeData = ensureCompleteData(data);
-  const displayData = isRTL ? [...completeData].reverse() : completeData;
 
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
       <CardHeader className="pb-0">
-        <CardTitle className={isRTL ? 'text-right' : ''}>
-          {t('dashboard.revenueOverview', { month: currentMonth })}
-        </CardTitle>
+        <CardTitle>{`${currentMonth} Revenue Overview`}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={`${fullWidth ? 'h-96' : 'h-80'} dashboard-chart`}>
+        <div className={`${fullWidth ? 'h-96' : 'h-80'}`}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={displayData}
+              data={completeData}
               margin={{
                 top: 20,
                 right: 30,
@@ -78,24 +69,20 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#64748b', fontSize: 12 }}
-                reversed={isRTL}
               />
               <YAxis 
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#64748b', fontSize: 12 }}
                 tickFormatter={(value) => formatCurrency(value).split('.')[0]} // Remove decimals for Y-axis labels
-                orientation={isRTL ? 'right' : 'left'}
               />
               <Tooltip 
-                formatter={(value: number) => [formatCurrency(value), t('dashboard.revenue')]}
+                formatter={(value: number) => [formatCurrency(value), 'Revenue']}
                 contentStyle={{
                   backgroundColor: '#ffffff',
                   border: '1px solid #e2e8f0',
                   borderRadius: '0.5rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  textAlign: isRTL ? 'right' : 'left',
-                  direction: isRTL ? 'rtl' : 'ltr'
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                 }}
               />
               <Area 

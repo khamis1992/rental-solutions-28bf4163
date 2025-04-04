@@ -12,8 +12,6 @@ import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalFlexClass } from '@/utils/rtl-utils';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -34,7 +32,6 @@ const Dashboard = () => {
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
   
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -46,10 +43,7 @@ const Dashboard = () => {
   };
 
   return (
-    <PageContainer
-      title={t('dashboard.title')}
-      description={t('dashboard.description')}
-    >
+    <PageContainer>
       <SectionHeader
         title={t('dashboard.title')}
         description={t('dashboard.description')}
@@ -60,9 +54,8 @@ const Dashboard = () => {
             variant="outline" 
             onClick={handleRefresh} 
             disabled={isRefreshing}
-            className={getDirectionalFlexClass()}
           >
-            <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
             {isRefreshing ? t('dashboard.refreshing') : t('dashboard.refresh')}
           </CustomButton>
         }

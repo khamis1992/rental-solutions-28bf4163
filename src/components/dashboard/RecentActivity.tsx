@@ -6,7 +6,7 @@ import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
@@ -42,7 +42,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   return (
     <Card className="col-span-4 card-transition">
       <CardHeader>
-        <CardTitle className={isRTL ? 'text-right' : ''}>{t('dashboard.recentActivity')}</CardTitle>
+        <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
@@ -54,20 +54,20 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
             {activities.map((activity) => (
               <div 
                 key={activity.id} 
-                className={`flex ${getDirectionalFlexClass()} items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors`}
+                className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                 onClick={() => handleActivityClick(activity)}
               >
-                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} ${isRTL ? 'ml-4' : 'mr-4'}`}>
+                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} ${getDirectionalClasses('mr-4')}`}>
                   {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1">
-                  <div className={`flex ${getDirectionalFlexClass()} items-center justify-between`}>
+                  <div className="flex items-center justify-between">
                     <h4 className="font-medium">
                       {activityTypeTranslations[activity.type as keyof typeof activityTypeTranslations] || activity.title}
                     </h4>
                     <span className="text-xs text-muted-foreground">{activity.time}</span>
                   </div>
-                  <p className={`text-muted-foreground mt-1 ${isRTL ? 'text-right' : ''}`}>{activity.description}</p>
+                  <p className="text-muted-foreground mt-1">{activity.description}</p>
                 </div>
               </div>
             ))}

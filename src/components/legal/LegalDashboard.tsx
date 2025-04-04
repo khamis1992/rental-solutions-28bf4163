@@ -42,7 +42,7 @@ const LegalDashboard = () => {
             className="space-y-4"
             value={activeTab}
             onValueChange={setActiveTab}
-            dir={direction as 'ltr' | 'rtl'}
+            dir={direction}
           >
             <TabsList className={tabsClasses}>
               <TabsTrigger value="documents" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
