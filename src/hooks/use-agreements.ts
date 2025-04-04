@@ -116,7 +116,7 @@ const DEFAULT_VEHICLE = {
 };
 
 // Enhanced type guard to check if an object is a Supabase error
-function isSupabaseError(obj: any): obj is { code: string; message: string } {
+function isSupabaseError(obj: any): obj is { code: string; message: string; details?: string; hint?: string } {
   return obj && 
          typeof obj === 'object' && 
          'code' in obj && 
@@ -140,7 +140,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
           .from('leases')
           .select(`
             *,
-            customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
+            customer:customer_id(id, full_name, email, phone_number, address, driver_license),
             vehicle:vehicle_id(*)
           `)
           .order('created_at', { ascending: false });
@@ -148,7 +148,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
         if (searchParams.query && searchParams.query.trim() !== '') {
           query = query.or(`
             customer.full_name.ilike.%${searchParams.query}%,
-            customer.phone.ilike.%${searchParams.query}%,
+            customer.phone_number.ilike.%${searchParams.query}%,
             vehicle.license_plate.ilike.%${searchParams.query}%,
             agreement_number.ilike.%${searchParams.query}%
           `);
@@ -186,15 +186,15 @@ export const useAgreements = (initialParams?: SearchParams) => {
           let safeCustomerData = {...DEFAULT_CUSTOMER};
           let safeVehicleData = {...DEFAULT_VEHICLE};
           
-          // Process customer data if it exists and is not an error
+          // Process customer data if it exists
           if (item.customer) {
             if (!isSupabaseError(item.customer)) {
               safeCustomerData = {
                 id: item.customer.id || DEFAULT_CUSTOMER.id,
                 full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
                 email: item.customer.email || DEFAULT_CUSTOMER.email,
-                phone: item.customer.phone || item.customer.phone_number || DEFAULT_CUSTOMER.phone,
-                phone_number: item.customer.phone_number || item.customer.phone || DEFAULT_CUSTOMER.phone_number,
+                phone: item.customer.phone_number || DEFAULT_CUSTOMER.phone, // Use phone_number as phone
+                phone_number: item.customer.phone_number || DEFAULT_CUSTOMER.phone_number,
                 address: item.customer.address || DEFAULT_CUSTOMER.address,
                 driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
               };
@@ -203,7 +203,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
             }
           }
           
-          // Process vehicle data if it exists and is not an error
+          // Process vehicle data if it exists
           if (item.vehicle) {
             if (!isSupabaseError(item.vehicle)) {
               safeVehicleData = {
@@ -308,7 +308,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       .from('leases')
       .select(`
         *,
-        customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
+        customer:customer_id(id, full_name, email, phone_number, address, driver_license),
         vehicle:vehicle_id(*),
         payments(*)
       `)
@@ -323,15 +323,15 @@ export const useAgreements = (initialParams?: SearchParams) => {
     let safeCustomerData = {...DEFAULT_CUSTOMER};
     let safeVehicleData = {...DEFAULT_VEHICLE};
     
-    // Process customer data if it exists and is not an error
+    // Process customer data if it exists
     if (data.customer) {
       if (!isSupabaseError(data.customer)) {
         safeCustomerData = {
           id: data.customer.id || DEFAULT_CUSTOMER.id,
           full_name: data.customer.full_name || DEFAULT_CUSTOMER.full_name,
           email: data.customer.email || DEFAULT_CUSTOMER.email,
-          phone: data.customer.phone || data.customer.phone_number || DEFAULT_CUSTOMER.phone,
-          phone_number: data.customer.phone_number || data.customer.phone || DEFAULT_CUSTOMER.phone_number,
+          phone: data.customer.phone_number || DEFAULT_CUSTOMER.phone, // Use phone_number as phone
+          phone_number: data.customer.phone_number || DEFAULT_CUSTOMER.phone_number,
           address: data.customer.address || DEFAULT_CUSTOMER.address,
           driver_license: data.customer.driver_license || DEFAULT_CUSTOMER.driver_license
         };
@@ -340,7 +340,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       }
     }
     
-    // Process vehicle data if it exists and is not an error
+    // Process vehicle data if it exists
     if (data.vehicle) {
       if (!isSupabaseError(data.vehicle)) {
         safeVehicleData = {
@@ -377,7 +377,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       .from('leases')
       .select(`
         *,
-        customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
+        customer:customer_id(id, full_name, email, phone_number, address, driver_license),
         vehicle:vehicle_id(*)
       `)
       .order('created_at', { ascending: false });
@@ -401,15 +401,15 @@ export const useAgreements = (initialParams?: SearchParams) => {
       let safeCustomerData = {...DEFAULT_CUSTOMER};
       let safeVehicleData = {...DEFAULT_VEHICLE};
       
-      // Process customer data if it exists and is not an error
+      // Process customer data if it exists
       if (item.customer) {
         if (!isSupabaseError(item.customer)) {
           safeCustomerData = {
             id: item.customer.id || DEFAULT_CUSTOMER.id,
             full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
             email: item.customer.email || DEFAULT_CUSTOMER.email,
-            phone: item.customer.phone || item.customer.phone_number || DEFAULT_CUSTOMER.phone,
-            phone_number: item.customer.phone_number || item.customer.phone || DEFAULT_CUSTOMER.phone_number,
+            phone: item.customer.phone_number || DEFAULT_CUSTOMER.phone, // Use phone_number as phone
+            phone_number: item.customer.phone_number || DEFAULT_CUSTOMER.phone_number,
             address: item.customer.address || DEFAULT_CUSTOMER.address,
             driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
           };
@@ -418,7 +418,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
         }
       }
       
-      // Process vehicle data if it exists and is not an error
+      // Process vehicle data if it exists
       if (item.vehicle) {
         if (!isSupabaseError(item.vehicle)) {
           safeVehicleData = {
