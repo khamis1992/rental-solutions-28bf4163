@@ -6,6 +6,8 @@ import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
 import { formatCurrency } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
@@ -14,6 +16,7 @@ interface DashboardStatsProps {
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
   
   if (!stats) return null;
   
@@ -27,7 +30,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         iconColor="text-blue-500"
         trend={stats.vehicleStats.available > 0 ? 
           Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0}
-        trendLabel="availability rate"
+        trendLabel={t('dashboard.availabilityRate')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/vehicles')}
       />
@@ -35,11 +38,11 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       <StatCard
         title={t('dashboard.totalRevenue')}
         value={formatCurrency(stats.financialStats.currentMonthRevenue)}
-        description="This month"
+        description={t('dashboard.thisMonth')}
         icon={DollarSign}
         iconColor="text-green-500"
         trend={stats.financialStats.revenueGrowth}
-        trendLabel="vs last month"
+        trendLabel={t('dashboard.vsLastMonth')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/financials')}
       />
@@ -51,7 +54,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         icon={Users}
         iconColor="text-violet-500"
         trend={stats.customerStats.growth}
-        trendLabel="vs last month"
+        trendLabel={t('dashboard.vsLastMonth')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/customers')}
       />
@@ -63,7 +66,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         icon={FileText}
         iconColor="text-amber-500"
         trend={stats.agreementStats.growth}
-        trendLabel="vs last month"
+        trendLabel={t('dashboard.vsLastMonth')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/agreements')}
       />

@@ -5,6 +5,8 @@ import { Car, User, CreditCard, Wrench, AlertTriangle, Clock } from 'lucide-reac
 import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
@@ -13,6 +15,7 @@ interface RecentActivityProps {
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
 
   const handleActivityClick = (activity: RecentActivityType) => {
     // Navigate to the relevant page based on activity type
@@ -25,6 +28,15 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
     } else if (activity.type === 'fine') {
       navigate(`/fines`);
     }
+  };
+
+  // Dictionary for activity type translations
+  const activityTypeTranslations = {
+    rental: t('dashboard.activityTypes.rental'),
+    return: t('dashboard.activityTypes.return'),
+    payment: t('dashboard.activityTypes.payment'),
+    maintenance: t('dashboard.activityTypes.maintenance'),
+    fine: t('dashboard.activityTypes.fine')
   };
 
   return (
@@ -45,12 +57,14 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                 className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
                 onClick={() => handleActivityClick(activity)}
               >
-                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} mr-4`}>
+                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} ${getDirectionalClasses('mr-4')}`}>
                   {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium">{activity.title}</h4>
+                    <h4 className="font-medium">
+                      {activityTypeTranslations[activity.type as keyof typeof activityTypeTranslations] || activity.title}
+                    </h4>
                     <span className="text-xs text-muted-foreground">{activity.time}</span>
                   </div>
                   <p className="text-muted-foreground mt-1">{activity.description}</p>

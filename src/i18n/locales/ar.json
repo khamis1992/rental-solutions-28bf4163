@@ -27,7 +27,9 @@
     "back": "رجوع",
     "next": "التالي",
     "total": "المجموع",
-    "available": "متاح"
+    "available": "متاح",
+    "rentalSolutions": "حلول التأجير",
+    "systemDate": "تاريخ النظام"
   },
   "dashboard": {
     "title": "لوحة القيادة",
@@ -40,7 +42,20 @@
     "pendingServices": "الخدمات المعلقة",
     "recentActivity": "النشاط الأخير",
     "fleetUtilization": "استخدام الأسطول",
-    "revenueOverview": "نظرة عامة على الإيرادات"
+    "revenueOverview": "نظرة عامة على الإيرادات",
+    "vsLastMonth": "مقارنة بالشهر الماضي",
+    "thisMonth": "هذا الشهر",
+    "availabilityRate": "معدل التوفر",
+    "activityTypes": {
+      "rental": "تأجير جديد",
+      "return": "إرجاع مركبة",
+      "payment": "دفعة مستلمة",
+      "maintenance": "صيانة مجدولة",
+      "fine": "مخالفة مرورية"
+    },
+    "financialOverview": "نظرة مالية عامة",
+    "expensesBreakdown": "تفصيل المصروفات",
+    "fleetStatus": "حالة الأسطول"
   },
   "settings": {
     "title": "إعدادات النظام",
@@ -85,5 +100,20 @@
     "complianceCalendar": "تقويم الامتثال",
     "riskAssessment": "تقييم المخاطر",
     "complianceReporting": "تقارير الامتثال"
+  },
+  "financials": {
+    "dashboard": "لوحة المالية",
+    "revenue": "الإيرادات",
+    "expenses": "المصروفات",
+    "pending": "المدفوعات المعلقة",
+    "overview": "نظرة عامة"
+  },
+  "vehicles": {
+    "status": {
+      "available": "متاح",
+      "rented": "مؤجر",
+      "maintenance": "في الصيانة",
+      "reserved": "محجوز"
+    }
   }
 }

@@ -16,7 +16,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   variant = 'default',
   showIcon = true 
 }) => {
-  const { language, changeLanguage, direction } = useTranslation();
+  const { language, changeLanguage, direction, isRTL } = useTranslation();
   const { t } = useI18nTranslation();
 
   const handleLanguageChange = (value: string) => {
@@ -37,14 +37,14 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   };
 
   return (
-    <div className={`flex items-center ${isCompact ? 'gap-1' : 'gap-2'}`}>
+    <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} ${isCompact ? 'gap-1' : 'gap-2'}`}>
       {showIcon && <Globe className={`${isCompact ? 'h-4 w-4' : 'h-5 w-5'} text-muted-foreground`} />}
       
       <Select value={language} onValueChange={handleLanguageChange}>
         <SelectTrigger className={isCompact ? 'h-8 py-1 px-2' : ''}>
           <SelectValue placeholder={t('settings.language')} />
         </SelectTrigger>
-        <SelectContent align={direction === 'rtl' ? 'end' : 'start'}>
+        <SelectContent align={isRTL ? 'end' : 'start'}>
           <SelectItem value="en">English</SelectItem>
           <SelectItem value="ar">العربية</SelectItem>
         </SelectContent>

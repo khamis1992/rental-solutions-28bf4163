@@ -27,7 +27,9 @@
     "back": "Back",
     "next": "Next",
     "total": "Total",
-    "available": "Available"
+    "available": "Available",
+    "rentalSolutions": "Rental Solutions",
+    "systemDate": "System Date"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -40,7 +42,20 @@
     "pendingServices": "Pending Services",
     "recentActivity": "Recent Activity",
     "fleetUtilization": "Fleet Utilization",
-    "revenueOverview": "Revenue Overview"
+    "revenueOverview": "Revenue Overview",
+    "vsLastMonth": "vs last month",
+    "thisMonth": "This month",
+    "availabilityRate": "availability rate",
+    "activityTypes": {
+      "rental": "New Rental",
+      "return": "Vehicle Return",
+      "payment": "Payment Received",
+      "maintenance": "Maintenance Scheduled",
+      "fine": "Traffic Fine"
+    },
+    "financialOverview": "Financial Overview",
+    "expensesBreakdown": "Expenses Breakdown",
+    "fleetStatus": "Fleet Status"
   },
   "settings": {
     "title": "System Settings",
@@ -85,5 +100,20 @@
     "complianceCalendar": "Compliance Calendar",
     "riskAssessment": "Risk Assessment",
     "complianceReporting": "Compliance Reporting"
+  },
+  "financials": {
+    "dashboard": "Financial Dashboard",
+    "revenue": "Revenue",
+    "expenses": "Expenses",
+    "pending": "Pending Payments",
+    "overview": "Overview"
+  },
+  "vehicles": {
+    "status": {
+      "available": "Available",
+      "rented": "Rented",
+      "maintenance": "In Maintenance",
+      "reserved": "Reserved"
+    }
   }
 }

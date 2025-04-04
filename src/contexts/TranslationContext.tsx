@@ -8,17 +8,17 @@ type Direction = 'ltr' | 'rtl';
 interface TranslationContextProps {
   language: string;
   direction: Direction;
+  isRTL: boolean;
   changeLanguage: (lang: string) => void;
   translateText: (text: string, targetLang?: string) => Promise<string>;
-  isRTL: boolean;
 }
 
 const TranslationContext = createContext<TranslationContextProps>({
   language: 'en',
   direction: 'ltr',
+  isRTL: false,
   changeLanguage: () => {},
   translateText: async () => '',
-  isRTL: false,
 });
 
 export const useTranslation = () => useContext(TranslationContext);
@@ -34,13 +34,15 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       i18n.changeLanguage(lang);
       setLanguage(lang);
       localStorage.setItem('language', lang);
-      setDirection(lang === 'ar' ? 'rtl' : 'ltr');
+      
+      const newDirection = lang === 'ar' ? 'rtl' : 'ltr';
+      setDirection(newDirection);
       
       // Set HTML dir attribute for the entire document
-      document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.dir = newDirection;
       document.documentElement.lang = lang;
       
-      console.log(`Language changed successfully to: ${lang}`);
+      console.log(`Language changed successfully to: ${lang}, direction: ${newDirection}`);
     } catch (error) {
       console.error('Error changing language:', error);
     }
@@ -67,9 +69,9 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       value={{ 
         language, 
         direction, 
+        isRTL,
         changeLanguage, 
-        translateText: translateTextFn,
-        isRTL
+        translateText: translateTextFn
       }}
     >
       {children}
