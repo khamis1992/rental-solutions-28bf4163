@@ -29,7 +29,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { getDirectionalClasses, getIconTextOrder } from '@/utils/rtl-utils';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 type NavLinkProps = {
   to: string;
@@ -41,7 +41,6 @@ type NavLinkProps = {
 
 const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount }) => {
   const { isRTL } = useTranslation();
-  const { iconOrder, textOrder } = getIconTextOrder();
   
   return (
     <Link
@@ -49,11 +48,11 @@ const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-3 text-sm transition-all",
         isActive ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800",
-        isRTL ? "flex-row-reverse justify-end text-right" : ""
+        isRTL ? "flex-row-reverse text-right" : ""
       )}
     >
-      <div className={iconOrder}>{icon}</div>
-      <span className={textOrder}>{label}</span>
+      {icon}
+      <span>{label}</span>
       {badgeCount !== undefined && badgeCount > 0 && (
         <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground`}>
           {badgeCount}
@@ -73,17 +72,19 @@ type NavGroupProps = {
 const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const { isRTL } = useTranslation();
-  const { iconOrder, textOrder } = getIconTextOrder();
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
       <CollapsibleTrigger asChild>
-        <div className={`flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800 ${isRTL ? 'flex-row-reverse justify-end text-right' : ''}`}>
-          <div className={iconOrder}>{icon}</div>
-          <span className={textOrder}>{label}</span>
+        <div className={`flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+          {icon}
+          <span>{label}</span>
           <div className={`${isRTL ? 'mr-auto' : 'ml-auto'}`}>
-            {isOpen ? <ChevronDown className="h-4 w-4" /> : 
-              (isRTL ? <ChevronLeft className="h-4 w-4 sidebar-chevron-icon" /> : <ChevronRight className="h-4 w-4" />)}
+            {isOpen ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
           </div>
         </div>
       </CollapsibleTrigger>
@@ -101,7 +102,6 @@ const Sidebar = () => {
   const { profile } = useProfile();
   const { isRTL, direction } = useTranslation();
   const { t } = useI18nTranslation();
-  const { iconOrder, textOrder } = getIconTextOrder();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -115,10 +115,12 @@ const Sidebar = () => {
     setExpanded(!expanded);
   };
 
+  // Choose appropriate chevron icon based on direction and expanded state
   const SidebarChevron = !expanded ? 
-    (isRTL ? <ChevronLeft className="h-4 w-4 sidebar-chevron-icon" /> : <ChevronRight className="h-4 w-4" />) : 
-    (isRTL ? <ChevronRight className="h-4 w-4 sidebar-chevron-icon" /> : <ChevronLeft className="h-4 w-4" />);
+    (isRTL ? ChevronLeft : ChevronRight) : 
+    (isRTL ? ChevronRight : ChevronLeft);
 
+  // Adjust sidebar position based on RTL setting
   const sidebarPosition = isRTL ? 'right-0' : 'left-0';
   const sidebarButtonPosition = isRTL ? '-left-12' : '-right-12';
 
@@ -147,7 +149,7 @@ const Sidebar = () => {
           className={`hidden md:flex absolute ${sidebarButtonPosition} top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white`}
           onClick={toggleSidebar}
         >
-          {SidebarChevron}
+          <SidebarChevron className="h-4 w-4" />
         </Button>
 
         <div className={cn(
@@ -155,7 +157,7 @@ const Sidebar = () => {
           expanded ? "" : "md:justify-center"
         )}>
           {expanded ? (
-            <h2 className={`text-lg font-semibold text-white ${isRTL ? 'w-full text-right' : ''}`}>{t('common.rentalSolutions')}</h2>
+            <h2 className="text-lg font-semibold text-white">{t('common.rentalSolutions')}</h2>
           ) : (
             <div className="hidden md:block">
               <Car className="h-6 w-6 text-white" />
@@ -267,25 +269,23 @@ const Sidebar = () => {
                     <Link
                       to="/settings"
                       className={cn(
-                        `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all`,
-                        isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800",
-                        isRTL ? "flex-row-reverse text-right" : ""
+                        `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all ${isRTL ? 'flex-row-reverse text-right' : ''}`,
+                        isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
                       )}
                     >
-                      <div className={iconOrder}><UserCog className="h-4 w-4" /></div>
-                      <span className={textOrder}>{t('settings.title')}</span>
+                      <UserCog className="h-4 w-4" />
+                      <span>{t('settings.title')}</span>
                     </Link>
                     
                     <Link
                       to="/settings/system"
                       className={cn(
-                        `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all`,
-                        isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800",
-                        isRTL ? "flex-row-reverse text-right" : ""
+                        `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all ${isRTL ? 'flex-row-reverse text-right' : ''}`,
+                        isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
                       )}
                     >
-                      <div className={iconOrder}><Sliders className="h-4 w-4" /></div>
-                      <span className={textOrder}>{t('settings.title')}</span>
+                      <Sliders className="h-4 w-4" />
+                      <span>{t('settings.systemSettings')}</span>
                     </Link>
                   </NavGroup>
                 )}

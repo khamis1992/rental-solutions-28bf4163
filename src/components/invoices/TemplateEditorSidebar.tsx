@@ -12,8 +12,6 @@ import {
   TemplateVariable, 
   templateCategories 
 } from "@/utils/invoiceTemplateUtils";
-import { useTranslation } from "@/contexts/TranslationContext";
-import { getDirectionalFlexClass, getIconTextOrder } from "@/utils/rtl-utils";
 
 interface TemplateEditorSidebarProps {
   templates: InvoiceTemplate[];
@@ -44,9 +42,6 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
   onInsertVariable,
   onOpenAIDialog
 }) => {
-  const { isRTL } = useTranslation();
-  const { iconOrder, textOrder } = getIconTextOrder();
-  
   // Group variables by type for better organization
   const groupVariablesByType = () => {
     const grouped: Record<string, TemplateVariable[]> = {};
@@ -67,7 +62,6 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
   };
 
   const variablesByType = groupVariablesByType();
-  const flexDirectionClass = getDirectionalFlexClass();
 
   return (
     <div className="space-y-4 w-full md:w-1/3">
@@ -80,7 +74,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
           <SelectContent>
             {templates.map(t => (
               <SelectItem key={t.id} value={t.id}>
-                {t.name} {t.isDefault && <Badge variant="outline" className={`${isRTL ? 'mr-2' : 'ml-2'}`}>Default</Badge>}
+                {t.name} {t.isDefault && <Badge variant="outline" className="ml-2">Default</Badge>}
               </SelectItem>
             ))}
           </SelectContent>
@@ -123,15 +117,15 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
       
       <Button 
         variant="secondary" 
-        className={`w-full flex items-center ${flexDirectionClass} justify-center gap-2`}
+        className="w-full flex items-center justify-center gap-2"
         onClick={onOpenAIDialog}
       >
-        <div className={iconOrder}><Sparkles className="h-4 w-4" /></div>
-        <span className={textOrder}>Generate with AI</span>
+        <Sparkles className="h-4 w-4" />
+        Generate with AI
       </Button>
       
       <div className="space-y-2">
-        <div className={`flex items-center ${flexDirectionClass} justify-between`}>
+        <div className="flex items-center justify-between">
           <Label>Available Variables</Label>
           <Popover>
             <PopoverTrigger asChild>
@@ -139,7 +133,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
                 <Info className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-80" align={isRTL ? "end" : "start"}>
+            <PopoverContent className="w-80">
               <div className="space-y-2">
                 <h4 className="font-medium">Using Variables</h4>
                 <p className="text-sm text-muted-foreground">
@@ -153,7 +147,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
         <div className="space-y-2">
           {Object.entries(variablesByType).map(([type, variables]) => (
             <div key={type} className="space-y-1">
-              <div className={`text-sm font-medium capitalize ${isRTL ? 'text-right' : ''}`}>{type}</div>
+              <div className="text-sm font-medium capitalize">{type}</div>
               <div className="grid grid-cols-2 gap-2">
                 {variables.map(variable => (
                   <Button 
@@ -161,7 +155,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
                     variant="outline" 
                     size="sm"
                     onClick={() => onInsertVariable(variable)}
-                    className={`justify-start text-xs overflow-hidden text-ellipsis whitespace-nowrap ${isRTL ? 'flex-row-reverse text-right' : ''}`}
+                    className="justify-start text-xs overflow-hidden text-ellipsis whitespace-nowrap"
                     title={variable.description}
                   >
                     {variable.name}

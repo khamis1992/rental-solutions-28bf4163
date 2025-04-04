@@ -107,10 +107,9 @@
   left: auto;
 }
 
-/* FIXED: Properly position icons in sidebar items */
-.rtl-mode .sidebar-nav-item {
-  flex-direction: row-reverse !important;
-  text-align: right;
+.rtl-mode .sidebar-item-icon {
+  margin-left: 0.75rem;
+  margin-right: 0;
 }
 
 /* Badge and tag adjustments */
@@ -158,14 +157,12 @@
 .rtl-mode a svg + span,
 .rtl-mode .icon-text-spacing svg + span {
   margin-right: 0.75rem;
-  margin-left: 0;
 }
 
 .rtl-mode button span + svg,
 .rtl-mode a span + svg,
 .rtl-mode .icon-text-spacing span + svg {
-  margin-left: 0;
-  margin-right: 0.75rem;
+  margin-left: 0.75rem;
 }
 
 /* For flex layouts with icons and text */
@@ -175,10 +172,9 @@
   margin-right: 0;
 }
 
-/* FIXED: Explicitly fix icon spacing in sidebar items */
-.rtl-mode .flex.items-center svg {
-  margin-right: 0;
+.rtl-mode .flex items-center svg {
   margin-left: 0.5rem;
+  margin-right: 0;
 }
 
 /* Financial statistics and trend indicators */
@@ -195,90 +191,4 @@
 .rtl-mode .rounded-full + span {
   margin-right: 0.5rem;
   margin-left: 0;
-}
-
-/* Sidebar specific RTL adjustments */
-.rtl-mode .sidebar-toggle-button {
-  left: -12px;
-  right: auto;
-}
-
-.rtl-mode .sidebar-chevron-icon {
-  transform: rotate(180deg);
-}
-
-/* FIXED: Ensure icons are correctly displayed in RTL mode */
-.rtl-mode nav a,
-.rtl-mode nav button {
-  flex-direction: row-reverse;
-}
-
-/* Correctly handle directional icons in RTL mode */
-.rtl-mode .chevron-right {
-  transform: rotate(180deg);
-}
-
-.rtl-mode .chevron-left {
-  transform: rotate(180deg);
-}
-
-.rtl-mode .arrow-right {
-  transform: rotate(180deg);
-}
-
-.rtl-mode .arrow-left {
-  transform: rotate(180deg);
-}
-
-/* FIXED: Ensure correct icon positioning in sidebar items */
-.rtl-mode .sidebar-item {
-  flex-direction: row-reverse;
-}
-
-/* Fix for popover and menu positioning */
-.rtl-mode [data-popper-placement^="right"] {
-  margin-right: 0.5rem !important;
-  margin-left: 0 !important;
-}
-
-.rtl-mode [data-popper-placement^="left"] {
-  margin-left: 0.5rem !important;
-  margin-right: 0 !important;
-}
-
-/* Ensure sidebar expansion works correctly in RTL mode */
-.rtl-mode .sidebar-expanded {
-  right: 0 !important;
-  left: auto !important;
-}
-
-.rtl-mode .sidebar-collapsed {
-  right: -100% !important;
-  left: auto !important;
-}
-
-/* FIXED: Ensure sidebar navigation links display correctly in RTL */
-.rtl-mode .sidebar-nav-item,
-.rtl-mode a.flex.items-center,
-.rtl-mode button.flex.items-center,
-.rtl-mode div.flex.items-center {
-  flex-direction: row-reverse;
-}
-
-/* NEW: Fix for navigation links in sidebar for RTL */
-.rtl-mode nav a.flex,
-.rtl-mode nav button.flex {
-  flex-direction: row-reverse !important;
-  text-align: right;
-}
-
-/* NEW: Explicitly set icon order in RTL mode for navigation links */
-.rtl-mode nav a svg,
-.rtl-mode nav button svg {
-  order: 1; /* Place icon after text in RTL */
-}
-
-.rtl-mode nav a span,
-.rtl-mode nav button span {
-  order: 2; /* Place text before icon in RTL */
 }

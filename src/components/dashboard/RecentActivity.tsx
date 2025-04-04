@@ -6,7 +6,7 @@ import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalClasses, getDirectionalFlexClass, getIconTextOrder } from '@/utils/rtl-utils';
+import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
@@ -16,7 +16,6 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
   const { isRTL } = useTranslation();
-  const { iconOrder, textOrder } = getIconTextOrder();
 
   const handleActivityClick = (activity: RecentActivityType) => {
     // Navigate to the relevant page based on activity type
@@ -58,10 +57,10 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                 className={`flex ${getDirectionalFlexClass()} items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors`}
                 onClick={() => handleActivityClick(activity)}
               >
-                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} ${isRTL ? 'order-2 ml-4' : 'order-1 mr-4'}`}>
+                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} ${isRTL ? 'ml-4' : 'mr-4'}`}>
                   {getActivityIcon(activity.type)}
                 </div>
-                <div className={`flex-1 ${isRTL ? 'order-1' : 'order-2'}`}>
+                <div className="flex-1">
                   <div className={`flex ${getDirectionalFlexClass()} items-center justify-between`}>
                     <h4 className="font-medium">
                       {activityTypeTranslations[activity.type as keyof typeof activityTypeTranslations] || activity.title}
