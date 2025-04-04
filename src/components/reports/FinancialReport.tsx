@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -31,7 +30,7 @@ const FinancialReport = () => {
     isLoadingTransactions 
   } = useFinancials();
   
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements();
+  const { agreements, isLoading: isAgreementsLoading } = useAgreements();
   const { trafficFines, isLoading: isLoadingFines } = useTrafficFines();
   
   const [filter, setFilter] = useState({
@@ -41,17 +40,14 @@ const FinancialReport = () => {
     endDate: undefined
   });
   
-  // Filter agreements based on current filter settings
   const filteredAgreements = React.useMemo(() => {
     if (!agreements) return [];
     
     return agreements.filter(agreement => {
-      // Filter by status
       if (filter.status && filter.status !== 'all') {
         if (filter.status !== agreement.status) return false;
       }
       
-      // Filter by search term (customer name or agreement number)
       if (filter.search) {
         const searchTerm = filter.search.toLowerCase();
         const customerName = agreement.customers?.full_name?.toLowerCase() || '';
@@ -62,7 +58,6 @@ const FinancialReport = () => {
         }
       }
       
-      // Filter by date range
       if (filter.startDate && agreement.start_date) {
         const startDate = new Date(agreement.start_date);
         if (startDate < filter.startDate) return false;
@@ -77,13 +72,11 @@ const FinancialReport = () => {
     });
   }, [agreements, filter]);
   
-  // Get traffic fines by agreement
   const getTrafficFinesForAgreement = (agreementId) => {
     if (!trafficFines) return [];
     return trafficFines.filter(fine => fine.leaseId === agreementId);
   };
   
-  // Load all required data
   const [agreementPaymentsMap, setAgreementPaymentsMap] = useState<Record<string, any>>({});
   const [isLoadingPayments, setIsLoadingPayments] = useState(false);
   
@@ -94,7 +87,6 @@ const FinancialReport = () => {
       setIsLoadingPayments(true);
       const paymentsMap = {};
       
-      // For each agreement, fetch its payments
       for (const agreement of filteredAgreements) {
         try {
           const { data, error } = await supabase
@@ -117,7 +109,6 @@ const FinancialReport = () => {
     fetchPaymentsForAgreements();
   }, [filteredAgreements]);
   
-  // Calculate payment status and totals for each agreement
   const agreementFinancialData = React.useMemo(() => {
     if (!filteredAgreements) return [];
     
@@ -138,7 +129,6 @@ const FinancialReport = () => {
         
       const outstandingFines = totalFinesAmount - paidFinesAmount;
       
-      // Determine overall payment status
       let paymentStatus = 'Paid';
       if (outstandingBalance > 0) {
         paymentStatus = 'Partially Paid';
@@ -147,7 +137,6 @@ const FinancialReport = () => {
         paymentStatus = 'Unpaid';
       }
       
-      // Get most recent payment date
       const lastPayment = payments.length > 0 ? 
         payments.sort((a, b) => 
           new Date(b.payment_date || '1970-01-01').getTime() - 
@@ -169,11 +158,10 @@ const FinancialReport = () => {
     });
   }, [filteredAgreements, agreementPaymentsMap, trafficFines]);
   
-  if (isLoadingSummary || isLoadingTransactions || isLoadingAgreements || isLoadingFines || isLoadingPayments) {
+  if (isLoadingSummary || isLoadingTransactions || isAgreementsLoading || isLoadingFines || isLoadingPayments) {
     return <div>Loading financial data...</div>;
   }
 
-  // For the original analytics card
   const categoryTotals = transactions.reduce<Record<string, CategoryTotal>>((acc, transaction) => {
     const category = transaction.category || 'Other';
     if (!acc[category]) {
@@ -244,7 +232,6 @@ const FinancialReport = () => {
         />
       </div>
 
-      {/* Financial Agreements Report */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Financial Agreements Report</CardTitle>
@@ -254,7 +241,6 @@ const FinancialReport = () => {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
           <div className="flex flex-wrap gap-4 mb-6">
             <div className="w-full md:w-48">
               <Select
@@ -309,7 +295,6 @@ const FinancialReport = () => {
             </Button>
           </div>
           
-          {/* Agreements Table */}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

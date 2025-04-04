@@ -1,6 +1,6 @@
 
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 

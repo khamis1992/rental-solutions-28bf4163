@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -17,7 +16,6 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
-// Extend the Payment type to include the missing description property
 interface ExtendedPayment extends Payment {
   description?: string;
 }
@@ -43,6 +41,8 @@ interface PaymentEntryDialogProps {
     daysLate: number;
   } | null;
   selectedPayment?: Payment | null;
+  agreementId: string;
+  onSuccess: () => void;
 }
 
 export function PaymentEntryDialog({
@@ -53,9 +53,10 @@ export function PaymentEntryDialog({
   title = "Record Payment",
   description = "Enter payment details to record a payment",
   lateFeeDetails,
-  selectedPayment
+  selectedPayment,
+  agreementId,
+  onSuccess
 }: PaymentEntryDialogProps) {
-  const { id: agreementId } = useParams();
   const { getAgreement } = useAgreements();
   const { handleSpecialAgreementPayments, isProcessing } = usePaymentGeneration(null, agreementId);
   
@@ -72,7 +73,6 @@ export function PaymentEntryDialog({
     selectedPayment?.id
   );
   
-  // Reset the form when the dialog is opened/closed
   useEffect(() => {
     if (open) {
       setAmount(selectedPayment?.balance || defaultAmount);
@@ -84,21 +84,19 @@ export function PaymentEntryDialog({
       setIsPartialPayment(false);
       setSelectedPaymentId(selectedPayment?.id);
       
-      // Fetch pending payments when dialog opens
       if (agreementId) {
         fetchPendingPayments(agreementId);
       }
     }
   }, [open, defaultAmount, selectedPayment, agreementId]);
 
-  // Fetch pending payments for this agreement
   const fetchPendingPayments = async (agreementId: string) => {
     try {
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
         .eq('lease_id', agreementId)
-        .in('status', ['pending', 'partially_paid', 'overdue']) // Added 'overdue' to include overdue payments
+        .in('status', ['pending', 'partially_paid', 'overdue'])
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -119,7 +117,6 @@ export function PaymentEntryDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Do validation
     if (isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount greater than zero");
       return;
@@ -147,25 +144,21 @@ export function PaymentEntryDialog({
         isPartialPayment,
         selectedPaymentId
       );
+      onSuccess();
     }
   };
 
-  // Handle payment selection
   const handlePaymentSelect = (paymentId: string) => {
     setSelectedPaymentId(paymentId);
     
-    // Find the selected payment to auto-fill amount
     const payment = pendingPayments.find(p => p.id === paymentId);
     if (payment) {
-      // For payments with balance of 0 or null/undefined, use the amount property instead
-      // This handles overdue payments that might have balance set to 0
       const paymentAmount = (payment.balance && payment.balance > 0) 
         ? payment.balance 
         : (payment.amount || 0);
       
       setAmount(paymentAmount);
       
-      // Auto-check partial payment if applicable
       setIsPartialPayment(false);
     }
   };
@@ -174,7 +167,6 @@ export function PaymentEntryDialog({
     const value = parseFloat(e.target.value);
     setAmount(isNaN(value) ? 0 : value);
     
-    // If the amount is less than the default amount, suggest partial payment
     if (!isNaN(value) && defaultAmount > 0 && value < defaultAmount) {
       setIsPartialPayment(true);
     } else if (selectedPayment && !isNaN(value) && value < (selectedPayment.balance || 0)) {
@@ -184,15 +176,12 @@ export function PaymentEntryDialog({
     }
   };
 
-  // Determine if we show the late payment fee option based on the current date
   const showLateFeeOption = lateFeeDetails !== null;
 
-  // Helper function to format payment description
   const formatPaymentDescription = (payment: ExtendedPayment) => {
     let desc = payment.description || 
                `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
     
-    // Add status indicator
     let status = "";
     if (payment.status === 'partially_paid') {
       status = " (Partially Paid)";
@@ -215,7 +204,6 @@ export function PaymentEntryDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Payment Selection dropdown - only show if we have pending payments */}
           {pendingPayments.length > 0 && (
             <div className="space-y-2">
               <Label htmlFor="payment-select">Record Payment For</Label>

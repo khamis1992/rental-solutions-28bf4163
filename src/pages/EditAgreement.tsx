@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AgreementForm from '@/components/agreements/AgreementForm';
@@ -22,7 +21,6 @@ const EditAgreement = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    // Guard against multiple fetches in rapid succession
     if (hasAttemptedFetch) return;
     
     const fetchAgreement = async () => {
@@ -38,7 +36,6 @@ const EditAgreement = () => {
         const data = await getAgreement(id);
         console.log("Fetched agreement data:", data);
         if (data) {
-          // Convert SimpleAgreement to Agreement type
           setAgreement(adaptSimpleToFullAgreement(data));
         } else {
           toast.error("Agreement not found");
@@ -63,7 +60,6 @@ const EditAgreement = () => {
     try {
       setIsSubmitting(true);
       
-      // Check if status is being changed to active
       const isChangingToActive = updatedAgreement.status === 'active' && 
                               agreement?.status !== 'active';
                               
@@ -71,16 +67,12 @@ const EditAgreement = () => {
         console.log("Status is being changed to active, payment schedule will be generated");
       }
       
-      // Extract only the fields we want to update in the database
-      // Remove customer_data, vehicle_data, terms_accepted, and additional_drivers which are not actual database columns
       const agreementToUpdate = {
         ...updatedAgreement,
-        // Preserve these IDs from the form data
         customer_id: updatedAgreement.customer_id,
         vehicle_id: updatedAgreement.vehicle_id
       };
       
-      // Explicitly remove non-database fields
       if ('customer_data' in agreementToUpdate) delete agreementToUpdate.customer_data;
       if ('vehicle_data' in agreementToUpdate) delete agreementToUpdate.vehicle_data;
       if ('vehicles' in agreementToUpdate) delete agreementToUpdate.vehicles;
@@ -90,9 +82,9 @@ const EditAgreement = () => {
       
       await updateAgreementWithCheck(
         { id, data: agreementToUpdate },
-        user?.id, // Pass the user ID for audit tracking
-        () => navigate(`/agreements/${id}`), // Success callback
-        (error: any) => console.error("Error updating agreement:", error) // Error callback
+        user?.id,
+        () => navigate(`/agreements/${id}`),
+        (error: any) => console.error("Error updating agreement:", error)
       );
     } catch (error) {
       console.error("Error updating agreement:", error);
@@ -118,7 +110,7 @@ const EditAgreement = () => {
           initialData={agreement} 
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          mode="edit" // Specify that we're in edit mode
+          mode="edit"
         />
       ) : (
         <div className="text-center py-12">

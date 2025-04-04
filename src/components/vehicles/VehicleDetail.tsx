@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
@@ -22,20 +22,16 @@ interface VehicleDetailProps {
   vehicle: Vehicle;
 }
 
-export const VehicleDetail: React.FC<VehicleDetailProps> = ({
-  vehicle
-}) => {
+const VehicleDetail = ({ vehicle }) => {
   const navigate = useNavigate();
   const {
     useList: useMaintenanceList
   } = useMaintenance();
   const {
     agreements,
-    isLoading: isLoadingAgreements,
+    isLoading,
     setSearchParams
-  } = useAgreements({
-    vehicle_id: vehicle.id
-  });
+  } = useAgreements();
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
   const [vehicleImageUrl, setVehicleImageUrl] = useState<string | null>(null);
@@ -91,6 +87,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     }
     fetchVehicleImage();
   }, [vehicle.id, vehicle.imageUrl, vehicle.image_url, vehicle.model]);
+
+  useEffect(() => {
+    if (vehicle?.id) {
+      setSearchParams({ vehicleId: vehicle.id });
+    }
+  }, [vehicle?.id, setSearchParams]);
 
   const fallbackToModelImages = () => {
     const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
@@ -393,7 +395,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
             </CustomButton>
           </div>
           
-          {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
+          {isLoading ? <div className="text-center py-8 text-muted-foreground">
               Loading agreements...
             </div> : agreements && agreements.length > 0 ? <div className="rounded-md border">
               <Table>
@@ -496,3 +498,5 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       </CardContent>
     </Card>;
 };
+
+export default VehicleDetail;

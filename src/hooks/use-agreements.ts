@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSupabase } from '@/contexts/SupabaseContext';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
-import { asSimplifiedLease, mapDatabaseRowToLease } from '@/lib/utils-type';
+import { asSimplifiedLease, mapDatabaseRowToLease, SimplifiedLeaseType } from '@/lib/utils-type';
+
+export type SimpleAgreement = SimplifiedLeaseType;
 
 export type AgreementFilters = {
   status?: string;
@@ -11,21 +13,30 @@ export type AgreementFilters = {
   startDate?: Date;
   endDate?: Date;
   search?: string;
+  query?: string;
 };
 
-export const useAgreements = (filters?: AgreementFilters) => {
-  const { supabase } = useSupabase();
+type SearchParams = {
+  query?: string;
+  status?: string;
+};
+
+export const useAgreements = (initialFilters?: AgreementFilters) => {
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    query: initialFilters?.query || '',
+    status: initialFilters?.status || 'all'
+  });
+  const isLoading = loading;
 
   const fetchAgreements = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Start building the query
       let query = supabase
         .from('leases')
         .select(`
@@ -34,7 +45,14 @@ export const useAgreements = (filters?: AgreementFilters) => {
           vehicles:vehicle_id (id, make, model, year, license_plate)
         `);
 
-      // Apply filters if provided
+      const filters = { ...initialFilters };
+      if (searchParams.query) {
+        filters.search = searchParams.query;
+      }
+      if (searchParams.status && searchParams.status !== 'all') {
+        filters.status = searchParams.status;
+      }
+      
       if (filters) {
         if (filters.status) {
           query = query.eq('status', filters.status);
@@ -56,19 +74,16 @@ export const useAgreements = (filters?: AgreementFilters) => {
         }
       }
 
-      // Get count for pagination
       const { count: totalRecords } = await supabase
         .from('leases')
         .select('*', { count: 'exact', head: true });
 
       setTotalCount(totalRecords || 0);
 
-      // Execute the query
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      // Transform the data to match our Agreement type
       const transformedData = data.map((lease) => {
         const safeLeaseData = mapDatabaseRowToLease(lease);
         
@@ -95,7 +110,7 @@ export const useAgreements = (filters?: AgreementFilters) => {
     } finally {
       setLoading(false);
     }
-  }, [supabase, filters]);
+  }, [initialFilters, searchParams]);
 
   useEffect(() => {
     fetchAgreements();
@@ -136,11 +151,12 @@ export const useAgreements = (filters?: AgreementFilters) => {
       toast.error('Failed to load agreement details');
       return null;
     }
-  }, [supabase]);
+  }, []);
+
+  const getAgreement = getAgreementById;
 
   const createAgreement = useCallback(async (agreementData: Partial<Agreement>): Promise<Agreement | null> => {
     try {
-      // Ensure required fields are present
       if (!agreementData.customer_id || !agreementData.vehicle_id || !agreementData.start_date || !agreementData.end_date) {
         throw new Error('Missing required fields for agreement');
       }
@@ -169,7 +185,6 @@ export const useAgreements = (filters?: AgreementFilters) => {
 
       if (error) throw error;
 
-      // Update vehicle status to rented if agreement is active
       if (data && agreementData.status === AgreementStatus.ACTIVE) {
         const { error: vehicleError } = await supabase
           .from('vehicles')
@@ -183,7 +198,7 @@ export const useAgreements = (filters?: AgreementFilters) => {
       }
 
       toast.success('Agreement created successfully');
-      fetchAgreements(); // Refresh the list
+      fetchAgreements();
 
       const safeLeaseData = mapDatabaseRowToLease(data);
       
@@ -204,7 +219,6 @@ export const useAgreements = (filters?: AgreementFilters) => {
 
   const updateAgreement = useCallback(async (id: string, agreementData: Partial<Agreement>): Promise<boolean> => {
     try {
-      // Get current agreement to check status change
       const { data: currentAgreement, error: fetchError } = await supabase
         .from('leases')
         .select('status, vehicle_id')
@@ -213,10 +227,8 @@ export const useAgreements = (filters?: AgreementFilters) => {
 
       if (fetchError) throw fetchError;
 
-      // Prepare update data
       const updateData: any = {};
       
-      // Only include fields that are provided
       if (agreementData.customer_id) updateData.customer_id = agreementData.customer_id;
       if (agreementData.vehicle_id) updateData.vehicle_id = agreementData.vehicle_id;
       if (agreementData.start_date) updateData.start_date = agreementData.start_date.toISOString();
@@ -233,7 +245,6 @@ export const useAgreements = (filters?: AgreementFilters) => {
       if (agreementData.signature_url !== undefined) updateData.signature_url = agreementData.signature_url;
       if (agreementData.additional_drivers) updateData.additional_drivers = agreementData.additional_drivers;
 
-      // Update the agreement
       const { error } = await supabase
         .from('leases')
         .update(updateData)
@@ -241,11 +252,9 @@ export const useAgreements = (filters?: AgreementFilters) => {
 
       if (error) throw error;
 
-      // Handle vehicle status update if agreement status changed
       if (agreementData.status && agreementData.status !== currentAgreement.status) {
         const vehicleId = agreementData.vehicle_id || currentAgreement.vehicle_id;
         
-        // Update vehicle status based on agreement status
         let vehicleStatus = 'available';
         if (agreementData.status === AgreementStatus.ACTIVE) {
           vehicleStatus = 'rented';
@@ -265,7 +274,7 @@ export const useAgreements = (filters?: AgreementFilters) => {
       }
 
       toast.success('Agreement updated successfully');
-      fetchAgreements(); // Refresh the list
+      fetchAgreements();
       return true;
     } catch (err) {
       console.error('Error updating agreement:', err);
@@ -276,7 +285,6 @@ export const useAgreements = (filters?: AgreementFilters) => {
 
   const deleteAgreement = useCallback(async (id: string): Promise<boolean> => {
     try {
-      // Get vehicle ID before deleting
       const { data: agreement, error: fetchError } = await supabase
         .from('leases')
         .select('vehicle_id, status')
@@ -285,7 +293,6 @@ export const useAgreements = (filters?: AgreementFilters) => {
 
       if (fetchError) throw fetchError;
 
-      // Delete the agreement
       const { error } = await supabase
         .from('leases')
         .delete()
@@ -293,7 +300,6 @@ export const useAgreements = (filters?: AgreementFilters) => {
 
       if (error) throw error;
 
-      // Update vehicle status if agreement was active
       if (agreement && agreement.status === AgreementStatus.ACTIVE) {
         const { error: vehicleError } = await supabase
           .from('vehicles')
@@ -307,7 +313,7 @@ export const useAgreements = (filters?: AgreementFilters) => {
       }
 
       toast.success('Agreement deleted successfully');
-      fetchAgreements(); // Refresh the list
+      fetchAgreements();
       return true;
     } catch (err) {
       console.error('Error deleting agreement:', err);
@@ -315,6 +321,10 @@ export const useAgreements = (filters?: AgreementFilters) => {
       return false;
     }
   }, [supabase, fetchAgreements]);
+
+  const deleteAgreementWithMutate = Object.assign(deleteAgreement, {
+    mutateAsync: deleteAgreement
+  });
 
   const generatePaymentSchedule = useCallback(async (agreementId: string): Promise<boolean> => {
     try {
@@ -337,13 +347,17 @@ export const useAgreements = (filters?: AgreementFilters) => {
   return {
     agreements,
     loading,
+    isLoading,
     error,
     totalCount,
     fetchAgreements,
     getAgreementById,
+    getAgreement,
     createAgreement,
     updateAgreement,
-    deleteAgreement,
+    deleteAgreement: deleteAgreementWithMutate,
     generatePaymentSchedule,
+    searchParams,
+    setSearchParams,
   };
 };
