@@ -1,0 +1,165 @@
+
+/* ... keep existing code */
+
+/* RTL Support */
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.rtl .recharts-wrapper {
+  direction: ltr;
+}
+
+.rtl .recharts-text {
+  text-anchor: start;
+}
+
+.rtl table th,
+.rtl table td {
+  text-align: right;
+}
+
+.rtl .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+.rtl .ml-2 {
+  margin-left: 0;
+  margin-right: 0.5rem;
+}
+
+/* Add right margins for RTL layout */
+.rtl [class*="mr-"] {
+  margin-right: 0 !important;
+}
+
+.rtl .mr-1 {
+  margin-left: 0.25rem !important;
+}
+
+.rtl .mr-2 {
+  margin-left: 0.5rem !important;
+}
+
+.rtl .mr-3 {
+  margin-left: 0.75rem !important;
+}
+
+.rtl .mr-4 {
+  margin-left: 1rem !important;
+}
+
+/* Add left margins for RTL layout */
+.rtl [class*="ml-"] {
+  margin-left: 0 !important;
+}
+
+.rtl .ml-1 {
+  margin-right: 0.25rem !important;
+}
+
+.rtl .ml-2 {
+  margin-right: 0.5rem !important;
+}
+
+.rtl .ml-3 {
+  margin-right: 0.75rem !important;
+}
+
+.rtl .ml-4 {
+  margin-right: 1rem !important;
+}
+
+/* Flip icons that indicate direction */
+.rtl .lucide-chevron-right,
+.rtl .lucide-arrow-right {
+  transform: rotate(180deg);
+}
+
+.rtl .lucide-chevron-left,
+.rtl .lucide-arrow-left {
+  transform: rotate(180deg);
+}
+
+/* Adjust padding for RTL layout */
+.rtl [class*="pl-"] {
+  padding-left: 0 !important;
+}
+
+.rtl .pl-1 {
+  padding-right: 0.25rem !important;
+}
+
+.rtl .pl-2 {
+  padding-right: 0.5rem !important;
+}
+
+.rtl .pl-3 {
+  padding-right: 0.75rem !important;
+}
+
+.rtl .pl-4 {
+  padding-right: 1rem !important;
+}
+
+.rtl [class*="pr-"] {
+  padding-right: 0 !important;
+}
+
+.rtl .pr-1 {
+  padding-left: 0.25rem !important;
+}
+
+.rtl .pr-2 {
+  padding-left: 0.5rem !important;
+}
+
+.rtl .pr-3 {
+  padding-left: 0.75rem !important;
+}
+
+.rtl .pr-4 {
+  padding-left: 1rem !important;
+}
+
+/* Adjust flex direction for RTL */
+.rtl .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* Adjust text alignment for RTL */
+.rtl .text-left {
+  text-align: right;
+}
+
+.rtl .text-right {
+  text-align: left;
+}
+
+/* Reverse grid columns in RTL mode */
+.rtl .grid-cols-2,
+.rtl .grid-cols-3,
+.rtl .grid-cols-4 {
+  direction: rtl;
+}
+
+/* Arabic font support */
+@font-face {
+  font-family: 'NotoSansArabic';
+  src: url('/fonts/NotoSansArabic-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'NotoSansArabic';
+  src: url('/fonts/NotoSansArabic-Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+.rtl body {
+  font-family: 'NotoSansArabic', system-ui, sans-serif;
+}
