@@ -11,8 +11,7 @@ import {
   ShieldAlert, 
   ShieldX, 
   CircleDashed, 
-  CircleOff, 
-  PenTool
+  CircleOff
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -20,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { VehicleStatus } from '@/types/vehicle';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalTextAlign } from '@/utils/rtl-utils';
+import { getDirectionalTextAlign, getDirectionalFlexClass } from '@/utils/rtl-utils';
 
 interface VehicleStatusChartProps {
   data?: {
@@ -150,10 +149,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
 
   // Format the donut chart labels based on language
   const formatDonutLabel = ({ name, value }: { name: string, value: number }) => {
-    if (isRTL) {
-      return `${name}: ${getNumberFormat(value)}`;
-    }
-    return `${name}: ${value}`;
+    return `${name}: ${getNumberFormat(value)}`;
   };
 
   return (
@@ -190,23 +186,23 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                 </Pie>
                 <Tooltip 
                   formatter={(value) => [
-                    isRTL 
-                      ? `${getNumberFormat(value as number)} ${t('vehicles.title')}` 
-                      : `${value} ${t('vehicles.title')}`
-                    , ''
+                    `${getNumberFormat(value as number)} ${t('vehicles.title')}`, 
+                    ''
                   ]}
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e2e8f0',
                     borderRadius: '0.5rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    textAlign: isRTL ? 'right' : 'left',
+                    direction: isRTL ? 'rtl' : 'ltr'
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
           
-          <div className="w-full lg:w-1/3 mt-4 lg:mt-0 pl-0 lg:pl-4 flex flex-col h-full">
+          <div className={`w-full lg:w-1/3 mt-4 lg:mt-0 ${isRTL ? 'lg:pr-4' : 'lg:pl-4'} flex flex-col h-full`}>
             <div className={`text-sm ${isRTL ? 'text-right' : 'text-center lg:text-left'} text-muted-foreground mb-4`}>
               <div className="text-lg font-semibold text-foreground">
                 {t('dashboard.totalFleet')}: {getNumberFormat(data.total)} {t('vehicles.title')}
@@ -214,7 +210,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
               {hasCriticalVehicles && (
                 <Badge variant="destructive" className="mt-2 text-xs px-3 py-1">
                   {getNumberFormat(criticalVehicles)} {t('vehicles.title')}
-                  {criticalVehicles !== 1 ? '' : ''} {t('dashboard.vehiclesRequiringAttention')}
+                  {' '}{t('dashboard.vehiclesRequiringAttention')}
                 </Badge>
               )}
             </div>
@@ -225,12 +221,14 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                 if (count === 0) return null;
                 
                 const Icon = status.icon;
+                const flexDirection = isRTL ? "flex-row-reverse" : "flex-row";
+                const marginClass = isRTL ? "ml-2" : "mr-2";
+                
                 return (
                   <div 
                     key={status.key} 
                     className={cn(
-                      "flex items-center p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100",
-                      isRTL ? "flex-row-reverse space-x-reverse" : "space-x-2",
+                      `flex items-center p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100 ${flexDirection}`,
                       status.key === 'stolen' || status.key === 'accident' || status.key === 'critical' 
                         ? "bg-red-50 hover:bg-red-100" 
                         : "bg-slate-50 hover:bg-slate-100"
@@ -238,7 +236,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                     onClick={() => navigate(`/vehicles?status=${status.filterValue}`)}
                   >
                     <div 
-                      className={`p-1.5 rounded-md ${isRTL ? 'ml-2' : 'mr-2'}`}
+                      className={`p-1.5 rounded-md ${marginClass}`}
                       style={{ backgroundColor: `${status.color}20` }}
                     >
                       <Icon 
@@ -247,7 +245,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                       />
                     </div>
                     <div className="flex-grow">
-                      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} justify-between items-center`}>
+                      <div className={`flex ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} items-center`}>
                         <span className="text-sm font-medium">{status.name}</span>
                         <span className="text-sm font-semibold">{getNumberFormat(count)}</span>
                       </div>
