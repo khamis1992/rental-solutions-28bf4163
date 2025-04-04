@@ -4,6 +4,39 @@ import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+// Define the SimpleAgreement interface that was missing
+export interface SimpleAgreement {
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  total_amount: number;
+  deposit_amount: number;
+  agreement_number: string;
+  notes: string;
+  rent_amount?: number;
+  daily_late_fee?: number;
+  customer?: {
+    id: string;
+    full_name: string;
+    email?: string;
+    phone?: string;
+  };
+  vehicle?: {
+    id: string;
+    make?: string;
+    model?: string;
+    license_plate?: string;
+    year?: number;
+    color?: string;
+  };
+  payments?: Array<any>;
+}
+
 // Define the search parameters interface
 interface SearchParams {
   query?: string;
@@ -15,9 +48,9 @@ interface SearchParams {
 }
 
 // Main hook for agreements
-export const useAgreements = () => {
+export const useAgreements = (initialParams?: SearchParams) => {
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useState<SearchParams>({
+  const [searchParams, setSearchParams] = useState<SearchParams>(initialParams || {
     query: '',
     status: 'all'
   });
@@ -77,124 +110,73 @@ export const useAgreements = () => {
     });
   };
   
-  // Query to fetch a single agreement by ID
-  const useAgreement = (id: string) => {
-    return useQuery({
-      queryKey: ['agreement', id],
-      queryFn: async () => {
-        if (!id) return null;
-        
-        const { data, error } = await supabase
-          .from('rental_agreements')
-          .select(`
-            *,
-            customer:customer_id(*),
-            vehicle:vehicle_id(*),
-            payments(*)
-          `)
-          .eq('id', id)
-          .single();
-          
-        if (error) {
-          throw new Error(`Error fetching agreement: ${error.message}`);
-        }
-        
-        return data;
-      },
-      enabled: Boolean(id)
-    });
-  };
+  // Get agreements using the query hook
+  const agreementsQuery = useAgreementsList();
   
   // Mutation to create a new agreement
-  const useCreate = () => {
-    return useMutation({
-      mutationFn: async (agreementData: any) => {
-        const { data, error } = await supabase
-          .from('rental_agreements')
-          .insert(agreementData)
-          .select()
-          .single();
-          
-        if (error) {
-          throw new Error(`Error creating agreement: ${error.message}`);
-        }
+  const createAgreement = useMutation({
+    mutationFn: async (agreementData: any) => {
+      const { data, error } = await supabase
+        .from('rental_agreements')
+        .insert(agreementData)
+        .select()
+        .single();
         
-        return data;
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['agreements'] });
-        toast.success('Agreement created successfully');
+      if (error) {
+        throw new Error(`Error creating agreement: ${error.message}`);
       }
-    });
-  };
+      
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      toast.success('Agreement created successfully');
+    }
+  });
   
   // Mutation to update an existing agreement
-  const useUpdate = () => {
-    return useMutation({
-      mutationFn: async ({ id, data }: { id: string; data: any }) => {
-        const { data: updatedData, error } = await supabase
-          .from('rental_agreements')
-          .update(data)
-          .eq('id', id)
-          .select()
-          .single();
-          
-        if (error) {
-          throw new Error(`Error updating agreement: ${error.message}`);
-        }
+  const updateAgreement = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const { data: updatedData, error } = await supabase
+        .from('rental_agreements')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single();
         
-        return updatedData;
-      },
-      onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['agreements'] });
-        queryClient.invalidateQueries({ queryKey: ['agreement', variables.id] });
-        toast.success('Agreement updated successfully');
+      if (error) {
+        throw new Error(`Error updating agreement: ${error.message}`);
       }
-    });
-  };
+      
+      return updatedData;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      queryClient.invalidateQueries({ queryKey: ['agreement', variables.id] });
+      toast.success('Agreement updated successfully');
+    }
+  });
   
   // Mutation to delete an agreement
-  const useDelete = () => {
-    return useMutation({
-      mutationFn: async (id: string) => {
-        const { error } = await supabase
-          .from('rental_agreements')
-          .delete()
-          .eq('id', id);
-          
-        if (error) {
-          throw new Error(`Error deleting agreement: ${error.message}`);
-        }
+  const deleteAgreement = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('rental_agreements')
+        .delete()
+        .eq('id', id);
         
-        return id;
-      },
-      onSuccess: (id) => {
-        queryClient.invalidateQueries({ queryKey: ['agreements'] });
-        queryClient.removeQueries({ queryKey: ['agreement', id] });
-        toast.success('Agreement deleted successfully');
+      if (error) {
+        throw new Error(`Error deleting agreement: ${error.message}`);
       }
-    });
-  };
-  
-  // Query for fetching import history
-  const useImportHistory = () => {
-    return useQuery({
-      queryKey: ['agreement-imports'],
-      queryFn: async () => {
-        const { data, error } = await supabase
-          .from('agreement_imports')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
-          
-        if (error) {
-          throw new Error(`Error fetching import history: ${error.message}`);
-        }
-        
-        return data || [];
-      }
-    });
-  };
+      
+      return id;
+    },
+    onSuccess: (id) => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      queryClient.removeQueries({ queryKey: ['agreement', id] });
+      toast.success('Agreement deleted successfully');
+    }
+  });
 
   // Function to get a single agreement by ID
   const getAgreement = async (id: string) => {
@@ -216,21 +198,6 @@ export const useAgreements = () => {
     }
 
     return data;
-  };
-
-  // Function to delete an agreement
-  const deleteAgreement = async (id: string) => {
-    const { error } = await supabase
-      .from('rental_agreements')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      throw new Error(`Error deleting agreement: ${error.message}`);
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['agreements'] });
-    return id;
   };
 
   // Function to get all agreements
@@ -262,19 +229,27 @@ export const useAgreements = () => {
     return data || [];
   };
 
-  // Return all the queries and mutations
+  // Return an object with clear properties for agreements, isLoading, error etc.
   return {
+    // Query result properties
+    agreements: agreementsQuery.data,
+    isLoading: agreementsQuery.isLoading,
+    error: agreementsQuery.error,
+    
+    // Query functions
     useAgreementsList,
-    useAgreement,
-    useCreate,
-    useUpdate,
-    useDelete,
-    useImportHistory,
+    
+    // Direct methods
+    getAgreement,
+    getAgreements,
+    
+    // Mutations
+    createAgreement,
+    updateAgreement,
+    deleteAgreement,
+    
+    // Search params state
     searchParams,
     setSearchParams,
-    // Add direct access methods to fix errors
-    getAgreement,
-    deleteAgreement,
-    getAgreements
   };
 };
