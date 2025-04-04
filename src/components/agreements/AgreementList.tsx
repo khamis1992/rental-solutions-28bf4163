@@ -383,7 +383,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     {
       accessorKey: "status",
       header: "Status",
-      cell: ({ row }: any) => {
+      cell: ({ row }: { row: any }) => {
         const status = row.getValue("status") as string;
         return (
           <Badge 
@@ -477,7 +477,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         );
       },
     },
-  ] as ColumnDef<any>[];
+  ] as ColumnDef<SimpleAgreement>[];
 
   const table = useReactTable({
     data: agreements || [],
@@ -524,7 +524,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
               <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
               <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
-              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
+              <SelectItem value={AgreementStatus.CANCELED}>Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>

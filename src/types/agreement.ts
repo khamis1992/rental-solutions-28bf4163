@@ -10,6 +10,8 @@ export enum AgreementStatus {
   OVERDUE = 'overdue',
   RESERVED = 'reserved',
   MAINTENANCE = 'maintenance',
+  DRAFT = 'draft',
+  EXPIRED = 'expired',
   UNKNOWN = 'unknown'
 }
 

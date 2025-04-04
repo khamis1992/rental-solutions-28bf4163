@@ -32,6 +32,10 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
       return AgreementStatus.RESERVED;
     case 'maintenance':
       return AgreementStatus.MAINTENANCE;
+    case 'draft':
+      return AgreementStatus.DRAFT;
+    case 'expired':
+      return AgreementStatus.EXPIRED;
     default:
       return AgreementStatus.UNKNOWN;
   }
@@ -56,8 +60,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       // Apply filters based on searchParams
       if (searchParams.status && searchParams.status !== 'all') {
-        // Use type assertion to handle the status filter
-        query = query.eq('status', searchParams.status as any);
+        query = query.eq('status', searchParams.status);
       }
 
       if (searchParams.vehicle_id) {
@@ -125,9 +128,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicle_id: newAgreement.vehicle_id,
           start_date: newAgreement.start_date,
           end_date: newAgreement.end_date,
-          // Ensure agreement_type is properly typed
+          // Cast to match the expected type
           agreement_type: newAgreement.agreement_type as "short_term" | "lease_to_own",
-          // Ensure status is properly typed
+          // Cast to match the expected status type
           status: (newAgreement.status || 'pending') as any,
           total_amount: newAgreement.total_amount,
           monthly_payment: newAgreement.monthly_payment,
@@ -212,7 +215,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (error) throw error;
       
       // Create a flattened version for easier consumption
-      const agreement = {
+      const agreement: SimpleAgreement = {
         id: data.id,
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
@@ -235,10 +238,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         deposit_amount: data.deposit_amount,
         notes: data.notes,
         rent_amount: data.rent_amount,
-        daily_late_fee: data.daily_late_fee
+        daily_late_fee: data.daily_late_fee,
+        customers: data.customers,
+        vehicles: data.vehicles
       };
       
-      return agreement as SimpleAgreement;
+      return agreement;
     } catch (error) {
       console.error('Error fetching agreement:', error);
       return null;
@@ -263,7 +268,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         if (error) throw error;
         
         // Create a flattened version for easier consumption
-        const agreement = {
+        const agreement: SimpleAgreement = {
           id: data.id,
           customer_id: data.customer_id,
           vehicle_id: data.vehicle_id,
@@ -289,7 +294,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           daily_late_fee: data.daily_late_fee
         };
         
-        return agreement as SimpleAgreement;
+        return agreement;
       },
     });
   };
