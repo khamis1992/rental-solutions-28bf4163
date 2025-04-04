@@ -1,3 +1,4 @@
+
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
@@ -141,11 +142,13 @@ export const useAgreements = (initialParams?: SearchParams) => {
         }
 
         return (data || []).map(item => {
+          // Ensure customer data is properly initialized to prevent null errors
           const customerData = item.customer || {
             id: "",
             full_name: "Unknown Customer"
           };
 
+          // Ensure vehicle data is properly initialized to prevent null errors
           const vehicleData = item.vehicle || {
             id: "",
             license_plate: "Unknown"
@@ -250,11 +253,13 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
+    // Ensure customer data is properly initialized to prevent null errors
     const customerData = data.customer || {
       id: "",
       full_name: "Unknown Customer"
     };
 
+    // Ensure vehicle data is properly initialized to prevent null errors
     const vehicleData = data.vehicle || {
       id: "",
       license_plate: "Unknown"
@@ -300,11 +305,13 @@ export const useAgreements = (initialParams?: SearchParams) => {
     }
 
     return (data || []).map(item => {
+      // Ensure customer data is properly initialized to prevent null errors
       const customerData = item.customer || {
         id: "",
         full_name: "Unknown Customer"
       };
 
+      // Ensure vehicle data is properly initialized to prevent null errors
       const vehicleData = item.vehicle || {
         id: "",
         license_plate: "Unknown"
@@ -326,7 +333,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
   };
 
   return {
-    agreements: agreementsQuery.data,
+    agreements: agreementsQuery.data || [],
     isLoading: agreementsQuery.isLoading,
     error: agreementsQuery.error,
     useAgreementsList,

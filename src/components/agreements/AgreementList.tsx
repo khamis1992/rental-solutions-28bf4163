@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -507,7 +508,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
   const selectedCount = Object.keys(rowSelection).length;
 
-  const statusCounts: Record<string, number> = agreements.reduce((acc: Record<string, number>, agreement) => {
+  // Fix the statusCounts calculation to avoid reduce on undefined
+  const statusCounts: Record<string, number> = (agreements || []).reduce((acc: Record<string, number>, agreement) => {
     const status = agreement.status || 'unknown';
     acc[status] = (acc[status] || 0) + 1;
     return acc;

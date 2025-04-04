@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -5,9 +6,6 @@ import AgreementFormWithVehicleCheck from '@/components/agreements/AgreementForm
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import type { Agreement } from '@/lib/validation-schemas/agreement';
-
-// Remove imports that don't exist
-// Removed: import { checkStandardTemplateExists, diagnosisTemplateAccess } from '@/utils/agreementUtils';
 
 const AddAgreement = () => {
   const navigate = useNavigate();
@@ -49,7 +47,6 @@ const AddAgreement = () => {
       <AgreementFormWithVehicleCheck
         onSubmit={handleCreateAgreement}
         isSubmitting={isSubmitting}
-        mode="create"
       />
     </PageContainer>
   );
