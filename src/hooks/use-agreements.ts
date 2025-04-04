@@ -1,255 +1,195 @@
-/* Global RTL Styles */
-.rtl-mode {
-  /* Add any global RTL styles here */
-  text-align: right;
-  direction: rtl;
-}
 
-/* Core layout adjustments */
-.rtl-mode .reverse-children {
-  flex-direction: row-reverse;
-}
+import { useState, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useApiMutation } from '@/hooks/use-api';
+import { toast } from 'sonner';
+import { updateAgreementWithCheck } from '@/utils/agreement-utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { SimpleAgreement, AgreementWithRelations } from '@/types/agreement';
 
-.rtl-mode .align-right {
-  text-align: right;
-}
+// Custom hook for fetching and managing agreements
+export function useAgreements(initialFilters = {}) {
+  const [agreements, setAgreements] = useState<SimpleAgreement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [filters, setFilters] = useState(initialFilters);
+  const { user } = useAuth();
 
-.rtl-mode .align-left {
-  text-align: left;
-}
+  // Fetch agreements with optional filtering
+  const fetchAgreements = useCallback(async (filterParams = {}) => {
+    try {
+      setLoading(true);
+      
+      // Combine default filters with any provided filter params
+      const activeFilters = { ...filters, ...filterParams };
+      
+      // Start building the query
+      let query = supabase
+        .from('leases')
+        .select(`
+          *,
+          customers:profiles!leases_customer_id_fkey(*),
+          vehicles!leases_vehicle_id_fkey(*)
+        `);
+      
+      // Apply filters if they exist
+      if (activeFilters.status) {
+        query = query.eq('status', activeFilters.status);
+      }
+      
+      if (activeFilters.search) {
+        query = query.or(
+          `agreement_number.ilike.%${activeFilters.search}%,vehicles.license_plate.ilike.%${activeFilters.search}%,customers.full_name.ilike.%${activeFilters.search}%`
+        );
+      }
+      
+      // Execute the query and handle the response
+      const { data, error } = await query;
+      
+      if (error) {
+        throw new Error(`Error fetching agreements: ${error.message}`);
+      }
+      
+      // Transform the data to match our SimpleAgreement interface
+      const transformedData: SimpleAgreement[] = data.map((item: any) => ({
+        id: item.id,
+        agreement_number: item.agreement_number,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: item.start_date,
+        end_date: item.end_date,
+        status: item.status,
+        daily_rate: item.daily_rate || 0,
+        signature_url: item.signature_url || null,
+        created_at: item.created_at,
+        updated_at: item.updated_at,
+        total_amount: item.total_amount,
+        deposit_amount: item.deposit_amount,
+        notes: item.notes,
+        rent_amount: item.rent_amount,
+        daily_late_fee: item.daily_late_fee,
+        // Include relationships
+        customer: item.customers,
+        vehicle: item.vehicles
+      }));
+      
+      setAgreements(transformedData);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Unknown error occurred'));
+      toast.error(err instanceof Error ? err.message : 'Failed to fetch agreements');
+    } finally {
+      setLoading(false);
+    }
+  }, [filters]);
 
-.rtl-mode .margin-right {
-  margin-right: auto;
-  margin-left: 0 !important;
-}
+  // Get a single agreement by ID
+  const getAgreement = async (id: string): Promise<AgreementWithRelations | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          *,
+          customers:profiles!leases_customer_id_fkey(*),
+          vehicles!leases_vehicle_id_fkey(*)
+        `)
+        .eq('id', id)
+        .single();
+      
+      if (error) {
+        throw new Error(`Error fetching agreement: ${error.message}`);
+      }
+      
+      if (!data) return null;
+      
+      // Transform the data to match our AgreementWithRelations interface
+      const transformedData: AgreementWithRelations = {
+        id: data.id,
+        agreement_number: data.agreement_number,
+        customer_id: data.customer_id,
+        vehicle_id: data.vehicle_id,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        status: data.status,
+        daily_rate: data.daily_rate || 0,
+        signature_url: data.signature_url || null,
+        // Include relationships
+        customer: {
+          id: data.customers.id,
+          name: data.customers.full_name || '',
+          email: data.customers.email,
+          phone: data.customers.phone_number
+        },
+        vehicle: {
+          id: data.vehicles.id,
+          make: data.vehicles.make || '',
+          model: data.vehicles.model || '',
+          year: data.vehicles.year || 0,
+          plate_number: data.vehicles.license_plate || ''
+        }
+      };
+      
+      return transformedData;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to fetch agreement details');
+      return null;
+    }
+  };
 
-.rtl-mode .margin-left {
-  margin-left: auto;
-  margin-right: 0 !important;
-}
+  // Create a new agreement
+  const createAgreement = useApiMutation(
+    async (agreement: Omit<SimpleAgreement, 'id'>) => {
+      const { data, error } = await supabase
+        .from('leases')
+        .insert(agreement)
+        .select();
+      
+      if (error) throw new Error(`Failed to create agreement: ${error.message}`);
+      return data;
+    }
+  );
 
-/* RTL table adjustments */
-.rtl-mode table th,
-.rtl-mode table td {
-  text-align: right;
-}
+  // Update an existing agreement
+  const updateAgreement = useApiMutation(
+    async ({ id, data }: { id: string; data: Partial<SimpleAgreement> }) => {
+      return updateAgreementWithCheck(
+        { id, data }, 
+        user?.id,
+        () => {
+          toast.success("Agreement updated successfully");
+          // You might want to refresh data here
+          fetchAgreements(filters);
+        },
+        (error) => {
+          toast.error(`Failed to update agreement: ${error.message}`);
+        }
+      );
+    }
+  );
 
-/* Fix Tailwind flex direction for RTL mode */
-.rtl-mode .flex-row {
-  flex-direction: row-reverse;
-}
+  // Delete an agreement
+  const deleteAgreement = useApiMutation(
+    async (id: string) => {
+      const { error } = await supabase
+        .from('leases')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw new Error(`Failed to delete agreement: ${error.message}`);
+      return { success: true };
+    }
+  );
 
-.rtl-mode .justify-start {
-  justify-content: flex-end;
-}
-
-.rtl-mode .justify-end {
-  justify-content: flex-start;
-}
-
-/* Fix for inputs and form elements */
-.rtl-mode input[type="text"],
-.rtl-mode input[type="email"],
-.rtl-mode input[type="password"],
-.rtl-mode input[type="number"],
-.rtl-mode input[type="tel"],
-.rtl-mode input[type="search"],
-.rtl-mode textarea {
-  text-align: right;
-  direction: rtl;
-}
-
-/* Fix for select elements */
-.rtl-mode select {
-  background-position: 0.5rem center;
-  padding-right: 1rem;
-  padding-left: 2rem;
-}
-
-/* Fix for checkboxes and radio buttons */
-.rtl-mode input[type="checkbox"],
-.rtl-mode input[type="radio"] {
-  margin-right: 0;
-  margin-left: 0.5rem;
-}
-
-/* Shadcn UI Component adjustments for RTL */
-.rtl-mode .react-select__menu {
-  text-align: right;
-}
-
-.rtl-mode .react-select__option {
-  text-align: right;
-}
-
-/* Chart adjustments for RTL */
-.rtl-mode .recharts-wrapper {
-  direction: ltr;  /* Keep charts in LTR mode for correct data display */
-}
-
-.rtl-mode .recharts-tooltip-wrapper {
-  direction: rtl;
-}
-
-.rtl-mode .recharts-default-tooltip {
-  text-align: right;
-}
-
-/* Card and container adjustments */
-.rtl-mode .card-content {
-  text-align: right;
-}
-
-/* Navigation and sidebar adjustments */
-.rtl-mode .sidebar-navigation {
-  right: 0;
-  left: auto;
-}
-
-.rtl-mode .sidebar-item-icon {
-  margin-left: 0.75rem;
-  margin-right: 0;
-}
-
-/* Badge and tag adjustments */
-.rtl-mode .badge-icon {
-  margin-left: 0.25rem;
-  margin-right: 0;
-}
-
-/* Dialog and modal adjustments */
-.rtl-mode .dialog-content {
-  text-align: right;
-}
-
-/* Fix for grid layouts */
-.rtl-mode .grid-direction {
-  direction: rtl;
-}
-
-/* Dashboard specific RTL fixes */
-.rtl-mode .dashboard-stat-card {
-  text-align: right;
-}
-
-.rtl-mode .dashboard-chart {
-  direction: ltr; /* Keep charts in LTR mode for correct data display */
-}
-
-.rtl-mode .dashboard-stat-card-icon {
-  margin-left: 0.75rem;
-  margin-right: 0;
-}
-
-/* Dropdown menus */
-.rtl-mode .dropdown-content {
-  text-align: right;
-}
-
-/* Fix for tooltip positioning */
-.rtl-mode .tooltip {
-  text-align: right;
-}
-
-/* Icon spacing adjustments for RTL mode */
-.rtl-mode button svg + span,
-.rtl-mode a svg + span,
-.rtl-mode .icon-text-spacing svg + span {
-  margin-right: 0.75rem;
-  margin-left: 0;
-}
-
-.rtl-mode button span + svg,
-.rtl-mode a span + svg,
-.rtl-mode .icon-text-spacing span + svg {
-  margin-left: 0;
-  margin-right: 0.75rem;
-}
-
-/* For flex layouts with icons and text */
-.rtl-mode .flex-row svg,
-.rtl-mode .flex-row-reverse svg {
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.rtl-mode .flex.items-center svg {
-  margin-right: 0;
-  margin-left: 0.5rem;
-}
-
-/* Financial statistics and trend indicators */
-.rtl-mode .text-muted-foreground .inline-flex {
-  display: inline-flex;
-  align-items: center;
-}
-
-.rtl-mode .text-xs.text-muted-foreground span + span {
-  margin-right: 0.25rem;
-}
-
-/* Percentage indicators in RTL */
-.rtl-mode .rounded-full + span {
-  margin-right: 0.5rem;
-  margin-left: 0;
-}
-
-/* Sidebar specific RTL adjustments */
-.rtl-mode .sidebar-toggle-button {
-  left: -12px;
-  right: auto;
-}
-
-.rtl-mode .sidebar-chevron-icon {
-  transform: rotate(180deg);
-}
-
-/* RTL adjustments for navigation components */
-.rtl-mode nav a svg,
-.rtl-mode nav button svg {
-  transform: scaleX(1); /* Reset any scaleX transformations */
-}
-
-/* Correctly handle directional icons in RTL mode */
-.rtl-mode .chevron-right {
-  transform: rotate(180deg);
-}
-
-.rtl-mode .chevron-left {
-  transform: rotate(180deg);
-}
-
-.rtl-mode .arrow-right {
-  transform: rotate(180deg);
-}
-
-.rtl-mode .arrow-left {
-  transform: rotate(180deg);
-}
-
-/* Ensure correct icon positioning in sidebar items */
-.rtl-mode .sidebar-item {
-  flex-direction: row-reverse;
-}
-
-/* Fix for popover and menu positioning */
-.rtl-mode [data-popper-placement^="right"] {
-  margin-right: 0.5rem !important;
-  margin-left: 0 !important;
-}
-
-.rtl-mode [data-popper-placement^="left"] {
-  margin-left: 0.5rem !important;
-  margin-right: 0 !important;
-}
-
-/* Ensure sidebar expansion works correctly in RTL mode */
-.rtl-mode .sidebar-expanded {
-  right: 0 !important;
-  left: auto !important;
-}
-
-.rtl-mode .sidebar-collapsed {
-  right: -100% !important;
-  left: auto !important;
+  return {
+    agreements,
+    loading,
+    error,
+    filters,
+    setFilters,
+    fetchAgreements,
+    getAgreement,
+    createAgreement,
+    updateAgreement,
+    deleteAgreement
+  };
 }

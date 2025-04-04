@@ -9,7 +9,16 @@ export interface SimpleAgreement {
   end_date: string;
   status: string;
   daily_rate: number;
-  signature_url?: string; // Add this property to fix TypeScript errors
+  signature_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  total_amount?: number;
+  deposit_amount?: number;
+  notes?: string;
+  rent_amount?: number;
+  daily_late_fee?: number;
+  customer?: any;
+  vehicle?: any;
 }
 
 export interface AgreementWithRelations extends SimpleAgreement {
