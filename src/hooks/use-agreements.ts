@@ -177,35 +177,33 @@ export const useAgreements = (initialParams?: SearchParams) => {
         }
 
         return (data || []).map(item => {
-          // Handle the case where customer data could be null, undefined, or an error object
-          let safeCustomerData = DEFAULT_CUSTOMER;
-          const customerData = item.customer;
+          // Initialize with default values
+          let safeCustomerData = {...DEFAULT_CUSTOMER};
+          let safeVehicleData = {...DEFAULT_VEHICLE};
           
-          if (customerData && !isSupabaseError(customerData)) {
+          // Process customer data if it exists and is not an error
+          if (item.customer && !isSupabaseError(item.customer)) {
             safeCustomerData = {
-              id: customerData?.id || DEFAULT_CUSTOMER.id,
-              full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
-              email: customerData?.email || DEFAULT_CUSTOMER.email,
-              phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
-              phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
-              address: customerData?.address || DEFAULT_CUSTOMER.address,
-              driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
+              id: item.customer.id || DEFAULT_CUSTOMER.id,
+              full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
+              email: item.customer.email || DEFAULT_CUSTOMER.email,
+              phone: item.customer.phone || item.customer.phone_number || DEFAULT_CUSTOMER.phone,
+              phone_number: item.customer.phone_number || item.customer.phone || DEFAULT_CUSTOMER.phone_number,
+              address: item.customer.address || DEFAULT_CUSTOMER.address,
+              driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
             };
           }
-
-          // Handle the case where vehicle data could be null, undefined, or an error object
-          let safeVehicleData = DEFAULT_VEHICLE;
-          const vehicleData = item.vehicle;
           
-          if (vehicleData && !isSupabaseError(vehicleData)) {
+          // Process vehicle data if it exists and is not an error
+          if (item.vehicle && !isSupabaseError(item.vehicle)) {
             safeVehicleData = {
-              id: vehicleData?.id || DEFAULT_VEHICLE.id,
-              make: vehicleData?.make || DEFAULT_VEHICLE.make,
-              model: vehicleData?.model || DEFAULT_VEHICLE.model,
-              license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
-              year: vehicleData?.year || DEFAULT_VEHICLE.year,
-              color: vehicleData?.color || DEFAULT_VEHICLE.color,
-              vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
+              id: item.vehicle.id || DEFAULT_VEHICLE.id,
+              make: item.vehicle.make || DEFAULT_VEHICLE.make,
+              model: item.vehicle.model || DEFAULT_VEHICLE.model,
+              license_plate: item.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
+              year: item.vehicle.year || DEFAULT_VEHICLE.year,
+              color: item.vehicle.color || DEFAULT_VEHICLE.color,
+              vin: item.vehicle.vin || DEFAULT_VEHICLE.vin
             };
           }
 
@@ -308,35 +306,33 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
-    // Handle the case where customer data could be null, undefined, or an error object
-    let safeCustomerData = DEFAULT_CUSTOMER;
-    const customerData = data.customer;
+    // Initialize with default values
+    let safeCustomerData = {...DEFAULT_CUSTOMER};
+    let safeVehicleData = {...DEFAULT_VEHICLE};
     
-    if (customerData && !isSupabaseError(customerData)) {
+    // Process customer data if it exists and is not an error
+    if (data.customer && !isSupabaseError(data.customer)) {
       safeCustomerData = {
-        id: customerData?.id || DEFAULT_CUSTOMER.id,
-        full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
-        email: customerData?.email || DEFAULT_CUSTOMER.email,
-        phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
-        phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
-        address: customerData?.address || DEFAULT_CUSTOMER.address,
-        driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
+        id: data.customer.id || DEFAULT_CUSTOMER.id,
+        full_name: data.customer.full_name || DEFAULT_CUSTOMER.full_name,
+        email: data.customer.email || DEFAULT_CUSTOMER.email,
+        phone: data.customer.phone || data.customer.phone_number || DEFAULT_CUSTOMER.phone,
+        phone_number: data.customer.phone_number || data.customer.phone || DEFAULT_CUSTOMER.phone_number,
+        address: data.customer.address || DEFAULT_CUSTOMER.address,
+        driver_license: data.customer.driver_license || DEFAULT_CUSTOMER.driver_license
       };
     }
-
-    // Handle the case where vehicle data could be null, undefined, or an error object
-    let safeVehicleData = DEFAULT_VEHICLE;
-    const vehicleData = data.vehicle;
     
-    if (vehicleData && !isSupabaseError(vehicleData)) {
+    // Process vehicle data if it exists and is not an error
+    if (data.vehicle && !isSupabaseError(data.vehicle)) {
       safeVehicleData = {
-        id: vehicleData?.id || DEFAULT_VEHICLE.id,
-        make: vehicleData?.make || DEFAULT_VEHICLE.make,
-        model: vehicleData?.model || DEFAULT_VEHICLE.model,
-        license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
-        year: vehicleData?.year || DEFAULT_VEHICLE.year,
-        color: vehicleData?.color || DEFAULT_VEHICLE.color,
-        vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
+        id: data.vehicle.id || DEFAULT_VEHICLE.id,
+        make: data.vehicle.make || DEFAULT_VEHICLE.make,
+        model: data.vehicle.model || DEFAULT_VEHICLE.model,
+        license_plate: data.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
+        year: data.vehicle.year || DEFAULT_VEHICLE.year,
+        color: data.vehicle.color || DEFAULT_VEHICLE.color,
+        vin: data.vehicle.vin || DEFAULT_VEHICLE.vin
       };
     }
 
@@ -380,35 +376,33 @@ export const useAgreements = (initialParams?: SearchParams) => {
     }
 
     return (data || []).map(item => {
-      // Handle the case where customer data could be null, undefined, or an error object
-      let safeCustomerData = DEFAULT_CUSTOMER;
-      const customerData = item.customer;
+      // Initialize with default values
+      let safeCustomerData = {...DEFAULT_CUSTOMER};
+      let safeVehicleData = {...DEFAULT_VEHICLE};
       
-      if (customerData && !isSupabaseError(customerData)) {
+      // Process customer data if it exists and is not an error
+      if (item.customer && !isSupabaseError(item.customer)) {
         safeCustomerData = {
-          id: customerData?.id || DEFAULT_CUSTOMER.id,
-          full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
-          email: customerData?.email || DEFAULT_CUSTOMER.email,
-          phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
-          phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
-          address: customerData?.address || DEFAULT_CUSTOMER.address,
-          driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
+          id: item.customer.id || DEFAULT_CUSTOMER.id,
+          full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
+          email: item.customer.email || DEFAULT_CUSTOMER.email,
+          phone: item.customer.phone || item.customer.phone_number || DEFAULT_CUSTOMER.phone,
+          phone_number: item.customer.phone_number || item.customer.phone || DEFAULT_CUSTOMER.phone_number,
+          address: item.customer.address || DEFAULT_CUSTOMER.address,
+          driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
         };
       }
-
-      // Handle the case where vehicle data could be null, undefined, or an error object
-      let safeVehicleData = DEFAULT_VEHICLE;
-      const vehicleData = item.vehicle;
       
-      if (vehicleData && !isSupabaseError(vehicleData)) {
+      // Process vehicle data if it exists and is not an error
+      if (item.vehicle && !isSupabaseError(item.vehicle)) {
         safeVehicleData = {
-          id: vehicleData?.id || DEFAULT_VEHICLE.id,
-          make: vehicleData?.make || DEFAULT_VEHICLE.make,
-          model: vehicleData?.model || DEFAULT_VEHICLE.model,
-          license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
-          year: vehicleData?.year || DEFAULT_VEHICLE.year,
-          color: vehicleData?.color || DEFAULT_VEHICLE.color,
-          vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
+          id: item.vehicle.id || DEFAULT_VEHICLE.id,
+          make: item.vehicle.make || DEFAULT_VEHICLE.make,
+          model: item.vehicle.model || DEFAULT_VEHICLE.model,
+          license_plate: item.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
+          year: item.vehicle.year || DEFAULT_VEHICLE.year,
+          color: item.vehicle.color || DEFAULT_VEHICLE.color,
+          vin: item.vehicle.vin || DEFAULT_VEHICLE.vin
         };
       }
 
