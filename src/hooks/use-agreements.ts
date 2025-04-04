@@ -47,7 +47,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     queryFn: async () => {
       // Start with a query that joins the customer and vehicle tables
       let query = supabase
-        .from('agreements')
+        .from('leases')
         .select(`
           *,
           customers:customer_id (*),
@@ -117,7 +117,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const createAgreement = useMutation({
     mutationFn: async (newAgreement: Omit<SimpleAgreement, 'id'>) => {
       const { data, error } = await supabase
-        .from('agreements')
+        .from('leases')
         .insert({
           customer_id: newAgreement.customer_id,
           vehicle_id: newAgreement.vehicle_id,
@@ -156,7 +156,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const updateAgreement = useMutation({
     mutationFn: async ({ id, ...updatedAgreement }: SimpleAgreement) => {
       const { data, error } = await supabase
-        .from('agreements')
+        .from('leases')
         .update({
           customer_id: updatedAgreement.customer_id,
           vehicle_id: updatedAgreement.vehicle_id,
@@ -192,13 +192,45 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Fetch a single agreement by ID
+  // Get a single agreement by ID
+  const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          *,
+          customers:customer_id (*),
+          vehicles:vehicle_id (*)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      // Create a flattened version for easier consumption
+      return {
+        ...data,
+        customer_name: data.customers?.full_name || 'Unknown Customer',
+        license_plate: data.vehicles?.license_plate || 'Unknown',
+        vehicle_make: data.vehicles?.make || '',
+        vehicle_model: data.vehicles?.model || '',
+        vehicle_year: data.vehicles?.year || '',
+        // Include signature URL if available
+        signature_url: data.signature_url || null,
+      } as SimpleAgreement;
+    } catch (error) {
+      console.error('Error fetching agreement:', error);
+      return null;
+    }
+  };
+
+  // Fetch a single agreement by ID (as a hook)
   const useAgreementDetail = (id: string) => {
     return useQuery({
       queryKey: ['agreement', id],
       queryFn: async () => {
         const { data, error } = await supabase
-          .from('agreements')
+          .from('leases')
           .select(`
             *,
             customers:customer_id (*),
@@ -228,7 +260,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('agreements')
+        .from('leases')
         .delete()
         .eq('id', id);
 
@@ -252,7 +284,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       queryFn: async () => {
         // We need to check if there are any active agreements that overlap with the given date range
         let query = supabase
-          .from('agreements')
+          .from('leases')
           .select('id')
           .eq('vehicle_id', vehicleId)
           .eq('status', 'active')
@@ -287,6 +319,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     createAgreement,
     updateAgreement,
     deleteAgreement,
+    getAgreement,
     useAgreementDetail,
     useVehicleAvailability
   };
