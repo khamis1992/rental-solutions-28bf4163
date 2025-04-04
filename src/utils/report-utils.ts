@@ -1,15 +1,14 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
-import { translateText, batchTranslate } from '@/utils/translation-api';
 
 /**
  * Generates a CSV string from an array of objects
  * @param data Array of objects to convert to CSV
- * @param isRTL Whether to format for RTL language
  * @returns CSV formatted string
  */
-export const generateCSV = (data: Record<string, any>[], isRTL: boolean = false): string => {
+export const generateCSV = (data: Record<string, any>[]): string => {
   if (!data || data.length === 0) return '';
   
   // Get headers from the first object
@@ -35,12 +34,6 @@ export const generateCSV = (data: Record<string, any>[], isRTL: boolean = false)
     csv += row.join(',') + '\n';
   });
   
-  // Add RTL mark if needed for Arabic CSV
-  if (isRTL) {
-    // Add RTL mark at the beginning of each line
-    csv = csv.split('\n').map(line => '\u200F' + line).join('\n');
-  }
-  
   return csv;
 };
 
@@ -48,10 +41,9 @@ export const generateCSV = (data: Record<string, any>[], isRTL: boolean = false)
  * Downloads data as a CSV file
  * @param data Array of objects to download as CSV
  * @param filename Name for the downloaded file
- * @param isRTL Whether to use RTL formatting
  */
-export const downloadCSV = (data: Record<string, any>[], filename: string, isRTL: boolean = false): void => {
-  const csv = generateCSV(data, isRTL);
+export const downloadCSV = (data: Record<string, any>[], filename: string): void => {
+  const csv = generateCSV(data);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   
@@ -67,118 +59,11 @@ export const downloadCSV = (data: Record<string, any>[], filename: string, isRTL
  * Formats data for Excel download (uses CSV for simplicity)
  * @param data Array of objects to download as Excel
  * @param filename Name for the downloaded file
- * @param isRTL Whether to use RTL formatting
  */
-export const downloadExcel = (data: Record<string, any>[], filename: string, isRTL: boolean = false): void => {
+export const downloadExcel = (data: Record<string, any>[], filename: string): void => {
   // For simplicity, we're using CSV with .xlsx extension
   // In a production app, you might want to use a library like xlsx for true Excel files
-  downloadCSV(data, filename, isRTL);
-};
-
-/**
- * Translate report data keys and values
- * @param data Array of objects to translate
- * @param targetLang Target language code
- * @returns Promise resolving to translated data
- */
-export const translateReportData = async (
-  data: Record<string, any>[],
-  targetLang: string
-): Promise<Record<string, any>[]> => {
-  if (!data || data.length === 0 || targetLang === 'en') {
-    return data; // No translation needed
-  }
-  
-  try {
-    console.log(`Translating report data to ${targetLang} for ${data.length} records`);
-    
-    // First, extract all unique keys that need translation
-    const allKeys = Object.keys(data[0]);
-    
-    // Translate all keys first (for headers)
-    const keysToTranslate = allKeys.filter(key => 
-      typeof key === 'string' && 
-      !key.includes('id') && 
-      !key.includes('date') && 
-      !key.includes('amount') &&
-      !key.includes('email')
-    );
-    
-    console.log(`Translating ${keysToTranslate.length} header keys`);
-    const translatedKeys = await batchTranslate(keysToTranslate, 'en', targetLang);
-    
-    // Create a mapping of original keys to translated keys
-    const keyMap: Record<string, string> = {};
-    keysToTranslate.forEach((key, index) => {
-      keyMap[key] = translatedKeys[index];
-    });
-    
-    // Now translate the string values in batches
-    const translatedData: Record<string, any>[] = [];
-    
-    for (const item of data) {
-      const translatedItem: Record<string, any> = {};
-      
-      // Copy non-string values directly
-      for (const key of allKeys) {
-        const value = item[key];
-        if (typeof value !== 'string' || 
-            key.includes('id') || 
-            key.includes('date') || 
-            key.includes('email') ||
-            key.includes('amount') ||
-            !value.trim()) {
-          // Skip translation for non-strings, IDs, dates, and empty strings
-          translatedItem[key] = value;
-        } else {
-          // Mark for translation
-          translatedItem[key] = value;
-        }
-      }
-      
-      // Collect all string values that need translation
-      const stringsToTranslate: string[] = [];
-      const stringKeys: string[] = [];
-      
-      for (const key of allKeys) {
-        const value = item[key];
-        if (typeof value === 'string' && 
-            value.trim() && 
-            !key.includes('id') && 
-            !key.includes('date') && 
-            !key.includes('email') &&
-            !key.includes('amount')) {
-          stringsToTranslate.push(value);
-          stringKeys.push(key);
-        }
-      }
-      
-      if (stringsToTranslate.length > 0) {
-        try {
-          const translatedStrings = await batchTranslate(stringsToTranslate, 'en', targetLang);
-          
-          // Update the item with translated strings
-          stringKeys.forEach((key, index) => {
-            translatedItem[key] = translatedStrings[index];
-          });
-        } catch (error) {
-          console.error('Error translating report data values:', error);
-          // In case of error, keep original strings
-          stringKeys.forEach((key, index) => {
-            translatedItem[key] = stringsToTranslate[index];
-          });
-        }
-      }
-      
-      translatedData.push(translatedItem);
-    }
-    
-    console.log('Report data translation completed');
-    return translatedData;
-  } catch (error) {
-    console.error('Failed to translate report data:', error);
-    return data; // Return original data in case of error
-  }
+  downloadCSV(data, filename);
 };
 
 /**
@@ -244,14 +129,12 @@ const safelyAddImage = (
  * @param doc jsPDF document instance
  * @param title Report title
  * @param dateRange Date range for the report
- * @param isRTL Whether to use RTL formatting
  * @returns Promise resolving to Y position after adding header elements
  */
 export const addReportHeader = async (
   doc: jsPDF, 
   title: string, 
-  dateRange: { from: Date | undefined; to: Date | undefined },
-  isRTL: boolean = false
+  dateRange: { from: Date | undefined; to: Date | undefined }
 ): Promise<number> => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
@@ -269,7 +152,7 @@ export const addReportHeader = async (
     for (const logoPath of logoPaths) {
       if (await imageExists(logoPath)) {
         try {
-          await safelyAddImage(doc, logoPath, isRTL ? pageWidth - 54 : 14, 10, 40, 15);
+          await safelyAddImage(doc, logoPath, 14, 10, 40, 15);
           logoLoaded = true;
           console.log(`Successfully loaded logo from: ${logoPath}`);
           break;
@@ -287,7 +170,7 @@ export const addReportHeader = async (
       console.log('Using text fallback for logo');
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
-      doc.text('ALARAF CAR RENTAL', isRTL ? pageWidth - 14 : 14, 20, { align: isRTL ? 'right' : 'left' });
+      doc.text('ALARAF CAR RENTAL', 14, 20);
     }
     
     // Add a separator line
@@ -329,10 +212,9 @@ export const addReportHeader = async (
 /**
  * Adds footer to PDF report
  * @param doc jsPDF document instance
- * @param isRTL Whether to use RTL formatting
  * @returns Promise that resolves when the footer is added
  */
-export const addReportFooter = async (doc: jsPDF, isRTL: boolean = false): Promise<void> => {
+export const addReportFooter = async (doc: jsPDF): Promise<void> => {
   try {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -358,9 +240,7 @@ export const addReportFooter = async (doc: jsPDF, isRTL: boolean = false): Promi
     for (const arabicTextPath of arabicTextPaths) {
       if (await imageExists(arabicTextPath)) {
         try {
-          // Position it on the right for LTR, on the left for RTL
-          const xPosition = isRTL ? 10 : pageWidth - 80;
-          await safelyAddImage(doc, arabicTextPath, xPosition, pageHeight - 30, 70, 15);
+          await safelyAddImage(doc, arabicTextPath, pageWidth - 80, pageHeight - 30, 70, 15);
           arabicTextLoaded = true;
           console.log(`Successfully loaded Arabic text from: ${arabicTextPath}`);
           break;
@@ -371,12 +251,12 @@ export const addReportFooter = async (doc: jsPDF, isRTL: boolean = false): Promi
       }
     }
     
-    // Add page bottom elements with correct spacing/positioning based on direction
+    // Add page bottom elements with correct spacing/positioning
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.text('CONFIDENTIAL', isRTL ? pageWidth - 14 : 14, pageHeight - 10, { align: isRTL ? 'right' : 'left' });
+    doc.text('CONFIDENTIAL', 14, pageHeight - 10);
     doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-    doc.text(formatDate(new Date()), isRTL ? 14 : pageWidth - 14, pageHeight - 10, { align: isRTL ? 'left' : 'right' });
+    doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 10, { align: 'right' });
   } catch (error) {
     console.error("Error in addReportFooter:", error);
     
@@ -409,55 +289,32 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
  * @param title Report title
  * @param dateRange Date range for the report 
  * @param contentGenerator Function that adds content to the document
- * @param language Language code (default: 'en')
  * @returns Promise resolving to PDF document
  */
 export const generateStandardReport = async (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
-  contentGenerator: (doc: jsPDF, startY: number, isRTL: boolean) => number | Promise<number>,
-  language: string = 'en'
+  contentGenerator: (doc: jsPDF, startY: number) => number | Promise<number>
 ): Promise<jsPDF> => {
   try {
-    console.log(`Starting report generation process in language: ${language}`);
-    
-    // Determine if we should use RTL layout
-    const isRTL = language === 'ar';
-    
-    // Translate the title if needed
-    let translatedTitle = title;
-    if (isRTL) {
-      try {
-        translatedTitle = await translateText(title, 'en', 'ar');
-        console.log(`Translated title: ${translatedTitle}`);
-      } catch (error) {
-        console.error('Error translating title:', error);
-        // Keep original title on error
-      }
-    }
-    
+    console.log("Starting report generation process");
     // Initialize the PDF document
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-      // Do not set direction here, we'll handle RTL manually to ensure proper component positioning
-    });
+    const doc = new jsPDF();
     
     // Add header and get the Y position to start content
     console.log("Adding report header");
-    const startY = await addReportHeader(doc, translatedTitle, dateRange, isRTL);
+    const startY = await addReportHeader(doc, title, dateRange);
     
     // Add content using the provided generator function
     console.log("Adding report content");
-    await contentGenerator(doc, startY, isRTL);
+    await contentGenerator(doc, startY);
     
     // Apply footer to all pages
     console.log("Adding footer to all pages");
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      await addReportFooter(doc, isRTL);
+      await addReportFooter(doc);
     }
     
     console.log("Report generation completed successfully");
