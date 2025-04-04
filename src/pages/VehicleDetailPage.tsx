@@ -9,39 +9,27 @@ import PageContainer from '@/components/layout/PageContainer';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getVehicle } = useVehicles();
-  const [vehicle, setVehicle] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { useVehicle } = useVehicles();
+  const { data: vehicle, isLoading, error } = useVehicle(id || '');
+  const [isRTL, setIsRTL] = useState(false);
   const { t } = useTranslation();
+  const { isRTL: contextIsRTL } = useContextTranslation();
 
   useEffect(() => {
-    const fetchVehicle = async () => {
-      if (!id) return;
-      
-      try {
-        setIsLoading(true);
-        const data = await getVehicle(id);
-        
-        if (data) {
-          setVehicle(data);
-        } else {
-          toast.error(t('vehicles.notFound'));
-          navigate('/vehicles');
-        }
-      } catch (error) {
-        console.error('Error fetching vehicle:', error);
-        toast.error(t('vehicles.loadError'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setIsRTL(contextIsRTL);
+  }, [contextIsRTL]);
 
-    fetchVehicle();
-  }, [id, navigate, getVehicle, t]);
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching vehicle:', error);
+      toast.error(t('vehicles.loadError'));
+    }
+  }, [error, t]);
 
   return (
     <PageContainer

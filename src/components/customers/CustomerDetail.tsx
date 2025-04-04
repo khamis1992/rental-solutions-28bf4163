@@ -1,6 +1,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,10 +33,14 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { formatDate, formatDateTime } from '@/lib/date-utils';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 
-export function CustomerDetail() {
+export interface CustomerDetailProps {
+  id: string;
+}
+
+export function CustomerDetail({ id }: CustomerDetailProps) {
   const { t } = useTranslation();
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getCustomer, deleteCustomer } = useCustomers();
   const { agreements, isLoading: isLoadingAgreements } = useAgreements({ 
@@ -47,6 +51,7 @@ export function CustomerDetail() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
+  const { isRTL } = useContextTranslation();
 
   const fetchCustomer = useCallback(async () => {
     if (!id || hasLoaded) return;
@@ -132,14 +137,14 @@ export function CustomerDetail() {
         <div className="flex items-center space-x-2">
           <Button asChild variant="outline">
             <Link to={`/customers/edit/${customer.id}`}>
-              <Edit className="mr-2 h-4 w-4" />
+              <Edit className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
               {t('common.edit')}
             </Link>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" disabled={isDeleting}>
-                <Trash2 className="mr-2 h-4 w-4" />
+                <Trash2 className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
                 {isDeleting ? t('common.loading') : t('common.delete')}
               </Button>
             </AlertDialogTrigger>
@@ -167,7 +172,7 @@ export function CustomerDetail() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <UserCog className="mr-2 h-5 w-5" />
+              <UserCog className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
               {t('customers.contactInformation')}
             </CardTitle>
           </CardHeader>
@@ -178,19 +183,25 @@ export function CustomerDetail() {
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.phoneNumber')}</h4>
-              <p className="text-foreground">{customer.phone}</p>
+              <p className="text-foreground">{customer.phone || customer.phone_number}</p>
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.address')}</h4>
               <p className="text-foreground whitespace-pre-line">{customer.address || t('customers.noAddressProvided')}</p>
             </div>
+            {customer.nationality && (
+              <div>
+                <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.nationality')}</h4>
+                <p className="text-foreground">{customer.nationality}</p>
+              </div>
+            )}
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">
-              <CalendarClock className="mr-2 h-5 w-5" />
+              <CalendarClock className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
               {t('customers.customerDetails')}
             </CardTitle>
           </CardHeader>
@@ -207,19 +218,19 @@ export function CustomerDetail() {
                 }
                 className="capitalize"
               >
-                {t(`customers.status.${customer.status.replace('_', '')}`)}
+                {t(`customers.status.${customer.status?.replace('_', '') || 'unknown'}`)}
               </Badge>
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.driverLicense')}</h4>
               <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-                {customer.driver_license}
+                {customer.driver_license || t('customers.notProvided')}
               </code>
             </div>
             <div>
               <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.lastUpdated')}</h4>
               <div className="flex items-center">
-                <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
+                <Clock className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4 text-muted-foreground`} />
                 {customer.updated_at 
                   ? formatDateTime(customer.updated_at) 
                   : t('customers.neverUpdated')}
@@ -232,7 +243,7 @@ export function CustomerDetail() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <FileText className="mr-2 h-5 w-5" />
+            <FileText className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
             {t('customers.agreementHistory')}
           </CardTitle>
           <CardDescription>
@@ -291,7 +302,7 @@ export function CustomerDetail() {
                           }
                           className="capitalize"
                         >
-                          {t(`agreements.status.${agreement.status?.toLowerCase().replace('_', '')}`)}
+                          {t(`agreements.status.${agreement.status?.toLowerCase().replace('_', '') || 'unknown'}`)}
                         </Badge>
                       </TableCell>
                       <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : t('common.notProvided')}</TableCell>
@@ -320,7 +331,7 @@ export function CustomerDetail() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <AlertTriangle className="mr-2 h-5 w-5" />
+            <AlertTriangle className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
             {t('customers.trafficFines')}
           </CardTitle>
           <CardDescription>
@@ -328,7 +339,7 @@ export function CustomerDetail() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {customer.id && <CustomerTrafficFines customerId={customer.id} />}
+          <CustomerTrafficFines customerId={id} />
         </CardContent>
       </Card>
       
