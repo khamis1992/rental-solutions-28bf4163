@@ -8,7 +8,7 @@ import { useCustomers } from '@/hooks/use-customers';
 const CustomerDetailPage = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
-  const { getCustomerById } = useCustomers();
+  const { customers, isLoading, refreshCustomers } = useCustomers();
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -21,7 +21,15 @@ const CustomerDetailPage = () => {
       
       try {
         setLoading(true);
-        const customerData = await getCustomerById(customerId);
+        // Find customer in the existing customers list
+        let customerData = customers.find(c => c.id === customerId);
+        
+        // If not found, try to refresh the list
+        if (!customerData) {
+          await refreshCustomers();
+          customerData = customers.find(c => c.id === customerId);
+        }
+        
         if (customerData) {
           setCustomer(customerData);
         } else {
@@ -35,9 +43,9 @@ const CustomerDetailPage = () => {
     };
     
     fetchCustomer();
-  }, [customerId, getCustomerById, navigate]);
+  }, [customerId, customers, navigate, refreshCustomers]);
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <PageContainer
         title="Loading..."

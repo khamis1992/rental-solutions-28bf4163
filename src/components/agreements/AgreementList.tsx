@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Table,
@@ -31,27 +32,33 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 
 const PAGE_SIZE = 10;
 
-export function AgreementList() {
+interface AgreementListProps {
+  searchQuery?: string;
+}
+
+export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [internalSearchQuery, setInternalSearchQuery] = useState(searchQuery);
   const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
 
   const {
     agreements,
-    loading: isLoading,
+    loading,
+    isLoading,
     error,
     totalCount,
     deleteAgreement,
     searchParams,
     setSearchParams,
   } = useAgreements({
-    query: searchQuery,
+    query: internalSearchQuery || searchQuery,
     status: statusFilter !== 'all' ? statusFilter : undefined,
   });
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+  // Use total count if available, otherwise calculate from agreements length
+  const totalPages = Math.ceil((totalCount || agreements.length) / PAGE_SIZE);
 
   const onOpenDeleteDialog = (id: string) => {
     setDeletingId(id);
@@ -68,17 +75,17 @@ export function AgreementList() {
 
     try {
       setDeletingId(agreement.id);
-      
-      // Use a simple approach to avoid deep type instantiation
-      const result = await deleteAgreement.mutateAsync(agreement.id);
-      
-      if (result) {
-        toast.success(`Agreement ${agreement.agreement_number || '#' + agreement.id} deleted successfully`);
-        onCloseDeleteDialog();
-      }
+
+      await deleteAgreement(agreement.id);
+      toast.success(`Agreement ${agreement.agreement_number || '#' + agreement.id} deleted successfully`);
+      onCloseDeleteDialog();
     } catch (error) {
-      const errorMessage = error && typeof error === 'object' && 'message' in error ? 
-        error.message : 'An unknown error occurred';
+      let errorMessage = 'An unknown error occurred';
+      if (error && typeof error === 'object') {
+        errorMessage = 'message' in error && typeof error.message === 'string' 
+          ? error.message 
+          : 'An error occurred during deletion';
+      }
       toast.error(`Failed to delete agreement: ${errorMessage}`);
     } finally {
       setDeletingId(null);
@@ -87,13 +94,17 @@ export function AgreementList() {
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
-    setSearchQuery(query);
-    setSearchParams({ ...searchParams, query });
+    setInternalSearchQuery(query);
+    if (setSearchParams) {
+      setSearchParams({ ...searchParams, query });
+    }
   };
 
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
-    setSearchParams({ ...searchParams, status });
+    if (setSearchParams) {
+      setSearchParams({ ...searchParams, status });
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -112,7 +123,7 @@ export function AgreementList() {
   );
 
   const renderTable = () => {
-    if (isLoading) {
+    if (isLoading || loading) {
       return (
         <div className="rounded-md border">
           <Table>
@@ -197,7 +208,7 @@ export function AgreementList() {
                 </TableCell>
               </TableRow>
             ))}
-            {agreements.length === 0 && !isLoading && (
+            {agreements.length === 0 && !isLoading && !loading && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center">
                   No agreements found.
@@ -216,7 +227,7 @@ export function AgreementList() {
         <Input
           type="text"
           placeholder="Search agreements..."
-          value={searchQuery}
+          value={internalSearchQuery}
           onChange={handleSearchChange}
           className="md:w-1/3"
         />
@@ -239,11 +250,13 @@ export function AgreementList() {
       {renderTable()}
 
       {agreements.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
+        <div className="mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
+        </div>
       )}
 
       <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
@@ -265,9 +278,9 @@ export function AgreementList() {
                   }
                 }
               }}
-              disabled={isLoading}
+              disabled={isLoading || loading}
             >
-              {isLoading ? 'Deleting...' : 'Delete'}
+              {isLoading || loading ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

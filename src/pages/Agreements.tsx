@@ -1,3 +1,4 @@
+
 import React, { Suspense, useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
@@ -75,10 +76,12 @@ const Agreements = () => {
   };
   
   const handleImportComplete = () => {
-    setSearchParams({ 
-      query: '', 
-      status: 'all' 
-    });
+    if (setSearchParams) {
+      setSearchParams({ 
+        query: '', 
+        status: 'all' 
+      });
+    }
   };
 
   return (
