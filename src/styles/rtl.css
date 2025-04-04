@@ -208,7 +208,7 @@
 /* RTL adjustments for navigation components */
 .rtl-mode nav a svg,
 .rtl-mode nav button svg {
-  transform: scaleX(1); /* Reset any scaleX transformations */
+  transform: scaleX(-1); /* Flip SVG icons horizontally for RTL */
 }
 
 /* Correctly handle directional icons in RTL mode */
@@ -253,4 +253,26 @@
 .rtl-mode .sidebar-collapsed {
   right: -100% !important;
   left: auto !important;
+}
+
+/* Fix for icons in navigation menus */
+.rtl-mode .sidebar-menu-icon {
+  margin-right: 0;
+  margin-left: 0.75rem;
+}
+
+/* Icon placement in sidebar components */
+.rtl-mode .sidebar-nav-item {
+  flex-direction: row-reverse;
+}
+
+/* Fix icon alignment in the shadcn/ui sidebar */
+.rtl-mode [data-sidebar="menu-button"] svg {
+  margin-left: 0.75rem;
+  margin-right: 0;
+}
+
+/* Icon flip for directional navigation */
+.rtl-mode .sidebar-navigation-icon {
+  transform: scaleX(-1);
 }

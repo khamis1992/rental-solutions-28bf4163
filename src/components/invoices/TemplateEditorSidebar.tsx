@@ -13,6 +13,7 @@ import {
   templateCategories 
 } from "@/utils/invoiceTemplateUtils";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { getDirectionalFlexClass } from "@/utils/rtl-utils";
 
 interface TemplateEditorSidebarProps {
   templates: InvoiceTemplate[];
@@ -65,6 +66,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
   };
 
   const variablesByType = groupVariablesByType();
+  const flexDirectionClass = getDirectionalFlexClass();
 
   return (
     <div className="space-y-4 w-full md:w-1/3">
@@ -120,7 +122,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
       
       <Button 
         variant="secondary" 
-        className="w-full flex items-center justify-center gap-2"
+        className={`w-full flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-center gap-2`}
         onClick={onOpenAIDialog}
       >
         <Sparkles className="h-4 w-4" />
@@ -128,7 +130,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
       </Button>
       
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-between`}>
           <Label>Available Variables</Label>
           <Popover>
             <PopoverTrigger asChild>

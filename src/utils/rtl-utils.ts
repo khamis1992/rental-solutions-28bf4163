@@ -1,3 +1,4 @@
+
 import { useTranslation } from '@/contexts/TranslationContext';
 import { cn } from '@/lib/utils';
 
@@ -134,8 +135,17 @@ export const getDirectionalIcon = (iconType: 'arrow' | 'chevron') => {
   
   // You will need to import these from lucide-react where this function is used
   if (iconType === 'arrow') {
-    return isRTL ? 'ArrowRight' : 'ArrowLeft';
+    return isRTL ? 'ArrowLeft' : 'ArrowRight'; // Note: reversed for RTL
   } else {
-    return isRTL ? 'ChevronRight' : 'ChevronLeft';
+    return isRTL ? 'ChevronLeft' : 'ChevronRight'; // Note: reversed for RTL
   }
+};
+
+/**
+ * Returns CSS transforms for flipping icons in RTL mode
+ * @returns The appropriate transform style for the current direction
+ */
+export const getIconFlipStyle = (): React.CSSProperties => {
+  const { isRTL } = useTranslation();
+  return isRTL ? { transform: 'scaleX(-1)' } : {};
 };

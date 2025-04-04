@@ -73,10 +73,6 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const { isRTL } = useTranslation();
 
-  // Choose appropriate chevron icon based on direction and expanded state
-  const ChevronIcon = isOpen ? <ChevronDown className="h-4 w-4" /> : 
-                              (isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />);
-
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
       <CollapsibleTrigger asChild>
@@ -84,7 +80,8 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
           {icon}
           <span>{label}</span>
           <div className={`${isRTL ? 'mr-auto' : 'ml-auto'}`}>
-            {ChevronIcon}
+            {isOpen ? <ChevronDown className="h-4 w-4" /> : 
+              (isRTL ? <ChevronLeft className="h-4 w-4 sidebar-navigation-icon" /> : <ChevronRight className="h-4 w-4" />)}
           </div>
         </div>
       </CollapsibleTrigger>
@@ -117,8 +114,8 @@ const Sidebar = () => {
 
   // Choose appropriate chevron icon based on direction and expanded state
   const SidebarChevron = !expanded ? 
-    (isRTL ? ChevronLeft : ChevronRight) : 
-    (isRTL ? ChevronRight : ChevronLeft);
+    (isRTL ? <ChevronLeft className="h-4 w-4 sidebar-navigation-icon" /> : <ChevronRight className="h-4 w-4" />) : 
+    (isRTL ? <ChevronRight className="h-4 w-4 sidebar-navigation-icon" /> : <ChevronLeft className="h-4 w-4" />);
 
   // Adjust sidebar position based on RTL setting
   const sidebarPosition = isRTL ? 'right-0' : 'left-0';
@@ -149,7 +146,7 @@ const Sidebar = () => {
           className={`hidden md:flex absolute ${sidebarButtonPosition} top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white`}
           onClick={toggleSidebar}
         >
-          <SidebarChevron className="h-4 w-4" />
+          {SidebarChevron}
         </Button>
 
         <div className={cn(
@@ -174,70 +171,70 @@ const Sidebar = () => {
               <>
                 <NavLink
                   to="/dashboard"
-                  icon={<LayoutDashboard className="h-5 w-5" />}
+                  icon={<LayoutDashboard className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.dashboard')}
                   isActive={isActive('/dashboard')}
                 />
 
                 <NavLink
                   to="/customers"
-                  icon={<Users className="h-5 w-5" />}
+                  icon={<Users className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.customers')}
                   isActive={isActive('/customers')}
                 />
 
                 <NavLink
                   to="/agreements"
-                  icon={<FileText className="h-5 w-5" />}
+                  icon={<FileText className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.agreements')}
                   isActive={isActive('/agreements')}
                 />
 
                 <NavLink
                   to="/vehicles"
-                  icon={<Car className="h-5 w-5" />}
+                  icon={<Car className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.vehicles')}
                   isActive={isActive('/vehicles')}
                 />
 
                 <NavLink
                   to="/maintenance"
-                  icon={<Wrench className="h-5 w-5" />}
+                  icon={<Wrench className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.maintenance')}
                   isActive={isActive('/maintenance')}
                 />
 
                 <NavLink
                   to="/fines"
-                  icon={<AlertTriangle className="h-5 w-5" />}
+                  icon={<AlertTriangle className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.trafficFines')}
                   isActive={isActive('/fines')}
                 />
 
                 <NavLink
                   to="/financials"
-                  icon={<DollarSign className="h-5 w-5" />}
+                  icon={<DollarSign className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.financials')}
                   isActive={isActive('/financials')}
                 />
 
                 <NavLink
                   to="/legal"
-                  icon={<Scale className="h-5 w-5" />}
+                  icon={<Scale className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.legal')}
                   isActive={isActive('/legal')}
                 />
 
                 <NavLink
                   to="/reports"
-                  icon={<BarChart2 className="h-5 w-5" />}
+                  icon={<BarChart2 className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.reports')}
                   isActive={isActive('/reports')}
                 />
 
                 <NavLink
                   to="/user-management"
-                  icon={<Users className="h-5 w-5" />}
+                  icon={<Users className="h-5 w-5 sidebar-nav-icon" />}
                   label={t('common.userManagement')}
                   isActive={isActive('/user-management')}
                 />
@@ -246,14 +243,14 @@ const Sidebar = () => {
                   <>
                     <NavLink
                       to="/settings"
-                      icon={<UserCog className="h-5 w-5" />}
+                      icon={<UserCog className="h-5 w-5 sidebar-nav-icon" />}
                       label={t('settings.title')}
                       isActive={isActive('/settings') && !isActive('/settings/system')}
                     />
                     
                     <NavLink
                       to="/settings/system"
-                      icon={<Sliders className="h-5 w-5" />}
+                      icon={<Sliders className="h-5 w-5 sidebar-nav-icon" />}
                       label={t('settings.systemSettings')}
                       isActive={isActive('/settings/system')}
                     />
@@ -263,7 +260,7 @@ const Sidebar = () => {
                 {expanded && (
                   <NavGroup 
                     label={t('common.settings')}
-                    icon={<Settings className="h-5 w-5" />}
+                    icon={<Settings className="h-5 w-5 sidebar-nav-icon" />}
                     defaultOpen={hasActiveChild(['/settings', '/settings/system'])}
                   >
                     <Link
@@ -273,7 +270,7 @@ const Sidebar = () => {
                         isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
                       )}
                     >
-                      <UserCog className="h-4 w-4" />
+                      <UserCog className="h-4 w-4 sidebar-nav-icon" />
                       <span>{t('settings.title')}</span>
                     </Link>
                     
@@ -284,7 +281,7 @@ const Sidebar = () => {
                         isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
                       )}
                     >
-                      <Sliders className="h-4 w-4" />
+                      <Sliders className="h-4 w-4 sidebar-nav-icon" />
                       <span>{t('settings.systemSettings')}</span>
                     </Link>
                   </NavGroup>
@@ -311,7 +308,7 @@ const Sidebar = () => {
                 </span>
               </div>
               <Button variant="ghost" size="icon" onClick={signOut} className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-gray-400 hover:text-white hover:bg-gray-800`}>
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-4 w-4 sidebar-nav-icon" />
               </Button>
             </div>
           ) : (
