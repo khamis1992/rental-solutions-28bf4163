@@ -1,5 +1,4 @@
-
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,107 +65,101 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const queryClient = useQueryClient();
 
   const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
-    try {
-      console.log(`Fetching agreement details for ID: ${id}`);
+    console.log(`Fetching agreement details for ID: ${id}`);
 
-      if (!id || id.trim() === '') {
-        console.error("Invalid agreement ID provided");
-        toast.error("Invalid agreement ID");
-        return null;
-      }
-
-      const { data, error } = await supabase
-        .from('leases')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error fetching agreement from Supabase:", error);
-        toast.error(`Failed to load agreement details: ${error.message}`);
-        return null;
-      }
-
-      if (!data) {
-        console.error(`No lease data found for ID: ${id}`);
-        return null;
-      }
-
-      console.log("Raw lease data from Supabase:", data);
-
-      let customerData = null;
-      let vehicleData = null;
-
-      if (data.customer_id) {
-        try {
-          const { data: customer, error: customerError } = await supabase
-            .from('profiles')
-            .select('id, full_name, email, phone_number, driver_license, nationality, address')
-            .eq('id', data.customer_id)
-            .maybeSingle();
-
-          if (customerError) {
-            console.error("Error fetching customer:", customerError);
-          } else if (customer) {
-            console.log("Customer data fetched:", customer);
-            customerData = customer;
-          } else {
-            console.log(`No customer found with ID: ${data.customer_id}`);
-          }
-        } catch (customerFetchError) {
-          console.error("Error in customer data fetch:", customerFetchError);
-        }
-      }
-
-      if (data.vehicle_id) {
-        try {
-          const { data: vehicle, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('id, make, model, license_plate, image_url, year, color, vin')
-            .eq('id', data.vehicle_id)
-            .maybeSingle();
-
-          if (vehicleError) {
-            console.error("Error fetching vehicle:", vehicleError);
-          } else if (vehicle) {
-            console.log("Vehicle data fetched:", vehicle);
-            vehicleData = vehicle;
-          } else {
-            console.log(`No vehicle found with ID: ${data.vehicle_id}`);
-          }
-        } catch (vehicleFetchError) {
-          console.error("Error in vehicle data fetch:", vehicleFetchError);
-        }
-      }
-
-      const mappedStatus = mapDBStatusToEnum(data.status);
-
-      const agreement: SimpleAgreement = {
-        id: data.id,
-        customer_id: data.customer_id,
-        vehicle_id: data.vehicle_id,
-        start_date: data.start_date,
-        end_date: data.end_date,
-        status: mappedStatus,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        total_amount: data.total_amount || 0,
-        deposit_amount: data.deposit_amount || 0, 
-        agreement_number: data.agreement_number || '',
-        notes: data.notes || '',
-        customers: customerData,
-        vehicles: vehicleData,
-        rent_amount: data.rent_amount || 0,
-        daily_late_fee: data.daily_late_fee || 0
-      };
-
-      console.log("Transformed agreement data:", agreement);
-      return agreement;
-    } catch (err) {
-      console.error("Unexpected error in getAgreement:", err);
-      toast.error("An unexpected error occurred while loading agreement details");
+    if (!id || id.trim() === '') {
+      console.error("Invalid agreement ID provided");
+      toast.error("Invalid agreement ID");
       return null;
     }
+
+    const { data, error } = await supabase
+      .from('leases')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching agreement from Supabase:", error);
+      toast.error(`Failed to load agreement details: ${error.message}`);
+      return null;
+    }
+
+    if (!data) {
+      console.error(`No lease data found for ID: ${id}`);
+      return null;
+    }
+
+    console.log("Raw lease data from Supabase:", data);
+
+    let customerData = null;
+    let vehicleData = null;
+
+    if (data.customer_id) {
+      try {
+        const { data: customer, error: customerError } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, phone_number, driver_license, nationality, address')
+          .eq('id', data.customer_id)
+          .maybeSingle();
+
+        if (customerError) {
+          console.error("Error fetching customer:", customerError);
+        } else if (customer) {
+          console.log("Customer data fetched:", customer);
+          customerData = customer;
+        } else {
+          console.log(`No customer found with ID: ${data.customer_id}`);
+        }
+      } catch (customerFetchError) {
+        console.error("Error in customer data fetch:", customerFetchError);
+      }
+    }
+
+    if (data.vehicle_id) {
+      try {
+        const { data: vehicle, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('id, make, model, license_plate, image_url, year, color, vin')
+          .eq('id', data.vehicle_id)
+          .maybeSingle();
+
+        if (vehicleError) {
+          console.error("Error fetching vehicle:", vehicleError);
+        } else if (vehicle) {
+          console.log("Vehicle data fetched:", vehicle);
+          vehicleData = vehicle;
+        } else {
+          console.log(`No vehicle found with ID: ${data.vehicle_id}`);
+        }
+      } catch (vehicleFetchError) {
+        console.error("Error in vehicle data fetch:", vehicleFetchError);
+      }
+    }
+
+    const mappedStatus = mapDBStatusToEnum(data.status);
+
+    const agreement: SimpleAgreement = {
+      id: data.id,
+      customer_id: data.customer_id,
+      vehicle_id: data.vehicle_id,
+      start_date: data.start_date,
+      end_date: data.end_date,
+      status: mappedStatus,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+      total_amount: data.total_amount || 0,
+      deposit_amount: data.deposit_amount || 0, 
+      agreement_number: data.agreement_number || '',
+      notes: data.notes || '',
+      customers: customerData,
+      vehicles: vehicleData,
+      rent_amount: data.rent_amount || 0,
+      daily_late_fee: data.daily_late_fee || 0
+    };
+
+    console.log("Transformed agreement data:", agreement);
+    return agreement;
   };
 
   const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
@@ -282,7 +275,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const createAgreement = async (data: Partial<SimpleAgreement>) => {
+  const createAgreement = async (data: Partial<SimpleAgreement>): Promise<SimpleAgreement> => {
     return {} as SimpleAgreement;
   };
 
