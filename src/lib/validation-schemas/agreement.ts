@@ -28,6 +28,7 @@ export const agreementSchema = z.object({
   agreement_duration: z.string().optional(),
   notes: z.string().optional(),
   terms_accepted: z.boolean().default(false),
+  signature_url: z.string().optional(),
 });
 
 // Enum for payment status
@@ -65,9 +66,9 @@ export interface Agreement {
   customers?: any;
   vehicles?: any;
   terms_accepted: boolean;
-  additional_drivers: string[];
-  rent_amount?: number; // Added this property to fix the error
-  daily_late_fee?: number; // Added for consistency
+  additional_drivers?: string[];
+  rent_amount?: number;
+  daily_late_fee?: number;
 }
 
 // Function to force generate payment for a specific agreement
@@ -179,3 +180,4 @@ export const forceGeneratePaymentForAgreement = async (
     };
   }
 };
+
