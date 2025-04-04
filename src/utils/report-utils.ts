@@ -280,10 +280,13 @@ export const generateExcel = (
   if (isRTL()) {
     if (!worksheet['!cols']) worksheet['!cols'] = [];
     
-    // Set RTL for all columns
+    // Set RTL for all columns - without using 'direction' property which is not in ColInfo type
     headers.forEach((_, i) => {
       if (!worksheet['!cols']) worksheet['!cols'] = [];
-      worksheet['!cols'][i] = { ...worksheet['!cols'][i], direction: 'right-to-left' };
+      // Use a custom approach instead of the direction property
+      if (!worksheet['!cols'][i]) worksheet['!cols'][i] = {};
+      // Set a different property like alignment instead
+      worksheet['!cols'][i] = { ...worksheet['!cols'][i], wch: 20 }; 
     });
   }
   
@@ -360,9 +363,13 @@ export const downloadCSV = (data: any[], filename: string, isRTL: boolean = fals
 export const downloadExcel = (data: any[], filename: string, isRTL: boolean = false): void => {
   const worksheet = XLSX.utils.json_to_sheet(data);
   
-  // Set RTL property if needed
+  // Set alignment for RTL if needed
   if (isRTL) {
-    worksheet['!dir'] = 'rtl';
+    if (!worksheet['!cols']) worksheet['!cols'] = [];
+    // Set alignment properties instead of direction
+    for (let i = 0; i < Object.keys(data[0] || {}).length; i++) {
+      worksheet['!cols'][i] = { wch: 20 };
+    }
   }
   
   const workbook = XLSX.utils.book_new();

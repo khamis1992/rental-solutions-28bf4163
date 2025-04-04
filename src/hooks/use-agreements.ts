@@ -4,35 +4,16 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
+import { FlattenType, BaseAgreement } from '@/utils/type-utils';
 
-export type SimpleAgreement = FlattenType<{
-  id: string;
-  customer_id: string;
-  vehicle_id: string;
-  start_date?: string | null;
-  end_date?: string | null;
-  agreement_type?: string;
-  agreement_number?: string;
+export type SimpleAgreement = FlattenType<BaseAgreement>;
+
+interface SearchParams {
+  query?: string;
   status?: string;
-  total_amount?: number;
-  monthly_payment?: number;
-  agreement_duration?: any;
-  customer_name?: string;
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-  vehicle_year?: number;
-  created_at?: string;
-  updated_at?: string;
-  signature_url?: string;
-  deposit_amount?: number;
-  notes?: string;
-  customers?: any;
-  vehicles?: any;
-  rent_amount?: number;
-  daily_late_fee?: number;
-}>;
+  vehicle_id?: string;
+  customer_id?: string;
+}
 
 export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
   switch(dbStatus) {
@@ -54,13 +35,6 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
       return AgreementStatus.DRAFT;
   }
 };
-
-interface SearchParams {
-  query?: string;
-  status?: string;
-  vehicle_id?: string;
-  customer_id?: string;
-}
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
