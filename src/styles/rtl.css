@@ -176,3 +176,19 @@
   margin-left: 0.5rem;
   margin-right: 0;
 }
+
+/* Financial statistics and trend indicators */
+.rtl-mode .text-muted-foreground .inline-flex {
+  display: inline-flex;
+  align-items: center;
+}
+
+.rtl-mode .text-xs.text-muted-foreground span + span {
+  margin-right: 0.25rem;
+}
+
+/* Percentage indicators in RTL */
+.rtl-mode .rounded-full + span {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}

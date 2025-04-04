@@ -3,6 +3,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface StatCardProps {
   title: string;
@@ -27,6 +28,8 @@ const StatCard = ({
   className,
   onClick,
 }: StatCardProps) => {
+  const { isRTL } = useTranslation();
+  
   return (
     <Card 
       className={cn("overflow-hidden card-transition", 
@@ -52,16 +55,17 @@ const StatCard = ({
                 )}>
                   {trend > 0 ? '+' : ''}{trend}%
                 </span>
-                {trendLabel && <span className="text-xs text-muted-foreground ml-2">{trendLabel}</span>}
+                {trendLabel && <span className={`text-xs text-muted-foreground ${isRTL ? 'mr-2' : 'ml-2'}`}>{trendLabel}</span>}
               </div>
             )}
           </div>
           
           {Icon && (
             <div className={cn(
-              "p-3 rounded-full shrink-0 ml-3",
+              "p-3 rounded-full shrink-0",
               "bg-primary/10",
-              iconColor
+              iconColor,
+              isRTL ? "mr-3" : "ml-3"
             )}>
               <Icon className="h-5 w-5" />
             </div>
