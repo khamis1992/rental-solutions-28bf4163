@@ -9,7 +9,7 @@ export interface SimpleAgreement {
   end_date: string;
   status: string;
   daily_rate: number;
-  signature_url?: string;
+  signature_url?: string | null;
   created_at?: string;
   updated_at?: string;
   total_amount?: number;

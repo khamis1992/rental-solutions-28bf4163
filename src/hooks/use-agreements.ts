@@ -7,16 +7,22 @@ import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { SimpleAgreement, AgreementWithRelations } from '@/types/agreement';
 
+interface AgreementFilters {
+  status?: string;
+  search?: string;
+  [key: string]: any;
+}
+
 // Custom hook for fetching and managing agreements
-export function useAgreements(initialFilters = {}) {
+export function useAgreements(initialFilters: AgreementFilters = {}) {
   const [agreements, setAgreements] = useState<SimpleAgreement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState<AgreementFilters>(initialFilters);
   const { user } = useAuth();
 
   // Fetch agreements with optional filtering
-  const fetchAgreements = useCallback(async (filterParams = {}) => {
+  const fetchAgreements = useCallback(async (filterParams: AgreementFilters = {}) => {
     try {
       setLoading(true);
       
@@ -113,6 +119,13 @@ export function useAgreements(initialFilters = {}) {
         status: data.status,
         daily_rate: data.daily_rate || 0,
         signature_url: data.signature_url || null,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        total_amount: data.total_amount || 0,
+        deposit_amount: data.deposit_amount || 0,
+        notes: data.notes || '',
+        rent_amount: data.rent_amount || 0,
+        daily_late_fee: data.daily_late_fee || 0,
         // Include relationships
         customer: {
           id: data.customers.id,
@@ -138,10 +151,24 @@ export function useAgreements(initialFilters = {}) {
 
   // Create a new agreement
   const createAgreement = useApiMutation(
-    async (agreement: Omit<SimpleAgreement, 'id'>) => {
+    async (agreement: Partial<SimpleAgreement>) => {
       const { data, error } = await supabase
         .from('leases')
-        .insert(agreement)
+        .insert({
+          agreement_number: agreement.agreement_number,
+          customer_id: agreement.customer_id,
+          vehicle_id: agreement.vehicle_id,
+          start_date: agreement.start_date,
+          end_date: agreement.end_date,
+          status: agreement.status,
+          daily_rate: agreement.daily_rate || 0,
+          signature_url: agreement.signature_url || null,
+          total_amount: agreement.total_amount || 0,
+          deposit_amount: agreement.deposit_amount || 0,
+          notes: agreement.notes || '',
+          rent_amount: agreement.rent_amount || 0,
+          daily_late_fee: agreement.daily_late_fee || 0
+        })
         .select();
       
       if (error) throw new Error(`Failed to create agreement: ${error.message}`);
@@ -193,3 +220,5 @@ export function useAgreements(initialFilters = {}) {
     deleteAgreement
   };
 }
+
+export type { SimpleAgreement, AgreementWithRelations };

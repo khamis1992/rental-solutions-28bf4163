@@ -228,8 +228,16 @@
   transform: rotate(180deg);
 }
 
-/* Ensure correct icon positioning in sidebar items */
+/* FIXED: Ensure correct icon positioning in sidebar items */
 .rtl-mode .sidebar-item {
+  flex-direction: row-reverse;
+}
+
+/* FIXED: Ensure sidebar navigation links display correctly in RTL */
+.rtl-mode .sidebar-nav-item,
+.rtl-mode a.flex.items-center,
+.rtl-mode button.flex.items-center,
+.rtl-mode div.flex.items-center {
   flex-direction: row-reverse;
 }
 
@@ -255,24 +263,18 @@
   left: auto !important;
 }
 
-/* Fix for icons in navigation menus */
-.rtl-mode .sidebar-menu-icon {
-  margin-right: 0;
-  margin-left: 0.75rem;
-}
-
-/* Icon placement in sidebar components */
+/* NEW: Fix icon placement in sidebar components */
 .rtl-mode .sidebar-nav-item {
   flex-direction: row-reverse;
 }
 
-/* Fix icon alignment in the shadcn/ui sidebar */
-.rtl-mode [data-sidebar="menu-button"] svg {
-  margin-left: 0.75rem;
-  margin-right: 0;
+/* NEW: Explicitly set icon order in RTL mode */
+.rtl-mode nav a svg,
+.rtl-mode nav button svg {
+  order: 2; /* Place icon after text in flex layout */
 }
 
-/* Icon flip for directional navigation */
-.rtl-mode .sidebar-navigation-icon {
-  transform: scaleX(-1);
+.rtl-mode nav a span,
+.rtl-mode nav button span {
+  order: 1; /* Place text before icon in flex layout */
 }
