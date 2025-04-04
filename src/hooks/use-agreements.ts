@@ -177,33 +177,37 @@ export const useAgreements = (initialParams?: SearchParams) => {
         }
 
         return (data || []).map(item => {
-          // We need to check if the customer data actually exists and handle null/undefined cases
-          const customerData = item.customer || null;
+          // Handle the case where customer data could be null, undefined, or an error object
+          let safeCustomerData = DEFAULT_CUSTOMER;
+          const customerData = item.customer;
           
-          // Make sure we're not trying to access properties on an error object
-          const safeCustomerData = isSupabaseError(customerData) ? DEFAULT_CUSTOMER : {
-            id: customerData?.id || DEFAULT_CUSTOMER.id,
-            full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
-            email: customerData?.email || DEFAULT_CUSTOMER.email,
-            phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
-            phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
-            address: customerData?.address || DEFAULT_CUSTOMER.address,
-            driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
-          };
+          if (customerData && !isSupabaseError(customerData)) {
+            safeCustomerData = {
+              id: customerData?.id || DEFAULT_CUSTOMER.id,
+              full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
+              email: customerData?.email || DEFAULT_CUSTOMER.email,
+              phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
+              phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
+              address: customerData?.address || DEFAULT_CUSTOMER.address,
+              driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
+            };
+          }
 
-          // We need to check if the vehicle data actually exists and handle null/undefined cases
-          const vehicleData = item.vehicle || null;
+          // Handle the case where vehicle data could be null, undefined, or an error object
+          let safeVehicleData = DEFAULT_VEHICLE;
+          const vehicleData = item.vehicle;
           
-          // Make sure we're not trying to access properties on an error object
-          const safeVehicleData = isSupabaseError(vehicleData) ? DEFAULT_VEHICLE : {
-            id: vehicleData?.id || DEFAULT_VEHICLE.id,
-            make: vehicleData?.make || DEFAULT_VEHICLE.make,
-            model: vehicleData?.model || DEFAULT_VEHICLE.model,
-            license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
-            year: vehicleData?.year || DEFAULT_VEHICLE.year,
-            color: vehicleData?.color || DEFAULT_VEHICLE.color,
-            vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
-          };
+          if (vehicleData && !isSupabaseError(vehicleData)) {
+            safeVehicleData = {
+              id: vehicleData?.id || DEFAULT_VEHICLE.id,
+              make: vehicleData?.make || DEFAULT_VEHICLE.make,
+              model: vehicleData?.model || DEFAULT_VEHICLE.model,
+              license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
+              year: vehicleData?.year || DEFAULT_VEHICLE.year,
+              color: vehicleData?.color || DEFAULT_VEHICLE.color,
+              vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
+            };
+          }
 
           const agreement: FlattenType<SimpleAgreement> = {
             ...item,
@@ -304,33 +308,37 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
-    // We need to check if the customer data actually exists and handle null/undefined cases
-    const customerData = data.customer || null;
+    // Handle the case where customer data could be null, undefined, or an error object
+    let safeCustomerData = DEFAULT_CUSTOMER;
+    const customerData = data.customer;
     
-    // Make sure we're not trying to access properties on an error object
-    const safeCustomerData = isSupabaseError(customerData) ? DEFAULT_CUSTOMER : {
-      id: customerData?.id || DEFAULT_CUSTOMER.id,
-      full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
-      email: customerData?.email || DEFAULT_CUSTOMER.email,
-      phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
-      phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
-      address: customerData?.address || DEFAULT_CUSTOMER.address,
-      driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
-    };
+    if (customerData && !isSupabaseError(customerData)) {
+      safeCustomerData = {
+        id: customerData?.id || DEFAULT_CUSTOMER.id,
+        full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
+        email: customerData?.email || DEFAULT_CUSTOMER.email,
+        phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
+        phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
+        address: customerData?.address || DEFAULT_CUSTOMER.address,
+        driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
+      };
+    }
 
-    // We need to check if the vehicle data actually exists and handle null/undefined cases
-    const vehicleData = data.vehicle || null;
+    // Handle the case where vehicle data could be null, undefined, or an error object
+    let safeVehicleData = DEFAULT_VEHICLE;
+    const vehicleData = data.vehicle;
     
-    // Make sure we're not trying to access properties on an error object
-    const safeVehicleData = isSupabaseError(vehicleData) ? DEFAULT_VEHICLE : {
-      id: vehicleData?.id || DEFAULT_VEHICLE.id,
-      make: vehicleData?.make || DEFAULT_VEHICLE.make,
-      model: vehicleData?.model || DEFAULT_VEHICLE.model,
-      license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
-      year: vehicleData?.year || DEFAULT_VEHICLE.year,
-      color: vehicleData?.color || DEFAULT_VEHICLE.color,
-      vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
-    };
+    if (vehicleData && !isSupabaseError(vehicleData)) {
+      safeVehicleData = {
+        id: vehicleData?.id || DEFAULT_VEHICLE.id,
+        make: vehicleData?.make || DEFAULT_VEHICLE.make,
+        model: vehicleData?.model || DEFAULT_VEHICLE.model,
+        license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
+        year: vehicleData?.year || DEFAULT_VEHICLE.year,
+        color: vehicleData?.color || DEFAULT_VEHICLE.color,
+        vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
+      };
+    }
 
     const agreement: FlattenType<SimpleAgreement> = {
       ...data,
@@ -372,33 +380,37 @@ export const useAgreements = (initialParams?: SearchParams) => {
     }
 
     return (data || []).map(item => {
-      // We need to check if the customer data actually exists and handle null/undefined cases
-      const customerData = item.customer || null;
+      // Handle the case where customer data could be null, undefined, or an error object
+      let safeCustomerData = DEFAULT_CUSTOMER;
+      const customerData = item.customer;
       
-      // Make sure we're not trying to access properties on an error object
-      const safeCustomerData = isSupabaseError(customerData) ? DEFAULT_CUSTOMER : {
-        id: customerData?.id || DEFAULT_CUSTOMER.id,
-        full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
-        email: customerData?.email || DEFAULT_CUSTOMER.email,
-        phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
-        phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
-        address: customerData?.address || DEFAULT_CUSTOMER.address,
-        driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
-      };
+      if (customerData && !isSupabaseError(customerData)) {
+        safeCustomerData = {
+          id: customerData?.id || DEFAULT_CUSTOMER.id,
+          full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
+          email: customerData?.email || DEFAULT_CUSTOMER.email,
+          phone: customerData?.phone || customerData?.phone_number || DEFAULT_CUSTOMER.phone,
+          phone_number: customerData?.phone_number || customerData?.phone || DEFAULT_CUSTOMER.phone_number,
+          address: customerData?.address || DEFAULT_CUSTOMER.address,
+          driver_license: customerData?.driver_license || DEFAULT_CUSTOMER.driver_license
+        };
+      }
 
-      // We need to check if the vehicle data actually exists and handle null/undefined cases
-      const vehicleData = item.vehicle || null;
+      // Handle the case where vehicle data could be null, undefined, or an error object
+      let safeVehicleData = DEFAULT_VEHICLE;
+      const vehicleData = item.vehicle;
       
-      // Make sure we're not trying to access properties on an error object
-      const safeVehicleData = isSupabaseError(vehicleData) ? DEFAULT_VEHICLE : {
-        id: vehicleData?.id || DEFAULT_VEHICLE.id,
-        make: vehicleData?.make || DEFAULT_VEHICLE.make,
-        model: vehicleData?.model || DEFAULT_VEHICLE.model,
-        license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
-        year: vehicleData?.year || DEFAULT_VEHICLE.year,
-        color: vehicleData?.color || DEFAULT_VEHICLE.color,
-        vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
-      };
+      if (vehicleData && !isSupabaseError(vehicleData)) {
+        safeVehicleData = {
+          id: vehicleData?.id || DEFAULT_VEHICLE.id,
+          make: vehicleData?.make || DEFAULT_VEHICLE.make,
+          model: vehicleData?.model || DEFAULT_VEHICLE.model,
+          license_plate: vehicleData?.license_plate || DEFAULT_VEHICLE.license_plate,
+          year: vehicleData?.year || DEFAULT_VEHICLE.year,
+          color: vehicleData?.color || DEFAULT_VEHICLE.color,
+          vin: vehicleData?.vin || DEFAULT_VEHICLE.vin
+        };
+      }
 
       const agreement: FlattenType<SimpleAgreement> = {
         ...item,
