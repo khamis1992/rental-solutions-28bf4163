@@ -46,7 +46,7 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
         .from('leases')
         .select(`
           *,
-          customers:customer_id (id, full_name, phone, email),
+          customers:customer_id (id, full_name, phone_number, email),
           vehicles:vehicle_id (id, make, model, year, license_plate)
         `);
 
@@ -75,7 +75,7 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
           query = query.lte('end_date', filters.endDate.toISOString());
         }
         if (filters.search) {
-          // Use OR with explicit column references to avoid ambiguity
+          // Fix the search query to use phone_number instead of phone
           query = query.or(`leases.agreement_number.ilike.%${filters.search}%,customers.full_name.ilike.%${filters.search}%,vehicles.license_plate.ilike.%${filters.search}%`);
         }
       }
