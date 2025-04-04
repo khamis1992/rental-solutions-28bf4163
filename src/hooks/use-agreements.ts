@@ -14,9 +14,9 @@ export interface SimpleAgreement {
   status: string;
   created_at: string;
   updated_at: string;
-  total_amount: number;  // Ensure this field exists and is named correctly
+  total_amount: number;  // Primary field for amount
   deposit_amount: number;
-  agreement_number: string;  // Ensure this field exists and is named correctly
+  agreement_number: string;  // Primary field for agreement number
   notes: string;
   rent_amount?: number;
   daily_late_fee?: number;
@@ -81,10 +81,10 @@ export const useAgreements = (initialParams?: SearchParams) => {
       queryKey: ['agreements', searchParams],
       queryFn: async () => {
         let query = supabase
-          .from('rental_agreements')
+          .from('leases')  // Query the leases table instead of rental_agreements
           .select(`
             *,
-            customer:customer_id(*),
+            customer:customer_id(id, first_name, last_name, email, phone),
             vehicle:vehicle_id(*)
           `)
           .order('created_at', { ascending: false });
@@ -92,9 +92,11 @@ export const useAgreements = (initialParams?: SearchParams) => {
         // Apply filters based on search parameters
         if (searchParams.query && searchParams.query.trim() !== '') {
           query = query.or(`
-            customer.full_name.ilike.%${searchParams.query}%,
+            customer.first_name.ilike.%${searchParams.query}%,
+            customer.last_name.ilike.%${searchParams.query}%,
             customer.phone.ilike.%${searchParams.query}%,
-            vehicle.license_plate.ilike.%${searchParams.query}%
+            vehicle.license_plate.ilike.%${searchParams.query}%,
+            agreement_number.ilike.%${searchParams.query}%
           `);
         }
         
@@ -128,16 +130,25 @@ export const useAgreements = (initialParams?: SearchParams) => {
         
         // Transform the data to match the SimpleAgreement interface
         return (data || []).map(item => {
+          // Combine first_name and last_name for customer's full_name
+          const customer = item.customer ? {
+            ...item.customer,
+            full_name: item.customer.first_name && item.customer.last_name 
+              ? `${item.customer.first_name} ${item.customer.last_name}`
+              : 'Unknown'
+          } : undefined;
+          
           // Ensure the data structure has all required fields
           const agreement: SimpleAgreement = {
             ...item,
             // Ensure these fields exist with correct names
-            total_amount: item.total_amount !== undefined ? item.total_amount : item.total_cost,
+            total_amount: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
             agreement_number: item.agreement_number || '',
             // Add aliases for compatibility
-            customers: item.customer,
+            customers: customer,
             vehicles: item.vehicle,
-            total_cost: item.total_amount !== undefined ? item.total_amount : item.total_cost
+            total_cost: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
+            customer: customer
           };
           return agreement;
         });
@@ -152,7 +163,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
   const createAgreement = useMutation({
     mutationFn: async (agreementData: any) => {
       const { data, error } = await supabase
-        .from('rental_agreements')
+        .from('leases')  // Insert into leases table
         .insert(agreementData)
         .select()
         .single();
@@ -173,7 +184,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
   const updateAgreement = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: any }) => {
       const { data: updatedData, error } = await supabase
-        .from('rental_agreements')
+        .from('leases')  // Update in leases table
         .update(data)
         .eq('id', id)
         .select()
@@ -196,7 +207,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('rental_agreements')
+        .from('leases')  // Delete from leases table
         .delete()
         .eq('id', id);
         
@@ -218,10 +229,10 @@ export const useAgreements = (initialParams?: SearchParams) => {
     if (!id) return null;
 
     const { data, error } = await supabase
-      .from('rental_agreements')
+      .from('leases')  // Get from leases table
       .select(`
         *,
-        customer:customer_id(*),
+        customer:customer_id(id, first_name, last_name, email, phone),
         vehicle:vehicle_id(*),
         payments(*)
       `)
@@ -232,16 +243,25 @@ export const useAgreements = (initialParams?: SearchParams) => {
       throw new Error(`Error fetching agreement: ${error.message}`);
     }
 
+    // Process customer data to add full_name
+    const customer = data.customer ? {
+      ...data.customer,
+      full_name: data.customer.first_name && data.customer.last_name 
+        ? `${data.customer.first_name} ${data.customer.last_name}`
+        : 'Unknown'
+    } : undefined;
+
     // Make sure the returned data conforms to SimpleAgreement structure
     const agreement: SimpleAgreement = {
       ...data,
       // Ensure these fields exist with correct names
-      total_amount: data.total_amount !== undefined ? data.total_amount : data.total_cost,
+      total_amount: data.total_amount !== undefined ? data.total_amount : (data.total_cost || 0),
       agreement_number: data.agreement_number || '',
       // Add aliases for compatibility
-      customers: data.customer,
+      customers: customer,
       vehicles: data.vehicle,
-      total_cost: data.total_amount !== undefined ? data.total_amount : data.total_cost
+      total_cost: data.total_amount !== undefined ? data.total_amount : (data.total_cost || 0),
+      customer: customer
     };
 
     return agreement;
@@ -250,10 +270,10 @@ export const useAgreements = (initialParams?: SearchParams) => {
   // Function to get all agreements
   const getAgreements = async (filters?: any) => {
     let query = supabase
-      .from('rental_agreements')
+      .from('leases')  // Get from leases table
       .select(`
         *,
-        customer:customer_id(*),
+        customer:customer_id(id, first_name, last_name, email, phone),
         vehicle:vehicle_id(*)
       `)
       .order('created_at', { ascending: false });
@@ -275,15 +295,24 @@ export const useAgreements = (initialParams?: SearchParams) => {
 
     // Transform the data to match the SimpleAgreement interface
     return (data || []).map(item => {
+      // Combine first_name and last_name for customer's full_name
+      const customer = item.customer ? {
+        ...item.customer,
+        full_name: item.customer.first_name && item.customer.last_name 
+          ? `${item.customer.first_name} ${item.customer.last_name}`
+          : 'Unknown'
+      } : undefined;
+      
       const agreement: SimpleAgreement = {
         ...item,
         // Ensure these fields exist with correct names
-        total_amount: item.total_amount !== undefined ? item.total_amount : item.total_cost,
+        total_amount: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
         agreement_number: item.agreement_number || '',
         // Add aliases for compatibility
-        customers: item.customer,
+        customers: customer,
         vehicles: item.vehicle,
-        total_cost: item.total_amount !== undefined ? item.total_amount : item.total_cost
+        total_cost: item.total_amount !== undefined ? item.total_amount : (item.total_cost || 0),
+        customer: customer
       };
       return agreement;
     });
