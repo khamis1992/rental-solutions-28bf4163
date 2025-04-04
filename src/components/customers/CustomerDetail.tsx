@@ -1,5 +1,7 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -29,10 +31,11 @@ import { toast } from 'sonner';
 import { CustomerTrafficFines } from './CustomerTrafficFines';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function CustomerDetail() {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getCustomer, deleteCustomer } = useCustomers();
@@ -57,16 +60,16 @@ export function CustomerDetail() {
         setCustomer(data);
         setHasLoaded(true);
       } else {
-        setFetchError("Customer not found");
+        setFetchError(t('customers.errorLoadingTitle'));
       }
     } catch (error) {
       console.error("Error fetching customer:", error);
-      setFetchError("Failed to load customer details");
-      toast.error("Error loading customer details");
+      setFetchError(t('customers.errorLoadingTitle'));
+      toast.error(t('customers.errorLoadingTitle'));
     } finally {
       setLoading(false);
     }
-  }, [id, getCustomer, hasLoaded]);
+  }, [id, getCustomer, hasLoaded, t]);
 
   useEffect(() => {
     fetchCustomer();
@@ -79,38 +82,38 @@ export function CustomerDetail() {
     try {
       await deleteCustomer.mutateAsync(customer.id, {
         onSuccess: () => {
-          toast.success("Customer deleted successfully");
+          toast.success(t('customers.statusUpdateSuccess'));
           navigate('/customers');
         },
         onError: (error) => {
           console.error("Delete error:", error);
-          toast.error("Failed to delete customer");
+          toast.error(t('customers.statusUpdateFailed'));
           setIsDeleting(false);
         }
       });
     } catch (error) {
       console.error("Unexpected error during delete:", error);
-      toast.error("An unexpected error occurred");
+      toast.error(t('customers.unexpectedError'));
       setIsDeleting(false);
     }
   };
 
   if (loading && !hasLoaded) {
-    return <div className="flex justify-center items-center p-8">Loading customer details...</div>;
+    return <div className="flex justify-center items-center p-8">{t('common.loading')}</div>;
   }
 
   if (fetchError || !customer) {
     return (
       <Card className="mx-auto max-w-2xl">
         <CardHeader className="text-center">
-          <CardTitle>Customer Not Found</CardTitle>
+          <CardTitle>{t('customers.errorLoadingTitle')}</CardTitle>
           <CardDescription>
-            {fetchError || "The customer you're looking for doesn't exist or has been removed."}
+            {fetchError || t('customers.unknownError')}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-center">
           <Button asChild>
-            <Link to="/customers">Back to Customers</Link>
+            <Link to="/customers">{t('common.back')}</Link>
           </Button>
         </CardFooter>
       </Card>
@@ -123,35 +126,34 @@ export function CustomerDetail() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{customer.full_name}</h2>
           <p className="text-muted-foreground">
-            Customer since {formatDate(customer.created_at || '')}
+            {t('customers.customerSince')} {formatDate(customer.created_at || '')}
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Button asChild variant="outline">
             <Link to={`/customers/edit/${customer.id}`}>
               <Edit className="mr-2 h-4 w-4" />
-              Edit
+              {t('common.edit')}
             </Link>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" disabled={isDeleting}>
                 <Trash2 className="mr-2 h-4 w-4" />
-                {isDeleting ? "Deleting..." : "Delete"}
+                {isDeleting ? t('common.loading') : t('common.delete')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will permanently delete the customer record for {customer.full_name}.
-                  This action cannot be undone.
+                  {t('customers.deleteCustomerConfirmation', { name: customer.full_name })}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                  Delete
+                  {t('common.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -166,21 +168,21 @@ export function CustomerDetail() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <UserCog className="mr-2 h-5 w-5" />
-              Contact Information
+              {t('customers.contactInformation')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Email Address</h4>
+              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.emailAddress')}</h4>
               <p className="text-foreground">{customer.email}</p>
             </div>
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Phone Number</h4>
+              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.phoneNumber')}</h4>
               <p className="text-foreground">{customer.phone}</p>
             </div>
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Address</h4>
-              <p className="text-foreground whitespace-pre-line">{customer.address || 'No address provided'}</p>
+              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.address')}</h4>
+              <p className="text-foreground whitespace-pre-line">{customer.address || t('customers.noAddressProvided')}</p>
             </div>
           </CardContent>
         </Card>
@@ -189,12 +191,12 @@ export function CustomerDetail() {
           <CardHeader>
             <CardTitle className="flex items-center">
               <CalendarClock className="mr-2 h-5 w-5" />
-              Customer Details
+              {t('customers.customerDetails')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Status</h4>
+              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('common.status')}</h4>
               <Badge
                 variant={
                   customer.status === "active" ? "success" : 
@@ -205,22 +207,22 @@ export function CustomerDetail() {
                 }
                 className="capitalize"
               >
-                {customer.status}
+                {t(`customers.status.${customer.status.replace('_', '')}`)}
               </Badge>
             </div>
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Driver License</h4>
+              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.driverLicense')}</h4>
               <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
                 {customer.driver_license}
               </code>
             </div>
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">Last Updated</h4>
+              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.lastUpdated')}</h4>
               <div className="flex items-center">
                 <Clock className="mr-2 h-4 w-4 text-muted-foreground" />
                 {customer.updated_at 
                   ? formatDateTime(customer.updated_at) 
-                  : 'Never updated'}
+                  : t('customers.neverUpdated')}
               </div>
             </div>
           </CardContent>
@@ -231,10 +233,10 @@ export function CustomerDetail() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <FileText className="mr-2 h-5 w-5" />
-            Agreement History
+            {t('customers.agreementHistory')}
           </CardTitle>
           <CardDescription>
-            List of rental agreements associated with this customer
+            {t('customers.agreementList')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -242,12 +244,12 @@ export function CustomerDetail() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Agreement Number</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Start Date</TableHead>
-                  <TableHead>End Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Total Amount</TableHead>
+                  <TableHead>{t('agreements.title')}</TableHead>
+                  <TableHead>{t('vehicles.title')}</TableHead>
+                  <TableHead>{t('common.startDate')}</TableHead>
+                  <TableHead>{t('common.endDate')}</TableHead>
+                  <TableHead>{t('common.status')}</TableHead>
+                  <TableHead>{t('common.total')}</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -265,18 +267,18 @@ export function CustomerDetail() {
                 ) : agreements && agreements.length > 0 ? (
                   agreements.map((agreement) => (
                     <TableRow key={agreement.id}>
-                      <TableCell className="font-medium">{agreement.agreement_number || 'N/A'}</TableCell>
+                      <TableCell className="font-medium">{agreement.agreement_number || t('common.notProvided')}</TableCell>
                       <TableCell>
                         {agreement.vehicle ? (
                           <span>
                             {agreement.vehicle.make} {agreement.vehicle.model} ({agreement.vehicle.license_plate})
                           </span>
                         ) : (
-                          'Unknown vehicle'
+                          t('vehicles.unknown')
                         )}
                       </TableCell>
-                      <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : 'N/A'}</TableCell>
-                      <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : 'N/A'}</TableCell>
+                      <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : t('common.notProvided')}</TableCell>
+                      <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : t('common.notProvided')}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -289,14 +291,14 @@ export function CustomerDetail() {
                           }
                           className="capitalize"
                         >
-                          {agreement.status?.toLowerCase().replace('_', ' ')}
+                          {t(`agreements.status.${agreement.status?.toLowerCase().replace('_', '')}`)}
                         </Badge>
                       </TableCell>
-                      <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : 'N/A'}</TableCell>
+                      <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : t('common.notProvided')}</TableCell>
                       <TableCell>
                         <Button variant="outline" size="sm" asChild>
                           <Link to={`/agreements/${agreement.id}`}>
-                            View
+                            {t('common.view')}
                           </Link>
                         </Button>
                       </TableCell>
@@ -305,7 +307,7 @@ export function CustomerDetail() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="h-24 text-center">
-                      No agreements found for this customer.
+                      {t('agreements.noAgreements')}
                     </TableCell>
                   </TableRow>
                 )}
@@ -319,10 +321,10 @@ export function CustomerDetail() {
         <CardHeader>
           <CardTitle className="flex items-center">
             <AlertTriangle className="mr-2 h-5 w-5" />
-            Traffic Fines
+            {t('customers.trafficFines')}
           </CardTitle>
           <CardDescription>
-            Traffic violations associated with this customer
+            {t('customers.trafficViolations')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -332,14 +334,14 @@ export function CustomerDetail() {
       
       <Card>
         <CardHeader>
-          <CardTitle>Additional Notes</CardTitle>
+          <CardTitle>{t('customers.additionalNotes')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="prose prose-sm max-w-none">
             {customer.notes ? (
               <p className="whitespace-pre-line">{customer.notes}</p>
             ) : (
-              <p className="text-muted-foreground italic">No additional notes for this customer.</p>
+              <p className="text-muted-foreground italic">{t('customers.noAdditionalNotes')}</p>
             )}
           </div>
         </CardContent>

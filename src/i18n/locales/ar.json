@@ -68,7 +68,9 @@
     "warning": "تحذير",
     "info": "معلومات",
     "confirmation": "تأكيد",
-    "areYouSure": "هل أنت متأكد؟"
+    "areYouSure": "هل أنت متأكد؟",
+    "nationality": "الجنسية",
+    "notProvided": "غير متوفر"
   },
   "dashboard": {
     "title": "لوحة القيادة",
@@ -171,7 +173,7 @@
     "caseManagement": "إدارة القضايا",
     "complianceCalendar": "تقويم الامتثال",
     "riskAssessment": "تقييم المخاطر",
-    "complianceReporting": "تقارير الامتثال"
+    "complianceReporting": "تق��رير الامتثال"
   },
   "financials": {
     "dashboard": "لوحة المالية",
@@ -261,15 +263,16 @@
     "addCustomer": "إضافة عميل",
     "editCustomer": "تعديل العميل",
     "deleteCustomer": "حذف العميل",
-    "viewDetails": "عرض التفاصيل",
+    "viewDetails": "عرض معلومات مفصلة عن العميل",
+    "details": "تفاصيل العميل",
     "searchPlaceholder": "البحث عن العملاء...",
     "name": "اسم العميل",
     "license": "رخصة القيادة",
     "notProvided": "غير متوفر",
     "importCSV": "استيراد CSV",
     "updateStatuses": "تحديث الحالات",
-    "statusUpdateSuccess": "تم تحديث حالات العملاء بنجاح",
-    "statusUpdateFailed": "فشل تحديث حالات العملاء",
+    "statusUpdateSuccess": "تمت إضافة العميل بنجاح",
+    "statusUpdateFailed": "فشل في إنشاء العميل",
     "unexpectedError": "حدث خطأ غير متوقع أثناء تحديث حالات العملاء",
     "errorLoadingTitle": "خطأ في تحميل العملاء",
     "unknownError": "حدث خطأ غير معروف",
@@ -286,7 +289,24 @@
       "blacklisted": "القائمة السوداء",
       "pendingreview": "قيد المراجعة",
       "pendingpayment": "دفع معلق"
-    }
+    },
+    "contactInformation": "معلومات الاتصال",
+    "customerDetails": "تفاصيل العميل",
+    "emailAddress": "عنوان البريد الإلكتروني",
+    "phoneNumber": "رقم الهاتف",
+    "address": "العنوان",
+    "noAddressProvided": "لم يتم تقديم عنوان",
+    "driverLicense": "رخصة القيادة",
+    "lastUpdated": "آخر تحديث",
+    "neverUpdated": "لم يتم التحديث أبدًا",
+    "customerSince": "عميل منذ",
+    "deleteCustomerConfirmation": "سيؤدي هذا إلى حذف سجل العميل {name} بشكل دائم. لا يمكن التراجع عن هذا الإجراء.",
+    "agreementHistory": "سجل الاتفاقيات",
+    "agreementList": "قائمة اتفاقيات الإيجار المرتبطة بهذا العميل",
+    "trafficFines": "مخالفات المرور",
+    "trafficViolations": "مخالفات المرور المرتبطة بهذا العميل",
+    "additionalNotes": "ملاحظات إضافية",
+    "noAdditionalNotes": "لا توجد ملاحظات إضافية لهذا العميل."
   },
   "agreements": {
     "title": "اتفاقيات الإيجار",
