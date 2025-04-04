@@ -107,9 +107,10 @@
   left: auto;
 }
 
-.rtl-mode .sidebar-item-icon {
-  margin-left: 0.75rem;
-  margin-right: 0;
+/* FIXED: Properly position icons in sidebar items */
+.rtl-mode .sidebar-nav-item {
+  flex-direction: row-reverse !important;
+  text-align: right;
 }
 
 /* Badge and tag adjustments */
@@ -174,6 +175,7 @@
   margin-right: 0;
 }
 
+/* FIXED: Explicitly fix icon spacing in sidebar items */
 .rtl-mode .flex.items-center svg {
   margin-right: 0;
   margin-left: 0.5rem;
@@ -205,10 +207,10 @@
   transform: rotate(180deg);
 }
 
-/* RTL adjustments for navigation components */
-.rtl-mode nav a svg,
-.rtl-mode nav button svg {
-  transform: scaleX(-1); /* Flip SVG icons horizontally for RTL */
+/* FIXED: Ensure icons are correctly displayed in RTL mode */
+.rtl-mode nav a,
+.rtl-mode nav button {
+  flex-direction: row-reverse;
 }
 
 /* Correctly handle directional icons in RTL mode */
@@ -230,14 +232,6 @@
 
 /* FIXED: Ensure correct icon positioning in sidebar items */
 .rtl-mode .sidebar-item {
-  flex-direction: row-reverse;
-}
-
-/* FIXED: Ensure sidebar navigation links display correctly in RTL */
-.rtl-mode .sidebar-nav-item,
-.rtl-mode a.flex.items-center,
-.rtl-mode button.flex.items-center,
-.rtl-mode div.flex.items-center {
   flex-direction: row-reverse;
 }
 
@@ -263,18 +257,28 @@
   left: auto !important;
 }
 
-/* NEW: Fix icon placement in sidebar components */
-.rtl-mode .sidebar-nav-item {
+/* FIXED: Ensure sidebar navigation links display correctly in RTL */
+.rtl-mode .sidebar-nav-item,
+.rtl-mode a.flex.items-center,
+.rtl-mode button.flex.items-center,
+.rtl-mode div.flex.items-center {
   flex-direction: row-reverse;
 }
 
-/* NEW: Explicitly set icon order in RTL mode */
+/* NEW: Fix for navigation links in sidebar for RTL */
+.rtl-mode nav a.flex,
+.rtl-mode nav button.flex {
+  flex-direction: row-reverse !important;
+  text-align: right;
+}
+
+/* NEW: Explicitly set icon order in RTL mode for navigation links */
 .rtl-mode nav a svg,
 .rtl-mode nav button svg {
-  order: 2; /* Place icon after text in flex layout */
+  order: 1; /* Place icon after text in RTL */
 }
 
 .rtl-mode nav a span,
 .rtl-mode nav button span {
-  order: 1; /* Place text before icon in flex layout */
+  order: 2; /* Place text before icon in RTL */
 }

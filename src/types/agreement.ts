@@ -17,8 +17,19 @@ export interface SimpleAgreement {
   notes?: string;
   rent_amount?: number;
   daily_late_fee?: number;
-  customer?: any;
-  vehicle?: any;
+  customer?: {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+  };
+  vehicle?: {
+    id: string;
+    make: string;
+    model: string;
+    year: number;
+    plate_number: string;
+  };
 }
 
 export interface AgreementWithRelations extends SimpleAgreement {

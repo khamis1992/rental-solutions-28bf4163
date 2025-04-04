@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,7 +50,7 @@ const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount
         isRTL ? "flex-row-reverse justify-end text-right" : ""
       )}
     >
-      <span className="sidebar-nav-icon">{icon}</span>
+      {icon}
       <span>{label}</span>
       {badgeCount !== undefined && badgeCount > 0 && (
         <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground`}>
@@ -77,7 +76,7 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
       <CollapsibleTrigger asChild>
         <div className={`flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800 ${isRTL ? 'flex-row-reverse justify-end text-right' : ''}`}>
-          <span className="sidebar-nav-icon">{icon}</span>
+          {icon}
           <span>{label}</span>
           <div className={`${isRTL ? 'mr-auto' : 'ml-auto'}`}>
             {isOpen ? <ChevronDown className="h-4 w-4" /> : 
@@ -112,12 +111,10 @@ const Sidebar = () => {
     setExpanded(!expanded);
   };
 
-  // Choose appropriate chevron icon based on direction and expanded state
   const SidebarChevron = !expanded ? 
     (isRTL ? <ChevronLeft className="h-4 w-4 sidebar-chevron-icon" /> : <ChevronRight className="h-4 w-4" />) : 
     (isRTL ? <ChevronRight className="h-4 w-4 sidebar-chevron-icon" /> : <ChevronLeft className="h-4 w-4" />);
 
-  // Adjust sidebar position based on RTL setting
   const sidebarPosition = isRTL ? 'right-0' : 'left-0';
   const sidebarButtonPosition = isRTL ? '-left-12' : '-right-12';
 

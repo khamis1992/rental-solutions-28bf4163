@@ -142,10 +142,22 @@ export const getDirectionalIcon = (iconType: 'arrow' | 'chevron') => {
 };
 
 /**
- * Returns CSS transforms for flipping icons in RTL mode
+ * Returns CSS transforms for flipping icons in RTL mode if needed
  * @returns The appropriate transform style for the current direction
  */
 export const getIconFlipStyle = (): React.CSSProperties => {
   const { isRTL } = useTranslation();
   return isRTL ? { transform: 'scaleX(-1)' } : {};
+};
+
+/**
+ * Returns appropriate flexbox ordering for icon and text in RTL mode
+ * @returns An object with order values for icon and text
+ */
+export const getIconTextOrder = () => {
+  const { isRTL } = useTranslation();
+  return {
+    iconOrder: isRTL ? 'order-2' : 'order-1',
+    textOrder: isRTL ? 'order-1' : 'order-2'
+  };
 };

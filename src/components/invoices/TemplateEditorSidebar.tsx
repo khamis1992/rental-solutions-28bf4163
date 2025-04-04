@@ -13,7 +13,7 @@ import {
   templateCategories 
 } from "@/utils/invoiceTemplateUtils";
 import { useTranslation } from "@/contexts/TranslationContext";
-import { getDirectionalFlexClass } from "@/utils/rtl-utils";
+import { getDirectionalFlexClass, getIconTextOrder } from "@/utils/rtl-utils";
 
 interface TemplateEditorSidebarProps {
   templates: InvoiceTemplate[];
@@ -45,6 +45,7 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
   onOpenAIDialog
 }) => {
   const { isRTL } = useTranslation();
+  const { iconOrder, textOrder } = getIconTextOrder();
   
   // Group variables by type for better organization
   const groupVariablesByType = () => {
@@ -122,15 +123,15 @@ const TemplateEditorSidebar: React.FC<TemplateEditorSidebarProps> = ({
       
       <Button 
         variant="secondary" 
-        className={`w-full flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-center gap-2`}
+        className={`w-full flex items-center ${flexDirectionClass} justify-center gap-2`}
         onClick={onOpenAIDialog}
       >
-        <Sparkles className="h-4 w-4" />
-        Generate with AI
+        <Sparkles className={`h-4 w-4 ${iconOrder}`} />
+        <span className={textOrder}>Generate with AI</span>
       </Button>
       
       <div className="space-y-2">
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-between`}>
+        <div className={`flex items-center ${flexDirectionClass} justify-between`}>
           <Label>Available Variables</Label>
           <Popover>
             <PopoverTrigger asChild>
