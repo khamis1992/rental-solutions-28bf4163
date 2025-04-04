@@ -1,6 +1,4 @@
 
-import { Database } from '@/integrations/supabase/types';
-
 /**
  * Type utility file to handle complex types and prevent "excessively deep" type instantiation errors
  */
@@ -23,7 +21,15 @@ export type SimplifiedLeaseType = {
   notes?: string;
   agreement_duration?: string;
   additional_drivers?: string[];
-  // Add more basic properties as needed
+  customer_name?: string;
+  license_plate?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
+  vehicle_year?: string | number;
+  customers?: any;
+  vehicles?: any;
+  created_at?: string | Date;
+  updated_at?: string | Date;
 };
 
 // Type assertion function to safely cast database types
@@ -50,5 +56,14 @@ export function mapDatabaseRowToLease<T extends Record<string, any>>(row: T): Si
     notes: row.notes,
     agreement_duration: row.agreement_duration,
     additional_drivers: row.additional_drivers,
+    customer_name: row.customer_name || (row.customers?.full_name || 'Unknown'),
+    license_plate: row.license_plate || (row.vehicles?.license_plate || 'Unknown'),
+    vehicle_make: row.vehicle_make || (row.vehicles?.make || 'Unknown'),
+    vehicle_model: row.vehicle_model || (row.vehicles?.model || 'Unknown'),
+    vehicle_year: row.vehicle_year || (row.vehicles?.year || 'Unknown'),
+    customers: row.customers,
+    vehicles: row.vehicles,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }

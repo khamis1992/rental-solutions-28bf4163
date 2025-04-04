@@ -26,7 +26,7 @@ type SearchParams = {
 export const useAgreements = (initialFilters?: AgreementFilters) => {
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<any>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: initialFilters?.query || '',

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,7 @@ import { format } from 'date-fns';
 import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 
-const CustomerDetail = ({ customer }) => {
+const CustomerDetail = ({ customer }: { customer: any }) => {
   const { customerId } = useParams<{ customerId: string }>();
   const [activeAgreements, setActiveAgreements] = useState<SimpleAgreement[]>([]);
   
@@ -23,7 +24,7 @@ const CustomerDetail = ({ customer }) => {
     }
   }, [agreements]);
   
-  const getBadgeVariant = (status) => {
+  const getBadgeVariant = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
         return "success";
@@ -72,7 +73,7 @@ const CustomerDetail = ({ customer }) => {
             <Alert variant="destructive" className="m-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Error</AlertTitle>
-              <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+              <AlertDescription>{error.toString()}</AlertDescription>
             </Alert>
           )}
           {isLoading ? (

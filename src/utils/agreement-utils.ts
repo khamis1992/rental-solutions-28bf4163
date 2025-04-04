@@ -1,24 +1,28 @@
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
 export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Agreement => {
-  const agreement: Agreement = {
+  const agreement: any = {
     ...simpleAgreement,
     customer_name: simpleAgreement.customer_name || (simpleAgreement.customers?.full_name || 'Unknown'),
     license_plate: simpleAgreement.license_plate || (simpleAgreement.vehicles?.license_plate || 'Unknown'),
     vehicle_make: simpleAgreement.vehicle_make || (simpleAgreement.vehicles?.make || 'Unknown'),
     vehicle_model: simpleAgreement.vehicle_model || (simpleAgreement.vehicles?.model || 'Unknown'),
     vehicle_year: simpleAgreement.vehicle_year || (simpleAgreement.vehicles?.year || 'Unknown'),
+    start_date: simpleAgreement.start_date instanceof Date ? simpleAgreement.start_date : new Date(simpleAgreement.start_date),
+    end_date: simpleAgreement.end_date instanceof Date ? simpleAgreement.end_date : new Date(simpleAgreement.end_date),
   };
 
-  if ('created_at' in simpleAgreement) {
-    agreement.created_at = simpleAgreement.created_at;
+  if ('created_at' in simpleAgreement && simpleAgreement.created_at) {
+    agreement.created_at = simpleAgreement.created_at instanceof Date ? 
+      simpleAgreement.created_at : new Date(simpleAgreement.created_at);
   }
 
-  if ('updated_at' in simpleAgreement) {
-    agreement.updated_at = simpleAgreement.updated_at;
+  if ('updated_at' in simpleAgreement && simpleAgreement.updated_at) {
+    agreement.updated_at = simpleAgreement.updated_at instanceof Date ? 
+      simpleAgreement.updated_at : new Date(simpleAgreement.updated_at);
   }
 
   return agreement;
@@ -71,7 +75,7 @@ export const updateAgreementWithCheck = async (
 
     console.log("Sending data to update:", cleanData);
 
-    const { data, error } = await supabase
+    const { data: updatedData, error } = await supabase
       .from('leases')
       .update(cleanData)
       .eq('id', id)
@@ -81,14 +85,15 @@ export const updateAgreementWithCheck = async (
     if (error) {
       console.error("Update failed:", error);
       toast.error(`Update failed: ${error.message}`);
-      onError(error);
+      if (onError) onError(error);
     } else {
-      console.log("Agreement updated successfully:", data);
+      console.log("Agreement updated successfully:", updatedData);
       toast.success("Agreement updated successfully!");
       
       if (isChangingToActive && currentStatus !== 'active') {
         console.log(`Agreement ${id} status changed to active. Generating payment schedule...`);
         try {
+          const { forceGeneratePaymentForAgreement } = await import('@/lib/validation-schemas/agreement');
           const result = await forceGeneratePaymentForAgreement(supabase, id);
           if (result.success) {
             toast.success("Payment schedule generated automatically");
@@ -102,12 +107,12 @@ export const updateAgreementWithCheck = async (
         }
       }
       
-      onSuccess();
+      if (onSuccess) onSuccess();
     }
   } catch (error) {
     console.error("Unexpected error during update:", error);
     toast.error("An unexpected error occurred during the update.");
-    onError(error);
+    if (onError) onError(error);
   }
 };
 
@@ -202,6 +207,7 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
         toast.warning("Agreement activated, but could not generate payment schedule");
       } else if (agreement) {
         console.log(`Generating payment schedule for agreement ${agreement.agreement_number}`);
+        const { forceGeneratePaymentForAgreement } = await import('@/lib/validation-schemas/agreement');
         const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
         
         if (result.success) {
@@ -314,6 +320,7 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
             console.log(`Generating payment for agreement ${agreement.agreement_number} for ${monthToCheck.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
             
             try {
+              const { forceGeneratePaymentForAgreement } = await import('@/lib/validation-schemas/agreement');
               const result = await forceGeneratePaymentForAgreement(supabase, agreement.id, monthToCheck);
               
               if (result.success) {
