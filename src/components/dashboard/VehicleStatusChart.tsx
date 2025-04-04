@@ -152,6 +152,16 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
     return `${name}: ${getNumberFormat(value)}`;
   };
 
+  // Format vehicle count with proper translation
+  const formatVehicleCount = (count: number) => {
+    const formattedCount = getNumberFormat(count);
+    const vehicleText = count === 1 ? 
+      t('dashboard.vehiclesCount') : 
+      t('dashboard.vehiclesCountPlural');
+    
+    return `${formattedCount} ${vehicleText}`;
+  };
+
   return (
     <Card className="col-span-full lg:col-span-4 card-transition">
       <CardHeader className="pb-2">
@@ -185,10 +195,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
                   ))}
                 </Pie>
                 <Tooltip 
-                  formatter={(value) => [
-                    `${getNumberFormat(value as number)} ${t('vehicles.title')}`, 
-                    ''
-                  ]}
+                  formatter={(value) => [formatVehicleCount(value as number), '']}
                   contentStyle={{
                     backgroundColor: '#ffffff',
                     border: '1px solid #e2e8f0',
@@ -205,12 +212,12 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
           <div className={`w-full lg:w-1/3 mt-4 lg:mt-0 ${isRTL ? 'lg:pr-4' : 'lg:pl-4'} flex flex-col h-full`}>
             <div className={`text-sm ${isRTL ? 'text-right' : 'text-center lg:text-left'} text-muted-foreground mb-4`}>
               <div className="text-lg font-semibold text-foreground">
-                {t('dashboard.totalFleet')}: {getNumberFormat(data.total)} {t('vehicles.title')}
+                {t('dashboard.totalFleet')}: {formatVehicleCount(data.total)}
               </div>
               {hasCriticalVehicles && (
                 <Badge variant="destructive" className="mt-2 text-xs px-3 py-1">
-                  {getNumberFormat(criticalVehicles)} {t('vehicles.title')}
-                  {' '}{t('dashboard.vehiclesRequiringAttention')}
+                  {getNumberFormat(criticalVehicles)} {t('dashboard.vehiclesCountPlural')}{' '}
+                  {t('dashboard.vehiclesRequiringAttention')}
                 </Badge>
               )}
             </div>

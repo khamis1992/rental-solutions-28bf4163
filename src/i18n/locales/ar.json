@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -125,7 +126,9 @@
     "heldAtPolice": "محتجز في مركز الشرطة",
     "involvedInAccident": "متورط في حادث",
     "vehicleReportedStolen": "مركبة مبلغ عن سرقتها",
-    "criticalIssuesPending": "مشاكل حرجة معلقة"
+    "criticalIssuesPending": "مشاكل حرجة معلقة",
+    "vehiclesCount": "مركبة",
+    "vehiclesCountPlural": "مركبات"
   },
   "settings": {
     "title": "إعدادات النظام",
@@ -213,7 +216,9 @@
     "scheduleService": "جدولة خدمة",
     "markAsAvailable": "وضع علامة كمتاح",
     "markAsRented": "وضع علامة كمؤجر",
-    "markAsUnderMaintenance": "وضع علامة تحت الصيانة"
+    "markAsUnderMaintenance": "وضع علامة تحت الصيانة",
+    "title": "مركبة",
+    "titlePlural": "مركبات"
   },
   "reports": {
     "title": "التقارير",

@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -24,7 +25,6 @@ export type SimpleAgreement = {
   vehicle_year?: number;
   created_at?: string;
   updated_at?: string;
-  signature_url?: string;
   deposit_amount?: number;
   notes?: string;
   customers?: any;
@@ -156,7 +156,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         notes: data.notes || '',
         customers: customerData,
         vehicles: vehicleData,
-        signature_url: data.signature_url,
         rent_amount: data.rent_amount || 0,
         daily_late_fee: data.daily_late_fee || 0
       };
@@ -271,7 +270,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           notes: item.notes || '',
           customers: item.profiles,
           vehicles: item.vehicles,
-          signature_url: item.signature_url,
           rent_amount: item.rent_amount || 0,
           daily_late_fee: item.daily_late_fee || 0
         };
