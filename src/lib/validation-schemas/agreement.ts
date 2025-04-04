@@ -29,6 +29,29 @@ export const agreementSchema = z.object({
   notes: z.string().optional(),
   terms_accepted: z.boolean(),
   additional_drivers: z.array(z.string()).optional(),
+  // Add created_at and updated_at fields
+  created_at: z.date().optional(),
+  updated_at: z.date().optional(),
+  // Add nested references
+  customers: z.object({
+    id: z.string(),
+    full_name: z.string(),
+    email: z.string().optional(),
+    phone: z.string().optional(),
+    phone_number: z.string().optional(),
+    address: z.string().optional(),
+    driver_license: z.string().optional()
+  }).optional(),
+  vehicles: z.object({
+    id: z.string(),
+    make: z.string().optional(),
+    model: z.string().optional(),
+    license_plate: z.string().optional(),
+    year: z.number().optional(),
+    color: z.string().optional(),
+    vin: z.string().optional()
+  }).optional(),
+  signature_url: z.string().optional()
 });
 
 // Export the type for use in components
@@ -66,7 +89,7 @@ export const forceGeneratePaymentForAgreement = async (
       status: 'pending',
       payment_method: null,
       payment_date: null,
-      due_date: specificMonth || new Date(),
+      due_date: specificMonth ? specificMonth.toISOString() : new Date().toISOString(), // Convert Date to string
       is_recurring: true,
       recurring_interval: '1 month'
     };

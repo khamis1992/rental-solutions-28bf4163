@@ -23,7 +23,9 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     terms_accepted: true,
     additional_drivers: [],
     rent_amount: simpleAgreement.rent_amount || 0,
-    daily_late_fee: simpleAgreement.daily_late_fee || 0
+    daily_late_fee: simpleAgreement.daily_late_fee || 0,
+    customers: simpleAgreement.customers || simpleAgreement.customer,
+    vehicles: simpleAgreement.vehicles || simpleAgreement.vehicle
   };
 };
 

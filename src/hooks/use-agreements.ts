@@ -27,6 +27,9 @@ export interface SimpleAgreement {
     full_name: string;
     email?: string;
     phone?: string;
+    phone_number?: string;
+    address?: string;
+    driver_license?: string;
   };
   vehicle?: {  // Using 'vehicle' singular to match Supabase structure
     id: string;
@@ -35,6 +38,7 @@ export interface SimpleAgreement {
     license_plate?: string;
     year?: number;
     color?: string;
+    vin?: string;
   };
   payments?: Array<any>;
   // Aliases for compatibility
@@ -43,6 +47,9 @@ export interface SimpleAgreement {
     full_name: string;
     email?: string;
     phone?: string;
+    phone_number?: string;
+    address?: string;
+    driver_license?: string;
   };
   vehicles?: {  // Adding 'vehicles' alias for backward compatibility
     id: string;
@@ -51,6 +58,7 @@ export interface SimpleAgreement {
     license_plate?: string;
     year?: number;
     color?: string;
+    vin?: string;
   };
   total_cost?: number; // Alias for total_amount for backward compatibility
 }
@@ -102,7 +110,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
           .from('leases')  // Query the leases table
           .select(`
             *,
-            customer:customer_id(id, full_name, email, phone),
+            customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
             vehicle:vehicle_id(*)
           `)
           .order('created_at', { ascending: false });
@@ -118,6 +126,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
+          // Use exact status if it matches a specific status value expected by the database
           query = query.eq('status', searchParams.status);
         }
         
@@ -168,11 +177,11 @@ export const useAgreements = (initialParams?: SearchParams) => {
             total_amount: item.total_amount || 0,
             agreement_number: item.agreement_number || '',
             // Add aliases for compatibility
+            customer: customerData,
+            vehicle: vehicleData,
             customers: customerData,
             vehicles: vehicleData,
-            total_cost: item.total_amount || 0,
-            customer: customerData,
-            vehicle: vehicleData
+            total_cost: item.total_amount || 0
           };
           return agreement;
         });
@@ -256,7 +265,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       .from('leases')  // Get from leases table
       .select(`
         *,
-        customer:customer_id(id, full_name, email, phone),
+        customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
         vehicle:vehicle_id(*),
         payments(*)
       `)
@@ -288,11 +297,11 @@ export const useAgreements = (initialParams?: SearchParams) => {
       total_amount: data.total_amount || 0,
       agreement_number: data.agreement_number || '',
       // Add aliases for compatibility
+      customer: customerData,
+      vehicle: vehicleData,
       customers: customerData,
       vehicles: vehicleData,
-      total_cost: data.total_amount || 0,
-      customer: customerData,
-      vehicle: vehicleData
+      total_cost: data.total_amount || 0
     };
 
     return agreement;
@@ -304,7 +313,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       .from('leases')  // Get from leases table
       .select(`
         *,
-        customer:customer_id(id, full_name, email, phone),
+        customer:customer_id(id, full_name, email, phone, phone_number, address, driver_license),
         vehicle:vehicle_id(*)
       `)
       .order('created_at', { ascending: false });
@@ -346,11 +355,11 @@ export const useAgreements = (initialParams?: SearchParams) => {
         total_amount: item.total_amount || 0,
         agreement_number: item.agreement_number || '',
         // Add aliases for compatibility
+        customer: customerData,
+        vehicle: vehicleData,
         customers: customerData,
         vehicles: vehicleData,
-        total_cost: item.total_amount || 0,
-        customer: customerData,
-        vehicle: vehicleData
+        total_cost: item.total_amount || 0
       };
       return agreement;
     });

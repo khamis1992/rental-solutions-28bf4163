@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -176,6 +175,9 @@ export function AgreementDetail({
   const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
   const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
   const duration = calculateDuration(startDate, endDate);
+  
+  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : 
+    new Date(agreement.created_at || new Date());
 
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
@@ -195,8 +197,6 @@ export function AgreementDetail({
         return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
     }
   };
-
-  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
 
   return <div className="space-y-8">
       <div className="space-y-2">
@@ -227,7 +227,7 @@ export function AgreementDetail({
               </div>
               <div>
                 <p className="font-medium">Phone</p>
-                <p>{agreement.customers?.phone_number || 'N/A'}</p>
+                <p>{agreement.customers?.phone || agreement.customers?.phone_number || 'N/A'}</p>
               </div>
               <div>
                 <p className="font-medium">Address</p>
@@ -392,4 +392,3 @@ export function AgreementDetail({
       />
     </div>;
 }
-
