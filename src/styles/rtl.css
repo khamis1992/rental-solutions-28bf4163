@@ -138,8 +138,8 @@
 }
 
 .rtl-mode .dashboard-stat-card-icon {
-  margin-left: 0.75rem;
-  margin-right: 0;
+  margin-left: 0;
+  margin-right: 0.75rem;
 }
 
 /* Dropdown menus */
@@ -156,12 +156,14 @@
 .rtl-mode button svg + span,
 .rtl-mode a svg + span,
 .rtl-mode .icon-text-spacing svg + span {
+  margin-left: 0;
   margin-right: 0.75rem;
 }
 
 .rtl-mode button span + svg,
 .rtl-mode a span + svg,
 .rtl-mode .icon-text-spacing span + svg {
+  margin-right: 0;
   margin-left: 0.75rem;
 }
 
@@ -172,7 +174,7 @@
   margin-right: 0;
 }
 
-.rtl-mode .flex items-center svg {
+.rtl-mode .flex.items-center svg {
   margin-left: 0.5rem;
   margin-right: 0;
 }
@@ -191,4 +193,31 @@
 .rtl-mode .rounded-full + span {
   margin-right: 0.5rem;
   margin-left: 0;
+}
+
+/* Icon direction fixes for RTL */
+.rtl-mode .icon-direction-aware {
+  transform: scaleX(-1);
+}
+
+/* Arrow and chevron icons should be flipped in RTL mode */
+.rtl-mode .arrow-right,
+.rtl-mode .chevron-right {
+  transform: rotate(180deg);
+}
+
+.rtl-mode .arrow-left,
+.rtl-mode .chevron-left {
+  transform: rotate(180deg);
+}
+
+/* Adjust the sidebar chevron direction */
+.rtl-mode .sidebar-chevron-collapsed {
+  transform: rotate(180deg);
+}
+
+/* Adjust dialog close button position */
+.rtl-mode .dialog-close-button {
+  right: auto;
+  left: 1.5rem;
 }

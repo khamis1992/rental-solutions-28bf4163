@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -83,7 +82,7 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
             {isOpen ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
-              <ChevronRight className="h-4 w-4" />
+              isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />
             )}
           </div>
         </div>
@@ -115,12 +114,10 @@ const Sidebar = () => {
     setExpanded(!expanded);
   };
 
-  // Choose appropriate chevron icon based on direction and expanded state
   const SidebarChevron = !expanded ? 
     (isRTL ? ChevronLeft : ChevronRight) : 
     (isRTL ? ChevronRight : ChevronLeft);
 
-  // Adjust sidebar position based on RTL setting
   const sidebarPosition = isRTL ? 'right-0' : 'left-0';
   const sidebarButtonPosition = isRTL ? '-left-12' : '-right-12';
 

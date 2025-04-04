@@ -1,3 +1,4 @@
+
 import { useTranslation } from '@/contexts/TranslationContext';
 import { cn } from '@/lib/utils';
 
@@ -127,15 +128,25 @@ export const getDirectionalTextAlign = (): string => {
 /**
  * Helper function to get appropriate icon for directional navigation
  * @param iconType Type of directional icon (e.g., 'arrow', 'chevron')
- * @returns The icon component to use based on direction
+ * @returns The icon name to use based on direction
  */
-export const getDirectionalIcon = (iconType: 'arrow' | 'chevron') => {
+export const getDirectionalIcon = (iconType: 'arrow' | 'chevron'): string => {
   const { isRTL } = useTranslation();
   
-  // You will need to import these from lucide-react where this function is used
   if (iconType === 'arrow') {
-    return isRTL ? 'ArrowRight' : 'ArrowLeft';
+    return isRTL ? 'ArrowLeft' : 'ArrowRight';
   } else {
-    return isRTL ? 'ChevronRight' : 'ChevronLeft';
+    return isRTL ? 'ChevronLeft' : 'ChevronRight';
   }
+};
+
+/**
+ * Gets the appropriate RTL icon component based on the direction
+ * @param LTRIcon Icon component to use in left-to-right mode
+ * @param RTLIcon Icon component to use in right-to-left mode
+ * @returns The appropriate icon component for the current direction
+ */
+export const getDirectionalIconComponent = (LTRIcon: any, RTLIcon: any): any => {
+  const { isRTL } = useTranslation();
+  return isRTL ? RTLIcon : LTRIcon;
 };
