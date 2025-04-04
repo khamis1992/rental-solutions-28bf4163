@@ -21,6 +21,8 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from '@/components/ui/sonner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TranslationProvider } from '@/contexts/TranslationContext';
+import { AuthProvider } from '@/contexts/AuthContext';
+import { ProfileProvider } from '@/contexts/ProfileContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,27 +39,31 @@ function App() {
       <TranslationProvider>
         <TooltipProvider>
           <Router>
-            <Routes>
-              <Route path="/" element={<Layout />}>
-                <Route index element={<Navigate to="/dashboard" replace />} />
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="customers" element={<CustomersList />} />
-                <Route path="customers/:id" element={<CustomerDetails />} />
-                <Route path="customers/import" element={<CustomerImport />} />
-                <Route path="vehicles" element={<Vehicles />} />
-                <Route path="vehicles/:id" element={<VehicleDetails />} />
-                <Route path="maintenance" element={<Maintenance />} />
-                <Route path="agreements" element={<Agreements />} />
-                <Route path="agreements/:id" element={<AgreementDetailPage />} />
-                <Route path="agreements/:id/edit" element={<EditAgreement />} />
-                <Route path="agreements/new" element={<NewAgreement />} />
-                <Route path="traffic-fines" element={<TrafficFines />} />
-                <Route path="reports" element={<Reports />} />
-                <Route path="legal" element={<Legal />} />
-                <Route path="settings" element={<SystemSettings />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
+            <AuthProvider>
+              <ProfileProvider>
+                <Routes>
+                  <Route path="/" element={<Layout />}>
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="customers" element={<CustomersList />} />
+                    <Route path="customers/:id" element={<CustomerDetails />} />
+                    <Route path="customers/import" element={<CustomerImport />} />
+                    <Route path="vehicles" element={<Vehicles />} />
+                    <Route path="vehicles/:id" element={<VehicleDetails />} />
+                    <Route path="maintenance" element={<Maintenance />} />
+                    <Route path="agreements" element={<Agreements />} />
+                    <Route path="agreements/:id" element={<AgreementDetailPage />} />
+                    <Route path="agreements/:id/edit" element={<EditAgreement />} />
+                    <Route path="agreements/new" element={<NewAgreement />} />
+                    <Route path="traffic-fines" element={<TrafficFines />} />
+                    <Route path="reports" element={<Reports />} />
+                    <Route path="legal" element={<Legal />} />
+                    <Route path="settings" element={<SystemSettings />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Route>
+                </Routes>
+              </ProfileProvider>
+            </AuthProvider>
           </Router>
           <Toaster position="top-right" />
         </TooltipProvider>
