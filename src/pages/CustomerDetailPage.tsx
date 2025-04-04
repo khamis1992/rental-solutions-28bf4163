@@ -1,8 +1,6 @@
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import CustomerDetail from '@/components/customers/CustomerDetail';
+
 import PageContainer from '@/components/layout/PageContainer';
-import { useCustomers } from '@/hooks/use-customers';
+import { CustomerDetail } from '@/components/customers/CustomerDetail';
 
 const CustomerDetailPage = () => {
   return (

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types/vehicle';
@@ -22,16 +22,20 @@ interface VehicleDetailProps {
   vehicle: Vehicle;
 }
 
-const VehicleDetail = ({ vehicle }) => {
+export const VehicleDetail: React.FC<VehicleDetailProps> = ({
+  vehicle
+}) => {
   const navigate = useNavigate();
   const {
     useList: useMaintenanceList
   } = useMaintenance();
   const {
     agreements,
-    loading: isLoading,
+    isLoading: isLoadingAgreements,
     setSearchParams
-  } = useAgreements();
+  } = useAgreements({
+    vehicle_id: vehicle.id
+  });
   const [maintenanceRecords, setMaintenanceRecords] = useState<any[]>([]);
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
   const [vehicleImageUrl, setVehicleImageUrl] = useState<string | null>(null);
@@ -87,12 +91,6 @@ const VehicleDetail = ({ vehicle }) => {
     }
     fetchVehicleImage();
   }, [vehicle.id, vehicle.imageUrl, vehicle.image_url, vehicle.model]);
-
-  useEffect(() => {
-    if (vehicle?.id) {
-      setSearchParams({ vehicleId: vehicle.id });
-    }
-  }, [vehicle?.id, setSearchParams]);
 
   const fallbackToModelImages = () => {
     const t77Image = '/lovable-uploads/3e327a80-91f9-498d-aa11-cb8ed24eb199.png';
@@ -395,7 +393,7 @@ const VehicleDetail = ({ vehicle }) => {
             </CustomButton>
           </div>
           
-          {isLoading ? <div className="text-center py-8 text-muted-foreground">
+          {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
               Loading agreements...
             </div> : agreements && agreements.length > 0 ? <div className="rounded-md border">
               <Table>
@@ -498,5 +496,3 @@ const VehicleDetail = ({ vehicle }) => {
       </CardContent>
     </Card>;
 };
-
-export default VehicleDetail;

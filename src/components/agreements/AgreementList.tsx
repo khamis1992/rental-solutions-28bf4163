@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -103,7 +103,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements({ query: searchQuery });
+  } = useAgreements({ query: searchQuery, status: statusFilter });
   
   useEffect(() => {
     setSearchParams(prev => ({ ...prev, query: searchQuery }));
