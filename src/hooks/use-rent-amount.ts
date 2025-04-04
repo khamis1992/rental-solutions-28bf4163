@@ -38,48 +38,12 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
       
       if (data) {
         console.log("Fetched rent data:", data);
-        
-        // If rent_amount is missing but we have total_amount, auto-update the agreement
-        if (!data.rent_amount && data.total_amount) {
-          console.log(`Agreement has no rent_amount, setting it to total_amount ${data.total_amount}`);
-          
-          const { error: updateError } = await supabase
-            .from('leases')
-            .update({ rent_amount: data.total_amount })
-            .eq('id', agreementId);
-            
-          if (updateError) {
-            console.error("Error updating rent_amount:", updateError);
-          } else {
-            console.log("Successfully updated rent_amount");
-          }
-          
-          return data.total_amount;
-        }
-        
         // First try to use rent_amount, if not available use total_amount
         const amount = data.rent_amount || data.total_amount;
         
         if (amount) {
           console.log("Using amount for calculations:", amount);
           return amount;
-        } else {
-          // If both are missing, set a default amount
-          const defaultAmount = 1500; // Default rent in QAR
-          console.log(`No rent amount found, setting default of ${defaultAmount}`);
-          
-          const { error: updateError } = await supabase
-            .from('leases')
-            .update({ rent_amount: defaultAmount })
-            .eq('id', agreementId);
-            
-          if (updateError) {
-            console.error("Error setting default rent amount:", updateError);
-          } else {
-            console.log("Successfully set default rent amount");
-          }
-          
-          return defaultAmount;
         }
       } else {
         console.log("No rent data returned for agreement ID:", agreementId);

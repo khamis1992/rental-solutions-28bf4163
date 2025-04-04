@@ -28,7 +28,6 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Only fetch profile when we have a user
     if (user) {
       fetchProfile();
     } else {

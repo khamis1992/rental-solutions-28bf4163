@@ -389,11 +389,7 @@ export function AgreementDetail({
         description="Record a new rental payment for this agreement." 
         lateFeeDetails={lateFeeDetails} 
         selectedPayment={selectedPayment}
-        agreementId={agreement?.id || ''}
-        onSuccess={() => {
-          setIsPaymentDialogOpen(false);
-          onDataRefresh();
-        }}
       />
     </div>;
 }
+

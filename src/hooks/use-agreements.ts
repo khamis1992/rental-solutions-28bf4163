@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -27,7 +26,7 @@ type SearchParams = {
 export const useAgreements = (initialFilters?: AgreementFilters) => {
   const [agreements, setAgreements] = useState<Agreement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   const [searchParams, setSearchParams] = useState<SearchParams>({
     query: initialFilters?.query || '',
@@ -46,7 +45,7 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
         .from('leases')
         .select(`
           *,
-          customers:customer_id (id, full_name, phone_number, email),
+          customers:customer_id (id, full_name, phone, email),
           vehicles:vehicle_id (id, make, model, year, license_plate)
         `);
 
@@ -75,8 +74,7 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
           query = query.lte('end_date', filters.endDate.toISOString());
         }
         if (filters.search) {
-          // Fix the search query to use phone_number instead of phone
-          query = query.or(`leases.agreement_number.ilike.%${filters.search}%,customers.full_name.ilike.%${filters.search}%,vehicles.license_plate.ilike.%${filters.search}%`);
+          query = query.or(`agreement_number.ilike.%${filters.search}%,customers.full_name.ilike.%${filters.search}%,vehicles.license_plate.ilike.%${filters.search}%`);
         }
       }
 
@@ -89,11 +87,6 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      if (!data || data.length === 0) {
-        setAgreements([]);
-        return;
-      }
 
       const transformedData = data.map((lease) => {
         const safeLeaseData = mapDatabaseRowToLease(lease);

@@ -319,25 +319,11 @@ export function PaymentHistory({
 
         {selectedPayment && <PaymentEditDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} payment={selectedPayment} onSaved={onPaymentDeleted} />}
 
-        <PaymentEntryDialog 
-          open={isPaymentDialogOpen} 
-          onOpenChange={setIsPaymentDialogOpen} 
-          onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
-            console.log("Recording payment with payment ID:", targetPaymentId);
-            setIsPaymentDialogOpen(false);
-            onPaymentDeleted();
-          }} 
-          defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} 
-          title={selectedPayment ? "Record Payment" : "Record Manual Payment"} 
-          description={selectedPayment ? "Record payment for this item." : "Record a new manual payment for this agreement."} 
-          lateFeeDetails={lateFeeDetails} 
-          selectedPayment={selectedPayment} 
-          agreementId={payments[0]?.lease_id || ''} 
-          onSuccess={() => {
-            setIsPaymentDialogOpen(false);
-            onPaymentDeleted();
-          }}
-        />
+        <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
+        console.log("Recording payment with payment ID:", targetPaymentId);
+        setIsPaymentDialogOpen(false);
+        onPaymentDeleted();
+      }} defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} title={selectedPayment ? "Record Payment" : "Record Manual Payment"} description={selectedPayment ? "Record payment for this item." : "Record a new manual payment for this agreement."} lateFeeDetails={lateFeeDetails} selectedPayment={selectedPayment} />
 
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
           <DialogContent>

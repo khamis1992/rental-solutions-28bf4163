@@ -1,10 +1,9 @@
-
 import React, { Suspense, useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
-import { Loader2, Search, X, FileUp, AlertTriangle, RefreshCcw } from 'lucide-react';
+import { Loader2, Search, X, FileUp, AlertTriangle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
@@ -17,7 +16,6 @@ const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
-  const [maintenanceError, setMaintenanceError] = useState<string | null>(null);
   const { setSearchParams } = useAgreements();
   
   useEffect(() => {
@@ -55,10 +53,8 @@ const Agreements = () => {
       try {
         console.log("Running automatic payment schedule maintenance check");
         await runPaymentScheduleMaintenanceJob();
-        setMaintenanceError(null);
       } catch (error) {
         console.error("Error running payment maintenance job:", error);
-        setMaintenanceError('Failed to run payment maintenance job');
         // We don't show a toast here since this is a background task
       }
     };
@@ -70,40 +66,19 @@ const Agreements = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  const handleRetryMaintenance = async () => {
-    try {
-      toast.info("Retrying payment maintenance job...");
-      await runPaymentScheduleMaintenanceJob();
-      setMaintenanceError(null);
-      toast.success("Payment maintenance job completed");
-    } catch (error) {
-      console.error("Error retrying maintenance job:", error);
-      setMaintenanceError('Failed to run payment maintenance job');
-      toast.error("Failed to run payment maintenance job");
-    }
-  };
-
   const handleSearchChange = useDebouncedCallback((value: string) => {
     setSearchQuery(value);
   }, 300);
 
   const clearSearch = () => {
     setSearchQuery('');
-    if (setSearchParams) {
-      setSearchParams({ 
-        query: '', 
-        status: 'all' 
-      });
-    }
   };
   
   const handleImportComplete = () => {
-    if (setSearchParams) {
-      setSearchParams({ 
-        query: '', 
-        status: 'all' 
-      });
-    }
+    setSearchParams({ 
+      query: '', 
+      status: 'all' 
+    });
   };
 
   return (
@@ -125,24 +100,6 @@ const Agreements = () => {
         </Button>
       }
     >
-      {maintenanceError && (
-        <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-md text-amber-700 flex items-center justify-between">
-          <div className="flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            <span>Warning: {maintenanceError}</span>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleRetryMaintenance}
-            className="text-amber-700"
-          >
-            <RefreshCcw className="h-4 w-4 mr-1" />
-            Retry
-          </Button>
-        </div>
-      )}
-      
       <div className="mb-6">
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
