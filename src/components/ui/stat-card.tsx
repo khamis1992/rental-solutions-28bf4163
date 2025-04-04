@@ -40,13 +40,13 @@ const StatCard = ({
     >
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
-          <div className="flex-1 min-w-0">
+          <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : ''}`}>
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <h3 className="text-2xl font-bold mt-2 tracking-tight truncate">{value}</h3>
             {description && <p className="text-sm text-muted-foreground mt-1 truncate">{description}</p>}
             
             {trend !== undefined && (
-              <div className="flex items-center mt-2">
+              <div className={`flex items-center mt-2 ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
                 <span className={cn(
                   "text-xs font-medium px-2 py-0.5 rounded-full",
                   trend > 0 ? "bg-green-100 text-green-700" : 
@@ -55,7 +55,7 @@ const StatCard = ({
                 )}>
                   {trend > 0 ? '+' : ''}{trend}%
                 </span>
-                {trendLabel && <span className={`text-xs text-muted-foreground ${isRTL ? 'mr-2' : 'ml-2'}`}>{trendLabel}</span>}
+                {trendLabel && <span className={`text-xs text-muted-foreground ${isRTL ? 'ml-2' : 'ml-2'}`}>{trendLabel}</span>}
               </div>
             )}
           </div>

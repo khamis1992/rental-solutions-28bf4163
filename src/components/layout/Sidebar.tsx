@@ -73,6 +73,10 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const { isRTL } = useTranslation();
 
+  // Choose appropriate chevron icon based on direction and expanded state
+  const ChevronIcon = isOpen ? <ChevronDown className="h-4 w-4" /> : 
+                              (isRTL ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />);
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
       <CollapsibleTrigger asChild>
@@ -80,11 +84,7 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
           {icon}
           <span>{label}</span>
           <div className={`${isRTL ? 'mr-auto' : 'ml-auto'}`}>
-            {isOpen ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+            {ChevronIcon}
           </div>
         </div>
       </CollapsibleTrigger>

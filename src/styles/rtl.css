@@ -157,12 +157,14 @@
 .rtl-mode a svg + span,
 .rtl-mode .icon-text-spacing svg + span {
   margin-right: 0.75rem;
+  margin-left: 0;
 }
 
 .rtl-mode button span + svg,
 .rtl-mode a span + svg,
 .rtl-mode .icon-text-spacing span + svg {
-  margin-left: 0.75rem;
+  margin-left: 0;
+  margin-right: 0.75rem;
 }
 
 /* For flex layouts with icons and text */
@@ -172,9 +174,9 @@
   margin-right: 0;
 }
 
-.rtl-mode .flex items-center svg {
-  margin-left: 0.5rem;
+.rtl-mode .flex.items-center svg {
   margin-right: 0;
+  margin-left: 0.5rem;
 }
 
 /* Financial statistics and trend indicators */
@@ -191,4 +193,14 @@
 .rtl-mode .rounded-full + span {
   margin-right: 0.5rem;
   margin-left: 0;
+}
+
+/* Sidebar specific RTL adjustments */
+.rtl-mode .sidebar-toggle-button {
+  left: -12px;
+  right: auto;
+}
+
+.rtl-mode .sidebar-chevron-icon {
+  transform: rotate(180deg);
 }
