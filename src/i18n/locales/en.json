@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "Dashboard",
@@ -248,5 +247,34 @@
       "pendingreview": "Pending Review",
       "pendingpayment": "Pending Payment"
     }
+  },
+  "agreements": {
+    "title": "Rental Agreements",
+    "description": "Manage customer rental agreements and contracts",
+    "add": "Add Agreement",
+    "edit": "Edit Agreement",
+    "details": "Agreement Details",
+    "delete": "Delete Agreement",
+    "viewDetails": "View Details",
+    "searchPlaceholder": "Search by customer name or vehicle license plate...",
+    "importCSV": "Import CSV",
+    "statusUpdateSuccess": "Agreement statuses updated successfully",
+    "statusUpdateFailed": "Failed to update agreement statuses",
+    "unexpectedError": "An unexpected error occurred while updating agreement statuses",
+    "errorLoadingTitle": "Error loading agreements",
+    "unknownError": "An unknown error occurred",
+    "noAgreements": "No agreements found.",
+    "adjustFilters": "Try adjusting your filters.",
+    "addFirstAgreement": "Add your first agreement using the button above.",
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "closed": "Closed",
+      "expired": "Expired",
+      "draft": "Draft"
+    },
+    "recentActivity": "Recent Activity",
+    "loading": "Loading agreements..."
   }
 }

@@ -12,12 +12,17 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const { setSearchParams } = useAgreements();
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
   
   useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -40,14 +45,14 @@ const Agreements = () => {
       const available = await checkEdgeFunctionAvailability('process-agreement-imports');
       setIsEdgeFunctionAvailable(available);
       if (!available) {
-        toast.error("CSV import feature is unavailable. Please try again later or contact support.", {
+        toast.error(t('customers.errorLoadingTitle'), {
           duration: 6000,
         });
       }
     };
     
     checkAvailability();
-  }, []);
+  }, [t]);
   
   // Run payment schedule maintenance job silently on page load
   useEffect(() => {
@@ -86,8 +91,8 @@ const Agreements = () => {
 
   return (
     <PageContainer 
-      title="Rental Agreements" 
-      description="Manage customer rental agreements and contracts"
+      title={t('agreements.title')} 
+      description={t('agreements.description')}
       actions={
         <Button 
           variant="outline" 
@@ -99,23 +104,23 @@ const Agreements = () => {
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           )}
           <FileUp className="h-4 w-4" />
-          Import CSV
+          {t('agreements.importCSV')}
         </Button>
       }
     >
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className={`absolute ${isRTL ? 'right-2.5' : 'left-2.5'} top-2.5 h-4 w-4 text-muted-foreground`} />
           <Input
             type="text"
-            placeholder="Search by customer name or vehicle license plate..."
-            className="w-full pl-9 pr-9"
+            placeholder={t('agreements.searchPlaceholder')}
+            className={`w-full ${isRTL ? 'pr-9 pl-9' : 'pl-9 pr-9'}`}
             onChange={(e) => handleSearchChange(e.target.value)}
             value={searchQuery}
           />
           {searchQuery && (
             <button 
-              className="absolute right-2.5 top-2.5"
+              className={`absolute ${isRTL ? 'left-2.5' : 'right-2.5'} top-2.5`}
               onClick={clearSearch}
               aria-label="Clear search"
             >
@@ -128,7 +133,7 @@ const Agreements = () => {
       <Suspense fallback={
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Loading agreements...</span>
+          <span className="ml-2">{t('agreements.loading')}</span>
         </div>
       }>
         <AgreementList searchQuery={searchQuery} />
