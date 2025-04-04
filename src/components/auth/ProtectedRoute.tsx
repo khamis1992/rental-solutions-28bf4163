@@ -10,8 +10,26 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
-  const { user, loading, session } = useAuth();
-  const { profile, loading: profileLoading } = useProfile();
+  // Use try-catch to handle the case where this component might be rendered
+  // outside of AuthProvider or ProfileProvider
+  let authData = { user: null, loading: true, session: null };
+  let profileData = { profile: null, loading: true };
+  
+  try {
+    authData = useAuth();
+  } catch (error) {
+    console.error("Error using AuthContext:", error);
+    return <Navigate to="/auth/login" replace />;
+  }
+  
+  try {
+    profileData = useProfile();
+  } catch (error) {
+    console.error("Error using ProfileContext:", error);
+  }
+  
+  const { user, loading, session } = authData;
+  const { profile, loading: profileLoading } = profileData;
   const location = useLocation();
 
   if (loading || profileLoading) {
