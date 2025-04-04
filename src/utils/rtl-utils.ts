@@ -99,15 +99,7 @@ export const getDirectionalClasses = (classes: string): string => {
     
     // Space between elements in flexbox
     if (cls === 'space-x-reverse') return '';
-    if (cls === 'space-x-1') return 'space-x-1 space-x-reverse';
-    if (cls === 'space-x-2') return 'space-x-2 space-x-reverse';
-    if (cls === 'space-x-3') return 'space-x-3 space-x-reverse';
-    if (cls === 'space-x-4') return 'space-x-4 space-x-reverse';
-    if (cls === 'space-x-5') return 'space-x-5 space-x-reverse';
-    if (cls === 'space-x-6') return 'space-x-6 space-x-reverse';
-    if (cls === 'space-x-8') return 'space-x-8 space-x-reverse';
-    if (cls === 'space-x-10') return 'space-x-10 space-x-reverse';
-    if (cls === 'space-x-12') return 'space-x-12 space-x-reverse';
+    if (cls.startsWith('space-x-')) return `${cls} space-x-reverse`;
     
     // Keep other classes unchanged
     return cls;
@@ -115,46 +107,35 @@ export const getDirectionalClasses = (classes: string): string => {
 };
 
 /**
- * Flips icon rotation for RTL support
- * @param degrees - Original rotation in degrees
- * @returns Adjusted rotation for RTL
+ * Returns appropriate directional flex class based on current language
+ * @returns The flex direction class for the current language
  */
-export const getIconRotation = (degrees: number): number => {
+export const getDirectionalFlexClass = (): string => {
+  const { isRTL } = useTranslation();
+  return isRTL ? 'flex-row-reverse' : 'flex-row';
+};
+
+/**
+ * Returns the appropriate text-align class based on current language
+ * @returns The text alignment class for the current language
+ */
+export const getDirectionalTextAlign = (): string => {
+  const { isRTL } = useTranslation();
+  return isRTL ? 'text-right' : 'text-left';
+};
+
+/**
+ * Helper function to get appropriate icon for directional navigation
+ * @param iconType Type of directional icon (e.g., 'arrow', 'chevron')
+ * @returns The icon component to use based on direction
+ */
+export const getDirectionalIcon = (iconType: 'arrow' | 'chevron') => {
   const { isRTL } = useTranslation();
   
-  // For certain rotations, we need to flip them in RTL mode
-  if (isRTL) {
-    if (degrees === 0) return 0; // No rotation stays the same
-    if (degrees === 180) return 180; // 180 stays the same
-    
-    // Flip horizontal rotations
-    if (degrees === 90) return 270;
-    if (degrees === 270) return 90;
+  // You will need to import these from lucide-react where this function is used
+  if (iconType === 'arrow') {
+    return isRTL ? 'ArrowRight' : 'ArrowLeft';
+  } else {
+    return isRTL ? 'ChevronRight' : 'ChevronLeft';
   }
-  
-  return degrees;
-};
-
-/**
- * Returns the appropriate position value for RTL layouts
- * @param ltrPosition - Position value for LTR direction
- * @param rtlPosition - Position value for RTL direction
- * @returns The appropriate position based on current direction
- */
-export const getDirectionalPosition = (ltrPosition: string, rtlPosition: string): string => {
-  const { isRTL } = useTranslation();
-  return isRTL ? rtlPosition : ltrPosition;
-};
-
-/**
- * Returns the correct float direction for RTL support
- * @returns The appropriate float CSS value
- */
-export const getFloatDirection = (ltrFloat: 'left' | 'right' | 'none'): 'left' | 'right' | 'none' => {
-  const { isRTL } = useTranslation();
-  
-  if (ltrFloat === 'none') return 'none';
-  return isRTL ? 
-    (ltrFloat === 'left' ? 'right' : 'left') : 
-    ltrFloat;
 };

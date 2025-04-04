@@ -4,20 +4,22 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
-import { getDirectionalClasses } from '@/utils/rtl-utils';
+import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
 
 interface LanguageSelectorProps {
   onValueChange?: (value: string) => void;
   variant?: 'default' | 'compact';
   showIcon?: boolean;
+  className?: string;
 }
 
 const LanguageSelector: React.FC<LanguageSelectorProps> = ({ 
   onValueChange, 
   variant = 'default',
-  showIcon = true 
+  showIcon = true,
+  className = ''
 }) => {
-  const { language, changeLanguage, direction, isRTL } = useTranslation();
+  const { language, changeLanguage, isRTL } = useTranslation();
   const { t } = useI18nTranslation();
 
   const handleLanguageChange = (value: string) => {
@@ -38,7 +40,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   };
 
   return (
-    <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''} ${isCompact ? 'gap-1' : 'gap-2'}`}>
+    <div className={`flex items-center ${getDirectionalFlexClass()} ${isCompact ? 'gap-1' : 'gap-2'} ${className}`}>
       {showIcon && <Globe className={`${isCompact ? 'h-4 w-4' : 'h-5 w-5'} text-muted-foreground`} />}
       
       <Select value={language} onValueChange={handleLanguageChange}>
@@ -47,9 +49,9 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
             {getLanguageLabel(language)}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent align={isRTL ? 'end' : 'start'}>
+        <SelectContent align={isRTL ? 'end' : 'start'} className={isRTL ? 'text-right' : ''}>
           <SelectItem value="en">English</SelectItem>
-          <SelectItem value="ar">العربية</SelectItem>
+          <SelectItem value="ar" className="font-arabic">العربية</SelectItem>
         </SelectContent>
       </Select>
     </div>

@@ -1,10 +1,10 @@
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
 
 // Simplify the type to avoid excessive type instantiation
 export type SimpleAgreement = {
@@ -100,6 +100,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       let customerData = null;
       let vehicleData = null;
 
+      // Fetch customer data if customer_id exists
       if (data.customer_id) {
         try {
           const { data: customer, error: customerError } = await supabase
@@ -121,6 +122,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
+      // Fetch vehicle data if vehicle_id exists
       if (data.vehicle_id) {
         try {
           const { data: vehicle, error: vehicleError } = await supabase
@@ -160,7 +162,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         notes: data.notes || '',
         customers: customerData,
         vehicles: vehicleData,
-        signature_url: (data as any).signature_url,
+        signature_url: data.signature_url,
         rent_amount: data.rent_amount || 0,
         daily_late_fee: data.daily_late_fee || 0
       };
@@ -261,7 +263,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Transform the data: Use explicit type casting to avoid deep instantiation
+      // Transform the data
       const agreements: SimpleAgreement[] = data.map(item => {
         // Use the helper function to map status
         const mappedStatus = mapDBStatusToEnum(item.status);
@@ -281,7 +283,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           notes: item.notes || '',
           customers: item.profiles,
           vehicles: item.vehicles,
-          signature_url: (item as any).signature_url,
+          signature_url: item.signature_url,
           rent_amount: item.rent_amount || 0,
           daily_late_fee: item.daily_late_fee || 0
         };
@@ -295,10 +297,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   };
 
   const createAgreement = async (data: Partial<SimpleAgreement>) => {
-    return {} as SimpleAgreement;
+    return {} as SimpleAgreement; // Implementation placeholder
   };
 
-  // Fix: Using a simple Record type for the mutation data to avoid excessive type instantiation
+  // Simplified update mutation
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -412,8 +414,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes (increased from 5 minutes)
-    gcTime: 900000, // 15 minutes (increased from 10 minutes)
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000, // 15 minutes
   });
 
   return {

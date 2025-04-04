@@ -12,6 +12,7 @@ interface TranslationContextProps {
   isRTL: boolean;
   changeLanguage: (lang: string) => void;
   translateText: (text: string, targetLang?: string) => Promise<string>;
+  getNumberFormat: (num: number) => string;
 }
 
 const TranslationContext = createContext<TranslationContextProps>({
@@ -20,6 +21,7 @@ const TranslationContext = createContext<TranslationContextProps>({
   isRTL: false,
   changeLanguage: () => {},
   translateText: async () => '',
+  getNumberFormat: (num) => num.toString(),
 });
 
 export const useTranslation = () => useContext(TranslationContext);
@@ -54,8 +56,21 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Add/remove direction-specific class to body for global styling
       if (newDirection === 'rtl') {
         document.body.classList.add('rtl-mode');
+        
+        // Load Arabic font if not already loaded
+        if (!document.getElementById('arabic-font')) {
+          const link = document.createElement('link');
+          link.id = 'arabic-font';
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap';
+          document.head.appendChild(link);
+          
+          // Add Arabic font class to body
+          document.body.classList.add('font-arabic');
+        }
       } else {
         document.body.classList.remove('rtl-mode');
+        document.body.classList.remove('font-arabic');
       }
       
       console.log(`Language changed successfully to: ${lang}, direction: ${newDirection}`);
@@ -84,6 +99,15 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return text; // Return original text if translation fails
     }
   };
+  
+  // Function to format numbers according to locale
+  const getNumberFormat = (num: number): string => {
+    if (isRTL) {
+      // For Arabic, use Arabic numerals
+      return new Intl.NumberFormat('ar-SA').format(num);
+    }
+    return new Intl.NumberFormat('en-US').format(num);
+  };
 
   // Initialize direction on mount
   useEffect(() => {
@@ -98,8 +122,21 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Add direction-specific class to body
       if (language === 'ar') {
         document.body.classList.add('rtl-mode');
+        
+        // Load Arabic font if not already loaded
+        if (!document.getElementById('arabic-font')) {
+          const link = document.createElement('link');
+          link.id = 'arabic-font';
+          link.rel = 'stylesheet';
+          link.href = 'https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap';
+          document.head.appendChild(link);
+          
+          // Add Arabic font class to body
+          document.body.classList.add('font-arabic');
+        }
       } else {
         document.body.classList.remove('rtl-mode');
+        document.body.classList.remove('font-arabic');
       }
     }
   }, [language, changeLanguage]);
@@ -111,7 +148,8 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         direction, 
         isRTL,
         changeLanguage, 
-        translateText: translateTextFn
+        translateText: translateTextFn,
+        getNumberFormat
       }}
     >
       {children}
