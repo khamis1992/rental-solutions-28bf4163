@@ -74,6 +74,7 @@ interface SearchParams {
 // Define valid status types to fix the type error
 type ValidStatusType = 'active' | 'pending' | 'draft' | 'expired' | 'cancelled' | 'closed';
 
+// Database status may have more specific values than what we expose in the UI
 type DatabaseStatus = 'active' | 'pending_payment' | 'pending_deposit' | 'draft' | 'expired' | 'cancelled' | 'closed' | 'terminated';
 
 const mapDatabaseStatus = (status: string): string => {
@@ -144,7 +145,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
         }
 
         if (searchParams.status && searchParams.status !== 'all') {
-          query = query.eq('status', searchParams.status as DatabaseStatus);
+          // Need to cast as any here since we're dealing with potentially differing enum types
+          query = query.eq('status', searchParams.status as any);
         }
 
         if (searchParams.customerId || searchParams.customer_id) {
