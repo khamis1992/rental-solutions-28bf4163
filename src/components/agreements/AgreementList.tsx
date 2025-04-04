@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -128,13 +127,13 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   }, [agreements, statusFilter, searchQuery]);
 
   const handleBulkDelete = async () => {
-    if (!agreements) return;
+    if (!agreements || agreements.length === 0) return;
     
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id as string
-    );
+      index => agreements[parseInt(index)]?.id as string
+    ).filter(Boolean);
     
     console.log("Selected IDs for deletion:", selectedIds);
     
@@ -143,81 +142,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
-        console.log(`Starting deletion process for agreement ${id}`);
-        
-        const { error: overduePaymentsDeleteError } = await supabase
-          .from('overdue_payments')
-          .delete()
-          .eq('agreement_id', id);
-          
-        if (overduePaymentsDeleteError) {
-          console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
-        } else {
-          console.log(`Successfully deleted related overdue payments for ${id}`);
-        }
-        
-        const { error: paymentDeleteError } = await supabase
-          .from('unified_payments')
-          .delete()
-          .eq('lease_id', id);
-          
-        if (paymentDeleteError) {
-          console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
-        } else {
-          console.log(`Successfully deleted related payments for ${id}`);
-        }
-        
-        const { data: relatedReverts } = await supabase
-          .from('agreement_import_reverts')
-          .select('id')
-          .eq('import_id', id);
-          
-        if (relatedReverts && relatedReverts.length > 0) {
-          const { error: revertDeleteError } = await supabase
-            .from('agreement_import_reverts')
-            .delete()
-            .eq('import_id', id);
-            
-          if (revertDeleteError) {
-            console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
-          } else {
-            console.log(`Successfully deleted related revert records for ${id}`);
-          }
-        }
-        
-        const { data: trafficFines, error: trafficFinesError } = await supabase
-          .from('traffic_fines')
-          .select('id')
-          .eq('agreement_id', id);
-          
-        if (trafficFinesError) {
-          console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
-        } else if (trafficFines && trafficFines.length > 0) {
-          const { error: finesDeleteError } = await supabase
-            .from('traffic_fines')
-            .delete()
-            .eq('agreement_id', id);
-            
-          if (finesDeleteError) {
-            console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
-          } else {
-            console.log(`Successfully deleted related traffic fines for ${id}`);
-          }
-        }
-        
-        const { error } = await supabase
-          .from('leases')
-          .delete()
-          .eq('id', id);
-          
-        if (error) {
-          console.error(`Failed to delete agreement ${id}:`, error);
-          toast.error(`Failed to delete agreement: ${error.message}`);
-          errorCount++;
-        } else {
-          console.log(`Successfully deleted agreement ${id}`);
-          successCount++;
-        }
+        await deleteAgreement.mutateAsync(id);
+        successCount++;
       } catch (error) {
         console.error(`Failed to delete agreement ${id}:`, error);
         errorCount++;
@@ -235,8 +161,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setRowSelection({});
     setBulkDeleteDialogOpen(false);
     setIsDeleting(false);
-    
-    queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
   const handleSingleDelete = async () => {
@@ -508,7 +432,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
   const selectedCount = Object.keys(rowSelection).length;
 
-  // Fix the statusCounts calculation to avoid reduce on undefined
   const statusCounts: Record<string, number> = (agreements || []).reduce((acc: Record<string, number>, agreement) => {
     const status = agreement.status || 'unknown';
     acc[status] = (acc[status] || 0) + 1;

@@ -86,6 +86,27 @@ const mapDatabaseStatus = (status: string): string => {
   return statusMap[status.toLowerCase()] || status;
 };
 
+// Default empty objects for customer and vehicle to prevent null errors
+const DEFAULT_CUSTOMER = {
+  id: "",
+  full_name: "Unknown Customer",
+  email: "",
+  phone: "",
+  phone_number: "",
+  address: "",
+  driver_license: ""
+};
+
+const DEFAULT_VEHICLE = {
+  id: "",
+  license_plate: "Unknown",
+  make: "",
+  model: "",
+  year: 0,
+  color: "",
+  vin: ""
+};
+
 export const useAgreements = (initialParams?: SearchParams) => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useState<SearchParams>(initialParams || {
@@ -143,16 +164,26 @@ export const useAgreements = (initialParams?: SearchParams) => {
 
         return (data || []).map(item => {
           // Ensure customer data is properly initialized to prevent null errors
-          const customerData = item.customer || {
-            id: "",
-            full_name: "Unknown Customer"
-          };
+          const customerData = item.customer ? {
+            id: item.customer.id || DEFAULT_CUSTOMER.id,
+            full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
+            email: item.customer.email || DEFAULT_CUSTOMER.email,
+            phone: item.customer.phone || item.customer.phone_number || DEFAULT_CUSTOMER.phone,
+            phone_number: item.customer.phone_number || item.customer.phone || DEFAULT_CUSTOMER.phone_number,
+            address: item.customer.address || DEFAULT_CUSTOMER.address,
+            driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
+          } : DEFAULT_CUSTOMER;
 
           // Ensure vehicle data is properly initialized to prevent null errors
-          const vehicleData = item.vehicle || {
-            id: "",
-            license_plate: "Unknown"
-          };
+          const vehicleData = item.vehicle ? {
+            id: item.vehicle.id || DEFAULT_VEHICLE.id,
+            make: item.vehicle.make || DEFAULT_VEHICLE.make,
+            model: item.vehicle.model || DEFAULT_VEHICLE.model,
+            license_plate: item.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
+            year: item.vehicle.year || DEFAULT_VEHICLE.year,
+            color: item.vehicle.color || DEFAULT_VEHICLE.color,
+            vin: item.vehicle.vin || DEFAULT_VEHICLE.vin
+          } : DEFAULT_VEHICLE;
 
           const agreement: FlattenType<SimpleAgreement> = {
             ...item,
@@ -254,16 +285,26 @@ export const useAgreements = (initialParams?: SearchParams) => {
     }
 
     // Ensure customer data is properly initialized to prevent null errors
-    const customerData = data.customer || {
-      id: "",
-      full_name: "Unknown Customer"
-    };
+    const customerData = data.customer ? {
+      id: data.customer.id || DEFAULT_CUSTOMER.id,
+      full_name: data.customer.full_name || DEFAULT_CUSTOMER.full_name,
+      email: data.customer.email || DEFAULT_CUSTOMER.email,
+      phone: data.customer.phone || data.customer.phone_number || DEFAULT_CUSTOMER.phone,
+      phone_number: data.customer.phone_number || data.customer.phone || DEFAULT_CUSTOMER.phone_number,
+      address: data.customer.address || DEFAULT_CUSTOMER.address,
+      driver_license: data.customer.driver_license || DEFAULT_CUSTOMER.driver_license
+    } : DEFAULT_CUSTOMER;
 
     // Ensure vehicle data is properly initialized to prevent null errors
-    const vehicleData = data.vehicle || {
-      id: "",
-      license_plate: "Unknown"
-    };
+    const vehicleData = data.vehicle ? {
+      id: data.vehicle.id || DEFAULT_VEHICLE.id,
+      make: data.vehicle.make || DEFAULT_VEHICLE.make,
+      model: data.vehicle.model || DEFAULT_VEHICLE.model,
+      license_plate: data.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
+      year: data.vehicle.year || DEFAULT_VEHICLE.year,
+      color: data.vehicle.color || DEFAULT_VEHICLE.color,
+      vin: data.vehicle.vin || DEFAULT_VEHICLE.vin
+    } : DEFAULT_VEHICLE;
 
     const agreement: FlattenType<SimpleAgreement> = {
       ...data,
@@ -306,16 +347,26 @@ export const useAgreements = (initialParams?: SearchParams) => {
 
     return (data || []).map(item => {
       // Ensure customer data is properly initialized to prevent null errors
-      const customerData = item.customer || {
-        id: "",
-        full_name: "Unknown Customer"
-      };
+      const customerData = item.customer ? {
+        id: item.customer.id || DEFAULT_CUSTOMER.id,
+        full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
+        email: item.customer.email || DEFAULT_CUSTOMER.email,
+        phone: item.customer.phone || item.customer.phone_number || DEFAULT_CUSTOMER.phone,
+        phone_number: item.customer.phone_number || item.customer.phone || DEFAULT_CUSTOMER.phone_number,
+        address: item.customer.address || DEFAULT_CUSTOMER.address,
+        driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
+      } : DEFAULT_CUSTOMER;
 
       // Ensure vehicle data is properly initialized to prevent null errors
-      const vehicleData = item.vehicle || {
-        id: "",
-        license_plate: "Unknown"
-      };
+      const vehicleData = item.vehicle ? {
+        id: item.vehicle.id || DEFAULT_VEHICLE.id,
+        make: item.vehicle.make || DEFAULT_VEHICLE.make,
+        model: item.vehicle.model || DEFAULT_VEHICLE.model,
+        license_plate: item.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
+        year: item.vehicle.year || DEFAULT_VEHICLE.year,
+        color: item.vehicle.color || DEFAULT_VEHICLE.color,
+        vin: item.vehicle.vin || DEFAULT_VEHICLE.vin
+      } : DEFAULT_VEHICLE;
 
       const agreement: FlattenType<SimpleAgreement> = {
         ...item,
