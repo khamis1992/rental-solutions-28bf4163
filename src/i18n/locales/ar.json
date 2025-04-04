@@ -316,5 +316,66 @@
     },
     "recentActivity": "النشاط الأخير",
     "loading": "جاري تحميل الاتفاقيات..."
+  },
+  "maintenance": {
+    "title": "الصيانة",
+    "management": "إدارة الصيانة",
+    "description": "تتبع وجدولة صيانة المركبات",
+    "records": "سجلات الصيانة",
+    "add": "إضافة صيانة",
+    "edit": "تعديل الصيانة",
+    "details": "تفاصيل الصيانة",
+    "schedule": "جدولة الصيانة",
+    "history": "سجل الصيانة",
+    "noRecords": "لا توجد سجلات صيانة",
+    "noRecordsDesc": "لم يتم العثور على سجلات صيانة. أضف أول سجل صيانة للبدء.",
+    "filters": {
+      "status": "تصفية حسب الحالة",
+      "vehicle": "تصفية حسب المركبة",
+      "type": "تصفية حسب النوع",
+      "date": "تصفية حسب التاريخ"
+    },
+    "status": {
+      "allStatuses": "جميع الحالات",
+      "scheduled": "مجدولة",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتملة",
+      "cancelled": "ملغاة"
+    },
+    "form": {
+      "vehicleRequired": "المركبة مطلوبة",
+      "maintenanceType": "نوع الصيانة",
+      "status": "الحالة",
+      "scheduledDate": "تاريخ الجدولة",
+      "completionDate": "تاريخ الإكمال",
+      "description": "الوصف",
+      "cost": "التكلفة ($)",
+      "serviceProvider": "مزود الخدمة",
+      "invoiceNumber": "رقم الفاتورة",
+      "odometerReading": "قراءة العداد",
+      "notes": "ملاحظات"
+    },
+    "types": {
+      "oilChange": "تغيير الزيت",
+      "tireReplacement": "استبدال الإطارات",
+      "brakeService": "خدمة الفرامل",
+      "regularInspection": "فحص دوري",
+      "engineRepair": "إصلاح المحرك",
+      "transmissionService": "خدمة ناقل الحركة",
+      "electricalRepair": "إصلاح كهربائي",
+      "bodyRepair": "إصلاح الهيكل",
+      "airConditioning": "تكييف الهواء",
+      "other": "أخرى"
+    },
+    "analytics": {
+      "title": "تحليل الصيانة",
+      "statusDistribution": "توزيع الحالة",
+      "maintenanceTypes": "أنواع الصيانة",
+      "costAnalysis": "تحليل التكلفة",
+      "totalRecords": "إجمالي السجلات",
+      "completed": "مكتملة",
+      "inProgress": "قيد التنفيذ",
+      "scheduled": "مجدولة"
+    }
   }
 }

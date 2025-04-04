@@ -293,5 +293,66 @@
     },
     "recentActivity": "Recent Activity",
     "loading": "Loading agreements..."
+  },
+  "maintenance": {
+    "title": "Maintenance",
+    "management": "Maintenance Management",
+    "description": "Track and schedule vehicle maintenance",
+    "records": "Maintenance Records",
+    "add": "Add Maintenance",
+    "edit": "Edit Maintenance",
+    "details": "Maintenance Details",
+    "schedule": "Schedule Maintenance",
+    "history": "Maintenance History",
+    "noRecords": "No Maintenance Records",
+    "noRecordsDesc": "No maintenance records found. Add your first maintenance record to get started.",
+    "filters": {
+      "status": "Filter by status",
+      "vehicle": "Filter by vehicle",
+      "type": "Filter by type",
+      "date": "Filter by date"
+    },
+    "status": {
+      "allStatuses": "All Statuses",
+      "scheduled": "Scheduled",
+      "inProgress": "In Progress",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "form": {
+      "vehicleRequired": "Vehicle is required",
+      "maintenanceType": "Maintenance Type",
+      "status": "Status",
+      "scheduledDate": "Scheduled Date",
+      "completionDate": "Completion Date",
+      "description": "Description",
+      "cost": "Cost ($)",
+      "serviceProvider": "Service Provider",
+      "invoiceNumber": "Invoice Number",
+      "odometerReading": "Odometer Reading",
+      "notes": "Notes"
+    },
+    "types": {
+      "oilChange": "Oil Change",
+      "tireReplacement": "Tire Replacement",
+      "brakeService": "Brake Service",
+      "regularInspection": "Regular Inspection",
+      "engineRepair": "Engine Repair",
+      "transmissionService": "Transmission Service",
+      "electricalRepair": "Electrical Repair",
+      "bodyRepair": "Body Repair",
+      "airConditioning": "Air Conditioning",
+      "other": "Other"
+    },
+    "analytics": {
+      "title": "Maintenance Analysis",
+      "statusDistribution": "Status Distribution",
+      "maintenanceTypes": "Maintenance Types",
+      "costAnalysis": "Cost Analysis",
+      "totalRecords": "Total Records",
+      "completed": "Completed",
+      "inProgress": "In Progress",
+      "scheduled": "Scheduled"
+    }
   }
 }

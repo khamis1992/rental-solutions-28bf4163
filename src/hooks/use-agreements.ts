@@ -195,7 +195,73 @@ export const useAgreements = () => {
       }
     });
   };
-  
+
+  // Function to get a single agreement by ID
+  const getAgreement = async (id: string) => {
+    if (!id) return null;
+
+    const { data, error } = await supabase
+      .from('rental_agreements')
+      .select(`
+        *,
+        customer:customer_id(*),
+        vehicle:vehicle_id(*),
+        payments(*)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      throw new Error(`Error fetching agreement: ${error.message}`);
+    }
+
+    return data;
+  };
+
+  // Function to delete an agreement
+  const deleteAgreement = async (id: string) => {
+    const { error } = await supabase
+      .from('rental_agreements')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Error deleting agreement: ${error.message}`);
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    return id;
+  };
+
+  // Function to get all agreements
+  const getAgreements = async (filters?: any) => {
+    let query = supabase
+      .from('rental_agreements')
+      .select(`
+        *,
+        customer:customer_id(*),
+        vehicle:vehicle_id(*)
+      `)
+      .order('created_at', { ascending: false });
+
+    // Apply filters if provided
+    if (filters?.customerId) {
+      query = query.eq('customer_id', filters.customerId);
+    }
+
+    if (filters?.vehicleId) {
+      query = query.eq('vehicle_id', filters.vehicleId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Error fetching agreements: ${error.message}`);
+    }
+
+    return data || [];
+  };
+
   // Return all the queries and mutations
   return {
     useAgreementsList,
@@ -205,6 +271,10 @@ export const useAgreements = () => {
     useDelete,
     useImportHistory,
     searchParams,
-    setSearchParams
+    setSearchParams,
+    // Add direct access methods to fix errors
+    getAgreement,
+    deleteAgreement,
+    getAgreements
   };
 };

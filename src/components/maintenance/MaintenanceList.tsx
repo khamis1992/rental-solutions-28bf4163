@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 export const MaintenanceList = () => {
   const { 
@@ -46,6 +48,7 @@ export const MaintenanceList = () => {
   const { useList: useVehicleList } = useVehicles();
   const { data: vehicles } = useVehicleList();
   const navigate = useNavigate();
+  const { t } = useI18nTranslation();
   
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -160,8 +163,9 @@ export const MaintenanceList = () => {
   };
   
   const formatMaintenanceType = (type) => {
-    if (!type) return 'Unknown';
-    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    if (!type) return t('common.notProvided');
+    const key = `maintenance.types.${type.toLowerCase()}`;
+    return t(key);
   };
   
   const getStatusBadgeClass = (status) => {
@@ -180,9 +184,9 @@ export const MaintenanceList = () => {
   };
   
   const getVehicleName = (vehicleId) => {
-    if (!vehicles) return 'Loading...';
+    if (!vehicles) return t('common.loading');
     const vehicle = vehicles.find(v => v?.id === vehicleId);
-    return vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unknown Vehicle';
+    return vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : t('common.notProvided');
   };
   
   const getValidVehicleOptions = () => {
@@ -197,13 +201,18 @@ export const MaintenanceList = () => {
     );
   };
   
+  const getStatusTranslation = (status) => {
+    if (!status) return t('common.notProvided');
+    return t(`maintenance.status.${status.replace('_', '')}`);
+  };
+  
   if (error) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
+        <AlertTitle>{t('common.error')}</AlertTitle>
         <AlertDescription>
-          {error instanceof Error ? error.message : 'Failed to load maintenance records'}
+          {error instanceof Error ? error.message : t('common.error')}
         </AlertDescription>
       </Alert>
     );
@@ -219,7 +228,7 @@ export const MaintenanceList = () => {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search maintenance..."
+              placeholder={t('common.search')}
               className="pl-8 w-[250px]"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -229,23 +238,23 @@ export const MaintenanceList = () => {
           
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+              <SelectValue placeholder={t('maintenance.filters.status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all-statuses">All Statuses</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="all-statuses">{t('maintenance.status.allStatuses')}</SelectItem>
+              <SelectItem value="scheduled">{t('maintenance.status.scheduled')}</SelectItem>
+              <SelectItem value="in_progress">{t('maintenance.status.inProgress')}</SelectItem>
+              <SelectItem value="completed">{t('maintenance.status.completed')}</SelectItem>
+              <SelectItem value="cancelled">{t('maintenance.status.cancelled')}</SelectItem>
             </SelectContent>
           </Select>
           
           <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
             <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Filter by vehicle" />
+              <SelectValue placeholder={t('maintenance.filters.vehicle')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all-vehicles">All Vehicles</SelectItem>
+              <SelectItem value="all-vehicles">{t('vehicles.allModels')}</SelectItem>
               {validVehicleOptions.map(vehicle => (
                 <SelectItem key={vehicle.id} value={vehicle.id}>
                   {vehicle.make} {vehicle.model} ({vehicle.license_plate})
@@ -256,11 +265,11 @@ export const MaintenanceList = () => {
           
           <Button variant="outline" size="sm" onClick={applyFilters}>
             <Filter className="h-4 w-4 mr-2" />
-            Apply Filters
+            {t('common.filter')}
           </Button>
           
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            Clear
+            {t('common.cancel')}
           </Button>
         </div>
         
@@ -268,20 +277,20 @@ export const MaintenanceList = () => {
           {selectedRecords.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleBulkDelete}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedRecords.length})
+              {t('common.delete')} ({selectedRecords.length})
             </Button>
           )}
           
           <Button onClick={() => navigate('/maintenance/add')}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Maintenance
+            {t('maintenance.add')}
           </Button>
         </div>
       </div>
       
       <Card>
         <CardHeader>
-          <CardTitle>Maintenance Records</CardTitle>
+          <CardTitle>{t('maintenance.records')}</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -296,11 +305,11 @@ export const MaintenanceList = () => {
           ) : maintenanceRecords.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Wrench className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <h3 className="text-lg font-medium mb-2">No Maintenance Records</h3>
-              <p>No maintenance records found. Add your first maintenance record to get started.</p>
+              <h3 className="text-lg font-medium mb-2">{t('maintenance.noRecords')}</h3>
+              <p>{t('maintenance.noRecordsDesc')}</p>
               <Button className="mt-4" onClick={() => navigate('/maintenance/add')}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Maintenance
+                {t('maintenance.add')}
               </Button>
             </div>
           ) : (
@@ -314,12 +323,12 @@ export const MaintenanceList = () => {
                         checked={selectedRecords.length === maintenanceRecords.length && maintenanceRecords.length > 0}
                       />
                     </TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Vehicle</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('common.type')}</TableHead>
+                    <TableHead>{t('common.vehicle')}</TableHead>
+                    <TableHead>{t('common.date')}</TableHead>
+                    <TableHead>{t('common.status')}</TableHead>
+                    <TableHead>{t('common.price')}</TableHead>
+                    <TableHead className="text-right">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -346,12 +355,12 @@ export const MaintenanceList = () => {
                         <TableCell>
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'Not scheduled'}
+                            {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : t('common.notProvided')}
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge className={getStatusBadgeClass(record.status)}>
-                            {record.status ? record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Unknown'}
+                            {getStatusTranslation(record.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
@@ -386,15 +395,15 @@ export const MaintenanceList = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the maintenance record.
+              {t('common.confirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete}>
-              {remove.isPending ? 'Deleting...' : 'Delete'}
+              {remove.isPending ? t('common.loading') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
