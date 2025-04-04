@@ -35,7 +35,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
   
   return (
-    <div className={`min-h-screen ${isRTL ? 'pr-64' : 'pl-64'} w-full`} dir={direction}>
+    <div className={`min-h-screen ${isRTL ? 'pr-64' : 'pl-64'} w-full transition-all duration-300`} dir={direction}>
       <Header />
       <main className={cn("p-6 animate-fade-in", className)}>
         {backLink && (

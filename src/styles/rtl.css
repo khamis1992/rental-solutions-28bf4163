@@ -1,0 +1,78 @@
+
+/* Global RTL Styles */
+.rtl-mode {
+  /* Add any global RTL styles here */
+  text-align: right;
+}
+
+.rtl-mode .reverse-children {
+  flex-direction: row-reverse;
+}
+
+.rtl-mode .align-right {
+  text-align: right;
+}
+
+.rtl-mode .margin-right {
+  margin-right: auto;
+  margin-left: 0 !important;
+}
+
+.rtl-mode .margin-left {
+  margin-left: auto;
+  margin-right: 0 !important;
+}
+
+/* RTL table adjustments */
+.rtl-mode table th,
+.rtl-mode table td {
+  text-align: right;
+}
+
+/* Fix Tailwind flex direction for RTL mode */
+.rtl-mode .flex-row {
+  flex-direction: row-reverse;
+}
+
+.rtl-mode .justify-start {
+  justify-content: flex-end;
+}
+
+.rtl-mode .justify-end {
+  justify-content: flex-start;
+}
+
+/* Fix for inputs and form elements */
+.rtl-mode input[type="text"],
+.rtl-mode input[type="email"],
+.rtl-mode input[type="password"],
+.rtl-mode input[type="number"],
+.rtl-mode input[type="tel"],
+.rtl-mode input[type="search"],
+.rtl-mode textarea {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Fix for select elements */
+.rtl-mode select {
+  background-position: 0.5rem center;
+  padding-right: 1rem;
+  padding-left: 2rem;
+}
+
+/* Fix for checkboxes and radio buttons */
+.rtl-mode input[type="checkbox"],
+.rtl-mode input[type="radio"] {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+/* Shadcn UI Component adjustments for RTL */
+.rtl-mode .react-select__menu {
+  text-align: right;
+}
+
+.rtl-mode .react-select__option {
+  text-align: right;
+}
