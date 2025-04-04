@@ -55,7 +55,7 @@ const StatCard = ({
                 )}>
                   {trend > 0 ? '+' : ''}{trend}%
                 </span>
-                {trendLabel && <span className={`text-xs text-muted-foreground ${isRTL ? 'ml-2' : 'ml-2'}`}>{trendLabel}</span>}
+                {trendLabel && <span className={`text-xs text-muted-foreground ${isRTL ? 'mr-2' : 'ml-2'}`}>{trendLabel}</span>}
               </div>
             )}
           </div>

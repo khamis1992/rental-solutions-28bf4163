@@ -204,3 +204,53 @@
 .rtl-mode .sidebar-chevron-icon {
   transform: rotate(180deg);
 }
+
+/* RTL adjustments for navigation components */
+.rtl-mode nav a svg,
+.rtl-mode nav button svg {
+  transform: scaleX(1); /* Reset any scaleX transformations */
+}
+
+/* Correctly handle directional icons in RTL mode */
+.rtl-mode .chevron-right {
+  transform: rotate(180deg);
+}
+
+.rtl-mode .chevron-left {
+  transform: rotate(180deg);
+}
+
+.rtl-mode .arrow-right {
+  transform: rotate(180deg);
+}
+
+.rtl-mode .arrow-left {
+  transform: rotate(180deg);
+}
+
+/* Ensure correct icon positioning in sidebar items */
+.rtl-mode .sidebar-item {
+  flex-direction: row-reverse;
+}
+
+/* Fix for popover and menu positioning */
+.rtl-mode [data-popper-placement^="right"] {
+  margin-right: 0.5rem !important;
+  margin-left: 0 !important;
+}
+
+.rtl-mode [data-popper-placement^="left"] {
+  margin-left: 0.5rem !important;
+  margin-right: 0 !important;
+}
+
+/* Ensure sidebar expansion works correctly in RTL mode */
+.rtl-mode .sidebar-expanded {
+  right: 0 !important;
+  left: auto !important;
+}
+
+.rtl-mode .sidebar-collapsed {
+  right: -100% !important;
+  left: auto !important;
+}
