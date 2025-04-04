@@ -1,8 +1,8 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
+import i18next from 'i18next';
 
 export interface DashboardStats {
   vehicleStats: {
@@ -395,11 +395,23 @@ function getTimeAgo(date: Date): string {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
+  const currentLang = i18next.language;
+  const isArabic = currentLang === 'ar';
+
   if (diffInMinutes < 60) {
+    if (isArabic) {
+      return `منذ ${diffInMinutes} دقيقة`;
+    }
     return `${diffInMinutes} minutes ago`;
   } else if (diffInHours < 24) {
+    if (isArabic) {
+      return `منذ ${diffInHours} ساعة`;
+    }
     return `${diffInHours} hours ago`;
   } else {
+    if (isArabic) {
+      return `منذ ${diffInDays} يوم`;
+    }
     return `${diffInDays} days ago`;
   }
 }

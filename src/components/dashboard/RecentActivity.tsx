@@ -15,7 +15,7 @@ interface RecentActivityProps {
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
+  const { isRTL, getNumberFormat } = useTranslation();
 
   const handleActivityClick = (activity: RecentActivityType) => {
     // Navigate to the relevant page based on activity type
@@ -37,6 +37,15 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
     payment: t('dashboard.activityTypes.payment'),
     maintenance: t('dashboard.activityTypes.maintenance'),
     fine: t('dashboard.activityTypes.fine')
+  };
+
+  const getTimeFormatted = (timeString: string) => {
+    // For Arabic, we need to format the numbers in the time string
+    if (isRTL) {
+      // Replace any numbers in the time string with Arabic numerals
+      return timeString.replace(/\d+/g, match => getNumberFormat(parseInt(match)));
+    }
+    return timeString;
   };
 
   return (
@@ -65,7 +74,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                     <h4 className="font-medium">
                       {activityTypeTranslations[activity.type as keyof typeof activityTypeTranslations] || activity.title}
                     </h4>
-                    <span className="text-xs text-muted-foreground">{activity.time}</span>
+                    <span className="text-xs text-muted-foreground">{getTimeFormatted(activity.time)}</span>
                   </div>
                   <p className={`text-muted-foreground mt-1 ${isRTL ? 'text-right' : ''}`}>{activity.description}</p>
                 </div>

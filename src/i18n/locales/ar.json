@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -93,6 +92,11 @@
       "maintenance": "صيانة مجدولة",
       "fine": "مخالفة مرورية"
     },
+    "timeIndicators": {
+      "minutesAgo": "منذ {0} دقيقة",
+      "hoursAgo": "منذ {0} ساعة",
+      "daysAgo": "منذ {0} يوم"
+    },
     "financialOverview": "نظرة مالية عامة",
     "expensesBreakdown": "تفصيل المصروفات",
     "fleetStatus": "حالة الأسطول",
@@ -171,7 +175,7 @@
     "dashboard": "لوحة المالية",
     "revenue": "الإيرادات",
     "expenses": "المصروفات",
-    "pending": "المدفوعات المعلقة",
+    "pending": "المدفوعات الم��لقة",
     "overview": "نظرة عامة",
     "totalIncome": "إجمالي الدخل",
     "totalExpenses": "إجمالي المصروفات",
