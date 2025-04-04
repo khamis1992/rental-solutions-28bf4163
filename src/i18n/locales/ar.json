@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -171,9 +172,9 @@
     "dashboard": "لوحة إدارة الشؤون القانونية",
     "documents": "المستندات القانونية",
     "caseManagement": "إدارة القضايا",
-    "complianceCalendar": "تقوي��� الامتثال",
+    "complianceCalendar": "تقويم الامتثال",
     "riskAssessment": "تقييم المخاطر",
-    "complianceReporting": "تق��رير الامتثال"
+    "complianceReporting": "تقارير الامتثال"
   },
   "financials": {
     "dashboard": "لوحة المالية",

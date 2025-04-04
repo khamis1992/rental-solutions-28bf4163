@@ -14,7 +14,7 @@ const AddAgreement = () => {
   const { createAgreement } = useAgreements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation(); // Add the context translation hook
+  const { isRTL, translateText } = useTranslation(); // Add translateText function from the context
 
   const handleCreateAgreement = async (agreementData: Agreement) => {
     try {
@@ -32,20 +32,31 @@ const AddAgreement = () => {
       };
       
       await createAgreement.mutateAsync(formattedData);
-      toast.success(t('agreements.createSuccess'));
+      
+      // Use translated success message
+      const successMessage = await translateText(t('agreements.createSuccess'));
+      toast.success(successMessage);
+      
       navigate('/agreements');
     } catch (error) {
       console.error('Error creating agreement:', error);
-      toast.error(t('agreements.createError'));
+      
+      // Use translated error message
+      const errorMessage = await translateText(t('agreements.createError'));
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Dynamically translate the title and description
+  const pageTitle = t('agreements.add');
+  const pageDescription = t('agreements.description');
+
   return (
     <PageContainer
-      title={t('agreements.add')}
-      description={t('agreements.description')}
+      title={pageTitle}
+      description={pageDescription}
       backLink="/agreements"
     >
       <AgreementFormWithVehicleCheck

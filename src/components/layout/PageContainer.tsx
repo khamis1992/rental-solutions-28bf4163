@@ -29,7 +29,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   systemDate = new Date() // Default to current date
 }) => {
   const { t } = useI18nTranslation();
-  const { direction, isRTL } = useTranslation();
+  const { direction, isRTL, translateText } = useTranslation();
   
   // Choose the appropriate arrow icon based on direction
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
@@ -52,7 +52,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
         )}
         
         <div className={`mb-6 flex flex-col sm:${getDirectionalFlexClass()} sm:items-center sm:justify-between`}>
-          <div className={isRTL ? 'text-right' : ''}>
+          <div className={cn(isRTL ? 'text-right' : '')}>
             {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
             {description && <p className="text-muted-foreground mt-1">{description}</p>}
             <p className="text-xs text-muted-foreground mt-1">{t('common.systemDate')}: {formatDate(systemDate)}</p>
