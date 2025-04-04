@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
 import { 
   addReportHeader, 
@@ -16,8 +16,6 @@ import {
   generateStandardReport, 
   translateReportContent 
 } from '@/utils/report-utils';
-import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -46,68 +44,52 @@ const ReportDownloadOptions = ({
     try {
       setIsGenerating(true);
       
-      // Get data for the report
       const reportData = getReportData();
       
-      // Determine if translation is needed
       const needsTranslation = language === 'ar';
       
-      // Format title based on report type
       let title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
       
-      // If needed, translate the title
       if (needsTranslation) {
         try {
-          // Use i18n first if available
           const i18nKey = `reports.${reportType}Report`;
           const translatedTitle = t(i18nKey);
           
-          // If translation exists in i18n, use it
           if (translatedTitle !== i18nKey) {
             title = translatedTitle;
           } else {
-            // Otherwise use the API
             title = await translateReportContent(title, 'ar');
           }
           console.log(`Using translated title: ${title}`);
         } catch (error) {
           console.error('Error translating title:', error);
-          // Continue with original title if translation fails
         }
       }
       
-      // Generate report based on file format
       if (fileFormat === 'pdf') {
         try {
-          // Use the standardized report generator with language support
           const doc = await generateStandardReport(
             title,
             dateRange,
             async (doc, startY, isRTL) => {
-              // Add content based on report type
               let yPos = startY;
               
-              // Add summary section heading
               const summaryTitle = isRTL ? 'ملخص التقرير:' : 'Report Summary:';
               doc.setFontSize(14);
               doc.setFont('helvetica', 'bold');
               
-              // Position heading based on text direction
               const headingX = isRTL ? doc.internal.pageSize.getWidth() - 14 : 14;
               doc.text(summaryTitle, headingX, yPos, { align: isRTL ? 'right' : 'left' });
               yPos += 10;
               
-              // Add content specific to each report type
               doc.setFontSize(12);
               doc.setFont('helvetica', 'normal');
               
-              // Bullet point indentation
               const bulletIndent = 20;
               const contentIndent = isRTL ? doc.internal.pageSize.getWidth() - bulletIndent : bulletIndent;
               
               switch (reportType) {
                 case 'fleet':
-                  // Translate bullet points if needed
                   const fleetPoints = [
                     isRTL ? '• إجمالي المركبات في الأسطول' : '• Total Vehicles in Fleet',
                     isRTL ? '• معدل استخدام المركبات' : '• Vehicle Utilization Rate',
@@ -122,7 +104,6 @@ const ReportDownloadOptions = ({
                   }
                   break;
                 case 'financial':
-                  // Financial report specific content
                   if (reportData.length === 0) {
                     const noDataText = isRTL 
                       ? 'لا توجد بيانات مالية متاحة للفترة المحددة.'
@@ -130,18 +111,15 @@ const ReportDownloadOptions = ({
                     doc.text(noDataText, contentIndent, yPos, { align: isRTL ? 'right' : 'left' });
                     yPos += 20;
                   } else {
-                    // Add financial overview
                     const overviewText = isRTL ? '• النظرة المالية العامة' : '• Financial Overview';
                     doc.text(overviewText, contentIndent, yPos, { align: isRTL ? 'right' : 'left' });
                     yPos += 10;
                     
-                    // Calculate totals
                     const totalAmount = reportData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0);
                     const totalPaid = reportData.reduce((sum, item) => sum + (parseFloat(item.totalPaid) || 0), 0);
                     const totalOutstanding = reportData.reduce((sum, item) => sum + (parseFloat(item.outstandingBalance) || 0), 0);
                     const totalFines = reportData.reduce((sum, item) => sum + (parseFloat(item.totalFinesAmount) || 0), 0);
                     
-                    // Translate summary texts
                     const agreementsText = isRTL 
                       ? `   إجمالي الاتفاقيات: ${isRTL ? new Intl.NumberFormat('ar-SA').format(reportData.length) : reportData.length}`
                       : `   Total Agreements: ${reportData.length}`;
@@ -158,7 +136,6 @@ const ReportDownloadOptions = ({
                       ? `   إجمالي مخالفات المرور: ${new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'QAR' }).format(totalFines)}`
                       : `   Total Traffic Fines: QAR ${totalFines.toFixed(2)}`;
                     
-                    // Position and alignment for summary lines
                     const summaryIndent = isRTL ? doc.internal.pageSize.getWidth() - 20 : 20;
                     
                     doc.text(agreementsText, summaryIndent, yPos, { align: isRTL ? 'right' : 'left' }); yPos += 8;
@@ -167,7 +144,6 @@ const ReportDownloadOptions = ({
                     doc.text(outstandingText, summaryIndent, yPos, { align: isRTL ? 'right' : 'left' }); yPos += 8;
                     doc.text(finesText, summaryIndent, yPos, { align: isRTL ? 'right' : 'left' }); yPos += 20;
                     
-                    // Add detailed table
                     const detailsTitle = isRTL ? 'تفاصيل الاتفاقية:' : 'Agreement Details:';
                     doc.setFontSize(14);
                     doc.setFont('helvetica', 'bold');
@@ -175,7 +151,6 @@ const ReportDownloadOptions = ({
                     doc.text(detailsTitle, detailsX, yPos, { align: isRTL ? 'right' : 'left' });
                     yPos += 15;
                     
-                    // Table headers
                     const headers = isRTL
                       ? ['العميل', 'رقم الاتفاقية', 'الحالة', 'المبلغ المدفوع', 'الرصيد', 'الدفعة الأخيرة']
                       : ['Customer', 'Agreement #', 'Status', 'Amount Paid', 'Balance', 'Last Payment'];
@@ -187,14 +162,12 @@ const ReportDownloadOptions = ({
                     doc.setFont('helvetica', 'bold');
                     
                     if (isRTL) {
-                      // For RTL, we need to draw headers from right to left
                       for (let i = 0; i < headers.length; i++) {
                         const header = headers[i];
                         xPos -= columnWidths[i];
                         doc.text(header, xPos, yPos, { align: 'right' });
                       }
                     } else {
-                      // For LTR, we draw from left to right
                       for (let i = 0; i < headers.length; i++) {
                         const header = headers[i];
                         doc.text(header, xPos, yPos);
@@ -206,39 +179,32 @@ const ReportDownloadOptions = ({
                     doc.setLineWidth(0.3);
                     doc.line(14, yPos - 4, doc.internal.pageSize.getWidth() - 14, yPos - 4);
                     
-                    // Table rows
                     doc.setFont('helvetica', 'normal');
                     
                     for (const item of reportData) {
-                      // Check if we need a new page
                       if (yPos > 270) {
                         doc.addPage();
                         yPos = 20;
                       }
                       
                       if (isRTL) {
-                        // For RTL, draw from right to left
                         xPos = doc.internal.pageSize.getWidth() - 14;
                         
-                        // Last payment date (rightmost in RTL)
                         const lastPaymentDate = item.lastPaymentDate ? 
                           new Date(item.lastPaymentDate).toLocaleDateString('ar-SA') : 'لا يوجد';
                         xPos -= columnWidths[5];
                         doc.text(lastPaymentDate, xPos, yPos, { align: 'right' });
                         
-                        // Balance
                         const balance = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'QAR' })
                           .format(item.outstandingBalance || 0);
                         xPos -= columnWidths[4];
                         doc.text(balance, xPos, yPos, { align: 'right' });
                         
-                        // Amount paid
                         const amountPaid = new Intl.NumberFormat('ar-SA', { style: 'currency', currency: 'QAR' })
                           .format(item.totalPaid || 0);
                         xPos -= columnWidths[3];
                         doc.text(amountPaid, xPos, yPos, { align: 'right' });
                         
-                        // Status
                         const statusMap: Record<string, string> = {
                           'Paid': 'مدفوع',
                           'Partially Paid': 'مدفوع جزئياً',
@@ -248,17 +214,14 @@ const ReportDownloadOptions = ({
                         xPos -= columnWidths[2];
                         doc.text(status, xPos, yPos, { align: 'right' });
                         
-                        // Agreement number
                         xPos -= columnWidths[1];
                         doc.text(item.agreement_number || 'N/A', xPos, yPos, { align: 'right' });
                         
-                        // Customer name (leftmost in RTL)
                         const customerName = item.customers?.full_name || 'N/A';
                         const displayName = customerName.length > 20 ? customerName.substring(0, 18) + '...' : customerName;
                         xPos -= columnWidths[0];
                         doc.text(displayName, xPos, yPos, { align: 'right' });
                       } else {
-                        // For LTR, draw from left to right
                         xPos = 14;
                         
                         const customerName = item.customers?.full_name || 'N/A';
@@ -319,16 +282,14 @@ const ReportDownloadOptions = ({
                   doc.text(noDataText, contentIndent, yPos, { align: isRTL ? 'right' : 'left' });
               }
               
-              return yPos; // Return the final y position
+              return yPos;
             },
-            language // Pass the current language for RTL support
+            language
           );
           
-          // Save the PDF with appropriate filename
           const filename = `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
           doc.save(filename);
           
-          // Success message for the appropriate language
           const successMessage = language === 'ar' 
             ? "تم تنزيل التقرير بنجاح!" 
             : "Report downloaded successfully!";
@@ -343,7 +304,6 @@ const ReportDownloadOptions = ({
         } catch (error) {
           console.error('Error generating PDF:', error);
           
-          // Error message for the appropriate language
           const errorMessage = language === 'ar'
             ? "فشل التنزيل"
             : "Download failed";

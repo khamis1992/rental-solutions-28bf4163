@@ -9,6 +9,9 @@ type TranslationContextType = {
   language: string;
   translations: Record<string, any>;
   isRTL: boolean;
+  direction: string;
+  changeLanguage: (lang: string) => void;
+  translateText: (text: string, targetLang?: string) => Promise<string>;
 };
 
 const languages = {
@@ -24,6 +27,9 @@ const TranslationContext = createContext<TranslationContextType>({
   language: defaultLanguage,
   translations: languages[defaultLanguage as keyof typeof languages],
   isRTL: false,
+  direction: 'ltr',
+  changeLanguage: () => {},
+  translateText: async () => '',
 });
 
 export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -74,12 +80,36 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return typeof result === 'string' ? result : key;
   };
 
+  // Function to translate text using an external service
+  const translateText = async (text: string, targetLang: string = language): Promise<string> => {
+    if (!text) return '';
+    
+    try {
+      // In a real implementation, this would call a translation API
+      // For now, we'll just return the original text as a placeholder
+      console.log(`Would translate "${text}" to ${targetLang}`);
+      return text;
+    } catch (error) {
+      console.error('Translation error:', error);
+      return text;
+    }
+  };
+
+  const changeLanguage = (lang: string) => {
+    if (lang && (lang === 'en' || lang === 'ar')) {
+      setLanguage(lang);
+    }
+  };
+
   const contextValue: TranslationContextType = {
     t: translate,
     setLanguage,
     language,
     translations,
     isRTL: language === 'ar',
+    direction: language === 'ar' ? 'rtl' : 'ltr',
+    changeLanguage,
+    translateText,
   };
 
   return (
