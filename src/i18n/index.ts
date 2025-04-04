@@ -43,4 +43,5 @@ export const getDirection = (lang: string = i18n.language): 'ltr' | 'rtl' => {
 // Export current direction
 export const direction = getDirection();
 
+// Export the i18next instance and reexport the hook for convenience
 export default i18n;

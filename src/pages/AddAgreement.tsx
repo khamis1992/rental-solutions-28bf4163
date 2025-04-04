@@ -6,13 +6,15 @@ import AgreementFormWithVehicleCheck from '@/components/agreements/AgreementForm
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import type { Agreement } from '@/lib/validation-schemas/agreement';
-import { useTranslation } from 'react-i18next';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext'; 
 
 const AddAgreement = () => {
   const navigate = useNavigate();
   const { createAgreement } = useAgreements();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { t } = useTranslation();
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation(); // Add the context translation hook
 
   const handleCreateAgreement = async (agreementData: Agreement) => {
     try {
