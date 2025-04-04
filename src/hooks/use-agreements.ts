@@ -115,6 +115,11 @@ const DEFAULT_VEHICLE = {
   vin: ""
 };
 
+// Type guard to check if an object is a Supabase error
+function isSupabaseError(obj: any): boolean {
+  return obj && typeof obj === 'object' && 'code' in obj && 'message' in obj;
+}
+
 export const useAgreements = (initialParams?: SearchParams) => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useState<SearchParams>(initialParams || {
@@ -175,8 +180,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
           // We need to check if the customer data actually exists and handle null/undefined cases
           const customerData = item.customer || null;
           
-          // Ensure customer data is properly initialized to prevent null errors
-          const safeCustomerData = {
+          // Make sure we're not trying to access properties on an error object
+          const safeCustomerData = isSupabaseError(customerData) ? DEFAULT_CUSTOMER : {
             id: customerData?.id || DEFAULT_CUSTOMER.id,
             full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
             email: customerData?.email || DEFAULT_CUSTOMER.email,
@@ -189,8 +194,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
           // We need to check if the vehicle data actually exists and handle null/undefined cases
           const vehicleData = item.vehicle || null;
           
-          // Ensure vehicle data is properly initialized to prevent null errors
-          const safeVehicleData = {
+          // Make sure we're not trying to access properties on an error object
+          const safeVehicleData = isSupabaseError(vehicleData) ? DEFAULT_VEHICLE : {
             id: vehicleData?.id || DEFAULT_VEHICLE.id,
             make: vehicleData?.make || DEFAULT_VEHICLE.make,
             model: vehicleData?.model || DEFAULT_VEHICLE.model,
@@ -302,8 +307,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
     // We need to check if the customer data actually exists and handle null/undefined cases
     const customerData = data.customer || null;
     
-    // Ensure customer data is properly initialized to prevent null errors
-    const safeCustomerData = {
+    // Make sure we're not trying to access properties on an error object
+    const safeCustomerData = isSupabaseError(customerData) ? DEFAULT_CUSTOMER : {
       id: customerData?.id || DEFAULT_CUSTOMER.id,
       full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
       email: customerData?.email || DEFAULT_CUSTOMER.email,
@@ -316,8 +321,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
     // We need to check if the vehicle data actually exists and handle null/undefined cases
     const vehicleData = data.vehicle || null;
     
-    // Ensure vehicle data is properly initialized to prevent null errors
-    const safeVehicleData = {
+    // Make sure we're not trying to access properties on an error object
+    const safeVehicleData = isSupabaseError(vehicleData) ? DEFAULT_VEHICLE : {
       id: vehicleData?.id || DEFAULT_VEHICLE.id,
       make: vehicleData?.make || DEFAULT_VEHICLE.make,
       model: vehicleData?.model || DEFAULT_VEHICLE.model,
@@ -370,8 +375,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
       // We need to check if the customer data actually exists and handle null/undefined cases
       const customerData = item.customer || null;
       
-      // Ensure customer data is properly initialized to prevent null errors
-      const safeCustomerData = {
+      // Make sure we're not trying to access properties on an error object
+      const safeCustomerData = isSupabaseError(customerData) ? DEFAULT_CUSTOMER : {
         id: customerData?.id || DEFAULT_CUSTOMER.id,
         full_name: customerData?.full_name || DEFAULT_CUSTOMER.full_name,
         email: customerData?.email || DEFAULT_CUSTOMER.email,
@@ -384,8 +389,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
       // We need to check if the vehicle data actually exists and handle null/undefined cases
       const vehicleData = item.vehicle || null;
       
-      // Ensure vehicle data is properly initialized to prevent null errors
-      const safeVehicleData = {
+      // Make sure we're not trying to access properties on an error object
+      const safeVehicleData = isSupabaseError(vehicleData) ? DEFAULT_VEHICLE : {
         id: vehicleData?.id || DEFAULT_VEHICLE.id,
         make: vehicleData?.make || DEFAULT_VEHICLE.make,
         model: vehicleData?.model || DEFAULT_VEHICLE.model,
