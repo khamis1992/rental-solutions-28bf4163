@@ -11,7 +11,7 @@ import {
 import { useAgreements } from '@/hooks/use-agreements';
 import { Link } from 'react-router-dom';
 import { CustomButton } from '@/components/ui/custom-button';
-import { Edit, Trash2, Eye, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, Eye, AlertCircle, RefreshCcw } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import {
   AlertDialog,
@@ -29,6 +29,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination } from '@/components/ui/pagination';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Button } from '@/components/ui/button';
 
 const PAGE_SIZE = 10;
 
@@ -52,13 +53,14 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     deleteAgreement,
     searchParams,
     setSearchParams,
+    fetchAgreements
   } = useAgreements({
     query: internalSearchQuery || searchQuery,
     status: statusFilter !== 'all' ? statusFilter : undefined,
   });
 
   // Use total count if available, otherwise calculate from agreements length
-  const totalPages = Math.ceil((totalCount || agreements.length) / PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil((totalCount || agreements.length) / PAGE_SIZE));
 
   const onOpenDeleteDialog = (id: string) => {
     setDeletingId(id);
@@ -111,6 +113,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setCurrentPage(page);
   };
 
+  const handleRetry = () => {
+    fetchAgreements();
+    toast.info("Refreshing agreements list...");
+  };
+
   const renderPlaceholderRow = () => (
     <TableRow>
       <TableCell><Skeleton className="w-[100px] h-4" /></TableCell>
@@ -151,9 +158,13 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
     if (error) {
       return (
-        <div className="flex justify-center items-center p-4 border rounded-lg bg-red-50 text-red-800">
-          <AlertCircle className="mr-2 h-4 w-4" />
-          <p>{String(error)}</p>
+        <div className="flex flex-col justify-center items-center p-8 border rounded-lg bg-red-50 text-red-800">
+          <AlertCircle className="mb-2 h-8 w-8" />
+          <p className="text-center mb-4">{String(error)}</p>
+          <Button variant="outline" onClick={handleRetry}>
+            <RefreshCcw className="mr-2 h-4 w-4" />
+            Retry
+          </Button>
         </div>
       );
     }
@@ -210,8 +221,13 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             ))}
             {agreements.length === 0 && !isLoading && !loading && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
-                  No agreements found.
+                <TableCell colSpan={6} className="text-center py-8">
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <p className="text-muted-foreground mb-4">No agreements found.</p>
+                    <Link to="/agreements/add">
+                      <Button variant="outline">Add New Agreement</Button>
+                    </Link>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

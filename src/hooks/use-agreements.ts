@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -74,7 +75,8 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
           query = query.lte('end_date', filters.endDate.toISOString());
         }
         if (filters.search) {
-          query = query.or(`agreement_number.ilike.%${filters.search}%,customers.full_name.ilike.%${filters.search}%,vehicles.license_plate.ilike.%${filters.search}%`);
+          // Use OR with explicit column references to avoid ambiguity
+          query = query.or(`leases.agreement_number.ilike.%${filters.search}%,customers.full_name.ilike.%${filters.search}%,vehicles.license_plate.ilike.%${filters.search}%`);
         }
       }
 
@@ -87,6 +89,11 @@ export const useAgreements = (initialFilters?: AgreementFilters) => {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
+
+      if (!data || data.length === 0) {
+        setAgreements([]);
+        return;
+      }
 
       const transformedData = data.map((lease) => {
         const safeLeaseData = mapDatabaseRowToLease(lease);

@@ -8,7 +8,7 @@ import { useCustomers } from '@/hooks/use-customers';
 const CustomerDetailPage = () => {
   const { customerId } = useParams<{ customerId: string }>();
   const navigate = useNavigate();
-  const { customers, isLoading, refreshCustomers } = useCustomers();
+  const { customers, isLoading, error, refreshCustomers } = useCustomers();
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -54,6 +54,20 @@ const CustomerDetailPage = () => {
       >
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      </PageContainer>
+    );
+  }
+  
+  if (error) {
+    return (
+      <PageContainer
+        title="Error"
+        description="Failed to load customer details"
+        backLink="/customers"
+      >
+        <div className="bg-red-50 border border-red-200 p-4 rounded-md text-red-700">
+          {typeof error === 'string' ? error : 'An error occurred while loading customer data.'}
         </div>
       </PageContainer>
     );

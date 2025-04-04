@@ -1,6 +1,7 @@
+
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
 export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Agreement => {
@@ -93,7 +94,6 @@ export const updateAgreementWithCheck = async (
       if (isChangingToActive && currentStatus !== 'active') {
         console.log(`Agreement ${id} status changed to active. Generating payment schedule...`);
         try {
-          const { forceGeneratePaymentForAgreement } = await import('@/lib/validation-schemas/agreement');
           const result = await forceGeneratePaymentForAgreement(supabase, id);
           if (result.success) {
             toast.success("Payment schedule generated automatically");
@@ -207,7 +207,7 @@ export const activateAgreement = async (agreementId: string, vehicleId: string):
         toast.warning("Agreement activated, but could not generate payment schedule");
       } else if (agreement) {
         console.log(`Generating payment schedule for agreement ${agreement.agreement_number}`);
-        const { forceGeneratePaymentForAgreement } = await import('@/lib/validation-schemas/agreement');
+        
         const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
         
         if (result.success) {
