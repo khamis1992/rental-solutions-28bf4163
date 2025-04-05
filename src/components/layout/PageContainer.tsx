@@ -14,6 +14,7 @@ export interface PageContainerProps {
   className?: string;
   backLink?: string;
   notification?: string;
+  actions?: React.ReactNode;
 }
 
 const PageContainer = ({
@@ -22,35 +23,46 @@ const PageContainer = ({
   description,
   className,
   backLink,
-  notification
+  notification,
+  actions
 }: PageContainerProps) => {
   const { isRTL } = useTranslation();
   
   return (
     <div className={cn('container max-w-7xl py-6 space-y-6', className)}>
       {/* Header Section with optional back link */}
-      {(title || description || backLink) && (
+      {(title || description || backLink || actions) && (
         <div className="space-y-2">
-          {backLink && (
-            <Link 
-              to={backLink} 
-              className={cn(
-                "flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors",
-                isRTL && "flex-row-reverse"
+          <div className="flex justify-between items-start">
+            <div className="space-y-2">
+              {backLink && (
+                <Link 
+                  to={backLink} 
+                  className={cn(
+                    "flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors",
+                    isRTL && "flex-row-reverse"
+                  )}
+                >
+                  <ArrowLeft className={cn("h-4 w-4", isRTL ? "ml-1 rotate-180" : "mr-1")} />
+                  {isRTL ? "رجوع" : "Back"}
+                </Link>
               )}
-            >
-              <ArrowLeft className={cn("h-4 w-4", isRTL ? "ml-1 rotate-180" : "mr-1")} />
-              {isRTL ? "رجوع" : "Back"}
-            </Link>
-          )}
-          
-          {title && (
-            <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-          )}
-          
-          {description && (
-            <p className="text-muted-foreground">{description}</p>
-          )}
+              
+              {title && (
+                <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+              )}
+              
+              {description && (
+                <p className="text-muted-foreground">{description}</p>
+              )}
+            </div>
+            
+            {actions && (
+              <div className="flex-shrink-0">
+                {actions}
+              </div>
+            )}
+          </div>
         </div>
       )}
       
