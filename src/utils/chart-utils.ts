@@ -1,125 +1,82 @@
 
-import { useTranslation } from '@/contexts/TranslationContext';
 import { useMemo } from 'react';
-import performanceMonitor from '@/utils/performance-monitor';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 /**
- * Prepares chart data for RTL display with performance optimization
- * @param data The original chart data array
- * @returns The chart data properly formatted for the current direction
+ * Optimizes chart data for RTL/LTR display and improves rendering performance
  */
-export const useDirectionalChartData = <T extends any[]>(data: T): T => {
+export function useOptimizedChartData<T>(
+  data: T[] | undefined,
+  options: {
+    rtlReverse?: boolean;
+    dataKeys?: string[];
+    valueKey?: string;
+  } = {}
+): T[] {
   const { isRTL } = useTranslation();
-  
+  const { rtlReverse = false, dataKeys = [], valueKey } = options;
+
   return useMemo(() => {
-    performanceMonitor.startMeasure('prepare_chart_data');
-    
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      performanceMonitor.endMeasure('prepare_chart_data');
-      return [] as unknown as T;
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // For RTL languages, we may need to reverse the order of data
+    // (but not always - depends on the chart type)
+    if (isRTL && rtlReverse) {
+      const reversedData = [...data].reverse();
+      
+      // If specific data keys need special handling in RTL mode
+      if (dataKeys.length > 0 && !valueKey) {
+        return reversedData;
+      }
+      
+      return reversedData;
     }
     
-    // Don't create a new array unnecessarily if not in RTL mode
-    const result = isRTL ? [...data].reverse() as T : data;
-    
-    performanceMonitor.endMeasure('prepare_chart_data');
-    return result;
-  }, [data, isRTL]);
-};
+    return data;
+  }, [data, isRTL, rtlReverse, dataKeys, valueKey]);
+}
 
 /**
- * Generates appropriate chart margin configuration based on direction
- * @param baseMargin Base margin object
- * @returns Margin configuration adjusted for current direction
+ * Determines the optimal chart margin based on RTL direction
  */
-export const useChartMargin = (baseMargin = { top: 20, right: 30, left: 20, bottom: 5 }) => {
+export function useChartMargin(defaultMargin: { 
+  top: number; 
+  right: number; 
+  bottom: number; 
+  left: number;
+}) {
   const { isRTL } = useTranslation();
   
   return useMemo(() => {
     if (isRTL) {
-      // Swap left and right margins for RTL
+      // For RTL, swap left and right margins
       return {
-        top: baseMargin.top,
-        right: baseMargin.left,
-        left: baseMargin.right,
-        bottom: baseMargin.bottom
+        top: defaultMargin.top,
+        right: defaultMargin.left,
+        bottom: defaultMargin.bottom,
+        left: defaultMargin.right
       };
     }
     
-    return baseMargin;
-  }, [baseMargin, isRTL]);
-};
+    return defaultMargin;
+  }, [defaultMargin, isRTL]);
+}
 
 /**
- * Provides configuration for axis labels based on direction
- * @returns Configuration object for text anchor and alignment
+ * Optimizes heavy calculations for charts
  */
-export const useAxisLabelConfig = () => {
-  const { isRTL } = useTranslation();
-  
-  return useMemo(() => ({
-    textAnchor: isRTL ? 'end' : 'start',
-    transform: isRTL ? 'rotate(180)' : 'rotate(0)',
-    mirror: isRTL,
-    dx: isRTL ? -10 : 10,
-  }), [isRTL]);
-};
-
-/**
- * Handles RTL text presentation in chart elements
- * @param text The text to display
- * @returns Properly formatted text for current direction
- */
-export const getDirectionalChartText = (text: string) => {
-  const { isRTL } = useTranslation();
-  
-  // No special handling needed for LTR
-  if (!isRTL) return text;
-  
-  // For RTL, we need to handle numbers specially to ensure they display correctly
-  return text;
-};
-
-/**
- * Provides optimized dataset configuration for charts in both LTR and RTL layouts
- * @param originalData The raw data array
- * @param config Configuration object
- * @returns Optimized and transformed chart dataset
- */
-export const useOptimizedChartData = <T extends Record<string, any>>(
-  originalData: T[], 
-  config: {
-    rtlReverse?: boolean;
-    dataKeys?: string[];
-    dataTransform?: (item: T) => any;
-    emptyFallback?: T[];
-  } = {}
-) => {
-  const { isRTL } = useTranslation();
-  const { rtlReverse = true, dataKeys = [], dataTransform, emptyFallback = [] } = config;
-  
+export function useChartCalculation<T, R>(
+  data: T[] | undefined,
+  calculationFn: (data: T[]) => R,
+  dependencies: any[] = []
+): R | undefined {
   return useMemo(() => {
-    performanceMonitor.startMeasure('optimize_chart_data');
-    
-    if (!originalData || !Array.isArray(originalData) || originalData.length === 0) {
-      performanceMonitor.endMeasure('optimize_chart_data');
-      return emptyFallback;
+    if (!data || data.length === 0) {
+      return undefined;
     }
     
-    // Optimize by applying transformations only once
-    let processedData = originalData;
-    
-    // Apply custom data transformations if provided
-    if (dataTransform) {
-      processedData = processedData.map(dataTransform);
-    }
-    
-    // Only reverse if in RTL mode and reversal is needed
-    if (isRTL && rtlReverse) {
-      processedData = [...processedData].reverse();
-    }
-    
-    performanceMonitor.endMeasure('optimize_chart_data');
-    return processedData;
-  }, [originalData, isRTL, rtlReverse, dataTransform, JSON.stringify(emptyFallback), JSON.stringify(dataKeys)]);
-};
+    return calculationFn(data);
+  }, [data, calculationFn, ...dependencies]);
+}
