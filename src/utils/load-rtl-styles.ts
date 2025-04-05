@@ -46,7 +46,6 @@ export const preloadRTLStylesheets = () => {
 
 /**
  * Setup an observer to handle RTL style changes across the application
- * This was missing and causing the build error
  */
 export const setupRTLStylesObserver = () => {
   const observer = new MutationObserver((mutations) => {
