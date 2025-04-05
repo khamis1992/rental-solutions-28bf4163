@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,14 +23,6 @@ const TrafficFines = () => {
     setActiveTab("list");
   };
 
-  // Memoize tab classes to avoid recalculation on each render
-  const tabClasses = useMemo(() => ({
-    tabs: `space-y-6 ${isRTL ? 'rtl-tabs' : ''}`,
-    tabsList: `grid grid-cols-1 md:grid-cols-3 w-full ${isRTL ? 'rtl-mode' : ''}`,
-    tabTrigger: `flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`,
-    iconClass: `h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`
-  }), [isRTL]);
-
   return (
     <PageContainer>
       <SectionHeader
@@ -39,37 +31,36 @@ const TrafficFines = () => {
         icon={AlertTriangle}
       />
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className={tabClasses.tabs}>
-        <TabsList className={tabClasses.tabsList}>
-          <TabsTrigger value="list" className={tabClasses.tabTrigger}>
-            <FileText className={tabClasses.iconClass} />
+      <Tabs value={activeTab} onValueChange={setActiveTab} className={`space-y-6 ${isRTL ? 'rtl-tabs' : ''}`}>
+        <TabsList className={`grid grid-cols-1 md:grid-cols-3 w-full ${isRTL ? 'rtl-mode' : ''}`}>
+          <TabsTrigger value="list" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+            <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t("trafficFines.list")}
           </TabsTrigger>
-          <TabsTrigger value="add" className={tabClasses.tabTrigger}>
-            <AlertTriangle className={tabClasses.iconClass} />
+          <TabsTrigger value="add" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+            <AlertTriangle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t("trafficFines.recordNew")}
           </TabsTrigger>
-          <TabsTrigger value="reports" className={tabClasses.tabTrigger}>
-            <BarChart2 className={tabClasses.iconClass} />
+          <TabsTrigger value="reports" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+            <BarChart2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t("trafficFines.analytics")}
           </TabsTrigger>
         </TabsList>
         
-        {/* Conditionally render only the active tab content for better performance */}
         <TabsContent value="list" className="space-y-6">
-          {activeTab === "list" && <TrafficFinesList onAddFine={handleAddFine} />}
+          <TrafficFinesList onAddFine={handleAddFine} />
         </TabsContent>
         
         <TabsContent value="add" className="space-y-6">
-          {activeTab === "add" && <TrafficFineEntry onFineSaved={handleFineSaved} />}
+          <TrafficFineEntry onFineSaved={handleFineSaved} />
         </TabsContent>
         
         <TabsContent value="reports" className="space-y-6">
-          {activeTab === "reports" && <TrafficFineAnalytics />}
+          <TrafficFineAnalytics />
         </TabsContent>
       </Tabs>
     </PageContainer>
   );
 };
 
-export default React.memo(TrafficFines);
+export default TrafficFines;

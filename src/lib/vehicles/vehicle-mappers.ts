@@ -1,9 +1,11 @@
+
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
   DatabaseVehicleType, 
   Vehicle, 
-  VehicleStatus
+  VehicleSize, 
+  VehicleStatus 
 } from '@/types/vehicle';
 
 // Helper function to validate status
@@ -32,14 +34,14 @@ export function mapToDBStatus(status: VehicleStatus | null | undefined): Databas
 }
 
 // Map database size to application size
-export function mapDatabaseSize(size: string): string {
+export function mapDatabaseSize(size: string): VehicleSize {
   // Map possible database values to valid application values
-  const sizeMap: Record<string, string> = {
+  const sizeMap: Record<string, VehicleSize> = {
     'mid_size': 'midsize',
     'full_size': 'fullsize'
   };
   
-  return sizeMap[size] || size;
+  return (sizeMap[size] || size) as VehicleSize;
 }
 
 // Convert features to string array
@@ -73,10 +75,10 @@ function mapDatabaseVehicleType(dbType: DatabaseVehicleType | null | undefined) 
     weekly_rate: dbType.weekly_rate || undefined,
     monthly_rate: dbType.monthly_rate || undefined,
     description: dbType.description || undefined,
-    features: normalizeFeatures(dbType.features || []),
+    features: normalizeFeatures(dbType.features),
     is_active: dbType.is_active,
-    created_at: dbType.created_at || new Date().toISOString(),
-    updated_at: dbType.updated_at || new Date().toISOString(),
+    created_at: dbType.created_at,
+    updated_at: dbType.updated_at
   };
 }
 
@@ -91,17 +93,22 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
     model: record.model,
     year: record.year,
     license_plate: record.license_plate,
+    licensePlate: record.license_plate, // For UI compatibility
     vin: record.vin,
     color: record.color || undefined,
     status: mapDatabaseStatus(record.status),
     mileage: record.mileage || undefined,
     image_url: record.image_url || undefined,
+    imageUrl: record.image_url || undefined, // For UI compatibility
     description: record.description || undefined,
+    is_test_data: record.is_test_data || undefined,
     location: record.location || undefined,
     insurance_company: record.insurance_company || undefined,
     insurance_expiry: record.insurance_expiry || undefined,
+    device_type: record.device_type || undefined,
     rent_amount: record.rent_amount || undefined,
     vehicle_type_id: record.vehicle_type_id || undefined,
+    registration_number: record.registration_number || undefined,
     created_at: record.created_at,
     updated_at: record.updated_at,
     
@@ -109,7 +116,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
     notes: record.description || undefined,
     vehicleType: vehicleType,
     dailyRate: record.rent_amount || (vehicleType?.daily_rate || 0),
-    imageUrl: record.image_url
+    category: vehicleType?.size || 'midsize'
   };
   
   // Add features if vehicleType exists

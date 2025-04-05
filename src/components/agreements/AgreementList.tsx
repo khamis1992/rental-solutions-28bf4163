@@ -7,8 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements } from '@/hooks/use-agreements';
-import { SimpleAgreement } from '@/types/agreement';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useVehicles } from '@/hooks/use-vehicles';
+import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,21 +21,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { CustomPaginationLink } from '@/components/ui/custom-pagination-link';
-
 interface AgreementListProps {
   searchQuery?: string;
 }
-
-// Define enum for agreement status
-export enum AgreementStatus {
-  ACTIVE = 'ACTIVE',
-  DRAFT = 'DRAFT',
-  PENDING = 'PENDING',
-  EXPIRED = 'EXPIRED',
-  CANCELLED = 'CANCELLED'
-}
-
 export function AgreementList({
   searchQuery = ''
 }: AgreementListProps) {
@@ -50,33 +39,34 @@ export function AgreementList({
   const [singleDeleteNumber, setSingleDeleteNumber] = useState<string | null>(null);
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-
   const {
     agreements = [],
+    // Provide empty array as default 
     isLoading,
     error,
     searchParams,
     setSearchParams,
     deleteAgreement
   } = useAgreements({
-    status: statusFilter,
-    query: searchQuery
+    query: searchQuery,
+    status: statusFilter
   });
-
   useEffect(() => {
     setSearchParams(prev => ({
       ...prev,
       query: searchQuery
     }));
   }, [searchQuery, setSearchParams]);
-
+  const {
+    useRealtimeUpdates: useVehicleRealtimeUpdates
+  } = useVehicles();
+  useVehicleRealtimeUpdates();
   const [sorting, setSorting] = useState<SortingState>([{
     id: 'created_at',
     desc: true
   }]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
-
   useEffect(() => {
     setRowSelection({});
     setPagination({
@@ -84,7 +74,6 @@ export function AgreementList({
       pageSize: 10
     });
   }, [agreements, statusFilter, searchQuery]);
-
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
     setSearchParams(prev => ({
@@ -92,19 +81,11 @@ export function AgreementList({
       status
     }));
   };
-
   const selectedCount = Object.keys(rowSelection).length;
-
   const handleBulkDelete = async () => {
     if (!agreements || agreements.length === 0) return;
     setIsDeleting(true);
-    const selectedIds = Object.keys(rowSelection)
-      .map(index => {
-        const agreement = agreements[parseInt(index)];
-        return agreement && 'id' in agreement ? agreement.id as string : null;
-      })
-      .filter(Boolean) as string[];
-      
+    const selectedIds = Object.keys(rowSelection).map(index => agreements[parseInt(index)]?.id as string).filter(Boolean);
     console.log("Selected IDs for deletion:", selectedIds);
     let successCount = 0;
     let errorCount = 0;
@@ -128,7 +109,6 @@ export function AgreementList({
     setBulkDeleteDialogOpen(false);
     setIsDeleting(false);
   };
-
   const handleSingleDelete = async () => {
     if (!singleDeleteId) return;
     try {
@@ -141,47 +121,36 @@ export function AgreementList({
       toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
-
   const columns: ColumnDef<SimpleAgreement>[] = [{
     id: "select",
-    header: ({ table }) => (
-      <Checkbox 
-        checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() ? "indeterminate" : false)} 
-        onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)} 
-        aria-label="Select all" 
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox 
-        checked={row.getIsSelected()} 
-        onCheckedChange={value => row.toggleSelected(!!value)} 
-        aria-label="Select row" 
-      />
-    ),
+    header: ({
+      table
+    }) => <Checkbox checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() ? "indeterminate" : false)} onCheckedChange={value => table.toggleAllPageRowsSelected(!!value)} aria-label="Select all" />,
+    cell: ({
+      row
+    }) => <Checkbox checked={row.getIsSelected()} onCheckedChange={value => row.toggleSelected(!!value)} aria-label="Select row" />,
     enableSorting: false,
     enableHiding: false
   }, {
     accessorKey: "agreement_number",
     header: "Agreement #",
-    cell: ({ row }) => (
-      <div className="font-medium">
-        <Link 
-          to={`/agreements/${row.original.id}`} 
-          className="font-medium text-primary hover:underline"
-          onClick={e => {
-            e.preventDefault();
-            console.log("Navigating to agreement detail:", row.original.id);
-            navigate(`/agreements/${row.original.id}`);
-          }}
-        >
-          {row.getValue("agreement_number")}
-        </Link>
-      </div>
-    )
+    cell: ({
+      row
+    }) => <div className="font-medium">
+          <Link to={`/agreements/${row.original.id}`} className="font-medium text-primary hover:underline" onClick={e => {
+        e.preventDefault();
+        console.log("Navigating to agreement detail:", row.original.id);
+        navigate(`/agreements/${row.original.id}`);
+      }}>
+            {row.getValue("agreement_number")}
+          </Link>
+        </div>
   }, {
     accessorKey: "customers.full_name",
     header: "Customer",
-    cell: ({ row }) => {
+    cell: ({
+      row
+    }) => {
       const customer = row.original.customer || row.original.customers;
       return <div>
             {customer && customer.id ? <Link to={`/customers/${customer.id}`} className="hover:underline">
@@ -192,7 +161,9 @@ export function AgreementList({
   }, {
     accessorKey: "vehicles",
     header: "Vehicle",
-    cell: ({ row }) => {
+    cell: ({
+      row
+    }) => {
       const vehicle = row.original.vehicle || row.original.vehicles;
       return <div>
             {vehicle && vehicle.id ? <Link to={`/vehicles/${vehicle.id}`} className="hover:underline">
@@ -206,15 +177,17 @@ export function AgreementList({
                     <Car className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                     <span>Vehicle: <span className="font-semibold text-primary">{vehicle.license_plate}</span></span>
                   </div> : 'N/A'}
-              </Link> : row.original.vehicle?.id ? <Link to={`/vehicles/${row.original.vehicle.id}`} className="hover:underline text-amber-600">
-                Vehicle ID: {row.original.vehicle.id}
+              </Link> : row.original.vehicle_id ? <Link to={`/vehicles/${row.original.vehicle_id}`} className="hover:underline text-amber-600">
+                Vehicle ID: {row.original.vehicle_id}
               </Link> : 'N/A'}
           </div>;
     }
   }, {
     accessorKey: "start_date",
     header: "Rental Period",
-    cell: ({ row }) => {
+    cell: ({
+      row
+    }) => {
       const startDate = row.original.start_date;
       const endDate = row.original.end_date;
       return <div className="whitespace-nowrap">
@@ -224,7 +197,9 @@ export function AgreementList({
   }, {
     accessorKey: "total_amount",
     header: "Amount",
-    cell: ({ row }) => {
+    cell: ({
+      row
+    }) => {
       return <div className="font-medium">
             {formatCurrency(row.original.total_amount)}
           </div>;
@@ -232,7 +207,9 @@ export function AgreementList({
   }, {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => {
+    cell: ({
+      row
+    }) => {
       const status = row.getValue("status") as string;
       return <Badge variant={status === AgreementStatus.ACTIVE ? "success" : status === AgreementStatus.DRAFT ? "secondary" : status === AgreementStatus.PENDING ? "warning" : status === AgreementStatus.EXPIRED ? "outline" : "destructive"} className="capitalize">
             {status === AgreementStatus.ACTIVE ? <FileCheck className="h-3 w-3 mr-1" /> : status === AgreementStatus.DRAFT ? <FileEdit className="h-3 w-3 mr-1" /> : status === AgreementStatus.PENDING ? <FileClock className="h-3 w-3 mr-1" /> : status === AgreementStatus.EXPIRED ? <FileText className="h-3 w-3 mr-1" /> : <FileX className="h-3 w-3 mr-1" />}
@@ -295,15 +272,13 @@ export function AgreementList({
           </DropdownMenu>;
     }
   }];
-
   const statusCounts = Array.isArray(agreements) ? agreements.reduce((acc: Record<string, number>, agreement) => {
     const status = agreement.status || 'unknown';
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {}) : {};
-
   const table = useReactTable({
-    data: agreements,
+    data: agreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -322,7 +297,6 @@ export function AgreementList({
     manualPagination: false,
     pageCount: Math.ceil((agreements?.length || 0) / 10)
   });
-
   return <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">
@@ -347,9 +321,7 @@ export function AgreementList({
               Delete ({selectedCount})
             </Button>}
           <Button asChild>
-            <Link to="/agreements/new">
-              <FilePlus className="h-4 w-4 mr-2" /> New Agreement
-            </Link>
+            
           </Button>
         </div>
       </div>
@@ -412,33 +384,25 @@ export function AgreementList({
       {agreements && agreements.length > 0 && <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <CustomPaginationLink 
-                onClick={() => table.previousPage()} 
-                disabled={!table.getCanPreviousPage()} 
-                className="gap-1 pl-2.5"
-              >
+              <Button variant="outline" size="default" className="gap-1 pl-2.5" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Go to previous page">
                 <ChevronLeft className="h-4 w-4" />
                 <span>Previous</span>
-              </CustomPaginationLink>
+              </Button>
             </PaginationItem>
             
             {Array.from({
           length: table.getPageCount()
         }).map((_, index) => <PaginationItem key={index}>
-                <CustomPaginationLink isActive={table.getState().pagination.pageIndex === index} onClick={() => table.setPageIndex(index)}>
+                <PaginationLink isActive={table.getState().pagination.pageIndex === index} onClick={() => table.setPageIndex(index)}>
                   {index + 1}
-                </CustomPaginationLink>
+                </PaginationLink>
               </PaginationItem>).slice(Math.max(0, table.getState().pagination.pageIndex - 1), Math.min(table.getPageCount(), table.getState().pagination.pageIndex + 3))}
             
             <PaginationItem>
-              <CustomPaginationLink 
-                onClick={() => table.nextPage()} 
-                disabled={!table.getCanNextPage()} 
-                className="gap-1 pr-2.5"
-              >
+              <Button variant="outline" size="default" className="gap-1 pr-2.5" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Go to next page">
                 <span>Next</span>
                 <ChevronRight className="h-4 w-4" />
-              </CustomPaginationLink>
+              </Button>
             </PaginationItem>
           </PaginationContent>
         </Pagination>}

@@ -1,52 +1,50 @@
 
 import { z } from 'zod';
-
-export type CustomerStatus = "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment";
-
-export interface Customer {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  driver_license: string;
-  nationality: string;
-  address: string;
-  notes: string;
-  status: CustomerStatus;
-  created_at: string;
-  updated_at: string;
-  phone_number?: string; // For backward compatibility
-}
+import { validationPatterns } from '@/lib/validation';
 
 export const customerSchema = z.object({
-  full_name: z.string().min(1, 'Full name is required'),
-  email: z.string().email('Valid email is required'),
-  phone: z.string().min(1, 'Phone number is required'),
-  driver_license: z.string().optional(),
-  nationality: z.string().optional(),
-  address: z.string().optional(),
+  id: z.string().optional(),
+  full_name: z.string().min(2, "Full name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  phone: z.string().regex(/^[3-9]\d{7}$/, "Please enter a valid 8-digit Qatar phone number"),
+  address: z.string().min(5, "Address must be at least 5 characters").optional(),
+  driver_license: z.string().min(3, "Driver license number is required"),
+  nationality: z.string().min(2, "Nationality is required"),
   notes: z.string().optional(),
-  status: z.enum(['active', 'inactive', 'pending_review', 'blacklisted', 'pending_payment']).optional()
+  status: z.enum(["active", "inactive", "blacklisted", "pending_review", "pending_payment"]).default("active"),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 
+export type Customer = z.infer<typeof customerSchema>;
+
+export const customerSearchSchema = z.object({
+  query: z.string().optional(),
+  status: z.enum(["all", "active", "inactive", "blacklisted", "pending_review", "pending_payment"]).default("all"),
+});
+
+export type CustomerSearch = z.infer<typeof customerSearchSchema>;
+
+// CSV field names for customer import
 export const customerCSVFields = [
-  'full_name',
-  'email',
-  'phone',
-  'driver_license',
-  'nationality',
-  'address',
-  'notes',
-  'status'
+  'Full Name',
+  'Email',
+  'Phone',
+  'Driver License',
+  'Nationality',
+  'Address',
+  'Status',
+  'Notes'
 ];
 
-export const customerCSVMap = {
+// Map from CSV column names to customer schema field names
+export const customerCSVMap: Record<string, keyof Customer> = {
   'Full Name': 'full_name',
   'Email': 'email',
   'Phone': 'phone',
   'Driver License': 'driver_license',
   'Nationality': 'nationality',
   'Address': 'address',
-  'Notes': 'notes',
-  'Status': 'status'
+  'Status': 'status',
+  'Notes': 'notes'
 };

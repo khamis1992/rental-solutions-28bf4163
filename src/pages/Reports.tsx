@@ -1,117 +1,255 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useVehicles } from '@/hooks/use-vehicles';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { Skeleton } from '@/components/ui/skeleton';
-import { usePayments } from '@/hooks/use-payments';
-import { useAgreements } from '@/hooks/use-agreements';
-import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
-
+import { Card, CardContent } from '@/components/ui/card';
+import FleetReport from '@/components/reports/FleetReport';
 import FinancialReport from '@/components/reports/FinancialReport';
-import VehicleReport from '@/components/reports/VehicleReport';
 import CustomerReport from '@/components/reports/CustomerReport';
-
-interface Payment {
-  id: string;
-  amount: number;
-  payment_date: string;
-  agreement_id?: string;
-  lease_id?: string;
-}
+import MaintenanceReport from '@/components/reports/MaintenanceReport';
+import LegalReport from '@/components/reports/LegalReport';
+import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import { SectionHeader } from '@/components/ui/section-header';
+import { FileText, Download, Calendar, AlertCircle } from 'lucide-react';
+import { useFleetReport } from '@/hooks/use-fleet-report';
+import { useFinancials } from '@/hooks/use-financials';
+import { useCustomers } from '@/hooks/use-customers';
+import { useMaintenance } from '@/hooks/use-maintenance';
+import { useAgreements } from '@/hooks/use-agreements';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
+import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
+import { useDirectionalClasses } from '@/utils/rtl-utils';
 
 const Reports = () => {
-  const [activeTab, setActiveTab] = useState('financial');
-  const { useList } = useVehicles();
-  const { data: vehicleList = [], isLoading: isVehiclesLoading } = useList();
-  const { agreements, isLoading: isAgreementsLoading } = useAgreements();
-  const { payments, isLoadingPayments } = usePayments(undefined, null);  // Fix: Pass the required arguments (undefined for agreementId, null for rentAmount)
-
-  // Create helper methods for payments
-  const getPaymentsForAgreement = (agreementId: string): Payment[] => {
-    return payments.filter(p => p.lease_id === agreementId || p.lease_id === agreementId);  // Fix: Use lease_id instead of agreement_id
+  const navigate = useNavigate();
+  const [selectedTab, setSelectedTab] = useState('fleet');
+  const { t } = useTranslation();
+  const { isRTL } = useAppTranslation();
+  
+  const { vehicles } = useFleetReport();
+  const { transactions } = useFinancials();
+  const { customers } = useCustomers();
+  const { getAllRecords } = useMaintenance();
+  const { agreements } = useAgreements();
+  const { trafficFines } = useTrafficFines();
+  const [maintenanceData, setMaintenanceData] = useState([]);
+  
+  useEffect(() => {
+    const fetchMaintenance = async () => {
+      try {
+        const data = await getAllRecords();
+        setMaintenanceData(data || []);
+      } catch (error) {
+        console.error("Error fetching maintenance data:", error);
+      }
+    };
+    
+    fetchMaintenance();
+  }, []);
+  
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    endDate: new Date()
+  });
+  
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  const handleGenerateScheduledReport = () => {
+    setIsGenerating(true);
+    
+    // Simulate report generation
+    setTimeout(() => {
+      setIsGenerating(false);
+      toast.success(t('common.success'));
+    }, 2000);
   };
   
-  const getTotalBalanceForAgreement = (agreementId: string): number => {
-    const agreementPayments = getPaymentsForAgreement(agreementId);
-    return agreementPayments.reduce((total, payment) => total + payment.amount, 0);
+  const getFinancialReportData = () => {
+    if (!agreements) return [];
+    
+    try {
+      const reportData = agreements.map(agreement => {
+        const paymentsForAgreement = transactions ? transactions.filter(t => 
+          t.lease_id === agreement.id) : [];
+        
+        const finesForAgreement = trafficFines ? 
+          trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
+        
+        const totalPaid = paymentsForAgreement.reduce((sum, payment) => {
+          const isPaid = 
+            payment.status === 'completed' || 
+            payment.status === 'success' || 
+            payment.status.toLowerCase() === 'paid';
+          return isPaid ? sum + (payment.amount || 0) : sum;
+        }, 0);
+          
+        const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
+        
+        const totalFinesAmount = finesForAgreement.reduce((sum, fine) => 
+          sum + (fine.fineAmount || 0), 0);
+          
+        const paidFinesAmount = finesForAgreement.reduce((sum, fine) => 
+          fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
+          
+        const outstandingFines = totalFinesAmount - paidFinesAmount;
+        
+        let paymentStatus = 'Paid';
+        if (outstandingBalance > 0) {
+          paymentStatus = 'Partially Paid';
+        } 
+        if (totalPaid === 0) {
+          paymentStatus = 'Unpaid';
+        }
+        
+        const lastPayment = paymentsForAgreement.length > 0 ? 
+          paymentsForAgreement.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            return dateB - dateA;
+          })[0] : null;
+        
+        return {
+          ...agreement,
+          payments: paymentsForAgreement,
+          fines: finesForAgreement,
+          totalPaid,
+          outstandingBalance,
+          totalFinesAmount,
+          paidFinesAmount,
+          outstandingFines,
+          paymentStatus,
+          lastPaymentDate: lastPayment?.date || null
+        };
+      });
+      
+      return reportData;
+    } catch (error) {
+      console.error('Error preparing financial report data:', error);
+      return [];
+    }
   };
-
-  // Overall revenue stats
-  const totalRevenue = agreements.reduce((acc, agreement) => {
-    return acc + (agreement.total_amount || 0);
-  }, 0);
-
-  const totalVehicles = vehicleList.length;
   
-  const generateCSV = () => {
-    const headers = ['ID', 'Customer', 'Vehicle', 'Start Date', 'End Date', 'Amount'];
-    let csvContent = headers.join(',') + '\n';
-    
-    agreements.forEach(agreement => {
-      const row = [
-        agreement.id,
-        agreement.customer?.full_name || 'Unknown',
-        agreement.vehicle?.make + ' ' + agreement.vehicle?.model || 'Unknown',
-        new Date(agreement.start_date).toLocaleDateString(),
-        new Date(agreement.end_date).toLocaleDateString(),
-        agreement.total_amount
-      ];
-      csvContent += row.join(',') + '\n';
-    });
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'agreements_report.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const getReportData = (): Record<string, any>[] => {
+    switch (selectedTab) {
+      case 'fleet':
+        return vehicles.map(v => ({
+          make: v.make,
+          model: v.model,
+          year: v.year,
+          license_plate: v.license_plate,
+          status: v.status,
+          daily_rate: v.dailyRate
+        }));
+      case 'financial':
+        return getFinancialReportData();
+      case 'customers':
+        return customers.map(customer => ({
+          id: customer.id,
+          full_name: customer.full_name,
+          email: customer.email,
+          phone: customer.phone,
+          status: customer.status,
+          driver_license: customer.driver_license,
+          nationality: customer.nationality || 'N/A',
+          address: customer.address || 'N/A',
+          created_at: customer.created_at
+        }));
+      case 'maintenance':
+        return maintenanceData.map(record => ({
+          id: record.id,
+          vehicle: record.vehicles ? `${record.vehicles.make} ${record.vehicles.model} (${record.vehicles.license_plate})` : 'Unknown Vehicle',
+          maintenance_type: record.maintenance_type || 'General Maintenance',
+          scheduled_date: record.scheduled_date,
+          status: record.status,
+          cost: record.cost || 0,
+          completion_date: record.completed_date,
+          service_provider: record.service_provider || record.performed_by || 'N/A',
+          notes: record.notes || 'N/A'
+        }));
+      case 'legal':
+        return [];
+      default:
+        return [];
+    }
   };
 
   return (
-    <PageContainer
-      title="Reports"
-      description="View and generate reports about your business"
+    <PageContainer 
+      title={t("reports.title")} 
+      description={t("reports.description")}
       actions={
-        <Button onClick={generateCSV} variant="outline" disabled={isAgreementsLoading}>
-          <Download className="h-4 w-4 mr-2" />
-          Export CSV
+        <Button 
+          variant="outline"
+          onClick={() => navigate('/reports/scheduled')}
+          className={`flex items-center ${isRTL ? 'space-x-reverse' : 'space-x-2'}`}
+        >
+          <Calendar className="h-4 w-4" />
+          <span>{t("reports.scheduledReports")}</span>
         </Button>
       }
     >
-      <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="financial">Financial</TabsTrigger>
-          <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="financial" className="mt-6">
-          {isAgreementsLoading || isLoadingPayments ? (
-            <Skeleton className="h-[600px] w-full" />
-          ) : (
-            <FinancialReport />
-          )}
-        </TabsContent>
-        
-        <TabsContent value="vehicles" className="mt-6">
-          {isVehiclesLoading ? (
-            <Skeleton className="h-[600px] w-full" />
-          ) : (
-            <VehicleReport vehicles={vehicleList} />
-          )}
-        </TabsContent>
-        
-        <TabsContent value="customers" className="mt-6">
-          <CustomerReport />
-        </TabsContent>
-      </Tabs>
+      <div className="flex items-center mb-6">
+        <SectionHeader 
+          title={t("reports.generateReports")} 
+          description={t("reports.selectReportType")} 
+          icon={FileText} 
+        />
+      </div>
+      
+      <Alert className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>{t("reports.proTip")}</AlertTitle>
+        <AlertDescription>
+          {t("reports.scheduleTip")}
+        </AlertDescription>
+      </Alert>
+      
+      <Card>
+        <CardContent className="pt-6">
+          <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+            <TabsList className={`grid grid-cols-5 mb-8 ${isRTL ? 'rtl-tabs' : ''}`}>
+              <TabsTrigger value="fleet">{t("reports.fleetReport")}</TabsTrigger>
+              <TabsTrigger value="financial">{t("reports.financialReport")}</TabsTrigger>
+              <TabsTrigger value="customers">{t("reports.customerReport")}</TabsTrigger>
+              <TabsTrigger value="maintenance">{t("reports.maintenanceReport")}</TabsTrigger>
+              <TabsTrigger value="legal">{t("reports.legalReport")}</TabsTrigger>
+            </TabsList>
+            
+            <div className="mb-6">
+              <ReportDownloadOptions 
+                reportType={selectedTab} 
+                getReportData={getReportData} 
+              />
+            </div>
+            
+            <TabsContent value="fleet" className="mt-0">
+              <FleetReport />
+            </TabsContent>
+            
+            <TabsContent value="financial" className="mt-0">
+              <FinancialReport />
+            </TabsContent>
+            
+            <TabsContent value="customers" className="mt-0">
+              <CustomerReport />
+            </TabsContent>
+            
+            <TabsContent value="maintenance" className="mt-0">
+              <MaintenanceReport />
+            </TabsContent>
+            
+            <TabsContent value="legal" className="mt-0">
+              <LegalReport />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </PageContainer>
   );
 };

@@ -27,9 +27,6 @@ const Legal = () => {
     toast.success(t('legal.reportGenerating'));
   };
   
-  // Add a default customerId for demo purposes
-  const defaultCustomerId = "default-customer-id";
-  
   return (
     <PageContainer 
       title={t('legal.title')} 
@@ -82,7 +79,7 @@ const Legal = () => {
         </TabsContent>
         
         <TabsContent value="obligations" className="space-y-4">
-          <CustomerLegalObligations customerId={defaultCustomerId} />
+          <CustomerLegalObligations />
         </TabsContent>
       </Tabs>
     </PageContainer>

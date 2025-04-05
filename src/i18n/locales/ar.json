@@ -222,7 +222,7 @@
     "statusUpdateFailed": "فشل في تحديث حالات العقود",
     "unexpectedError": "حدث خطأ غير متوقع أثناء تحديث حالات العقود",
     "errorLoadingTitle": "خطأ في تحميل العقود",
-    "unknownError": "حدث خطأ غير معروف",
+    "unknownError": "حدث خطأ غير م��روف",
     "noAgreements": "لم يتم العثور على عقود.",
     "adjustFilters": "حاول تعديل عوامل التصفية.",
     "addFirstAgreement": "أضف أول عقد باستخدام الزر أعلاه.",
@@ -272,7 +272,8 @@
     "templateNotFound": "لم يتم العثور على القالب",
     "templateNotFoundDesc": "لم يتم العثور على قالب الاتفاقية القياسي في قاعدة البيانات. ستستخدم الاتفاقية شكل القالب الافتراضي.",
     "usingStandardTemplate": "جاري استخدام القالب القياسي",
-    "usingStandardTemplateDesc": "ستستخدم الاتفاقية قالب الاتفاقية القياسي من قاعدة البيانات."
+    "usingStandardTemplateDesc": "ستستخدم الاتفاقية قالب الاتفاقية القياسي من قاعدة البيانات.",
+    "generateDocument": "إنشاء فاتورة"
   },
   "maintenance": {
     "title": "الصيانة",
@@ -329,7 +330,8 @@
     "history": "سجل المدفوعات",
     "historyDesc": "تتبع جميع المدفوعات لهذا العقد",
     "recordPayment": "تسجيل دفع",
-    "recordPaymentDesc": "تسجيل دفع إيجار جديد لهذا العقد"
+    "recordPaymentDesc": "تسجيل دفع إيجار جديد لهذا العقد",
+    "settings": "إعدادات الدفع"
   },
   "trafficFines": {
     "title": "المخالفات المرورية",
@@ -430,5 +432,43 @@
   },
   "customers": {
     "noTrafficFines": "لا توجد مخالفات مرورية لهذا العميل"
+  },
+  "financials": {
+    "title": "الإدارة المالية",
+    "description": "إدارة المدفوعات والفواتير والتقارير المالية وعقود التقسيط",
+    "dashboard": "لوحة المعلومات المالية",
+    "revenue": "الإيرادات",
+    "expenses": "النفقات",
+    "profit": "الأرباح",
+    "pending": "المدفوعات المعلقة",
+    "overview": "نظرة عامة",
+    "totalIncome": "إجمالي الدخل",
+    "totalExpenses": "إجمالي النفقات",
+    "netRevenue": "صافي الإيرادات",
+    "pendingPayments": "المدفوعات المعلقة",
+    "unpaidInvoices": "الفواتير غير المدفوعة",
+    "installmentsPending": "أقساط معلقة",
+    "currentMonthDue": "مستحقات الشهر الحالي",
+    "overdueExpenses": "نفقات متأخرة",
+    "month": "الشهر",
+    "vsLastMonth": "مقارنة بالشهر الماضي",
+    "incomeAfterExpenses": "الدخل بعد النفقات",
+    "upcomingRentalPayments": "مدفوعات الإيجار القادمة",
+    "installments": "عقود التقسيط",
+    "expenseAnalysis": "تحليل النفقات",
+    "expenseBreakdownStatus": "تفصيل النفقات حسب الحالة",
+    "allExpensesCombined": "جميع النفقات مجتمعة",
+    "installmentsDueThisMonth": "الأقساط المستحقة هذا الشهر",
+    "pastDueInstallments": "مدفوعات الأقساط المتأخرة",
+    "requiresAttention": "تتطلب اهتمامًا",
+    "expenseComposition": "تكوين النفقات",
+    "regularExpenses": "النفقات المنتظمة",
+    "financialOverview": "نظرة عامة مالية",
+    "revenueExpensesTrends": "اتجاهات الإيرادات والنفقات والأرباح"
+  },
+  "invoices": {
+    "templates": "قوالب الفواتير",
+    "generate": "إنشاء فاتورة",
+    "createCustomize": "إنشاء وتخصيص فاتورة من قالب"
   }
 }

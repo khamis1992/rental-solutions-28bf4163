@@ -10,23 +10,15 @@ import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
-import { useCacheManager } from '@/hooks/use-cache-manager';
-import { usePrefetch } from '@/hooks/use-prefetch';
 
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { useVehicle, useDeleteVehicle } = useVehicles();
+  const { useVehicle } = useVehicles();
   const { data: vehicle, isLoading, error } = useVehicle(id || '');
   const [isRTL, setIsRTL] = useState(false);
   const { t } = useTranslation();
   const { isRTL: contextIsRTL } = useContextTranslation();
-  const { invalidateEntity } = useCacheManager();
-  
-  // Initialize prefetching for common navigation paths
-  usePrefetch();
-  
-  const deleteVehicle = useDeleteVehicle();
 
   useEffect(() => {
     setIsRTL(contextIsRTL);
@@ -38,21 +30,6 @@ const VehicleDetailPage = () => {
       toast.error(t('vehicles.loadError'));
     }
   }, [error, t]);
-  
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteVehicle.mutateAsync(id);
-      
-      // Invalidate both vehicles and agreements since they're connected
-      invalidateEntity('vehicles', id, ['agreements']);
-      
-      toast.success('Vehicle deleted successfully');
-      navigate('/vehicles');
-    } catch (error) {
-      console.error('Error deleting vehicle:', error);
-      toast.error('Failed to delete vehicle');
-    }
-  };
 
   return (
     <PageContainer
@@ -69,7 +46,7 @@ const VehicleDetailPage = () => {
           </div>
         </div>
       ) : vehicle ? (
-        <VehicleDetail vehicle={vehicle} onDelete={handleDelete} />
+        <VehicleDetail vehicle={vehicle} />
       ) : (
         <div className="text-center py-12">
           <div className="flex items-center justify-center mb-4">

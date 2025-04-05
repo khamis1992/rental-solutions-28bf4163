@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
@@ -6,10 +7,10 @@ import {
   VehicleInsertData, 
   VehicleType, 
   VehicleUpdateData,
+  DatabaseVehicleRecord,
   DatabaseVehicleType,
   VehicleStatus,
-  DatabaseVehicleStatus,
-  DatabaseVehicleRecord
+  DatabaseVehicleStatus
 } from '@/types/vehicle';
 import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
 
@@ -58,7 +59,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
   }
   
   // Type assertion to tell TypeScript these are DatabaseVehicleRecord objects
-  const vehicleRecords = (data || []) as unknown as DatabaseVehicleRecord[];
+  const vehicleRecords = (data || []) as DatabaseVehicleRecord[];
   return vehicleRecords.map(record => mapDatabaseRecordToVehicle(record));
 }
 
@@ -74,7 +75,7 @@ export async function fetchVehicleById(id: string): Promise<Vehicle> {
     throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
   }
   
-  return mapDatabaseRecordToVehicle(data as unknown as DatabaseVehicleRecord);
+  return mapDatabaseRecordToVehicle(data as DatabaseVehicleRecord);
 }
 
 // Fetch all vehicle types
@@ -90,20 +91,20 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
   }
   
   // Map the database vehicle types to application vehicle types with proper size mapping
-  return (data || []).map((dbType: any) => ({
-    id: dbType.id,
-    name: dbType.name,
-    size: dbType.size === 'mid_size' ? 'midsize' : 
-          dbType.size === 'full_size' ? 'fullsize' : 
-          dbType.size,
-    daily_rate: dbType.daily_rate,
-    weekly_rate: dbType.weekly_rate,
-    monthly_rate: dbType.monthly_rate,
-    description: dbType.description || '',
-    features: normalizeFeatures(dbType.features || []),
-    is_active: dbType.is_active,
-    created_at: dbType.created_at || new Date().toISOString(),
-    updated_at: dbType.updated_at || new Date().toISOString()
+  return (data || []).map((type: DatabaseVehicleType) => ({
+    id: type.id,
+    name: type.name,
+    size: type.size === 'mid_size' ? 'midsize' : 
+          type.size === 'full_size' ? 'fullsize' : 
+          type.size as VehicleType['size'],
+    daily_rate: type.daily_rate,
+    weekly_rate: type.weekly_rate || undefined,
+    monthly_rate: type.monthly_rate || undefined,
+    description: type.description || undefined,
+    features: normalizeFeatures(type.features),
+    is_active: type.is_active,
+    created_at: type.created_at,
+    updated_at: type.updated_at
   }));
 }
 
@@ -124,7 +125,7 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
     throw new Error(`Error creating vehicle: ${error.message}`);
   }
   
-  return data as unknown as DatabaseVehicleRecord;
+  return data as DatabaseVehicleRecord;
 }
 
 // Update a vehicle
@@ -145,7 +146,7 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
     throw new Error(`Error updating vehicle: ${error.message}`);
   }
   
-  return data as unknown as DatabaseVehicleRecord;
+  return data as DatabaseVehicleRecord;
 }
 
 // Delete a vehicle
@@ -172,5 +173,5 @@ export async function fetchVehicleWithTypes(id: string): Promise<DatabaseVehicle
     throw new Error(`Error fetching complete vehicle data: ${error.message}`);
   }
   
-  return data as unknown as DatabaseVehicleRecord;
+  return data as DatabaseVehicleRecord;
 }

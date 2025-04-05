@@ -1,10 +1,8 @@
-
 import { useTranslation } from '@/contexts/TranslationContext';
 import { cn } from '@/lib/utils';
-import { useMemo } from 'react';
 
 /**
- * Hook to provide directional-aware CSS classes with memoization
+ * Hook to provide directional-aware CSS classes
  * @param baseClasses - classes to apply in both directions
  * @param ltrClasses - classes to apply only in LTR mode
  * @param rtlClasses - classes to apply only in RTL mode
@@ -17,13 +15,10 @@ export const useDirectionalClasses = (
 ): string => {
   const { isRTL } = useTranslation();
   
-  // Use memoization to avoid recalculating on every render
-  return useMemo(() => {
-    return cn(
-      baseClasses,
-      isRTL ? rtlClasses : ltrClasses
-    );
-  }, [baseClasses, ltrClasses, rtlClasses, isRTL]);
+  return cn(
+    baseClasses,
+    isRTL ? rtlClasses : ltrClasses
+  );
 };
 
 /**
@@ -38,34 +33,19 @@ export const getDirectionalMargin = (
 ): string => {
   const { isRTL } = useTranslation();
   
-  // Mapping table for better performance
-  const mapping: Record<string, Record<string, string>> = {
-    ltr: { 'ml': 'ml', 'mr': 'mr', 'pl': 'pl', 'pr': 'pr' },
-    rtl: { 'ml': 'mr', 'mr': 'ml', 'pl': 'pr', 'pr': 'pl' }
+  // Flip margins and paddings for RTL
+  const mapping = {
+    ml: isRTL ? 'mr' : 'ml',
+    mr: isRTL ? 'ml' : 'mr',
+    pl: isRTL ? 'pr' : 'pl',
+    pr: isRTL ? 'pl' : 'pr'
   };
   
-  const direction = isRTL ? 'rtl' : 'ltr';
-  return `${mapping[direction][prefixClass]}-${size}`;
+  return `${mapping[prefixClass]}-${size}`;
 };
-
-// Pre-compile regex patterns for better performance
-const MARGIN_PATTERN = /^(m[lr]|margin-[lr])\-(.+)$/;
-const PADDING_PATTERN = /^(p[lr]|padding-[lr])\-(.+)$/;
-const BORDER_L_PATTERN = /^border-l/;
-const BORDER_R_PATTERN = /^border-r/;
-const LEFT_PATTERN = /^left-/;
-const RIGHT_PATTERN = /^right-/;
-const ROUNDED_L_PATTERN = /rounded-l-/;
-const ROUNDED_R_PATTERN = /rounded-r-/;
-const ROUNDED_TL_PATTERN = /rounded-tl-/;
-const ROUNDED_TR_PATTERN = /rounded-tr-/;
-const ROUNDED_BL_PATTERN = /rounded-bl-/;
-const ROUNDED_BR_PATTERN = /rounded-br-/;
-const SPACE_X_PATTERN = /^space-x-/;
 
 /**
  * Converts directional classes like ml/mr/pl/pr to their RTL-aware versions
- * Optimized version with memoization and pre-compiled patterns
  * @param classes - Space-separated string of classes
  * @returns Properly flipped classes for RTL
  */
@@ -74,66 +54,56 @@ export const getDirectionalClasses = (classes: string): string => {
   
   if (!isRTL) return classes; // No changes needed for LTR
   
-  // Process each class
   return classes.split(' ').map(cls => {
-    // Match patterns using pre-compiled regex
-    const marginMatch = MARGIN_PATTERN.exec(cls);
+    // Match padding and margin patterns
+    const marginMatch = cls.match(/^(m[lr]|margin-[lr])\-(.+)$/);
+    const paddingMatch = cls.match(/^(p[lr]|padding-[lr])\-(.+)$/);
+    
     if (marginMatch) {
       const [, prefix, size] = marginMatch;
       if (prefix === 'ml' || prefix === 'margin-l') return `mr-${size}`;
       if (prefix === 'mr' || prefix === 'margin-r') return `ml-${size}`;
     }
     
-    const paddingMatch = PADDING_PATTERN.exec(cls);
     if (paddingMatch) {
       const [, prefix, size] = paddingMatch;
       if (prefix === 'pl' || prefix === 'padding-l') return `pr-${size}`;
       if (prefix === 'pr' || prefix === 'padding-r') return `pl-${size}`;
     }
     
-    // Text alignment
+    // Left/right text alignment
     if (cls === 'text-left') return 'text-right';
     if (cls === 'text-right') return 'text-left';
     
-    // Flex alignment
+    // Left/right flex alignments
     if (cls === 'items-start') return 'items-end';
     if (cls === 'items-end') return 'items-start';
     if (cls === 'justify-start') return 'justify-end';
     if (cls === 'justify-end') return 'justify-start';
     
-    // Borders
-    if (BORDER_L_PATTERN.test(cls)) return cls.replace('border-l', 'border-r');
-    if (BORDER_R_PATTERN.test(cls)) return cls.replace('border-r', 'border-l');
+    // Left/right borders
+    if (cls.startsWith('border-l')) return cls.replace('border-l', 'border-r');
+    if (cls.startsWith('border-r')) return cls.replace('border-r', 'border-l');
     
-    // Positioning
-    if (LEFT_PATTERN.test(cls)) return cls.replace('left-', 'right-');
-    if (RIGHT_PATTERN.test(cls)) return cls.replace('right-', 'left-');
+    // Left/right positioning
+    if (cls.startsWith('left-')) return cls.replace('left-', 'right-');
+    if (cls.startsWith('right-')) return cls.replace('right-', 'left-');
     
     // Rounded corners
-    if (ROUNDED_L_PATTERN.test(cls)) return cls.replace('rounded-l-', 'rounded-r-');
-    if (ROUNDED_R_PATTERN.test(cls)) return cls.replace('rounded-r-', 'rounded-l-');
-    if (ROUNDED_TL_PATTERN.test(cls)) return cls.replace('rounded-tl-', 'rounded-tr-');
-    if (ROUNDED_TR_PATTERN.test(cls)) return cls.replace('rounded-tr-', 'rounded-tl-');
-    if (ROUNDED_BL_PATTERN.test(cls)) return cls.replace('rounded-bl-', 'rounded-br-');
-    if (ROUNDED_BR_PATTERN.test(cls)) return cls.replace('rounded-br-', 'rounded-bl-');
+    if (cls.includes('rounded-l-')) return cls.replace('rounded-l-', 'rounded-r-');
+    if (cls.includes('rounded-r-')) return cls.replace('rounded-r-', 'rounded-l-');
+    if (cls.includes('rounded-tl-')) return cls.replace('rounded-tl-', 'rounded-tr-');
+    if (cls.includes('rounded-tr-')) return cls.replace('rounded-tr-', 'rounded-tl-');
+    if (cls.includes('rounded-bl-')) return cls.replace('rounded-bl-', 'rounded-br-');
+    if (cls.includes('rounded-br-')) return cls.replace('rounded-br-', 'rounded-bl-');
     
-    // Space between elements
+    // Space between elements in flexbox
     if (cls === 'space-x-reverse') return '';
-    if (SPACE_X_PATTERN.test(cls)) return `${cls} space-x-reverse`;
+    if (cls.startsWith('space-x-')) return `${cls} space-x-reverse`;
     
+    // Keep other classes unchanged
     return cls;
   }).join(' ');
-};
-
-// Memoization cache for frequently used classes
-const memoizedFlexClasses: Record<string, string> = {
-  'true': 'flex-row-reverse',
-  'false': 'flex-row'
-};
-
-const memoizedTextAlignClasses: Record<string, string> = {
-  'true': 'text-right',
-  'false': 'text-left'
 };
 
 /**
@@ -142,7 +112,7 @@ const memoizedTextAlignClasses: Record<string, string> = {
  */
 export const getDirectionalFlexClass = (): string => {
   const { isRTL } = useTranslation();
-  return memoizedFlexClasses[String(isRTL)];
+  return isRTL ? 'flex-row-reverse' : 'flex-row';
 };
 
 /**
@@ -151,28 +121,21 @@ export const getDirectionalFlexClass = (): string => {
  */
 export const getDirectionalTextAlign = (): string => {
   const { isRTL } = useTranslation();
-  return memoizedTextAlignClasses[String(isRTL)];
-};
-
-// Cached icon mapping for better performance
-const iconMappings = {
-  arrow: {
-    true: 'ArrowRight',
-    false: 'ArrowLeft'
-  },
-  chevron: {
-    true: 'ChevronRight', 
-    false: 'ChevronLeft'
-  }
+  return isRTL ? 'text-right' : 'text-left';
 };
 
 /**
  * Helper function to get appropriate icon for directional navigation
- * Optimized with cache for better performance
  * @param iconType Type of directional icon (e.g., 'arrow', 'chevron')
  * @returns The icon component to use based on direction
  */
 export const getDirectionalIcon = (iconType: 'arrow' | 'chevron') => {
   const { isRTL } = useTranslation();
-  return iconMappings[iconType][String(isRTL)];
+  
+  // You will need to import these from lucide-react where this function is used
+  if (iconType === 'arrow') {
+    return isRTL ? 'ArrowRight' : 'ArrowLeft';
+  } else {
+    return isRTL ? 'ChevronRight' : 'ChevronLeft';
+  }
 };
