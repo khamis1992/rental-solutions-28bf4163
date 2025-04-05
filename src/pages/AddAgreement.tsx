@@ -15,24 +15,6 @@ const AddAgreement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useI18nTranslation();
   const { isRTL, translateText } = useTranslation();
-  const [pageTitle, setPageTitle] = useState('');
-  const [pageDescription, setPageDescription] = useState('');
-  const [templateMessage, setTemplateMessage] = useState('');
-
-  // Pre-translate the page title, description, and template message to avoid flickering
-  useEffect(() => {
-    const loadTranslations = async () => {
-      const title = await translateText(t('agreements.add'));
-      const description = await translateText(t('agreements.description'));
-      const standardTemplateMessage = await translateText(t('agreements.usingStandardTemplateDesc'));
-      
-      setPageTitle(title);
-      setPageDescription(description);
-      setTemplateMessage(standardTemplateMessage);
-    };
-    
-    loadTranslations();
-  }, [t, translateText, isRTL]);
 
   const handleCreateAgreement = async (agreementData: Agreement) => {
     try {
@@ -51,17 +33,11 @@ const AddAgreement = () => {
       
       await createAgreement.mutateAsync(formattedData);
       
-      // Use translated success message
-      const successMessage = await translateText(t('agreements.createSuccess'));
-      toast.success(successMessage);
-      
+      toast.success(t('agreements.createSuccess', 'Agreement created successfully'));
       navigate('/agreements');
     } catch (error) {
       console.error('Error creating agreement:', error);
-      
-      // Use translated error message
-      const errorMessage = await translateText(t('agreements.createError'));
-      toast.error(errorMessage);
+      toast.error(t('agreements.createError', 'Failed to create agreement'));
     } finally {
       setIsSubmitting(false);
     }
@@ -69,10 +45,10 @@ const AddAgreement = () => {
 
   return (
     <PageContainer
-      title={pageTitle || t('agreements.add')}
-      description={pageDescription || t('agreements.description')}
+      title={t('agreements.add', 'Add Agreement')}
+      description={t('agreements.description', 'Manage rental agreements')}
       backLink="/agreements"
-      notification={templateMessage || t('agreements.usingStandardTemplateDesc')}
+      notification={t('agreements.usingStandardTemplateDesc', 'Using standard agreement template')}
     >
       <AgreementFormWithVehicleCheck
         onSubmit={handleCreateAgreement}
