@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import AgreementFormWithVehicleCheck from '@/components/agreements/AgreementFormWithVehicleCheck';
@@ -24,7 +23,6 @@ const EditAgreement = () => {
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
 
-  // Pre-translate the page title and description
   useEffect(() => {
     const loadTranslations = async () => {
       const title = await translateText(t('agreements.edit'));
@@ -44,15 +42,12 @@ const EditAgreement = () => {
       try {
         const agreement = await getAgreement(id);
         if (agreement) {
-          // Convert date strings to Date objects for the form
           const processedAgreement: Agreement = {
             ...agreement,
             start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
             end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
-            // Convert string timestamps to Date objects
             created_at: agreement.created_at ? new Date(agreement.created_at) : undefined,
             updated_at: agreement.updated_at ? new Date(agreement.updated_at) : undefined,
-            // Ensure status is of the correct type
             status: (agreement.status as "active" | "pending" | "draft" | "expired" | "cancelled" | "closed") || "draft"
           };
           setAgreementData(processedAgreement);
@@ -76,7 +71,6 @@ const EditAgreement = () => {
     try {
       setIsSubmitting(true);
       
-      // Convert date objects to ISO strings for database storage
       const formattedData = {
         ...data,
         id,
@@ -88,7 +82,6 @@ const EditAgreement = () => {
           : data.end_date
       };
       
-      // Use mutateAsync from the mutation
       await updateAgreement.mutateAsync({
         id,
         data: formattedData
@@ -107,6 +100,35 @@ const EditAgreement = () => {
       setIsSubmitting(false);
     }
   };
+
+  const initialData = useMemo(() => {
+    if (!agreementData) return {};
+    const data: Record<string, any> = {};
+    
+    if (agreementData && typeof agreementData === 'object') {
+      Object.entries(agreementData).forEach(([key, value]) => {
+        data[key] = value;
+      });
+
+      if ('start_date' in agreementData) {
+        data.start_date = agreementData.start_date ? new Date(agreementData.start_date) : null;
+      }
+      if ('end_date' in agreementData) {
+        data.end_date = agreementData.end_date ? new Date(agreementData.end_date) : null;
+      }
+      if ('created_at' in agreementData) {
+        data.created_at = agreementData.created_at ? new Date(agreementData.created_at) : null;
+      }
+      if ('updated_at' in agreementData) {
+        data.updated_at = agreementData.updated_at ? new Date(agreementData.updated_at) : null;
+      }
+      if ('status' in agreementData) {
+        data.status = agreementData.status || 'draft';
+      }
+    }
+    
+    return data;
+  }, [agreementData]);
 
   if (error) {
     return (
@@ -137,7 +159,7 @@ const EditAgreement = () => {
         <AgreementFormWithVehicleCheck
           onSubmit={handleUpdateAgreement}
           isSubmitting={isSubmitting}
-          initialData={agreementData}
+          initialData={initialData}
         />
       ) : (
         <div className="flex items-center justify-center p-6">

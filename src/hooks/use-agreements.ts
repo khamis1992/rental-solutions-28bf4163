@@ -4,22 +4,75 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
+// Define the SimpleAgreement interface that was referenced but not defined
+export interface SimpleAgreement {
+  id: string;
+  agreement_number: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  start_date: string | Date;
+  end_date: string | Date;
+  status: string;
+  total_amount: number;
+  created_at?: string | Date;
+  updated_at?: string | Date;
+  total_cost?: number;
+  rent_amount?: number;
+  deposit_amount?: number;
+  daily_late_fee?: number;
+  notes?: string;
+  terms_accepted?: boolean;
+  vehicle?: {
+    id: string;
+    make: string;
+    model: string;
+    license_plate: string;
+    color?: string;
+    year?: number;
+    vin?: string;
+  };
+  vehicles?: {
+    id: string;
+    make: string;
+    model: string;
+    license_plate: string;
+    color?: string;
+    year?: number;
+    vin?: string;
+  };
+  customer?: {
+    id: string;
+    full_name: string;
+    email?: string;
+    phone_number?: string;
+  };
+  customers?: {
+    id: string;
+    full_name: string;
+    email?: string;
+    phone_number?: string;
+  };
+}
+
 export const useAgreements = (options: {
   customerId?: string;
   vehicleId?: string;
   page?: number;
   pageSize?: number;
   columns?: string;
+  status?: string; // Added status parameter
+  query?: string; // Added query parameter
 } = {}) => {
   const queryClient = useQueryClient();
-  const { customerId, vehicleId, page = 1, pageSize = 10, columns } = options;
+  const { customerId, vehicleId, page = 1, pageSize = 10, columns, status, query } = options;
+  const [searchParams, setSearchParams] = useState({ status: 'all', query: '' });
 
   // Calculate pagination range
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
 
   // Create a cache key that includes pagination and filter parameters
-  const cacheKey = ['agreements', customerId, vehicleId, page, pageSize];
+  const cacheKey = ['agreements', customerId, vehicleId, page, pageSize, searchParams.status, searchParams.query];
   
   // Default columns to select if not specified - optimized to select only what's needed
   const defaultColumns = 'id,agreement_number,customer_id,vehicle_id,start_date,end_date,status,total_amount,created_at,updated_at';
@@ -51,6 +104,16 @@ export const useAgreements = (options: {
         if (vehicleId) {
           query = query.eq('vehicle_id', vehicleId);
         }
+        
+        // Add status filtering if provided
+        if (searchParams.status && searchParams.status !== 'all') {
+          query = query.eq('status', searchParams.status);
+        }
+        
+        // Add search query filtering if provided
+        if (searchParams.query) {
+          query = query.or(`agreement_number.ilike.%${searchParams.query}%`);
+        }
 
         const { data, error } = await query;
 
@@ -66,7 +129,7 @@ export const useAgreements = (options: {
       }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes cache time for better performance
-    keepPreviousData: true // Keep old data while fetching new data
+    refetchOnWindowFocus: false // Disable automatic refetching when window regains focus
   });
 
   // Get a single agreement by ID with optimized column selection
@@ -187,5 +250,7 @@ export const useAgreements = (options: {
     createAgreement,
     updateAgreement,
     deleteAgreement,
+    searchParams,
+    setSearchParams
   };
 };

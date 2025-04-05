@@ -1,12 +1,59 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { handleApiError } from '@/hooks/use-api';
-import { mapDatabaseRecordToVehicle } from '@/lib/vehicles/vehicle-mappers';
 import { PaginationState } from '@/hooks/use-pagination';
 
-// Add the pagination parameter to the options
+interface DatabaseVehicleType {
+  id: string;
+  name: string;
+  description?: string;
+  is_active?: boolean;
+  size?: string;
+  daily_rate?: number;
+  weekly_rate?: number;
+  monthly_rate?: number;
+  features?: any[];
+}
+
+interface DatabaseVehicleRecord {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  license_plate: string;
+  status: string;
+  image_url?: string;
+  location?: string;
+  mileage?: number;
+  vin: string;
+  created_at: string;
+  updated_at: string;
+  vehicle_types?: DatabaseVehicleType[];
+}
+
+export function mapDatabaseRecordToVehicle(record: any): Vehicle {
+  if (!record.vin) record.vin = '';
+  if (!record.created_at) record.created_at = new Date().toISOString();
+  if (!record.updated_at) record.updated_at = new Date().toISOString();
+  
+  return {
+    id: record.id,
+    make: record.make,
+    model: record.model,
+    year: record.year,
+    license_plate: record.license_plate,
+    status: record.status,
+    image_url: record.image_url,
+    location: record.location,
+    mileage: record.mileage,
+    vehicle_type: record.vehicle_types?.[0] || null,
+    vin: record.vin,
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+  };
+}
+
 export interface UseVehiclesListOptions {
   filters?: VehicleFilterParams;
   pagination?: PaginationState;
@@ -18,8 +65,7 @@ export function useVehiclesList({
   pagination = { page: 1, pageSize: 10, offset: 0 },
   enabled = true
 }: UseVehiclesListOptions = {}) {
-  // Define the columns we need to select
-  const columns = 'id, make, model, year, license_plate, status, image_url, location, mileage';
+  const columns = 'id, make, model, year, license_plate, status, image_url, location, mileage, vin, created_at, updated_at';
   
   return useQuery({
     queryKey: ['vehicles', filters, pagination],
@@ -27,12 +73,10 @@ export function useVehiclesList({
       console.log(`Fetching vehicles with pagination: page=${pagination.page}, size=${pagination.pageSize}, offset=${pagination.offset}`);
       
       try {
-        // First get the total count for pagination
         const countQuery = supabase
           .from('vehicles')
           .select('id', { count: 'exact', head: true });
           
-        // Apply filters if provided to the count query
         if (filters) {
           if (filters.status) {
             if (filters.status === 'reserved') {
@@ -59,14 +103,12 @@ export function useVehiclesList({
           throw countError;
         }
         
-        // Now fetch the paginated data
         let query = supabase
           .from('vehicles')
           .select(`${columns}, vehicle_types(id, name, description)`)
           .range(pagination.offset, pagination.offset + pagination.pageSize - 1)
           .order('created_at', { ascending: false });
         
-        // Apply filters if provided to the data query
         if (filters) {
           if (filters.status) {
             if (filters.status === 'reserved') {
@@ -101,8 +143,8 @@ export function useVehiclesList({
         throw error;
       }
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     enabled,
-    keepPreviousData: true // Important for smooth pagination transitions
+    placeholderData: (previousData) => previousData
   });
 }

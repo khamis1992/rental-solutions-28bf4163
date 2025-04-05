@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -16,7 +15,7 @@ interface AgreementHistorySectionProps {
 }
 
 // Memoizing the TableRow component for better performance
-const AgreementTableRow = React.memo(({ agreement, t }) => {
+const AgreementTableRow = React.memo(({ agreement, t }: { agreement: any, t: any }) => {
   // Memoize the badge variant calculation
   const badgeVariant = useMemo(() => {
     return agreement.status === 'ACTIVE' ? 'success' :

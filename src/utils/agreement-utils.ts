@@ -2,7 +2,29 @@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
-import { SimpleAgreement } from '@/hooks/use-agreements';
+
+// Define SimpleAgreement directly instead of importing it to avoid circular dependencies
+interface SimpleAgreement {
+  id: string;
+  agreement_number: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  start_date: string | Date;
+  end_date: string | Date;
+  status: string;
+  total_amount: number;
+  created_at?: string | Date;
+  updated_at?: string | Date;
+  total_cost?: number;
+  rent_amount?: number;
+  deposit_amount?: number;
+  daily_late_fee?: number;
+  notes?: string;
+  vehicle?: any;
+  vehicles?: any;
+  customer?: any;
+  customers?: any;
+}
 
 // Helper function to adapt SimpleAgreement to Agreement type for detail pages
 export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Agreement => {

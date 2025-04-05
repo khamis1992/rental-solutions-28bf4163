@@ -1,72 +1,167 @@
-
-import { useEffect, useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Customer } from '@/lib/validation-schemas/customer';
 import PageContainer from '@/components/layout/PageContainer';
-import { useParams } from 'react-router-dom';
-import { Suspense, lazy } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useApiQuery } from '@/hooks/use-api';
-import { supabase } from '@/integrations/supabase/client';
-
-// Lazy load the CustomerDetail component to improve initial load time
-const LazyCustomerDetail = lazy(() => import('@/components/customers/CustomerDetail').then(module => ({ 
-  default: module.CustomerDetail 
-})));
+import { Button } from '@/components/ui/button';
+import { Pencil, ArrowLeft } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { AgreementHistorySection } from '@/components/customers/AgreementHistorySection';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const CustomerDetailPage = () => {
-  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const [systemStatus, setSystemStatus] = useState<string | null>(null);
-  
-  // Memoize the skeleton loading state
-  const loadingSkeleton = useMemo(() => (
-    <div className="space-y-4">
-      <Skeleton className="h-48 w-full rounded-lg" />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Skeleton className="h-64 w-full rounded-lg" />
-        <Skeleton className="h-64 w-full rounded-lg" />
-      </div>
-      <Skeleton className="h-64 w-full rounded-lg" />
-    </div>
-  ), []);
-  
-  // Check system status for this customer in parallel
-  useEffect(() => {
-    if (!id) return;
-    
-    const checkCustomerSystemStatus = async () => {
-      try {
-        // Use column selection to optimize the query
-        const { data: pendingIssues } = await supabase
-          .from('customer_issues')
-          .select('id, issue_type')
-          .eq('customer_id', id)
-          .eq('status', 'pending')
-          .limit(1);
-        
-        if (pendingIssues && pendingIssues.length > 0) {
-          setSystemStatus(t('customers.hasPendingIssues'));
-        }
-      } catch (error) {
-        console.error("Error checking customer system status:", error);
+  const navigate = useNavigate();
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
+  const [customer, setCustomer] = useState<Customer | null>(null);
+
+  const { data: customerData, error: customerError, isLoading: isLoadingCustomer } = useQuery(
+    ['customer', id],
+    async () => {
+      if (!id) throw new Error("Customer ID is required");
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching customer:", error);
+        throw error;
       }
-    };
-    
-    checkCustomerSystemStatus();
-  }, [id, t]);
-  
+      return data;
+    }
+  );
+
+  useEffect(() => {
+    if (customerData) {
+      const processedCustomer: Customer = {
+        id: customerData.id,
+        full_name: customerData.full_name || '',
+        email: customerData.email || '',
+        phone: (customerData.phone_number || '').replace(/^\+974/, '').trim(),
+        driver_license: customerData.driver_license || '',
+        nationality: customerData.nationality || '',
+        address: customerData.address || '',
+        notes: customerData.notes || '',
+        status: (customerData.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+        created_at: customerData.created_at,
+        updated_at: customerData.updated_at,
+      };
+      setCustomer(processedCustomer);
+    }
+  }, [customerData, id]);
+
+  // Remove customer_issues query that doesn't exist
+  const { data: customerIssues, error: issuesError } = { data: [], error: null };
+
+  const getStatusBadge = useMemo(() => {
+    if (!customer) return null;
+
+    let badgeClass = "";
+    let Icon = CheckCircle;
+    switch (customer.status) {
+      case "active":
+        badgeClass = "bg-green-500 text-white border-green-600";
+        Icon = CheckCircle;
+        break;
+      case "inactive":
+        badgeClass = "bg-gray-400 text-white border-gray-500";
+        Icon = XCircle;
+        break;
+      case "blacklisted":
+        badgeClass = "bg-red-500 text-white border-red-600";
+        Icon = XCircle;
+        break;
+      case "pending_review":
+        badgeClass = "bg-amber-500 text-white border-amber-600";
+        Icon = AlertTriangle;
+        break;
+      case "pending_payment":
+        badgeClass = "bg-blue-500 text-white border-blue-600";
+        Icon = AlertTriangle;
+        break;
+      default:
+        badgeClass = "bg-green-500 text-white border-green-600";
+        Icon = CheckCircle;
+    }
+
+    return (
+      <Badge className={`capitalize ${badgeClass}`}>
+        <Icon className="h-3 w-3 mr-1" />
+        {t(`customers.status.${customer.status.replace('_', '')}`)}
+      </Badge>
+    );
+  }, [customer, t]);
+
+  if (isLoadingCustomer) {
+    return <PageContainer title={t('customers.loadingCustomer')} description={t('customers.loadingDetails')}>
+      <Card>
+        <CardContent>
+          {t('customers.loading')}
+        </CardContent>
+      </Card>
+    </PageContainer>;
+  }
+
+  if (!customer) {
+    return <PageContainer title={t('customers.customerNotFound')} description={t('customers.couldNotFind')}>
+      <Card>
+        <CardContent>
+          {customerError ? customerError.message : t('customers.noCustomerWithId')}
+        </CardContent>
+      </Card>
+    </PageContainer>;
+  }
+
   return (
     <PageContainer
-      title={t('customers.details')}
-      description={t('customers.viewDetails')}
-      backLink="/customers"
-      notification={systemStatus}
+      title={customer.full_name || t('customers.unnamed')}
+      description={t('customers.customerDetails')}
+      actions={
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate('/customers')} className={isRTL ? 'ml-2' : 'mr-2'}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {t('common.back')}
+          </Button>
+          <Button onClick={() => navigate(`/customers/edit/${id}`)}>
+            <Pencil className="h-4 w-4 mr-2" />
+            {t('customers.editCustomer')}
+          </Button>
+        </div>
+      }
     >
-      {id && (
-        <Suspense fallback={loadingSkeleton}>
-          <LazyCustomerDetail id={id} />
-        </Suspense>
-      )}
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>{customer.full_name}</CardTitle>
+          <CardDescription>{t('customers.personalInformation')}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold">{t('common.email')}</h4>
+            <p className="text-gray-500">{customer.email || t('customers.notProvided')}</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold">{t('common.phone')}</h4>
+            <p className="text-gray-500">{customer.phone || t('customers.notProvided')}</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold">{t('customers.license')}</h4>
+            <p className="text-gray-500">{customer.driver_license || t('customers.notProvided')}</p>
+          </div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold">{t('common.status')}</h4>
+            {getStatusBadge}
+          </div>
+        </CardContent>
+      </Card>
+
+      <AgreementHistorySection customerId={id} />
     </PageContainer>
   );
 };

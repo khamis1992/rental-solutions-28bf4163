@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel } from "@tanstack/react-table";
@@ -16,10 +17,39 @@ import { supabase } from '@/lib/supabase';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { usePagination } from '@/hooks/use-pagination';
-import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useCustomersList } from '@/hooks/use-customers-pagination';
+
+// Patched PaginationLink component to accept disabled prop
+const PaginationLink = ({ 
+  isActive,
+  size,
+  onClick,
+  disabled,
+  className,
+  children,
+  ...props 
+}: React.ComponentProps<typeof Button> & { 
+  isActive?: boolean;
+  size?: "default" | "sm";
+  disabled?: boolean;
+}) => {
+  return (
+    <Button
+      variant={isActive ? "outline" : "ghost"}
+      size={size}
+      onClick={onClick}
+      className={className}
+      disabled={disabled}
+      aria-current={isActive ? "page" : undefined}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
+};
 
 export function CustomerList() {
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -58,7 +88,10 @@ export function CustomerList() {
   
   // Setup infinite scrolling for mobile
   const { loadMoreRef, isFetchingMore } = useInfiniteScroll({
-    fetchMore: nextPage,
+    fetchMore: async () => {
+      nextPage();
+      return null; // Return a promise to satisfy the type
+    },
     isLoading,
     hasMore: canNextPage,
     enabled: isMobile
@@ -91,9 +124,7 @@ export function CustomerList() {
   const columns: ColumnDef<Customer>[] = [{
     accessorKey: "full_name",
     header: t('customers.name'),
-    cell: ({
-      row
-    }) => {
+    cell: ({ row }) => {
       const fullName = row.getValue("full_name") as string;
       return <div>
             <Link to={`/customers/${row.original.id}`} className="font-medium text-primary hover:underline">
@@ -110,9 +141,7 @@ export function CustomerList() {
   }, {
     accessorKey: "driver_license",
     header: t('customers.license'),
-    cell: ({
-      row
-    }) => {
+    cell: ({ row }) => {
       const license = row.getValue("driver_license") as string;
       return license ? <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
             {license}
@@ -121,9 +150,7 @@ export function CustomerList() {
   }, {
     accessorKey: "status",
     header: t('common.status'),
-    cell: ({
-      row
-    }) => {
+    cell: ({ row }) => {
       const status = row.getValue("status") as string || 'active';
 
       // Define badge styles based on status
@@ -161,9 +188,7 @@ export function CustomerList() {
     }
   }, {
     id: "actions",
-    cell: ({
-      row
-    }) => {
+    cell: ({ row }) => {
       const customer = row.original;
       return <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -289,8 +314,8 @@ export function CustomerList() {
                     {columns.map((column, colIndex) => (
                       <TableCell key={`cell-${customer.id}-${colIndex}`}>
                         {flexRender(column.cell, {
-                          row: { original: customer, values: customer, getValue: (key: string) => customer[key as keyof Customer] },
-                          getValue: (key: string) => customer[key as keyof Customer]
+                          row: { original: customer },
+                          getValue: (key) => customer[key as keyof Customer]
                         })}
                       </TableCell>
                     ))}

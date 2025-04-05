@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -7,6 +6,51 @@ import { supabase } from '@/lib/supabase';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
+
+interface DatabaseVehicleType {
+  id: string;
+  name: string;
+  description: string;
+  size: string;
+  daily_rate: number;
+  weekly_rate?: number;
+  monthly_rate?: number;
+  features?: any[];
+  is_active?: boolean;
+}
+
+export function mapDatabaseRecordToVehicle(record: any): Vehicle {
+  // Ensure all required fields have default values
+  if (!record.vin) record.vin = '';
+  if (!record.created_at) record.created_at = new Date().toISOString();
+  if (!record.updated_at) record.updated_at = new Date().toISOString();
+  
+  // Fix for vehicle_types property
+  const vehicleType = record.vehicle_types?.[0] || null;
+  
+  return {
+    id: record.id,
+    make: record.make,
+    model: record.model,
+    year: record.year,
+    license_plate: record.license_plate,
+    status: record.status,
+    image_url: record.image_url,
+    location: record.location,
+    mileage: record.mileage,
+    vehicle_type: vehicleType ? {
+      id: vehicleType.id,
+      name: vehicleType.name,
+      description: vehicleType.description || '',
+      size: vehicleType.size || 'standard',
+      daily_rate: vehicleType.daily_rate || 0,
+      is_active: vehicleType.is_active !== false
+    } : null,
+    vin: record.vin,
+    created_at: record.created_at,
+    updated_at: record.updated_at,
+  };
+}
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
 import { VehicleFilterParams } from '@/types/vehicle';
@@ -27,13 +26,11 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   const { isRTL } = useContextTranslation();
   const isMobile = useIsMobile();
   
-  // Get pagination state and controls
   const { pagination, setPage, nextPage, prevPage, canNextPage, canPrevPage, totalPages } = usePagination({ 
     initialPage: 1,
-    initialPageSize: 12  // Show more items per page for the grid view
+    initialPageSize: 12
   });
   
-  // Fetch vehicles with pagination
   const { data, isLoading, error, refetch } = useVehiclesList({ 
     filters: filter,
     pagination
@@ -42,15 +39,16 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   const vehicles = data?.data || [];
   const totalCount = data?.count || 0;
   
-  // Setup infinite scrolling for mobile
   const { loadMoreRef, isFetchingMore } = useInfiniteScroll({
-    fetchMore: nextPage,
+    fetchMore: async () => {
+      nextPage();
+      return null;
+    },
     isLoading,
     hasMore: canNextPage,
     enabled: isMobile
   });
   
-  // Handle navigation to vehicle details
   const handleSelect = (id: string) => {
     if (onSelectVehicle) {
       onSelectVehicle(id);
@@ -59,7 +57,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
     }
   };
 
-  // Loading state
   if (isLoading && !isFetchingMore) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
@@ -85,7 +82,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
     );
   }
 
-  // Error state
   if (error) {
     return (
       <Card className="p-6 bg-red-50 border-red-200">
@@ -98,7 +94,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
     );
   }
 
-  // No vehicles found
   if (!vehicles || vehicles.length === 0) {
     return (
       <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
@@ -141,7 +136,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
         ))}
       </div>
       
-      {/* Show pagination on desktop */}
       {!isMobile && totalCount > 0 && (
         <Pagination className="my-6">
           <PaginationContent>
@@ -153,15 +147,13 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
               />
             </PaginationItem>
             
-            {/* Show page numbers */}
             {[...Array(Math.min(5, totalPages))].map((_, i) => {
               const pageNum = pagination.page <= 3
-                ? i + 1 // Show first 5 pages if current page is <= 3
+                ? i + 1
                 : pagination.page >= totalPages - 2
-                  ? totalPages - 4 + i // Show last 5 pages if current page is near end
-                  : pagination.page - 2 + i; // Show current page and 2 before/after
+                  ? totalPages - 4 + i
+                  : pagination.page - 2 + i;
               
-              // Only show page numbers that are within range
               if (pageNum > 0 && pageNum <= totalPages) {
                 return (
                   <PaginationItem key={pageNum}>
@@ -188,7 +180,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
         </Pagination>
       )}
       
-      {/* Show loading indicator for infinite scroll */}
       {isMobile && (
         <div ref={loadMoreRef} className="py-4 text-center">
           {isFetchingMore && (
@@ -207,3 +198,31 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
 };
 
 export default VehicleGrid;
+
+const PaginationLink = ({ 
+  isActive,
+  size,
+  onClick,
+  disabled,
+  className,
+  children,
+  ...props 
+}: React.ComponentProps<typeof Button> & { 
+  isActive?: boolean;
+  size?: "default" | "sm";
+  disabled?: boolean;
+}) => {
+  return (
+    <Button
+      variant={isActive ? "outline" : "ghost"}
+      size={size}
+      onClick={onClick}
+      className={className}
+      disabled={disabled}
+      aria-current={isActive ? "page" : undefined}
+      {...props}
+    >
+      {children}
+    </Button>
+  );
+};
