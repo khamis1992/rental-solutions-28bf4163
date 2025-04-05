@@ -45,6 +45,28 @@ export function mapDatabaseRecordToVehicle(record: any): Vehicle {
 export const useVehicles = () => {
   const queryClient = useQueryClient();
   
+  // Batch query function for efficient data loading
+  const batchGetVehicles = async (vehicleIds: string[]): Promise<Record<string, Vehicle>> => {
+    try {
+      if (!vehicleIds.length) return {};
+      
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*, vehicle_types(id, name, description, size, daily_rate, is_active)')
+        .in('id', vehicleIds);
+        
+      if (error) throw error;
+      
+      return (data || []).reduce((acc, vehicle) => {
+        acc[vehicle.id] = mapDatabaseRecordToVehicle(vehicle);
+        return acc;
+      }, {} as Record<string, Vehicle>);
+    } catch (error) {
+      handleApiError(error, 'Failed to fetch vehicles in batch');
+      throw error;
+    }
+  };
+  
   return {
     useList: (filters?: VehicleFilterParams) => {
       return useQuery({
@@ -143,6 +165,16 @@ export const useVehicles = () => {
       });
     },
     
+    // New batch query hook for multiple vehicles
+    useBatchVehicles: (vehicleIds: string[]) => {
+      return useQuery({
+        queryKey: ['vehicles', 'batch', vehicleIds],
+        queryFn: () => batchGetVehicles(vehicleIds),
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        enabled: vehicleIds.length > 0,
+      });
+    },
+    
     useCreateVehicle: () => {
       return useMutation({
         mutationFn: async (formData: VehicleFormData) => {
@@ -182,8 +214,12 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        onSuccess: () => {
+        onSuccess: (data) => {
+          // Use the new cache manager to handle updates
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          queryClient.setQueryData(['vehicles', data.id], 
+            (oldData: any) => mapDatabaseRecordToVehicle(data)
+          );
           toast.success('Vehicle created successfully!');
         },
         onError: (error) => {
@@ -233,8 +269,12 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        onSuccess: () => {
+        onSuccess: (data, variables) => {
+          // Update both the list and individual vehicle caches
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+          queryClient.setQueryData(['vehicles', variables.id], 
+            (oldData: any) => mapDatabaseRecordToVehicle(data)
+          );
           toast.success('Vehicle updated successfully!');
         },
         onError: (error) => {
@@ -261,8 +301,13 @@ export const useVehicles = () => {
           }
         },
         onSuccess: (deletedId) => {
+          // Update both the list and individual vehicle caches
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.removeQueries({ queryKey: ['vehicles', deletedId] });
+          
+          // Also invalidate related entities
+          queryClient.invalidateQueries({ queryKey: ['agreements'], exact: false });
+          
           toast.success('Vehicle deleted successfully!');
         },
         onError: (error) => {
@@ -290,10 +335,11 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        staleTime: 1000 * 60 * 10,
+        staleTime: 1000 * 60 * 10, // 10 minutes - types change less frequently
       });
     },
     
+    // This hook enables realtime updates via Supabase, which will invalidate our caches when data changes
     useRealtimeUpdates: () => {
       useEffect(() => {
         const channel = supabase
@@ -306,7 +352,24 @@ export const useVehicles = () => {
               },
               (payload) => {
                 console.log('Vehicle change detected:', payload);
-                queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                
+                // Only invalidate specific entity cache based on the changed record
+                if (payload.new && payload.new.id) {
+                  const vehicleId = payload.new.id;
+                  
+                  // On delete, remove from cache
+                  if (payload.eventType === 'DELETE') {
+                    queryClient.removeQueries({ queryKey: ['vehicles', vehicleId] });
+                  } 
+                  // On update or insert, invalidate individual record and list cache
+                  else {
+                    queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId] });
+                    queryClient.invalidateQueries({ queryKey: ['vehicles'], exact: true });
+                  }
+                } else {
+                  // If we can't identify the specific vehicle, invalidate all vehicle caches
+                  queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+                }
               })
           .subscribe();
 
@@ -314,6 +377,9 @@ export const useVehicles = () => {
           supabase.removeChannel(channel);
         };
       }, []);
-    }
+    },
+    
+    // Export the batch function directly for advanced use cases
+    batchGetVehicles
   };
 };

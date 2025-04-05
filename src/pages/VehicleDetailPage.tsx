@@ -10,6 +10,8 @@ import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
+import { useCacheManager } from '@/hooks/use-cache-manager';
+import { usePrefetch } from '@/hooks/use-prefetch';
 
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +21,10 @@ const VehicleDetailPage = () => {
   const [isRTL, setIsRTL] = useState(false);
   const { t } = useTranslation();
   const { isRTL: contextIsRTL } = useContextTranslation();
+  const { invalidateEntity } = useCacheManager();
+  
+  // Initialize prefetching for common navigation paths
+  usePrefetch();
   
   const deleteVehicle = useDeleteVehicle();
 
@@ -36,6 +42,10 @@ const VehicleDetailPage = () => {
   const handleDelete = async (id: string) => {
     try {
       await deleteVehicle.mutateAsync(id);
+      
+      // Invalidate both vehicles and agreements since they're connected
+      invalidateEntity('vehicles', id, ['agreements']);
+      
       toast.success('Vehicle deleted successfully');
       navigate('/vehicles');
     } catch (error) {
