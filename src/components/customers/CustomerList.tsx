@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel } from "@tanstack/react-table";
-import { MoreHorizontal, Search, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel } from "@tanstack/react-table";
+import { MoreHorizontal, Search, CheckCircle, XCircle, AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,25 +12,57 @@ import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { usePagination } from '@/hooks/use-pagination';
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useCustomersList } from '@/hooks/use-customers-pagination';
 
 export function CustomerList() {
-  const {
-    customers,
-    isLoading,
-    error,
-    searchParams,
-    setSearchParams,
-    deleteCustomer,
-    refreshCustomers
-  } = useCustomers();
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [isUpdatingStatuses, setIsUpdatingStatuses] = useState(false);
+  const { deleteCustomer, refreshCustomers } = useCustomers();
   const { t } = useI18nTranslation();
-  const { isRTL, getNumberFormat } = useTranslation();
+  const { isRTL } = useTranslation();
+  const isMobile = useIsMobile();
+  
+  // Initialize pagination with the usePagination hook
+  const { 
+    pagination, 
+    setPage, 
+    nextPage, 
+    prevPage, 
+    canNextPage, 
+    canPrevPage, 
+    totalPages 
+  } = usePagination({ initialPage: 1, initialPageSize: 10 });
+  
+  // Fetch customers with pagination
+  const {
+    data,
+    isLoading,
+    error
+  } = useCustomersList({
+    status: statusFilter,
+    query: searchQuery,
+    pagination
+  });
+  
+  const customers = data?.data || [];
+  const totalCount = data?.count || 0;
+  
+  // Setup infinite scrolling for mobile
+  const { loadMoreRef, isFetchingMore } = useInfiniteScroll({
+    fetchMore: nextPage,
+    isLoading,
+    hasMore: canNextPage,
+    enabled: isMobile
+  });
   
   // Function to trigger customer status updates
   const handleUpdateCustomerStatuses = async () => {
@@ -166,18 +197,15 @@ export function CustomerList() {
           </DropdownMenu>;
     }
   }];
+
   const table = useReactTable({
-    data: customers || [],
+    data: customers,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
     state: {
-      sorting,
-      columnFilters
+      sorting
     }
   });
 
@@ -191,20 +219,20 @@ export function CustomerList() {
   
   const flexDirection = isRTL ? "flex-row-reverse" : "flex-row";
   
-  return <div className="space-y-4">
+  return (
+    <div className="space-y-4">
       <div className={`flex flex-col sm:${flexDirection} justify-between items-start sm:items-center gap-4`}>
         <div className={`flex items-center ${isRTL ? "flex-row-reverse" : ""} w-full sm:w-auto space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
           <div className="relative w-full sm:w-[250px] md:w-[300px]">
             <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50`} />
-            <Input placeholder={t('customers.searchPlaceholder')} value={searchParams.query || ''} onChange={e => setSearchParams({
-            ...searchParams,
-            query: e.target.value
-          })} className={`h-9 ${isRTL ? "pr-9 text-right" : "pl-9"} w-full`} />
+            <Input 
+              placeholder={t('customers.searchPlaceholder')} 
+              value={searchQuery} 
+              onChange={e => setSearchQuery(e.target.value)} 
+              className={`h-9 ${isRTL ? "pr-9 text-right" : "pl-9"} w-full`} 
+            />
           </div>
-          <Select value={searchParams.status} onValueChange={value => setSearchParams({
-          ...searchParams,
-          status: value
-        })}>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder={t('customers.selectStatus')} />
             </SelectTrigger>
@@ -234,43 +262,148 @@ export function CustomerList() {
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => <TableHead key={header.id}>
+            {table.getHeaderGroups().map(headerGroup => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
+                  <TableHead key={header.id}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>)}
-              </TableRow>)}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
-            {isLoading ?
-          // Show skeleton loaders when loading
-          Array.from({
-            length: 5
-          }).map((_, i) => <TableRow key={`skeleton-${i}`}>
-                  {Array.from({
-              length: columns.length
-            }).map((_, j) => <TableCell key={`skeleton-cell-${i}-${j}`}>
+            {isLoading && !isFetchingMore ?
+              // Show skeleton loaders when loading
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  {Array.from({ length: columns.length }).map((_, j) => (
+                    <TableCell key={`skeleton-cell-${i}-${j}`}>
                       <Skeleton className="h-8 w-full" />
-                    </TableCell>)}
-                </TableRow>) : table.getRowModel().rows?.length ? table.getRowModel().rows.map(row => <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map(cell => <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>)}
-                </TableRow>) : <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  {t('customers.noCustomers')} {searchParams.query || searchParams.status !== 'all' ? t('customers.adjustFilters') : t('customers.addFirstCustomer')}
-                </TableCell>
-              </TableRow>}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )) : customers.length ? (
+                customers.map(customer => (
+                  <TableRow key={customer.id} data-state={customer.status === "inactive" && "muted"}>
+                    {columns.map((column, colIndex) => (
+                      <TableCell key={`cell-${customer.id}-${colIndex}`}>
+                        {flexRender(column.cell, {
+                          row: { original: customer, values: customer, getValue: (key: string) => customer[key as keyof Customer] },
+                          getValue: (key: string) => customer[key as keyof Customer]
+                        })}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    {t('customers.noCustomers')} {searchQuery || statusFilter !== 'all' ? t('customers.adjustFilters') : t('customers.addFirstCustomer')}
+                  </TableCell>
+                </TableRow>
+              )
+            }
           </TableBody>
         </Table>
       </div>
       
-      <div className={`flex items-center ${isRTL ? "justify-start" : "justify-end"} space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
-        <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-          {t('common.back')}
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-          {t('common.next')}
-        </Button>
-      </div>
-    </div>;
+      {/* Desktop Pagination */}
+      {!isMobile && customers.length > 0 && (
+        <div className={`flex items-center ${isRTL ? "justify-start" : "justify-end"} space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => prevPage()} 
+                  disabled={!canPrevPage}
+                  className={!canPrevPage ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+              
+              {/* First page */}
+              {pagination.page > 2 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => setPage(1)}>
+                    1
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+              
+              {/* Ellipsis if needed */}
+              {pagination.page > 3 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              
+              {/* Previous page if not first */}
+              {pagination.page > 1 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => setPage(pagination.page - 1)}>
+                    {pagination.page - 1}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+              
+              {/* Current page */}
+              <PaginationItem>
+                <PaginationLink isActive onClick={() => setPage(pagination.page)}>
+                  {pagination.page}
+                </PaginationLink>
+              </PaginationItem>
+              
+              {/* Next page if not last */}
+              {pagination.page < totalPages && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => setPage(pagination.page + 1)}>
+                    {pagination.page + 1}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+              
+              {/* Ellipsis if needed */}
+              {pagination.page < totalPages - 2 && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+              
+              {/* Last page if not current */}
+              {pagination.page < totalPages - 1 && totalPages > 1 && (
+                <PaginationItem>
+                  <PaginationLink onClick={() => setPage(totalPages)}>
+                    {totalPages}
+                  </PaginationLink>
+                </PaginationItem>
+              )}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => nextPage()} 
+                  disabled={!canNextPage}
+                  className={!canNextPage ? 'pointer-events-none opacity-50' : ''}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
+      
+      {/* Mobile Infinite Scroll */}
+      {isMobile && (
+        <div ref={loadMoreRef} className="py-4 text-center">
+          {isFetchingMore && (
+            <div className="flex justify-center items-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-2">{t('common.loading')}</span>
+            </div>
+          )}
+          {!canNextPage && customers.length > 0 && (
+            <p className="text-muted-foreground text-sm py-4">{t('common.noMoreItems')}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
