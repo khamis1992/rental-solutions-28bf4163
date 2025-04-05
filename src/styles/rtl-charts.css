@@ -1,0 +1,19 @@
+
+/* RTL Specific Chart Styles */
+[dir="rtl"] .recharts-wrapper .recharts-cartesian-axis-tick-value {
+  text-anchor: start;
+}
+
+[dir="rtl"] .rtl-tabs {
+  direction: rtl;
+}
+
+[dir="rtl"] .recharts-default-tooltip {
+  direction: rtl;
+  text-align: right;
+}
+
+[dir="rtl"] .recharts-legend-item-text {
+  margin-right: 4px;
+  margin-left: 0;
+}
