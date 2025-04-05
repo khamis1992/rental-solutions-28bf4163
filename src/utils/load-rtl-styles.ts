@@ -1,0 +1,68 @@
+
+/**
+ * Helper function to load RTL specific stylesheets when RTL mode is active
+ * @param isRTL Boolean indicating if the current mode is RTL
+ */
+export const loadRTLStyles = (isRTL: boolean) => {
+  const stylesheets = [
+    '/src/styles/rtl.css',
+    '/src/styles/rtl-charts.css',
+    '/src/styles/rtl-forms.css'
+  ];
+  
+  // Add or remove RTL stylesheet links
+  stylesheets.forEach(stylesheet => {
+    const id = `rtl-${stylesheet.split('/').pop()?.replace('.', '-')}`;
+    const existingLink = document.getElementById(id);
+    
+    if (isRTL && !existingLink) {
+      // Add stylesheet if in RTL mode and not already loaded
+      const link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      link.href = stylesheet;
+      document.head.appendChild(link);
+    } else if (!isRTL && existingLink) {
+      // Remove stylesheet if not in RTL mode
+      existingLink.remove();
+    }
+  });
+  
+  // Set the document direction attribute
+  document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+  document.documentElement.lang = isRTL ? 'ar' : 'en';
+  
+  // Add/remove RTL class to body
+  if (isRTL) {
+    document.body.classList.add('rtl-mode');
+  } else {
+    document.body.classList.remove('rtl-mode');
+  }
+};
+
+/**
+ * Apply this function in the TranslationContext to ensure RTL styles are loaded
+ * when language changes
+ */
+export const setupRTLStylesObserver = () => {
+  // Create MutationObserver to watch for changes to the dir attribute
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'dir') {
+        const htmlElement = document.documentElement;
+        const isRTL = htmlElement.dir === 'rtl';
+        
+        // Apply RTL-specific styles when direction changes
+        loadRTLStyles(isRTL);
+      }
+    });
+  });
+  
+  // Start observing the html element for dir attribute changes
+  observer.observe(document.documentElement, { attributes: true });
+  
+  // Initial load of styles
+  loadRTLStyles(document.documentElement.dir === 'rtl');
+  
+  return observer;
+};

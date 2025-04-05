@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import i18n from '@/i18n';
 import { translateText } from '@/utils/translation-api';
 import { toast } from 'sonner';
+import { loadRTLStyles, setupRTLStylesObserver } from '@/utils/load-rtl-styles';
 
 type Direction = 'ltr' | 'rtl';
 
@@ -42,10 +43,14 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
         return;
       }
       
+      // Change i18next language
       i18n.changeLanguage(lang);
+      
+      // Update state and localStorage
       setLanguage(lang);
       localStorage.setItem('language', lang);
       
+      // Set direction based on language
       const newDirection = lang === 'ar' ? 'rtl' : 'ltr';
       setDirection(newDirection);
       
@@ -53,10 +58,11 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       document.documentElement.dir = newDirection;
       document.documentElement.lang = lang;
       
-      // Add/remove direction-specific class to body for global styling
+      // Load RTL styles based on the new direction
+      loadRTLStyles(newDirection === 'rtl');
+      
+      // Add/remove Arabic font if needed
       if (newDirection === 'rtl') {
-        document.body.classList.add('rtl-mode');
-        
         // Load Arabic font if not already loaded
         if (!document.getElementById('arabic-font')) {
           const link = document.createElement('link');
@@ -69,13 +75,13 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
           document.body.classList.add('font-arabic');
         }
       } else {
-        document.body.classList.remove('rtl-mode');
+        // Remove Arabic-specific classes when in LTR mode
         document.body.classList.remove('font-arabic');
       }
       
       console.log(`Language changed successfully to: ${lang}, direction: ${newDirection}`);
       
-      // Avoid showing toast for initial language setup
+      // Show toast notification for successful language change
       if (document.readyState === 'complete') {
         toast.success(`Language changed to ${lang === 'en' ? 'English' : 'العربية'}`);
       }
@@ -109,9 +115,10 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     return new Intl.NumberFormat('en-US').format(num);
   };
 
-  // Initialize direction on mount
+  // Initialize direction on mount and set up RTL styles observer
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language');
+    
     if (savedLanguage && savedLanguage !== language) {
       changeLanguage(savedLanguage);
     } else {
@@ -119,26 +126,17 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
       document.documentElement.lang = language;
       
-      // Add direction-specific class to body
-      if (language === 'ar') {
-        document.body.classList.add('rtl-mode');
-        
-        // Load Arabic font if not already loaded
-        if (!document.getElementById('arabic-font')) {
-          const link = document.createElement('link');
-          link.id = 'arabic-font';
-          link.rel = 'stylesheet';
-          link.href = 'https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap';
-          document.head.appendChild(link);
-          
-          // Add Arabic font class to body
-          document.body.classList.add('font-arabic');
-        }
-      } else {
-        document.body.classList.remove('rtl-mode');
-        document.body.classList.remove('font-arabic');
-      }
+      // Update RTL styles based on current direction
+      loadRTLStyles(language === 'ar');
     }
+    
+    // Set up observer to watch for RTL/LTR changes
+    const observer = setupRTLStylesObserver();
+    
+    // Clean up observer on unmount
+    return () => {
+      observer.disconnect();
+    };
   }, [language, changeLanguage]);
 
   return (

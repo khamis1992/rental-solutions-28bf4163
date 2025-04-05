@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useTranslation as useI18nTranslation } from "react-i18next";
+import { getDirectionalClasses } from "@/utils/rtl-utils";
 
 const Financials = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -27,61 +28,6 @@ const Financials = () => {
   const [invoiceType, setInvoiceType] = useState<'agreement' | 'payment' | 'customer'>('agreement');
   const { t } = useI18nTranslation();
   const { isRTL, translateText } = useTranslation();
-  
-  // Pre-translate critical UI elements
-  const [translations, setTranslations] = useState({
-    title: '',
-    description: '',
-    generateInvoice: '',
-    dialogTitle: '',
-    dialogDescription: '',
-    tabs: {
-      dashboard: '',
-      invoices: '',
-      payments: '',
-      installments: ''
-    }
-  });
-  
-  // Load translations on component mount
-  useEffect(() => {
-    const loadTranslations = async () => {
-      try {
-        // Main page translations
-        const title = await translateText(t('financials.title', 'Financial Management'));
-        const description = await translateText(t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts'));
-        const generateInvoice = await translateText(t('agreements.generateDocument', 'Generate Invoice'));
-        
-        // Dialog translations
-        const dialogTitle = await translateText(t('invoices.generate', 'Generate Invoice'));
-        const dialogDescription = await translateText(t('invoices.createCustomize', 'Create and customize an invoice from a template'));
-        
-        // Tab labels
-        const dashboard = await translateText(t('financials.dashboard', 'Financial Dashboard'));
-        const invoices = await translateText(t('invoices.templates', 'Invoice Templates'));
-        const payments = await translateText(t('payments.settings', 'Payment Settings'));
-        const installments = await translateText(t('financials.installments', 'Installment Contracts'));
-        
-        setTranslations({
-          title,
-          description,
-          generateInvoice,
-          dialogTitle,
-          dialogDescription,
-          tabs: {
-            dashboard,
-            invoices,
-            payments,
-            installments
-          }
-        });
-      } catch (error) {
-        console.error('Error loading translations:', error);
-      }
-    };
-    
-    loadTranslations();
-  }, [t, translateText, isRTL]);
   
   const handleOpenInvoiceGenerator = (type: 'agreement' | 'payment' | 'customer') => {
     setInvoiceType(type);
@@ -91,8 +37,8 @@ const Financials = () => {
   return (
     <PageContainer>
       <SectionHeader 
-        title={translations.title || t('financials.title', 'Financial Management')}
-        description={translations.description || t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts')}
+        title={t('financials.title', 'Financial Management')}
+        description={t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts')}
         icon={ChartPieIcon}
         actions={
           activeTab === "invoices" && (
@@ -103,29 +49,29 @@ const Financials = () => {
               className="h-9"
             >
               <Printer className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
-              {translations.generateInvoice || t('agreements.generateDocument', 'Generate Invoice')}
+              {t('agreements.generateDocument', 'Generate Invoice')}
             </Button>
           )
         }
       />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
-          <TabsTrigger value="dashboard" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+        <TabsList className={`grid grid-cols-1 md:grid-cols-4 w-full ${isRTL ? 'rtl-tabs' : ''}`}>
+          <TabsTrigger value="dashboard" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <BarChartBig className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {translations.tabs.dashboard || t('financials.dashboard', 'Financial Dashboard')}
+            {t('financials.dashboard', 'Financial Dashboard')}
           </TabsTrigger>
-          <TabsTrigger value="invoices" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+          <TabsTrigger value="invoices" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {translations.tabs.invoices || t('invoices.templates', 'Invoice Templates')}
+            {t('invoices.templates', 'Invoice Templates')}
           </TabsTrigger>
-          <TabsTrigger value="payments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+          <TabsTrigger value="payments" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <ChartPieIcon className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {translations.tabs.payments || t('payments.settings', 'Payment Settings')}
+            {t('payments.settings', 'Payment Settings')}
           </TabsTrigger>
-          <TabsTrigger value="installments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+          <TabsTrigger value="installments" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <FileSpreadsheet className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {translations.tabs.installments || t('financials.installments', 'Installment Contracts')}
+            {t('financials.installments', 'Installment Contracts')}
           </TabsTrigger>
         </TabsList>
         
@@ -150,9 +96,9 @@ const Financials = () => {
       <Dialog open={invoiceDialog} onOpenChange={setInvoiceDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>{translations.dialogTitle || t('invoices.generate', 'Generate Invoice')}</DialogTitle>
+            <DialogTitle>{t('invoices.generate', 'Generate Invoice')}</DialogTitle>
             <DialogDescription>
-              {translations.dialogDescription || t('invoices.createCustomize', 'Create and customize an invoice from a template')}
+              {t('invoices.createCustomize', 'Create and customize an invoice from a template')}
             </DialogDescription>
           </DialogHeader>
           
