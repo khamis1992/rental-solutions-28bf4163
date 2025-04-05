@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "Dashboard",
@@ -88,7 +89,11 @@
     "none": "None",
     "pickDate": "Pick a date",
     "invalidDate": "Invalid date",
-    "to": "to"
+    "to": "to",
+    "cost": "Cost",
+    "customer": "Customer",
+    "mileage": "Mileage",
+    "location": "Location"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -378,7 +383,26 @@
     "bucketPrepareFailed": "Failed to prepare storage bucket",
     "updateFailed": "Failed to update vehicle",
     "formSubmitError": "Form submission error",
-    "removedOrDoesNotExist": "The vehicle you're looking for doesn't exist or has been removed"
+    "removedOrDoesNotExist": "The vehicle you're looking for doesn't exist or has been removed",
+    "vehicleDetails": "Vehicle Details",
+    "additionalInformation": "Additional Information",
+    "features": "Features",
+    "noInsurance": "No Insurance",
+    "valid": "Valid",
+    "expired": "Expired",
+    "insurance": "Insurance",
+    "expires": "Expires",
+    "transmission": "Transmission",
+    "fuelType": "Fuel Type",
+    "lastServiced": "Last Serviced",
+    "nextService": "Next Service",
+    "category": "Category",
+    "fuelLevel": "Fuel Level",
+    "multipleActiveAgreements": "Multiple Active Agreements",
+    "multipleActiveAgreementsDesc": "This vehicle is assigned to multiple active agreements. This could be a temporary state during agreement transitions. The system will ensure only one agreement remains active.",
+    "noAgreements": "No rental agreements found for this vehicle.",
+    "noMaintenance": "No maintenance records found for this vehicle.",
+    "dailyRate": "Daily Rate"
   },
   "reports": {
     "title": "Reports & Analytics",
@@ -517,6 +541,7 @@
     "runPaymentMaintenance": "Run Payment Maintenance",
     "noPayments": "No payments found",
     "noPaymentsDesc": "No payment records exist for this agreement.",
+    "noIdError": "Unable to view agreement: Missing ID",
     "status": {
       "active": "Active",
       "pending": "Pending",
@@ -639,6 +664,8 @@
     "history": "Maintenance History",
     "noRecords": "No Maintenance Records",
     "noRecordsDesc": "No maintenance records found. Add your first maintenance record to get started.",
+    "loadingRecords": "Loading maintenance records...",
+    "provider": "Service Provider",
     "filters": {
       "status": "Filter by status",
       "vehicle": "Filter by vehicle",
@@ -648,7 +675,7 @@
     "status": {
       "allStatuses": "All Statuses",
       "scheduled": "Scheduled",
-      "inProgress": "In Progress",
+      "in_progress": "In Progress",
       "completed": "Completed",
       "cancelled": "Cancelled"
     },
@@ -694,70 +721,6 @@
     "history": "Payment History",
     "historyDesc": "Track all payments for this agreement",
     "recordPayment": "Record Payment",
-    "recordPaymentDesc": "Record a new rental payment for this agreement.",
-    "recordPaymentForItem": "Record payment for this item.",
-    "recordManualPayment": "Record Manual Payment",
-    "recordNewManualPayment": "Record a new manual payment for this agreement.",
-    "amount": "Amount",
-    "date": "Payment Date",
-    "method": "Payment Method",
-    "reference": "Reference Number",
-    "notes": "Notes",
-    "deleteSuccess": "Payment deleted successfully",
-    "deleteError": "Failed to delete payment",
-    "recordSuccess": "Payment recorded successfully",
-    "recordError": "Failed to record payment",
-    "status": {
-      "paid": "Paid",
-      "pending": "Pending",
-      "overdue": "Overdue",
-      "partial": "Partially Paid"
-    },
-    "lateFee": "late fee",
-    "paid": "Paid",
-    "remaining": "Remaining",
-    "ref": "Ref",
-    "fixing": "Fixing...",
-    "fixPayments": "Fix Payments",
-    "noRecords": "No payments recorded for this agreement yet.",
-    "deleting": "Deleting...",
-    "noAgreementId": "No agreement ID available",
-    "checkingPayments": "Checking and fixing payments...",
-    "recordsUpToDate": "Payment records are up to date",
-    "recordsFixedSuccess": "Payment records fixed successfully",
-    "recordsFixFailed": "Failed to fix payment records",
-    "unexpectedError": "An unexpected error occurred while fixing payments"
-  },
-  "invoices": {
-    "templates": "Invoice Templates",
-    "generate": "Generate Invoice",
-    "createCustomize": "Create and customize an invoice from a template"
-  },
-  "trafficFines": {
-    "title": "Traffic Fines Management",
-    "description": "Record, track, and manage traffic violations",
-    "list": "Fines List",
-    "recordNew": "Record New Fine",
-    "analytics": "Fine Analytics",
-    "location": "Location",
-    "violationNumber": "Violation Number",
-    "status": {
-      "paid": "Paid",
-      "pending": "Pending",
-      "disputed": "Disputed"
-    },
-    "noFines": "No traffic fines found for this vehicle or customer.",
-    "checkNew": "Check for New Fines",
-    "autoAssign": "Auto-Assign",
-    "addFine": "Add Fine",
-    "assignToCustomer": "Assign to Customer",
-    "payFine": "Pay Fine",
-    "disputeFine": "Dispute Fine",
-    "fineAmount": "Fine Amount",
-    "violationDate": "Violation Date",
-    "licensePlate": "License Plate",
-    "violationType": "Violation Type",
-    "assignedTo": "Assigned To",
-    "unassigned": "Unassigned"
+    "recordPaymentDesc": "Record a new rental payment for this agreement"
   }
 }

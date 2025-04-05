@@ -32,3 +32,36 @@
   margin-right: 0;
   margin-left: 6px;
 }
+
+/* RTL styles for vehicle details page */
+[dir="rtl"] .card-transition ul li {
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .card-transition ul li .text-muted-foreground:first-child {
+  text-align: right;
+}
+
+[dir="rtl"] .card-transition ul li svg {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+[dir="rtl"] .card-transition ul li .w-28 {
+  text-align: left;
+}
+
+[dir="rtl"] .card-transition .flex-items-center .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+[dir="rtl"] .card-transition table th:last-child {
+  text-align: left;
+}
+
+[dir="rtl"] .card-transition table td:last-child {
+  text-align: left;
+}
+
