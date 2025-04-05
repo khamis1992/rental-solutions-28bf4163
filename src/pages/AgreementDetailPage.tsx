@@ -19,7 +19,7 @@ const AgreementDetailPage = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const { t } = useI18nTranslation();
-  const { translateText } = useTranslation();
+  const { translateText, language } = useTranslation();
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
   const isRefreshing = useRef(false);
@@ -38,20 +38,31 @@ const AgreementDetailPage = () => {
   // Use the useRentAmount hook to calculate rent and contract amount
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  // Pre-translate the page title and description
+  // Pre-translate the page title and description and refresh when language changes
   useEffect(() => {
     const loadTranslations = async () => {
       if (id) {
-        const title = await translateText(t('agreements.details'));
-        const description = await translateText(t('agreements.viewDetails'));
-        
-        setPageTitle(title);
-        setPageDescription(description);
+        try {
+          // Make sure to use direct keys from the translation file
+          const title = await translateText(t('agreements.details'));
+          const description = await translateText(t('agreements.viewDetails'));
+          
+          console.log("Translated page title:", title);
+          console.log("Translated page description:", description);
+          
+          setPageTitle(title || t('agreements.details'));
+          setPageDescription(description || t('agreements.viewDetails'));
+        } catch (err) {
+          console.error("Translation error:", err);
+          // Fallback to non-translated text
+          setPageTitle(t('agreements.details'));
+          setPageDescription(t('agreements.viewDetails'));
+        }
       }
     };
     
     loadTranslations();
-  }, [t, translateText, id]);
+  }, [t, translateText, id, language]); // Add language dependency to refresh translations on language change
 
   // Fetch agreement data
   const fetchAgreementData = useCallback(async () => {
