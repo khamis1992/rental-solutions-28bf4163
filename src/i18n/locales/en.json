@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "Dashboard",
@@ -357,7 +358,78 @@
       "draft": "Draft"
     },
     "recentActivity": "Recent Activity",
-    "loading": "Loading agreements..."
+    "loading": "Loading agreements...",
+    
+    "validations": {
+      "agreementNumberRequired": "Agreement number is required",
+      "customerRequired": "Customer is required",
+      "vehicleRequired": "Vehicle is required",
+      "rentAmountPositive": "Rent amount must be positive",
+      "depositAmountNonNegative": "Deposit amount must be non-negative",
+      "totalAmountPositive": "Total amount must be positive",
+      "dailyLateFeeNonNegative": "Daily late fee must be non-negative"
+    },
+    
+    "agreementNumber": "Agreement Number",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "customerAndVehicle": "Customer & Vehicle",
+    "selectCustomer": "Select customer",
+    "selectVehicle": "Select vehicle",
+    "checkingVehicle": "Checking vehicle...",
+    "vehicleCheckError": "Error checking vehicle availability",
+    "durationMonths": "Duration (Months)",
+    "selectDuration": "Select duration",
+    "month": "month",
+    "months": "months",
+    "pickDate": "Pick a date",
+    "agreementDetails": "Agreement Details",
+    "selectStatus": "Select status",
+    "vehicleAlreadyAssigned": "Vehicle Already Assigned",
+    "vehicleAlreadyAssignedDesc": "This vehicle is currently assigned to Agreement #{agreementNumber}",
+    "vehicleAlreadyAssignedDesc1": "This vehicle is currently assigned to Agreement #{agreementNumber}",
+    "vehicleAlreadyAssignedDesc2": "If you proceed, the existing agreement will be closed automatically, and the vehicle will be assigned to your new agreement",
+    "assigned": "Assigned",
+    "paymentInformation": "Payment Information",
+    "monthlyRentAmount": "Monthly Rent Amount",
+    "depositAmount": "Deposit Amount",
+    "dailyLateFee": "Daily Late Fee",
+    "totalContractAmount": "Total Contract Amount",
+    "creatingAgreement": "Creating Agreement...",
+    "createAgreement": "Create Agreement",
+    "vehicleReassignmentConfirmed": "Vehicle reassignment confirmed",
+    
+    "checkingTemplateStatus": "Checking Template Status",
+    "verifyingTemplate": "Verifying if the standard agreement template exists...",
+    "templateNotFound": "Template Not Found",
+    "templateNotFoundDesc": "The standard agreement template \"agreement temp\" was not found in the database. The agreement will use the default template format.",
+    "usingStandardTemplate": "Using Standard Template",
+    "usingStandardTemplateDesc": "The agreement will use the standard template from the database.",
+    "agreementPreview": "Agreement Preview",
+    "agreementTemplatePreview": "AGREEMENT TEMPLATE PREVIEW",
+    "templateInformation": "Template Information",
+    "usingStandardTemplateInfo": "Using the standard 'agreement temp' template from the database.",
+    "standardTemplateNotFound": "Standard template not found. Using default format.",
+    "customerData": "Customer Data",
+    "vehicleData": "Vehicle Data",
+    "agreementData": "Agreement Data",
+    
+    "pendingPayments": "Pending Payments",
+    "pendingPaymentsWarning": "There are pending payments for this agreement. These payments must be acknowledged before reassigning the vehicle.",
+    "payment": "Payment",
+    "andMore": "and {count} more",
+    "acknowledgePendingPayments": "I acknowledge there are pending payments for this agreement",
+    "trafficFinesWarning": "There are pending traffic fines for this vehicle. These fines must be acknowledged before reassigning the vehicle.",
+    "trafficViolation": "Traffic Violation",
+    "acknowledgeTrafficFines": "I acknowledge there are pending traffic fines for this vehicle",
+    "vehicleAndAgreementDetails": "Vehicle & Agreement Details",
+    "proceedWithAssignment": "Proceed with Assignment",
+    
+    "statuses": {
+      "paid": "Paid",
+      "overdue": "Overdue",
+      "pending": "Pending"
+    }
   },
   "maintenance": {
     "title": "Maintenance",

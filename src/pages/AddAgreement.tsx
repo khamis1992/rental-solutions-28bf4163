@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import AgreementFormWithVehicleCheck from '@/components/agreements/AgreementFormWithVehicleCheck';
@@ -14,7 +14,22 @@ const AddAgreement = () => {
   const { createAgreement } = useAgreements();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useI18nTranslation();
-  const { isRTL, translateText } = useTranslation(); // Add translateText function from the context
+  const { isRTL, translateText } = useTranslation();
+  const [pageTitle, setPageTitle] = useState('');
+  const [pageDescription, setPageDescription] = useState('');
+
+  // Pre-translate the page title and description to avoid flickering
+  useEffect(() => {
+    const loadTranslations = async () => {
+      const title = await translateText(t('agreements.add'));
+      const description = await translateText(t('agreements.description'));
+      
+      setPageTitle(title);
+      setPageDescription(description);
+    };
+    
+    loadTranslations();
+  }, [t, translateText, isRTL]);
 
   const handleCreateAgreement = async (agreementData: Agreement) => {
     try {
@@ -48,10 +63,6 @@ const AddAgreement = () => {
       setIsSubmitting(false);
     }
   };
-
-  // Dynamically translate the title and description
-  const pageTitle = t('agreements.add');
-  const pageDescription = t('agreements.description');
 
   return (
     <PageContainer
