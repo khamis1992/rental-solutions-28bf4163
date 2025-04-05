@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -19,7 +18,7 @@ const AgreementDetailPage = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const { t } = useI18nTranslation();
-  const { translateText, language } = useTranslation();
+  const { language } = useTranslation();
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
   const isRefreshing = useRef(false);
@@ -38,31 +37,23 @@ const AgreementDetailPage = () => {
   // Use the useRentAmount hook to calculate rent and contract amount
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  // Pre-translate the page title and description and refresh when language changes
+  // Set page title and description directly from i18n translation files
+  // This ensures we're using the exact translations from our locale files 
+  // rather than sending them through an external translation service
   useEffect(() => {
-    const loadTranslations = async () => {
-      if (id) {
-        try {
-          // Make sure to use direct keys from the translation file
-          const title = await translateText(t('agreements.details'));
-          const description = await translateText(t('agreements.viewDetails'));
-          
-          console.log("Translated page title:", title);
-          console.log("Translated page description:", description);
-          
-          setPageTitle(title || t('agreements.details'));
-          setPageDescription(description || t('agreements.viewDetails'));
-        } catch (err) {
-          console.error("Translation error:", err);
-          // Fallback to non-translated text
-          setPageTitle(t('agreements.details'));
-          setPageDescription(t('agreements.viewDetails'));
-        }
-      }
-    };
-    
-    loadTranslations();
-  }, [t, translateText, id, language]); // Add language dependency to refresh translations on language change
+    if (id) {
+      console.log(`Setting page title and description for language: ${language}`);
+      // Directly use the translated values from i18n
+      const title = t('agreements.details');
+      const description = t('agreements.viewDetails');
+      
+      console.log(`Page title from i18n: "${title}"`);
+      console.log(`Page description from i18n: "${description}"`);
+      
+      setPageTitle(title);
+      setPageDescription(description);
+    }
+  }, [t, id, language]); // When language changes, this will update
 
   // Fetch agreement data
   const fetchAgreementData = useCallback(async () => {
@@ -108,6 +99,8 @@ const AgreementDetailPage = () => {
   }, [fetchAgreementData]);
 
   const handleError = async (message: string) => {
+    // For error messages, we still use translateText to ensure they're in the right language
+    const { translateText } = useTranslation();
     const translatedMessage = await translateText(message);
     setError(translatedMessage);
   };

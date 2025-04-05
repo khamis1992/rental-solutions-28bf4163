@@ -18,6 +18,13 @@ export const translateText = async (
       return text;
     }
     
+    // Skip translation for text that looks like it's already in the target language
+    // This avoids unnecessary translation API calls and potential quality loss from multiple translations
+    if (text.includes('ال') && targetLang === 'ar') {
+      console.log(`Text appears to be already in Arabic, skipping translation: "${text}"`);
+      return text;
+    }
+    
     console.log(`Translating from ${sourceLang} to ${targetLang}: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
     
     const { data, error } = await supabase.functions.invoke('translate', {
