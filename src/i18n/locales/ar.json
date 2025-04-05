@@ -172,7 +172,7 @@
     "dashboard": "لوحة إدارة الشؤون القانونية",
     "documents": "المستندات القانونية",
     "caseManagement": "إدارة القضايا",
-    "complianceCalendar": "تقويم ��لامتثال",
+    "complianceCalendar": "تقويم الامتثال",
     "riskAssessment": "تقييم المخاطر",
     "complianceReporting": "تقارير الامتثال"
   },
@@ -361,7 +361,6 @@
     },
     "recentActivity": "النشاط الأخير",
     "loading": "جاري تحميل الاتفاقيات...",
-
     "validations": {
       "agreementNumberRequired": "رقم الاتفاقية مطلوب",
       "customerRequired": "العميل مطلوب",
@@ -371,7 +370,6 @@
       "totalAmountPositive": "المبلغ الإجمالي يجب أن يكون رقمًا موجبًا",
       "dailyLateFeeNonNegative": "رسوم التأخير اليومية يجب أن تكون رقمًا غير سلبي"
     },
-
     "agreementNumber": "رقم الاتفاقية",
     "startDate": "تاريخ البدء",
     "endDate": "تاريخ الانتهاء",
@@ -400,7 +398,6 @@
     "creatingAgreement": "جاري إنشاء الاتفاقية...",
     "createAgreement": "إنشاء اتفاقية",
     "vehicleReassignmentConfirmed": "تم تأكيد إعادة تخصيص المركبة",
-
     "checkingTemplateStatus": "التحقق من حالة القالب",
     "verifyingTemplate": "جاري التحقق من وجود قالب الاتفاقية القياسي...",
     "templateNotFound": "القالب غير موجود",
@@ -415,7 +412,6 @@
     "customerData": "بيانات العميل",
     "vehicleData": "بيانات المركبة",
     "agreementData": "بيانات الاتفاقية",
-
     "pendingPayments": "المدفوعات المعلقة",
     "pendingPaymentsWarning": "هناك مدفوعات معلقة لهذه الاتفاقية. يجب إقرار هذه المدفوعات قبل تخصيص المركبة لاتفاقية جديدة.",
     "payment": "دفعة",
@@ -426,7 +422,6 @@
     "acknowledgeTrafficFines": "أقرّ بوجود مخالفات مرورية معلقة لهذه المركبة",
     "vehicleAndAgreementDetails": "تفاصيل المركبة والاتفاقية",
     "proceedWithAssignment": "متابعة التخصيص",
-    
     "statuses": {
       "paid": "مدفوعة",
       "overdue": "متأخرة",
@@ -466,7 +461,7 @@
       "status": "الحالة",
       "scheduledDate": "تاريخ الجدولة",
       "completionDate": "تاريخ الإكمال",
-      "description": "الوص��",
+      "description": "الوصف",
       "cost": "التكلفة ($)",
       "serviceProvider": "مزود الخدمة",
       "invoiceNumber": "رقم الفاتورة",

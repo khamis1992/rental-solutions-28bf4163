@@ -66,8 +66,8 @@ const AddAgreement = () => {
 
   return (
     <PageContainer
-      title={pageTitle}
-      description={pageDescription}
+      title={pageTitle || t('agreements.add')}
+      description={pageDescription || t('agreements.description')}
       backLink="/agreements"
     >
       <AgreementFormWithVehicleCheck
