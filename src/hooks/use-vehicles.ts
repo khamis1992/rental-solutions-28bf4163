@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -45,7 +44,6 @@ export function mapDatabaseRecordToVehicle(record: any): Vehicle {
 export const useVehicles = () => {
   const queryClient = useQueryClient();
   
-  // Batch query function for efficient data loading
   const batchGetVehicles = async (vehicleIds: string[]): Promise<Record<string, Vehicle>> => {
     try {
       if (!vehicleIds.length) return {};
@@ -58,7 +56,9 @@ export const useVehicles = () => {
       if (error) throw error;
       
       return (data || []).reduce((acc, vehicle) => {
-        acc[vehicle.id] = mapDatabaseRecordToVehicle(vehicle);
+        if (vehicle && typeof vehicle === 'object' && 'id' in vehicle) {
+          acc[vehicle.id] = mapDatabaseRecordToVehicle(vehicle);
+        }
         return acc;
       }, {} as Record<string, Vehicle>);
     } catch (error) {
@@ -165,7 +165,6 @@ export const useVehicles = () => {
       });
     },
     
-    // New batch query hook for multiple vehicles
     useBatchVehicles: (vehicleIds: string[]) => {
       return useQuery({
         queryKey: ['vehicles', 'batch', vehicleIds],
@@ -190,7 +189,6 @@ export const useVehicles = () => {
               }
             }
 
-            // Convert the status from VehicleStatus to DatabaseVehicleStatus
             const dbStatus = mapToDBStatus(formData.status);
 
             const vehicleData: VehicleInsertData = {
@@ -215,7 +213,6 @@ export const useVehicles = () => {
           }
         },
         onSuccess: (data) => {
-          // Use the new cache manager to handle updates
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.setQueryData(['vehicles', data.id], 
             (oldData: any) => mapDatabaseRecordToVehicle(data)
@@ -244,7 +241,6 @@ export const useVehicles = () => {
               }
             }
 
-            // Convert the status from VehicleStatus to DatabaseVehicleStatus
             const dbStatus = mapToDBStatus(formData.status);
 
             const updateData: VehicleUpdateData = {
@@ -270,7 +266,6 @@ export const useVehicles = () => {
           }
         },
         onSuccess: (data, variables) => {
-          // Update both the list and individual vehicle caches
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.setQueryData(['vehicles', variables.id], 
             (oldData: any) => mapDatabaseRecordToVehicle(data)
@@ -301,11 +296,9 @@ export const useVehicles = () => {
           }
         },
         onSuccess: (deletedId) => {
-          // Update both the list and individual vehicle caches
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.removeQueries({ queryKey: ['vehicles', deletedId] });
           
-          // Also invalidate related entities
           queryClient.invalidateQueries({ queryKey: ['agreements'], exact: false });
           
           toast.success('Vehicle deleted successfully!');
@@ -335,11 +328,10 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        staleTime: 1000 * 60 * 10, // 10 minutes - types change less frequently
+        staleTime: 1000 * 60 * 10,
       });
     },
     
-    // This hook enables realtime updates via Supabase, which will invalidate our caches when data changes
     useRealtimeUpdates: () => {
       useEffect(() => {
         const channel = supabase
@@ -353,21 +345,16 @@ export const useVehicles = () => {
               (payload) => {
                 console.log('Vehicle change detected:', payload);
                 
-                // Only invalidate specific entity cache based on the changed record
                 if (payload.new && payload.new.id) {
                   const vehicleId = payload.new.id;
                   
-                  // On delete, remove from cache
                   if (payload.eventType === 'DELETE') {
                     queryClient.removeQueries({ queryKey: ['vehicles', vehicleId] });
-                  } 
-                  // On update or insert, invalidate individual record and list cache
-                  else {
+                  } else {
                     queryClient.invalidateQueries({ queryKey: ['vehicles', vehicleId] });
                     queryClient.invalidateQueries({ queryKey: ['vehicles'], exact: true });
                   }
                 } else {
-                  // If we can't identify the specific vehicle, invalidate all vehicle caches
                   queryClient.invalidateQueries({ queryKey: ['vehicles'] });
                 }
               })
@@ -379,7 +366,6 @@ export const useVehicles = () => {
       }, []);
     },
     
-    // Export the batch function directly for advanced use cases
     batchGetVehicles
   };
 };

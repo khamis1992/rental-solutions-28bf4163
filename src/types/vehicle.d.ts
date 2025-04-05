@@ -45,10 +45,6 @@ export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' 
 export type DatabaseVehicleStatus = 'available' | 'rented' | 'reserve' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
 // Export the rest of the vehicle types
-export type DatabaseVehicleStatus = "available" | "rented" | "reserve" | "maintenance" | "police_station" | "accident" | "stolen" | "retired";
-export type VehicleStatus = "available" | "rented" | "reserved" | "maintenance" | "police_station" | "accident" | "stolen" | "retired";
-export type VehicleSize = "compact" | "midsize" | "fullsize" | "suv" | "van" | "truck" | "luxury";
-
 export interface VehicleType {
   id: string;
   name: string;
