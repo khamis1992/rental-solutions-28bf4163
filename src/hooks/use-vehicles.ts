@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -355,7 +356,7 @@ export const useVehicles = () => {
               (payload) => {
                 console.log('Vehicle change detected:', payload);
                 
-                if (payload.new && payload.new.id) {
+                if (payload.new && typeof payload.new === 'object' && 'id' in payload.new && payload.new.id) {
                   const vehicleId = payload.new.id;
                   
                   if (payload.eventType === 'DELETE') {
