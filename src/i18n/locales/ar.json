@@ -427,7 +427,9 @@
       "paid": "مدفوعة",
       "overdue": "متأخرة",
       "pending": "معلقة"
-    }
+    },
+    "noPayments": "لم يتم العثور على مدفوعات",
+    "noPaymentsDesc": "لا توجد سجلات دفع لهذه الاتفاقية."
   },
   "maintenance": {
     "title": "الصيانة",
@@ -490,6 +492,25 @@
       "completed": "مكتملة",
       "inProgress": "قيد التنفيذ",
       "scheduled": "مجدولة"
+    }
+  },
+  "payments": {
+    "deletePayment": "حذف الدفعة",
+    "deleteConfirmation": "هل أنت متأكد من رغبتك في حذف هذه الدفعة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "history": "سجل الدفعات",
+    "recordPayment": "تسجيل دفعة",
+    "amount": "المبلغ",
+    "date": "تاريخ الدفع",
+    "method": "طريقة الدفع",
+    "reference": "رقم المرجع",
+    "notes": "ملاحظات",
+    "deleteSuccess": "تم حذف الدفعة بنجاح",
+    "deleteError": "فشل في حذف الدفعة",
+    "status": {
+      "paid": "مدفوعة",
+      "pending": "معلقة",
+      "overdue": "متأخرة",
+      "partial": "جزئية"
     }
   }
 }

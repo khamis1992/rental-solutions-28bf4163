@@ -32,7 +32,9 @@ export const translateText = async (
       text.startsWith('View details') ||
       text === 'Details' ||
       text === 'Agreement Details' ||
-      text === 'View agreement details'
+      text === 'View agreement details' ||
+      text === 'No payments found' ||
+      text === 'No payment records exist for this agreement.'
     ) {
       console.log(`Skipping translation for UI text that should come from locale files: "${text}"`);
       return text;

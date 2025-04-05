@@ -362,7 +362,6 @@
     },
     "recentActivity": "Recent Activity",
     "loading": "Loading agreements...",
-    
     "validations": {
       "agreementNumberRequired": "Agreement number is required",
       "customerRequired": "Customer is required",
@@ -372,7 +371,6 @@
       "totalAmountPositive": "Total amount must be positive",
       "dailyLateFeeNonNegative": "Daily late fee must be non-negative"
     },
-    
     "agreementNumber": "Agreement Number",
     "startDate": "Start Date",
     "endDate": "End Date",
@@ -401,7 +399,6 @@
     "creatingAgreement": "Creating Agreement...",
     "createAgreement": "Create Agreement",
     "vehicleReassignmentConfirmed": "Vehicle reassignment confirmed",
-    
     "checkingTemplateStatus": "Checking Template Status",
     "verifyingTemplate": "Verifying if the standard agreement template exists...",
     "templateNotFound": "Template Not Found",
@@ -416,7 +413,6 @@
     "customerData": "Customer Data",
     "vehicleData": "Vehicle Data",
     "agreementData": "Agreement Data",
-    
     "pendingPayments": "Pending Payments",
     "pendingPaymentsWarning": "There are pending payments for this agreement. These payments must be acknowledged before reassigning the vehicle.",
     "payment": "Payment",
@@ -427,7 +423,6 @@
     "acknowledgeTrafficFines": "I acknowledge there are pending traffic fines for this vehicle",
     "vehicleAndAgreementDetails": "Vehicle & Agreement Details",
     "proceedWithAssignment": "Proceed with Assignment",
-    
     "statuses": {
       "paid": "Paid",
       "overdue": "Overdue",

@@ -39,8 +39,6 @@ const AgreementDetailPage = () => {
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
   // Set page title and description directly from i18n translation files
-  // This ensures we're using the exact translations from our locale files 
-  // rather than sending them through an external translation service
   useEffect(() => {
     if (id) {
       console.log(`Setting page title and description for language: ${language}`);
@@ -82,13 +80,11 @@ const AgreementDetailPage = () => {
       if (data) {
         setAgreement(data);
       } else {
-        const message = t('agreements.notFound');
-        await handleError(message);
+        setError(t('agreements.notFound'));
       }
     } catch (err) {
       console.error("Error fetching agreement:", err);
-      const message = t('agreements.loadError');
-      await handleError(message);
+      setError(t('agreements.loadError'));
     } finally {
       setIsLoading(false);
       isRefreshing.current = false;
@@ -98,13 +94,6 @@ const AgreementDetailPage = () => {
   useEffect(() => {
     fetchAgreementData();
   }, [fetchAgreementData]);
-
-  const handleError = async (message: string) => {
-    // For error messages, we still use translateText to ensure they're in the right language
-    const { translateText } = useTranslation();
-    const translatedMessage = await translateText(message);
-    setError(translatedMessage);
-  };
 
   const handleDelete = useCallback(async (agreementId: string) => {
     try {
