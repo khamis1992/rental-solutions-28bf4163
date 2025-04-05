@@ -66,8 +66,12 @@ const AgreementDetailPage = () => {
     >
       {id ? (
         <AgreementDetail
-          id={id}
-          onError={(msg) => handleError(msg)}
+          agreement={null}
+          onDelete={() => {}}
+          rentAmount={null}
+          contractAmount={null}
+          onPaymentDeleted={() => {}}
+          onDataRefresh={() => {}}
         />
       ) : (
         <Alert variant="destructive">

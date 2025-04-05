@@ -49,6 +49,9 @@ const EditAgreement = () => {
             ...agreement,
             start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
             end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
+            // Convert string timestamps to Date objects
+            created_at: agreement.created_at ? new Date(agreement.created_at) : undefined,
+            updated_at: agreement.updated_at ? new Date(agreement.updated_at) : undefined,
             // Ensure status is of the correct type
             status: (agreement.status as "active" | "pending" | "draft" | "expired" | "cancelled" | "closed") || "draft"
           };
@@ -135,7 +138,6 @@ const EditAgreement = () => {
           onSubmit={handleUpdateAgreement}
           isSubmitting={isSubmitting}
           initialData={agreementData}
-          isEditing={true}
         />
       ) : (
         <div className="flex items-center justify-center p-6">
