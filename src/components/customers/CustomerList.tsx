@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel } from "@tanstack/react-table";
@@ -33,7 +32,6 @@ export function CustomerList() {
   const { isRTL } = useTranslation();
   const isMobile = useIsMobile();
   
-  // Initialize pagination with the usePagination hook
   const { 
     pagination, 
     setPage, 
@@ -44,7 +42,6 @@ export function CustomerList() {
     totalPages 
   } = usePagination({ initialPage: 1, initialPageSize: 10 });
   
-  // Fetch customers with pagination
   const {
     data,
     isLoading,
@@ -58,18 +55,16 @@ export function CustomerList() {
   const customers = data?.data || [];
   const totalCount = data?.count || 0;
   
-  // Setup infinite scrolling for mobile
   const { loadMoreRef, isFetchingMore } = useInfiniteScroll({
     fetchMore: async () => {
       nextPage();
-      return null; // Return a promise to satisfy the type
+      return null;
     },
     isLoading,
     hasMore: canNextPage,
     enabled: isMobile
   });
   
-  // Function to trigger customer status updates
   const handleUpdateCustomerStatuses = async () => {
     setIsUpdatingStatuses(true);
     try {
@@ -82,7 +77,6 @@ export function CustomerList() {
         });
       } else {
         toast.success(t('customers.statusUpdateSuccess'));
-        // Refresh customer list to show updated statuses
         refreshCustomers();
       }
     } catch (err) {
@@ -93,7 +87,6 @@ export function CustomerList() {
     }
   };
   
-  // Define table columns with proper typing
   const columns: ColumnDef<Customer>[] = [
     {
       accessorKey: "full_name",
@@ -137,7 +130,6 @@ export function CustomerList() {
       cell: ({ row }) => {
         const status = row.getValue("status") as string || 'active';
 
-        // Define badge styles based on status
         let badgeClass = "";
         let Icon = CheckCircle;
         switch (status) {
@@ -227,7 +219,6 @@ export function CustomerList() {
     }
   });
 
-  // Display an error message if there was an error fetching customers
   if (error) {
     return (
       <div className="p-4 bg-destructive/10 text-destructive rounded-md">
@@ -294,7 +285,6 @@ export function CustomerList() {
           </TableHeader>
           <TableBody>
             {isLoading && !isFetchingMore ? (
-              // Show skeleton loaders when loading
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
                   {Array.from({ length: columns.length }).map((_, j) => (
@@ -325,7 +315,6 @@ export function CustomerList() {
         </Table>
       </div>
       
-      {/* Desktop Pagination */}
       {!isMobile && customers.length > 0 && (
         <div className={`flex items-center ${isRTL ? "justify-start" : "justify-end"} space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
           <Pagination>
@@ -338,7 +327,6 @@ export function CustomerList() {
                 />
               </PaginationItem>
               
-              {/* First page */}
               {pagination.page > 2 && (
                 <PaginationItem>
                   <CustomPaginationLink onClick={() => setPage(1)}>
@@ -347,14 +335,12 @@ export function CustomerList() {
                 </PaginationItem>
               )}
               
-              {/* Ellipsis if needed */}
               {pagination.page > 3 && (
                 <PaginationItem>
                   <PaginationEllipsis />
                 </PaginationItem>
               )}
               
-              {/* Previous page if not first */}
               {pagination.page > 1 && (
                 <PaginationItem>
                   <CustomPaginationLink onClick={() => setPage(pagination.page - 1)}>
@@ -363,14 +349,12 @@ export function CustomerList() {
                 </PaginationItem>
               )}
               
-              {/* Current page */}
               <PaginationItem>
                 <CustomPaginationLink isActive onClick={() => setPage(pagination.page)}>
                   {pagination.page}
                 </CustomPaginationLink>
               </PaginationItem>
               
-              {/* Next page if not last */}
               {pagination.page < totalPages && (
                 <PaginationItem>
                   <CustomPaginationLink onClick={() => setPage(pagination.page + 1)}>
@@ -379,14 +363,12 @@ export function CustomerList() {
                 </PaginationItem>
               )}
               
-              {/* Ellipsis if needed */}
               {pagination.page < totalPages - 2 && (
                 <PaginationItem>
                   <PaginationEllipsis />
                 </PaginationItem>
               )}
               
-              {/* Last page if not current */}
               {pagination.page < totalPages - 1 && totalPages > 1 && (
                 <PaginationItem>
                   <CustomPaginationLink onClick={() => setPage(totalPages)}>
@@ -407,7 +389,6 @@ export function CustomerList() {
         </div>
       )}
       
-      {/* Mobile Infinite Scroll */}
       {isMobile && (
         <div ref={loadMoreRef} className="py-4 text-center">
           {isFetchingMore && (

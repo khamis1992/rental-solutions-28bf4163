@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '@/hooks/use-vehicles';
@@ -17,22 +16,21 @@ import { formatCurrency } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface VehicleDetailProps {
-  id: string;
-  onDelete?: (id: string) => void;
+  vehicle: Vehicle;
 }
 
-export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
+export function VehicleDetail({ vehicle, onDelete }: VehicleDetailProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
   // Fetch vehicle data
   const { useVehicle, useDeleteVehicle } = useVehicles();
-  const { data: vehicle, isLoading: isLoadingVehicle, error: vehicleError } = useVehicle(id);
+  const { data: vehicleData, isLoading: isLoadingVehicle, error: vehicleError } = useVehicle(vehicle.id);
   
   // Fetch vehicle agreements
   const { agreements, isLoading: isLoadingAgreements } = useAgreements({ 
-    vehicleId: id 
+    vehicleId: vehicle.id 
   });
   
   // Setup delete mutation
@@ -42,7 +40,7 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
     return <Card><CardContent className="pt-6"><Skeleton className="h-[400px] w-full" /></CardContent></Card>;
   }
   
-  if (vehicleError || !vehicle) {
+  if (vehicleError || !vehicleData) {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -59,15 +57,15 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
   }
   
   // Format vehicle name with make, model, and year
-  const vehicleName = `${vehicle.make} ${vehicle.model} (${vehicle.year})`;
+  const vehicleName = `${vehicleData.make} ${vehicleData.model} (${vehicleData.year})`;
   
   // Handler for delete confirmation
   const handleDelete = async () => {
     try {
-      await deleteVehicle.mutateAsync(id);
+      await deleteVehicle.mutateAsync(vehicle.id);
       setDeleteDialogOpen(false);
       if (onDelete) {
-        onDelete(id);
+        onDelete(vehicle.id);
       } else {
         // Navigate back to vehicles list
         navigate('/vehicles');
@@ -102,15 +100,15 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
         <div>
           <CardTitle className="text-2xl">{vehicleName}</CardTitle>
           <div className="flex flex-wrap gap-2 mt-2">
-            {getStatusBadge(vehicle.status || 'unknown')}
-            <Badge variant="outline">{vehicle.license_plate}</Badge>
-            {vehicle.vehicleType && (
-              <Badge variant="secondary">{vehicle.vehicleType.name}</Badge>
+            {getStatusBadge(vehicleData.status || 'unknown')}
+            <Badge variant="outline">{vehicleData.license_plate}</Badge>
+            {vehicleData.vehicleType && (
+              <Badge variant="secondary">{vehicleData.vehicleType.name}</Badge>
             )}
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => navigate(`/vehicles/edit/${id}`)}>
+          <Button variant="outline" size="sm" onClick={() => navigate(`/vehicles/edit/${vehicle.id}`)}>
             <Edit className="h-4 w-4 mr-2" /> Edit
           </Button>
           <Button variant="destructive" size="sm" onClick={() => setDeleteDialogOpen(true)}>
@@ -134,40 +132,40 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
                 <ul className="space-y-2">
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">Make:</span>
-                    <span className="font-medium">{vehicle.make}</span>
+                    <span className="font-medium">{vehicleData.make}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">Model:</span>
-                    <span className="font-medium">{vehicle.model}</span>
+                    <span className="font-medium">{vehicleData.model}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">Year:</span>
-                    <span className="font-medium">{vehicle.year}</span>
+                    <span className="font-medium">{vehicleData.year}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">VIN:</span>
-                    <span className="font-medium font-mono text-sm">{vehicle.vin}</span>
+                    <span className="font-medium font-mono text-sm">{vehicleData.vin}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">License Plate:</span>
-                    <span className="font-medium">{vehicle.license_plate}</span>
+                    <span className="font-medium">{vehicleData.license_plate}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">Color:</span>
-                    <span className="font-medium">{vehicle.color || 'N/A'}</span>
+                    <span className="font-medium">{vehicleData.color || 'N/A'}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">Mileage:</span>
-                    <span className="font-medium">{vehicle.mileage ? `${vehicle.mileage.toLocaleString()} km` : 'N/A'}</span>
+                    <span className="font-medium">{vehicleData.mileage ? `${vehicleData.mileage.toLocaleString()} km` : 'N/A'}</span>
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground w-28">Location:</span>
-                    <span className="font-medium">{vehicle.location || 'N/A'}</span>
+                    <span className="font-medium">{vehicleData.location || 'N/A'}</span>
                   </li>
-                  {vehicle.vehicleType && (
+                  {vehicleData.vehicleType && (
                     <li className="flex justify-between">
                       <span className="text-muted-foreground w-28">Daily Rate:</span>
-                      <span className="font-medium">{formatCurrency(vehicle.vehicleType.daily_rate || 0)}</span>
+                      <span className="font-medium">{formatCurrency(vehicleData.vehicleType.daily_rate || 0)}</span>
                     </li>
                   )}
                 </ul>
@@ -175,9 +173,9 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
               
               <div>
                 <div className="rounded-md border overflow-hidden aspect-video mb-4">
-                  {vehicle.image_url ? (
+                  {vehicleData.image_url ? (
                     <img 
-                      src={vehicle.image_url} 
+                      src={vehicleData.image_url} 
                       alt={vehicleName} 
                       className="w-full h-full object-cover"
                     />
@@ -193,11 +191,11 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
                   <div className="flex items-center">
                     <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
                     <span className="text-sm">
-                      Added on {format(new Date(vehicle.created_at), 'dd MMMM yyyy')}
+                      Added on {format(new Date(vehicleData.created_at), 'dd MMMM yyyy')}
                     </span>
                   </div>
                   
-                  {vehicle.status === 'rented' && (
+                  {vehicleData.status === 'rented' && (
                     <div className="flex items-center text-amber-600">
                       <Info className="h-4 w-4 mr-2" />
                       <span className="text-sm">
@@ -206,7 +204,7 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
                     </div>
                   )}
                   
-                  {vehicle.status === 'maintenance' && (
+                  {vehicleData.status === 'maintenance' && (
                     <div className="flex items-center text-orange-600">
                       <Wrench className="h-4 w-4 mr-2" />
                       <span className="text-sm">
@@ -227,7 +225,7 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
                     <div className="flex flex-col items-center">
                       <Gauge className="h-8 w-8 mb-2 text-blue-500" />
                       <span className="text-sm text-muted-foreground">Mileage</span>
-                      <span className="text-2xl font-bold">{vehicle.mileage ? vehicle.mileage.toLocaleString() : 'N/A'}</span>
+                      <span className="text-2xl font-bold">{vehicleData.mileage ? vehicleData.mileage.toLocaleString() : 'N/A'}</span>
                       <span className="text-sm text-muted-foreground">kilometers</span>
                     </div>
                   </CardContent>
@@ -238,10 +236,10 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
                     <div className="flex flex-col items-center">
                       <FileText className="h-8 w-8 mb-2 text-green-500" />
                       <span className="text-sm text-muted-foreground">Insurance</span>
-                      <span className="text-lg font-bold">{vehicle.insurance_company || 'N/A'}</span>
+                      <span className="text-lg font-bold">{vehicleData.insurance_company || 'N/A'}</span>
                       <span className="text-sm text-muted-foreground">
-                        {vehicle.insurance_expiry 
-                          ? `Expires: ${format(new Date(vehicle.insurance_expiry), 'dd/MM/yyyy')}` 
+                        {vehicleData.insurance_expiry 
+                          ? `Expires: ${format(new Date(vehicleData.insurance_expiry), 'dd/MM/yyyy')}` 
                           : 'No expiry date'}
                       </span>
                     </div>
@@ -322,7 +320,7 @@ export function VehicleDetail({ id, onDelete }: VehicleDetailProps) {
                 <Car className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
                 <h4 className="text-lg font-medium mb-2">No rental history found</h4>
                 <p className="text-muted-foreground mb-4">This vehicle hasn't been rented out yet.</p>
-                <Button onClick={() => navigate('/agreements/new', { state: { vehicleId: id } })}>
+                <Button onClick={() => navigate('/agreements/new', { state: { vehicleId: vehicle.id } })}>
                   Create New Agreement
                 </Button>
               </div>

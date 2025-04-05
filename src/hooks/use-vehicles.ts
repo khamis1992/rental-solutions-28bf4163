@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -7,13 +6,11 @@ import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 
-export function mapDatabaseRecordToVehicleInner(record: any): Vehicle {
-  // Ensure all required fields have default values
+export function mapDatabaseRecordToVehicle(record: any): Vehicle {
   if (!record.vin) record.vin = '';
   if (!record.created_at) record.created_at = new Date().toISOString();
   if (!record.updated_at) record.updated_at = new Date().toISOString();
   
-  // Fix for vehicle_types property
   const vehicleType = record.vehicle_types?.[0] || null;
   
   return {
@@ -33,7 +30,7 @@ export function mapDatabaseRecordToVehicleInner(record: any): Vehicle {
       size: vehicleType.size || 'standard',
       daily_rate: vehicleType.daily_rate || 0,
       is_active: vehicleType.is_active !== false,
-      features: [], // Adding default empty array
+      features: [],
       created_at: vehicleType.created_at || new Date().toISOString(),
       updated_at: vehicleType.updated_at || new Date().toISOString()
     } : null,
@@ -52,17 +49,13 @@ export const useVehicles = () => {
         queryKey: ['vehicles', filters],
         queryFn: async () => {
           try {
-            // Define the columns we need to select
             const columns = 'id, make, model, year, license_plate, vin, color, mileage, status, location, image_url, rent_amount, vehicle_type_id, created_at, updated_at';
             
-            // Start with the base query with specific columns
             let query = supabase
               .from('vehicles')
               .select(`${columns}, vehicle_types(id, name, description)`);
             
-            // Apply filters if provided
             if (filters) {
-              // Apply status filter, handling the reserved->reserve mapping
               if (filters.status) {
                 if (filters.status === 'reserved') {
                   query = query.eq('status', 'reserve');
@@ -71,7 +64,6 @@ export const useVehicles = () => {
                 }
               }
               
-              // Apply other filters
               if (filters.make) {
                 query = query.eq('make', filters.make);
               }
@@ -92,27 +84,24 @@ export const useVehicles = () => {
                 query = query.eq('year', filters.year);
               }
               
-              // Add search functionality across multiple fields
               if (filters.search) {
                 query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
               }
             }
             
-            // Execute the query and sort by creation date
             const { data, error } = await query.order('created_at', { ascending: false });
             
             if (error) {
               throw error;
             }
             
-            // Map the database records to our application model
-            return data.map(record => mapDatabaseRecordToVehicleInner(record));
+            return data.map(record => mapDatabaseRecordToVehicle(record));
           } catch (error) {
             handleApiError(error, 'Failed to fetch vehicles');
             throw error;
           }
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5,
       });
     },
     
@@ -142,13 +131,13 @@ export const useVehicles = () => {
               throw new Error(`Vehicle with ID ${id} not found`);
             }
             
-            return mapDatabaseRecordToVehicleInner(data);
+            return mapDatabaseRecordToVehicle(data);
           } catch (error) {
             handleApiError(error, `Failed to fetch vehicle with ID: ${id}`);
             throw error;
           }
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5,
       });
     },
     
@@ -156,11 +145,9 @@ export const useVehicles = () => {
       return useMutation({
         mutationFn: async (formData: VehicleFormData) => {
           try {
-            // Handle image upload if present
             let image_url = undefined;
             if (formData.image) {
-              // Using the correct type for uploadVehicleImage result
-              const uploadResult = await uploadVehicleImage(formData.image);
+              const uploadResult = await uploadVehicleImage(formData.image, "vehicle_images");
               if (uploadResult && typeof uploadResult === 'object' && 'error' in uploadResult && uploadResult.error) {
                 throw uploadResult.error;
               }
@@ -169,20 +156,17 @@ export const useVehicles = () => {
               }
             }
 
-            // Convert status if it's 'reserved' to match database
             let dbStatus = formData.status;
             if (dbStatus === 'reserved') {
-              dbStatus = 'reserve' as any;
+              dbStatus = 'reserve';
             }
 
-            // Create vehicle record with the image URL if uploaded
             const vehicleData: VehicleInsertData = {
               ...formData,
               status: dbStatus,
               image_url,
             };
             
-            // Remove the image property as it's not part of the database schema
             delete (vehicleData as any).image;
 
             const { data, error } = await supabase
@@ -199,7 +183,6 @@ export const useVehicles = () => {
           }
         },
         onSuccess: () => {
-          // Invalidate vehicle cache to trigger refetch
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           toast.success('Vehicle created successfully!');
         },
@@ -214,11 +197,9 @@ export const useVehicles = () => {
       return useMutation({
         mutationFn: async ({ id, formData }: { id: string, formData: VehicleFormData }) => {
           try {
-            // Handle image upload if present
             let image_url = undefined;
             if (formData.image) {
-              // Using the correct type for uploadVehicleImage result
-              const uploadResult = await uploadVehicleImage(formData.image);
+              const uploadResult = await uploadVehicleImage(formData.image, "vehicle_images");
               if (uploadResult && typeof uploadResult === 'object' && 'error' in uploadResult && uploadResult.error) {
                 throw uploadResult.error;
               }
@@ -227,20 +208,17 @@ export const useVehicles = () => {
               }
             }
 
-            // Convert status if it's 'reserved' to match database
             let dbStatus = formData.status;
             if (dbStatus === 'reserved') {
-              dbStatus = 'reserve' as any;
+              dbStatus = 'reserve';
             }
 
-            // Create update data with the image URL if uploaded
             const updateData: VehicleUpdateData = {
               ...formData,
               status: dbStatus,
-              ...(image_url ? { image_url } : {}), // Only include if we have a new image
+              ...(image_url ? { image_url } : {}),
             };
             
-            // Remove the image property as it's not part of the database schema
             delete (updateData as any).image;
 
             const { data, error } = await supabase
@@ -258,7 +236,6 @@ export const useVehicles = () => {
           }
         },
         onSuccess: () => {
-          // Invalidate vehicle cache to trigger refetch
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           toast.success('Vehicle updated successfully!');
         },
@@ -286,7 +263,6 @@ export const useVehicles = () => {
           }
         },
         onSuccess: (deletedId) => {
-          // Invalidate vehicle cache to trigger refetch
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.removeQueries({ queryKey: ['vehicles', deletedId] });
           toast.success('Vehicle deleted successfully!');
@@ -316,7 +292,7 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        staleTime: 1000 * 60 * 10, // 10 minutes
+        staleTime: 1000 * 60 * 10,
       });
     },
     

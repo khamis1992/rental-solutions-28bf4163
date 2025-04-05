@@ -23,7 +23,7 @@ export const useVehiclesPagination = (pagination: PaginationState, filters?: Veh
       model: record.model, 
       year: record.year,
       license_plate: record.license_plate,
-      vin: "", // Providing default values for required fields
+      vin: record.vin || "", // Providing default values for required fields
       status: record.status,
       image_url: record.image_url,
       location: record.location,
@@ -35,7 +35,7 @@ export const useVehiclesPagination = (pagination: PaginationState, filters?: Veh
         size: vehicleType.size || 'standard',
         daily_rate: vehicleType.daily_rate || 0,
         is_active: true,
-        features: [], // Adding default empty array
+        features: [], 
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       } : null,
@@ -93,8 +93,7 @@ export const useVehiclesPagination = (pagination: PaginationState, filters?: Veh
         throw err;
       }
     },
-    keepPreviousData: true,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    placeholderData: (prev) => prev
   });
 
   useEffect(() => {
@@ -109,3 +108,6 @@ export const useVehiclesPagination = (pagination: PaginationState, filters?: Veh
     pageCount,
   };
 };
+
+// Export the same function with a different name for backward compatibility
+export const useVehiclesList = useVehiclesPagination;

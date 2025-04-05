@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
-import { useVehiclesList } from '@/hooks/use-vehicles-pagination';
+import { useVehiclesPagination } from '@/hooks/use-vehicles-pagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -23,7 +22,6 @@ export function VehicleGrid() {
   const { isRTL } = useTranslation();
   const isMobile = useIsMobile();
 
-  // Initialize pagination with the usePagination hook
   const { 
     pagination, 
     setPage, 
@@ -34,18 +32,16 @@ export function VehicleGrid() {
     totalPages 
   } = usePagination({ initialPage: 1, initialPageSize: 12 });
   
-  // Create filters object for the API call
   const filters: VehicleFilterParams = {
     status: statusFilter !== 'all' ? statusFilter as any : undefined,
     search: searchQuery || undefined
   };
   
-  // Fetch vehicles with pagination
   const { 
     data,
     isLoading,
     error
-  } = useVehiclesList({
+  } = useVehiclesPagination({
     filters,
     pagination
   });
@@ -53,11 +49,10 @@ export function VehicleGrid() {
   const vehicles = data?.data || [];
   const totalCount = data?.count || 0;
   
-  // Setup infinite scrolling for mobile
   const { loadMoreRef, isFetchingMore } = useInfiniteScroll({
     fetchMore: async () => {
       nextPage();
-      return null; // Return a promise to satisfy the type
+      return null;
     },
     isLoading,
     hasMore: canNextPage,
@@ -165,7 +160,6 @@ export function VehicleGrid() {
             ))}
           </div>
           
-          {/* No vehicles message */}
           {vehicles.length === 0 && !isLoading && (
             <div className="text-center py-12 border rounded-lg bg-muted/10">
               <h3 className="text-lg font-medium mb-2">No vehicles found</h3>
@@ -187,7 +181,6 @@ export function VehicleGrid() {
             </div>
           )}
           
-          {/* Desktop Pagination */}
           {!isMobile && vehicles.length > 0 && (
             <div className={`flex items-center ${isRTL ? "justify-start" : "justify-end"} space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
               <Pagination>
@@ -200,7 +193,6 @@ export function VehicleGrid() {
                     />
                   </PaginationItem>
                   
-                  {/* First page */}
                   {pagination.page > 2 && (
                     <PaginationItem>
                       <CustomPaginationLink onClick={() => setPage(1)}>
@@ -209,14 +201,12 @@ export function VehicleGrid() {
                     </PaginationItem>
                   )}
                   
-                  {/* Ellipsis if needed */}
                   {pagination.page > 3 && (
                     <PaginationItem>
                       <PaginationEllipsis />
                     </PaginationItem>
                   )}
                   
-                  {/* Previous page if not first */}
                   {pagination.page > 1 && (
                     <PaginationItem>
                       <CustomPaginationLink onClick={() => setPage(pagination.page - 1)}>
@@ -225,14 +215,12 @@ export function VehicleGrid() {
                     </PaginationItem>
                   )}
                   
-                  {/* Current page */}
                   <PaginationItem>
                     <CustomPaginationLink isActive onClick={() => setPage(pagination.page)}>
                       {pagination.page}
                     </CustomPaginationLink>
                   </PaginationItem>
                   
-                  {/* Next page if not last */}
                   {pagination.page < totalPages && (
                     <PaginationItem>
                       <CustomPaginationLink onClick={() => setPage(pagination.page + 1)}>
@@ -241,14 +229,12 @@ export function VehicleGrid() {
                     </PaginationItem>
                   )}
                   
-                  {/* Ellipsis if needed */}
                   {pagination.page < totalPages - 2 && (
                     <PaginationItem>
                       <PaginationEllipsis />
                     </PaginationItem>
                   )}
                   
-                  {/* Last page if not current and we have multiple pages */}
                   {pagination.page < totalPages - 1 && totalPages > 1 && (
                     <PaginationItem>
                       <CustomPaginationLink onClick={() => setPage(totalPages)}>
@@ -269,7 +255,6 @@ export function VehicleGrid() {
             </div>
           )}
           
-          {/* Mobile Infinite Scroll */}
           {isMobile && canNextPage && (
             <div ref={loadMoreRef} className="py-4 text-center">
               {isFetchingMore ? (
@@ -285,3 +270,5 @@ export function VehicleGrid() {
     </div>
   );
 }
+
+export { VehicleGrid };

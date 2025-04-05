@@ -2,18 +2,18 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-const CustomerReport = () => {
+const VehicleReport = () => {
   return (
     <Card className="mb-4">
       <CardHeader>
-        <CardTitle>Customer Report</CardTitle>
-        <CardDescription>View statistical data about your customers</CardDescription>
+        <CardTitle>Vehicle Report</CardTitle>
+        <CardDescription>View statistical data about your vehicle fleet</CardDescription>
       </CardHeader>
       <CardContent>
-        <p>Customer report content will be implemented here.</p>
+        <p>Vehicle report content will be implemented here.</p>
       </CardContent>
     </Card>
   );
 };
 
-export default CustomerReport;
+export default VehicleReport;
