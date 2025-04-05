@@ -1,7 +1,7 @@
 
 /* RTL Specific Chart Styles */
 [dir="rtl"] .recharts-wrapper .recharts-cartesian-axis-tick-value {
-  text-anchor: end;
+  text-anchor: start;
 }
 
 [dir="rtl"] .rtl-tabs {
@@ -16,79 +16,4 @@
 [dir="rtl"] .recharts-legend-item-text {
   margin-right: 4px;
   margin-left: 0;
-}
-
-[dir="rtl"] .recharts-wrapper {
-  direction: ltr; /* Keep charts in LTR mode for correct data display */
-}
-
-[dir="rtl"] .recharts-tooltip-wrapper {
-  direction: rtl;
-}
-
-/* Fix for RTL text values in charts */
-[dir="rtl"] .recharts-text.recharts-cartesian-axis-tick-value {
-  text-anchor: end;
-}
-
-/* Fix for RTL legend items */
-[dir="rtl"] .recharts-legend-item {
-  padding-left: 0;
-  padding-right: 14px;
-}
-
-[dir="rtl"] .recharts-legend-item-text {
-  margin-left: 0;
-  margin-right: 4px;
-}
-
-/* Fix for tab panels in RTL mode */
-[dir="rtl"] .rtl-tabs [role="tabpanel"] {
-  direction: rtl;
-}
-
-/* Responsive table fixes for RTL */
-[dir="rtl"] table th:first-child,
-[dir="rtl"] table td:first-child {
-  text-align: right;
-}
-
-[dir="rtl"] table th:last-child,
-[dir="rtl"] table td:last-child {
-  text-align: left;
-}
-
-/* Fix for RTL alignment in form components */
-[dir="rtl"] .form-group label {
-  display: block;
-  text-align: right;
-}
-
-[dir="rtl"] .form-control {
-  text-align: right;
-}
-
-/* Financial cards RTL fixes */
-[dir="rtl"] .card-header {
-  text-align: right;
-}
-
-[dir="rtl"] .card-content {
-  text-align: right;
-}
-
-/* Fix dropdown alignment in RTL mode */
-[dir="rtl"] .dropdown-menu {
-  left: auto;
-  right: 0;
-}
-
-/* RTL dashboard card adjustments */
-[dir="rtl"] .traffic-fine-stat-card {
-  direction: rtl;
-}
-
-/* Fix for RTL dropdown menus positioning */
-[dir="rtl"] .dropdown-menu-align-end {
-  transform-origin: top right;
 }
