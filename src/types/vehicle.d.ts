@@ -1,7 +1,6 @@
 
 
 
-
 export type VehicleSize = 'compact' | 'midsize' | 'fullsize' | 'suv' | 'van' | 'luxury';
 
 export interface DatabaseVehicleType {
