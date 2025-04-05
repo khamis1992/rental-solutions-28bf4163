@@ -1,248 +1,178 @@
 
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useState } from 'react';
 import { toast } from 'sonner';
+import { SimpleAgreement } from '@/types/agreement';
 
-// Define the SimpleAgreement interface that was referenced but not defined
-export interface SimpleAgreement {
-  id: string;
-  agreement_number: string;
-  customer_id?: string;
-  vehicle_id?: string;
-  start_date: string | Date;
-  end_date: string | Date;
-  status: string;
-  total_amount: number;
-  created_at?: string | Date;
-  updated_at?: string | Date;
-  total_cost?: number;
-  rent_amount?: number;
-  deposit_amount?: number;
-  daily_late_fee?: number;
-  notes?: string;
-  terms_accepted?: boolean;
-  vehicle?: {
-    id: string;
-    make: string;
-    model: string;
-    license_plate: string;
-    color?: string;
-    year?: number;
-    vin?: string;
-  };
-  vehicles?: {
-    id: string;
-    make: string;
-    model: string;
-    license_plate: string;
-    color?: string;
-    year?: number;
-    vin?: string;
-  };
-  customer?: {
-    id: string;
-    full_name: string;
-    email?: string;
-    phone_number?: string;
-  };
-  customers?: {
-    id: string;
-    full_name: string;
-    email?: string;
-    phone_number?: string;
-  };
-}
-
-export const useAgreements = (options: {
+interface UseAgreementsOptions {
   customerId?: string;
   vehicleId?: string;
   page?: number;
   pageSize?: number;
   columns?: string;
-  status?: string; // Added status parameter
-  query?: string; // Added query parameter
-} = {}) => {
+  status?: string;
+  query?: string;
+}
+
+export const useAgreements = (options: UseAgreementsOptions = {}) => {
   const queryClient = useQueryClient();
-  const { customerId, vehicleId, page = 1, pageSize = 10, columns, status, query } = options;
-  const [searchParams, setSearchParams] = useState({ status: 'all', query: '' });
+  const [searchParams, setSearchParams] = useState({ 
+    status: options.status || 'all',
+    query: options.query || ''
+  });
 
-  // Calculate pagination range
-  const from = (page - 1) * pageSize;
-  const to = from + pageSize - 1;
-
-  // Create a cache key that includes pagination and filter parameters
-  const cacheKey = ['agreements', customerId, vehicleId, page, pageSize, searchParams.status, searchParams.query];
-  
-  // Default columns to select if not specified - optimized to select only what's needed
-  const defaultColumns = 'id,agreement_number,customer_id,vehicle_id,start_date,end_date,status,total_amount,created_at,updated_at';
-  const vehicleColumns = 'id,make,model,license_plate';
-  const selectColumns = columns || `${defaultColumns},vehicle:vehicle_id(${vehicleColumns})`;
-  
-  const {
-    data: agreements,
-    isLoading,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: cacheKey,
+  // Fetch agreements with optional filtering
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['agreements', options, searchParams],
     queryFn: async () => {
-      console.log(`Fetching agreements - page ${page}, pageSize ${pageSize}`);
-      console.log(`Selected columns: ${selectColumns}`);
-
       try {
+        console.log('Fetching agreements with options:', { ...options, ...searchParams });
+
+        // Set up the base query
+        const { customerId, vehicleId, page = 1, pageSize = 10 } = options;
+        const offset = (page - 1) * pageSize;
+        
+        // Select columns or use default
+        const selectColumns = options.columns || '*, customers:profiles(*), vehicles(*)';
+
         let query = supabase
-          .from('agreements')
+          .from('leases')
           .select(selectColumns)
-          .range(from, to)
+          .range(offset, offset + pageSize - 1)
           .order('created_at', { ascending: false });
 
+        // Apply filters
         if (customerId) {
           query = query.eq('customer_id', customerId);
         }
-
+        
         if (vehicleId) {
           query = query.eq('vehicle_id', vehicleId);
         }
-        
-        // Add status filtering if provided
+
+        // Apply status filter if not 'all'
         if (searchParams.status && searchParams.status !== 'all') {
           query = query.eq('status', searchParams.status);
         }
-        
-        // Add search query filtering if provided
+
+        // Apply search query if provided
         if (searchParams.query) {
           query = query.or(`agreement_number.ilike.%${searchParams.query}%`);
         }
 
-        const { data, error } = await query;
+        const { data: agreements, error } = await query;
 
         if (error) {
-          console.error('Error fetching agreements:', error);
           throw error;
         }
 
-        return data || [];
+        return agreements as SimpleAgreement[];
       } catch (error) {
-        console.error('Unexpected error in agreements fetch:', error);
-        return [];
+        console.error('Error fetching agreements:', error);
+        throw error;
       }
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes cache time for better performance
-    refetchOnWindowFocus: false // Disable automatic refetching when window regains focus
+    staleTime: 5 * 60 * 1000 // 5 minutes
   });
 
-  // Get a single agreement by ID with optimized column selection
+  // Get a single agreement by ID
   const getAgreement = async (id: string, selectColumns?: string) => {
     try {
-      // Define default columns with just essential data
-      const defaultDetailColumns = 'id,agreement_number,customer_id,vehicle_id,start_date,end_date,status,total_amount,created_at,updated_at';
-      const customerColumns = 'id,full_name,email,phone_number';
-      const vehicleColumns = 'id,make,model,license_plate,color,year,vin';
-      
-      // Use provided columns or default to our optimized selection
-      const columns = selectColumns || 
-        `${defaultDetailColumns},vehicle:vehicle_id(${vehicleColumns}),customer:customer_id(${customerColumns})`;
-      
-      // Check cache first for better performance
-      const cachedAgreement = queryClient.getQueryData(['agreement', id]);
-      if (cachedAgreement) {
-        return cachedAgreement;
-      }
+      const columns = selectColumns || '*, customers:profiles(*), vehicles(*)';
       
       const { data, error } = await supabase
-        .from('agreements')
+        .from('leases')
         .select(columns)
         .eq('id', id)
         .single();
-
+        
       if (error) {
-        console.error('Error fetching agreement:', error);
         throw error;
       }
-
-      // Cache the result
-      queryClient.setQueryData(['agreement', id], data);
       
-      return data;
+      return data as SimpleAgreement;
     } catch (error) {
-      console.error('Error in getAgreement:', error);
-      return null;
+      console.error('Error fetching agreement:', error);
+      throw error;
     }
   };
 
+  // Create a new agreement
   const createAgreement = useMutation({
     mutationFn: async (newAgreement: any) => {
       const { data, error } = await supabase
-        .from('agreements')
-        .insert([newAgreement])
-        .select()
-        .single();
-
+        .from('leases')
+        .insert(newAgreement)
+        .select();
+        
       if (error) {
-        console.error('Error creating agreement:', error);
         throw error;
       }
-
-      return data;
+      
+      return data[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
       toast.success('Agreement created successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to create agreement', { description: error.message });
-    },
+    onError: (error) => {
+      console.error('Error creating agreement:', error);
+      toast.error(`Failed to create agreement: ${error.message}`);
+    }
   });
 
+  // Update an existing agreement
   const updateAgreement = useMutation({
-    mutationFn: async (agreement: any) => {
-      const { data, error } = await supabase
-        .from('agreements')
-        .update(agreement)
-        .eq('id', agreement.id)
-        .select()
-        .single();
-
+    mutationFn: async ({ id, data }: { id: string; data: Partial<SimpleAgreement> }) => {
+      const { data: updatedData, error } = await supabase
+        .from('leases')
+        .update(data)
+        .eq('id', id)
+        .select();
+        
       if (error) {
-        console.error('Error updating agreement:', error);
         throw error;
       }
-
-      return data;
+      
+      return updatedData[0];
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
       toast.success('Agreement updated successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to update agreement', { description: error.message });
-    },
+    onError: (error) => {
+      console.error('Error updating agreement:', error);
+      toast.error(`Failed to update agreement: ${error.message}`);
+    }
   });
 
+  // Delete an agreement
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from('agreements')
+        .from('leases')
         .delete()
         .eq('id', id);
-
+        
       if (error) {
-        console.error('Error deleting agreement:', error);
         throw error;
       }
+      
+      return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
       toast.success('Agreement deleted successfully');
     },
-    onError: (error: any) => {
-      toast.error('Failed to delete agreement', { description: error.message });
-    },
+    onError: (error) => {
+      console.error('Error deleting agreement:', error);
+      toast.error(`Failed to delete agreement: ${error.message}`);
+    }
   });
 
   return {
-    agreements,
+    agreements: data || [],
     isLoading,
     error,
     refetch,

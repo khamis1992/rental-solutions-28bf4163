@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel, RowSelectionState } from "@tanstack/react-table";
@@ -8,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAgreements } from '@/hooks/use-agreements';
-import { AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { SimpleAgreement } from '@/types/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,9 +21,19 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { CustomPaginationLink } from '@/components/ui/custom-pagination-link';
 
 interface AgreementListProps {
   searchQuery?: string;
+}
+
+// Define enum for agreement status
+export enum AgreementStatus {
+  ACTIVE = 'ACTIVE',
+  DRAFT = 'DRAFT',
+  PENDING = 'PENDING',
+  EXPIRED = 'EXPIRED',
+  CANCELLED = 'CANCELLED'
 }
 
 export function AgreementList({
@@ -88,7 +99,13 @@ export function AgreementList({
   const handleBulkDelete = async () => {
     if (!agreements || agreements.length === 0) return;
     setIsDeleting(true);
-    const selectedIds = Object.keys(rowSelection).map(index => agreements[parseInt(index)]?.id as string).filter(Boolean);
+    const selectedIds = Object.keys(rowSelection)
+      .map(index => {
+        const agreement = agreements[parseInt(index)];
+        return agreement && 'id' in agreement ? agreement.id as string : null;
+      })
+      .filter(Boolean) as string[];
+      
     console.log("Selected IDs for deletion:", selectedIds);
     let successCount = 0;
     let errorCount = 0;
@@ -126,7 +143,7 @@ export function AgreementList({
     }
   };
 
-  const columns: ColumnDef<any>[] = [{
+  const columns: ColumnDef<SimpleAgreement>[] = [{
     id: "select",
     header: ({ table }) => (
       <Checkbox 
@@ -287,7 +304,7 @@ export function AgreementList({
   }, {}) : {};
 
   const table = useReactTable({
-    data: agreements || [],
+    data: agreements,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -331,7 +348,9 @@ export function AgreementList({
               Delete ({selectedCount})
             </Button>}
           <Button asChild>
-            
+            <Link to="/agreements/new">
+              <FilePlus className="h-4 w-4 mr-2" /> New Agreement
+            </Link>
           </Button>
         </div>
       </div>
@@ -394,25 +413,33 @@ export function AgreementList({
       {agreements && agreements.length > 0 && <Pagination>
           <PaginationContent>
             <PaginationItem>
-              <Button variant="outline" size="default" className="gap-1 pl-2.5" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Go to previous page">
+              <CustomPaginationLink 
+                onClick={() => table.previousPage()} 
+                disabled={!table.getCanPreviousPage()} 
+                className="gap-1 pl-2.5"
+              >
                 <ChevronLeft className="h-4 w-4" />
                 <span>Previous</span>
-              </Button>
+              </CustomPaginationLink>
             </PaginationItem>
             
             {Array.from({
           length: table.getPageCount()
         }).map((_, index) => <PaginationItem key={index}>
-                <PaginationLink isActive={table.getState().pagination.pageIndex === index} onClick={() => table.setPageIndex(index)}>
+                <CustomPaginationLink isActive={table.getState().pagination.pageIndex === index} onClick={() => table.setPageIndex(index)}>
                   {index + 1}
-                </PaginationLink>
+                </CustomPaginationLink>
               </PaginationItem>).slice(Math.max(0, table.getState().pagination.pageIndex - 1), Math.min(table.getPageCount(), table.getState().pagination.pageIndex + 3))}
             
             <PaginationItem>
-              <Button variant="outline" size="default" className="gap-1 pr-2.5" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Go to next page">
+              <CustomPaginationLink 
+                onClick={() => table.nextPage()} 
+                disabled={!table.getCanNextPage()} 
+                className="gap-1 pr-2.5"
+              >
                 <span>Next</span>
                 <ChevronRight className="h-4 w-4" />
-              </Button>
+              </CustomPaginationLink>
             </PaginationItem>
           </PaginationContent>
         </Pagination>}

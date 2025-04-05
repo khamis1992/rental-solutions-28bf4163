@@ -1,173 +1,74 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import AgreementFormWithVehicleCheck from '@/components/agreements/AgreementFormWithVehicleCheck';
-import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
-import type { Agreement } from '@/lib/validation-schemas/agreement';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from 'sonner';
+import { SimpleAgreement } from '@/types/agreement';
 
-const EditAgreement = () => {
-  const { id } = useParams();
+export default function EditAgreement() {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [initialValues, setInitialValues] = useState<SimpleAgreement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
   const { getAgreement, updateAgreement } = useAgreements();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [agreementData, setAgreementData] = useState<Agreement | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { t } = useI18nTranslation();
-  const { translateText } = useTranslation();
-  const [pageTitle, setPageTitle] = useState('');
-  const [pageDescription, setPageDescription] = useState('');
 
+  // Load agreement data
   useEffect(() => {
-    const loadTranslations = async () => {
-      const title = await translateText(t('agreements.edit'));
-      const description = await translateText(t('agreements.description'));
-      
-      setPageTitle(title);
-      setPageDescription(description);
-    };
-    
-    loadTranslations();
-  }, [t, translateText]);
-  
-  useEffect(() => {
-    const fetchAgreement = async () => {
+    async function loadAgreement() {
       if (!id) return;
-      
+
       try {
+        setIsLoading(true);
         const agreement = await getAgreement(id);
-        if (agreement) {
-          const processedAgreement: Agreement = {
-            ...agreement,
-            start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
-            end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
-            created_at: agreement.created_at ? new Date(agreement.created_at) : undefined,
-            updated_at: agreement.updated_at ? new Date(agreement.updated_at) : undefined,
-            status: (agreement.status as "active" | "pending" | "draft" | "expired" | "cancelled" | "closed") || "draft"
-          };
-          setAgreementData(processedAgreement);
-        } else {
-          const translatedError = await translateText(t('agreements.notFound'));
-          setError(translatedError);
-        }
-      } catch (err) {
-        console.error('Error fetching agreement:', err);
-        const translatedError = await translateText(t('agreements.loadError'));
-        setError(translatedError);
-      }
-    };
-    
-    fetchAgreement();
-  }, [id, getAgreement, t, translateText]);
-
-  const handleUpdateAgreement = async (data: Agreement) => {
-    if (!id) return;
-    
-    try {
-      setIsSubmitting(true);
-      
-      const formattedData = {
-        ...data,
-        id,
-        start_date: data.start_date instanceof Date 
-          ? data.start_date.toISOString() 
-          : data.start_date,
-        end_date: data.end_date instanceof Date 
-          ? data.end_date.toISOString() 
-          : data.end_date
-      };
-      
-      await updateAgreement.mutateAsync({
-        id,
-        data: formattedData
-      });
-      
-      const successMessage = await translateText(t('common.success'));
-      toast.success(successMessage);
-      
-      navigate(`/agreements/${id}`);
-    } catch (err) {
-      console.error('Error updating agreement:', err);
-      
-      const errorMessage = await translateText(t('common.error'));
-      toast.error(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const initialData = useMemo(() => {
-    if (!agreementData) return {};
-    const data: Record<string, any> = {};
-    
-    if (agreementData && typeof agreementData === 'object') {
-      Object.entries(agreementData).forEach(([key, value]) => {
-        data[key] = value;
-      });
-
-      if ('start_date' in agreementData) {
-        data.start_date = agreementData.start_date ? new Date(agreementData.start_date) : null;
-      }
-      if ('end_date' in agreementData) {
-        data.end_date = agreementData.end_date ? new Date(agreementData.end_date) : null;
-      }
-      if ('created_at' in agreementData) {
-        data.created_at = agreementData.created_at ? new Date(agreementData.created_at) : null;
-      }
-      if ('updated_at' in agreementData) {
-        data.updated_at = agreementData.updated_at ? new Date(agreementData.updated_at) : null;
-      }
-      if ('status' in agreementData) {
-        data.status = agreementData.status || 'draft';
+        setInitialValues(agreement);
+      } catch (error) {
+        console.error('Error loading agreement:', error);
+        toast.error('Failed to load agreement details');
+      } finally {
+        setIsLoading(false);
       }
     }
-    
-    return data;
-  }, [agreementData]);
 
-  if (error) {
+    loadAgreement();
+  }, [id, getAgreement]);
+
+  if (isLoading) {
+    return <Skeleton className="h-[600px] w-full" />;
+  }
+
+  // If the agreement doesn't exist, show an error
+  if (!initialValues) {
     return (
-      <PageContainer
-        title={pageTitle || t('agreements.edit')}
-        description={pageDescription || t('agreements.description')}
-        backLink="/agreements"
-      >
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t('agreements.notFound')}</AlertTitle>
-          <AlertDescription>{t('agreements.notFoundDesc')}</AlertDescription>
-        </Alert>
-        <Button onClick={() => navigate('/agreements')}>
-          {t('agreements.returnToAgreements')}
-        </Button>
-      </PageContainer>
+      <div className="p-4 bg-destructive/10 text-destructive rounded-md">
+        <h3 className="font-bold text-lg">Agreement Not Found</h3>
+        <p>The agreement you're trying to edit doesn't exist or has been deleted.</p>
+      </div>
     );
   }
 
-  return (
-    <PageContainer
-      title={pageTitle || t('agreements.edit')}
-      description={pageDescription || t('agreements.description')}
-      backLink={id ? `/agreements/${id}` : '/agreements'}
-    >
-      {agreementData ? (
-        <AgreementFormWithVehicleCheck
-          onSubmit={handleUpdateAgreement}
-          isSubmitting={isSubmitting}
-          initialData={initialData}
-        />
-      ) : (
-        <div className="flex items-center justify-center p-6">
-          <div className="animate-pulse">{t('common.loading')}</div>
-        </div>
-      )}
-    </PageContainer>
-  );
-};
+  // Format dates for form consumption
+  const formattedAgreement = {
+    ...initialValues,
+    start_date: initialValues.start_date ? new Date(initialValues.start_date) : new Date(),
+    end_date: initialValues.end_date ? new Date(initialValues.end_date) : new Date(),
+    // Include other date fields if needed
+    created_at: initialValues.created_at ? new Date(initialValues.created_at) : new Date(),
+    updated_at: initialValues.updated_at ? new Date(initialValues.updated_at) : new Date(),
+    status: initialValues.status || 'DRAFT'
+  };
 
-export default EditAgreement;
+  return (
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Edit Agreement</h1>
+
+      {/* Temporarily disabled - waiting for AgreementForm implementation */}
+      <div className="text-center py-12 border rounded-lg bg-muted/10">
+        <h4 className="text-lg font-medium mb-2">Agreement Editor Under Construction</h4>
+        <p className="text-muted-foreground mb-4">The agreement editing functionality is being implemented.</p>
+        <p>Agreement Number: {initialValues.agreement_number}</p>
+      </div>
+    </div>
+  );
+}

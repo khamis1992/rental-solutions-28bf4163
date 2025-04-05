@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -8,14 +9,20 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDate } from '@/lib/date-utils';
 import { useAgreements } from '@/hooks/use-agreements';
+import { SimpleAgreement } from '@/types/agreement';
 import React from 'react';
 
 interface AgreementHistorySectionProps {
   customerId: string;
 }
 
+interface AgreementTableRowProps {
+  agreement: SimpleAgreement;
+  t: (key: string, options?: any) => string;
+}
+
 // Memoizing the TableRow component for better performance
-const AgreementTableRow = React.memo(({ agreement, t }: { agreement: any, t: any }) => {
+const AgreementTableRow = React.memo(({ agreement, t }: AgreementTableRowProps) => {
   // Memoize the badge variant calculation
   const badgeVariant = useMemo(() => {
     return agreement.status === 'ACTIVE' ? 'success' :
@@ -33,6 +40,10 @@ const AgreementTableRow = React.memo(({ agreement, t }: { agreement: any, t: any
         {agreement.vehicle ? (
           <span>
             {agreement.vehicle.make} {agreement.vehicle.model} ({agreement.vehicle.license_plate})
+          </span>
+        ) : agreement.vehicles ? (
+          <span>
+            {agreement.vehicles.make} {agreement.vehicles.model} ({agreement.vehicles.license_plate})
           </span>
         ) : (
           t('vehicles.unknown')
@@ -71,7 +82,7 @@ export const AgreementHistorySection = React.memo(({ customerId }: AgreementHist
     customerId,
     page,
     pageSize,
-    columns: 'id,agreement_number,vehicle(make,model,license_plate),start_date,end_date,status,total_amount'
+    columns: 'id,agreement_number,vehicles(*),start_date,end_date,status,total_amount'
   });
   
   // Memoize the empty state message
@@ -120,7 +131,7 @@ export const AgreementHistorySection = React.memo(({ customerId }: AgreementHist
           <TableBody>
             {isLoadingAgreements ? loadingSkeletons : 
               (agreements && agreements.length > 0) ? 
-                agreements.map((agreement) => (
+                agreements.map((agreement: SimpleAgreement) => (
                   <AgreementTableRow 
                     key={agreement.id} 
                     agreement={agreement} 

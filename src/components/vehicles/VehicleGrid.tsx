@@ -1,228 +1,287 @@
-import React from 'react';
-import { VehicleCard } from '@/components/ui/vehicle-card';
-import { VehicleFilterParams } from '@/types/vehicle';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card } from '@/components/ui/card';
-import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useTranslation } from 'react-i18next';
-import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
+
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { useVehiclesList } from '@/hooks/use-vehicles-pagination';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Search } from 'lucide-react';
 import { usePagination } from '@/hooks/use-pagination';
-import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Pagination, PaginationContent, PaginationItem, PaginationNext, PaginationPrevious, PaginationLink } from '@/components/ui/pagination';
+import { useInfiniteScroll } from '@/hooks/use-infinite-scroll';
+import { CustomPaginationLink } from '@/components/ui/custom-pagination-link';
 
-interface VehicleGridProps {
-  onSelectVehicle?: (id: string) => void;
-  filter?: VehicleFilterParams;
-  showAdd?: boolean;
-}
-
-const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, showAdd = true }) => {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { isRTL } = useContextTranslation();
+export function VehicleGrid() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const { isRTL } = useTranslation();
   const isMobile = useIsMobile();
+
+  // Initialize pagination with the usePagination hook
+  const { 
+    pagination, 
+    setPage, 
+    nextPage, 
+    prevPage, 
+    canNextPage, 
+    canPrevPage, 
+    totalPages 
+  } = usePagination({ initialPage: 1, initialPageSize: 12 });
   
-  const { pagination, setPage, nextPage, prevPage, canNextPage, canPrevPage, totalPages } = usePagination({ 
-    initialPage: 1,
-    initialPageSize: 12
-  });
+  // Create filters object for the API call
+  const filters: VehicleFilterParams = {
+    status: statusFilter !== 'all' ? statusFilter as any : undefined,
+    search: searchQuery || undefined
+  };
   
-  const { data, isLoading, error, refetch } = useVehiclesList({ 
-    filters: filter,
+  // Fetch vehicles with pagination
+  const { 
+    data,
+    isLoading,
+    error
+  } = useVehiclesList({
+    filters,
     pagination
   });
   
   const vehicles = data?.data || [];
   const totalCount = data?.count || 0;
   
+  // Setup infinite scrolling for mobile
   const { loadMoreRef, isFetchingMore } = useInfiniteScroll({
     fetchMore: async () => {
       nextPage();
-      return null;
+      return null; // Return a promise to satisfy the type
     },
     isLoading,
     hasMore: canNextPage,
     enabled: isMobile
   });
   
-  const handleSelect = (id: string) => {
-    if (onSelectVehicle) {
-      onSelectVehicle(id);
-    } else {
-      navigate(`/vehicles/${id}`);
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'available':
+        return <Badge variant="success">Available</Badge>;
+      case 'rented':
+        return <Badge variant="default">Rented</Badge>;
+      case 'reserved':
+      case 'reserve':
+        return <Badge variant="warning">Reserved</Badge>;
+      case 'maintenance':
+        return <Badge variant="outline">Maintenance</Badge>;
+      case 'police_station':
+        return <Badge variant="destructive">Police Station</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  if (isLoading && !isFetchingMore) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="overflow-hidden border border-border/60 rounded-lg">
-            <Skeleton className="h-48 w-full" />
-            <div className="p-5">
-              <Skeleton className="h-6 w-2/3 mb-2" />
-              <Skeleton className="h-4 w-1/2 mb-4" />
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-              </div>
-            </div>
-            <div className="px-5 pb-5 pt-0">
-              <Skeleton className="h-10 w-full" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <Card className="p-6 bg-red-50 border-red-200">
-        <div className="flex items-center space-x-2 text-red-700">
-          <AlertCircle className="h-5 w-5" />
-          <h3 className="text-lg font-semibold">{t('common.error')}</h3>
-        </div>
-        <p className="mt-2">{error instanceof Error ? error.message : t('common.unknownError')}</p>
-      </Card>
-    );
-  }
-
-  if (!vehicles || vehicles.length === 0) {
-    return (
-      <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
-        <h3 className="text-lg font-semibold mb-2">{t('vehicles.noVehicles')}</h3>
-        <p className="mb-4">{t('vehicles.noVehiclesMatch')}</p>
-        {showAdd && (
-          <button 
-            onClick={() => navigate('/vehicles/add')}
-            className={cn(
-              "inline-flex items-center justify-center rounded-md text-sm font-medium",
-              "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-              "h-9 px-4 py-2"
-            )}
-          >
-            {t('vehicles.add')}
-          </button>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
-        {vehicles.map(vehicle => (
-          <VehicleCard
-            key={vehicle.id}
-            id={vehicle.id}
-            make={vehicle.make}
-            model={vehicle.model}
-            year={vehicle.year}
-            licensePlate={vehicle.license_plate}
-            status={vehicle.status || 'available'}
-            imageUrl={vehicle.image_url || ''}
-            location={vehicle.location || t('common.notProvided')}
-            fuelLevel={undefined}
-            mileage={vehicle.mileage || 0}
-            onSelect={() => handleSelect(vehicle.id)}
-          />
-        ))}
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4 items-center justify-between">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative w-[250px]">
+            <Search className={`absolute ${isRTL ? 'right-2.5' : 'left-2.5'} top-2.5 h-4 w-4 opacity-50`} />
+            <Input
+              placeholder="Search vehicles..."
+              className={isRTL ? 'pr-8' : 'pl-8'}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="rented">Rented</SelectItem>
+              <SelectItem value="reserved">Reserved</SelectItem>
+              <SelectItem value="maintenance">Maintenance</SelectItem>
+              <SelectItem value="police_station">Police Station</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Button asChild>
+          <Link to="/vehicles/new">Add Vehicle</Link>
+        </Button>
       </div>
       
-      {!isMobile && totalCount > 0 && (
-        <Pagination className="my-6">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => prevPage()} 
-                disabled={!canPrevPage}
-                className={!canPrevPage ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
-            
-            {[...Array(Math.min(5, totalPages))].map((_, i) => {
-              const pageNum = pagination.page <= 3
-                ? i + 1
-                : pagination.page >= totalPages - 2
-                  ? totalPages - 4 + i
-                  : pagination.page - 2 + i;
+      {isLoading ? (
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={`skeleton-${i}`} className="overflow-hidden">
+              <div className="aspect-video w-full bg-muted">
+                <Skeleton className="h-full w-full" />
+              </div>
+              <CardContent className="p-4">
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-4 w-1/2 mb-2" />
+                <Skeleton className="h-4 w-1/4" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {vehicles.map((vehicle) => (
+              <Link to={`/vehicles/${vehicle.id}`} key={vehicle.id}>
+                <Card className="overflow-hidden h-full hover:border-primary transition-colors">
+                  <div className="aspect-video w-full bg-muted relative">
+                    {vehicle.image_url ? (
+                      <img 
+                        src={vehicle.image_url} 
+                        alt={`${vehicle.make} ${vehicle.model}`} 
+                        className="object-cover w-full h-full"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full bg-muted text-muted-foreground">
+                        No Image
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2">
+                      {getStatusBadge(vehicle.status || 'unknown')}
+                    </div>
+                  </div>
+                  <CardContent className="p-4">
+                    <h3 className="font-semibold text-lg">{vehicle.make} {vehicle.model}</h3>
+                    <p className="text-muted-foreground">{vehicle.year} • {vehicle.license_plate}</p>
+                    {vehicle.vehicleType && (
+                      <p className="text-sm font-medium mt-1">{vehicle.vehicleType.name}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+          
+          {/* No vehicles message */}
+          {vehicles.length === 0 && !isLoading && (
+            <div className="text-center py-12 border rounded-lg bg-muted/10">
+              <h3 className="text-lg font-medium mb-2">No vehicles found</h3>
+              <p className="text-muted-foreground mb-4">
+                {searchQuery || statusFilter !== 'all' 
+                  ? "Try adjusting your filters"
+                  : "Add your first vehicle using the button above"
+                }
+              </p>
               
-              if (pageNum > 0 && pageNum <= totalPages) {
-                return (
-                  <PaginationItem key={pageNum}>
-                    <PaginationLink
-                      onClick={() => setPage(pageNum)}
-                      isActive={pagination.page === pageNum}
-                    >
-                      {pageNum}
-                    </PaginationLink>
-                  </PaginationItem>
-                );
-              }
-              return null;
-            })}
-            
-            <PaginationItem>
-              <PaginationNext 
-                onClick={() => nextPage()} 
-                disabled={!canNextPage}
-                className={!canNextPage ? 'pointer-events-none opacity-50' : ''}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
-      
-      {isMobile && (
-        <div ref={loadMoreRef} className="py-4 text-center">
-          {isFetchingMore && (
-            <div className="flex justify-center items-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-2">{t('common.loading')}</span>
+              {(searchQuery || statusFilter !== 'all') && (
+                <Button variant="outline" onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                }}>
+                  Clear Filters
+                </Button>
+              )}
             </div>
           )}
-          {!canNextPage && vehicles.length > 0 && (
-            <p className="text-muted-foreground text-sm py-4">{t('common.noMoreItems')}</p>
+          
+          {/* Desktop Pagination */}
+          {!isMobile && vehicles.length > 0 && (
+            <div className={`flex items-center ${isRTL ? "justify-start" : "justify-end"} space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => prevPage()}
+                      className={!canPrevPage ? 'pointer-events-none opacity-50' : ''}
+                      aria-disabled={!canPrevPage}
+                    />
+                  </PaginationItem>
+                  
+                  {/* First page */}
+                  {pagination.page > 2 && (
+                    <PaginationItem>
+                      <CustomPaginationLink onClick={() => setPage(1)}>
+                        1
+                      </CustomPaginationLink>
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Ellipsis if needed */}
+                  {pagination.page > 3 && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Previous page if not first */}
+                  {pagination.page > 1 && (
+                    <PaginationItem>
+                      <CustomPaginationLink onClick={() => setPage(pagination.page - 1)}>
+                        {pagination.page - 1}
+                      </CustomPaginationLink>
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Current page */}
+                  <PaginationItem>
+                    <CustomPaginationLink isActive onClick={() => setPage(pagination.page)}>
+                      {pagination.page}
+                    </CustomPaginationLink>
+                  </PaginationItem>
+                  
+                  {/* Next page if not last */}
+                  {pagination.page < totalPages && (
+                    <PaginationItem>
+                      <CustomPaginationLink onClick={() => setPage(pagination.page + 1)}>
+                        {pagination.page + 1}
+                      </CustomPaginationLink>
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Ellipsis if needed */}
+                  {pagination.page < totalPages - 2 && (
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  )}
+                  
+                  {/* Last page if not current and we have multiple pages */}
+                  {pagination.page < totalPages - 1 && totalPages > 1 && (
+                    <PaginationItem>
+                      <CustomPaginationLink onClick={() => setPage(totalPages)}>
+                        {totalPages}
+                      </CustomPaginationLink>
+                    </PaginationItem>
+                  )}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => nextPage()}
+                      className={!canNextPage ? 'pointer-events-none opacity-50' : ''}
+                      aria-disabled={!canNextPage}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           )}
-        </div>
+          
+          {/* Mobile Infinite Scroll */}
+          {isMobile && canNextPage && (
+            <div ref={loadMoreRef} className="py-4 text-center">
+              {isFetchingMore ? (
+                <div className="flex justify-center items-center py-4">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <span className="ml-2">Loading more...</span>
+                </div>
+              ) : null}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
-};
-
-export default VehicleGrid;
-
-const PaginationLink = ({ 
-  isActive,
-  size,
-  onClick,
-  disabled,
-  className,
-  children,
-  ...props 
-}: React.ComponentProps<typeof Button> & { 
-  isActive?: boolean;
-  size?: "default" | "sm";
-  disabled?: boolean;
-}) => {
-  return (
-    <Button
-      variant={isActive ? "outline" : "ghost"}
-      size={size}
-      onClick={onClick}
-      className={className}
-      disabled={disabled}
-      aria-current={isActive ? "page" : undefined}
-      {...props}
-    >
-      {children}
-    </Button>
-  );
-};
+}

@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
@@ -32,7 +33,7 @@ interface DatabaseVehicleRecord {
   vehicle_types?: DatabaseVehicleType[];
 }
 
-export function mapDatabaseRecordToVehicle(record: any): Vehicle {
+export function mapDatabaseRecordToVehicleForPagination(record: any): Vehicle {
   if (!record.vin) record.vin = '';
   if (!record.created_at) record.created_at = new Date().toISOString();
   if (!record.updated_at) record.updated_at = new Date().toISOString();
@@ -47,7 +48,14 @@ export function mapDatabaseRecordToVehicle(record: any): Vehicle {
     image_url: record.image_url,
     location: record.location,
     mileage: record.mileage,
-    vehicle_type: record.vehicle_types?.[0] || null,
+    vehicleType: record.vehicle_types?.[0] ? {
+      id: record.vehicle_types[0].id,
+      name: record.vehicle_types[0].name,
+      description: record.vehicle_types[0].description || '',
+      size: record.vehicle_types[0].size || 'standard',
+      daily_rate: record.vehicle_types[0].daily_rate || 0,
+      is_active: record.vehicle_types[0].is_active !== false
+    } : null,
     vin: record.vin,
     created_at: record.created_at,
     updated_at: record.updated_at,
@@ -92,7 +100,9 @@ export function useVehiclesList({
           if (filters.location) countQuery.eq('location', filters.location);
           if (filters.year) countQuery.eq('year', filters.year);
           if (filters.search) {
-            countQuery.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
+            countQuery.or(
+              `make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`
+            );
           }
         }
 
@@ -105,7 +115,7 @@ export function useVehiclesList({
         
         let query = supabase
           .from('vehicles')
-          .select(`${columns}, vehicle_types(id, name, description)`)
+          .select(`${columns}, vehicle_types(id, name, description, size, daily_rate, is_active)`)
           .range(pagination.offset, pagination.offset + pagination.pageSize - 1)
           .order('created_at', { ascending: false });
         
@@ -135,7 +145,7 @@ export function useVehiclesList({
         }
         
         return {
-          data: data.map(record => mapDatabaseRecordToVehicle(record)),
+          data: data.map(record => mapDatabaseRecordToVehicleForPagination(record)),
           count: count || 0
         };
       } catch (error) {
@@ -145,6 +155,5 @@ export function useVehiclesList({
     },
     staleTime: 1000 * 60 * 5,
     enabled,
-    placeholderData: (previousData) => previousData
   });
 }
