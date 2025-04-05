@@ -6,8 +6,6 @@ import { cn } from '@/lib/utils';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 export interface PageContainerProps {
   children: React.ReactNode;
@@ -29,7 +27,6 @@ const PageContainer = ({
   actions
 }: PageContainerProps) => {
   const { isRTL } = useTranslation();
-  const { t } = useI18nTranslation();
   
   return (
     <div className={cn('container max-w-7xl py-6 space-y-6', className)}>
@@ -43,11 +40,11 @@ const PageContainer = ({
                   to={backLink} 
                   className={cn(
                     "flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors",
-                    isRTL ? "flex-row-reverse" : ""
+                    isRTL && "flex-row-reverse"
                   )}
                 >
                   <ArrowLeft className={cn("h-4 w-4", isRTL ? "ml-1 rotate-180" : "mr-1")} />
-                  {t('common.back', 'Back')}
+                  {isRTL ? "رجوع" : "Back"}
                 </Link>
               )}
               
@@ -72,7 +69,7 @@ const PageContainer = ({
       {/* Notification Alert */}
       {notification && (
         <Alert className={cn("bg-muted/50 border border-muted", isRTL && "text-right")}>
-          <div className={cn("flex items-center gap-2", isRTL && "flex-row-reverse")}>
+          <div className="flex items-center gap-2">
             <InfoIcon className="h-4 w-4" />
             <AlertDescription>
               {notification}

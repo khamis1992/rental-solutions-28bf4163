@@ -1,34 +1,19 @@
-import React, { useState, lazy, Suspense } from 'react';
+
+import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import DashboardStats from '@/components/dashboard/DashboardStats';
+import RevenueChart from '@/components/dashboard/RevenueChart';
+import VehicleStatusChart from '@/components/dashboard/VehicleStatusChart';
+import RecentActivity from '@/components/dashboard/RecentActivity';
 import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from '@/hooks/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { getDirectionalFlexClass } from '@/utils/rtl-utils';
-import { lazyLoad, DefaultLoadingComponent } from '@/utils/lazy-loading.tsx';  // Extension change handled by TypeScript
-
-// Lazy load heavy components
-const RevenueChart = lazyLoad(
-  () => import('@/components/dashboard/RevenueChart'),
-  DefaultLoadingComponent,
-  'Loading revenue chart...'
-);
-
-const VehicleStatusChart = lazyLoad(
-  () => import('@/components/dashboard/VehicleStatusChart'),
-  DefaultLoadingComponent,
-  'Loading vehicle status...'
-);
-
-const RecentActivity = lazyLoad(
-  () => import('@/components/dashboard/RecentActivity'),
-  DefaultLoadingComponent,
-  'Loading recent activity...'
-);
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -112,25 +97,17 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            {/* Stats are critical, render them directly */}
             <DashboardStats stats={stats} />
             
-            {/* Using lazy-loaded components for heavy sections */}
             <div className="grid grid-cols-1 gap-6 section-transition">
-              <Suspense fallback={<Skeleton className="h-96" />}>
-                <VehicleStatusChart data={stats?.vehicleStats} />
-              </Suspense>
+              <VehicleStatusChart data={stats?.vehicleStats} />
             </div>
             
             <div className="grid grid-cols-1 gap-6 section-transition">
-              <Suspense fallback={<Skeleton className="h-96" />}>
-                <RevenueChart data={revenue} fullWidth={true} />
-              </Suspense>
+              <RevenueChart data={revenue} fullWidth={true} />
             </div>
             
-            <Suspense fallback={<Skeleton className="h-96" />}>
-              <RecentActivity activities={activity} />
-            </Suspense>
+            <RecentActivity activities={activity} />
           </>
         )}
       </div>
