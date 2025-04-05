@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel, RowSelectionState } from "@tanstack/react-table";
@@ -207,8 +206,8 @@ export function AgreementList({
                     <Car className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                     <span>Vehicle: <span className="font-semibold text-primary">{vehicle.license_plate}</span></span>
                   </div> : 'N/A'}
-              </Link> : row.original.vehicle_id ? <Link to={`/vehicles/${row.original.vehicle_id}`} className="hover:underline text-amber-600">
-                Vehicle ID: {row.original.vehicle_id}
+              </Link> : row.original.vehicle?.id ? <Link to={`/vehicles/${row.original.vehicle.id}`} className="hover:underline text-amber-600">
+                Vehicle ID: {row.original.vehicle.id}
               </Link> : 'N/A'}
           </div>;
     }

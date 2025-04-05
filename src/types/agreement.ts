@@ -13,6 +13,8 @@ export interface SimpleAgreement {
   vehicle?: Vehicle | null;
   customers?: Customer | null;
   vehicles?: Vehicle | null;
+  vehicle_id?: string; // Adding this field
+  customer_id?: string; // Adding this field for consistency
   created_at?: string;
   updated_at?: string;
 }

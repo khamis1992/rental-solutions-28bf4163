@@ -67,7 +67,8 @@ export const useAgreements = (options: UseAgreementsOptions = {}) => {
           throw error;
         }
 
-        return agreements as SimpleAgreement[];
+        // Safe type casting
+        return agreements as unknown as SimpleAgreement[];
       } catch (error) {
         console.error('Error fetching agreements:', error);
         throw error;
@@ -91,7 +92,7 @@ export const useAgreements = (options: UseAgreementsOptions = {}) => {
         throw error;
       }
       
-      return data as SimpleAgreement;
+      return data as unknown as SimpleAgreement;
     } catch (error) {
       console.error('Error fetching agreement:', error);
       throw error;

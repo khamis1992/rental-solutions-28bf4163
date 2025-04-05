@@ -13,8 +13,8 @@ import { useTranslation as useContextTranslation } from '@/contexts/TranslationC
 
 const AddVehicle = () => {
   const navigate = useNavigate();
-  const { useCreate } = useVehicles();
-  const { mutate: createVehicle, isPending } = useCreate();
+  const vehiclesHook = useVehicles();
+  const { mutate: createVehicle, isPending } = vehiclesHook.useCreateVehicle();
   const { t } = useTranslation();
   const { isRTL } = useContextTranslation();
   

@@ -53,7 +53,6 @@ export default function EditAgreement() {
     ...initialValues,
     start_date: initialValues.start_date ? new Date(initialValues.start_date) : new Date(),
     end_date: initialValues.end_date ? new Date(initialValues.end_date) : new Date(),
-    // Include other date fields if needed
     created_at: initialValues.created_at ? new Date(initialValues.created_at) : new Date(),
     updated_at: initialValues.updated_at ? new Date(initialValues.updated_at) : new Date(),
     status: initialValues.status || 'DRAFT'

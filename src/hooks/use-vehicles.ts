@@ -2,22 +2,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
+import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData, VehicleType } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
-
-interface DatabaseVehicleType {
-  id: string;
-  name: string;
-  description: string;
-  size: string;
-  daily_rate: number;
-  weekly_rate?: number;
-  monthly_rate?: number;
-  features?: any[];
-  is_active?: boolean;
-}
 
 export function mapDatabaseRecordToVehicleInner(record: any): Vehicle {
   // Ensure all required fields have default values
@@ -44,7 +32,10 @@ export function mapDatabaseRecordToVehicleInner(record: any): Vehicle {
       description: vehicleType.description || '',
       size: vehicleType.size || 'standard',
       daily_rate: vehicleType.daily_rate || 0,
-      is_active: vehicleType.is_active !== false
+      is_active: vehicleType.is_active !== false,
+      features: [], // Adding default empty array
+      created_at: vehicleType.created_at || new Date().toISOString(),
+      updated_at: vehicleType.updated_at || new Date().toISOString()
     } : null,
     vin: record.vin,
     created_at: record.created_at,
@@ -168,14 +159,26 @@ export const useVehicles = () => {
             // Handle image upload if present
             let image_url = undefined;
             if (formData.image) {
+              // Using the correct type for uploadVehicleImage result
               const uploadResult = await uploadVehicleImage(formData.image);
-              if (uploadResult.error) throw uploadResult.error;
-              image_url = uploadResult.url;
+              if (uploadResult && typeof uploadResult === 'object' && 'error' in uploadResult && uploadResult.error) {
+                throw uploadResult.error;
+              }
+              if (uploadResult && typeof uploadResult === 'object' && 'url' in uploadResult) {
+                image_url = uploadResult.url;
+              }
+            }
+
+            // Convert status if it's 'reserved' to match database
+            let dbStatus = formData.status;
+            if (dbStatus === 'reserved') {
+              dbStatus = 'reserve' as any;
             }
 
             // Create vehicle record with the image URL if uploaded
             const vehicleData: VehicleInsertData = {
               ...formData,
+              status: dbStatus,
               image_url,
             };
             
@@ -214,14 +217,26 @@ export const useVehicles = () => {
             // Handle image upload if present
             let image_url = undefined;
             if (formData.image) {
+              // Using the correct type for uploadVehicleImage result
               const uploadResult = await uploadVehicleImage(formData.image);
-              if (uploadResult.error) throw uploadResult.error;
-              image_url = uploadResult.url;
+              if (uploadResult && typeof uploadResult === 'object' && 'error' in uploadResult && uploadResult.error) {
+                throw uploadResult.error;
+              }
+              if (uploadResult && typeof uploadResult === 'object' && 'url' in uploadResult) {
+                image_url = uploadResult.url;
+              }
+            }
+
+            // Convert status if it's 'reserved' to match database
+            let dbStatus = formData.status;
+            if (dbStatus === 'reserved') {
+              dbStatus = 'reserve' as any;
             }
 
             // Create update data with the image URL if uploaded
             const updateData: VehicleUpdateData = {
               ...formData,
+              status: dbStatus,
               ...(image_url ? { image_url } : {}), // Only include if we have a new image
             };
             

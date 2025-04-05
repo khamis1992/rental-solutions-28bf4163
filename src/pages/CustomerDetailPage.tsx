@@ -2,15 +2,60 @@
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { CustomerProfile } from '@/components/customers/CustomerProfile';
-import { CustomerNotes } from '@/components/customers/CustomerNotes';
 import { AgreementHistorySection } from '@/components/customers/AgreementHistorySection';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Customer } from '@/lib/validation-schemas/customer';
-import { CustomerLegalObligations } from '@/components/legal/CustomerLegalObligations';
 import { useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+// Temporary stub components until the real ones are created
+const CustomerProfile = ({ customer }: { customer: Customer }) => (
+  <CardContent>
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <h3 className="text-lg font-medium">Personal Information</h3>
+          <div className="mt-2 space-y-2">
+            <p><span className="font-medium">Name:</span> {customer.full_name}</p>
+            <p><span className="font-medium">Email:</span> {customer.email}</p>
+            <p><span className="font-medium">Phone:</span> {customer.phone || customer.phone_number}</p>
+            <p><span className="font-medium">ID/License:</span> {customer.driver_license}</p>
+            <p><span className="font-medium">Nationality:</span> {customer.nationality}</p>
+          </div>
+        </div>
+        <div>
+          <h3 className="text-lg font-medium">Additional Details</h3>
+          <div className="mt-2 space-y-2">
+            <p><span className="font-medium">Address:</span> {customer.address || 'N/A'}</p>
+            <p><span className="font-medium">Status:</span> {customer.status}</p>
+            <p><span className="font-medium">Created:</span> {new Date(customer.created_at).toLocaleDateString()}</p>
+            <p><span className="font-medium">Last Updated:</span> {new Date(customer.updated_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+      </div>
+      
+      <div>
+        <h3 className="text-lg font-medium">Notes</h3>
+        <p className="mt-2">{customer.notes || 'No notes available'}</p>
+      </div>
+    </div>
+  </CardContent>
+);
+
+const CustomerNotes = ({ customerId }: { customerId: string }) => (
+  <CardContent>
+    <div className="space-y-4">
+      <p className="text-muted-foreground">Customer notes will be displayed here.</p>
+    </div>
+  </CardContent>
+);
+
+const CustomerLegalObligations = ({ customerId }: { customerId: string }) => (
+  <div className="space-y-4">
+    <p className="text-muted-foreground">Legal obligations will be displayed here.</p>
+  </div>
+);
 
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>();
