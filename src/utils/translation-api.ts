@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -56,7 +57,8 @@ export const translateText = async (
       'Details about the rented vehicle',
       'Agreement Details',
       'Rental terms and payment information',
-      'Traffic Fines',
+      // Remove 'Traffic Fines' from skip list to ensure it gets translated properly
+      'Traffic Violations',
       'Violations during the rental period',
       'Legal Cases',
       'Case Management',
@@ -79,8 +81,8 @@ export const translateText = async (
       'No payments recorded for this agreement yet.',
       'Confirm Payment Deletion',
       'Actions',
-      'Traffic Fines Management',
-      'Record, track, and manage traffic violations',
+      // Remove 'Traffic Fines Management' from skip list
+      // Remove 'Record, track, and manage traffic violations' from skip list
       'Fines List',
       'Record New Fine',
       'Fine Analytics',

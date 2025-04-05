@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -45,6 +44,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslation } from 'react-i18next';
+import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
 
 interface TrafficFinesListProps {
   onAddFine?: () => void;
@@ -59,19 +60,18 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
     valid: true, 
     issues: [] 
   });
+  const { t } = useTranslation();
+  const { isRTL } = useAppTranslation();
   
-  // Validate the traffic fines data when it loads
   useEffect(() => {
     if (trafficFines && trafficFines.length > 0) {
       validateTrafficFinesData(trafficFines);
     }
   }, [trafficFines]);
   
-  // Data validation function to check for data integrity
   const validateTrafficFinesData = (fines: any[]) => {
     const issues: string[] = [];
     
-    // Check for required fields and data consistency
     fines.forEach((fine, index) => {
       if (!fine.id) {
         issues.push(`Fine at index ${index} is missing ID field`);
@@ -99,7 +99,6 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       issues
     });
     
-    // Log issues to console for debugging
     if (issues.length > 0) {
       console.warn('Traffic fines data validation issues:', issues);
     }
@@ -120,11 +119,11 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   const handlePayFine = async (id: string) => {
     try {
       await payTrafficFine.mutate({ id });
-      toast.success("Fine marked as paid successfully");
+      toast.success(t("trafficFines.paymentSuccess", "Fine marked as paid successfully"));
     } catch (error) {
       console.error("Error paying fine:", error);
-      toast.error("Failed to pay fine", {
-        description: error instanceof Error ? error.message : "An unknown error occurred"
+      toast.error(t("trafficFines.paymentError", "Failed to pay fine"), {
+        description: error instanceof Error ? error.message : t("common.unknownError", "An unknown error occurred")
       });
     }
   };
@@ -132,11 +131,11 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   const handleDisputeFine = async (id: string) => {
     try {
       await disputeTrafficFine.mutate({ id });
-      toast.success("Fine marked as disputed successfully");
+      toast.success(t("trafficFines.disputeSuccess", "Fine marked as disputed successfully"));
     } catch (error) {
       console.error("Error disputing fine:", error);
-      toast.error("Failed to dispute fine", {
-        description: error instanceof Error ? error.message : "An unknown error occurred"
+      toast.error(t("trafficFines.disputeError", "Failed to dispute fine"), {
+        description: error instanceof Error ? error.message : t("common.unknownError", "An unknown error occurred")
       });
     }
   };
@@ -144,8 +143,8 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   const handleAutoAssignFines = async () => {
     try {
       setAssigningFines(true);
-      toast.info("Auto-assigning fines", {
-        description: "Please wait while fines are assigned to customers..."
+      toast.info(t("trafficFines.autoAssigning", "Auto-assigning fines"), {
+        description: t("trafficFines.autoAssigningDesc", "Please wait while fines are assigned to customers...")
       });
 
       let assignedCount = 0;
@@ -187,7 +186,8 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       }
     } catch (error: any) {
       console.error("Auto-assignment error:", error);
-      toast.error("There was an error assigning fines to customers: " + (error.message || "Unknown error"));
+      toast.error(t("trafficFines.autoAssignError", "There was an error assigning fines to customers: ") + 
+                 (error.message || t("common.unknownError", "Unknown error")));
     } finally {
       setAssigningFines(false);
     }
@@ -196,12 +196,12 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500 text-white border-green-600"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
+        return <Badge className="bg-green-500 text-white border-green-600"><CheckCircle className={`${isRTL ? 'ml-1' : 'mr-1'} h-3 w-3`} /> {t("trafficFines.status.paid", "Paid")}</Badge>;
       case 'disputed':
-        return <Badge className="bg-amber-500 text-white border-amber-600"><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
+        return <Badge className="bg-amber-500 text-white border-amber-600"><AlertTriangle className={`${isRTL ? 'ml-1' : 'mr-1'} h-3 w-3`} /> {t("trafficFines.status.disputed", "Disputed")}</Badge>;
       case 'pending':
       default:
-        return <Badge className="bg-red-500 text-white border-red-600"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
+        return <Badge className="bg-red-500 text-white border-red-600"><X className={`${isRTL ? 'ml-1' : 'mr-1'} h-3 w-3`} /> {t("trafficFines.status.pending", "Pending")}</Badge>;
     }
   };
 
@@ -209,11 +209,11 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
     if (fine.customerId) {
       return (
         <Badge className="bg-blue-500 text-white border-blue-600">
-          <UserCheck className="mr-1 h-3 w-3" /> Assigned
+          <UserCheck className={`${isRTL ? 'ml-1' : 'mr-1'} h-3 w-3`} /> {t("trafficFines.assignedTo", "Assigned")}
         </Badge>
       );
     }
-    return <Badge variant="outline">Unassigned</Badge>;
+    return <Badge variant="outline">{t("trafficFines.unassigned", "Unassigned")}</Badge>;
   };
 
   if (error) {
@@ -228,7 +228,6 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
     );
   }
 
-  // Display data validation warnings if found
   const renderDataValidationWarning = () => {
     if (!dataValidation.valid && dataValidation.issues.length > 0) {
       return (
@@ -258,23 +257,23 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard 
-          title="Total Traffic Fines"
-          value={filteredFines.length.toString()}
-          description="Total number of traffic fines in the system"
+          title={t("trafficFines.totalFines", "Total Traffic Fines")}
+          value={filteredFines?.length.toString() || "0"}
+          description={t("trafficFines.totalFinesDesc", "Total number of traffic fines in the system")}
           icon={AlertTriangle}
           iconColor="text-amber-500"
         />
         <StatCard 
-          title="Assigned Fines"
-          value={assignedFines.length.toString()}
-          description={`Total amount: ${formatCurrency(assignedFinesAmount)}`}
+          title={t("trafficFines.assignedFines", "Assigned Fines")}
+          value={assignedFines?.length.toString() || "0"}
+          description={`${t("common.total")}: ${formatCurrency(assignedFinesAmount || 0)}`}
           icon={UserCheck}
           iconColor="text-blue-500"
         />
         <StatCard 
-          title="Unassigned Fines"
-          value={unassignedFines.length.toString()}
-          description={`Total amount: ${formatCurrency(unassignedFinesAmount)}`}
+          title={t("trafficFines.unassignedFines", "Unassigned Fines")}
+          value={unassignedFines?.length.toString() || "0"}
+          description={`${t("common.total")}: ${formatCurrency(unassignedFinesAmount || 0)}`}
           icon={Users}
           iconColor="text-red-500"
         />
@@ -284,9 +283,9 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <CardTitle>Traffic Fines</CardTitle>
+              <CardTitle>{t("trafficFines.title", "Traffic Fines")}</CardTitle>
               <CardDescription>
-                Manage and track traffic fines for your vehicles
+                {t("trafficFines.description", "Manage and track traffic fines for your vehicles")}
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -298,13 +297,13 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
               >
                 {(assigningFines || isAutoAssigning) ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
-                    Assigning...
+                    <Loader2 className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4 animate-spin`} /> 
+                    {t("trafficFines.assigning", "Assigning...")}
                   </>
                 ) : (
                   <>
-                    <UserCheck className="mr-2 h-4 w-4" /> 
-                    Auto-Assign
+                    <UserCheck className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} /> 
+                    {t("trafficFines.autoAssign", "Auto-Assign")}
                   </>
                 )}
               </Button>
@@ -312,7 +311,8 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                 className="w-full md:w-auto"
                 onClick={onAddFine}
               >
-                <Plus className="mr-2 h-4 w-4" /> Add Fine
+                <Plus className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} /> 
+                {t("trafficFines.addFine", "Add Fine")}
               </Button>
             </div>
           </div>
@@ -320,10 +320,10 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
         <CardContent>
           <div className="flex items-center space-x-2 mb-4">
             <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className={`absolute ${isRTL ? 'right-2.5' : 'left-2.5'} top-2.5 h-4 w-4 text-muted-foreground`} />
               <Input
-                placeholder="Search by violation number, license plate, or charge..."
-                className="pl-8"
+                placeholder={t("trafficFines.searchPlaceholder", "Search by violation number, license plate, or charge...")}
+                className={`${isRTL ? 'pr-8' : 'pl-8'}`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -334,13 +334,13 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Violation #</TableHead>
-                  <TableHead>License Plate</TableHead>
-                  <TableHead className="hidden md:table-cell">Violation Date</TableHead>
-                  <TableHead className="hidden md:table-cell">Location</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Customer</TableHead>
+                  <TableHead>{t("trafficFines.violationNumber", "Violation #")}</TableHead>
+                  <TableHead>{t("common.licensePlate", "License Plate")}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t("trafficFines.violationDate", "Violation Date")}</TableHead>
+                  <TableHead className="hidden md:table-cell">{t("trafficFines.location", "Location")}</TableHead>
+                  <TableHead>{t("common.amount", "Amount")}</TableHead>
+                  <TableHead>{t("common.status", "Status")}</TableHead>
+                  <TableHead>{t("common.customer", "Customer")}</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -350,16 +350,18 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                     <TableCell colSpan={8} className="h-24 text-center">
                       <div className="flex justify-center items-center">
                         <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                        {isAutoAssigning ? "Auto-assigning traffic fines..." : "Loading traffic fines..."}
+                        {isAutoAssigning 
+                          ? t("trafficFines.autoAssigningProgress", "Auto-assigning traffic fines...") 
+                          : t("common.loading", "Loading traffic fines...")}
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : filteredFines.length > 0 ? (
+                ) : filteredFines && filteredFines.length > 0 ? (
                   filteredFines.map((fine) => (
                     <TableRow key={fine.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center">
-                          <AlertTriangle className="mr-2 h-4 w-4 text-warning" />
+                          <AlertTriangle className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4 text-warning`} />
                           {fine.violationNumber}
                         </div>
                       </TableCell>
@@ -367,7 +369,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                       <TableCell className="hidden md:table-cell">
                         {formatDate(fine.violationDate)}
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{fine.location || 'N/A'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{fine.location || t("common.notProvided", "N/A")}</TableCell>
                       <TableCell>{formatCurrency(fine.fineAmount)}</TableCell>
                       <TableCell>
                         {getStatusBadge(fine.paymentStatus)}
@@ -387,24 +389,24 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align={isRTL ? "start" : "end"}>
                             <DropdownMenuItem 
                               onClick={() => handlePayFine(fine.id)}
                               disabled={fine.paymentStatus === 'paid'}
                             >
-                              <CheckCircle className="mr-2 h-4 w-4" /> Pay Fine
+                              <CheckCircle className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} /> {t("trafficFines.payFine", "Pay Fine")}
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => handleDisputeFine(fine.id)}
                               disabled={fine.paymentStatus === 'disputed'}
                             >
-                              <X className="mr-2 h-4 w-4" /> Dispute Fine
+                              <X className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} /> {t("trafficFines.disputeFine", "Dispute Fine")}
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               onClick={() => assignToCustomer.mutate({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
-                              <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
+                              <UserCheck className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} /> {t("trafficFines.assignToCustomer", "Assign to Customer")}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -414,7 +416,9 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                 ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                      {searchQuery ? "No matching traffic fines found." : "No traffic fines found."}
+                      {searchQuery 
+                        ? t("trafficFines.noMatchingFines", "No matching traffic fines found.") 
+                        : t("trafficFines.noFines", "No traffic fines found.")}
                     </TableCell>
                   </TableRow>
                 )}

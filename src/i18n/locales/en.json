@@ -691,5 +691,32 @@
     "templates": "Invoice Templates",
     "generate": "Generate Invoice",
     "createCustomize": "Create and customize an invoice from a template"
+  },
+  "trafficFines": {
+    "title": "Traffic Fines Management",
+    "description": "Record, track, and manage traffic violations",
+    "list": "Fines List",
+    "recordNew": "Record New Fine",
+    "analytics": "Fine Analytics",
+    "location": "Location",
+    "violationNumber": "Violation Number",
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "disputed": "Disputed"
+    },
+    "noFines": "No traffic fines found for this vehicle or customer.",
+    "checkNew": "Check for New Fines",
+    "autoAssign": "Auto-Assign",
+    "addFine": "Add Fine",
+    "assignToCustomer": "Assign to Customer",
+    "payFine": "Pay Fine",
+    "disputeFine": "Dispute Fine",
+    "fineAmount": "Fine Amount",
+    "violationDate": "Violation Date",
+    "licensePlate": "License Plate",
+    "violationType": "Violation Type",
+    "assignedTo": "Assigned To",
+    "unassigned": "Unassigned"
   }
 }

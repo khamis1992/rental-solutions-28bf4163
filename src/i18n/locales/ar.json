@@ -173,7 +173,7 @@
     "reportNotifications": "إشعارات التقارير",
     "receiveEmailNotifications": "تلقي إشعارات البريد الإلكتروني للأحداث المهمة",
     "receiveSystemNotifications": "تلقي إشعارات داخل التطبيق لأحداث النظام",
-    "receiveReportNotifications": "تلقي إشعارات لإنشاء التقارير",
+    "receiveReportNotifications": "تلقي إشعارات لإنشاء ال��قارير",
     "securitySettings": "إعدادات الأمان",
     "testTranslation": "اختبار الترجمة"
   },
@@ -573,7 +573,7 @@
     "trafficFines": "مخالفات المرور",
     "trafficViolationsDesc": "المخالفات خلال فترة الإيجار",
     "confirmDeletion": "تأكيد الحذف",
-    "deleteConfirmText": "هل أنت متأكد من رغبتك في حذف الاتفاقية {number}؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteConfirmText": "هل أنت متأكد من رغبتك ف�� حذف الاتفاقية {number}؟ لا يمكن التراجع عن هذا الإجراء.",
     "detailsNotAvailable": "تفاصيل الاتفاقية غير متوفرة.",
     "preparingPdf": "جاري إعداد مستند PDF للاتفاقية...",
     "pdfSuccess": "تم تنزيل PDF الاتفاقية بنجاح",
@@ -641,5 +641,32 @@
     "templates": "قوالب الفواتير",
     "generate": "إنشاء فاتورة",
     "createCustomize": "إنشاء وتخصيص فاتورة من قالب"
+  },
+  "trafficFines": {
+    "title": "إدارة المخالفات المرورية",
+    "description": "تسجيل وتتبع وإدارة مخالفات المرور",
+    "list": "قائمة المخالفات",
+    "recordNew": "تسجيل مخالفة جديدة",
+    "analytics": "تحليل المخالفات",
+    "location": "الموقع",
+    "violationNumber": "رقم المخالفة",
+    "status": {
+      "paid": "مدفوعة",
+      "pending": "معلقة",
+      "disputed": "متنازع عليها"
+    },
+    "noFines": "لم يتم العثور على مخالفات مرورية لهذه المركبة أو العميل.",
+    "checkNew": "التحقق من المخالفات الجديدة",
+    "autoAssign": "تعيين تلقائي",
+    "addFine": "إضافة مخالفة",
+    "assignToCustomer": "تعيين للعميل",
+    "payFine": "دفع المخالفة",
+    "disputeFine": "الاعتراض على المخالفة",
+    "fineAmount": "قيمة المخالفة",
+    "violationDate": "تاريخ المخالفة",
+    "licensePlate": "رقم اللوحة",
+    "violationType": "نوع المخالفة",
+    "assignedTo": "معين إلى",
+    "unassigned": "غير معين"
   }
 }
