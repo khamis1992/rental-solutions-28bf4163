@@ -1,5 +1,4 @@
-
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,7 +15,7 @@ import { LegalCaseCard } from './LegalCaseCard';
 import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { usePayments } from '@/hooks/use-payments';
+import { Payment } from '@/hooks/use-payments';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -46,24 +45,8 @@ export function AgreementDetail({
     daysLate: number;
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const refreshRequested = useRef(false);
 
-  const {
-    payments,
-    isLoadingPayments,
-    fetchPayments
-  } = usePayments(agreement?.id, rentAmount);
-  
-  console.log('Agreement ID from AgreementDetail:', agreement?.id);
-  console.log('Payments from usePayments:', payments);
-  console.log('Loading state:', isLoadingPayments);
-  
-  useEffect(() => {
-    if (agreement?.id) {
-      console.log('Fetching payments for agreement:', agreement.id);
-      fetchPayments();
-    }
-  }, [agreement?.id, fetchPayments]);
-  
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
@@ -139,8 +122,13 @@ export function AgreementDetail({
         );
         if (success) {
           setIsPaymentDialogOpen(false);
-          onDataRefresh();
-          fetchPayments();
+          if (!refreshRequested.current) {
+            refreshRequested.current = true;
+            onDataRefresh();
+            setTimeout(() => {
+              refreshRequested.current = false;
+            }, 500);
+          }
           toast.success("Payment recorded successfully");
         }
       } catch (error) {
@@ -148,7 +136,7 @@ export function AgreementDetail({
         toast.error("Failed to record payment");
       }
     }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
+  }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
@@ -169,6 +157,16 @@ export function AgreementDetail({
       setLateFeeDetails(null);
     }
   }, []);
+
+  const handlePaymentHistoryRefresh = useCallback(() => {
+    if (!refreshRequested.current) {
+      refreshRequested.current = true;
+      onPaymentDeleted();
+      setTimeout(() => {
+        refreshRequested.current = false;
+      }, 500);
+    }
+  }, [onPaymentDeleted]);
 
   if (!agreement) {
     return <Alert>
@@ -352,12 +350,16 @@ export function AgreementDetail({
         </Button>
       </div>
 
-      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
-      onPaymentDeleted();
-      fetchPayments();
-    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
+      {agreement && <PaymentHistory 
+        agreementId={agreement.id}
+        rentAmount={rentAmount} 
+        onPaymentDeleted={handlePaymentHistoryRefresh} 
+        leaseStartDate={agreement.start_date} 
+        leaseEndDate={agreement.end_date} 
+      />}
 
-      {agreement.start_date && agreement.end_date && <Card>
+      {agreement.start_date && agreement.end_date && (
+        <Card>
           <CardHeader>
             <CardTitle>Traffic Fines</CardTitle>
             <CardDescription>Violations during the rental period</CardDescription>
@@ -365,7 +367,8 @@ export function AgreementDetail({
           <CardContent>
             <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
           </CardContent>
-        </Card>}
+        </Card>
+      )}
 
       {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
 

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -39,10 +38,13 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
   const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
   const [missingPayments, setMissingPayments] = useState<any[]>([]);
+  const initialFetchDone = useRef(false);
 
   useEffect(() => {
-    if (agreementId) {
+    if (agreementId && !initialFetchDone.current) {
+      console.log("Initial payment fetch in PaymentList for:", agreementId);
       fetchPayments();
+      initialFetchDone.current = true;
     }
   }, [agreementId, fetchPayments]);
 
@@ -98,7 +100,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
       }
     };
     
-    if (agreementId) {
+    if (agreementId && initialFetchDone.current) {
       calculateMissingPayments();
     }
   }, [agreementId, payments]);
@@ -126,6 +128,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
       toast.success("Payment deleted successfully");
       setIsDeleteDialogOpen(false);
       onPaymentDeleted();
+      fetchPayments(); // Refresh the payments after deletion
     } catch (error) {
       console.error("Error in payment deletion:", error);
       toast.error("An unexpected error occurred");

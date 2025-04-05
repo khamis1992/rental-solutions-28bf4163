@@ -9,11 +9,11 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
-import { isAfter, subMonths, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
+import { usePayments } from '@/hooks/use-payments';
 
 export interface Payment {
   id: string;
@@ -33,8 +33,7 @@ export interface Payment {
 }
 
 interface PaymentHistoryProps {
-  payments: Payment[];
-  isLoading: boolean;
+  agreementId: string;
   rentAmount: number | null;
   onPaymentDeleted: () => void;
   leaseStartDate?: Date | string;
@@ -42,15 +41,12 @@ interface PaymentHistoryProps {
 }
 
 export function PaymentHistory({
-  payments,
-  isLoading,
+  agreementId,
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
   leaseEndDate
 }: PaymentHistoryProps) {
-  console.log('PaymentHistory received payments:', payments);
-  console.log('PaymentHistory isLoading:', isLoading);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -61,6 +57,11 @@ export function PaymentHistory({
     amount: number;
     daysLate: number;
   } | null>(null);
+  
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, rentAmount);
+  
+  console.log(`PaymentHistory for agreement ${agreementId} received ${payments?.length} payments`);
+  console.log('PaymentHistory isLoading:', isLoadingPayments);
   
   useEffect(() => {
     const today = new Date();
@@ -108,6 +109,7 @@ export function PaymentHistory({
       } else {
         toast.success('Payment deleted successfully');
         onPaymentDeleted();
+        fetchPayments();
       }
     } catch (err) {
       console.error('Error deleting payment:', err);
@@ -119,7 +121,7 @@ export function PaymentHistory({
   };
   
   const handleFixPayments = async () => {
-    if (!payments.length || !payments[0].lease_id) {
+    if (!agreementId) {
       toast.error("Cannot fix payments: No lease ID available");
       return;
     }
@@ -128,15 +130,14 @@ export function PaymentHistory({
     toast.info("Checking and fixing payments...");
     
     try {
-      const leaseId = payments[0].lease_id;
-      const result = await ensureAllMonthlyPayments(leaseId);
+      const result = await ensureAllMonthlyPayments(agreementId);
       
       if (result.success) {
         if (result.generatedCount === 0 && result.updatedCount === 0) {
           toast.success("Payment records are up to date");
         } else {
           toast.success(result.message || "Payment records fixed successfully");
-          onPaymentDeleted(); // Refresh the payment list
+          fetchPayments();
         }
       } else {
         toast.error(result.message || "Failed to fix payment records");
@@ -231,7 +232,7 @@ export function PaymentHistory({
           <CardDescription>Track all payments for this agreement</CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onPaymentDeleted} className="h-8">
+          <Button variant="outline" size="sm" onClick={fetchPayments} className="h-8">
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
@@ -257,11 +258,14 @@ export function PaymentHistory({
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? <div className="space-y-2">
+        {isLoadingPayments ? (
+          <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
-          </div> : payments?.length > 0 ? <Table>
+          </div>
+        ) : payments?.length > 0 ? (
+          <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Date</TableHead>
@@ -273,7 +277,8 @@ export function PaymentHistory({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map(payment => <TableRow key={payment.id}>
+              {payments.map(payment => (
+                <TableRow key={payment.id}>
                   <TableCell>
                     {payment.payment_date ? formatDate(new Date(payment.payment_date), 'PPP') : payment.original_due_date ? <span className="text-yellow-600">Due: {formatDate(new Date(payment.original_due_date), 'PPP')}</span> : 'Pending'}
                   </TableCell>
@@ -309,21 +314,40 @@ export function PaymentHistory({
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>)}
+                </TableRow>
+              ))}
             </TableBody>
-          </Table> : <Alert>
+          </Table>
+        ) : (
+          <Alert>
             <AlertDescription className="text-center py-4">
               No payments recorded for this agreement yet.
             </AlertDescription>
-          </Alert>}
+          </Alert>
+        )}
 
-        {selectedPayment && <PaymentEditDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} payment={selectedPayment} onSaved={onPaymentDeleted} />}
+        {selectedPayment && (
+          <PaymentEditDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} payment={selectedPayment} onSaved={() => {
+            onPaymentDeleted();
+            fetchPayments();
+          }} />
+        )}
 
-        <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
-        console.log("Recording payment with payment ID:", targetPaymentId);
-        setIsPaymentDialogOpen(false);
-        onPaymentDeleted();
-      }} defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} title={selectedPayment ? "Record Payment" : "Record Manual Payment"} description={selectedPayment ? "Record payment for this item." : "Record a new manual payment for this agreement."} lateFeeDetails={lateFeeDetails} selectedPayment={selectedPayment} />
+        <PaymentEntryDialog 
+          open={isPaymentDialogOpen} 
+          onOpenChange={setIsPaymentDialogOpen} 
+          onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
+            console.log("Recording payment with payment ID:", targetPaymentId);
+            setIsPaymentDialogOpen(false);
+            onPaymentDeleted();
+            fetchPayments();
+          }} 
+          defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} 
+          title={selectedPayment ? "Record Payment" : "Record Manual Payment"} 
+          description={selectedPayment ? "Record payment for this item." : "Record a new manual payment for this agreement."} 
+          lateFeeDetails={lateFeeDetails} 
+          selectedPayment={selectedPayment} 
+        />
 
         <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
           <DialogContent>
@@ -338,9 +362,11 @@ export function PaymentHistory({
                 Cancel
               </Button>
               <Button variant="destructive" onClick={confirmDeletePayment} disabled={isDeletingPayment}>
-                {isDeletingPayment ? <>
+                {isDeletingPayment ? (
+                  <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Deleting...
-                  </> : 'Delete Payment'}
+                  </>
+                ) : 'Delete Payment'}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
@@ -21,6 +21,7 @@ const AgreementDetailPage = () => {
   const { translateText } = useTranslation();
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
+  const isRefreshing = useRef(false);
   
   // Use the useAgreements hook to fetch agreement data and access delete functionality
   const { 
@@ -53,8 +54,16 @@ const AgreementDetailPage = () => {
   const fetchAgreementData = useCallback(async () => {
     if (!id) return;
     
+    if (isRefreshing.current) {
+      console.log("Agreement fetch already in progress, skipping");
+      return;
+    }
+    
+    isRefreshing.current = true;
     setIsLoading(true);
+    
     try {
+      console.log("Fetching agreement data for ID:", id);
       const data = await getAgreement(id);
       if (data) {
         setAgreement(data);
@@ -68,6 +77,7 @@ const AgreementDetailPage = () => {
       await handleError(message);
     } finally {
       setIsLoading(false);
+      isRefreshing.current = false;
     }
   }, [id, getAgreement, t]);
 
@@ -92,11 +102,17 @@ const AgreementDetailPage = () => {
   }, [deleteAgreement, navigate, t]);
 
   const handlePaymentDeleted = useCallback(() => {
-    fetchAgreementData();
+    if (!isRefreshing.current) {
+      console.log("Refreshing agreement data after payment change");
+      fetchAgreementData();
+    }
   }, [fetchAgreementData]);
 
   const handleDataRefresh = useCallback(() => {
-    fetchAgreementData();
+    if (!isRefreshing.current) {
+      console.log("Refreshing agreement data from manual trigger");
+      fetchAgreementData();
+    }
   }, [fetchAgreementData]);
 
   if (error) {

@@ -1,8 +1,24 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { Payment } from '@/components/agreements/PaymentHistory';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+
+export interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string | null;
+  payment_method?: string;
+  reference_number?: string | null;
+  notes?: string;
+  type?: string;
+  status?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  lease_id?: string;
+  original_due_date?: string | null;
+  amount_paid?: number;
+  balance?: number;
+}
 
 export const usePayments = (agreementId: string | undefined, rentAmount: number | null) => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -18,7 +34,10 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       return;
     }
     
-    if (fetchInProgress.current) return;
+    if (fetchInProgress.current) {
+      console.log("Fetch already in progress, skipping duplicate request");
+      return;
+    }
     
     fetchInProgress.current = true;
     setIsLoadingPayments(true);
@@ -42,64 +61,59 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
         return;
       }
       
-      console.log(`Raw payments data for ${agreementId}:`, unifiedPayments);
-      
-      if (!unifiedPayments || unifiedPayments.length === 0) {
-        console.log(`No payments found for agreement ID: ${agreementId}`);
-        setPayments([]);
-        setIsLoadingPayments(false);
-        fetchInProgress.current = false;
-        initialFetchCompleted.current = true;
-        return;
-      }
-      
-      const formattedPayments = unifiedPayments.map(payment => {
-        // Calculate days overdue for pending payments
-        let daysOverdue = payment.days_overdue || 0;
-        let lateFineAmount = payment.late_fine_amount || 0;
+      // Only update state if this component is still mounted and we have data
+      if (unifiedPayments) {
+        console.log(`Fetched ${unifiedPayments.length} payments for agreement ID: ${agreementId}`);
         
-        // If payment is pending and has an original_due_date, calculate current overdue days
-        if ((payment.status === 'pending' || payment.status === 'partially_paid') && payment.original_due_date) {
-          const dueDate = new Date(payment.original_due_date);
-          const today = new Date();
+        const formattedPayments = unifiedPayments.map(payment => {
+          // Calculate days overdue for pending payments
+          let daysOverdue = payment.days_overdue || 0;
+          let lateFineAmount = payment.late_fine_amount || 0;
           
-          if (today > dueDate) {
-            // Calculate days difference (excluding time)
-            const todayNoTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const dueDateNoTime = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+          // If payment is pending and has an original_due_date, calculate current overdue days
+          if ((payment.status === 'pending' || payment.status === 'partially_paid') && payment.original_due_date) {
+            const dueDate = new Date(payment.original_due_date);
+            const today = new Date();
             
-            const diffTime = todayNoTime.getTime() - dueDateNoTime.getTime();
-            const currentDaysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-            
-            // Update days overdue if current calculation is greater
-            daysOverdue = Math.max(daysOverdue, currentDaysOverdue);
-            
-            // Calculate current late fine (120 QAR per day, capped at 3000 QAR)
-            const dailyLateFee = payment.daily_late_fee || 120;
-            lateFineAmount = Math.min(daysOverdue * dailyLateFee, 3000);
+            if (today > dueDate) {
+              // Calculate days difference (excluding time)
+              const todayNoTime = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+              const dueDateNoTime = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+              
+              const diffTime = todayNoTime.getTime() - dueDateNoTime.getTime();
+              const currentDaysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+              
+              // Update days overdue if current calculation is greater
+              daysOverdue = Math.max(daysOverdue, currentDaysOverdue);
+              
+              // Calculate current late fine (120 QAR per day, capped at 3000 QAR)
+              const dailyLateFee = payment.daily_late_fee || 120;
+              lateFineAmount = Math.min(daysOverdue * dailyLateFee, 3000);
+            }
           }
-        }
+          
+          return {
+            id: payment.id,
+            amount: payment.amount,
+            payment_date: payment.payment_date,
+            payment_method: payment.payment_method || 'cash',
+            reference_number: payment.transaction_id,
+            notes: payment.description,
+            type: payment.type,
+            status: payment.status,
+            late_fine_amount: lateFineAmount,
+            days_overdue: daysOverdue,
+            lease_id: payment.lease_id,
+            original_due_date: payment.original_due_date,
+            amount_paid: payment.amount_paid,
+            balance: payment.balance
+          };
+        });
         
-        return {
-          id: payment.id,
-          amount: payment.amount,
-          payment_date: payment.payment_date,
-          payment_method: payment.payment_method || 'cash',
-          reference_number: payment.transaction_id,
-          notes: payment.description,
-          type: payment.type,
-          status: payment.status,
-          late_fine_amount: lateFineAmount,
-          days_overdue: daysOverdue,
-          lease_id: payment.lease_id,
-          original_due_date: payment.original_due_date,
-          amount_paid: payment.amount_paid,
-          balance: payment.balance
-        };
-      });
-      
-      setPayments(formattedPayments);
-      console.log(`Formatted payments set for ${agreementId}:`, formattedPayments);
+        setPayments(formattedPayments);
+      } else {
+        setPayments([]);
+      }
     } catch (error) {
       console.error("Error fetching payments:", error);
       errorCount.current += 1;
@@ -115,27 +129,17 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
   }, [agreementId]);
 
   useEffect(() => {
-    console.log(`usePayments hook initialized with agreementId: ${agreementId}, initialFetch: ${initialFetchCompleted.current}`);
+    // Only fetch on initial render and when agreement ID changes
     if (agreementId && !initialFetchCompleted.current) {
+      console.log("Initial payment fetch for agreement:", agreementId);
       fetchPayments();
     }
     
     return () => {
+      // Clean up
       fetchInProgress.current = false;
     };
   }, [agreementId, fetchPayments]);
-
-  // If we have an agreement ID but no payments and initial fetch is completed, retry once
-  useEffect(() => {
-    if (agreementId && initialFetchCompleted.current && payments.length === 0 && errorCount.current < 2) {
-      console.log(`Retrying payment fetch after initial empty result for ID: ${agreementId}`);
-      const retryTimer = setTimeout(() => {
-        fetchPayments();
-      }, 2000);
-      
-      return () => clearTimeout(retryTimer);
-    }
-  }, [agreementId, payments.length, fetchPayments]);
 
   return { payments, isLoadingPayments, fetchPayments };
 };
