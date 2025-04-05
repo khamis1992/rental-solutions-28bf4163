@@ -1,16 +1,33 @@
 
-/* RTL Specific Chart Styles */
+/* RTL Specific Chart Styles with CSS Variables for better performance */
+:root {
+  --rtl-margin-right: 0;
+  --rtl-margin-left: 0;
+  --rtl-text-align: left;
+  --rtl-direction: ltr;
+  --rtl-flex-direction: row;
+}
+
+[dir="rtl"] {
+  --rtl-margin-right: 0.5rem;
+  --rtl-margin-left: 0;
+  --rtl-text-align: right;
+  --rtl-direction: rtl;
+  --rtl-flex-direction: row-reverse;
+}
+
+/* RTL for chart components */
 [dir="rtl"] .recharts-wrapper .recharts-cartesian-axis-tick-value {
   text-anchor: start;
 }
 
 [dir="rtl"] .rtl-tabs {
-  direction: rtl;
+  direction: var(--rtl-direction);
 }
 
 [dir="rtl"] .recharts-default-tooltip {
-  direction: rtl;
-  text-align: right;
+  direction: var(--rtl-direction);
+  text-align: var(--rtl-text-align);
 }
 
 [dir="rtl"] .recharts-legend-item-text {
@@ -18,14 +35,14 @@
   margin-left: 0;
 }
 
-/* Additional RTL styles for vehicle cards */
+/* More efficient RTL styles for vehicle cards */
 [dir="rtl"] .card-transition .badge {
   right: auto;
   left: 3px;
 }
 
 [dir="rtl"] .card-transition .icon-with-text {
-  flex-direction: row-reverse;
+  flex-direction: var(--rtl-flex-direction);
 }
 
 [dir="rtl"] .card-transition .icon-with-text svg {
@@ -36,11 +53,11 @@
 /* RTL styles for vehicle details page */
 [dir="rtl"] .card-transition ul li {
   display: flex;
-  flex-direction: row-reverse;
+  flex-direction: var(--rtl-flex-direction);
 }
 
 [dir="rtl"] .card-transition ul li .text-muted-foreground:first-child {
-  text-align: right;
+  text-align: var(--rtl-text-align);
 }
 
 [dir="rtl"] .card-transition ul li svg {
@@ -57,17 +74,14 @@
   margin-left: 0.5rem;
 }
 
-[dir="rtl"] .card-transition table th:last-child {
-  text-align: left;
-}
-
+[dir="rtl"] .card-transition table th:last-child,
 [dir="rtl"] .card-transition table td:last-child {
   text-align: left;
 }
 
 /* RTL styles for traffic fines page */
 [dir="rtl"] .rtl-mode {
-  direction: rtl;
+  direction: var(--rtl-direction);
 }
 
 [dir="rtl"] .dropdown-menu-align-end {
@@ -76,21 +90,20 @@
 }
 
 [dir="rtl"] table th {
-  text-align: right;
+  text-align: var(--rtl-text-align);
 }
 
 [dir="rtl"] .traffic-fine-stat-card {
-  direction: rtl;
+  direction: var(--rtl-direction);
 }
 
 [dir="rtl"] .space-x-reverse > * + * {
-  margin-right: 0.5rem;
+  margin-right: var(--rtl-margin-right);
   margin-left: 0;
 }
 
 /* Fix for RTL alignment in tables */
 [dir="rtl"] table th:first-child,
 [dir="rtl"] table td:first-child {
-  text-align: right;
+  text-align: var(--rtl-text-align);
 }
-

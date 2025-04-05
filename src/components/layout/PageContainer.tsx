@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
 import { Link } from 'react-router-dom';
@@ -29,33 +29,39 @@ const PageContainer: React.FC<PageContainerProps> = ({
   systemDate = new Date() // Default to current date
 }) => {
   const { t } = useI18nTranslation();
-  const { direction, isRTL, translateText } = useTranslation();
+  const { direction, isRTL } = useTranslation();
   
-  // Choose the appropriate arrow icon based on direction
+  // Memoize expensive calculations
+  const containerClasses = useMemo(() => {
+    const sidebarPaddingClass = isRTL ? 'pr-64' : 'pl-64';
+    return `min-h-screen ${sidebarPaddingClass} w-full transition-all duration-300`;
+  }, [isRTL]);
+  
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
+  const flexClass = getDirectionalFlexClass();
   
-  // Calculate the correct padding class based on RTL/LTR
-  const sidebarPaddingClass = isRTL ? 'pr-64' : 'pl-64';
+  // Memoize the formatted date to avoid recalculation
+  const formattedDate = useMemo(() => formatDate(systemDate), [systemDate]);
   
   return (
-    <div className={`min-h-screen ${sidebarPaddingClass} w-full transition-all duration-300`} dir={direction}>
+    <div className={containerClasses} dir={direction}>
       <Header />
       <main className={cn("p-6 animate-fade-in", className)}>
         {backLink && (
           <Link 
             to={backLink} 
-            className={`inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors ${getDirectionalFlexClass()}`}
+            className={`inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors ${flexClass}`}
           >
             <BackArrow className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
             {t('common.back')}
           </Link>
         )}
         
-        <div className={`mb-6 flex flex-col sm:${getDirectionalFlexClass()} sm:items-center sm:justify-between`}>
+        <div className={`mb-6 flex flex-col sm:${flexClass} sm:items-center sm:justify-between`}>
           <div className={cn(isRTL ? 'text-right' : '')}>
             {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
             {description && <p className="text-muted-foreground mt-1">{description}</p>}
-            <p className="text-xs text-muted-foreground mt-1">{t('common.systemDate')}: {formatDate(systemDate)}</p>
+            <p className="text-xs text-muted-foreground mt-1">{t('common.systemDate')}: {formattedDate}</p>
           </div>
           {actions && (
             <div className="mt-4 sm:mt-0">{actions}</div>
@@ -68,4 +74,4 @@ const PageContainer: React.FC<PageContainerProps> = ({
   );
 };
 
-export default PageContainer;
+export default React.memo(PageContainer);

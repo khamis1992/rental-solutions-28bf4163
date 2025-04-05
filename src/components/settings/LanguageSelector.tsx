@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
-import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
+import { getDirectionalFlexClass } from '@/utils/rtl-utils';
 
 interface LanguageSelectorProps {
   onValueChange?: (value: string) => void;
@@ -29,22 +29,38 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
     }
   };
 
-  const isCompact = variant === 'compact';
+  // Memoize values that don't change often
+  const containerClasses = useMemo(() => {
+    const isCompact = variant === 'compact';
+    const flexClass = getDirectionalFlexClass();
+    return `flex items-center ${flexClass} ${isCompact ? 'gap-2' : 'gap-3'} ${className}`;
+  }, [variant, className]);
   
-  const getLanguageLabel = (lang: string) => {
-    switch (lang) {
-      case 'en': return 'English';
-      case 'ar': return 'العربية';
-      default: return lang;
-    }
-  };
+  const selectTriggerClasses = useMemo(() => {
+    const isCompact = variant === 'compact';
+    return `${isCompact ? 'h-8 py-1 px-2' : ''} min-w-[110px]`;
+  }, [variant]);
+  
+  const iconClasses = useMemo(() => {
+    const isCompact = variant === 'compact';
+    return `${isCompact ? 'h-4 w-4' : 'h-5 w-5'} text-muted-foreground`;
+  }, [variant]);
+  
+  // Optimize language label lookup with a memoized map
+  const getLanguageLabel = useMemo(() => {
+    const labels: Record<string, string> = {
+      'en': 'English',
+      'ar': 'العربية',
+    };
+    return (lang: string) => labels[lang] || lang;
+  }, []);
 
   return (
-    <div className={`flex items-center ${getDirectionalFlexClass()} ${isCompact ? 'gap-2' : 'gap-3'} ${className}`}>
-      {showIcon && <Globe className={`${isCompact ? 'h-4 w-4' : 'h-5 w-5'} text-muted-foreground`} />}
+    <div className={containerClasses}>
+      {showIcon && <Globe className={iconClasses} />}
       
       <Select value={language} onValueChange={handleLanguageChange}>
-        <SelectTrigger className={`${isCompact ? 'h-8 py-1 px-2' : ''} min-w-[110px]`}>
+        <SelectTrigger className={selectTriggerClasses}>
           <SelectValue placeholder={t('settings.language')}>
             {getLanguageLabel(language)}
           </SelectValue>
@@ -58,4 +74,4 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   );
 };
 
-export default LanguageSelector;
+export default React.memo(LanguageSelector);
