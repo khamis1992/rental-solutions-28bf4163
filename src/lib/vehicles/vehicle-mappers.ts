@@ -110,7 +110,6 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
     notes: record.description || undefined,
     vehicleType: vehicleType,
     dailyRate: record.rent_amount || (vehicleType?.daily_rate || 0),
-    license_plate: record.license_plate,
     imageUrl: record.image_url
   };
   

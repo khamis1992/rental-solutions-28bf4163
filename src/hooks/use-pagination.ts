@@ -11,7 +11,7 @@ export interface PaginationState {
   page: number;
   pageSize: number;
   offset: number;
-  pageIndex: number; // Add this property needed by use-vehicles-pagination
+  pageIndex: number; // This is required for all pagination state objects
 }
 
 export interface UsePaginationResult {

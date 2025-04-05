@@ -104,7 +104,7 @@ const Reports = () => {
           {isVehiclesLoading ? (
             <Skeleton className="h-[600px] w-full" />
           ) : (
-            <VehicleReport vehicles={vehicleList} />
+            <VehicleReport />
           )}
         </TabsContent>
         

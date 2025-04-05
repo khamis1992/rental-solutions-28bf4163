@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -14,7 +15,7 @@ export interface UseCustomersListOptions {
 export function useCustomersList({
   status = 'all',
   query = '',
-  pagination = { page: 1, pageSize: 10, offset: 0 },
+  pagination = { page: 1, pageSize: 10, offset: 0, pageIndex: 0 }, // Added pageIndex
   enabled = true
 }: UseCustomersListOptions = {}) {
   return useQuery({

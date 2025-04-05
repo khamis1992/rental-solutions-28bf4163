@@ -96,11 +96,11 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
     name: dbType.name,
     size: dbType.size === 'mid_size' ? 'midsize' : 
           dbType.size === 'full_size' ? 'fullsize' : 
-          dbType.size as VehicleType['size'],
+          dbType.size,
     daily_rate: dbType.daily_rate,
     weekly_rate: dbType.weekly_rate,
     monthly_rate: dbType.monthly_rate,
-    description: dbType.description || undefined,
+    description: dbType.description || '',
     features: normalizeFeatures(dbType.features || []),
     is_active: dbType.is_active,
     created_at: dbType.created_at || new Date().toISOString(),
