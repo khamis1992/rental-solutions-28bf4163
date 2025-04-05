@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -197,19 +198,25 @@
     "viewDetails": "عرض التفاصيل",
     "viewDocuments": "عرض المستندات",
     "markAsUrgent": "وضع علامة كعاجلة",
-    "noCasesFound": "لم يتم العثور على قضايا.",
+    "noCasesFound": "لا توجد قضايا قانونية مرتبطة بهذه الاتفاقية.",
     "customerObligations": "التزامات العملاء",
+    "caseDetailsComingSoon": "وظيفة تفاصيل القضية قريبًا",
+    "caseNumber": "القضية رقم #",
+    "hearing": "جلسة الاستماع",
+    "notScheduled": "غير مجدول",
+    "claim": "المطالبة",
+    "status": {
+      "settled": "تمت التسوية",
+      "overduepayment": "دفعة متأخرة",
+      "unpaidfine": "غرامة غير مدفوعة", 
+      "legalcase": "قضية قانونية"
+    },
     "urgency": {
       "title": "الأولوية",
       "critical": "حرجة",
       "high": "عالية",
       "medium": "متوسطة",
       "low": "منخفضة"
-    },
-    "status": {
-      "overduepayment": "دفعة متأخرة",
-      "unpaidfine": "غرامة غير مدفوعة", 
-      "legalcase": "قضية قانونية"
     },
     "reports": "التقارير القانونية",
     "reportsDescription": "تحليل مقاييس الامتثال القانوني والقضايا",

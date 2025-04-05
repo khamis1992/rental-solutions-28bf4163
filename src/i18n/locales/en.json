@@ -197,19 +197,25 @@
     "viewDetails": "View Details",
     "viewDocuments": "View Documents",
     "markAsUrgent": "Mark as Urgent",
-    "noCasesFound": "No cases found.",
+    "noCasesFound": "No legal cases associated with this agreement.",
     "customerObligations": "Customer Obligations",
+    "caseDetailsComingSoon": "Case details functionality coming soon",
+    "caseNumber": "Case #",
+    "hearing": "Hearing",
+    "notScheduled": "Not scheduled",
+    "claim": "Claim",
+    "status": {
+      "settled": "Settled",
+      "overduepayment": "Overdue Payment",
+      "unpaidfine": "Unpaid Fine", 
+      "legalcase": "Legal Case"
+    },
     "urgency": {
       "title": "Urgency",
       "critical": "Critical",
       "high": "High",
       "medium": "Medium",
       "low": "Low"
-    },
-    "status": {
-      "overduepayment": "Overdue Payment",
-      "unpaidfine": "Unpaid Fine", 
-      "legalcase": "Legal Case"
     },
     "reports": "Legal Reports",
     "reportsDescription": "Analyze legal compliance and case metrics",
