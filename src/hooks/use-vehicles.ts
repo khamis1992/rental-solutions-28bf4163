@@ -57,9 +57,9 @@ export const useVehicles = () => {
       if (error) throw error;
       
       const validData = data || [];
-      return validData.reduce((acc: Record<string, Vehicle>, vehicle) => {
+      return validData.reduce((acc: Record<string, Vehicle>, vehicle: any) => {
         if (vehicle && typeof vehicle === 'object' && 'id' in vehicle) {
-          acc[vehicle.id] = mapDatabaseRecordToVehicle(vehicle);
+          acc[vehicle.id as string] = mapDatabaseRecordToVehicle(vehicle);
         }
         return acc;
       }, {});
