@@ -26,11 +26,12 @@ import SystemSettings from '@/pages/SystemSettings';
 import UserManagement from '@/pages/UserManagement';
 import UserSettings from '@/pages/UserSettings';
 import NotFound from '@/pages/NotFound';
+import Index from '@/pages/Index';
 
 const RoutesComponent = () => {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/dashboard" />} />
+      <Route path="/" element={<Index />} />
       <Route path="/dashboard" element={<Dashboard />} />
       
       {/* Vehicle Routes */}

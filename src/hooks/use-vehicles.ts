@@ -55,12 +55,13 @@ export const useVehicles = () => {
         
       if (error) throw error;
       
-      return (data || []).reduce((acc, vehicle) => {
+      const validData = data || [];
+      return validData.reduce((acc: Record<string, Vehicle>, vehicle: any) => {
         if (vehicle && typeof vehicle === 'object' && 'id' in vehicle) {
           acc[vehicle.id] = mapDatabaseRecordToVehicle(vehicle);
         }
         return acc;
-      }, {} as Record<string, Vehicle>);
+      }, {});
     } catch (error) {
       handleApiError(error, 'Failed to fetch vehicles in batch');
       throw error;
