@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,7 +26,49 @@ const Financials = () => {
   const [invoiceDialog, setInvoiceDialog] = useState(false);
   const [invoiceType, setInvoiceType] = useState<'agreement' | 'payment' | 'customer'>('agreement');
   const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
+  const { isRTL, translateText } = useTranslation();
+  
+  // Pre-translate critical UI elements
+  const [translatedTitle, setTranslatedTitle] = useState('');
+  const [translatedDescription, setTranslatedDescription] = useState('');
+  const [translatedGenerateInvoice, setTranslatedGenerateInvoice] = useState('');
+  const [translatedTabs, setTranslatedTabs] = useState({
+    dashboard: '',
+    invoices: '',
+    payments: '',
+    installments: ''
+  });
+  
+  // Load translations on component mount
+  useEffect(() => {
+    const loadTranslations = async () => {
+      try {
+        const title = await translateText(t('financials.title', 'Financial Management'));
+        const description = await translateText(t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts'));
+        const generateInvoice = await translateText(t('agreements.generateDocument', 'Generate Invoice'));
+        
+        // Translate tab labels
+        const dashboard = await translateText(t('financials.dashboard', 'Financial Dashboard'));
+        const invoices = await translateText(t('invoices.templates', 'Invoice Templates'));
+        const payments = await translateText(t('payments.settings', 'Payment Settings'));
+        const installments = await translateText(t('financials.installments', 'Installment Contracts'));
+        
+        setTranslatedTitle(title);
+        setTranslatedDescription(description);
+        setTranslatedGenerateInvoice(generateInvoice);
+        setTranslatedTabs({
+          dashboard,
+          invoices,
+          payments,
+          installments
+        });
+      } catch (error) {
+        console.error('Error loading translations:', error);
+      }
+    };
+    
+    loadTranslations();
+  }, [t, translateText, isRTL]);
   
   const handleOpenInvoiceGenerator = (type: 'agreement' | 'payment' | 'customer') => {
     setInvoiceType(type);
@@ -36,8 +78,8 @@ const Financials = () => {
   return (
     <PageContainer>
       <SectionHeader 
-        title={t('financials.title', 'Financial Management')} 
-        description={t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts')} 
+        title={translatedTitle || t('financials.title', 'Financial Management')} 
+        description={translatedDescription || t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts')} 
         icon={ChartPieIcon}
         actions={
           activeTab === "invoices" && (
@@ -48,7 +90,7 @@ const Financials = () => {
               className="h-9"
             >
               <Printer className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
-              {t('agreements.generateDocument', 'Generate Invoice')}
+              {translatedGenerateInvoice || t('agreements.generateDocument', 'Generate Invoice')}
             </Button>
           )
         }
@@ -58,19 +100,19 @@ const Financials = () => {
         <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
           <TabsTrigger value="dashboard" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
             <BarChartBig className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t('financials.dashboard', 'Financial Dashboard')}
+            {translatedTabs.dashboard || t('financials.dashboard', 'Financial Dashboard')}
           </TabsTrigger>
           <TabsTrigger value="invoices" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
             <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t('invoices.templates', 'Invoice Templates')}
+            {translatedTabs.invoices || t('invoices.templates', 'Invoice Templates')}
           </TabsTrigger>
           <TabsTrigger value="payments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
             <ChartPieIcon className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t('payments.settings', 'Payment Settings')}
+            {translatedTabs.payments || t('payments.settings', 'Payment Settings')}
           </TabsTrigger>
           <TabsTrigger value="installments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
             <FileSpreadsheet className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t('financials.installments', 'Installment Contracts')}
+            {translatedTabs.installments || t('financials.installments', 'Installment Contracts')}
           </TabsTrigger>
         </TabsList>
         
