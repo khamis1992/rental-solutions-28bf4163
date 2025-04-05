@@ -28,17 +28,28 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
   const initialFetchCompleted = useRef(false);
   const errorCount = useRef(0);
   const lastFetchTime = useRef<number>(0);
+  const isMounted = useRef(true);
+  
+  // Cleanup effect to prevent state updates after unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
   
   const fetchPayments = useCallback(async (force = false) => {
     if (!agreementId) {
       console.log("No agreement ID provided to usePayments");
-      setIsLoadingPayments(false);
+      if (isMounted.current) {
+        setIsLoadingPayments(false);
+      }
       return;
     }
     
-    // Implement debounce to prevent multiple fetches in short succession
+    // Enhanced debounce with cooldown period
     const now = Date.now();
-    if (!force && now - lastFetchTime.current < 500) {
+    if (!force && now - lastFetchTime.current < 1000) {
       console.log("Skipping fetch due to debounce (too soon since last fetch)");
       return;
     }
@@ -52,7 +63,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
     lastFetchTime.current = now;
     
     // Only show loading indicator on initial fetch to prevent UI flicker
-    if (!initialFetchCompleted.current) {
+    if (!initialFetchCompleted.current && isMounted.current) {
       setIsLoadingPayments(true);
     }
     
@@ -76,7 +87,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
       }
       
       // Only update state if this component is still mounted and we have data
-      if (unifiedPayments) {
+      if (unifiedPayments && isMounted.current) {
         console.log(`Fetched ${unifiedPayments.length} payments for agreement ID: ${agreementId}`);
         
         const formattedPayments = unifiedPayments.map(payment => {
@@ -100,7 +111,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
               // Update days overdue if current calculation is greater
               daysOverdue = Math.max(daysOverdue, currentDaysOverdue);
               
-              // Calculate current late fine (120 QAR per day, capped at 3000 QAR)
+              // Calculate current late fine (daily fee, capped at 3000 QAR)
               const dailyLateFee = payment.daily_late_fee || 120;
               lateFineAmount = Math.min(daysOverdue * dailyLateFee, 3000);
             }
@@ -125,8 +136,10 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
           };
         });
         
-        setPayments(formattedPayments);
-      } else {
+        if (isMounted.current) {
+          setPayments(formattedPayments);
+        }
+      } else if (isMounted.current) {
         setPayments([]);
       }
     } catch (error) {
@@ -137,7 +150,9 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
         toast.error("Failed to load payment history");
       }
     } finally {
-      setIsLoadingPayments(false);
+      if (isMounted.current) {
+        setIsLoadingPayments(false);
+      }
       fetchInProgress.current = false;
       initialFetchCompleted.current = true;
     }
@@ -145,7 +160,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
 
   useEffect(() => {
     // Only fetch on initial render and when agreement ID changes
-    if (agreementId && !initialFetchCompleted.current) {
+    if (agreementId && (!initialFetchCompleted.current || fetchInProgress.current === false)) {
       console.log("Initial payment fetch for agreement:", agreementId);
       fetchPayments(true);
     }

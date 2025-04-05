@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { formatCurrency } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { differenceInDays } from 'date-fns';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 export interface Payment {
   id: string;
@@ -40,9 +41,26 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
   const [missingPayments, setMissingPayments] = useState<any[]>([]);
   const initialFetchDone = useRef(false);
   const isDeleting = useRef(false);
-  const refreshDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted = useRef(true);
   
   const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
+  
+  // Debounced refresh to prevent multiple rapid refreshes
+  const debouncedRefresh = useDebouncedCallback(() => {
+    console.log("Running debounced payment refresh in PaymentList");
+    if (isMounted.current) {
+      fetchPayments(true);
+      onPaymentDeleted();
+    }
+  }, 1000);
+  
+  // Ensure we mark component as mounted/unmounted
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (agreementId && !initialFetchDone.current) {
@@ -54,6 +72,8 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
 
   useEffect(() => {
     const calculateMissingPayments = async () => {
+      if (!isMounted.current) return;
+      
       try {
         const { data: lease, error } = await supabase
           .from('leases')
@@ -79,7 +99,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
           .lt('payment_date', new Date(currentYear, currentMonth + 1, 0).toISOString());
           
         if (currentMonthPayment && currentMonthPayment.length > 0) {
-          setMissingPayments([]);
+          if (isMounted.current) setMissingPayments([]);
           return;
         }
         
@@ -89,14 +109,16 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
         const lateFee = Math.min(daysOverdue * dailyLateFee, 3000);
         
         if (daysOverdue > 0) {
-          setMissingPayments([{
-            month: today.toLocaleString('default', { month: 'long', year: 'numeric' }),
-            amount: lease.rent_amount || 0,
-            daysOverdue: daysOverdue,
-            lateFee: lateFee,
-            totalDue: (lease.rent_amount || 0) + lateFee
-          }]);
-        } else {
+          if (isMounted.current) {
+            setMissingPayments([{
+              month: today.toLocaleString('default', { month: 'long', year: 'numeric' }),
+              amount: lease.rent_amount || 0,
+              daysOverdue: daysOverdue,
+              lateFee: lateFee,
+              totalDue: (lease.rent_amount || 0) + lateFee
+            }]);
+          }
+        } else if (isMounted.current) {
           setMissingPayments([]);
         }
       } catch (err) {
@@ -109,27 +131,13 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
     }
   }, [agreementId, payments]);
 
-  // Debounced refresh to prevent multiple rapid refreshes
-  const debouncedRefresh = () => {
-    if (refreshDebounceTimer.current) {
-      clearTimeout(refreshDebounceTimer.current);
-    }
-    
-    refreshDebounceTimer.current = setTimeout(() => {
-      console.log("Running debounced payment refresh in PaymentList");
-      fetchPayments(true);
-      onPaymentDeleted();
-      refreshDebounceTimer.current = null;
-    }, 500);
-  };
-
   const confirmDeletePayment = (id: string) => {
     setPaymentToDelete(id);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDeletePayment = async () => {
-    if (!paymentToDelete || isDeleting.current) return;
+    if (!paymentToDelete || isDeleting.current || !isMounted.current) return;
 
     try {
       isDeleting.current = true;
@@ -158,15 +166,6 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
       isDeleting.current = false;
     }
   };
-  
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (refreshDebounceTimer.current) {
-        clearTimeout(refreshDebounceTimer.current);
-      }
-    };
-  }, []);
 
   const renderPaymentMethodBadge = (method: string) => {
     switch(method.toLowerCase()) {

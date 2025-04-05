@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
 import { usePayments } from '@/hooks/use-payments';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 export interface Payment {
   id: string;
@@ -59,13 +60,30 @@ export function PaymentHistory({
     daysLate: number;
   } | null>(null);
   
-  const refreshDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isDeleteOperationInProgress = useRef(false);
+  const isMounted = useRef(true);
   
   const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, rentAmount);
   
   console.log(`PaymentHistory for agreement ${agreementId} received ${payments?.length} payments`);
   console.log('PaymentHistory isLoading:', isLoadingPayments);
+  
+  // Track component mount status to prevent state updates after unmount
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  
+  // Create debounced refresh function
+  const debouncedRefresh = useDebouncedCallback(() => {
+    console.log("Running debounced payment refresh");
+    if (isMounted.current) {
+      fetchPayments(true);
+      onPaymentDeleted();
+    }
+  }, 1000);
   
   useEffect(() => {
     const today = new Date();
@@ -101,30 +119,14 @@ export function PaymentHistory({
     setIsDeleteConfirmOpen(true);
   };
   
-  // Avoid triggering multiple refreshes in quick succession
-  const debouncedRefresh = () => {
-    if (refreshDebounceTimer.current) {
-      clearTimeout(refreshDebounceTimer.current);
-    }
-    
-    refreshDebounceTimer.current = setTimeout(() => {
-      console.log("Running debounced payment refresh");
-      fetchPayments(true);
-      onPaymentDeleted();
-      refreshDebounceTimer.current = null;
-    }, 500);
-  };
-  
   const confirmDeletePayment = async () => {
-    if (!selectedPayment || isDeleteOperationInProgress.current) return;
+    if (!selectedPayment || isDeleteOperationInProgress.current || !isMounted.current) return;
     
     try {
       isDeleteOperationInProgress.current = true;
       setIsDeletingPayment(true);
       
-      const {
-        error
-      } = await supabase.from('unified_payments').delete().eq('id', selectedPayment.id);
+      const { error } = await supabase.from('unified_payments').delete().eq('id', selectedPayment.id);
       
       if (error) {
         toast.error(`Failed to delete payment: ${error.message}`);
@@ -136,8 +138,10 @@ export function PaymentHistory({
       console.error('Error deleting payment:', err);
       toast.error('Failed to delete payment');
     } finally {
-      setIsDeletingPayment(false);
-      setIsDeleteConfirmOpen(false);
+      if (isMounted.current) {
+        setIsDeletingPayment(false);
+        setIsDeleteConfirmOpen(false);
+      }
       isDeleteOperationInProgress.current = false;
     }
   };
@@ -168,18 +172,11 @@ export function PaymentHistory({
       console.error("Error fixing payments:", error);
       toast.error("An unexpected error occurred while fixing payments");
     } finally {
-      setIsFixingPayments(false);
+      if (isMounted.current) {
+        setIsFixingPayments(false);
+      }
     }
   };
-  
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (refreshDebounceTimer.current) {
-        clearTimeout(refreshDebounceTimer.current);
-      }
-    };
-  }, []);
   
   const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number) => {
     if (!status) return <Badge className="bg-gray-500">Unknown</Badge>;

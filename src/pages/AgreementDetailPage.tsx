@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useAgreements } from '@/hooks/use-agreements';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
 
 const AgreementDetailPage = () => {
   const { id } = useParams();
@@ -22,7 +23,8 @@ const AgreementDetailPage = () => {
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
   const isRefreshing = useRef(false);
-  const refreshDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshCount = useRef(0);
+  const lastRefreshTime = useRef(0);
   
   // Use the useAgreements hook to fetch agreement data and access delete functionality
   const { 
@@ -60,11 +62,19 @@ const AgreementDetailPage = () => {
       return;
     }
     
+    const now = Date.now();
+    if (now - lastRefreshTime.current < 1000) {
+      console.log("Throttling agreement data refresh (too frequent)");
+      return;
+    }
+    
     isRefreshing.current = true;
+    lastRefreshTime.current = now;
     setIsLoading(true);
     
     try {
       console.log("Fetching agreement data for ID:", id);
+      refreshCount.current += 1;
       const data = await getAgreement(id);
       if (data) {
         setAgreement(data);
@@ -102,43 +112,19 @@ const AgreementDetailPage = () => {
     }
   }, [deleteAgreement, navigate, t]);
 
-  // Debounce data refresh to prevent excessive refreshes
+  // Create debounced data refresh functions to prevent cascade refreshes
+  const debouncedDataRefresh = useDebouncedCallback(() => {
+    console.log("Running debounced agreement refresh");
+    fetchAgreementData();
+  }, 1000);
+  
   const handlePaymentDeleted = useCallback(() => {
-    if (refreshDebounceTimer.current) {
-      clearTimeout(refreshDebounceTimer.current);
-    }
-    
-    refreshDebounceTimer.current = setTimeout(() => {
-      console.log("Refreshing agreement data after payment change (debounced)");
-      if (!isRefreshing.current) {
-        fetchAgreementData();
-      }
-      refreshDebounceTimer.current = null;
-    }, 800);
-  }, [fetchAgreementData]);
+    debouncedDataRefresh();
+  }, [debouncedDataRefresh]);
 
   const handleDataRefresh = useCallback(() => {
-    if (refreshDebounceTimer.current) {
-      clearTimeout(refreshDebounceTimer.current);
-    }
-    
-    refreshDebounceTimer.current = setTimeout(() => {
-      console.log("Refreshing agreement data from manual trigger (debounced)");
-      if (!isRefreshing.current) {
-        fetchAgreementData();
-      }
-      refreshDebounceTimer.current = null;
-    }, 800);
-  }, [fetchAgreementData]);
-
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (refreshDebounceTimer.current) {
-        clearTimeout(refreshDebounceTimer.current);
-      }
-    };
-  }, []);
+    debouncedDataRefresh();
+  }, [debouncedDataRefresh]);
 
   if (error) {
     return (
