@@ -63,11 +63,10 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
                 {t('trafficFines.violationDate')}
               </label>
               <DatePicker
-                id="violationDate"
-                selected={violationDate}
-                onSelect={setViolationDate}
+                date={violationDate}
+                setDate={setViolationDate}
                 disabled={false}
-                placeholder={t('common.pickDate')}
+                className="w-full"
               />
             </div>
             
