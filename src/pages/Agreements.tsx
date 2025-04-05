@@ -22,7 +22,7 @@ const Agreements = () => {
     const loadTranslations = async () => {
       const title = await translateText(t('agreements.title'));
       const description = await translateText(t('agreements.description'));
-      const buttonText = await translateText(t('agreements.add'));
+      const buttonText = await translateText(t('agreements.newAgreement'));
       
       setPageTitle(title);
       setPageDescription(description);
@@ -46,7 +46,7 @@ const Agreements = () => {
           className={cn("gap-2", isRTL ? "flex-row-reverse" : "")}
         >
           <Plus className="h-4 w-4" />
-          {addButtonText || t('agreements.add')}
+          {addButtonText || t('agreements.newAgreement')}
         </Button>
       }
     >

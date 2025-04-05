@@ -319,6 +319,7 @@
     "title": "Rental Agreements",
     "description": "Manage customer rental agreements and contracts",
     "add": "Add Agreement",
+    "newAgreement": "New Agreement",
     "edit": "Edit Agreement",
     "details": "Agreement Details",
     "delete": "Delete Agreement",
