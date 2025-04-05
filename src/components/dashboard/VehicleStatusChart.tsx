@@ -166,13 +166,16 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
   const { t } = useI18nTranslation();
   const { isRTL, getNumberFormat } = useTranslation();
   
-  if (!data) return null;
+  // Return early if no data to avoid conditional hooks
+  if (!data) {
+    return null;
+  }
   
-  // Define status config with translations
+  // Define status config with translations - moved outside of conditional flow
   const statusConfig = useMemo(() => getStatusConfig(t), [t]);
   
   // Process data once with useMemo to prevent recalculation
-  const { normalizedData, chartData, criticalVehicles, hasCriticalVehicles } = useMemo(() => {
+  const processedData = useMemo(() => {
     const normalizedData = { ...data };
     
     statusConfig.forEach(status => {
@@ -218,6 +221,8 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
     
     return `${formattedCount} ${vehicleText}`;
   };
+
+  const { normalizedData, chartData, criticalVehicles, hasCriticalVehicles } = processedData;
 
   return (
     <Card className="col-span-full lg:col-span-4 card-transition">
