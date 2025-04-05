@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -56,7 +57,7 @@ export const useVehicles = () => {
       if (error) throw error;
       
       const validData = data || [];
-      return validData.reduce((acc: Record<string, Vehicle>, vehicle: any) => {
+      return validData.reduce((acc: Record<string, Vehicle>, vehicle) => {
         if (vehicle && typeof vehicle === 'object' && 'id' in vehicle) {
           acc[vehicle.id] = mapDatabaseRecordToVehicle(vehicle);
         }
