@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -20,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 interface RevenueChartData {
   name: string;
@@ -36,12 +39,18 @@ interface RevenueChartProps {
 
 const FinancialRevenueChart: React.FC<RevenueChartProps> = ({ 
   data, 
-  title = "Financial Overview",
-  description = "Revenue, expenses, and profit trends",
+  title,
+  description,
   fullWidth = false 
 }) => {
   const [timePeriod, setTimePeriod] = useState<string>("6");
   const [viewType, setViewType] = useState<'area' | 'bar'>('area');
+  const { isRTL } = useTranslation();
+  const { t } = useI18nTranslation();
+  
+  // Set default title and description if not provided
+  const chartTitle = title || t('financials.financialOverview', 'Financial Overview');
+  const chartDescription = description || t('financials.revenueExpensesTrends', 'Revenue, expenses, and profit trends');
   
   const ensureCompleteData = (inputData: RevenueChartData[]): RevenueChartData[] => {
     if (!inputData || inputData.length === 0) {
@@ -82,10 +91,10 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
-          <CardTitle className="text-xl font-bold">{title}</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          <CardTitle className="text-xl font-bold">{chartTitle}</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">{chartDescription}</p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
           <div className="flex items-center rounded-md border p-1">
             <Button
               variant={viewType === 'area' ? 'default' : 'ghost'}
@@ -106,13 +115,13 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
           </div>
           <Select value={timePeriod} onValueChange={setTimePeriod}>
             <SelectTrigger className="w-[160px] h-9">
-              <SelectValue placeholder="Select Period" />
+              <SelectValue placeholder={t('reports.selectPeriod', 'Select Period')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="3">Last 3 months</SelectItem>
-              <SelectItem value="6">Last 6 months</SelectItem>
-              <SelectItem value="12">Last 12 months</SelectItem>
-              <SelectItem value="24">Last 24 months</SelectItem>
+              <SelectItem value="3">{t('legal.last3Months', 'Last 3 months')}</SelectItem>
+              <SelectItem value="6">{t('legal.last6Months', 'Last 6 months')}</SelectItem>
+              <SelectItem value="12">{t('reports.lastYear', 'Last 12 months')}</SelectItem>
+              <SelectItem value="24">{t('reports.last24Months', 'Last 24 months')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -145,19 +154,21 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#64748b', fontSize: 12 }}
+                reversed={isRTL}
               />
               <YAxis 
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#64748b', fontSize: 12 }}
                 tickFormatter={(value) => formatCurrency(value).split('.')[0]}
+                orientation={isRTL ? 'right' : 'left'}
               />
               <Tooltip 
                 formatter={(value: number, name: string) => {
-                  if (name === 'expenses') return [formatCurrency(value), 'Expenses'];
-                  return [formatCurrency(value), 'Revenue'];
+                  if (name === 'expenses') return [formatCurrency(value), t('financials.expenses', 'Expenses')];
+                  return [formatCurrency(value), t('financials.revenue', 'Revenue')];
                 }}
-                labelFormatter={(label) => `Month: ${label}`}
+                labelFormatter={(label) => `${t('financials.month', 'Month')}: ${label}`}
                 content={({ active, payload, label }) => {
                   if (active && payload && payload.length) {
                     const revenue = payload[0]?.value as number || 0;
@@ -167,10 +178,10 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
                     return (
                       <div className="custom-tooltip bg-white p-3 border border-gray-200 rounded-md shadow">
                         <p className="font-medium">{label}</p>
-                        <p className="text-blue-600">Revenue: {formatCurrency(revenue)}</p>
-                        <p className="text-green-600">Expenses: {formatCurrency(expenses)}</p>
+                        <p className="text-blue-600">{t('financials.revenue', 'Revenue')}: {formatCurrency(revenue)}</p>
+                        <p className="text-green-600">{t('financials.expenses', 'Expenses')}: {formatCurrency(expenses)}</p>
                         <p className={`font-medium ${profit >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                          Profit: {formatCurrency(profit)}
+                          {t('financials.profit', 'Profit')}: {formatCurrency(profit)}
                         </p>
                       </div>
                     );
@@ -182,7 +193,7 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
               <Area 
                 type="monotone" 
                 dataKey="revenue" 
-                name="Revenue"
+                name={t('financials.revenue', 'Revenue')}
                 stackId="1"
                 stroke="#8884d8" 
                 fillOpacity={1} 
@@ -192,7 +203,7 @@ const FinancialRevenueChart: React.FC<RevenueChartProps> = ({
               <Area 
                 type="monotone" 
                 dataKey="expenses" 
-                name="Expenses"
+                name={t('financials.expenses', 'Expenses')}
                 stackId="2"
                 stroke="#4ade80" 
                 fillOpacity={1} 

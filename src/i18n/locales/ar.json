@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -260,7 +259,23 @@
     "currentMonthDue": "المستحق هذا الشهر",
     "overdueExpenses": "المصروفات المتأخرة",
     "month": "الشهر",
-    "vsLastMonth": "مقارنة بالشهر الماضي"
+    "vsLastMonth": "مقارنة بالشهر الماضي",
+    "title": "الإدارة المالية",
+    "description": "إدارة المدفوعات والفواتير والتقارير المالية وعقود الأقساط",
+    "incomeAfterExpenses": "الدخل بعد المصروفات",
+    "upcomingRentalPayments": "مدفوعات الإيجار القادمة",
+    "installments": "عقود الأقساط",
+    "expenseAnalysis": "تحليل المصروفات",
+    "expenseBreakdownStatus": "تصنيف المصروفات حسب الحالة",
+    "allExpensesCombined": "جميع المصروفات مجتمعة",
+    "installmentsDueThisMonth": "الأقساط المستحقة هذا الشهر",
+    "pastDueInstallments": "مدفوعات الأقساط المتأخرة",
+    "requiresAttention": "تتطلب الاهتمام",
+    "expenseComposition": "تكوين المصروفات",
+    "regularExpenses": "المصروفات العادية",
+    "profit": "الربح",
+    "financialOverview": "نظرة مالية عامة",
+    "revenueExpensesTrends": "اتجاهات الإيرادات والمصروفات والأرباح"
   },
   "vehicles": {
     "status": {
@@ -366,7 +381,9 @@
     "weekly": "أسبوعي",
     "monthly": "شهري",
     "quarterly": "ربع سنوي",
-    "yearly": "سنوي"
+    "yearly": "سنوي",
+    "selectPeriod": "اختر الفترة",
+    "last24Months": "آخر 24 شهر"
   },
   "customers": {
     "title": "العملاء",
@@ -456,7 +473,7 @@
     "generatePaymentSchedule": "إنشاء جدول الدفع",
     "runPaymentMaintenance": "تشغيل صيانة الدفع",
     "noPayments": "لم يتم العثور على مدفوعات",
-    "noPaymentsDesc": "لا توجد سجلات دفع لهذه الاتفاقية.",
+    "noPaymentsDesc": "لا توجد سجلات دفع ��هذه الاتفاقية.",
     "status": {
       "active": "نشط",
       "pending": "معلق",
@@ -619,5 +636,10 @@
     "recordsFixedSuccess": "تم إصلاح سجلات الدفع بنجاح",
     "recordsFixFailed": "فشل في إصلاح سجلات الدفع",
     "unexpectedError": "حدث خطأ غير متوقع أثناء إصلاح الدفعات"
+  },
+  "invoices": {
+    "templates": "قوالب الفواتير",
+    "generate": "إنشاء فاتورة",
+    "createCustomize": "إنشاء وتخصيص فاتورة من قالب"
   }
 }

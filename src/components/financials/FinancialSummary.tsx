@@ -10,6 +10,7 @@ import {
 import { FinancialSummary as FinancialSummaryType } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 interface FinancialSummaryProps {
   summary?: FinancialSummaryType;
@@ -20,6 +21,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
   // Get current month name for display
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   const { isRTL } = useTranslation();
+  const { t } = useI18nTranslation();
 
   if (isLoading) {
     return (
@@ -52,25 +54,25 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <StatCard
-        title="Total Expenses"
+        title={t('financials.totalExpenses', 'Total Expenses')}
         value={formatCurrency(safeData.currentMonthDue)}
-        description="Current month's due installments"
+        description={t('financials.currentMonthDue', "Current month's due installments")}
         icon={TrendingDown}
         iconColor="text-red-500"
       />
       
       <StatCard
-        title="Net Revenue"
+        title={t('financials.netRevenue', 'Net Revenue')}
         value={formatCurrency(safeData.netRevenue)}
-        description="Income after expenses"
+        description={t('financials.incomeAfterExpenses', 'Income after expenses')}
         icon={DollarSign}
         iconColor="text-blue-500"
       />
       
       <StatCard
-        title="Pending Payments"
+        title={t('financials.pendingPayments', 'Pending Payments')}
         value={formatCurrency(safeData.pendingPayments)}
-        description="Upcoming rental payments"
+        description={t('financials.upcomingRentalPayments', 'Upcoming rental payments')}
         icon={Clock}
         iconColor="text-amber-500"
       />

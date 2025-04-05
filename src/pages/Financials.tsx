@@ -18,11 +18,15 @@ import {
   DialogDescription,
   DialogFooter 
 } from "@/components/ui/dialog";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useTranslation as useI18nTranslation } from "react-i18next";
 
 const Financials = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [invoiceDialog, setInvoiceDialog] = useState(false);
   const [invoiceType, setInvoiceType] = useState<'agreement' | 'payment' | 'customer'>('agreement');
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
   
   const handleOpenInvoiceGenerator = (type: 'agreement' | 'payment' | 'customer') => {
     setInvoiceType(type);
@@ -32,8 +36,8 @@ const Financials = () => {
   return (
     <PageContainer>
       <SectionHeader 
-        title="Financial Management" 
-        description="Manage payments, invoices, financial reporting and installment contracts" 
+        title={t('financials.title', 'Financial Management')} 
+        description={t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts')} 
         icon={ChartPieIcon}
         actions={
           activeTab === "invoices" && (
@@ -43,8 +47,8 @@ const Financials = () => {
               onClick={() => handleOpenInvoiceGenerator('agreement')}
               className="h-9"
             >
-              <Printer className="mr-2 h-4 w-4" />
-              Generate Invoice
+              <Printer className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+              {t('agreements.generateDocument', 'Generate Invoice')}
             </Button>
           )
         }
@@ -52,21 +56,21 @@ const Financials = () => {
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
-          <TabsTrigger value="dashboard" className="flex items-center">
-            <BarChartBig className="h-4 w-4 mr-2" />
-            Financial Dashboard
+          <TabsTrigger value="dashboard" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+            <BarChartBig className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('financials.dashboard', 'Financial Dashboard')}
           </TabsTrigger>
-          <TabsTrigger value="invoices" className="flex items-center">
-            <FileText className="h-4 w-4 mr-2" />
-            Invoice Templates
+          <TabsTrigger value="invoices" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+            <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('invoices.templates', 'Invoice Templates')}
           </TabsTrigger>
-          <TabsTrigger value="payments" className="flex items-center">
-            <ChartPieIcon className="h-4 w-4 mr-2" />
-            Payment Settings
+          <TabsTrigger value="payments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+            <ChartPieIcon className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('payments.settings', 'Payment Settings')}
           </TabsTrigger>
-          <TabsTrigger value="installments" className="flex items-center">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Installment Contracts
+          <TabsTrigger value="installments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+            <FileSpreadsheet className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('financials.installments', 'Installment Contracts')}
           </TabsTrigger>
         </TabsList>
         
@@ -91,9 +95,9 @@ const Financials = () => {
       <Dialog open={invoiceDialog} onOpenChange={setInvoiceDialog}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Generate Invoice</DialogTitle>
+            <DialogTitle>{t('invoices.generate', 'Generate Invoice')}</DialogTitle>
             <DialogDescription>
-              Create and customize an invoice from a template
+              {t('invoices.createCustomize', 'Create and customize an invoice from a template')}
             </DialogDescription>
           </DialogHeader>
           

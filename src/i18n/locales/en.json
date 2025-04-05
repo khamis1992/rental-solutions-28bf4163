@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "Dashboard",
@@ -260,7 +259,23 @@
     "currentMonthDue": "Current Month Due",
     "overdueExpenses": "Overdue Expenses",
     "month": "Month",
-    "vsLastMonth": "vs Last Month"
+    "vsLastMonth": "from last month",
+    "title": "Financial Management",
+    "description": "Manage payments, invoices, financial reporting and installment contracts",
+    "incomeAfterExpenses": "Income after expenses",
+    "upcomingRentalPayments": "Upcoming rental payments",
+    "installments": "Installment Contracts",
+    "expenseAnalysis": "Expense Analysis",
+    "expenseBreakdownStatus": "Breakdown of expenses by status",
+    "allExpensesCombined": "All expenses combined",
+    "installmentsDueThisMonth": "Installments due this month",
+    "pastDueInstallments": "Past-due installment payments",
+    "requiresAttention": "Requires attention",
+    "expenseComposition": "Expense Composition",
+    "regularExpenses": "Regular Expenses",
+    "profit": "Profit",
+    "financialOverview": "Financial Overview",
+    "revenueExpensesTrends": "Revenue, expenses, and profit trends"
   },
   "vehicles": {
     "status": {
@@ -366,7 +381,9 @@
     "weekly": "Weekly",
     "monthly": "Monthly",
     "quarterly": "Quarterly",
-    "yearly": "Yearly"
+    "yearly": "Yearly",
+    "selectPeriod": "Select Period",
+    "last24Months": "Last 24 months"
   },
   "customers": {
     "title": "Customers",
@@ -669,5 +686,10 @@
     "recordsFixedSuccess": "Payment records fixed successfully",
     "recordsFixFailed": "Failed to fix payment records",
     "unexpectedError": "An unexpected error occurred while fixing payments"
+  },
+  "invoices": {
+    "templates": "Invoice Templates",
+    "generate": "Generate Invoice",
+    "createCustomize": "Create and customize an invoice from a template"
   }
 }
