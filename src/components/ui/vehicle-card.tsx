@@ -6,6 +6,8 @@ import { CircleUser, Calendar, MapPin, Fuel, Activity } from 'lucide-react';
 import { CustomButton } from './custom-button';
 import { VehicleStatus } from '@/types/vehicle';
 import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { useTranslation } from 'react-i18next';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 
 interface VehicleCardProps {
   id: string;
@@ -38,6 +40,8 @@ const VehicleCard = ({
 }: VehicleCardProps) => {
   const [actualImageUrl, setActualImageUrl] = useState<string>('');
   const [isImageLoading, setIsImageLoading] = useState(true);
+  const { t } = useTranslation();
+  const { isRTL } = useContextTranslation();
   
   const statusColors = {
     available: 'bg-green-100 text-green-800',
@@ -57,13 +61,10 @@ const VehicleCard = ({
       setIsImageLoading(true);
       
       try {
-        // Check model-specific images
         const modelToCheck = model || '';
         
-        // Models to check for specific storage images
         const modelTypes = ['B70', 'T33', 'T99', 'A30', 'TERRITORY', 'GS3', 'MG5', 'Alsvin'];
         
-        // Find if current vehicle matches any known model
         const matchedModelType = modelTypes.find(type => 
           modelToCheck.toUpperCase().includes(type) || 
           modelToCheck.toLowerCase().includes(type.toLowerCase())
@@ -81,14 +82,12 @@ const VehicleCard = ({
           }
         }
         
-        // Then check if we have a direct URL
         if (imageUrl && imageUrl.startsWith('http')) {
           setActualImageUrl(imageUrl);
           setIsImageLoading(false);
           return;
         }
         
-        // Then try to get an image by vehicle ID
         const storageImage = await getVehicleImageByPrefix(id);
         if (storageImage) {
           setActualImageUrl(storageImage);
@@ -96,7 +95,6 @@ const VehicleCard = ({
           return;
         }
         
-        // Finally, fall back to model-specific images from public folder
         fallbackToModelImages();
       } catch (error) {
         console.error('Error loading vehicle image:', error);
@@ -185,7 +183,7 @@ const VehicleCard = ({
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent z-10" />
         {isImageLoading ? (
           <div className="w-full h-full flex items-center justify-center bg-muted">
-            <span className="text-muted-foreground">Loading...</span>
+            <span className="text-muted-foreground">{t('common.loading')}</span>
           </div>
         ) : (
           <img 
@@ -199,7 +197,7 @@ const VehicleCard = ({
           />
         )}
         <Badge className={cn("absolute top-3 right-3 z-20", statusColors[status])}>
-          {status.charAt(0).toUpperCase() + status.slice(1)}
+          {t(`vehicles.status.${status.toLowerCase()}`)}
         </Badge>
       </div>
 
@@ -246,7 +244,7 @@ const VehicleCard = ({
           glossy={true}
           onClick={() => onSelect && onSelect(id)}
         >
-          View Details
+          {t('common.viewDetails')}
         </CustomButton>
       </CardFooter>
     </Card>

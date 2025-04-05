@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft, AlertOctagon, Loader2 } from 'lucide-react';
@@ -13,7 +12,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { useTranslation } from 'react-i18next';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
@@ -53,11 +51,9 @@ const EditVehicle = () => {
     }
   }, [vehicle, id, t]);
   
-  // Check if bucket exists and create it if needed
   const ensureVehicleImagesBucket = async () => {
     try {
       console.log('Ensuring vehicle-images bucket exists');
-      // Check if bucket exists
       const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
       if (listError) {
@@ -70,7 +66,6 @@ const EditVehicle = () => {
       
       if (!bucketExists) {
         console.log('Creating vehicle-images bucket');
-        // Create the bucket
         const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
           public: true,
           fileSizeLimit: 10485760, // 10MB
@@ -107,7 +102,6 @@ const EditVehicle = () => {
     
     console.log('Form submitted with data:', formData);
     
-    // Validate required fields
     if (!formData.make || !formData.model || !formData.year || !formData.license_plate || !formData.vin) {
       console.error('Missing required fields in form data:', formData);
       toast.error(t('common.error'), {
@@ -117,12 +111,9 @@ const EditVehicle = () => {
     }
     
     try {
-      // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
       if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
-        // We don't need to upload an image, as we'll use the model-specific one
         console.log('Using model-specific B70 image');
       } 
-      // If there's an image, ensure the bucket exists first
       else if (formData.image) {
         console.log('Image provided, ensuring storage bucket exists');
         const bucketReady = await ensureVehicleImagesBucket();
@@ -133,13 +124,11 @@ const EditVehicle = () => {
         }
       }
       
-      // Process insurance_expiry to handle empty string (convert to null for the database)
       if (formData.insurance_expiry === '') {
         console.log('Converting empty insurance_expiry to null');
         formData.insurance_expiry = null;
       }
       
-      // Make a safe copy of formData that won't cause type issues
       const safeFormData = { ...formData };
       
       console.log('Submitting vehicle update with data:', safeFormData);
@@ -157,7 +146,6 @@ const EditVehicle = () => {
             toast.error(t('vehicles.updateFailed'), {
               description: error instanceof Error ? error.message : t('common.unknownError'),
             });
-            // Try to refetch the vehicle data to ensure our UI is in sync
             refetch();
           }
         }
@@ -210,7 +198,7 @@ const EditVehicle = () => {
     <PageContainer>
       <SectionHeader
         title={`${t('vehicles.edit')}: ${vehicle.make} ${vehicle.model}`}
-        description={`${vehicle.year} • ${vehicle.licensePlate}`}
+        description={`${vehicle.year} • ${vehicle.license_plate || vehicle.licensePlate}`}
         icon={Car}
         actions={
           <CustomButton 

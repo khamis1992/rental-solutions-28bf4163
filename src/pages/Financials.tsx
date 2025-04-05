@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,13 +20,14 @@ import {
 } from "@/components/ui/dialog";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useTranslation as useI18nTranslation } from "react-i18next";
+import { getDirectionalClasses } from "@/utils/rtl-utils";
 
 const Financials = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [invoiceDialog, setInvoiceDialog] = useState(false);
   const [invoiceType, setInvoiceType] = useState<'agreement' | 'payment' | 'customer'>('agreement');
   const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
+  const { isRTL, translateText } = useTranslation();
   
   const handleOpenInvoiceGenerator = (type: 'agreement' | 'payment' | 'customer') => {
     setInvoiceType(type);
@@ -36,8 +37,8 @@ const Financials = () => {
   return (
     <PageContainer>
       <SectionHeader 
-        title={t('financials.title', 'Financial Management')} 
-        description={t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts')} 
+        title={t('financials.title', 'Financial Management')}
+        description={t('financials.description', 'Manage payments, invoices, financial reporting and installment contracts')}
         icon={ChartPieIcon}
         actions={
           activeTab === "invoices" && (
@@ -55,26 +56,26 @@ const Financials = () => {
       />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
-          <TabsTrigger value="dashboard" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+        <TabsList className={`grid grid-cols-1 md:grid-cols-4 w-full ${isRTL ? 'rtl-tabs' : ''}`}>
+          <TabsTrigger value="dashboard" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <BarChartBig className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t('financials.dashboard', 'Financial Dashboard')}
           </TabsTrigger>
-          <TabsTrigger value="invoices" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+          <TabsTrigger value="invoices" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t('invoices.templates', 'Invoice Templates')}
           </TabsTrigger>
-          <TabsTrigger value="payments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+          <TabsTrigger value="payments" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <ChartPieIcon className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t('payments.settings', 'Payment Settings')}
           </TabsTrigger>
-          <TabsTrigger value="installments" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''}`}>
+          <TabsTrigger value="installments" className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
             <FileSpreadsheet className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
             {t('financials.installments', 'Installment Contracts')}
           </TabsTrigger>
         </TabsList>
         
-        {/* Use conditional rendering instead of forceMount with boolean expressions */}
+        {/* Use conditional rendering for better performance */}
         <TabsContent value="dashboard" className="space-y-6">
           {activeTab === "dashboard" && <FinancialDashboard />}
         </TabsContent>

@@ -1,40 +1,72 @@
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import DashboardStats from '@/components/dashboard/DashboardStats';
-import RevenueChart from '@/components/dashboard/RevenueChart';
-import VehicleStatusChart from '@/components/dashboard/VehicleStatusChart';
-import RecentActivity from '@/components/dashboard/RecentActivity';
 import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
-import { useDashboardData } from '@/hooks/use-dashboard';
+import { useOptimizedDashboardData } from '@/hooks/use-optimized-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from '@/hooks/use-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { getDirectionalFlexClass } from '@/utils/rtl-utils';
+import { lazyLoad, DefaultLoadingComponent } from '@/utils/lazy-loading';
+import performanceMonitor from '@/utils/performance-monitor';
 
-// Suppress Supabase schema cache errors more comprehensively
+// Lazy load heavy components
+const RevenueChart = lazyLoad(
+  () => import('@/components/dashboard/RevenueChart'),
+  DefaultLoadingComponent,
+  'Loading revenue chart...'
+);
+
+const VehicleStatusChart = lazyLoad(
+  () => import('@/components/dashboard/VehicleStatusChart'),
+  DefaultLoadingComponent,
+  'Loading vehicle status...'
+);
+
+const RecentActivity = lazyLoad(
+  () => import('@/components/dashboard/RecentActivity'),
+  DefaultLoadingComponent,
+  'Loading recent activity...'
+);
+
+// Suppress Supabase schema cache errors
 if (typeof window !== 'undefined') {
-  // Override console.error to filter out specific error messages
   const originalConsoleError = console.error;
   console.error = function(...args) {
-    // Filter out all errors about relationships in schema cache
-    if (args[0] && typeof args[0] === 'string' && 
-        args[0].includes('schema cache')) {
-      return; // Suppress all schema cache related errors
+    if (args[0] && typeof args[0] === 'string' && args[0].includes('schema cache')) {
+      return; // Suppress schema cache related errors
     }
-    // Pass all other errors to the original console.error
     originalConsoleError.apply(console, args);
   };
 }
 
 const Dashboard = () => {
-  const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
+  const { 
+    stats, 
+    revenue, 
+    activity, 
+    isLoading, 
+    isError, 
+    error, 
+    isUsingCachedData,
+    loadPriority 
+  } = useOptimizedDashboardData();
+  
   const [isRefreshing, setIsRefreshing] = useState(false);
   const { t } = useI18nTranslation();
   const { isRTL } = useTranslation();
+  
+  // Performance monitoring
+  useEffect(() => {
+    const perf = performanceMonitor.measureComponent('Dashboard');
+    perf.beforeRender();
+    return () => {
+      perf.afterRender();
+    };
+  }, []);
   
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -71,7 +103,7 @@ const Dashboard = () => {
       />
       
       <div className="space-y-6">
-        {isLoading ? (
+        {isLoading && !isUsingCachedData ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <Skeleton className="h-32" />
@@ -97,17 +129,31 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            <DashboardStats stats={stats} />
+            {/* Stats are critical, render them directly */}
+            <DashboardStats stats={stats} isLoading={isLoading && !stats} />
             
+            {/* Vehicle status chart - prioritized */}
             <div className="grid grid-cols-1 gap-6 section-transition">
-              <VehicleStatusChart data={stats?.vehicleStats} />
+              <Suspense fallback={<Skeleton className="h-96" />}>
+                <VehicleStatusChart data={stats?.vehicleStats} />
+              </Suspense>
             </div>
             
-            <div className="grid grid-cols-1 gap-6 section-transition">
-              <RevenueChart data={revenue} fullWidth={true} />
-            </div>
+            {/* Revenue chart - load after critical content */}
+            {(loadPriority === 'all' || revenue) && (
+              <div className="grid grid-cols-1 gap-6 section-transition">
+                <Suspense fallback={<Skeleton className="h-96" />}>
+                  <RevenueChart data={revenue} fullWidth={true} />
+                </Suspense>
+              </div>
+            )}
             
-            <RecentActivity activities={activity} />
+            {/* Recent activity - load after critical content */}
+            {(loadPriority === 'all' || activity) && (
+              <Suspense fallback={<Skeleton className="h-96" />}>
+                <RecentActivity activities={activity} />
+              </Suspense>
+            )}
           </>
         )}
       </div>

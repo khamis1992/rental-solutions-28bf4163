@@ -10,8 +10,9 @@ import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
-// Helper function to calculate percentage change - DEFINED BEFORE USAGE
+// Helper function to calculate percentage change
 const getPercentageChange = (current, previous) => {
   if (previous === 0) return current > 0 ? 100 : 0;
   return ((current - previous) / previous) * 100;
@@ -78,14 +79,20 @@ const FinancialDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.totalIncome)}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                <span>{trendData.revenueChange.toFixed(1)}%</span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {trendData.revenueChange >= 0 ? '+' : ''}
-                </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {t('financials.vsLastMonth', 'from last month')}
-                </span>
+              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {isRTL ? (
+                  <>
+                    <span>{t('financials.vsLastMonth', 'vs last month')}</span>
+                    <span className="mx-1">{trendData.revenueChange >= 0 ? '+' : ''}</span>
+                    <span>{trendData.revenueChange.toFixed(1)}%</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{trendData.revenueChange.toFixed(1)}%</span>
+                    <span className="mx-1">{trendData.revenueChange >= 0 ? '+' : ''}</span>
+                    <span>{t('financials.vsLastMonth', 'vs last month')}</span>
+                  </>
+                )}
               </span>
             </p>
           </CardContent>
@@ -101,14 +108,20 @@ const FinancialDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                <span>{trendData.expenseChange.toFixed(1)}%</span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {trendData.expenseChange >= 0 ? '+' : ''}
-                </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {t('financials.vsLastMonth', 'from last month')}
-                </span>
+              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {isRTL ? (
+                  <>
+                    <span>{t('financials.vsLastMonth', 'vs last month')}</span>
+                    <span className="mx-1">{trendData.expenseChange >= 0 ? '+' : ''}</span>
+                    <span>{trendData.expenseChange.toFixed(1)}%</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{trendData.expenseChange.toFixed(1)}%</span>
+                    <span className="mx-1">{trendData.expenseChange >= 0 ? '+' : ''}</span>
+                    <span>{t('financials.vsLastMonth', 'vs last month')}</span>
+                  </>
+                )}
               </span>
             </p>
           </CardContent>
@@ -124,14 +137,20 @@ const FinancialDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.netRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                <span>{trendData.profitChange.toFixed(1)}%</span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {trendData.profitChange >= 0 ? '+' : ''}
-                </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {t('financials.vsLastMonth', 'from last month')}
-                </span>
+              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {isRTL ? (
+                  <>
+                    <span>{t('financials.vsLastMonth', 'vs last month')}</span>
+                    <span className="mx-1">{trendData.profitChange >= 0 ? '+' : ''}</span>
+                    <span>{trendData.profitChange.toFixed(1)}%</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{trendData.profitChange.toFixed(1)}%</span>
+                    <span className="mx-1">{trendData.profitChange >= 0 ? '+' : ''}</span>
+                    <span>{t('financials.vsLastMonth', 'vs last month')}</span>
+                  </>
+                )}
               </span>
             </p>
           </CardContent>
