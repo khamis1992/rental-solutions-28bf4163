@@ -166,16 +166,22 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
   const { t } = useI18nTranslation();
   const { isRTL, getNumberFormat } = useTranslation();
   
-  // Return early if no data to avoid conditional hooks
-  if (!data) {
-    return null;
-  }
-  
-  // Define status config with translations - moved outside of conditional flow
+  // Always define statusConfig regardless of data availability
   const statusConfig = useMemo(() => getStatusConfig(t), [t]);
   
   // Process data once with useMemo to prevent recalculation
+  // Handle the case where data might be undefined
   const processedData = useMemo(() => {
+    // Default empty state when no data
+    if (!data) {
+      return {
+        normalizedData: {},
+        chartData: [],
+        criticalVehicles: 0,
+        hasCriticalVehicles: false
+      };
+    }
+    
     const normalizedData = { ...data };
     
     statusConfig.forEach(status => {
@@ -195,14 +201,17 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
       }));
     
     const criticalVehicles = (normalizedData.stolen || 0) + 
-                            (normalizedData.accident || 0) + 
-                            (normalizedData.critical || 0);
+                          (normalizedData.accident || 0) + 
+                          (normalizedData.critical || 0);
     
     const hasCriticalVehicles = criticalVehicles > 0;
     
     return { normalizedData, chartData, criticalVehicles, hasCriticalVehicles };
   }, [data, statusConfig]);
-
+  
+  // Don't return early if no data - all hooks still need to be called
+  // Instead use the processed empty state from the useMemo hook above
+  
   const handleStatusClick = (status: any) => {
     navigate(`/vehicles?status=${status}`);
   };
@@ -223,6 +232,11 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
   };
 
   const { normalizedData, chartData, criticalVehicles, hasCriticalVehicles } = processedData;
+  
+  // Return null only after all hooks have been called
+  if (!data) {
+    return null;
+  }
 
   return (
     <Card className="col-span-full lg:col-span-4 card-transition">
