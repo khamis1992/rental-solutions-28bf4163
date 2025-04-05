@@ -1,12 +1,10 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useOptimizedChartData, useChartMargin } from '@/utils/chart-utils';
-import performanceMonitor from '@/utils/performance-monitor';
 
 interface RevenueChartProps {
   data: { name: string; revenue: number }[];
@@ -14,77 +12,40 @@ interface RevenueChartProps {
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
-  // Measure component render performance
-  React.useEffect(() => {
-    const perf = performanceMonitor.measureComponent('RevenueChart');
-    perf.beforeRender();
-    return () => {
-      perf.afterRender();
-    };
-  }, []);
-  
   const { t } = useI18nTranslation();
   const { isRTL } = useTranslation();
   
   // Get current month name for dynamic title
-  const currentMonth = useMemo(() => {
-    return new Date().toLocaleString('default', { month: 'long' });
-  }, []);
+  const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   
-  // Optimized ensure complete data function
-  const ensureCompleteData = useMemo(() => {
-    if (!data || data.length === 0) {
-      const months = [];
-      const now = new Date();
-      
-      for (let i = 5; i >= 0; i--) {
-        const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        months.push({
-          name: month.toLocaleString('default', { month: 'short' }),
-          revenue: 0
-        });
-      }
-      
-      return months;
-    }
+  // Ensure we have data to display, showing at least the last 6 months
+  const ensureCompleteData = (inputData: { name: string; revenue: number }[]) => {
+    if (!inputData || inputData.length === 0) return [];
     
-    // Create a map of months we expect
+    // List of expected months (last 6 months)
     const months = [];
     const now = new Date();
-    const dataMap: Record<string, number> = {};
+    for (let i = 5; i >= 0; i--) {
+      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(month.toLocaleString('default', { month: 'short' }));
+    }
     
-    // Prepare the data map from existing data
-    data.forEach(item => {
+    // Create a map of existing data
+    const dataMap: Record<string, number> = {};
+    inputData.forEach(item => {
       dataMap[item.name] = item.revenue;
     });
     
-    // Ensure all last 6 months have entries
-    for (let i = 5; i >= 0; i--) {
-      const month = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = month.toLocaleString('default', { month: 'short' });
-      
-      months.push({
-        name: monthName,
-        revenue: dataMap[monthName] || 0
-      });
-    }
-    
-    return months;
-  }, [data]);
+    // Ensure all months have data
+    return months.map(month => ({
+      name: month,
+      revenue: dataMap[month] || 0
+    }));
+  };
   
-  // Use the optimized chart data hook for RTL support
-  const displayData = useOptimizedChartData(ensureCompleteData, { 
-    rtlReverse: true, 
-    dataKeys: ['name', 'revenue']
-  });
-  
-  // Use optimized chart margin
-  const chartMargin = useChartMargin({
-    top: 20,
-    right: 30,
-    left: 20,
-    bottom: 10
-  });
+  // In RTL mode, reverse the array order for correct display
+  const completeData = ensureCompleteData(data);
+  const displayData = isRTL ? [...completeData].reverse() : completeData;
 
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
@@ -98,7 +59,12 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={displayData}
-              margin={chartMargin}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 10,
+              }}
             >
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -118,7 +84,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
                 axisLine={false}
                 tickLine={false}
                 tick={{ fill: '#64748b', fontSize: 12 }}
-                tickFormatter={(value) => formatCurrency(value).split('.')[0]} 
+                tickFormatter={(value) => formatCurrency(value).split('.')[0]} // Remove decimals for Y-axis labels
                 orientation={isRTL ? 'right' : 'left'}
               />
               <Tooltip 
@@ -139,7 +105,6 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
                 fillOpacity={1} 
                 fill="url(#colorRevenue)" 
                 strokeWidth={3}
-                isAnimationActive={!isRTL} // Disable animation for RTL to improve performance
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -149,5 +114,4 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
   );
 };
 
-// Use memo to prevent unnecessary re-renders
-export default React.memo(RevenueChart);
+export default RevenueChart;

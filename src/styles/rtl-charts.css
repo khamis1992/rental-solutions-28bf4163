@@ -1,7 +1,7 @@
 
 /* RTL Specific Chart Styles */
 [dir="rtl"] .recharts-wrapper .recharts-cartesian-axis-tick-value {
-  text-anchor: end;
+  text-anchor: start;
 }
 
 [dir="rtl"] .rtl-tabs {
@@ -18,77 +18,79 @@
   margin-left: 0;
 }
 
-[dir="rtl"] .recharts-wrapper {
-  direction: ltr; /* Keep charts in LTR mode for correct data display */
+/* Additional RTL styles for vehicle cards */
+[dir="rtl"] .card-transition .badge {
+  right: auto;
+  left: 3px;
 }
 
-[dir="rtl"] .recharts-tooltip-wrapper {
+[dir="rtl"] .card-transition .icon-with-text {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .card-transition .icon-with-text svg {
+  margin-right: 0;
+  margin-left: 6px;
+}
+
+/* RTL styles for vehicle details page */
+[dir="rtl"] .card-transition ul li {
+  display: flex;
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .card-transition ul li .text-muted-foreground:first-child {
+  text-align: right;
+}
+
+[dir="rtl"] .card-transition ul li svg {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+[dir="rtl"] .card-transition ul li .w-28 {
+  text-align: left;
+}
+
+[dir="rtl"] .card-transition .flex-items-center .mr-2 {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+[dir="rtl"] .card-transition table th:last-child {
+  text-align: left;
+}
+
+[dir="rtl"] .card-transition table td:last-child {
+  text-align: left;
+}
+
+/* RTL styles for traffic fines page */
+[dir="rtl"] .rtl-mode {
   direction: rtl;
 }
 
-/* Fix for RTL text values in charts */
-[dir="rtl"] .recharts-text.recharts-cartesian-axis-tick-value {
-  text-anchor: end;
+[dir="rtl"] .dropdown-menu-align-end {
+  left: 0;
+  right: auto;
 }
 
-/* Fix for RTL legend items */
-[dir="rtl"] .recharts-legend-item {
-  padding-left: 0;
-  padding-right: 14px;
+[dir="rtl"] table th {
+  text-align: right;
 }
 
-[dir="rtl"] .recharts-legend-item-text {
+[dir="rtl"] .traffic-fine-stat-card {
+  direction: rtl;
+}
+
+[dir="rtl"] .space-x-reverse > * + * {
+  margin-right: 0.5rem;
   margin-left: 0;
-  margin-right: 4px;
 }
 
-/* Fix for tab panels in RTL mode */
-[dir="rtl"] .rtl-tabs [role="tabpanel"] {
-  direction: rtl;
-}
-
-/* Responsive table fixes for RTL */
+/* Fix for RTL alignment in tables */
 [dir="rtl"] table th:first-child,
 [dir="rtl"] table td:first-child {
   text-align: right;
 }
 
-[dir="rtl"] table th:last-child,
-[dir="rtl"] table td:last-child {
-  text-align: left;
-}
-
-/* Fix for RTL alignment in form components */
-[dir="rtl"] .form-group label {
-  display: block;
-  text-align: right;
-}
-
-[dir="rtl"] .form-control {
-  text-align: right;
-}
-
-/* Financial cards RTL fixes */
-[dir="rtl"] .card-header {
-  text-align: right;
-}
-
-[dir="rtl"] .card-content {
-  text-align: right;
-}
-
-/* Fix dropdown alignment in RTL mode */
-[dir="rtl"] .dropdown-menu {
-  left: auto;
-  right: 0;
-}
-
-/* RTL dashboard card adjustments */
-[dir="rtl"] .traffic-fine-stat-card {
-  direction: rtl;
-}
-
-/* Fix for RTL dropdown menus positioning */
-[dir="rtl"] .dropdown-menu-align-end {
-  transform-origin: top right;
-}

@@ -11,10 +11,9 @@ import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
-  isLoading?: boolean; // Added missing isLoading prop
 }
 
-const DashboardStats: React.FC<DashboardStatsProps> = ({ stats, isLoading }) => {
+const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
   const { isRTL } = useTranslation();

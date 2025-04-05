@@ -593,8 +593,7 @@
     "templateNotFound": "Template Not Found",
     "templateNotFoundDesc": "The standard agreement template was not found in the database. The agreement will use the default template format.",
     "usingStandardTemplate": "Using Standard Template",
-    "usingStandardTemplateDesc": "The agreement will use the standard template from the database.",
-    "generateDocument": "Generate Invoice"
+    "usingStandardTemplateDesc": "The agreement will use the standard template from the database."
   },
   "maintenance": {
     "title": "Maintenance",
@@ -667,12 +666,6 @@
     "history": "Payment History",
     "historyDesc": "Track all payments for this agreement",
     "recordPayment": "Record Payment",
-    "recordPaymentDesc": "Record a new rental payment for this agreement",
-    "settings": "Payment Settings"
-  },
-  "invoices": {
-    "templates": "Invoice Templates",
-    "generate": "Generate Invoice",
-    "createCustomize": "Create and customize an invoice from a template"
+    "recordPaymentDesc": "Record a new rental payment for this agreement"
   }
 }

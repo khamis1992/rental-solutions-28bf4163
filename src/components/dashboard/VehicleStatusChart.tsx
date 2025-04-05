@@ -1,5 +1,5 @@
 
-import React, { memo, useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { 
@@ -36,184 +36,115 @@ interface VehicleStatusChartProps {
   };
 }
 
-// Status config extracted outside component to prevent recreating on each render
-const getStatusConfig = (t: any) => [
-  { 
-    key: 'available', 
-    name: t('dashboard.vehicleStatusTypes.available'),
-    color: '#22c55e', 
-    icon: ShieldCheck,
-    description: t('dashboard.readyForRental'),
-    filterValue: 'available' as VehicleStatus
-  },
-  { 
-    key: 'rented', 
-    name: t('dashboard.vehicleStatusTypes.rented'), 
-    color: '#3b82f6', 
-    icon: Car,
-    description: t('dashboard.currentlyWithCustomer'),
-    filterValue: 'rented' as VehicleStatus
-  },
-  { 
-    key: 'maintenance', 
-    name: t('dashboard.vehicleStatusTypes.maintenance'), 
-    color: '#f59e0b', 
-    icon: WrenchIcon,
-    description: t('dashboard.undergoingService'),
-    filterValue: 'maintenance' as VehicleStatus
-  },
-  { 
-    key: 'reserved', 
-    name: t('dashboard.vehicleStatusTypes.reserved'), 
-    color: '#8b5cf6', 
-    icon: Clock,
-    description: t('dashboard.reservedForFuture'),
-    filterValue: 'reserved' as VehicleStatus
-  },
-  { 
-    key: 'attention', 
-    name: t('dashboard.vehicleStatusTypes.attention'), 
-    color: '#ec4899', 
-    icon: AlertTriangle,
-    description: t('dashboard.requiresReview'),
-    filterValue: 'maintenance' as VehicleStatus
-  },
-  { 
-    key: 'police_station', 
-    name: t('dashboard.vehicleStatusTypes.police_station'), 
-    color: '#64748b', 
-    icon: ShieldAlert,
-    description: t('dashboard.heldAtPolice'),
-    filterValue: 'police_station' as VehicleStatus
-  },
-  { 
-    key: 'accident', 
-    name: t('dashboard.vehicleStatusTypes.accident'), 
-    color: '#ef4444', 
-    icon: CircleOff,
-    description: t('dashboard.involvedInAccident'),
-    filterValue: 'accident' as VehicleStatus
-  },
-  { 
-    key: 'stolen', 
-    name: t('dashboard.vehicleStatusTypes.stolen'), 
-    color: '#dc2626', 
-    icon: ShieldX,
-    description: t('dashboard.vehicleReportedStolen'),
-    filterValue: 'stolen' as VehicleStatus
-  },
-  { 
-    key: 'critical', 
-    name: t('dashboard.vehicleStatusTypes.critical'), 
-    color: '#b91c1c', 
-    icon: CircleDashed,
-    description: t('dashboard.criticalIssuesPending'),
-    filterValue: 'maintenance' as VehicleStatus
-  }
-];
-
-// Extracted components for better memoization
-const StatusItem = memo(({ 
-  status, 
-  count, 
-  isRTL, 
-  getNumberFormat, 
-  onClick 
-}: { 
-  status: any, 
-  count: number, 
-  isRTL: boolean, 
-  getNumberFormat: Function, 
-  onClick: Function 
-}) => {
-  const Icon = status.icon;
-  const flexDirection = isRTL ? "flex-row-reverse" : "flex-row";
-  const marginClass = isRTL ? "ml-2" : "mr-2";
-  
-  return (
-    <div 
-      className={cn(
-        `flex items-center p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100 ${flexDirection}`,
-        status.key === 'stolen' || status.key === 'accident' || status.key === 'critical' 
-          ? "bg-red-50 hover:bg-red-100" 
-          : "bg-slate-50 hover:bg-slate-100"
-      )}
-      onClick={() => onClick(status.filterValue)}
-    >
-      <div 
-        className={`p-1.5 rounded-md ${marginClass}`}
-        style={{ backgroundColor: `${status.color}20` }}
-      >
-        <Icon 
-          size={16} 
-          style={{ color: status.color }} 
-        />
-      </div>
-      <div className="flex-grow">
-        <div className={`flex ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} items-center`}>
-          <span className="text-sm font-medium">{status.name}</span>
-          <span className="text-sm font-semibold">{getNumberFormat(count)}</span>
-        </div>
-        <p className="text-xs text-muted-foreground">{status.description}</p>
-      </div>
-    </div>
-  );
-});
-StatusItem.displayName = 'StatusItem';
-
-const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) => {
+const VehicleStatusChart: React.FC<VehicleStatusChartProps> = ({ data }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
   const { isRTL, getNumberFormat } = useTranslation();
   
-  // Always define statusConfig regardless of data availability
-  const statusConfig = useMemo(() => getStatusConfig(t), [t]);
+  if (!data) return null;
   
-  // Process data once with useMemo to prevent recalculation
-  // Handle the case where data might be undefined
-  const processedData = useMemo(() => {
-    // Default empty state when no data
-    if (!data) {
-      return {
-        normalizedData: {},
-        chartData: [],
-        criticalVehicles: 0,
-        hasCriticalVehicles: false
-      };
+  // Define status config with translations
+  const statusConfig = [
+    { 
+      key: 'available', 
+      name: t('dashboard.vehicleStatusTypes.available'),
+      color: '#22c55e', 
+      icon: ShieldCheck,
+      description: t('dashboard.readyForRental'),
+      filterValue: 'available' as VehicleStatus
+    },
+    { 
+      key: 'rented', 
+      name: t('dashboard.vehicleStatusTypes.rented'), 
+      color: '#3b82f6', 
+      icon: Car,
+      description: t('dashboard.currentlyWithCustomer'),
+      filterValue: 'rented' as VehicleStatus
+    },
+    { 
+      key: 'maintenance', 
+      name: t('dashboard.vehicleStatusTypes.maintenance'), 
+      color: '#f59e0b', 
+      icon: WrenchIcon,
+      description: t('dashboard.undergoingService'),
+      filterValue: 'maintenance' as VehicleStatus
+    },
+    { 
+      key: 'reserved', 
+      name: t('dashboard.vehicleStatusTypes.reserved'), 
+      color: '#8b5cf6', 
+      icon: Clock,
+      description: t('dashboard.reservedForFuture'),
+      filterValue: 'reserved' as VehicleStatus
+    },
+    { 
+      key: 'attention', 
+      name: t('dashboard.vehicleStatusTypes.attention'), 
+      color: '#ec4899', 
+      icon: AlertTriangle,
+      description: t('dashboard.requiresReview'),
+      filterValue: 'maintenance' as VehicleStatus
+    },
+    { 
+      key: 'police_station', 
+      name: t('dashboard.vehicleStatusTypes.police_station'), 
+      color: '#64748b', 
+      icon: ShieldAlert,
+      description: t('dashboard.heldAtPolice'),
+      filterValue: 'police_station' as VehicleStatus
+    },
+    { 
+      key: 'accident', 
+      name: t('dashboard.vehicleStatusTypes.accident'), 
+      color: '#ef4444', 
+      icon: CircleOff,
+      description: t('dashboard.involvedInAccident'),
+      filterValue: 'accident' as VehicleStatus
+    },
+    { 
+      key: 'stolen', 
+      name: t('dashboard.vehicleStatusTypes.stolen'), 
+      color: '#dc2626', 
+      icon: ShieldX,
+      description: t('dashboard.vehicleReportedStolen'),
+      filterValue: 'stolen' as VehicleStatus
+    },
+    { 
+      key: 'critical', 
+      name: t('dashboard.vehicleStatusTypes.critical'), 
+      color: '#b91c1c', 
+      icon: CircleDashed,
+      description: t('dashboard.criticalIssuesPending'),
+      filterValue: 'maintenance' as VehicleStatus
     }
-    
-    const normalizedData = { ...data };
-    
-    statusConfig.forEach(status => {
-      if (normalizedData[status.key as keyof typeof normalizedData] === undefined) {
-        normalizedData[status.key as keyof typeof normalizedData] = 0;
-      }
-    });
-    
-    const chartData = statusConfig
-      .filter(status => normalizedData[status.key as keyof typeof normalizedData] > 0)
-      .map(status => ({
-        name: status.name,
-        value: normalizedData[status.key as keyof typeof normalizedData],
-        color: status.color,
-        key: status.key,
-        filterValue: status.filterValue
-      }));
-    
-    const criticalVehicles = (normalizedData.stolen || 0) + 
+  ];
+  
+  const normalizedData = { ...data };
+  
+  statusConfig.forEach(status => {
+    if (normalizedData[status.key as keyof typeof normalizedData] === undefined) {
+      normalizedData[status.key as keyof typeof normalizedData] = 0;
+    }
+  });
+  
+  const chartData = statusConfig
+    .filter(status => normalizedData[status.key as keyof typeof normalizedData] > 0)
+    .map(status => ({
+      name: status.name,
+      value: normalizedData[status.key as keyof typeof normalizedData],
+      color: status.color,
+      key: status.key,
+      filterValue: status.filterValue
+    }));
+  
+  const criticalVehicles = (normalizedData.stolen || 0) + 
                           (normalizedData.accident || 0) + 
                           (normalizedData.critical || 0);
-    
-    const hasCriticalVehicles = criticalVehicles > 0;
-    
-    return { normalizedData, chartData, criticalVehicles, hasCriticalVehicles };
-  }, [data, statusConfig]);
   
-  // Don't return early if no data - all hooks still need to be called
-  // Instead use the processed empty state from the useMemo hook above
+  const hasCriticalVehicles = criticalVehicles > 0;
   
-  const handleStatusClick = (status: any) => {
-    navigate(`/vehicles?status=${status}`);
+  const handleStatusClick = (data: any) => {
+    navigate(`/vehicles?status=${data.filterValue}`);
   };
 
   // Format the donut chart labels based on language
@@ -230,13 +161,6 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
     
     return `${formattedCount} ${vehicleText}`;
   };
-
-  const { normalizedData, chartData, criticalVehicles, hasCriticalVehicles } = processedData;
-  
-  // Return null only after all hooks have been called
-  if (!data) {
-    return null;
-  }
 
   return (
     <Card className="col-span-full lg:col-span-4 card-transition">
@@ -258,7 +182,7 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
                   dataKey="value"
                   label={formatDonutLabel}
                   labelLine={{ stroke: '#e5e7eb', strokeWidth: 1 }}
-                  onClick={({ filterValue }) => handleStatusClick(filterValue)}
+                  onClick={handleStatusClick}
                   cursor="pointer"
                 >
                   {chartData.map((entry, index) => (
@@ -303,15 +227,38 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
                 const count = normalizedData[status.key as keyof typeof normalizedData] || 0;
                 if (count === 0) return null;
                 
+                const Icon = status.icon;
+                const flexDirection = isRTL ? "flex-row-reverse" : "flex-row";
+                const marginClass = isRTL ? "ml-2" : "mr-2";
+                
                 return (
-                  <StatusItem
-                    key={status.key}
-                    status={status}
-                    count={count}
-                    isRTL={isRTL}
-                    getNumberFormat={getNumberFormat}
-                    onClick={handleStatusClick}
-                  />
+                  <div 
+                    key={status.key} 
+                    className={cn(
+                      `flex items-center p-2 rounded-md cursor-pointer transition-colors hover:bg-slate-100 ${flexDirection}`,
+                      status.key === 'stolen' || status.key === 'accident' || status.key === 'critical' 
+                        ? "bg-red-50 hover:bg-red-100" 
+                        : "bg-slate-50 hover:bg-slate-100"
+                    )}
+                    onClick={() => navigate(`/vehicles?status=${status.filterValue}`)}
+                  >
+                    <div 
+                      className={`p-1.5 rounded-md ${marginClass}`}
+                      style={{ backgroundColor: `${status.color}20` }}
+                    >
+                      <Icon 
+                        size={16} 
+                        style={{ color: status.color }} 
+                      />
+                    </div>
+                    <div className="flex-grow">
+                      <div className={`flex ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} items-center`}>
+                        <span className="text-sm font-medium">{status.name}</span>
+                        <span className="text-sm font-semibold">{getNumberFormat(count)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{status.description}</p>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -320,8 +267,6 @@ const VehicleStatusChart: React.FC<VehicleStatusChartProps> = memo(({ data }) =>
       </CardContent>
     </Card>
   );
-});
-
-VehicleStatusChart.displayName = 'VehicleStatusChart';
+};
 
 export default VehicleStatusChart;
