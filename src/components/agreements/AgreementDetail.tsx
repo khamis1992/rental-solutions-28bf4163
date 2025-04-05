@@ -289,7 +289,9 @@ export function AgreementDetail({
                   <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
                   {format(startDate, "MMMM d, yyyy")} {t('agreements.to')} {format(endDate, "MMMM d, yyyy")}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">{t('agreements.duration')}: {duration} {duration === 1 ? t('agreements.month') : t('agreements.months')}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('agreements.duration')}: {duration} {duration === 1 ? t('agreements.month') : t('agreements.months')}
+                </p>
               </div>
               
               <div>
@@ -312,7 +314,9 @@ export function AgreementDetail({
               <div>
                 <p className="font-medium">{t('agreements.totalContractAmount')}</p>
                 <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
-                <p className="text-xs text-muted-foreground">{t('agreements.monthlyRentMultiplied', { duration })}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('agreements.monthlyRentMultiplied', { duration })}
+                </p>
               </div>
               
               <div>
@@ -374,7 +378,17 @@ export function AgreementDetail({
         </Card>
       )}
 
-      {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
+      {agreement.id && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('agreements.legalCases')}</CardTitle>
+            <CardDescription>{t('legal.caseManagement')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LegalCaseCard agreementId={agreement.id} />
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>

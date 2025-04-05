@@ -52,6 +52,8 @@ export const translateText = async (
       'Rental terms and payment information',
       'Traffic Fines',
       'Violations during the rental period',
+      'Legal Cases',
+      'Case Management',
       'Edit',
       'Agreement Copy',
       'Generate Document',
@@ -59,7 +61,10 @@ export const translateText = async (
       'Confirm Deletion',
       'Are you sure you want to delete agreement',
       'This action cannot be undone',
-      'Cancel'
+      'Cancel',
+      'Yes',
+      'No',
+      'Vehicle'
     ];
     
     if (uiTextsToSkip.some(uiText => text.includes(uiText))) {

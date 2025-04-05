@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -72,7 +71,11 @@
     "areYouSure": "هل أنت متأكد؟",
     "nationality": "الجنسية",
     "notProvided": "غير متوفر",
-    "notes": "ملاحظات"
+    "notes": "ملاحظات",
+    "vehicle": "مركبة",
+    "yes": "نعم",
+    "no": "لا",
+    "generating": "جاري التوليد..."
   },
   "dashboard": {
     "title": "لوحة القيادة",
@@ -459,7 +462,8 @@
     "preparingPdf": "جاري إعداد مستند PDF للاتفاقية...",
     "pdfSuccess": "تم تنزيل PDF الاتفاقية بنجاح",
     "pdfError": "فشل في إنشاء PDF",
-    "documentGenerationConfig": "وظيفة إنشاء المستند قيد التكوين"
+    "documentGenerationConfig": "وظيفة إنشاء المستند قيد التكوين",
+    "legalCases": "القضايا القانونية"
   },
   "maintenance": {
     "title": "الصيانة",
