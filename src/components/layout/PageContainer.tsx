@@ -35,8 +35,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   // Memoize expensive calculations
   const containerClasses = useMemo(() => {
-    const sidebarPaddingClass = isRTL ? 'pr-64' : 'pl-64';
-    return `min-h-screen ${sidebarPaddingClass} w-full transition-all duration-300`;
+    return `min-h-screen w-full transition-all duration-300`;
   }, [isRTL]);
   
   const BackArrow = isRTL ? ArrowRight : ArrowLeft;
