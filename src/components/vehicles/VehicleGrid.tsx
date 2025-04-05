@@ -8,6 +8,8 @@ import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
@@ -19,6 +21,8 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   const { useList } = useVehicles();
   const { data: vehicles, isLoading, error } = useList(filter);
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { isRTL } = useContextTranslation();
   
   // Handle navigation to vehicle details
   const handleSelect = (id: string) => {
@@ -61,9 +65,9 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
       <Card className="p-6 bg-red-50 border-red-200">
         <div className="flex items-center space-x-2 text-red-700">
           <AlertCircle className="h-5 w-5" />
-          <h3 className="text-lg font-semibold">Error Loading Vehicles</h3>
+          <h3 className="text-lg font-semibold">{t('common.error')}</h3>
         </div>
-        <p className="mt-2">{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
+        <p className="mt-2">{error instanceof Error ? error.message : t('common.unknownError')}</p>
       </Card>
     );
   }
@@ -72,8 +76,8 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   if (!vehicles || vehicles.length === 0) {
     return (
       <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
-        <h3 className="text-lg font-semibold mb-2">No Vehicles Found</h3>
-        <p className="mb-4">No vehicles match your current criteria.</p>
+        <h3 className="text-lg font-semibold mb-2">{t('vehicles.noVehicles')}</h3>
+        <p className="mb-4">{t('vehicles.noVehiclesMatch')}</p>
         {showAdd && (
           <button 
             onClick={() => navigate('/vehicles/add')}
@@ -83,7 +87,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
               "h-9 px-4 py-2"
             )}
           >
-            Add New Vehicle
+            {t('vehicles.add')}
           </button>
         )}
       </div>
@@ -102,7 +106,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
           licensePlate={vehicle.license_plate}
           status={vehicle.status || 'available'}
           imageUrl={vehicle.image_url || ''}
-          location={vehicle.location || 'Not specified'}
+          location={vehicle.location || t('common.notProvided')}
           fuelLevel={undefined}
           mileage={vehicle.mileage || 0}
           onSelect={() => handleSelect(vehicle.id)}

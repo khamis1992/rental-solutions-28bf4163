@@ -17,3 +17,18 @@
   margin-right: 4px;
   margin-left: 0;
 }
+
+/* Additional RTL styles for vehicle cards */
+[dir="rtl"] .card-transition .badge {
+  right: auto;
+  left: 3px;
+}
+
+[dir="rtl"] .card-transition .icon-with-text {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .card-transition .icon-with-text svg {
+  margin-right: 0;
+  margin-left: 6px;
+}
