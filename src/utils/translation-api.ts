@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -77,9 +76,11 @@ export const translateText = async (
       'Fines List',
       'Record New Fine',
       'Fine Analytics',
-      // Add vehicle form texts to skip
+      // Vehicle form texts to skip
       'Add New Vehicle',
       'Edit Vehicle',
+      'Add Vehicle',
+      'Update Vehicle',
       'Vehicle Image',
       'Make',
       'Model',
@@ -99,8 +100,25 @@ export const translateText = async (
       'Loading',
       'Invalid date',
       'Pick a date',
-      'Update Vehicle',
-      'Add Vehicle'
+      // Vehicle form placeholders
+      'Enter make',
+      'Enter model',
+      'Enter license plate',
+      'Enter VIN',
+      'Enter color',
+      'Enter location',
+      'Enter description',
+      'Enter insurance company',
+      // Vehicle status options
+      'Available',
+      'Rented',
+      'Reserved',
+      'In Maintenance',
+      'At Police Station',
+      'In Accident',
+      'Stolen',
+      'Retired',
+      'Select status'
     ];
     
     // Skip translation for text containing placeholder notation like {duration}
@@ -115,7 +133,7 @@ export const translateText = async (
       return text;
     }
     
-    if (uiTextsToSkip.some(uiText => text.includes(uiText))) {
+    if (uiTextsToSkip.some(uiText => text === uiText)) {
       console.log(`Skipping translation for UI text that should come from locale files: "${text}"`);
       return text;
     }

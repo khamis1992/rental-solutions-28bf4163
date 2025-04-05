@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "Dashboard",
@@ -208,8 +209,10 @@
       "police_station": "At Police Station",
       "accident": "In Accident",
       "stolen": "Stolen",
+      "retired": "Retired",
       "attention": "Needs Attention",
-      "critical": "Critical Issues"
+      "critical": "Critical Issues",
+      "policeStation": "At Police Station"
     },
     "add": "Add Vehicle",
     "edit": "Edit Vehicle",
@@ -234,6 +237,7 @@
     "addNew": "Add New Vehicle",
     "addToFleet": "Add a new vehicle to your fleet",
     "addSuccess": "Vehicle added successfully",
+    "updateSuccess": "Vehicle updated successfully",
     "unknown": "Unknown vehicle",
     "unknownError": "An unknown error occurred",
     "notFound": "Vehicle not found",
@@ -251,7 +255,37 @@
     "allMakes": "All Makes",
     "allLocations": "All Locations",
     "allYears": "All Years",
-    "allCategories": "All Categories"
+    "allCategories": "All Categories",
+    "addNewVehicle": "Add New Vehicle",
+    "editVehicle": "Edit Vehicle",
+    "vehicleImage": "Vehicle Image",
+    "make": "Make",
+    "model": "Model",
+    "year": "Year",
+    "licensePlate": "License Plate",
+    "vin": "VIN",
+    "color": "Color",
+    "mileage": "Mileage",
+    "location": "Location",
+    "description": "Description",
+    "insuranceCompany": "Insurance Company",
+    "insuranceExpiryDate": "Insurance Expiry Date",
+    "dailyRate": "Daily Rate",
+    "vehicleType": "Vehicle Type",
+    "selectStatus": "Select status",
+    "selectVehicleType": "Select vehicle type",
+    "makePlaceholder": "Enter make",
+    "modelPlaceholder": "Enter model",
+    "licensePlatePlaceholder": "Enter license plate",
+    "vinPlaceholder": "Enter VIN",
+    "colorPlaceholder": "Enter color",
+    "locationPlaceholder": "Enter location",
+    "descriptionPlaceholder": "Enter description",
+    "insuranceCompanyPlaceholder": "Enter insurance company",
+    "addVehicle": "Add Vehicle",
+    "updateVehicle": "Update Vehicle",
+    "noIdProvided": "No vehicle ID provided in URL",
+    "missingId": "Missing vehicle ID"
   },
   "reports": {
     "title": "Reports",

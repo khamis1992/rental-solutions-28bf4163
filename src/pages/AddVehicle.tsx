@@ -10,7 +10,6 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const AddVehicle = () => {
   const navigate = useNavigate();
