@@ -8,12 +8,20 @@ import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePayments } from '@/hooks/use-payments';
 import { useAgreements } from '@/hooks/use-agreements';
-import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
+
 import FinancialReport from '@/components/reports/FinancialReport';
 import VehicleReport from '@/components/reports/VehicleReport';
 import CustomerReport from '@/components/reports/CustomerReport';
+
+interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  agreement_id?: string;
+  lease_id?: string;
+}
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState('financial');
@@ -22,12 +30,12 @@ const Reports = () => {
   const { agreements, isLoading: isAgreementsLoading } = useAgreements();
   const { payments, isLoadingPayments } = usePayments();
 
-  // Create stub of missing methods
-  const getPaymentsForAgreement = (agreementId: string) => {
-    return payments.filter(p => p.agreementId === agreementId);
+  // Create stubs of missing methods
+  const getPaymentsForAgreement = (agreementId: string): Payment[] => {
+    return payments.filter(p => p.agreement_id === agreementId || p.lease_id === agreementId);
   };
   
-  const getTotalBalanceForAgreement = (agreementId: string) => {
+  const getTotalBalanceForAgreement = (agreementId: string): number => {
     const agreementPayments = getPaymentsForAgreement(agreementId);
     return agreementPayments.reduce((total, payment) => total + payment.amount, 0);
   };
@@ -88,13 +96,7 @@ const Reports = () => {
           {isAgreementsLoading || isLoadingPayments ? (
             <Skeleton className="h-[600px] w-full" />
           ) : (
-            <FinancialReport 
-              agreements={agreements}
-              payments={payments}
-              totalRevenue={totalRevenue}
-              getPaymentsForAgreement={getPaymentsForAgreement}
-              getTotalBalanceForAgreement={getTotalBalanceForAgreement}
-            />
+            <FinancialReport />
           )}
         </TabsContent>
         

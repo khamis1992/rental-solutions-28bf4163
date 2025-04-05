@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -5,6 +6,7 @@ import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, Vehic
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
+import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 
 export function mapDatabaseRecordToVehicle(record: any): Vehicle {
   if (!record.vin) record.vin = '';
@@ -147,19 +149,17 @@ export const useVehicles = () => {
           try {
             let image_url = undefined;
             if (formData.image) {
-              const uploadResult = await uploadVehicleImage(formData.image, "vehicle_images");
-              if (uploadResult && typeof uploadResult === 'object' && 'error' in uploadResult && uploadResult.error) {
+              const uploadResult = await uploadVehicleImage(formData.image);
+              if (uploadResult && 'error' in uploadResult && uploadResult.error) {
                 throw uploadResult.error;
               }
-              if (uploadResult && typeof uploadResult === 'object' && 'url' in uploadResult) {
+              if (uploadResult && 'url' in uploadResult) {
                 image_url = uploadResult.url;
               }
             }
 
-            let dbStatus = formData.status;
-            if (dbStatus === 'reserved') {
-              dbStatus = 'reserve';
-            }
+            // Convert the status from VehicleStatus to DatabaseVehicleStatus
+            const dbStatus = mapToDBStatus(formData.status);
 
             const vehicleData: VehicleInsertData = {
               ...formData,
@@ -199,19 +199,17 @@ export const useVehicles = () => {
           try {
             let image_url = undefined;
             if (formData.image) {
-              const uploadResult = await uploadVehicleImage(formData.image, "vehicle_images");
-              if (uploadResult && typeof uploadResult === 'object' && 'error' in uploadResult && uploadResult.error) {
+              const uploadResult = await uploadVehicleImage(formData.image);
+              if (uploadResult && 'error' in uploadResult && uploadResult.error) {
                 throw uploadResult.error;
               }
-              if (uploadResult && typeof uploadResult === 'object' && 'url' in uploadResult) {
+              if (uploadResult && 'url' in uploadResult) {
                 image_url = uploadResult.url;
               }
             }
 
-            let dbStatus = formData.status;
-            if (dbStatus === 'reserved') {
-              dbStatus = 'reserve';
-            }
+            // Convert the status from VehicleStatus to DatabaseVehicleStatus
+            const dbStatus = mapToDBStatus(formData.status);
 
             const updateData: VehicleUpdateData = {
               ...formData,

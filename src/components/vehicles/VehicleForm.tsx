@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -70,16 +69,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     make: initialData?.make || '',
     model: initialData?.model || '',
     year: initialData?.year || new Date().getFullYear(),
-    license_plate: initialData?.licensePlate || initialData?.license_plate || '',
+    license_plate: initialData?.license_plate || '',
     vin: initialData?.vin || '',
     status: (initialData?.status as VehicleStatus) || 'available',
     color: initialData?.color || '',
     mileage: initialData?.mileage || 0,
     location: initialData?.location || '',
-    description: initialData?.notes || initialData?.description || '',
+    description: initialData?.description || initialData?.notes || '',
     insurance_company: initialData?.insurance_company || '',
     insurance_expiry: initialData?.insurance_expiry || '',
-    rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
+    rent_amount: initialData?.rent_amount || initialData?.dailyRate || 0,
     vehicle_type_id: initialData?.vehicle_type_id || ''
   };
 
@@ -105,8 +104,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       if (initialData.make) values.make = initialData.make;
       if (initialData.model) values.model = initialData.model;
       if (initialData.year) values.year = initialData.year;
-      if (initialData.license_plate || initialData.licensePlate) 
-        values.license_plate = initialData.license_plate || initialData.licensePlate || '';
+      if (initialData.license_plate) 
+        values.license_plate = initialData.license_plate;
       if (initialData.vin) values.vin = initialData.vin;
       if (initialData.status) values.status = initialData.status;
       if (initialData.color) values.color = initialData.color;
@@ -166,7 +165,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               <FormLabel className="mb-2 block">{t('vehicles.vehicleImage')}</FormLabel>
               <VehicleImageUpload 
                 onImageSelected={setSelectedImage}
-                initialImageUrl={initialData?.imageUrl || initialData?.image_url}
+                initialImageUrl={initialData?.image_url}
               />
             </div>
             

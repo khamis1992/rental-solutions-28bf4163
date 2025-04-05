@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from 'react';
+import { Vehicle } from '@/types/vehicle';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -17,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
+  onDelete?: (id: string) => void;
 }
 
 export function VehicleDetail({ vehicle, onDelete }: VehicleDetailProps) {

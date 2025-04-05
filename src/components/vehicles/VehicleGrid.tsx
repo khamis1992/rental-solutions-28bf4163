@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
+import { Vehicle, VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehiclesPagination } from '@/hooks/use-vehicles-pagination';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -32,22 +33,21 @@ export function VehicleGrid() {
     totalPages 
   } = usePagination({ initialPage: 1, initialPageSize: 12 });
   
-  const filters: VehicleFilterParams = {
+  const filterParams: VehicleFilterParams = {
     status: statusFilter !== 'all' ? statusFilter as any : undefined,
     search: searchQuery || undefined
   };
   
   const { 
-    data,
+    vehicles,
     isLoading,
-    error
+    error,
+    totalCount,
+    pageCount
   } = useVehiclesPagination({
-    filters,
-    pagination
+    pagination,
+    filters: filterParams
   });
-  
-  const vehicles = data?.data || [];
-  const totalCount = data?.count || 0;
   
   const { loadMoreRef, isFetchingMore } = useInfiniteScroll({
     fetchMore: async () => {
@@ -188,8 +188,8 @@ export function VehicleGrid() {
                   <PaginationItem>
                     <PaginationPrevious 
                       onClick={() => prevPage()}
-                      className={!canPrevPage ? 'pointer-events-none opacity-50' : ''}
                       aria-disabled={!canPrevPage}
+                      className={!canPrevPage ? 'pointer-events-none opacity-50' : ''}
                     />
                   </PaginationItem>
                   
@@ -246,8 +246,8 @@ export function VehicleGrid() {
                   <PaginationItem>
                     <PaginationNext 
                       onClick={() => nextPage()}
-                      className={!canNextPage ? 'pointer-events-none opacity-50' : ''}
                       aria-disabled={!canNextPage}
+                      className={!canNextPage ? 'pointer-events-none opacity-50' : ''}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -270,5 +270,3 @@ export function VehicleGrid() {
     </div>
   );
 }
-
-export { VehicleGrid };

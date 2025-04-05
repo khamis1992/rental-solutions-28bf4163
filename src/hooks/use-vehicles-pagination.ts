@@ -1,113 +1,142 @@
+
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { Vehicle, VehicleFilterParams, DatabaseVehicleRecord } from '@/types/vehicle';
-import { useState, useEffect } from 'react';
+import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
+import { PaginationState } from '@/hooks/use-pagination';
+import { mapDatabaseRecordToVehicle } from '@/lib/vehicles/vehicle-mappers';
 
-// Similar to useVehicles but with pagination
-export interface PaginationState {
-  pageIndex: number;
-  pageSize: number;
+interface UseVehiclesPaginationProps {
+  pagination: PaginationState;
+  filters?: VehicleFilterParams;
 }
 
-export const useVehiclesPagination = (pagination: PaginationState, filters?: VehicleFilterParams) => {
+export const useVehiclesPagination = ({ 
+  pagination,
+  filters
+}: UseVehiclesPaginationProps) => {
+  const { pageIndex, pageSize } = pagination;
   const [totalCount, setTotalCount] = useState(0);
-  const [pageCount, setPageCount] = useState(0);
-
-  // Here we modify to include correct typing for VehicleType
-  const mapVehicleFromDatabase = (record: any): Vehicle => {
-    const vehicleType = record.vehicle_types || null;
+  
+  // Fetch the count separately for efficiency
+  const fetchVehiclesCount = async () => {
+    let query = supabase
+      .from('vehicles')
+      .select('id', { count: 'exact', head: true });
+    
+    if (filters) {
+      if (filters.status) {
+        if (filters.status === 'reserved') {
+          query = query.eq('status', 'reserve');
+        } else {
+          query = query.eq('status', filters.status);
+        }
+      }
+      
+      if (filters.make) {
+        query = query.eq('make', filters.make);
+      }
+      
+      if (filters.model) {
+        query = query.ilike('model', `%${filters.model}%`);
+      }
+      
+      if (filters.vehicle_type_id) {
+        query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+      }
+      
+      if (filters.location) {
+        query = query.eq('location', filters.location);
+      }
+      
+      if (filters.search) {
+        query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
+      }
+    }
+    
+    const { count, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching vehicle count:', error);
+      throw error;
+    }
+    
+    return count || 0;
+  };
+  
+  // Fetch the paginated vehicles
+  const fetchVehicles = async () => {
+    const startIndex = pageIndex * pageSize;
+    
+    let query = supabase
+      .from('vehicles')
+      .select('*, vehicle_types(*)')
+      .range(startIndex, startIndex + pageSize - 1)
+      .order('created_at', { ascending: false });
+    
+    if (filters) {
+      if (filters.status) {
+        if (filters.status === 'reserved') {
+          query = query.eq('status', 'reserve');
+        } else {
+          query = query.eq('status', filters.status);
+        }
+      }
+      
+      if (filters.make) {
+        query = query.eq('make', filters.make);
+      }
+      
+      if (filters.model) {
+        query = query.ilike('model', `%${filters.model}%`);
+      }
+      
+      if (filters.vehicle_type_id) {
+        query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+      }
+      
+      if (filters.location) {
+        query = query.eq('location', filters.location);
+      }
+      
+      if (filters.search) {
+        query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
+      }
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error fetching vehicles:', error);
+      throw error;
+    }
+    
+    // Count query
+    const count = await fetchVehiclesCount();
+    setTotalCount(count);
     
     return {
-      id: record.id,
-      make: record.make,
-      model: record.model, 
-      year: record.year,
-      license_plate: record.license_plate,
-      vin: record.vin || "", // Providing default values for required fields
-      status: record.status,
-      image_url: record.image_url,
-      location: record.location,
-      mileage: record.mileage,
-      vehicleType: vehicleType ? {
-        id: vehicleType.id,
-        name: vehicleType.name,
-        description: vehicleType.description || '',
-        size: vehicleType.size || 'standard',
-        daily_rate: vehicleType.daily_rate || 0,
-        is_active: true,
-        features: [], 
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      } : null,
-      created_at: record.created_at || new Date().toISOString(),
-      updated_at: record.updated_at || new Date().toISOString(),
+      vehicles: (data || []).map(record => mapDatabaseRecordToVehicle(record)),
+      count
     };
   };
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['vehicles', pagination, filters],
-    queryFn: async () => {
-      try {
-        let query = supabase
-          .from('vehicles')
-          .select('*, vehicle_types(id, name, description, size, daily_rate, is_active)', { count: 'exact' });
-
-        if (filters) {
-          if (filters.status) {
-            query = query.eq('status', filters.status);
-          }
-          if (filters.make) {
-            query = query.eq('make', filters.make);
-          }
-          if (filters.model) {
-            query = query.ilike('model', `%${filters.model}%`);
-          }
-          if (filters.vehicle_type_id) {
-            query = query.eq('vehicle_type_id', filters.vehicle_type_id);
-          }
-          if (filters.location) {
-            query = query.eq('location', filters.location);
-          }
-          if (filters.year) {
-            query = query.eq('year', filters.year);
-          }
-        }
-
-        const startIndex = pagination.pageIndex * pagination.pageSize;
-        const endIndex = startIndex + pagination.pageSize - 1;
-
-        query = query.range(startIndex, endIndex).order('created_at', { ascending: false });
-
-        const { data: vehicles, error, count } = await query;
-
-        if (error) {
-          throw error;
-        }
-
-        setTotalCount(count || 0);
-        setPageCount(Math.ceil((count || 0) / pagination.pageSize));
-
-        return vehicles ? vehicles.map(mapVehicleFromDatabase) : [];
-      } catch (err: any) {
-        console.error("Error fetching paginated vehicles:", err);
-        throw err;
-      }
-    },
-    placeholderData: (prev) => prev
-  });
-
-  useEffect(() => {
-    setPageCount(Math.ceil(totalCount / pagination.pageSize));
-  }, [totalCount, pagination.pageSize]);
-
-  return {
-    vehicles: data || [],
+  
+  const {
+    data,
     isLoading,
-    error,
+    error
+  } = useQuery({
+    queryKey: ['vehicles', pageIndex, pageSize, filters],
+    queryFn: fetchVehicles,
+  });
+  
+  const pageCount = Math.ceil((totalCount || 0) / pageSize);
+  
+  return {
+    vehicles: data?.vehicles || [],
+    isLoading,
+    error: error as Error | null,
     totalCount,
-    pageCount,
+    pageCount
   };
 };
-
-// Export the same function with a different name for backward compatibility
-export const useVehiclesList = useVehiclesPagination;

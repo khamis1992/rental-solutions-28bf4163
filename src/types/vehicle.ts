@@ -1,6 +1,6 @@
-
 export type DatabaseVehicleStatus = "available" | "rented" | "reserve" | "maintenance" | "police_station" | "accident" | "stolen" | "retired";
 export type VehicleStatus = "available" | "rented" | "reserved" | "maintenance" | "police_station" | "accident" | "stolen" | "retired";
+export type VehicleSize = "compact" | "midsize" | "fullsize" | "suv" | "van" | "truck" | "luxury";
 
 export interface VehicleType {
   id: string;
@@ -12,6 +12,8 @@ export interface VehicleType {
   features: string[];
   created_at: string;
   updated_at: string;
+  weekly_rate?: number;
+  monthly_rate?: number;
 }
 
 export interface DatabaseVehicleType {
@@ -21,6 +23,11 @@ export interface DatabaseVehicleType {
   size: string;
   daily_rate: number;
   is_active: boolean;
+  features?: string[];
+  created_at?: string;
+  updated_at?: string;
+  weekly_rate?: number;
+  monthly_rate?: number;
 }
 
 export interface Vehicle {
@@ -43,23 +50,11 @@ export interface Vehicle {
   insurance_expiry?: string;
   rent_amount?: number;
   vehicle_type_id?: string;
-}
-
-export interface DatabaseVehicleRecord {
-  id: string;
-  make: string;
-  model: string;
-  year: number;
-  license_plate: string;
-  vin: string;
-  status: DatabaseVehicleStatus;
-  image_url?: string;
-  color?: string;
-  mileage?: number;
-  location?: string;
-  vehicle_types?: DatabaseVehicleType;
-  created_at: string;
-  updated_at: string;
+  features?: string[];
+  notes?: string;
+  dailyRate?: number;
+  licensePlate?: string;
+  imageUrl?: string;
 }
 
 export interface VehicleFilterParams {
