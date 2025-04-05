@@ -30,9 +30,9 @@ const Reports = () => {
   const { agreements, isLoading: isAgreementsLoading } = useAgreements();
   const { payments, isLoadingPayments } = usePayments();
 
-  // Create stubs of missing methods
+  // Create helper methods for payments
   const getPaymentsForAgreement = (agreementId: string): Payment[] => {
-    return payments.filter(p => p.agreement_id === agreementId || p.lease_id === agreementId);
+    return payments.filter(p => p.lease_id === agreementId || p.agreement_id === agreementId);
   };
   
   const getTotalBalanceForAgreement = (agreementId: string): number => {
@@ -104,7 +104,7 @@ const Reports = () => {
           {isVehiclesLoading ? (
             <Skeleton className="h-[600px] w-full" />
           ) : (
-            <VehicleReport />
+            <VehicleReport vehicles={vehicleList} />
           )}
         </TabsContent>
         

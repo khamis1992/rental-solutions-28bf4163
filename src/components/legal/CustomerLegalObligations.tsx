@@ -2,19 +2,24 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Define the types we need to export
+export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
+export type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
+
 export interface CustomerObligation {
   id: string;
   description: string;
   customerId: string;
   customerName: string;
-  obligationType: string;
+  obligationType: ObligationType;
   amount: number;
   lateFine: number;
-  urgency: string;
+  urgency: UrgencyLevel;
   status: string;
   dueDate: Date;
   daysOverdue: number;
   agreementId?: string;
+  agreementNumber?: string; // Add this missing property
 }
 
 interface CustomerLegalObligationsProps {

@@ -4,8 +4,7 @@ import {
   DatabaseVehicleStatus, 
   DatabaseVehicleType, 
   Vehicle, 
-  VehicleStatus,
-  VehicleSize 
+  VehicleStatus
 } from '@/types/vehicle';
 
 // Helper function to validate status
@@ -34,14 +33,14 @@ export function mapToDBStatus(status: VehicleStatus | null | undefined): Databas
 }
 
 // Map database size to application size
-export function mapDatabaseSize(size: string): VehicleSize {
+export function mapDatabaseSize(size: string): string {
   // Map possible database values to valid application values
-  const sizeMap: Record<string, VehicleSize> = {
+  const sizeMap: Record<string, string> = {
     'mid_size': 'midsize',
     'full_size': 'fullsize'
   };
   
-  return (sizeMap[size] || size) as VehicleSize;
+  return sizeMap[size] || size;
 }
 
 // Convert features to string array
@@ -83,7 +82,7 @@ function mapDatabaseVehicleType(dbType: DatabaseVehicleType | null | undefined) 
 }
 
 // Convert a database vehicle record to the application Vehicle type
-export function mapDatabaseRecordToVehicle(record: any): Vehicle {
+export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehicle {
   const vehicleType = record.vehicle_types ? mapDatabaseVehicleType(record.vehicle_types) : undefined;
   
   // Map DB record to Vehicle type
@@ -111,7 +110,7 @@ export function mapDatabaseRecordToVehicle(record: any): Vehicle {
     notes: record.description || undefined,
     vehicleType: vehicleType,
     dailyRate: record.rent_amount || (vehicleType?.daily_rate || 0),
-    licensePlate: record.license_plate,
+    license_plate: record.license_plate,
     imageUrl: record.image_url
   };
   

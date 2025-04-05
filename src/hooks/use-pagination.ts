@@ -11,6 +11,7 @@ export interface PaginationState {
   page: number;
   pageSize: number;
   offset: number;
+  pageIndex: number; // Add this property needed by use-vehicles-pagination
 }
 
 export interface UsePaginationResult {
@@ -42,6 +43,9 @@ export function usePagination({
   // Calculate offset for the current page (for SQL OFFSET)
   const offset = (page - 1) * pageSize;
   
+  // pageIndex is zero-based, whereas page is 1-based
+  const pageIndex = page - 1;
+  
   const nextPage = () => {
     if (canNextPage) {
       setPage(p => p + 1);
@@ -55,7 +59,7 @@ export function usePagination({
   };
   
   return {
-    pagination: { page, pageSize, offset },
+    pagination: { page, pageSize, offset, pageIndex },
     setPage,
     setPageSize,
     nextPage,

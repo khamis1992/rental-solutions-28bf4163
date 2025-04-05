@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { CustomerObligation, ObligationType, UrgencyLevel } from './CustomerLegalObligations';
 import { toast } from 'sonner';
@@ -177,7 +176,7 @@ const fetchOverduePayments = async (): Promise<{
         daysOverdue,
         agreementId: lease.id,
         agreementNumber: lease.agreement_number,
-        lateFine: lateFine // Add the late fine amount to the obligation object
+        lateFine: lateFine
       });
     }
     
@@ -310,6 +309,7 @@ const fetchTrafficFines = async (): Promise<{
         customerName: customer.full_name,
         obligationType: 'traffic_fine' as ObligationType,
         amount: fine.fine_amount || 0,
+        lateFine: 0,
         dueDate: violationDate,
         description: `Unpaid traffic fine (Agreement #${lease.agreement_number})`,
         urgency: determineUrgency(daysOverdue),
@@ -424,6 +424,7 @@ const fetchLegalCases = async (): Promise<{
         customerName: customer.full_name,
         obligationType: 'legal_case' as ObligationType,
         amount: legalCase.amount_owed || 0,
+        lateFine: 0,
         dueDate: createdDate,
         description: `Legal case (${String(legalCase.status).replace(/_/g, ' ')})`,
         urgency,
