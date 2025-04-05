@@ -44,6 +44,11 @@ export function mapDatabaseRecordToVehicle(record: any): Vehicle {
 export const useVehicles = () => {
   const queryClient = useQueryClient();
   
+  type VehicleDatabaseRecord = {
+    id: string;
+    [key: string]: any;
+  };
+  
   const batchGetVehicles = async (vehicleIds: string[]): Promise<Record<string, Vehicle>> => {
     try {
       if (!vehicleIds.length) return {};
@@ -57,7 +62,7 @@ export const useVehicles = () => {
       
       const validData = data || [];
       return validData.reduce((acc: Record<string, Vehicle>, vehicle: any) => {
-        if (vehicle && typeof vehicle === 'object' && vehicle.id) {
+        if (vehicle && typeof vehicle === 'object' && 'id' in vehicle && vehicle.id) {
           acc[vehicle.id] = mapDatabaseRecordToVehicle(vehicle);
         }
         return acc;
