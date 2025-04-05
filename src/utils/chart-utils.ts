@@ -1,21 +1,30 @@
 
 import { useTranslation } from '@/contexts/TranslationContext';
+import { useMemo } from 'react';
+import performanceMonitor from '@/utils/performance-monitor';
 
 /**
- * Prepares chart data for RTL display
- * Reverses data arrays for RTL mode to ensure proper visual representation
+ * Prepares chart data for RTL display with performance optimization
  * @param data The original chart data array
  * @returns The chart data properly formatted for the current direction
  */
-export const useDirectionalChartData = (data: any[]) => {
+export const useDirectionalChartData = <T extends any[]>(data: T): T => {
   const { isRTL } = useTranslation();
   
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    return [];
-  }
-  
-  // For RTL layouts, we reverse the data array to display the chart correctly
-  return isRTL ? [...data].reverse() : data;
+  return useMemo(() => {
+    performanceMonitor.startMeasure('prepare_chart_data');
+    
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      performanceMonitor.endMeasure('prepare_chart_data');
+      return [] as unknown as T;
+    }
+    
+    // Don't create a new array unnecessarily if not in RTL mode
+    const result = isRTL ? [...data].reverse() : data;
+    
+    performanceMonitor.endMeasure('prepare_chart_data');
+    return result;
+  }, [data, isRTL]);
 };
 
 /**
@@ -26,17 +35,19 @@ export const useDirectionalChartData = (data: any[]) => {
 export const useChartMargin = (baseMargin = { top: 20, right: 30, left: 20, bottom: 5 }) => {
   const { isRTL } = useTranslation();
   
-  if (isRTL) {
-    // Swap left and right margins for RTL
-    return {
-      top: baseMargin.top,
-      right: baseMargin.left,
-      left: baseMargin.right,
-      bottom: baseMargin.bottom
-    };
-  }
-  
-  return baseMargin;
+  return useMemo(() => {
+    if (isRTL) {
+      // Swap left and right margins for RTL
+      return {
+        top: baseMargin.top,
+        right: baseMargin.left,
+        left: baseMargin.right,
+        bottom: baseMargin.bottom
+      };
+    }
+    
+    return baseMargin;
+  }, [baseMargin, isRTL]);
 };
 
 /**
@@ -46,12 +57,12 @@ export const useChartMargin = (baseMargin = { top: 20, right: 30, left: 20, bott
 export const useAxisLabelConfig = () => {
   const { isRTL } = useTranslation();
   
-  return {
+  return useMemo(() => ({
     textAnchor: isRTL ? 'end' : 'start',
     transform: isRTL ? 'rotate(180)' : 'rotate(0)',
     mirror: isRTL,
     dx: isRTL ? -10 : 10,
-  };
+  }), [isRTL]);
 };
 
 /**
@@ -68,3 +79,48 @@ export const getDirectionalChartText = (text: string) => {
   // For RTL, we need to handle numbers specially to ensure they display correctly
   return text;
 };
+
+/**
+ * Provides optimized dataset configuration for charts in both LTR and RTL layouts
+ * @param originalData The raw data array
+ * @param config Configuration object
+ * @returns Optimized and transformed chart dataset
+ */
+export const useOptimizedChartData = <T extends Record<string, any>>(
+  originalData: T[], 
+  config: {
+    rtlReverse?: boolean;
+    dataKeys?: string[];
+    dataTransform?: (item: T) => any;
+    emptyFallback?: T[];
+  } = {}
+) => {
+  const { isRTL } = useTranslation();
+  const { rtlReverse = true, dataKeys = [], dataTransform, emptyFallback = [] } = config;
+  
+  return useMemo(() => {
+    performanceMonitor.startMeasure('optimize_chart_data');
+    
+    if (!originalData || !Array.isArray(originalData) || originalData.length === 0) {
+      performanceMonitor.endMeasure('optimize_chart_data');
+      return emptyFallback;
+    }
+    
+    // Optimize by applying transformations only once
+    let processedData = originalData;
+    
+    // Apply custom data transformations if provided
+    if (dataTransform) {
+      processedData = processedData.map(dataTransform);
+    }
+    
+    // Only reverse if in RTL mode and reversal is needed
+    if (isRTL && rtlReverse) {
+      processedData = [...processedData].reverse();
+    }
+    
+    performanceMonitor.endMeasure('optimize_chart_data');
+    return processedData;
+  }, [originalData, isRTL, rtlReverse, dataTransform, JSON.stringify(emptyFallback), JSON.stringify(dataKeys)]);
+};
+

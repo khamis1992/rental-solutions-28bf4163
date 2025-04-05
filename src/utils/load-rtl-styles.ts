@@ -1,80 +1,106 @@
 
 import debounce from 'lodash/debounce';
+import performanceMonitor from './performance-monitor';
 
 // Track loaded stylesheets to avoid duplicate loading
 const loadedStylesheets = new Set<string>();
 
 /**
- * Helper function to load RTL specific stylesheets when RTL mode is active
+ * Enhanced helper function to efficiently load RTL specific stylesheets
  * @param isRTL Boolean indicating if the current mode is RTL
  */
 export const loadRTLStyles = (isRTL: boolean) => {
-  // Only apply document direction attribute change - this is most critical
-  document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
-  document.documentElement.lang = isRTL ? 'ar' : 'en';
+  performanceMonitor.startMeasure('rtl_style_loading');
   
-  // Add/remove RTL class to body
-  if (isRTL) {
-    document.body.classList.add('rtl-mode');
-  } else {
-    document.body.classList.remove('rtl-mode');
-  }
-  
-  // Debounced function to load stylesheets after a short delay
-  const debouncedStyleLoad = debounce(() => {
-    const stylesheets = [
-      '/src/styles/rtl.css',
-      '/src/styles/rtl-charts.css',
-      '/src/styles/rtl-forms.css'
-    ];
+  try {
+    // Apply document direction attribute change - this is most critical
+    document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+    document.documentElement.lang = isRTL ? 'ar' : 'en';
     
-    // Add or remove RTL stylesheet links
-    stylesheets.forEach(stylesheet => {
-      const id = `rtl-${stylesheet.split('/').pop()?.replace('.', '-')}`;
-      const existingLink = document.getElementById(id);
-      
-      if (isRTL && !existingLink && !loadedStylesheets.has(id)) {
-        // Add stylesheet if in RTL mode and not already loaded
-        const link = document.createElement('link');
-        link.id = id;
-        link.rel = 'stylesheet';
-        link.href = stylesheet;
-        document.head.appendChild(link);
-        loadedStylesheets.add(id);
-      } else if (!isRTL && existingLink) {
-        // Remove stylesheet if not in RTL mode
-        existingLink.remove();
-        loadedStylesheets.delete(id);
-      }
-    });
-  }, 50);
-  
-  debouncedStyleLoad();
+    // Add/remove RTL class to body
+    if (isRTL) {
+      document.body.classList.add('rtl-mode');
+    } else {
+      document.body.classList.remove('rtl-mode');
+    }
+  } finally {
+    performanceMonitor.endMeasure('rtl_style_loading', true);
+  }
 };
 
 /**
- * Apply this function in the TranslationContext to ensure RTL styles are loaded
- * when language changes
+ * Pre-load RTL stylesheets in the background during idle time
  */
-export const setupRTLStylesObserver = () => {
-  // Create MutationObserver to watch for changes to the dir attribute
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.attributeName === 'dir') {
-        const htmlElement = document.documentElement;
-        const isRTL = htmlElement.dir === 'rtl';
-        
-        // Apply RTL-specific styles when direction changes
-        loadRTLStyles(isRTL);
-      }
-    });
+export const preloadRTLStylesheets = () => {
+  if ('requestIdleCallback' in window) {
+    window.requestIdleCallback(() => {
+      loadRTLStylesheetFiles();
+    }, { timeout: 2000 });
+  } else {
+    // Fallback for browsers without requestIdleCallback
+    setTimeout(() => {
+      loadRTLStylesheetFiles();
+    }, 1000);
+  }
+};
+
+/**
+ * Load all RTL stylesheets
+ */
+const loadRTLStylesheetFiles = () => {
+  performanceMonitor.startMeasure('rtl_stylesheet_loading');
+  
+  const stylesheets = [
+    '/css/rtl.css',
+    '/css/rtl-charts.css',
+    '/css/rtl-forms.css'
+  ];
+  
+  // Load each stylesheet only once
+  stylesheets.forEach(stylesheet => {
+    if (!loadedStylesheets.has(stylesheet)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = stylesheet;
+      link.dataset.rtl = 'true';
+      document.head.appendChild(link);
+      loadedStylesheets.add(stylesheet);
+    }
   });
   
-  // Start observing the html element for dir attribute changes
-  observer.observe(document.documentElement, { attributes: true });
-  
-  // Initial load of styles
-  loadRTLStyles(document.documentElement.dir === 'rtl');
-  
-  return observer;
+  performanceMonitor.endMeasure('rtl_stylesheet_loading', true);
 };
+
+/**
+ * Efficiently toggle RTL stylesheets visibility based on current direction
+ */
+export const toggleRTLStylesheets = debounce((isRTL: boolean) => {
+  performanceMonitor.startMeasure('toggle_rtl_stylesheets');
+  
+  const rtlStylesheets = document.querySelectorAll('link[data-rtl="true"]');
+  rtlStylesheets.forEach(sheet => {
+    (sheet as HTMLLinkElement).disabled = !isRTL;
+  });
+  
+  performanceMonitor.endMeasure('toggle_rtl_stylesheets', true);
+}, 100);
+
+/**
+ * Initialize RTL handling on app start
+ */
+export const initializeRTL = () => {
+  // Check for RTL setting from localStorage
+  const savedDirection = localStorage.getItem('direction');
+  const isRTL = savedDirection === 'rtl';
+  
+  // Apply direction settings
+  loadRTLStyles(isRTL);
+  
+  // Preload stylesheets for faster switching later
+  if (!isRTL) {
+    preloadRTLStylesheets();
+  }
+  
+  return isRTL;
+};
+

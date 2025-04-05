@@ -1,6 +1,6 @@
 
 /**
- * Simple performance monitoring utility for tracking component render times
+ * Enhanced performance monitoring utility for tracking component render times
  * and application performance metrics
  */
 
@@ -15,6 +15,7 @@ class PerformanceMonitor {
   private metrics: Map<string, PerformanceMetric> = new Map();
   private enabled: boolean = false;
   private thresholds: Map<string, number> = new Map();
+  private observers: Map<string, (metric: PerformanceMetric) => void> = new Map();
   
   /**
    * Enable or disable performance monitoring
@@ -28,6 +29,13 @@ class PerformanceMonitor {
    */
   public setThreshold(metricName: string, thresholdMs: number): void {
     this.thresholds.set(metricName, thresholdMs);
+  }
+
+  /**
+   * Add observer to be notified when a specific metric completes
+   */
+  public addObserver(metricName: string, callback: (metric: PerformanceMetric) => void): void {
+    this.observers.set(metricName, callback);
   }
   
   /**
@@ -67,6 +75,12 @@ class PerformanceMonitor {
       console.log(`Performance: ${name} took ${metric.duration.toFixed(2)}ms`);
     }
     
+    // Notify observers
+    const observer = this.observers.get(name);
+    if (observer) {
+      observer(metric);
+    }
+    
     return metric.duration;
   }
   
@@ -93,6 +107,19 @@ class PerformanceMonitor {
   public getMetrics(): PerformanceMetric[] {
     return Array.from(this.metrics.values());
   }
+
+  /**
+   * Track a single browser API call
+   */
+  public measureApiCall<T>(
+    name: string, 
+    fn: () => Promise<T>
+  ): Promise<T> {
+    if (!this.enabled) return fn();
+    
+    this.startMeasure(`api_${name}`);
+    return fn().finally(() => this.endMeasure(`api_${name}`, true));
+  }
 }
 
 // Create a singleton instance
@@ -107,6 +134,9 @@ if (import.meta.env.DEV) {
   performanceMonitor.setThreshold('render_VehicleStatusChart', 50);
   performanceMonitor.setThreshold('render_RevenueChart', 50);
   performanceMonitor.setThreshold('initial_load', 1000);
+  performanceMonitor.setThreshold('api_fetch_dashboard_stats', 500);
+  performanceMonitor.setThreshold('api_fetch_dashboard_revenue', 500);
+  performanceMonitor.setThreshold('api_fetch_dashboard_activity', 500);
   
   // Start measuring initial load
   performanceMonitor.startMeasure('initial_load');
@@ -114,8 +144,9 @@ if (import.meta.env.DEV) {
   // When the window loads, end the measurement
   window.addEventListener('load', () => {
     const duration = performanceMonitor.endMeasure('initial_load', true);
-    console.log(`Initial load completed in ${duration?.toFixed(2)}ms`);
+    console.log(`🚀 Initial load completed in ${duration?.toFixed(2)}ms`);
   });
 }
 
 export default performanceMonitor;
+

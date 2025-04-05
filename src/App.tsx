@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Sidebar from "./components/layout/Sidebar";
 import { useState, useEffect, lazy, Suspense } from "react";
-import { lazyLoad, DefaultLoadingComponent } from "@/utils/lazy-loading";
+import { lazyLoad, lazyLoadWithIntersection, DefaultLoadingComponent } from "@/utils/lazy-loading";
+import performanceMonitor from "@/utils/performance-monitor";
 
 // Styles
 import "./styles/rtl.css";
@@ -41,41 +42,41 @@ const EditVehicle = lazyLoad(() => import("./pages/EditVehicle"));
 const UserSettings = lazyLoad(() => import("./pages/UserSettings"));
 const UserManagement = lazyLoad(() => import("./pages/UserManagement"));
 
-// Customer pages
+// Customer pages - lazy loaded in background
 const Customers = lazyLoad(() => import("./pages/Customers"));
 const AddCustomer = lazyLoad(() => import("./pages/AddCustomer"));
 const CustomerDetailPage = lazyLoad(() => import("./pages/CustomerDetailPage"));
 const EditCustomer = lazyLoad(() => import("./pages/EditCustomer"));
 
-// Agreement pages
-const Agreements = lazyLoad(() => import("./pages/Agreements"));
-const AgreementDetailPage = lazyLoad(() => import("./pages/AgreementDetailPage"));
-const AddAgreement = lazyLoad(() => import("./pages/AddAgreement"));
-const EditAgreement = lazyLoad(() => import("./pages/EditAgreement"));
+// Agreement pages - lazy loaded when visible
+const Agreements = lazyLoadWithIntersection(() => import("./pages/Agreements"));
+const AgreementDetailPage = lazyLoadWithIntersection(() => import("./pages/AgreementDetailPage"));
+const AddAgreement = lazyLoadWithIntersection(() => import("./pages/AddAgreement"));
+const EditAgreement = lazyLoadWithIntersection(() => import("./pages/EditAgreement"));
 
-// Maintenance pages
-const Maintenance = lazyLoad(() => import("./pages/Maintenance"));
-const AddMaintenance = lazyLoad(() => import("./pages/AddMaintenance"));
-const EditMaintenance = lazyLoad(() => import("./pages/EditMaintenance"));
-const MaintenanceDetailPage = lazyLoad(() => import("./pages/MaintenanceDetailPage"));
+// Maintenance pages - lazy loaded when visible
+const Maintenance = lazyLoadWithIntersection(() => import("./pages/Maintenance"));
+const AddMaintenance = lazyLoadWithIntersection(() => import("./pages/AddMaintenance"));
+const EditMaintenance = lazyLoadWithIntersection(() => import("./pages/EditMaintenance"));
+const MaintenanceDetailPage = lazyLoadWithIntersection(() => import("./pages/MaintenanceDetailPage"));
 
-// Legal pages
-const Legal = lazyLoad(() => import("./pages/Legal"));
+// Legal pages - lazy loaded when visible
+const Legal = lazyLoadWithIntersection(() => import("./pages/Legal"));
 
-// Traffic Fines pages
-const TrafficFines = lazyLoad(() => import("./pages/TrafficFines"));
+// Traffic Fines pages - lazy loaded when visible
+const TrafficFines = lazyLoadWithIntersection(() => import("./pages/TrafficFines"));
 
-// Financials pages
-const Financials = lazyLoad(() => import("./pages/Financials"));
+// Financials pages - lazy loaded when visible
+const Financials = lazyLoadWithIntersection(() => import("./pages/Financials"));
 
-// Reports pages
-const Reports = lazyLoad(() => import("./pages/Reports"));
-const ScheduledReports = lazyLoad(() => import("./pages/ScheduledReports"));
+// Reports pages - lazy loaded when visible
+const Reports = lazyLoadWithIntersection(() => import("./pages/Reports"));
+const ScheduledReports = lazyLoadWithIntersection(() => import("./pages/ScheduledReports"));
 
-// System Settings pages
-const SystemSettings = lazyLoad(() => import("./pages/SystemSettings"));
+// System Settings pages - lazy loaded when visible
+const SystemSettings = lazyLoadWithIntersection(() => import("./pages/SystemSettings"));
 
-// Loading indicator for route transitions
+// Loading indicator for route transitions with progress indicator
 const RouteLoadingIndicator = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="flex flex-col items-center space-y-4">
@@ -85,34 +86,66 @@ const RouteLoadingIndicator = () => (
   </div>
 );
 
+// Enhanced App initialization with performance tracking
 function App() {
-  // Move the QueryClient initialization inside the component
-  // This ensures React hooks are called in the correct context
+  // Create a stable QueryClient instance with optimized settings
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
         refetchOnWindowFocus: false,
         staleTime: 60000,
-        retry: 1
+        retry: 1,
+        // Deduplication to prevent multiple requests for the same data
+        networkMode: 'offlineFirst',
       }
     }
   }));
   
-  const [isInitialized, setIsInitialized] = useState(false);
+  // App initialization state
+  const [initStage, setInitStage] = useState<'pre-init' | 'initializing' | 'complete'>('pre-init');
+  const [initError, setInitError] = useState<Error | null>(null);
 
+  // Handle app initialization
   useEffect(() => {
-    // Initialize only essential app components for fast initial load
-    initializeApp()
-      .then(() => {
-        setIsInitialized(true);
-      })
-      .catch(error => {
-        console.error("Failed to initialize app:", error);
-        setIsInitialized(true); // Continue anyway to allow app to function
-      });
-  }, []);
+    if (initStage !== 'pre-init') return;
+    
+    setInitStage('initializing');
+    
+    // Initialize app with essential features enabled
+    initializeApp({
+      skipFeatures: false, 
+      skipPrefetching: false,
+      onStageComplete: (stage) => {
+        // Could update loading progress based on stage
+        if (stage === 'complete') {
+          setInitStage('complete');
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Failed to initialize app:", error);
+      setInitError(error);
+      setInitStage('complete'); // Continue anyway to allow app to function
+    });
+    
+    // Monitor performance for route changes
+    const originalPushState = window.history.pushState;
+    window.history.pushState = function(...args) {
+      performanceMonitor.startMeasure('route_change');
+      const result = originalPushState.apply(this, args);
+      setTimeout(() => {
+        performanceMonitor.endMeasure('route_change', true);
+      }, 100);
+      return result;
+    };
+    
+    return () => {
+      // Restore original function
+      window.history.pushState = originalPushState;
+    };
+  }, [initStage]);
 
-  if (!isInitialized) {
+  if (initStage !== 'complete') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center space-y-4">
@@ -132,6 +165,11 @@ function App() {
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
+                {initError && (
+                  <div className="fixed top-0 left-0 right-0 z-50 p-4 bg-red-500 text-white">
+                    Error initializing app: {initError.message}
+                  </div>
+                )}
                 <Routes>
                   <Route path="/" element={
                     <Suspense fallback={<RouteLoadingIndicator />}>
