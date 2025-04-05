@@ -1,4 +1,3 @@
-
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
