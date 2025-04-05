@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import AgreementList from '@/components/agreements/AgreementList';
+import { AgreementList } from '@/components/agreements/AgreementList';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -37,7 +37,7 @@ const Agreements = () => {
     <PageContainer
       title={pageTitle || t('agreements.title')}
       description={pageDescription || t('agreements.description')}
-      action={
+      actions={
         <Button 
           onClick={handleAddAgreement}
           className={cn("gap-2", isRTL ? "flex-row-reverse" : "")}

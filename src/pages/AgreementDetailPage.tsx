@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
-import AgreementDetail from '@/components/agreements/AgreementDetail';
+import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { AlertCircle } from 'lucide-react';

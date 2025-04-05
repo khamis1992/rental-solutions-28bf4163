@@ -45,11 +45,14 @@ const EditAgreement = () => {
         const agreement = await getAgreement(id);
         if (agreement) {
           // Convert date strings to Date objects for the form
-          setAgreementData({
+          const processedAgreement: Agreement = {
             ...agreement,
             start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
-            end_date: agreement.end_date ? new Date(agreement.end_date) : new Date()
-          });
+            end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
+            // Ensure status is of the correct type
+            status: (agreement.status as "active" | "pending" | "draft" | "expired" | "cancelled" | "closed") || "draft"
+          };
+          setAgreementData(processedAgreement);
         } else {
           const translatedError = await translateText(t('agreements.notFound'));
           setError(translatedError);
@@ -82,7 +85,11 @@ const EditAgreement = () => {
           : data.end_date
       };
       
-      await updateAgreement(formattedData);
+      // Use mutateAsync from the mutation
+      await updateAgreement.mutateAsync({
+        id,
+        data: formattedData
+      });
       
       const successMessage = await translateText(t('common.success'));
       toast.success(successMessage);
