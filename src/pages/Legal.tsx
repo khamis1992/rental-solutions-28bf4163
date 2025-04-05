@@ -1,3 +1,4 @@
+
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -9,37 +10,63 @@ import LegalDocuments from '@/components/legal/LegalDocuments';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+
 const Legal = () => {
   const navigate = useNavigate();
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
+  
   const handleTabChange = (value: string) => {
     // This ensures we don't refresh the page when changing tabs
     console.log(`Tab changed to: ${value}`);
   };
+  
   const handleExportReport = () => {
-    toast.success("Legal compliance report is being generated");
+    toast.success(t('legal.reportGenerating'));
   };
-  return <PageContainer title="Legal Management" description="Manage legal documents, compliance requirements, and legal cases" actions={<div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={handleExportReport} className="flex items-center space-x-2">
+  
+  return (
+    <PageContainer 
+      title={t('legal.title')} 
+      description={t('legal.description')} 
+      actions={
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={handleExportReport} 
+            className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}
+          >
             <ClipboardList className="h-4 w-4" />
-            <span>Export Report</span>
+            <span>{t('legal.exportReport')}</span>
           </Button>
-          <Button onClick={() => navigate('/legal/cases/new')} className="flex items-center space-x-2">
+          <Button 
+            onClick={() => navigate('/legal/cases/new')} 
+            className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}
+          >
             <AlertTriangle className="h-4 w-4" />
-            <span>New Case</span>
+            <span>{t('legal.newCase')}</span>
           </Button>
-        </div>}>
-      <SectionHeader title="Legal Management" description="Track and manage all legal aspects of your fleet operations" icon={Gavel} />
+        </div>
+      }
+    >
+      <SectionHeader 
+        title={t('legal.title')} 
+        description={t('legal.trackAndManage')} 
+        icon={Gavel} 
+      />
       
       <Tabs defaultValue="dashboard" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList className="grid grid-cols-1 md:grid-cols-3 w-full">
-          <TabsTrigger value="dashboard">
-            <Scale className="h-4 w-4 mr-2" />
-            Legal Dashboard
+          <TabsTrigger value="dashboard" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+            <Scale className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('legal.dashboard')}
           </TabsTrigger>
           
-          <TabsTrigger value="obligations">
-            <Gavel className="h-4 w-4 mr-2" />
-            Customer Obligations
+          <TabsTrigger value="obligations" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+            <Gavel className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('legal.customerObligations')}
           </TabsTrigger>
         </TabsList>
         
@@ -55,6 +82,8 @@ const Legal = () => {
           <CustomerLegalObligations />
         </TabsContent>
       </Tabs>
-    </PageContainer>;
+    </PageContainer>
+  );
 };
+
 export default Legal;
