@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -36,14 +37,17 @@ interface PaymentListProps {
 export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
   const [missingPayments, setMissingPayments] = useState<any[]>([]);
   const initialFetchDone = useRef(false);
+  const isDeleting = useRef(false);
+  const refreshDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
 
   useEffect(() => {
     if (agreementId && !initialFetchDone.current) {
       console.log("Initial payment fetch in PaymentList for:", agreementId);
-      fetchPayments();
+      fetchPayments(true);
       initialFetchDone.current = true;
     }
   }, [agreementId, fetchPayments]);
@@ -105,15 +109,31 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
     }
   }, [agreementId, payments]);
 
+  // Debounced refresh to prevent multiple rapid refreshes
+  const debouncedRefresh = () => {
+    if (refreshDebounceTimer.current) {
+      clearTimeout(refreshDebounceTimer.current);
+    }
+    
+    refreshDebounceTimer.current = setTimeout(() => {
+      console.log("Running debounced payment refresh in PaymentList");
+      fetchPayments(true);
+      onPaymentDeleted();
+      refreshDebounceTimer.current = null;
+    }, 500);
+  };
+
   const confirmDeletePayment = (id: string) => {
     setPaymentToDelete(id);
     setIsDeleteDialogOpen(true);
   };
 
   const handleDeletePayment = async () => {
-    if (!paymentToDelete) return;
+    if (!paymentToDelete || isDeleting.current) return;
 
     try {
+      isDeleting.current = true;
+      
       const { error } = await supabase
         .from('unified_payments')
         .delete()
@@ -127,13 +147,26 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
 
       toast.success("Payment deleted successfully");
       setIsDeleteDialogOpen(false);
-      onPaymentDeleted();
-      fetchPayments(); // Refresh the payments after deletion
+      
+      // Use debounced refresh to prevent multiple refreshes
+      debouncedRefresh();
+      
     } catch (error) {
       console.error("Error in payment deletion:", error);
       toast.error("An unexpected error occurred");
+    } finally {
+      isDeleting.current = false;
     }
   };
+  
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshDebounceTimer.current) {
+        clearTimeout(refreshDebounceTimer.current);
+      }
+    };
+  }, []);
 
   const renderPaymentMethodBadge = (method: string) => {
     switch(method.toLowerCase()) {

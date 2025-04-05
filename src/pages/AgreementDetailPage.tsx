@@ -22,6 +22,7 @@ const AgreementDetailPage = () => {
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
   const isRefreshing = useRef(false);
+  const refreshDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Use the useAgreements hook to fetch agreement data and access delete functionality
   const { 
@@ -101,19 +102,43 @@ const AgreementDetailPage = () => {
     }
   }, [deleteAgreement, navigate, t]);
 
+  // Debounce data refresh to prevent excessive refreshes
   const handlePaymentDeleted = useCallback(() => {
-    if (!isRefreshing.current) {
-      console.log("Refreshing agreement data after payment change");
-      fetchAgreementData();
+    if (refreshDebounceTimer.current) {
+      clearTimeout(refreshDebounceTimer.current);
     }
+    
+    refreshDebounceTimer.current = setTimeout(() => {
+      console.log("Refreshing agreement data after payment change (debounced)");
+      if (!isRefreshing.current) {
+        fetchAgreementData();
+      }
+      refreshDebounceTimer.current = null;
+    }, 800);
   }, [fetchAgreementData]);
 
   const handleDataRefresh = useCallback(() => {
-    if (!isRefreshing.current) {
-      console.log("Refreshing agreement data from manual trigger");
-      fetchAgreementData();
+    if (refreshDebounceTimer.current) {
+      clearTimeout(refreshDebounceTimer.current);
     }
+    
+    refreshDebounceTimer.current = setTimeout(() => {
+      console.log("Refreshing agreement data from manual trigger (debounced)");
+      if (!isRefreshing.current) {
+        fetchAgreementData();
+      }
+      refreshDebounceTimer.current = null;
+    }, 800);
   }, [fetchAgreementData]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshDebounceTimer.current) {
+        clearTimeout(refreshDebounceTimer.current);
+      }
+    };
+  }, []);
 
   if (error) {
     return (

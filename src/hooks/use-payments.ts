@@ -18,6 +18,7 @@ export interface Payment {
   original_due_date?: string | null;
   amount_paid?: number;
   balance?: number;
+  daily_late_fee?: number;
 }
 
 export const usePayments = (agreementId: string | undefined, rentAmount: number | null) => {
@@ -26,11 +27,19 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
   const fetchInProgress = useRef(false);
   const initialFetchCompleted = useRef(false);
   const errorCount = useRef(0);
+  const lastFetchTime = useRef<number>(0);
   
-  const fetchPayments = useCallback(async () => {
+  const fetchPayments = useCallback(async (force = false) => {
     if (!agreementId) {
       console.log("No agreement ID provided to usePayments");
       setIsLoadingPayments(false);
+      return;
+    }
+    
+    // Implement debounce to prevent multiple fetches in short succession
+    const now = Date.now();
+    if (!force && now - lastFetchTime.current < 500) {
+      console.log("Skipping fetch due to debounce (too soon since last fetch)");
       return;
     }
     
@@ -40,7 +49,12 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
     }
     
     fetchInProgress.current = true;
-    setIsLoadingPayments(true);
+    lastFetchTime.current = now;
+    
+    // Only show loading indicator on initial fetch to prevent UI flicker
+    if (!initialFetchCompleted.current) {
+      setIsLoadingPayments(true);
+    }
     
     try {
       console.log(`Fetching payments for agreement: ${agreementId}`);
@@ -106,7 +120,8 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
             lease_id: payment.lease_id,
             original_due_date: payment.original_due_date,
             amount_paid: payment.amount_paid,
-            balance: payment.balance
+            balance: payment.balance,
+            daily_late_fee: payment.daily_late_fee
           };
         });
         
@@ -132,7 +147,7 @@ export const usePayments = (agreementId: string | undefined, rentAmount: number 
     // Only fetch on initial render and when agreement ID changes
     if (agreementId && !initialFetchCompleted.current) {
       console.log("Initial payment fetch for agreement:", agreementId);
-      fetchPayments();
+      fetchPayments(true);
     }
     
     return () => {

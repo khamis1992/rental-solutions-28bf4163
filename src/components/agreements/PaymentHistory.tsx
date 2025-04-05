@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +59,9 @@ export function PaymentHistory({
     daysLate: number;
   } | null>(null);
   
+  const refreshDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isDeleteOperationInProgress = useRef(false);
+  
   const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, rentAmount);
   
   console.log(`PaymentHistory for agreement ${agreementId} received ${payments?.length} payments`);
@@ -97,19 +101,36 @@ export function PaymentHistory({
     setIsDeleteConfirmOpen(true);
   };
   
+  // Avoid triggering multiple refreshes in quick succession
+  const debouncedRefresh = () => {
+    if (refreshDebounceTimer.current) {
+      clearTimeout(refreshDebounceTimer.current);
+    }
+    
+    refreshDebounceTimer.current = setTimeout(() => {
+      console.log("Running debounced payment refresh");
+      fetchPayments(true);
+      onPaymentDeleted();
+      refreshDebounceTimer.current = null;
+    }, 500);
+  };
+  
   const confirmDeletePayment = async () => {
-    if (!selectedPayment) return;
+    if (!selectedPayment || isDeleteOperationInProgress.current) return;
+    
     try {
+      isDeleteOperationInProgress.current = true;
       setIsDeletingPayment(true);
+      
       const {
         error
       } = await supabase.from('unified_payments').delete().eq('id', selectedPayment.id);
+      
       if (error) {
         toast.error(`Failed to delete payment: ${error.message}`);
       } else {
         toast.success('Payment deleted successfully');
-        onPaymentDeleted();
-        fetchPayments();
+        debouncedRefresh();
       }
     } catch (err) {
       console.error('Error deleting payment:', err);
@@ -117,6 +138,7 @@ export function PaymentHistory({
     } finally {
       setIsDeletingPayment(false);
       setIsDeleteConfirmOpen(false);
+      isDeleteOperationInProgress.current = false;
     }
   };
   
@@ -137,7 +159,7 @@ export function PaymentHistory({
           toast.success("Payment records are up to date");
         } else {
           toast.success(result.message || "Payment records fixed successfully");
-          fetchPayments();
+          debouncedRefresh();
         }
       } else {
         toast.error(result.message || "Failed to fix payment records");
@@ -149,6 +171,15 @@ export function PaymentHistory({
       setIsFixingPayments(false);
     }
   };
+  
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (refreshDebounceTimer.current) {
+        clearTimeout(refreshDebounceTimer.current);
+      }
+    };
+  }, []);
   
   const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number) => {
     if (!status) return <Badge className="bg-gray-500">Unknown</Badge>;
@@ -232,15 +263,21 @@ export function PaymentHistory({
           <CardDescription>Track all payments for this agreement</CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchPayments} className="h-8">
-            <RefreshCw className="mr-2 h-4 w-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fetchPayments(true)} 
+            className="h-8"
+            disabled={isLoadingPayments}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingPayments ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleFixPayments}
-            disabled={isFixingPayments}
+            disabled={isFixingPayments || isLoadingPayments}
             className="h-8"
           >
             <ShieldCheck className="mr-2 h-4 w-4" />
@@ -328,8 +365,7 @@ export function PaymentHistory({
 
         {selectedPayment && (
           <PaymentEditDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} payment={selectedPayment} onSaved={() => {
-            onPaymentDeleted();
-            fetchPayments();
+            debouncedRefresh();
           }} />
         )}
 
@@ -339,8 +375,7 @@ export function PaymentHistory({
           onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
             console.log("Recording payment with payment ID:", targetPaymentId);
             setIsPaymentDialogOpen(false);
-            onPaymentDeleted();
-            fetchPayments();
+            debouncedRefresh();
           }} 
           defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} 
           title={selectedPayment ? "Record Payment" : "Record Manual Payment"} 
@@ -349,7 +384,12 @@ export function PaymentHistory({
           selectedPayment={selectedPayment} 
         />
 
-        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={(open) => {
+          // Only allow closing if not currently deleting
+          if (!isDeletingPayment) {
+            setIsDeleteConfirmOpen(open);
+          }
+        }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Confirm Payment Deletion</DialogTitle>
@@ -358,7 +398,7 @@ export function PaymentHistory({
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)} disabled={isDeletingPayment}>
                 Cancel
               </Button>
               <Button variant="destructive" onClick={confirmDeletePayment} disabled={isDeletingPayment}>
