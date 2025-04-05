@@ -2,37 +2,47 @@
 import { setupInvoiceTemplatesTable } from "./setupInvoiceTemplates";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { getSystemServicesStatus } from './service-availability';
+import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
 
-// Initialize services check status flag
+// We'll use a global flag to track service checks
 let servicesChecked = false;
+let initPromise: Promise<void> | null = null;
 
-export const initializeApp = async () => {
-  // Set up database tables and other requirements
+/**
+ * Initialize critical app components (minimal setup for fast initial load)
+ */
+export const initializeAppCore = async (): Promise<void> => {
+  // Set up essential database tables only
   await setupInvoiceTemplatesTable();
-  
-  // Only check system services once per session
+};
+
+/**
+ * Initialize non-critical app components (can run after initial render)
+ * This function can be called after the app is displayed to the user
+ */
+export const initializeAppBackground = async (): Promise<void> => {
   if (!servicesChecked) {
-    // Check system services status
     console.log("Checking system services availability...");
     
     try {
+      // Check system services in background
+      const { getSystemServicesStatus } = await import('./service-availability');
       const servicesStatus = await getSystemServicesStatus();
       
-      if (!servicesStatus.agreementImport) {
-        console.warn("Agreement import function unavailable");
-        toast.error("Agreement import function unavailable. Some features may not work properly.", {
+      const showServiceError = (service: string) => {
+        console.warn(`${service} function unavailable`);
+        toast.error(`${service} function unavailable. Some features may not work properly.`, {
           duration: 6000,
-          id: "agreement-import-error", // Prevent duplicate toasts
+          id: `${service.toLowerCase()}-import-error`, // Prevent duplicate toasts
         });
+      };
+      
+      if (!servicesStatus.agreementImport) {
+        showServiceError("Agreement import");
       }
       
       if (!servicesStatus.customerImport) {
-        console.warn("Customer import function unavailable");
-        toast.error("Customer import function unavailable. Some features may not work properly.", {
-          duration: 6000,
-          id: "customer-import-error", // Prevent duplicate toasts
-        });
+        showServiceError("Customer import");
       }
       
       // Log overall system status
@@ -55,6 +65,28 @@ export const initializeApp = async () => {
       duration: 6000,
     });
   }
+};
+
+/**
+ * Main initialization function that manages the initialization process
+ * Returns a promise that resolves when core initialization is complete
+ */
+export const initializeApp = async (): Promise<void> => {
+  if (!initPromise) {
+    initPromise = (async () => {
+      // Initialize core features first (blocking)
+      await initializeAppCore();
+      
+      // Initialize background features after a short delay
+      setTimeout(() => {
+        initializeAppBackground().catch(err => {
+          console.error("Background initialization error:", err);
+        });
+      }, 2000);
+    })();
+  }
+  
+  return initPromise;
 };
 
 export default initializeApp;

@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import i18n from '@/i18n';
 import { translateText } from '@/utils/translation-api';
 import { toast } from 'sonner';
@@ -30,7 +30,11 @@ export const useTranslation = () => useContext(TranslationContext);
 export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'en');
   const [direction, setDirection] = useState<Direction>(language === 'ar' ? 'rtl' : 'ltr');
-  const isRTL = direction === 'rtl';
+  const isRTL = useMemo(() => direction === 'rtl', [direction]);
+
+  // Memoize formatters for better performance
+  const arabicNumberFormatter = useMemo(() => new Intl.NumberFormat('ar-SA'), []);
+  const englishNumberFormatter = useMemo(() => new Intl.NumberFormat('en-US'), []);
 
   const changeLanguage = useCallback((lang: string) => {
     try {
@@ -61,14 +65,14 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Load RTL styles based on the new direction
       loadRTLStyles(newDirection === 'rtl');
       
-      // Add/remove Arabic font if needed
+      // Add Arabic font if needed - use font-display: swap for better performance
       if (newDirection === 'rtl') {
         // Load Arabic font if not already loaded
         if (!document.getElementById('arabic-font')) {
           const link = document.createElement('link');
           link.id = 'arabic-font';
           link.rel = 'stylesheet';
-          link.href = 'https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap';
+          link.href = 'https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap&font-display=swap';
           document.head.appendChild(link);
           
           // Add Arabic font class to body
@@ -91,8 +95,8 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
-  // Function to translate text dynamically
-  const translateTextFn = async (text: string, targetLang?: string): Promise<string> => {
+  // Function to translate text dynamically - memoized
+  const translateTextFn = useCallback(async (text: string, targetLang?: string): Promise<string> => {
     if (!text) return '';
     
     const target = targetLang || language;
@@ -104,16 +108,16 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       console.error('Translation error:', error);
       return text; // Return original text if translation fails
     }
-  };
+  }, [language]);
   
-  // Function to format numbers according to locale
-  const getNumberFormat = (num: number): string => {
+  // Function to format numbers according to locale - memoized
+  const getNumberFormat = useCallback((num: number): string => {
     if (isRTL) {
       // For Arabic, use Arabic numerals
-      return new Intl.NumberFormat('ar-SA').format(num);
+      return arabicNumberFormatter.format(num);
     }
-    return new Intl.NumberFormat('en-US').format(num);
-  };
+    return englishNumberFormatter.format(num);
+  }, [isRTL, arabicNumberFormatter, englishNumberFormatter]);
 
   // Initialize direction on mount and set up RTL styles observer
   useEffect(() => {
@@ -139,17 +143,18 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, [language, changeLanguage]);
 
+  // Memoize context value to prevent unnecessary renders
+  const contextValue = useMemo(() => ({
+    language, 
+    direction, 
+    isRTL,
+    changeLanguage, 
+    translateText: translateTextFn,
+    getNumberFormat
+  }), [language, direction, isRTL, changeLanguage, translateTextFn, getNumberFormat]);
+
   return (
-    <TranslationContext.Provider 
-      value={{ 
-        language, 
-        direction, 
-        isRTL,
-        changeLanguage, 
-        translateText: translateTextFn,
-        getNumberFormat
-      }}
-    >
+    <TranslationContext.Provider value={contextValue}>
       {children}
     </TranslationContext.Provider>
   );

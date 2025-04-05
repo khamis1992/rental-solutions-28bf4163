@@ -1,34 +1,15 @@
 
+import debounce from 'lodash/debounce';
+
+// Track loaded stylesheets to avoid duplicate loading
+const loadedStylesheets = new Set<string>();
+
 /**
  * Helper function to load RTL specific stylesheets when RTL mode is active
  * @param isRTL Boolean indicating if the current mode is RTL
  */
 export const loadRTLStyles = (isRTL: boolean) => {
-  const stylesheets = [
-    '/src/styles/rtl.css',
-    '/src/styles/rtl-charts.css',
-    '/src/styles/rtl-forms.css'
-  ];
-  
-  // Add or remove RTL stylesheet links
-  stylesheets.forEach(stylesheet => {
-    const id = `rtl-${stylesheet.split('/').pop()?.replace('.', '-')}`;
-    const existingLink = document.getElementById(id);
-    
-    if (isRTL && !existingLink) {
-      // Add stylesheet if in RTL mode and not already loaded
-      const link = document.createElement('link');
-      link.id = id;
-      link.rel = 'stylesheet';
-      link.href = stylesheet;
-      document.head.appendChild(link);
-    } else if (!isRTL && existingLink) {
-      // Remove stylesheet if not in RTL mode
-      existingLink.remove();
-    }
-  });
-  
-  // Set the document direction attribute
+  // Only apply document direction attribute change - this is most critical
   document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
   document.documentElement.lang = isRTL ? 'ar' : 'en';
   
@@ -38,6 +19,37 @@ export const loadRTLStyles = (isRTL: boolean) => {
   } else {
     document.body.classList.remove('rtl-mode');
   }
+  
+  // Debounced function to load stylesheets after a short delay
+  const debouncedStyleLoad = debounce(() => {
+    const stylesheets = [
+      '/src/styles/rtl.css',
+      '/src/styles/rtl-charts.css',
+      '/src/styles/rtl-forms.css'
+    ];
+    
+    // Add or remove RTL stylesheet links
+    stylesheets.forEach(stylesheet => {
+      const id = `rtl-${stylesheet.split('/').pop()?.replace('.', '-')}`;
+      const existingLink = document.getElementById(id);
+      
+      if (isRTL && !existingLink && !loadedStylesheets.has(id)) {
+        // Add stylesheet if in RTL mode and not already loaded
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = stylesheet;
+        document.head.appendChild(link);
+        loadedStylesheets.add(id);
+      } else if (!isRTL && existingLink) {
+        // Remove stylesheet if not in RTL mode
+        existingLink.remove();
+        loadedStylesheets.delete(id);
+      }
+    });
+  }, 50);
+  
+  debouncedStyleLoad();
 };
 
 /**
