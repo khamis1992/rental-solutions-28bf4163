@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -51,15 +52,18 @@ export function AgreementDetail({
     isLoadingPayments,
     fetchPayments
   } = usePayments(agreement?.id, rentAmount);
+  
   console.log('Agreement ID from AgreementDetail:', agreement?.id);
   console.log('Payments from usePayments:', payments);
   console.log('Loading state:', isLoadingPayments);
+  
   useEffect(() => {
     if (agreement?.id) {
       console.log('Fetching payments for agreement:', agreement.id);
       fetchPayments();
     }
   }, [agreement?.id, fetchPayments]);
+  
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
