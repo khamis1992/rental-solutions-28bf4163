@@ -17,15 +17,18 @@ const AddAgreement = () => {
   const { isRTL, translateText } = useTranslation();
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
+  const [templateMessage, setTemplateMessage] = useState('');
 
-  // Pre-translate the page title and description to avoid flickering
+  // Pre-translate the page title, description, and template message to avoid flickering
   useEffect(() => {
     const loadTranslations = async () => {
       const title = await translateText(t('agreements.add'));
       const description = await translateText(t('agreements.description'));
+      const standardTemplateMessage = await translateText(t('agreements.usingStandardTemplateDesc'));
       
       setPageTitle(title);
       setPageDescription(description);
+      setTemplateMessage(standardTemplateMessage);
     };
     
     loadTranslations();
@@ -69,6 +72,7 @@ const AddAgreement = () => {
       title={pageTitle || t('agreements.add')}
       description={pageDescription || t('agreements.description')}
       backLink="/agreements"
+      notification={templateMessage || t('agreements.usingStandardTemplateDesc')}
     >
       <AgreementFormWithVehicleCheck
         onSubmit={handleCreateAgreement}

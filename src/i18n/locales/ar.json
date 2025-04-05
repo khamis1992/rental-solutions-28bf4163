@@ -266,7 +266,13 @@
     },
     "agreementNumber": "رقم العقد",
     "startDate": "تاريخ البدء",
-    "endDate": "تاريخ الانتهاء"
+    "endDate": "تاريخ الانتهاء",
+    "checkingTemplateStatus": "جاري التحقق من حالة القالب",
+    "verifyingTemplate": "جاري التحقق من وجود قالب الاتفاقية القياسي...",
+    "templateNotFound": "لم يتم العثور على القالب",
+    "templateNotFoundDesc": "لم يتم العثور على قالب الاتفاقية القياسي في قاعدة البيانات. ستستخدم الاتفاقية شكل القالب الافتراضي.",
+    "usingStandardTemplate": "جاري استخدام القالب القياسي",
+    "usingStandardTemplateDesc": "ستستخدم الاتفاقية قالب الاتفاقية القياسي من قاعدة البيانات."
   },
   "maintenance": {
     "title": "الصيانة",
@@ -382,7 +388,7 @@
     "finesByMonth": "المخالفات حسب الشهر",
     "finesByType": "المخالفات حسب النوع",
     "finesByStatus": "المخالفات حسب الحالة",
-    "topViolations": "أكثر المخالفات شيوعا",
+    "topViolations": "أكثر المخالفات شي��عا",
     "violationsOverTime": "المخالفات على مدار الوقت",
     "revenueFromFines": "الإيرادات من المخالفات",
     "mostTicketedVehicles": "المركبات الأكثر تعرضا للمخالفات",
