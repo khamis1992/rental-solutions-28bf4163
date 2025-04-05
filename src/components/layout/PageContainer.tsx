@@ -17,6 +17,7 @@ interface PageContainerProps {
   backLink?: string;
   actions?: React.ReactNode;
   systemDate?: Date;
+  notification?: string; // Added the notification property
 }
 
 const PageContainer: React.FC<PageContainerProps> = ({ 
@@ -26,7 +27,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date() // Default to current date
+  systemDate = new Date(), // Default to current date
+  notification
 }) => {
   const { t } = useI18nTranslation();
   const { direction, isRTL } = useTranslation();
@@ -61,6 +63,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
           <div className={cn(isRTL ? 'text-right' : '')}>
             {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
             {description && <p className="text-muted-foreground mt-1">{description}</p>}
+            {notification && <p className="text-sm text-amber-600 mt-1">{notification}</p>}
             <p className="text-xs text-muted-foreground mt-1">{t('common.systemDate')}: {formattedDate}</p>
           </div>
           {actions && (
