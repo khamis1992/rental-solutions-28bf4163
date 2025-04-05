@@ -20,7 +20,7 @@ export const useDirectionalChartData = <T extends any[]>(data: T): T => {
     }
     
     // Don't create a new array unnecessarily if not in RTL mode
-    const result = isRTL ? [...data].reverse() : data;
+    const result = isRTL ? [...data].reverse() as T : data;
     
     performanceMonitor.endMeasure('prepare_chart_data');
     return result;
@@ -123,4 +123,3 @@ export const useOptimizedChartData = <T extends Record<string, any>>(
     return processedData;
   }, [originalData, isRTL, rtlReverse, dataTransform, JSON.stringify(emptyFallback), JSON.stringify(dataKeys)]);
 };
-

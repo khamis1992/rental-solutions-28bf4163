@@ -45,6 +45,24 @@ export const preloadRTLStylesheets = () => {
 };
 
 /**
+ * Setup an observer to handle RTL style changes across the application
+ * This was missing and causing the build error
+ */
+export const setupRTLStylesObserver = () => {
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.attributeName === 'dir') {
+        const isRTL = document.documentElement.dir === 'rtl';
+        toggleRTLStylesheets(isRTL);
+      }
+    }
+  });
+  
+  observer.observe(document.documentElement, { attributes: true });
+  return observer;
+};
+
+/**
  * Load all RTL stylesheets
  */
 const loadRTLStylesheetFiles = () => {
@@ -103,4 +121,3 @@ export const initializeRTL = () => {
   
   return isRTL;
 };
-
