@@ -8,16 +8,16 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { toast } from 'sonner';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation } from 'react-i18next';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const AddVehicle = () => {
   const navigate = useNavigate();
   const { useCreate } = useVehicles();
   const { mutate: createVehicle, isPending } = useCreate();
-  const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
+  const { t } = useTranslation();
+  const { isRTL } = useContextTranslation();
   
   const handleSubmit = (formData: any) => {
     createVehicle(formData, {

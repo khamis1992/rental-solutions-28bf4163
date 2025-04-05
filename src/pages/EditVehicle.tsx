@@ -11,8 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation } from 'react-i18next';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const EditVehicle = () => {
@@ -20,8 +20,8 @@ const EditVehicle = () => {
   const navigate = useNavigate();
   const [bucketError, setBucketError] = useState<string | null>(null);
   const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
-  const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
+  const { t } = useTranslation();
+  const { isRTL } = useContextTranslation();
   
   const { useVehicle, useUpdate } = useVehicles();
   const { data: vehicle, isLoading, error, refetch } = useVehicle(id || '');

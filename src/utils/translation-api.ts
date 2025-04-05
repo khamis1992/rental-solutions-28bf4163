@@ -76,7 +76,31 @@ export const translateText = async (
       'Record, track, and manage traffic violations',
       'Fines List',
       'Record New Fine',
-      'Fine Analytics'
+      'Fine Analytics',
+      // Add vehicle form texts to skip
+      'Add New Vehicle',
+      'Edit Vehicle',
+      'Vehicle Image',
+      'Make',
+      'Model',
+      'Year',
+      'License Plate',
+      'VIN',
+      'Color',
+      'Mileage',
+      'Location',
+      'Description',
+      'Insurance Company',
+      'Insurance Expiry Date',
+      'Daily Rate',
+      'Vehicle Type',
+      'Select vehicle type',
+      'None',
+      'Loading',
+      'Invalid date',
+      'Pick a date',
+      'Update Vehicle',
+      'Add Vehicle'
     ];
     
     // Skip translation for text containing placeholder notation like {duration}
