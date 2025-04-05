@@ -24,6 +24,13 @@ export const translateText = async (
       return text;
     }
     
+    // Skip translation for translation keys (e.g. common.none, common.pickDate)
+    // Check if the text matches a translation key pattern
+    if (/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$/.test(text)) {
+      console.log(`Detected translation key pattern, skipping translation: "${text}"`);
+      return text;
+    }
+    
     // Skip translation for UI text that should come from locale files
     // Check if the text matches common UI labels or contains translation keys
     const uiTextsToSkip = [
@@ -63,6 +70,7 @@ export const translateText = async (
       'Cancel',
       'Yes',
       'No',
+      'None', 
       'Vehicle',
       'Refresh',
       'Fixing...',
@@ -76,6 +84,7 @@ export const translateText = async (
       'Fines List',
       'Record New Fine',
       'Fine Analytics',
+      'Pick a date',
       // Vehicle form texts to skip
       'Add New Vehicle',
       'Edit Vehicle',
@@ -124,12 +133,6 @@ export const translateText = async (
     // Skip translation for text containing placeholder notation like {duration}
     if (text.includes('{') && text.includes('}')) {
       console.log(`Skipping translation for text with placeholders: "${text}"`);
-      return text;
-    }
-    
-    // Skip translation if text contains a translation key pattern (e.g., common.no or trafficFines.status.paid)
-    if (/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$/.test(text)) {
-      console.log(`Skipping translation for what appears to be a translation key: "${text}"`);
       return text;
     }
     

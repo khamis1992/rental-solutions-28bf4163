@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -83,7 +82,10 @@
     "total": "المجموع",
     "dueDate": "تاريخ الاستحقاق",
     "showing": "عرض {{count}} عنصر",
-    "showing_plural": "عرض {{count}} عناصر"
+    "showing_plural": "عرض {{count}} عناصر",
+    "none": "لا شيء",
+    "pickDate": "اختر تاريخ",
+    "invalidDate": "تاريخ غير صالح"
   },
   "dashboard": {
     "title": "لوحة القيادة",
@@ -447,7 +449,7 @@
     "templateNotFound": "القالب غير موجود",
     "templateNotFoundDesc": "لم يتم العثور على قالب الاتفاقية القياسي \"قالب اتفاقية\" في قاعدة البيانات. ستستخدم الاتفاقية تنسيق القالب الافتراضي.",
     "usingStandardTemplate": "استخدام القالب القياسي",
-    "usingStandardTemplateDesc": "ستستخدم الاتفاقية قالب الاتفاقية القياسي من قاعدة البيانات.",
+    "usingStandardTemplateDesc": "ستستخدم الاتفاقية قالب ال��تفاقية القياسي من قاعدة البيانات.",
     "agreementPreview": "معاينة الاتفاقية",
     "agreementTemplatePreview": "معاينة قالب الاتفاقية",
     "templateInformation": "معلومات القالب",

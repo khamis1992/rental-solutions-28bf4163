@@ -20,13 +20,12 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Loader2 } from 'lucide-react';
 import { useVehicles } from '@/hooks/use-vehicles';
 import VehicleImageUpload from './VehicleImageUpload';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { format, isValid } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { DatePicker } from '@/components/ui/date-picker';
+import { format, isValid } from 'date-fns';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 
 // Create a more robust schema with better validations
 const vehicleSchema = z.object({
@@ -64,6 +63,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isEditMode = false,
 }) => {
   const { t } = useTranslation();
+  const { isRTL } = useContextTranslation();
   
   // Fixed default values to prevent undefined issues
   const defaultValues = {
@@ -342,39 +342,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>{t('vehicles.insuranceExpiryDate')}</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              isValid(new Date(field.value)) ? 
-                                format(new Date(field.value), "PPP") : 
-                                t('common.invalidDate')
-                            ) : (
-                              <span>{t('common.pickDate')}</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(date) => {
-                            console.log('Selected date:', date);
-                            field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
-                          }}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <DatePicker
+                      date={field.value ? new Date(field.value) : undefined}
+                      setDate={(date) => {
+                        console.log('Selected date:', date);
+                        field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                      }}
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -466,7 +440,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
             </CustomButton>
             
             <CustomButton type="submit" disabled={isLoading} glossy>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <Loader2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />}
               {isEditMode ? t('vehicles.updateVehicle') : t('vehicles.addVehicle')}
             </CustomButton>
           </CardFooter>

@@ -19,6 +19,7 @@ const AddVehicle = () => {
   const { isRTL } = useContextTranslation();
   
   const handleSubmit = (formData: any) => {
+    console.log('AddVehicle: Submitting form data:', formData);
     createVehicle(formData, {
       onSuccess: () => {
         toast.success(t('vehicles.addSuccess'));

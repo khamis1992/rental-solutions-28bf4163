@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "Dashboard",
@@ -83,7 +82,10 @@
     "total": "Total",
     "dueDate": "Due",
     "showing": "Showing {{count}} item",
-    "showing_plural": "Showing {{count}} items"
+    "showing_plural": "Showing {{count}} items",
+    "none": "None",
+    "pickDate": "Pick a date",
+    "invalidDate": "Invalid date"
   },
   "dashboard": {
     "title": "Dashboard",
