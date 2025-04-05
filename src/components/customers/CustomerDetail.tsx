@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
@@ -28,12 +28,13 @@ import {
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
-import { CustomerTrafficFines } from './CustomerTrafficFines';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatDate, formatDateTime } from '@/lib/date-utils';
-import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
+import { formatDate, formatDateTime } from '@/lib/date-utils';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
+
+// Lazy load components that aren't immediately visible
+const CustomerTrafficFines = lazy(() => import('./CustomerTrafficFines').then(module => ({ default: module.CustomerTrafficFines })));
+const AgreementHistorySection = lazy(() => import('./AgreementHistorySection').then(module => ({ default: module.AgreementHistorySection })));
 
 export interface CustomerDetailProps {
   id: string;
@@ -43,9 +44,6 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { getCustomer, deleteCustomer } = useCustomers();
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ 
-    customerId: id
-  });
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -53,6 +51,9 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
   const [hasLoaded, setHasLoaded] = useState(false);
   const { isRTL, translateText } = useContextTranslation();
   const [translatedNotes, setTranslatedNotes] = useState<string | null>(null);
+  // State for tracking which sections are visible
+  const [showAgreements, setShowAgreements] = useState(false);
+  const [showTrafficFines, setShowTrafficFines] = useState(false);
 
   const fetchCustomer = useCallback(async () => {
     if (!id || hasLoaded) return;
@@ -252,107 +253,68 @@ export function CustomerDetail({ id }: CustomerDetailProps) {
         </Card>
       </div>
 
+      {/* Lazy loaded agreement history section - only loads when visible */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
-            {t('customers.agreementHistory')}
-          </CardTitle>
+          <Button 
+            variant="ghost" 
+            onClick={() => setShowAgreements(!showAgreements)}
+            className="flex w-full items-center justify-between p-0 hover:bg-transparent"
+          >
+            <CardTitle className="flex items-center">
+              <FileText className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
+              {t('customers.agreementHistory')}
+            </CardTitle>
+            <span className="text-sm text-muted-foreground">
+              {showAgreements ? t('common.hide') : t('common.show')}
+            </span>
+          </Button>
           <CardDescription>
             {t('customers.agreementList')}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('agreements.title')}</TableHead>
-                  <TableHead>{t('vehicles.title')}</TableHead>
-                  <TableHead>{t('common.startDate')}</TableHead>
-                  <TableHead>{t('common.endDate')}</TableHead>
-                  <TableHead>{t('common.status')}</TableHead>
-                  <TableHead>{t('common.total')}</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingAgreements ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={`skeleton-${i}`}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <TableCell key={`skeleton-cell-${i}-${j}`}>
-                          <Skeleton className="h-6 w-full" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : agreements && agreements.length > 0 ? (
-                  agreements.map((agreement) => (
-                    <TableRow key={agreement.id}>
-                      <TableCell className="font-medium">{agreement.agreement_number || t('common.notProvided')}</TableCell>
-                      <TableCell>
-                        {agreement.vehicle ? (
-                          <span>
-                            {agreement.vehicle.make} {agreement.vehicle.model} ({agreement.vehicle.license_plate})
-                          </span>
-                        ) : (
-                          t('vehicles.unknown')
-                        )}
-                      </TableCell>
-                      <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : t('common.notProvided')}</TableCell>
-                      <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : t('common.notProvided')}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            agreement.status === 'ACTIVE' ? 'success' :
-                            agreement.status === 'PENDING' ? 'warning' :
-                            agreement.status === 'CANCELLED' ? 'destructive' :
-                            agreement.status === 'CLOSED' ? 'outline' :
-                            agreement.status === 'EXPIRED' ? 'secondary' :
-                            'default'
-                          }
-                          className="capitalize"
-                        >
-                          {t(`agreements.status.${agreement.status?.toLowerCase().replace('_', '') || 'unknown'}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : t('common.notProvided')}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/agreements/${agreement.id}`}>
-                            {t('common.view')}
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      {t('agreements.noAgreements')}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
+        {showAgreements && (
+          <Suspense fallback={
+            <CardContent>
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-24 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            </CardContent>
+          }>
+            <AgreementHistorySection customerId={id} />
+          </Suspense>
+        )}
       </Card>
 
+      {/* Lazy loaded traffic fines section - only loads when visible */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertTriangle className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
-            {t('customers.trafficFines')}
-          </CardTitle>
+          <Button 
+            variant="ghost" 
+            onClick={() => setShowTrafficFines(!showTrafficFines)}
+            className="flex w-full items-center justify-between p-0 hover:bg-transparent"
+          >
+            <CardTitle className="flex items-center">
+              <AlertTriangle className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
+              {t('customers.trafficFines')}
+            </CardTitle>
+            <span className="text-sm text-muted-foreground">
+              {showTrafficFines ? t('common.hide') : t('common.show')}
+            </span>
+          </Button>
           <CardDescription>
             {t('customers.trafficViolations')}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <CustomerTrafficFines customerId={id} />
-        </CardContent>
+        {showTrafficFines && (
+          <CardContent>
+            <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+              <CustomerTrafficFines customerId={id} />
+            </Suspense>
+          </CardContent>
+        )}
       </Card>
       
       <Card>

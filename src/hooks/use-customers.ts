@@ -41,7 +41,7 @@ export const useCustomers = () => {
       try {
         let query = supabase
           .from(PROFILES_TABLE)
-          .select('*')
+          .select('id, full_name, email, phone_number, driver_license, nationality, address, notes, status, created_at, updated_at')
           .eq('role', CUSTOMER_ROLE)
           .order('created_at', { ascending: false });
 
@@ -78,14 +78,14 @@ export const useCustomers = () => {
           updated_at: profile.updated_at,
         }));
         
-        console.log('Processed customers from profiles:', processedCustomers);
         return processedCustomers as Customer[];
       } catch (catchError) {
         console.error('Unexpected error in customer fetch:', catchError);
         return [];
       }
     },
-    initialData: []
+    initialData: [],
+    staleTime: 5 * 60 * 1000 // 5 minutes cache
   });
 
   const refreshCustomers = () => {
@@ -196,9 +196,18 @@ export const useCustomers = () => {
     try {
       console.log('Fetching customer with ID:', id);
       
+      const cachedCustomer = queryClient.getQueryData<Customer[]>(['customers'])?.find(
+        customer => customer.id === id
+      );
+      
+      if (cachedCustomer) {
+        console.log('Using cached customer data:', cachedCustomer);
+        return cachedCustomer;
+      }
+      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
-        .select('*')
+        .select('id, full_name, email, phone_number, driver_license, nationality, address, notes, status, created_at, updated_at')
         .eq('id', id)
         .maybeSingle();
 
@@ -213,8 +222,6 @@ export const useCustomers = () => {
         return null;
       }
 
-      console.log('Raw customer data from profiles:', data);
-
       const customerData: Customer = {
         id: data.id,
         full_name: data.full_name || '',
@@ -228,6 +235,8 @@ export const useCustomers = () => {
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
+      
+      queryClient.setQueryData(['customer', id], customerData);
       
       return customerData;
     } catch (error) {
