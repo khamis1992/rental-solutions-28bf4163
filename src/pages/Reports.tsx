@@ -28,11 +28,11 @@ const Reports = () => {
   const { useList } = useVehicles();
   const { data: vehicleList = [], isLoading: isVehiclesLoading } = useList();
   const { agreements, isLoading: isAgreementsLoading } = useAgreements();
-  const { payments, isLoadingPayments } = usePayments();
+  const { payments, isLoadingPayments } = usePayments(undefined, null);  // Fix: Pass the required arguments (undefined for agreementId, null for rentAmount)
 
   // Create helper methods for payments
   const getPaymentsForAgreement = (agreementId: string): Payment[] => {
-    return payments.filter(p => p.lease_id === agreementId || p.agreement_id === agreementId);
+    return payments.filter(p => p.lease_id === agreementId || p.lease_id === agreementId);  // Fix: Use lease_id instead of agreement_id
   };
   
   const getTotalBalanceForAgreement = (agreementId: string): number => {
@@ -104,7 +104,7 @@ const Reports = () => {
           {isVehiclesLoading ? (
             <Skeleton className="h-[600px] w-full" />
           ) : (
-            <VehicleReport />
+            <VehicleReport vehicles={vehicleList} />
           )}
         </TabsContent>
         
