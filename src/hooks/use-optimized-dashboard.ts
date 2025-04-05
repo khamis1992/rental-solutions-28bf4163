@@ -13,12 +13,8 @@ export const useOptimizedDashboardData = () => {
   const queryClient = useQueryClient();
   const [loadPriority, setLoadPriority] = useState<'critical' | 'all'>('critical');
   
-  // Get all dashboard data using the original hook
-  const dashboardData = useDashboardData({
-    staleTime: 60000, // 1 minute
-    loadCharts: loadPriority === 'all',
-    loadActivity: loadPriority === 'all'
-  });
+  // Get all dashboard data using the original hook - removing the incorrect parameter
+  const dashboardData = useDashboardData();
   
   // Check if we have cached data
   const cachedStats = queryClient.getQueryData(['dashboard', 'stats']);
