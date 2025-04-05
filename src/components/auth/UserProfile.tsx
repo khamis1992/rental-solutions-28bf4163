@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2 } from "lucide-react";
-import { useProfile, Profile } from "@/contexts/ProfileContext";
+import { useProfile } from "@/contexts/ProfileContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,7 @@ const UserProfile = () => {
     try {
       setIsUpdating(true);
       // Only include fields that are editable
-      const updates: Partial<Profile> = {
+      const updates = {
         full_name: data.full_name,
       };
       await updateProfile(updates);

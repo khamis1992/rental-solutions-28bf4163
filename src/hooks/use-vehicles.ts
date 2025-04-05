@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -63,7 +62,6 @@ export const useVehicles = () => {
       
       const validData = data || [];
       return validData.reduce((acc: Record<string, Vehicle>, vehicle: any) => {
-        // Properly check if vehicle is a valid object with an id property
         if (vehicle && typeof vehicle === 'object' && 'id' in vehicle && vehicle.id) {
           const typedVehicle = vehicle as VehicleDatabaseRecord;
           acc[typedVehicle.id] = mapDatabaseRecordToVehicle(typedVehicle);
@@ -306,7 +304,10 @@ export const useVehicles = () => {
         },
         onSuccess: (deletedId) => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
-          queryClient.removeQueries({ queryKey: ['vehicles', deletedId] });
+          
+          if (typeof deletedId === 'string') {
+            queryClient.removeQueries({ queryKey: ['vehicles', deletedId] });
+          }
           
           queryClient.invalidateQueries({ queryKey: ['agreements'], exact: false });
           

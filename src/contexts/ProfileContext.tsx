@@ -3,12 +3,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface Profile {
+export interface Profile {
   id: string;
   user_id: string;
   full_name: string | null;
   avatar_url: string | null;
   role: string;
+  status?: string; // Added status field that was missing
   created_at: string;
   updated_at: string;
 }
