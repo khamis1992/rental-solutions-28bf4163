@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 // Helper function to calculate percentage change - DEFINED BEFORE USAGE
 const getPercentageChange = (current, previous) => {
@@ -26,7 +25,6 @@ const FinancialDashboard = () => {
   
   const { revenue: revenueData } = useDashboardData();
   const { isRTL } = useTranslation();
-  const { t } = useI18nTranslation();
 
   // Get current month name for display
   const currentMonth = useMemo(() => {
@@ -65,14 +63,12 @@ const FinancialDashboard = () => {
   
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold tracking-tight">{t('financials.dashboard', 'Financial Dashboard')}</h2>
+      <h2 className="text-2xl font-bold tracking-tight">Financial Dashboard</h2>
       
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('financials.revenue', 'Revenue')} ({currentMonth})
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Revenue ({currentMonth})</CardTitle>
             <TrendingUp className={`h-4 w-4 ${trendData.revenueChange >= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
@@ -83,9 +79,7 @@ const FinancialDashboard = () => {
                 <span className={isRTL ? 'mr-1' : 'ml-1'}>
                   {trendData.revenueChange >= 0 ? '+' : ''}
                 </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {t('financials.vsLastMonth', 'from last month')}
-                </span>
+                <span className={isRTL ? 'mr-1' : 'ml-1'}>from last month</span>
               </span>
             </p>
           </CardContent>
@@ -93,9 +87,7 @@ const FinancialDashboard = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('financials.expenses', 'Expenses')}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Expenses</CardTitle>
             <TrendingDown className={`h-4 w-4 ${trendData.expenseChange <= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
@@ -106,9 +98,7 @@ const FinancialDashboard = () => {
                 <span className={isRTL ? 'mr-1' : 'ml-1'}>
                   {trendData.expenseChange >= 0 ? '+' : ''}
                 </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {t('financials.vsLastMonth', 'from last month')}
-                </span>
+                <span className={isRTL ? 'mr-1' : 'ml-1'}>from last month</span>
               </span>
             </p>
           </CardContent>
@@ -116,9 +106,7 @@ const FinancialDashboard = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {t('financials.profit', 'Profit')}
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Profit</CardTitle>
             <BarChartBig className={`h-4 w-4 ${trendData.profitChange >= 0 ? 'text-green-500' : 'text-red-500'}`} />
           </CardHeader>
           <CardContent>
@@ -129,9 +117,7 @@ const FinancialDashboard = () => {
                 <span className={isRTL ? 'mr-1' : 'ml-1'}>
                   {trendData.profitChange >= 0 ? '+' : ''}
                 </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {t('financials.vsLastMonth', 'from last month')}
-                </span>
+                <span className={isRTL ? 'mr-1' : 'ml-1'}>from last month</span>
               </span>
             </p>
           </CardContent>

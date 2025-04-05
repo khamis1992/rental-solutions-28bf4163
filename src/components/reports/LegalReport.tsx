@@ -6,8 +6,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { useLegalDocuments, useComplianceItems } from '@/hooks/use-legal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 // Mock data - in production, this would come from the use-legal hook
 const MOCK_COMPLIANCE_DATA = [
@@ -33,8 +31,6 @@ const LegalReport = () => {
   const { documents, loading: docsLoading } = useLegalDocuments();
   const { items, loading: itemsLoading } = useComplianceItems();
   const isLoading = docsLoading || itemsLoading;
-  const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
 
   if (isLoading) {
     return (
@@ -54,32 +50,32 @@ const LegalReport = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-xl font-semibold">{t('legal.reports')}</h2>
+          <h2 className="text-xl font-semibold">Legal Reports</h2>
           <p className="text-muted-foreground">
-            {t('legal.reportsDescription')}
+            Analyze legal compliance and case metrics
           </p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3">
           <Select value={reportType} onValueChange={setReportType}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t('legal.reportType')} />
+              <SelectValue placeholder="Report Type" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="compliance">{t('legal.complianceReport')}</SelectItem>
-              <SelectItem value="cases">{t('legal.caseAnalysis')}</SelectItem>
+              <SelectItem value="compliance">Compliance Report</SelectItem>
+              <SelectItem value="cases">Case Analysis</SelectItem>
             </SelectContent>
           </Select>
           
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder={t('legal.timeRange')} />
+              <SelectValue placeholder="Time Range" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="3months">{t('legal.last3Months')}</SelectItem>
-              <SelectItem value="6months">{t('legal.last6Months')}</SelectItem>
-              <SelectItem value="1year">{t('legal.lastYear')}</SelectItem>
-              <SelectItem value="all">{t('legal.allTime')}</SelectItem>
+              <SelectItem value="3months">Last 3 Months</SelectItem>
+              <SelectItem value="6months">Last 6 Months</SelectItem>
+              <SelectItem value="1year">Last Year</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -89,9 +85,9 @@ const LegalReport = () => {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>{t('legal.complianceRateOverTime')}</CardTitle>
+              <CardTitle>Compliance Rate Over Time</CardTitle>
               <CardDescription>
-                {t('legal.monthlyCompliance')}
+                Monthly compliance and non-compliance percentages
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -106,8 +102,8 @@ const LegalReport = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="compliance" stackId="a" fill="#22c55e" name={t('legal.compliantPercentage')} />
-                    <Bar dataKey="nonCompliance" stackId="a" fill="#ef4444" name={t('legal.nonCompliantPercentage')} />
+                    <Bar dataKey="compliance" stackId="a" fill="#22c55e" name="Compliant %" />
+                    <Bar dataKey="nonCompliance" stackId="a" fill="#ef4444" name="Non-Compliant %" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -117,40 +113,40 @@ const LegalReport = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{t('legal.documentCompliance')}</CardTitle>
+                <CardTitle className="text-lg">Document Compliance</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
                   <span className="text-2xl font-bold">91%</span>
                   <Badge className="bg-green-100 text-green-800">+2.4%</Badge>
                 </div>
-                <p className="text-muted-foreground text-sm mt-2">{t('legal.documentExpiryWarning')}</p>
+                <p className="text-muted-foreground text-sm mt-2">54 documents expiring within 30 days</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{t('legal.regulationAdherence')}</CardTitle>
+                <CardTitle className="text-lg">Regulation Adherence</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
                   <span className="text-2xl font-bold">87%</span>
                   <Badge className="bg-yellow-100 text-yellow-800">-1.2%</Badge>
                 </div>
-                <p className="text-muted-foreground text-sm mt-2">{t('legal.policyUpdatesNeeded')}</p>
+                <p className="text-muted-foreground text-sm mt-2">3 policy updates required</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{t('legal.riskExposureIndex')}</CardTitle>
+                <CardTitle className="text-lg">Risk Exposure Index</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold">{t('legal.low')}</span>
-                  <Badge className="bg-green-100 text-green-800">{t('legal.improved')}</Badge>
+                  <span className="text-2xl font-bold">Low</span>
+                  <Badge className="bg-green-100 text-green-800">Improved</Badge>
                 </div>
-                <p className="text-muted-foreground text-sm mt-2">{t('legal.lastAssessment')}</p>
+                <p className="text-muted-foreground text-sm mt-2">Last assessment: 7 days ago</p>
               </CardContent>
             </Card>
           </div>
@@ -161,9 +157,9 @@ const LegalReport = () => {
         <>
           <Card>
             <CardHeader>
-              <CardTitle>{t('legal.casesByType')}</CardTitle>
+              <CardTitle>Legal Cases by Type</CardTitle>
               <CardDescription>
-                {t('legal.caseDistribution')}
+                Distribution of legal cases and their resolution status
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -178,8 +174,8 @@ const LegalReport = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="resolved" fill="#22c55e" name={t('legal.resolved')} />
-                    <Bar dataKey="pending" fill="#f59e0b" name={t('legal.pending')} />
+                    <Bar dataKey="resolved" fill="#22c55e" name="Resolved" />
+                    <Bar dataKey="pending" fill="#f59e0b" name="Pending" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -189,40 +185,40 @@ const LegalReport = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{t('legal.averageResolutionTime')}</CardTitle>
+                <CardTitle className="text-lg">Average Resolution Time</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold">14 {t('common.days')}</span>
-                  <Badge className="bg-green-100 text-green-800">-2 {t('common.days')}</Badge>
+                  <span className="text-2xl font-bold">14 days</span>
+                  <Badge className="bg-green-100 text-green-800">-2 days</Badge>
                 </div>
-                <p className="text-muted-foreground text-sm mt-2">{t('legal.improvedFromPrevious')}</p>
+                <p className="text-muted-foreground text-sm mt-2">Improved from previous period</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{t('legal.activeCases')}</CardTitle>
+                <CardTitle className="text-lg">Active Cases</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
                   <span className="text-2xl font-bold">19</span>
                   <Badge className="bg-yellow-100 text-yellow-800">+3</Badge>
                 </div>
-                <p className="text-muted-foreground text-sm mt-2">{t('legal.highPriorityCases')}</p>
+                <p className="text-muted-foreground text-sm mt-2">5 high priority cases</p>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">{t('legal.caseSuccessRate')}</CardTitle>
+                <CardTitle className="text-lg">Case Success Rate</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
                   <span className="text-2xl font-bold">76%</span>
                   <Badge className="bg-green-100 text-green-800">+4%</Badge>
                 </div>
-                <p className="text-muted-foreground text-sm mt-2">{t('legal.basedOnClosed')}</p>
+                <p className="text-muted-foreground text-sm mt-2">Based on last 50 closed cases</p>
               </CardContent>
             </Card>
           </div>

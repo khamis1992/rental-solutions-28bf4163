@@ -9,8 +9,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { CalendarClock, Scale, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -19,8 +17,6 @@ interface LegalCaseCardProps {
 export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const [legalCases, setLegalCases] = useState<LegalCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
 
   useEffect(() => {
     const fetchLegalCases = async () => {
@@ -105,20 +101,20 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white">{t('common.pending')}</Badge>;
+        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
       case 'active':
-        return <Badge className="bg-blue-500 text-white">{t('common.active')}</Badge>;
+        return <Badge className="bg-blue-500 text-white">Active</Badge>;
       case 'closed':
-        return <Badge className="bg-green-500 text-white">{t('common.completed')}</Badge>;
+        return <Badge className="bg-green-500 text-white">Closed</Badge>;
       case 'settled':
-        return <Badge className="bg-indigo-500 text-white">{t('legal.status.settled', 'Settled')}</Badge>;
+        return <Badge className="bg-indigo-500 text-white">Settled</Badge>;
       default:
         return <Badge className="bg-gray-500 text-white">{status}</Badge>;
     }
   };
 
   const handleViewDetails = (caseId: string) => {
-    toast.info(t('legal.caseDetailsComingSoon', "Case details functionality coming soon"));
+    toast.info("Case details functionality coming soon");
     // Navigation to case details would go here
   };
 
@@ -126,8 +122,8 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t('agreements.legalCases')}</CardTitle>
-          <CardDescription>{t('legal.manageCases')}</CardDescription>
+          <CardTitle>Legal Cases</CardTitle>
+          <CardDescription>Associated legal matters</CardDescription>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-24 w-full mb-4" />
@@ -141,12 +137,12 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>{t('agreements.legalCases')}</CardTitle>
-          <CardDescription>{t('legal.manageCases')}</CardDescription>
+          <CardTitle>Legal Cases</CardTitle>
+          <CardDescription>Associated legal matters</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="text-center py-6 text-muted-foreground">
-            <p>{t('legal.noCasesFound')}</p>
+            <p>No legal cases associated with this agreement.</p>
           </div>
         </CardContent>
       </Card>
@@ -156,8 +152,8 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{t('agreements.legalCases')}</CardTitle>
-        <CardDescription>{t('legal.manageCases')}</CardDescription>
+        <CardTitle>Legal Cases</CardTitle>
+        <CardDescription>Associated legal matters</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -169,22 +165,22 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
               <div className="flex justify-between items-start mb-2">
                 <div>
                   <h4 className="font-medium">{legalCase.title}</h4>
-                  <p className="text-sm text-muted-foreground">{t('legal.caseNumber', 'Case #')}{legalCase.case_number}</p>
+                  <p className="text-sm text-muted-foreground">Case #{legalCase.case_number}</p>
                 </div>
                 {getStatusBadge(legalCase.status)}
               </div>
               
               <p className="text-sm mb-3 line-clamp-2">{legalCase.description}</p>
               
-              <div className={`flex flex-wrap gap-4 text-sm text-muted-foreground mb-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <CalendarClock className={`h-4 w-4 ${isRTL ? 'mr-0 ml-1' : 'mr-1'}`} />
-                  <span>{t('legal.hearing', 'Hearing')}: {legalCase.hearing_date ? format(new Date(legalCase.hearing_date), 'MMM d, yyyy') : t('legal.notScheduled', 'Not scheduled')}</span>
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
+                <div className="flex items-center">
+                  <CalendarClock className="h-4 w-4 mr-1" />
+                  <span>Hearing: {legalCase.hearing_date ? format(new Date(legalCase.hearing_date), 'MMM d, yyyy') : 'Not scheduled'}</span>
                 </div>
                 {legalCase.amount_claimed && (
-                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    <Scale className={`h-4 w-4 ${isRTL ? 'mr-0 ml-1' : 'mr-1'}`} />
-                    <span>{t('legal.claim', 'Claim')}: ${legalCase.amount_claimed.toLocaleString()}</span>
+                  <div className="flex items-center">
+                    <Scale className="h-4 w-4 mr-1" />
+                    <span>Claim: ${legalCase.amount_claimed.toLocaleString()}</span>
                   </div>
                 )}
               </div>
@@ -195,8 +191,8 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
                 className="mt-2"
                 onClick={() => handleViewDetails(legalCase.id)}
               >
-                <FileText className={`h-4 w-4 ${isRTL ? 'mr-0 ml-2' : 'mr-2'}`} />
-                {t('common.viewDetails')}
+                <FileText className="h-4 w-4 mr-2" />
+                View Details
               </Button>
             </div>
           ))}

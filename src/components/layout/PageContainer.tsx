@@ -1,85 +1,69 @@
 
 import React from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { InfoIcon } from 'lucide-react';
+import Header from './Header';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { formatDate } from '@/lib/date-utils';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
 
-export interface PageContainerProps {
+interface PageContainerProps {
   children: React.ReactNode;
+  className?: string;
   title?: string;
   description?: string;
-  className?: string;
   backLink?: string;
-  notification?: string;
   actions?: React.ReactNode;
+  systemDate?: Date;
 }
 
-const PageContainer = ({
-  children,
+const PageContainer: React.FC<PageContainerProps> = ({ 
+  children, 
+  className,
   title,
   description,
-  className,
   backLink,
-  notification,
-  actions
-}: PageContainerProps) => {
-  const { isRTL } = useTranslation();
+  actions,
+  systemDate = new Date() // Default to current date
+}) => {
+  const { t } = useI18nTranslation();
+  const { direction, isRTL, translateText } = useTranslation();
+  
+  // Choose the appropriate arrow icon based on direction
+  const BackArrow = isRTL ? ArrowRight : ArrowLeft;
+  
+  // Calculate the correct padding class based on RTL/LTR
+  const sidebarPaddingClass = isRTL ? 'pr-64' : 'pl-64';
   
   return (
-    <div className={cn('container max-w-7xl py-6 space-y-6', className)}>
-      {/* Header Section with optional back link */}
-      {(title || description || backLink || actions) && (
-        <div className="space-y-2">
-          <div className="flex justify-between items-start">
-            <div className="space-y-2">
-              {backLink && (
-                <Link 
-                  to={backLink} 
-                  className={cn(
-                    "flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors",
-                    isRTL && "flex-row-reverse"
-                  )}
-                >
-                  <ArrowLeft className={cn("h-4 w-4", isRTL ? "ml-1 rotate-180" : "mr-1")} />
-                  {isRTL ? "رجوع" : "Back"}
-                </Link>
-              )}
-              
-              {title && (
-                <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-              )}
-              
-              {description && (
-                <p className="text-muted-foreground">{description}</p>
-              )}
-            </div>
-            
-            {actions && (
-              <div className="flex-shrink-0">
-                {actions}
-              </div>
-            )}
+    <div className={`min-h-screen ${sidebarPaddingClass} w-full transition-all duration-300`} dir={direction}>
+      <Header />
+      <main className={cn("p-6 animate-fade-in", className)}>
+        {backLink && (
+          <Link 
+            to={backLink} 
+            className={`inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors ${getDirectionalFlexClass()}`}
+          >
+            <BackArrow className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+            {t('common.back')}
+          </Link>
+        )}
+        
+        <div className={`mb-6 flex flex-col sm:${getDirectionalFlexClass()} sm:items-center sm:justify-between`}>
+          <div className={cn(isRTL ? 'text-right' : '')}>
+            {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
+            {description && <p className="text-muted-foreground mt-1">{description}</p>}
+            <p className="text-xs text-muted-foreground mt-1">{t('common.systemDate')}: {formatDate(systemDate)}</p>
           </div>
+          {actions && (
+            <div className="mt-4 sm:mt-0">{actions}</div>
+          )}
         </div>
-      )}
-      
-      {/* Notification Alert */}
-      {notification && (
-        <Alert className={cn("bg-muted/50 border border-muted", isRTL && "text-right")}>
-          <div className="flex items-center gap-2">
-            <InfoIcon className="h-4 w-4" />
-            <AlertDescription>
-              {notification}
-            </AlertDescription>
-          </div>
-        </Alert>
-      )}
-      
-      {/* Main Content */}
-      {children}
+        
+        {children}
+      </main>
     </div>
   );
 };

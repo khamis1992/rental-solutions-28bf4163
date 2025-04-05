@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,8 +17,6 @@ import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/v
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { useTranslation } from 'react-i18next';
-import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -43,10 +40,9 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   const [isLoadingMaintenance, setIsLoadingMaintenance] = useState(true);
   const [vehicleImageUrl, setVehicleImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
-  const { getByVehicleId } = useMaintenance();
-  const { t } = useTranslation();
-  const { isRTL } = useContextTranslation();
-  
+  const {
+    getByVehicleId
+  } = useMaintenance();
   const statusColors = {
     available: 'bg-green-100 text-green-800',
     rented: 'bg-blue-100 text-blue-800',
@@ -153,8 +149,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   };
 
   const getInsuranceStatusText = () => {
-    if (!hasInsurance) return t('vehicles.noInsurance');
-    return isInsuranceValid ? t('vehicles.valid') : t('vehicles.expired');
+    if (!hasInsurance) return 'No Insurance';
+    return isInsuranceValid ? 'Valid' : 'Expired';
   };
 
   const handleViewMaintenance = (id: string) => {
@@ -168,7 +164,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   const handleViewAgreement = (id: string) => {
     if (!id) {
       console.error("Attempted to navigate to agreement with no ID");
-      toast.error(t('agreements.noIdError'));
+      toast.error("Unable to view agreement: Missing ID");
       return;
     }
     console.log(`Navigating to agreement: /agreements/${id}`);
@@ -242,25 +238,19 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     }
   }, [agreements]);
 
-  return (
-    <Card className="w-full overflow-hidden card-transition">
+  return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
-        <img 
-          src={vehicleImageUrl || defaultCarImage} 
-          alt={`${vehicle.make} ${vehicle.model}`} 
-          className="w-full h-full object-cover" 
-          onError={e => {
-            console.log('Detail image failed to load, using fallback');
-            e.currentTarget.src = defaultCarImage;
-          }} 
-        />
+        <img src={vehicleImageUrl || defaultCarImage} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-full object-cover" onError={e => {
+        console.log('Detail image failed to load, using fallback');
+        e.currentTarget.src = defaultCarImage;
+      }} />
         
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-20">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">{vehicle.make} {vehicle.model}</h1>
             <Badge className={cn(statusColors[vehicle.status])}>
-              {t(`vehicles.status.${vehicle.status}`)}
+              {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
             </Badge>
           </div>
           <div className="flex items-center mt-2">
@@ -276,58 +266,59 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         {multipleActiveAgreements && (
           <Alert variant="warning" className="mb-6 border-amber-500 bg-amber-50">
             <AlertCircle className="h-4 w-4 text-amber-500" />
-            <AlertTitle className="text-amber-700">{t('vehicles.multipleActiveAgreements')}</AlertTitle>
+            <AlertTitle className="text-amber-700">Multiple Active Agreements</AlertTitle>
             <AlertDescription className="text-amber-700">
-              {t('vehicles.multipleActiveAgreementsDesc')}
+              This vehicle is assigned to multiple active agreements. This could be a temporary state during agreement transitions.
+              The system will ensure only one agreement remains active.
             </AlertDescription>
           </Alert>
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <CardTitle className="mb-4 text-lg">{t('vehicles.vehicleDetails')}</CardTitle>
+            <CardTitle className="mb-4 text-lg">Vehicle Details</CardTitle>
             <ul className="space-y-3">
               <li className="flex items-center text-sm">
                 <Key className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('common.vin')}:</span>
-                <span>{vehicle.vin || t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">VIN:</span>
+                <span>{vehicle.vin || 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('common.location')}:</span>
-                <span>{vehicle.location || t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">Location:</span>
+                <span>{vehicle.location || 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <Fuel className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.fuelLevel')}:</span>
-                <span>{vehicle.fuelLevel !== undefined ? `${vehicle.fuelLevel}%` : t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">Fuel Level:</span>
+                <span>{vehicle.fuelLevel !== undefined ? `${vehicle.fuelLevel}%` : 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('common.mileage')}:</span>
+                <span className="text-muted-foreground w-28">Mileage:</span>
                 <span>
-                  {vehicle.mileage !== undefined && vehicle.mileage !== null ? `${vehicle.mileage.toLocaleString()} km` : t('common.notProvided')}
+                  {vehicle.mileage !== undefined && vehicle.mileage !== null ? `${vehicle.mileage.toLocaleString()} km` : 'N/A'}
                 </span>
               </li>
               <li className="flex items-center text-sm">
                 <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('common.color')}:</span>
-                <span>{vehicle.color || t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">Color:</span>
+                <span>{vehicle.color || 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.category')}:</span>
-                <span className="capitalize">{vehicle.category || t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">Category:</span>
+                <span className="capitalize">{vehicle.category || 'N/A'}</span>
               </li>
             </ul>
           </div>
           
           <div>
-            <CardTitle className="mb-4 text-lg">{t('vehicles.additionalInformation')}</CardTitle>
+            <CardTitle className="mb-4 text-lg">Additional Information</CardTitle>
             <ul className="space-y-3">
               <li className="flex items-center text-sm">
                 <Shield className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.insurance')}:</span>
+                <span className="text-muted-foreground w-28">Insurance:</span>
                 <div>
                   <Badge className={getInsuranceBadgeStyle()}>
                     {getInsuranceStatusText()}
@@ -335,95 +326,86 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                   {hasInsurance && <div className="mt-1">
                       <div>{vehicle.insurance_company}</div>
                       {insuranceExpiry && <div className="text-xs text-muted-foreground">
-                          {isInsuranceValid ? t('vehicles.expires') : t('vehicles.expired')}: {format(insuranceExpiry, 'MMM d, yyyy')}
+                          {isInsuranceValid ? 'Expires' : 'Expired'}: {format(insuranceExpiry, 'MMM d, yyyy')}
                         </div>}
                     </div>}
                 </div>
               </li>
               <li className="flex items-center text-sm">
                 <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.transmission')}:</span>
-                <span className="capitalize">{vehicle.transmission || t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">Transmission:</span>
+                <span className="capitalize">{vehicle.transmission || 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <Fuel className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.fuelType')}:</span>
-                <span className="capitalize">{vehicle.fuelType || t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">Fuel Type:</span>
+                <span className="capitalize">{vehicle.fuelType || 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.dailyRate')}:</span>
-                <span>{vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : t('common.notProvided')}</span>
+                <span className="text-muted-foreground w-28">Daily Rate:</span>
+                <span>{vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : 'N/A'}</span>
               </li>
               <li className="flex items-center text-sm">
                 <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.lastServiced')}:</span>
+                <span className="text-muted-foreground w-28">Last Serviced:</span>
                 <span>
-                  {vehicle.lastServiced ? format(new Date(vehicle.lastServiced), 'MMM d, yyyy') : t('common.notProvided')}
+                  {vehicle.lastServiced ? format(new Date(vehicle.lastServiced), 'MMM d, yyyy') : 'N/A'}
                 </span>
               </li>
               <li className="flex items-center text-sm">
                 <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">{t('vehicles.nextService')}:</span>
+                <span className="text-muted-foreground w-28">Next Service:</span>
                 <span>
-                  {vehicle.nextServiceDue ? format(new Date(vehicle.nextServiceDue), 'MMM d, yyyy') : t('common.notProvided')}
+                  {vehicle.nextServiceDue ? format(new Date(vehicle.nextServiceDue), 'MMM d, yyyy') : 'N/A'}
                 </span>
               </li>
             </ul>
           </div>
         </div>
         
-        {vehicle.features && vehicle.features.length > 0 && (
-          <div className="mt-6">
-            <CardTitle className="mb-4 text-lg">{t('vehicles.features')}</CardTitle>
+        {vehicle.features && vehicle.features.length > 0 && <div className="mt-6">
+            <CardTitle className="mb-4 text-lg">Features</CardTitle>
             <div className="flex flex-wrap gap-2">
-              {vehicle.features.map((feature, index) => (
-                <Badge key={index} variant="secondary" className="rounded-md">
+              {vehicle.features.map((feature, index) => <Badge key={index} variant="secondary" className="rounded-md">
                   {feature}
-                </Badge>
-              ))}
+                </Badge>)}
             </div>
-          </div>
-        )}
+          </div>}
         
-        {vehicle.notes && (
-          <div className="mt-6">
-            <CardTitle className="mb-4 text-lg">{t('common.notes')}</CardTitle>
+        {vehicle.notes && <div className="mt-6">
+            <CardTitle className="mb-4 text-lg">Notes</CardTitle>
             <div className="bg-muted/50 p-3 rounded-md text-sm">
               <div className="flex items-start">
                 <Info className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
                 <p>{vehicle.notes}</p>
               </div>
             </div>
-          </div>
-        )}
+          </div>}
         
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-lg">{t('agreements.title')}</CardTitle>
+            <CardTitle className="text-lg">Rental Agreements</CardTitle>
             <CustomButton
               size="sm"
               onClick={() => handleCreateAgreement()}>
-              {t('agreements.add')}
+              Add Agreement
             </CustomButton>
           </div>
           
-          {isLoadingAgreements ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t('agreements.loading')}
-            </div>
-          ) : agreements && agreements.length > 0 ? (
-            <div className="rounded-md border">
+          {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
+              Loading agreements...
+            </div> : agreements && agreements.length > 0 ? <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('agreements.agreementNumber')}</TableHead>
-                    <TableHead>{t('common.customer')}</TableHead>
-                    <TableHead>{t('common.startDate')}</TableHead>
-                    <TableHead>{t('common.endDate')}</TableHead>
-                    <TableHead>{t('common.status')}</TableHead>
-                    <TableHead>{t('common.amount')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
+                    <TableHead>Agreement #</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Start Date</TableHead>
+                    <TableHead>End Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -435,23 +417,23 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                           {adaptedAgreement.agreement_number}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.customers?.full_name || t('common.notProvided')}
+                          {adaptedAgreement.customers?.full_name || 'N/A'}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.start_date ? format(new Date(adaptedAgreement.start_date), 'MMM d, yyyy') : t('common.notProvided')}
+                          {adaptedAgreement.start_date ? format(new Date(adaptedAgreement.start_date), 'MMM d, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.end_date ? format(new Date(adaptedAgreement.end_date), 'MMM d, yyyy') : t('common.notProvided')}
+                          {adaptedAgreement.end_date ? format(new Date(adaptedAgreement.end_date), 'MMM d, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Badge className={getAgreementStatusColor(adaptedAgreement.status)}>
-                            {t(`agreements.status.${adaptedAgreement.status}`)}
+                            {formatAgreementStatus(adaptedAgreement.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatCurrency(adaptedAgreement.total_amount)}</TableCell>
                         <TableCell className="text-right">
                           <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(adaptedAgreement.id)}>
-                            {t('common.view')}
+                            View
                           </CustomButton>
                         </TableCell>
                       </TableRow>
@@ -459,74 +441,58 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                   })}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 border rounded-md text-muted-foreground">
-              {t('vehicles.noAgreements')}
-            </div>
-          )}
+            </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
+              No rental agreements found for this vehicle.
+            </div>}
         </div>
         
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-lg">{t('maintenance.history')}</CardTitle>
-            <CustomButton 
-              size="sm" 
-              onClick={handleAddMaintenance}>
-              {t('maintenance.add')}
-            </CustomButton>
+            <CardTitle className="text-lg">Maintenance History</CardTitle>
+            
           </div>
           
-          {isLoadingMaintenance ? (
-            <div className="text-center py-8 text-muted-foreground">
-              {t('maintenance.loadingRecords')}
-            </div>
-          ) : maintenanceRecords && maintenanceRecords.length > 0 ? (
-            <div className="rounded-md border">
+          {isLoadingMaintenance ? <div className="text-center py-8 text-muted-foreground">
+              Loading maintenance records...
+            </div> : maintenanceRecords && maintenanceRecords.length > 0 ? <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>{t('common.type')}</TableHead>
-                    <TableHead>{t('common.date')}</TableHead>
-                    <TableHead>{t('common.status')}</TableHead>
-                    <TableHead>{t('common.cost')}</TableHead>
-                    <TableHead>{t('maintenance.provider')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Provider</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {maintenanceRecords.map(record => (
-                    <TableRow key={record.id}>
+                  {maintenanceRecords.map(record => <TableRow key={record.id}>
                       <TableCell className="font-medium">
                         {formatMaintenanceType(record.maintenance_type)}
                       </TableCell>
                       <TableCell>
-                        {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : t('common.notProvided')}
+                        {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'N/A'}
                       </TableCell>
                       <TableCell>
                         <Badge className={getMaintenanceStatusColor(record.status)}>
-                          {t(`maintenance.status.${record.status.toLowerCase()}`)}
+                          {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>{formatCurrency(record.cost)}</TableCell>
-                      <TableCell>{record.service_provider || t('common.notProvided')}</TableCell>
+                      <TableCell>{record.service_provider || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <CustomButton size="sm" variant="ghost" onClick={() => handleViewMaintenance(record.id)}>
-                          {t('common.view')}
+                          View
                         </CustomButton>
                       </TableCell>
-                    </TableRow>
-                  ))}
+                    </TableRow>)}
                 </TableBody>
               </Table>
-            </div>
-          ) : (
-            <div className="text-center py-8 border rounded-md text-muted-foreground">
-              {t('vehicles.noMaintenance')}
-            </div>
-          )}
+            </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
+              No maintenance records found for this vehicle.
+            </div>}
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };

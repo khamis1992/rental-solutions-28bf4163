@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -22,16 +21,10 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { useTranslation } from 'react-i18next';
-import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
-import { useDirectionalClasses } from '@/utils/rtl-utils';
 
 const Reports = () => {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('fleet');
-  const { t } = useTranslation();
-  const { isRTL } = useAppTranslation();
-  
   const { vehicles } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
@@ -66,7 +59,7 @@ const Reports = () => {
     // Simulate report generation
     setTimeout(() => {
       setIsGenerating(false);
-      toast.success(t('common.success'));
+      toast.success('Scheduled report generated successfully');
     }, 2000);
   };
   
@@ -181,44 +174,44 @@ const Reports = () => {
 
   return (
     <PageContainer 
-      title={t("reports.title")} 
-      description={t("reports.description")}
+      title="Reports & Analytics" 
+      description="Comprehensive reports and analytics for your rental business"
       actions={
         <Button 
           variant="outline"
           onClick={() => navigate('/reports/scheduled')}
-          className={`flex items-center ${isRTL ? 'space-x-reverse' : 'space-x-2'}`}
+          className="flex items-center space-x-2"
         >
           <Calendar className="h-4 w-4" />
-          <span>{t("reports.scheduledReports")}</span>
+          <span>Scheduled Reports</span>
         </Button>
       }
     >
       <div className="flex items-center mb-6">
         <SectionHeader 
-          title={t("reports.generateReports")} 
-          description={t("reports.selectReportType")} 
+          title="Generate Reports" 
+          description="Select a report type to view detailed analytics and insights" 
           icon={FileText} 
         />
       </div>
       
       <Alert className="mb-6">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>{t("reports.proTip")}</AlertTitle>
+        <AlertTitle>Pro Tip</AlertTitle>
         <AlertDescription>
-          {t("reports.scheduleTip")}
+          You can schedule reports to be automatically generated and sent to your email on a recurring basis.
         </AlertDescription>
       </Alert>
       
       <Card>
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className={`grid grid-cols-5 mb-8 ${isRTL ? 'rtl-tabs' : ''}`}>
-              <TabsTrigger value="fleet">{t("reports.fleetReport")}</TabsTrigger>
-              <TabsTrigger value="financial">{t("reports.financialReport")}</TabsTrigger>
-              <TabsTrigger value="customers">{t("reports.customerReport")}</TabsTrigger>
-              <TabsTrigger value="maintenance">{t("reports.maintenanceReport")}</TabsTrigger>
-              <TabsTrigger value="legal">{t("reports.legalReport")}</TabsTrigger>
+            <TabsList className="grid grid-cols-5 mb-8">
+              <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
+              <TabsTrigger value="financial">Financial Report</TabsTrigger>
+              <TabsTrigger value="customers">Customer Report</TabsTrigger>
+              <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
+              <TabsTrigger value="legal">Legal Report</TabsTrigger>
             </TabsList>
             
             <div className="mb-6">

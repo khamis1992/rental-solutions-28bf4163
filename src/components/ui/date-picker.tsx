@@ -11,7 +11,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { formatDate } from "@/lib/date-utils";
-import { useTranslation } from "react-i18next";
 
 interface DatePickerProps {
   date?: Date;
@@ -20,8 +19,6 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ date, setDate, className }: DatePickerProps) {
-  const { t } = useTranslation();
-
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -34,7 +31,7 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
           )}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? formatDate(date) : <span>{t('common.pickDate')}</span>}
+          {date ? formatDate(date) : <span>Pick a date</span>}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0">

@@ -8,8 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { useTranslation } from 'react-i18next';
-import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
 
 const FleetReport = () => {
   const { 
@@ -19,9 +17,6 @@ const FleetReport = () => {
     isLoading,
     error
   } = useFleetReport();
-
-  const { t } = useTranslation();
-  const { isRTL } = useAppTranslation();
 
   if (isLoading) {
     return (
@@ -48,7 +43,7 @@ const FleetReport = () => {
       <div className="space-y-8">
         <Card className="p-6">
           <div className="text-center text-red-500">
-            <p>{t('common.error')} {t('common.loading')}</p>
+            <p>Error loading fleet data</p>
             <p className="text-sm mt-2">{String(error)}</p>
           </div>
         </Card>
@@ -60,34 +55,34 @@ const FleetReport = () => {
     <div className="space-y-8">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
-          title={t('reports.totalVehicles')} 
+          title="Total Vehicles" 
           value={fleetStats.totalVehicles.toString()} 
           trend={5} // This would come from comparing with previous period
-          trendLabel={t('reports.vsLastMonth')}
+          trendLabel="vs last month"
           icon={Car}
           iconColor="text-blue-500"
         />
         <StatCard 
-          title={t('reports.activeRentals')} 
+          title="Active Rentals" 
           value={fleetStats.activeRentals.toString()} 
           trend={12} // This would come from comparing with previous period
-          trendLabel={t('reports.vsLastMonth')}
+          trendLabel="vs last month"
           icon={TrendingUp}
           iconColor="text-green-500"
         />
         <StatCard 
-          title={t('reports.averageDailyRate')} 
+          title="Average Daily Rate" 
           value={formatCurrency(fleetStats.averageDailyRate)} 
           trend={3} // This would come from comparing with previous period
-          trendLabel={t('reports.vsLastMonth')}
+          trendLabel="vs last month"
           icon={CircleDollarSign}
           iconColor="text-indigo-500"
         />
         <StatCard 
-          title={t('reports.maintenanceRequired')} 
+          title="Maintenance Required" 
           value={fleetStats.maintenanceRequired.toString()} 
           trend={-2} // This would come from comparing with previous period
-          trendLabel={t('reports.vsLastMonth')}
+          trendLabel="vs last month"
           icon={AlertTriangle}
           iconColor="text-amber-500"
         />
@@ -95,17 +90,17 @@ const FleetReport = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('reports.fleetUtilization')}</CardTitle>
+          <CardTitle>Fleet Utilization</CardTitle>
         </CardHeader>
         <CardContent>
           {vehicles.length > 0 ? (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t('reports.vehicle')}</TableHead>
-                  <TableHead>{t('reports.licensePlate')}</TableHead>
-                  <TableHead>{t('reports.status')}</TableHead>
-                  <TableHead className={isRTL ? 'text-left' : 'text-right'}>{t('reports.dailyRate')}</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>License Plate</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Daily Rate</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -116,15 +111,15 @@ const FleetReport = () => {
                     <TableCell>
                       <StatusBadge status={vehicle.status || 'available'} />
                     </TableCell>
-                    <TableCell className={isRTL ? 'text-left' : 'text-right'}>{formatCurrency(vehicle.dailyRate || 0)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(vehicle.dailyRate || 0)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
             <div className="text-center py-10 text-muted-foreground">
-              <p>{t('reports.noVehicleData')}</p>
-              <p className="text-sm mt-2">{t('reports.vehicleDataWillAppear')}</p>
+              <p>No vehicle data available</p>
+              <p className="text-sm mt-2">Vehicle data will appear here when available</p>
             </div>
           )}
         </CardContent>
@@ -132,7 +127,7 @@ const FleetReport = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>{t('reports.fleetPerformance')}</CardTitle>
+          <CardTitle>Fleet Performance by Vehicle Type</CardTitle>
         </CardHeader>
         <CardContent>
           {vehiclesByType.length > 0 ? (
@@ -145,48 +140,39 @@ const FleetReport = () => {
                     avgRate: type.avgDailyRate
                   }))}
                   margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-                  layout={isRTL ? "vertical" : "horizontal"}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
                     tick={{ 
                       transform: 'rotate(-45)',
-                      textAnchor: isRTL ? 'start' : 'end',
+                      textAnchor: 'end',
                       dominantBaseline: 'auto'
                     }}
                     height={70}
-                    reversed={isRTL}
                   />
-                  <YAxis 
-                    yAxisId="left" 
-                    orientation={isRTL ? "right" : "left"} 
-                    stroke="#8884d8" 
-                  />
+                  <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
                   <YAxis 
                     yAxisId="right" 
-                    orientation={isRTL ? "left" : "right"} 
+                    orientation="right" 
                     stroke="#82ca9d"
                     tickFormatter={(value) => formatCurrency(value)}
                   />
-                  <Tooltip 
-                    formatter={(value, name) => {
-                      if (name === 'avgRate') {
-                        return [formatCurrency(Number(value)), t('reports.averageDailyRate')];
-                      }
-                      return [value, name === 'count' ? t('reports.vehicleCount') : name];
-                    }}
-                    labelFormatter={(label) => `${label}`}
-                  />
-                  <Bar dataKey="count" fill="#8884d8" yAxisId="left" name={t('reports.vehicleCount')} />
-                  <Bar dataKey="avgRate" fill="#82ca9d" yAxisId="right" name={t('reports.averageDailyRate')} />
+                  <Tooltip formatter={(value, name) => {
+                    if (name === 'avgRate') {
+                      return [formatCurrency(Number(value)), 'Avg Daily Rate'];
+                    }
+                    return [value, name === 'count' ? 'Count' : name];
+                  }} />
+                  <Bar dataKey="count" fill="#8884d8" yAxisId="left" name="Vehicle Count" />
+                  <Bar dataKey="avgRate" fill="#82ca9d" yAxisId="right" name="Avg Daily Rate" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
             <div className="text-center py-10 text-muted-foreground">
-              <p>{t('reports.noPerformanceData')}</p>
-              <p className="text-sm mt-2">{t('reports.performanceDataWillAppear')}</p>
+              <p>No performance data available</p>
+              <p className="text-sm mt-2">Performance data will appear here when available</p>
             </div>
           )}
         </CardContent>
@@ -196,8 +182,6 @@ const FleetReport = () => {
 };
 
 const StatusBadge = ({ status }: { status: string }) => {
-  const { t } = useTranslation();
-  
   const variants: Record<string, string> = {
     'available': 'bg-green-100 text-green-800',
     'rented': 'bg-blue-100 text-blue-800',
@@ -206,12 +190,9 @@ const StatusBadge = ({ status }: { status: string }) => {
     'reserved': 'bg-purple-100 text-purple-800',
   };
 
-  // Translate the status using vehicles.status.[statusKey]
-  const translatedStatus = t(`vehicles.status.${status}`, status);
-
   return (
     <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-      {translatedStatus}
+      {status}
     </Badge>
   );
 };
