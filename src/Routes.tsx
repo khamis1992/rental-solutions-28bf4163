@@ -28,52 +28,55 @@ import UserManagement from '@/pages/UserManagement';
 import UserSettings from '@/pages/UserSettings';
 import NotFound from '@/pages/NotFound';
 import Index from '@/pages/Index';
+import ProfileProvider from '@/contexts/ProfileContext';
 
 const RoutesComponent = () => {
   return (
-    <Routes>
-      <Route path="/" element={<MainLayout />}>
-        <Route index element={<Index />} />
-        <Route path="/dashboard" element={<Dashboard />} />
+    <ProfileProvider>
+      <Routes>
+        <Route path="/" element={<MainLayout />}>
+          <Route index element={<Index />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Vehicle Routes */}
+          <Route path="/vehicles" element={<VehiclesPage />} />
+          <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
+          <Route path="/vehicles/add" element={<AddVehicle />} />
+          <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
+          
+          {/* Customer Routes */}
+          <Route path="/customers" element={<Customers />} />
+          <Route path="/customers/:id" element={<CustomerDetailPage />} />
+          <Route path="/customers/add" element={<AddCustomer />} />
+          <Route path="/customers/edit/:id" element={<EditCustomer />} />
+          
+          {/* Agreement Routes */}
+          <Route path="/agreements" element={<Agreements />} />
+          <Route path="/agreements/:id" element={<AgreementDetailPage />} />
+          <Route path="/agreements/add" element={<AddAgreement />} />
+          <Route path="/agreements/edit/:id" element={<EditAgreement />} />
+          
+          {/* Maintenance Routes */}
+          <Route path="/maintenance" element={<Maintenance />} />
+          <Route path="/maintenance/add" element={<AddMaintenance />} />
+          <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
+          <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
+          
+          {/* Other Routes */}
+          <Route path="/financials" element={<Financials />} />
+          <Route path="/traffic-fines" element={<TrafficFines />} />
+          <Route path="/legal" element={<Legal />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/reports/scheduled" element={<ScheduledReports />} />
+          <Route path="/settings" element={<SystemSettings />} />
+          <Route path="/users" element={<UserManagement />} />
+          <Route path="/user-settings" element={<UserSettings />} />
+        </Route>
         
-        {/* Vehicle Routes */}
-        <Route path="/vehicles" element={<VehiclesPage />} />
-        <Route path="/vehicles/:id" element={<VehicleDetailPage />} />
-        <Route path="/vehicles/add" element={<AddVehicle />} />
-        <Route path="/vehicles/edit/:id" element={<EditVehicle />} />
-        
-        {/* Customer Routes */}
-        <Route path="/customers" element={<Customers />} />
-        <Route path="/customers/:id" element={<CustomerDetailPage />} />
-        <Route path="/customers/add" element={<AddCustomer />} />
-        <Route path="/customers/edit/:id" element={<EditCustomer />} />
-        
-        {/* Agreement Routes */}
-        <Route path="/agreements" element={<Agreements />} />
-        <Route path="/agreements/:id" element={<AgreementDetailPage />} />
-        <Route path="/agreements/add" element={<AddAgreement />} />
-        <Route path="/agreements/edit/:id" element={<EditAgreement />} />
-        
-        {/* Maintenance Routes */}
-        <Route path="/maintenance" element={<Maintenance />} />
-        <Route path="/maintenance/add" element={<AddMaintenance />} />
-        <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
-        <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
-        
-        {/* Other Routes */}
-        <Route path="/financials" element={<Financials />} />
-        <Route path="/traffic-fines" element={<TrafficFines />} />
-        <Route path="/legal" element={<Legal />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/reports/scheduled" element={<ScheduledReports />} />
-        <Route path="/settings" element={<SystemSettings />} />
-        <Route path="/users" element={<UserManagement />} />
-        <Route path="/user-settings" element={<UserSettings />} />
-      </Route>
-      
-      {/* 404 Not Found */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        {/* 404 Not Found */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </ProfileProvider>
   );
 };
 

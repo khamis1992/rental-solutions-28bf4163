@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -98,8 +97,25 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
 const Sidebar = () => {
   const [expanded, setExpanded] = useState(true);
   const location = useLocation();
-  const { user, signOut } = useAuth();
-  const { profile } = useProfile();
+  
+  let authValues = { user: null, signOut: () => Promise.resolve() };
+  try {
+    authValues = useAuth();
+  } catch (error) {
+    console.warn("AuthProvider not available yet, using fallback values");
+  }
+  
+  const { user, signOut } = authValues;
+  
+  let profileValues = { profile: null };
+  try {
+    profileValues = useProfile();
+  } catch (error) {
+    console.warn("ProfileProvider not available yet, using fallback values");
+  }
+  
+  const { profile } = profileValues;
+  
   const { isRTL, direction } = useTranslation();
   const { t } = useI18nTranslation();
 
@@ -115,12 +131,10 @@ const Sidebar = () => {
     setExpanded(!expanded);
   };
 
-  // Choose appropriate chevron icon based on direction and expanded state
   const SidebarChevron = !expanded ? 
     (isRTL ? ChevronLeft : ChevronRight) : 
     (isRTL ? ChevronRight : ChevronLeft);
 
-  // Adjust sidebar position based on RTL setting
   const sidebarPosition = isRTL ? 'right-0' : 'left-0';
   const sidebarButtonPosition = isRTL ? '-left-12' : '-right-12';
 

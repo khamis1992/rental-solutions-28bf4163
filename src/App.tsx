@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { usePrefetch } from '@/hooks/use-prefetch';
 import RoutesComponent from './Routes';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 // Component to apply app-wide prefetching
 const PrefetchManager = () => {
@@ -31,10 +32,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <TranslationProvider>
-          <PrefetchManager />
-          <RoutesComponent />
-        </TranslationProvider>
+        <AuthProvider>
+          <TranslationProvider>
+            <PrefetchManager />
+            <RoutesComponent />
+          </TranslationProvider>
+        </AuthProvider>
       </BrowserRouter>
       <Toaster />
     </QueryClientProvider>
