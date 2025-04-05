@@ -64,7 +64,14 @@ export const translateText = async (
       'Cancel',
       'Yes',
       'No',
-      'Vehicle'
+      'Vehicle',
+      'Refresh',
+      'Fixing...',
+      'Fix Payments',
+      'Track all payments for this agreement',
+      'No payments recorded for this agreement yet.',
+      'Confirm Payment Deletion',
+      'Actions'
     ];
     
     if (uiTextsToSkip.some(uiText => text.includes(uiText))) {

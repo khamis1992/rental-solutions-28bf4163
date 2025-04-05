@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -75,7 +76,12 @@
     "vehicle": "مركبة",
     "yes": "نعم",
     "no": "لا",
-    "generating": "جاري التوليد..."
+    "generating": "جاري التوليد...",
+    "days": "أيام",
+    "unknown": "غير معروف",
+    "ref": "مرجع",
+    "total": "المجموع",
+    "dueDate": "تاريخ الاستحقاق"
   },
   "dashboard": {
     "title": "لوحة القيادة",
@@ -98,11 +104,6 @@
       "payment": "دفعة مستلمة",
       "maintenance": "صيانة مجدولة",
       "fine": "مخالفة مرورية"
-    },
-    "timeIndicators": {
-      "minutesAgo": "منذ {0} دقيقة",
-      "hoursAgo": "منذ {0} ساعة",
-      "daysAgo": "منذ {0} يوم"
     },
     "financialOverview": "نظرة مالية عامة",
     "expensesBreakdown": "تفصيل المصروفات",
@@ -356,6 +357,8 @@
     "maintenanceFailed": "فشلت صيانة الدفع",
     "generatePaymentSchedule": "إنشاء جدول الدفع",
     "runPaymentMaintenance": "تشغيل صيانة الدفع",
+    "noPayments": "لم يتم العثور على مدفوعات",
+    "noPaymentsDesc": "لا توجد سجلات دفع لهذه الاتفاقية.",
     "status": {
       "active": "نشط",
       "pending": "معلق",
@@ -432,8 +435,6 @@
       "overdue": "متأخرة",
       "pending": "معلقة"
     },
-    "noPayments": "لم يتم العثور على مدفوعات",
-    "noPaymentsDesc": "لا توجد سجلات دفع لهذه الاتفاقية.",
     "agreement": "اتفاقية",
     "createdOn": "تم الإنشاء في",
     "customerInformation": "معلومات العميل",
@@ -463,7 +464,8 @@
     "pdfSuccess": "تم تنزيل PDF الاتفاقية بنجاح",
     "pdfError": "فشل في إنشاء PDF",
     "documentGenerationConfig": "وظيفة إنشاء المستند قيد التكوين",
-    "legalCases": "القضايا القانونية"
+    "legalCases": "القضايا القانونية",
+    "daysLate": "أيام متأخرة"
   },
   "maintenance": {
     "title": "الصيانة",
@@ -478,62 +480,18 @@
     "schedule": "جدولة الصيانة",
     "history": "سجل الصيانة",
     "noRecords": "لا توجد سجلات صيانة",
-    "noRecordsDesc": "لم يتم العثور على سجلات صيانة. أضف أول سجل صيانة للبدء.",
-    "filters": {
-      "status": "تصفية حسب الحالة",
-      "vehicle": "تصفية حسب المركبة",
-      "type": "تصفية حسب النوع",
-      "date": "تصفية حسب التاريخ"
-    },
-    "status": {
-      "allStatuses": "جميع الحالات",
-      "scheduled": "مجدولة",
-      "inProgress": "قيد التنفيذ",
-      "completed": "مكتملة",
-      "cancelled": "ملغاة"
-    },
-    "form": {
-      "vehicleRequired": "المركبة مطلوبة",
-      "maintenanceType": "نوع الصيانة",
-      "status": "الحالة",
-      "scheduledDate": "تاريخ الجدولة",
-      "completionDate": "تاريخ الإكمال",
-      "description": "الوصف",
-      "cost": "التكلفة ($)",
-      "serviceProvider": "مزود الخدمة",
-      "invoiceNumber": "رقم الفاتورة",
-      "odometerReading": "قراءة العداد",
-      "notes": "ملاحظات"
-    },
-    "types": {
-      "oilChange": "تغيير الزيت",
-      "tireReplacement": "استبدال الإطارات",
-      "brakeService": "خدمة الفرامل",
-      "regularInspection": "فحص دوري",
-      "engineRepair": "إصلاح المحرك",
-      "transmissionService": "خدمة ناقل الحركة",
-      "electricalRepair": "إصلاح كهربائي",
-      "bodyRepair": "إصلاح الهيكل",
-      "airConditioning": "تكييف الهواء",
-      "other": "أخرى"
-    },
-    "analytics": {
-      "title": "تحليل الصيانة",
-      "statusDistribution": "توزيع الحالة",
-      "maintenanceTypes": "أنواع الصيانة",
-      "costAnalysis": "تحليل التكلفة",
-      "totalRecords": "إجمالي السجلات",
-      "completed": "مكتملة",
-      "inProgress": "قيد التنفيذ",
-      "scheduled": "مجدولة"
-    }
+    "noRecordsDesc": "لم يتم العثور على سجلات صيانة. أضف أول سجل صيانة للبدء."
   },
   "payments": {
     "deletePayment": "حذف الدفعة",
-    "deleteConfirmation": "هل أنت متأكد من رغبتك في حذف هذه الدفعة؟ لا يمكن التراجع عن هذا الإجراء.",
+    "deleteConfirmation": "هل أنت متأكد أنك تريد حذف هذه الدفعة؟ لا يمكن التراجع عن هذا الإجراء.",
     "history": "سجل الدفعات",
+    "historyDesc": "تتبع جميع الدفعات لهذه الاتفاقية",
     "recordPayment": "تسجيل دفعة",
-    "recordPaymentDesc": "تسجيل دفعة إيجار جديدة لهذه الاتفاقية.",
+    "recordPaymentDesc": "تسجيل دفعة جديدة للإيجار لهذه الاتفاقية.",
+    "recordPaymentForItem": "تسجيل دفعة لهذا البند.",
+    "recordManualPayment": "تسجيل دفعة يدوية",
+    "recordNewManualPayment": "تسجيل دفعة يدوية جديدة لهذه الاتفاقية.",
     "amount": "المبلغ",
     "date": "تاريخ الدفع",
     "method": "طريقة الدفع",
@@ -547,7 +505,21 @@
       "paid": "مدفوعة",
       "pending": "معلقة",
       "overdue": "متأخرة",
-      "partial": "جزئية"
-    }
+      "partial": "مدفوعة جزئياً"
+    },
+    "lateFee": "رسوم تأخير",
+    "paid": "مدفوع",
+    "remaining": "متبقي",
+    "ref": "مرجع",
+    "fixing": "جاري الإصلاح...",
+    "fixPayments": "إصلاح الدفعات",
+    "noRecords": "لم يتم تسجيل أي دفعات لهذه الاتفاقية حتى الآن.",
+    "deleting": "جاري الحذف...",
+    "noAgreementId": "لا يوجد معرف اتفاقية متاح",
+    "checkingPayments": "التحقق وإصلاح الدفعات...",
+    "recordsUpToDate": "سجلات الدفع محدثة",
+    "recordsFixedSuccess": "تم إصلاح سجلات الدفع بنجاح",
+    "recordsFixFailed": "فشل في إصلاح سجلات الدفع",
+    "unexpectedError": "حدث خطأ غير متوقع أثناء إصلاح الدفعات"
   }
 }
