@@ -26,16 +26,43 @@ export const translateText = async (
     }
     
     // Skip translation for UI text that should come from locale files
-    // Check if the text starts with common UI labels that should come from i18n
-    if (
-      (text.startsWith('Agreement') && text.includes('Details')) || 
-      text.startsWith('View details') ||
-      text === 'Details' ||
-      text === 'Agreement Details' ||
-      text === 'View agreement details' ||
-      text === 'No payments found' ||
-      text === 'No payment records exist for this agreement.'
-    ) {
+    // Check if the text matches common UI labels that should come from i18n
+    const uiTextsToSkip = [
+      'Agreement Details',
+      'View details',
+      'View agreement details', 
+      'Details',
+      'No payments found',
+      'No payment records exist for this agreement.',
+      'Delete Payment',
+      'Are you sure you want to delete this payment?',
+      'This action cannot be undone.',
+      'Payment History',
+      'Record Payment',
+      'Amount',
+      'Payment Date',
+      'Payment Method',
+      'Reference Number',
+      'Notes',
+      'Customer Information',
+      'Details about the customer',
+      'Vehicle Information',
+      'Details about the rented vehicle',
+      'Agreement Details',
+      'Rental terms and payment information',
+      'Traffic Fines',
+      'Violations during the rental period',
+      'Edit',
+      'Agreement Copy',
+      'Generate Document',
+      'Delete',
+      'Confirm Deletion',
+      'Are you sure you want to delete agreement',
+      'This action cannot be undone',
+      'Cancel'
+    ];
+    
+    if (uiTextsToSkip.some(uiText => text.includes(uiText))) {
       console.log(`Skipping translation for UI text that should come from locale files: "${text}"`);
       return text;
     }

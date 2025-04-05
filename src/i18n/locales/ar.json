@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -429,7 +430,36 @@
       "pending": "معلقة"
     },
     "noPayments": "لم يتم العثور على مدفوعات",
-    "noPaymentsDesc": "لا توجد سجلات دفع لهذه الاتفاقية."
+    "noPaymentsDesc": "لا توجد سجلات دفع لهذه الاتفاقية.",
+    "agreement": "اتفاقية",
+    "createdOn": "تم الإنشاء في",
+    "customerInformation": "معلومات العميل",
+    "customerDetails": "تفاصيل عن العميل",
+    "vehicleInformation": "معلومات المركبة",
+    "vehicleDetails": "تفاصيل عن المركبة المؤجرة",
+    "rentalTerms": "شروط الإيجار ومعلومات الدفع",
+    "rentalPeriod": "فترة الإيجار",
+    "to": "إلى",
+    "duration": "المدة",
+    "additionalDrivers": "السائقين الإضافيين",
+    "none": "لا يوجد",
+    "noNotes": "لا توجد ملاحظات",
+    "monthlyRentMultiplied": "الإيجار الشهري × {duration} شهر",
+    "termsAccepted": "تم قبول الشروط",
+    "signature": "التوقيع",
+    "signed": "موقع",
+    "notSigned": "غير موقع",
+    "agreementCopy": "نسخة الاتفاقية",
+    "generateDocument": "إنشاء مستند",
+    "trafficFines": "مخالفات المرور",
+    "trafficViolationsDesc": "المخالفات خلال فترة الإيجار",
+    "confirmDeletion": "تأكيد الحذف",
+    "deleteConfirmText": "هل أنت متأكد من رغبتك في حذف الاتفاقية {number}؟ لا يمكن التراجع عن هذا الإجراء.",
+    "detailsNotAvailable": "تفاصيل الاتفاقية غير متوفرة.",
+    "preparingPdf": "جاري إعداد مستند PDF للاتفاقية...",
+    "pdfSuccess": "تم تنزيل PDF الاتفاقية بنجاح",
+    "pdfError": "فشل في إنشاء PDF",
+    "documentGenerationConfig": "وظيفة إنشاء المستند قيد التكوين"
   },
   "maintenance": {
     "title": "الصيانة",
@@ -499,6 +529,7 @@
     "deleteConfirmation": "هل أنت متأكد من رغبتك في حذف هذه الدفعة؟ لا يمكن التراجع عن هذا الإجراء.",
     "history": "سجل الدفعات",
     "recordPayment": "تسجيل دفعة",
+    "recordPaymentDesc": "تسجيل دفعة إيجار جديدة لهذه الاتفاقية.",
     "amount": "المبلغ",
     "date": "تاريخ الدفع",
     "method": "طريقة الدفع",
@@ -506,6 +537,8 @@
     "notes": "ملاحظات",
     "deleteSuccess": "تم حذف الدفعة بنجاح",
     "deleteError": "فشل في حذف الدفعة",
+    "recordSuccess": "تم تسجيل الدفعة بنجاح",
+    "recordError": "فشل في تسجيل الدفعة",
     "status": {
       "paid": "مدفوعة",
       "pending": "معلقة",

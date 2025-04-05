@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "Dashboard",
@@ -427,7 +428,36 @@
       "paid": "Paid",
       "overdue": "Overdue",
       "pending": "Pending"
-    }
+    },
+    "agreement": "Agreement",
+    "createdOn": "Created on",
+    "customerInformation": "Customer Information",
+    "customerDetails": "Details about the customer",
+    "vehicleInformation": "Vehicle Information",
+    "vehicleDetails": "Details about the rented vehicle",
+    "rentalTerms": "Rental terms and payment information",
+    "rentalPeriod": "Rental Period",
+    "to": "to",
+    "duration": "Duration",
+    "additionalDrivers": "Additional Drivers",
+    "none": "None",
+    "noNotes": "No notes",
+    "monthlyRentMultiplied": "Monthly rent × {duration} months",
+    "termsAccepted": "Terms Accepted",
+    "signature": "Signature",
+    "signed": "Signed",
+    "notSigned": "Not signed",
+    "agreementCopy": "Agreement Copy",
+    "generateDocument": "Generate Document",
+    "trafficFines": "Traffic Fines",
+    "trafficViolationsDesc": "Violations during the rental period",
+    "confirmDeletion": "Confirm Deletion",
+    "deleteConfirmText": "Are you sure you want to delete agreement {number}? This action cannot be undone.",
+    "detailsNotAvailable": "Agreement details not available.",
+    "preparingPdf": "Preparing agreement PDF document...",
+    "pdfSuccess": "Agreement PDF downloaded successfully",
+    "pdfError": "Failed to generate PDF",
+    "documentGenerationConfig": "Document generation functionality is being configured"
   },
   "maintenance": {
     "title": "Maintenance",
@@ -497,6 +527,7 @@
     "deleteConfirmation": "Are you sure you want to delete this payment? This action cannot be undone.",
     "history": "Payment History",
     "recordPayment": "Record Payment",
+    "recordPaymentDesc": "Record a new rental payment for this agreement.",
     "amount": "Amount",
     "date": "Payment Date",
     "method": "Payment Method",
@@ -504,6 +535,8 @@
     "notes": "Notes",
     "deleteSuccess": "Payment deleted successfully",
     "deleteError": "Failed to delete payment",
+    "recordSuccess": "Payment recorded successfully",
+    "recordError": "Failed to record payment",
     "status": {
       "paid": "Paid",
       "pending": "Pending",
