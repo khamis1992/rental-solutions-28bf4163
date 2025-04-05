@@ -1,4 +1,3 @@
-
 import React, { useState, lazy, Suspense } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -10,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { getDirectionalFlexClass } from '@/utils/rtl-utils';
-import { lazyLoad, DefaultLoadingComponent } from '@/utils/lazy-loading';
+import { lazyLoad, DefaultLoadingComponent } from '@/utils/lazy-loading.tsx';  // Extension change handled by TypeScript
 
 // Lazy load heavy components
 const RevenueChart = lazyLoad(
