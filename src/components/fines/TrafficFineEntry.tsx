@@ -65,7 +65,6 @@ const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
               <DatePicker
                 date={violationDate}
                 setDate={setViolationDate}
-                disabled={false}
                 className="w-full"
               />
             </div>
