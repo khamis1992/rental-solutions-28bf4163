@@ -323,7 +323,7 @@
     "edit": "Edit Agreement",
     "details": "Agreement Details",
     "delete": "Delete Agreement",
-    "viewDetails": "View Details",
+    "viewDetails": "View agreement details and information",
     "searchPlaceholder": "Search by customer name or vehicle license plate...",
     "importCSV": "Import CSV",
     "statusUpdateSuccess": "Agreement statuses updated successfully",
@@ -350,6 +350,8 @@
     "maintenanceFailed": "Payment maintenance failed",
     "generatePaymentSchedule": "Generate Payment Schedule",
     "runPaymentMaintenance": "Run Payment Maintenance",
+    "noPayments": "No payments found",
+    "noPaymentsDesc": "No payment records exist for this agreement.",
     "status": {
       "active": "Active",
       "pending": "Pending",
@@ -493,6 +495,25 @@
       "completed": "Completed",
       "inProgress": "In Progress",
       "scheduled": "Scheduled"
+    }
+  },
+  "payments": {
+    "deletePayment": "Delete Payment",
+    "deleteConfirmation": "Are you sure you want to delete this payment? This action cannot be undone.",
+    "history": "Payment History",
+    "recordPayment": "Record Payment",
+    "amount": "Amount",
+    "date": "Payment Date",
+    "method": "Payment Method",
+    "reference": "Reference Number",
+    "notes": "Notes",
+    "deleteSuccess": "Payment deleted successfully",
+    "deleteError": "Failed to delete payment",
+    "status": {
+      "paid": "Paid",
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "partial": "Partial"
     }
   }
 }

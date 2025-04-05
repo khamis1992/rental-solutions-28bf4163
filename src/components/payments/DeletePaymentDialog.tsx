@@ -9,6 +9,7 @@ import {
   AlertDialogHeader, 
   AlertDialogTitle 
 } from '@/components/ui/alert-dialog';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 interface DeletePaymentDialogProps {
   isOpen: boolean;
@@ -17,22 +18,24 @@ interface DeletePaymentDialogProps {
 }
 
 export const DeletePaymentDialog = ({ isOpen, onOpenChange, onConfirm }: DeletePaymentDialogProps) => {
+  const { t } = useI18nTranslation();
+  
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+          <AlertDialogTitle>{t('payments.deletePayment')}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete this payment? This action cannot be undone.
+            {t('payments.deleteConfirmation')}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
           <AlertDialogAction 
             onClick={onConfirm}
             className="bg-red-500 hover:bg-red-600"
           >
-            Delete
+            {t('common.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

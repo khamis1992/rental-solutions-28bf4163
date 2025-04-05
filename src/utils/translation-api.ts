@@ -25,6 +25,19 @@ export const translateText = async (
       return text;
     }
     
+    // Skip translation for UI text that should come from locale files
+    // Check if the text starts with common UI labels that should come from i18n
+    if (
+      (text.startsWith('Agreement') && text.includes('Details')) || 
+      text.startsWith('View details') ||
+      text === 'Details' ||
+      text === 'Agreement Details' ||
+      text === 'View agreement details'
+    ) {
+      console.log(`Skipping translation for UI text that should come from locale files: "${text}"`);
+      return text;
+    }
+    
     console.log(`Translating from ${sourceLang} to ${targetLang}: "${text.substring(0, 30)}${text.length > 30 ? '...' : ''}"`);
     
     const { data, error } = await supabase.functions.invoke('translate', {
