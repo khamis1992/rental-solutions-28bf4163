@@ -17,10 +17,13 @@ export const useVehicles = () => {
         queryKey: ['vehicles', filters],
         queryFn: async () => {
           try {
-            // Start with the base query
+            // Define the columns we need to select
+            const columns = 'id, make, model, year, license_plate, vin, color, mileage, status, location, image_url, rent_amount, vehicle_type_id, created_at, updated_at';
+            
+            // Start with the base query with specific columns
             let query = supabase
               .from('vehicles')
-              .select('*, vehicle_types(*)');
+              .select(`${columns}, vehicle_types(id, name, description)`);
             
             // Apply filters if provided
             if (filters) {
@@ -90,9 +93,9 @@ export const useVehicles = () => {
             console.log(`Fetching vehicle with ID: ${id}`);
             const { data, error } = await supabase
               .from('vehicles')
-              .select('*, vehicle_types(*)')
+              .select('*, vehicle_types(id, name, description)')
               .eq('id', id)
-              .maybeSingle(); // Changed from single() to maybeSingle()
+              .maybeSingle();
             
             if (error) {
               console.error(`Error fetching vehicle ${id}:`, error);
@@ -123,7 +126,7 @@ export const useVehicles = () => {
           try {
             const { data, error } = await supabase
               .from('vehicle_types')
-              .select('*')
+              .select('id, name, description, is_active')
               .eq('is_active', true)
               .order('name');
             

@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -20,9 +21,10 @@ export const useAgreements = (options: {
   // Create a cache key that includes pagination and filter parameters
   const cacheKey = ['agreements', customerId, vehicleId, page, pageSize];
   
-  // Default columns to select if not specified
-  const defaultColumns = 'id,agreement_number,customer_id,vehicle_id,start_date,end_date,status,total_amount,created_at,updated_at,vehicle:vehicle_id(id,make,model,license_plate)';
-  const selectColumns = columns || defaultColumns;
+  // Default columns to select if not specified - optimized to select only what's needed
+  const defaultColumns = 'id,agreement_number,customer_id,vehicle_id,start_date,end_date,status,total_amount,created_at,updated_at';
+  const vehicleColumns = 'id,make,model,license_plate';
+  const selectColumns = columns || `${defaultColumns},vehicle:vehicle_id(${vehicleColumns})`;
   
   const {
     data: agreements,
@@ -63,15 +65,23 @@ export const useAgreements = (options: {
         return [];
       }
     },
-    staleTime: 5 * 60 * 1000 // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes cache time for better performance
+    keepPreviousData: true // Keep old data while fetching new data
   });
 
   // Get a single agreement by ID with optimized column selection
   const getAgreement = async (id: string, selectColumns?: string) => {
     try {
-      const columns = selectColumns || 'id,agreement_number,customer_id,vehicle_id,start_date,end_date,status,total_amount,created_at,updated_at,vehicle:vehicle_id(*),customer:customer_id(*)';
+      // Define default columns with just essential data
+      const defaultDetailColumns = 'id,agreement_number,customer_id,vehicle_id,start_date,end_date,status,total_amount,created_at,updated_at';
+      const customerColumns = 'id,full_name,email,phone_number';
+      const vehicleColumns = 'id,make,model,license_plate,color,year,vin';
       
-      // Check cache first
+      // Use provided columns or default to our optimized selection
+      const columns = selectColumns || 
+        `${defaultDetailColumns},vehicle:vehicle_id(${vehicleColumns}),customer:customer_id(${customerColumns})`;
+      
+      // Check cache first for better performance
       const cachedAgreement = queryClient.getQueryData(['agreement', id]);
       if (cachedAgreement) {
         return cachedAgreement;

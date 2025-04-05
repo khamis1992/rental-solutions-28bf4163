@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Car, DollarSign, Users, FileText } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
@@ -13,12 +13,18 @@ interface DashboardStatsProps {
   stats?: DashboardStatsType;
 }
 
-const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
+const DashboardStatsComponent: React.FC<DashboardStatsProps> = ({ stats }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
   const { isRTL } = useTranslation();
   
   if (!stats) return null;
+  
+  // Calculate values once for better performance
+  const availabilityRate = React.useMemo(() => {
+    return stats.vehicleStats.available > 0 ? 
+      Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0;
+  }, [stats.vehicleStats.available, stats.vehicleStats.total]);
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 section-transition">
@@ -28,8 +34,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
         description={`${t('common.available')}: ${stats.vehicleStats.available}`}
         icon={Car}
         iconColor="text-blue-500"
-        trend={stats.vehicleStats.available > 0 ? 
-          Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0}
+        trend={availabilityRate}
         trendLabel={t('dashboard.availabilityRate')}
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate('/vehicles')}
@@ -74,4 +79,6 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   );
 };
 
+// Use React.memo to prevent unnecessary re-renders
+const DashboardStats = memo(DashboardStatsComponent);
 export default DashboardStats;

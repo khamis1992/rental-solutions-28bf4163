@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '@/components/layout/PageContainer';
 import { useParams } from 'react-router-dom';
@@ -17,6 +17,18 @@ const CustomerDetailPage = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const [systemStatus, setSystemStatus] = useState<string | null>(null);
+  
+  // Memoize the skeleton loading state
+  const loadingSkeleton = useMemo(() => (
+    <div className="space-y-4">
+      <Skeleton className="h-48 w-full rounded-lg" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Skeleton className="h-64 w-full rounded-lg" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+      <Skeleton className="h-64 w-full rounded-lg" />
+    </div>
+  ), []);
   
   // Check system status for this customer in parallel
   useEffect(() => {
@@ -51,16 +63,7 @@ const CustomerDetailPage = () => {
       notification={systemStatus}
     >
       {id && (
-        <Suspense fallback={
-          <div className="space-y-4">
-            <Skeleton className="h-48 w-full rounded-lg" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Skeleton className="h-64 w-full rounded-lg" />
-              <Skeleton className="h-64 w-full rounded-lg" />
-            </div>
-            <Skeleton className="h-64 w-full rounded-lg" />
-          </div>
-        }>
+        <Suspense fallback={loadingSkeleton}>
           <LazyCustomerDetail id={id} />
         </Suspense>
       )}
