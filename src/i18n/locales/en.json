@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "Dashboard",
@@ -71,7 +70,8 @@
     "confirmation": "Confirmation",
     "areYouSure": "Are you sure?",
     "nationality": "Nationality",
-    "notProvided": "Not provided"
+    "notProvided": "Not provided",
+    "notes": "Notes"
   },
   "dashboard": {
     "title": "Dashboard",

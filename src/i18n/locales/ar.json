@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -71,7 +70,8 @@
     "confirmation": "تأكيد",
     "areYouSure": "هل أنت متأكد؟",
     "nationality": "الجنسية",
-    "notProvided": "غير متوفر"
+    "notProvided": "غير متوفر",
+    "notes": "ملاحظات"
   },
   "dashboard": {
     "title": "لوحة القيادة",
@@ -172,7 +172,7 @@
     "dashboard": "لوحة إدارة الشؤون القانونية",
     "documents": "المستندات القانونية",
     "caseManagement": "إدارة القضايا",
-    "complianceCalendar": "تقويم الامتثال",
+    "complianceCalendar": "تقويم ��لامتثال",
     "riskAssessment": "تقييم المخاطر",
     "complianceReporting": "تقارير الامتثال"
   },

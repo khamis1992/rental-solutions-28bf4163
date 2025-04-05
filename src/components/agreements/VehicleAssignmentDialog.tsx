@@ -79,7 +79,6 @@ export function VehicleAssignmentDialog({
     
     setIsLoading(true);
     try {
-      // Fetch vehicle information
       if (vehicleId) {
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
@@ -92,7 +91,6 @@ export function VehicleAssignmentDialog({
         }
       }
       
-      // Fetch pending payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
@@ -113,7 +111,6 @@ export function VehicleAssignmentDialog({
         setPendingPayments(formattedPayments);
       }
       
-      // Fetch traffic fines
       const { data: finesData, error: finesError } = await supabase
         .from('traffic_fines')
         .select('*')
@@ -123,7 +120,6 @@ export function VehicleAssignmentDialog({
       if (finesError) {
         console.error("Error fetching traffic fines:", finesError);
       } else {
-        // Transform the data to ensure payment_status is a proper TrafficFineStatusType
         const transformedFines: TrafficFine[] = (finesData || []).map(fine => ({
           id: fine.id,
           violationNumber: fine.violation_number || "",
@@ -140,7 +136,6 @@ export function VehicleAssignmentDialog({
         setTrafficFines(transformedFines);
       }
       
-      // Fetch customer information
       const { data: agreementData, error: agreementError } = await supabase
         .from('leases')
         .select('customer_id')
@@ -165,7 +160,6 @@ export function VehicleAssignmentDialog({
     }
   };
 
-  // Format date according to locale
   const formatDate = (date: Date | undefined) => {
     if (!date) return t("common.notProvided");
     return new Intl.DateTimeFormat(isRTL ? 'ar-SA' : 'en-US', { 
@@ -188,11 +182,9 @@ export function VehicleAssignmentDialog({
     }
   };
 
-  // Check if we need acknowledgments for payments or fines
   const needsPaymentAcknowledgment = pendingPayments.length > 0;
   const needsFinesAcknowledgment = trafficFines.length > 0;
   
-  // Can proceed if no acknowledgments needed, or all are acknowledged
   const canProceed = (!needsPaymentAcknowledgment || acknowledgedPayments) && 
                     (!needsFinesAcknowledgment || acknowledgedFines);
 
@@ -205,9 +197,9 @@ export function VehicleAssignmentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={`sm:max-w-md ${isRTL ? 'rtl-mode text-right' : ''}`}>
+      <DialogContent className={cn("sm:max-w-md", isRTL ? "rtl-mode text-right" : "")}>
         <DialogHeader>
-          <div className="flex items-center space-x-2">
+          <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             <DialogTitle>{t("agreements.vehicleAlreadyAssigned")}</DialogTitle>
           </div>
@@ -228,7 +220,6 @@ export function VehicleAssignmentDialog({
           </div>
         ) : (
           <>
-            {/* Collapsible Section for Vehicle Information */}
             {vehicleInfo && (
               <Collapsible
                 open={isDetailsOpen}
@@ -237,7 +228,7 @@ export function VehicleAssignmentDialog({
               >
                 <div className="bg-slate-50 p-3">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <div className="flex items-center space-x-2">
+                    <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
                       <Info className="h-4 w-4 text-slate-500" />
                       <h3 className="text-sm font-medium">{t("agreements.vehicleAndAgreementDetails")}</h3>
                     </div>
@@ -261,7 +252,6 @@ export function VehicleAssignmentDialog({
                       </div>
                     </div>
                     
-                    {/* Customer Information */}
                     {customerInfo && (
                       <div>
                         <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">{t("customers.customerDetails")}</h4>
@@ -277,12 +267,11 @@ export function VehicleAssignmentDialog({
               </Collapsible>
             )}
             
-            {/* Pending Payments Section */}
             {pendingPayments.length > 0 && (
               <div className="border rounded-md overflow-hidden mb-3">
                 <div className="bg-amber-50 p-3 border-b border-amber-200">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+                    <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
                       <AlertTriangle className="h-4 w-4 text-amber-500" />
                       <h3 className="text-sm font-medium text-amber-800">{t("agreements.pendingPayments")}</h3>
                     </div>
@@ -313,13 +302,13 @@ export function VehicleAssignmentDialog({
                   </div>
                   
                   {needsPaymentAcknowledgment && (
-                    <div className="mt-3 flex items-center">
-                      <label className="flex items-center text-sm cursor-pointer">
+                    <div className={cn("mt-3 flex items-center", isRTL ? "flex-row-reverse" : "")}>
+                      <label className={cn("flex items-center text-sm cursor-pointer", isRTL ? "flex-row-reverse" : "")}>
                         <input
                           type="checkbox"
                           checked={acknowledgedPayments}
                           onChange={(e) => setAcknowledgedPayments(e.target.checked)}
-                          className="mr-2"
+                          className={cn(isRTL ? "ml-2" : "mr-2")}
                         />
                         {t("agreements.acknowledgePendingPayments")}
                       </label>
@@ -329,12 +318,11 @@ export function VehicleAssignmentDialog({
               </div>
             )}
             
-            {/* Traffic Fines Section */}
             {trafficFines.length > 0 && (
               <div className="border rounded-md overflow-hidden mb-3">
                 <div className="bg-amber-50 p-3 border-b border-amber-200">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
+                    <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
                       <AlertCircle className="h-4 w-4 text-amber-500" />
                       <h3 className="text-sm font-medium text-amber-800">{t("customers.trafficFines")}</h3>
                     </div>
@@ -365,13 +353,13 @@ export function VehicleAssignmentDialog({
                   </div>
                   
                   {needsFinesAcknowledgment && (
-                    <div className="mt-3 flex items-center">
-                      <label className="flex items-center text-sm cursor-pointer">
+                    <div className={cn("mt-3 flex items-center", isRTL ? "flex-row-reverse" : "")}>
+                      <label className={cn("flex items-center text-sm cursor-pointer", isRTL ? "flex-row-reverse" : "")}>
                         <input
                           type="checkbox"
                           checked={acknowledgedFines}
                           onChange={(e) => setAcknowledgedFines(e.target.checked)}
-                          className="mr-2"
+                          className={cn(isRTL ? "ml-2" : "mr-2")}
                         />
                         {t("agreements.acknowledgeTrafficFines")}
                       </label>
@@ -380,10 +368,22 @@ export function VehicleAssignmentDialog({
                 </div>
               </div>
             )}
+            
+            <div className="border rounded-md overflow-hidden mb-3">
+              <div className="bg-slate-50 p-3 border-b border-slate-200">
+                <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
+                  <Info className="h-4 w-4 text-slate-500" />
+                  <h3 className="text-sm font-medium">{t("common.notes")}</h3>
+                </div>
+              </div>
+              <div className="p-3">
+                <p className="text-sm mb-3">{t("agreements.vehicleReassignmentConfirmed")}</p>
+              </div>
+            </div>
           </>
         )}
 
-        <DialogFooter className={isRTL ? 'flex-row-reverse justify-start' : ''}>
+        <DialogFooter className={cn(isRTL ? "flex-row-reverse justify-start" : "")}>
           <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
           <Button 
             onClick={handleConfirm} 
