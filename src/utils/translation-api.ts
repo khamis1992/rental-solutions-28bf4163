@@ -26,7 +26,7 @@ export const translateText = async (
     }
     
     // Skip translation for UI text that should come from locale files
-    // Check if the text matches common UI labels that should come from i18n
+    // Check if the text matches common UI labels or contains translation keys
     const uiTextsToSkip = [
       'Agreement Details',
       'View details',
@@ -71,8 +71,25 @@ export const translateText = async (
       'Track all payments for this agreement',
       'No payments recorded for this agreement yet.',
       'Confirm Payment Deletion',
-      'Actions'
+      'Actions',
+      'Traffic Fines Management',
+      'Record, track, and manage traffic violations',
+      'Fines List',
+      'Record New Fine',
+      'Fine Analytics'
     ];
+    
+    // Skip translation for text containing placeholder notation like {duration}
+    if (text.includes('{') && text.includes('}')) {
+      console.log(`Skipping translation for text with placeholders: "${text}"`);
+      return text;
+    }
+    
+    // Skip translation if text contains a translation key pattern (e.g., common.no or trafficFines.status.paid)
+    if (/^[a-zA-Z0-9]+\.[a-zA-Z0-9]+(\.[a-zA-Z0-9]+)*$/.test(text)) {
+      console.log(`Skipping translation for what appears to be a translation key: "${text}"`);
+      return text;
+    }
     
     if (uiTextsToSkip.some(uiText => text.includes(uiText))) {
       console.log(`Skipping translation for UI text that should come from locale files: "${text}"`);

@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -81,7 +80,9 @@
     "unknown": "غير معروف",
     "ref": "مرجع",
     "total": "المجموع",
-    "dueDate": "تاريخ الاستحقاق"
+    "dueDate": "تاريخ الاستحقاق",
+    "showing": "عرض {{count}} عنصر",
+    "showing_plural": "عرض {{count}} عناصر"
   },
   "dashboard": {
     "title": "لوحة القيادة",

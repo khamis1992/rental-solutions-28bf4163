@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "Dashboard",
@@ -81,7 +80,9 @@
     "unknown": "Unknown",
     "ref": "Ref",
     "total": "Total",
-    "dueDate": "Due"
+    "dueDate": "Due",
+    "showing": "Showing {{count}} item",
+    "showing_plural": "Showing {{count}} items"
   },
   "dashboard": {
     "title": "Dashboard",
