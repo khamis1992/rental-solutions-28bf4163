@@ -3,7 +3,6 @@ import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ContractPayment, CarInstallmentPayment } from '@/types/payment';
-import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { useDateFormatter } from '@/lib/date-utils';
 import { useTranslation } from 'react-i18next';
@@ -36,6 +35,11 @@ export function PaymentHistoryTable({ payments }: PaymentHistoryTableProps) {
     }
   };
 
+  // Function to ensure date is properly formatted
+  const ensureDate = (dateInput: string | Date): Date => {
+    return dateInput instanceof Date ? dateInput : new Date(dateInput);
+  };
+
   return (
     <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
       <Table className={isRTL ? 'rtl-direction' : ''}>
@@ -64,10 +68,10 @@ export function PaymentHistoryTable({ payments }: PaymentHistoryTableProps) {
                   {payment.payment_number}
                 </TableCell>
                 <TableCell className="px-6 py-4">
-                  {formatDate(payment.payment_date, 'MMM dd, yyyy')}
+                  {formatDate(ensureDate(payment.payment_date), 'MMM dd, yyyy')}
                 </TableCell>
                 <TableCell className="px-6 py-4">
-                  {formatDate(payment.due_date, 'MMM dd, yyyy')}
+                  {formatDate(ensureDate(payment.due_date), 'MMM dd, yyyy')}
                 </TableCell>
                 <TableCell className="px-6 py-4">{formatCurrency(payment.amount)}</TableCell>
                 <TableCell className="px-6 py-4">{payment.payment_method || 'N/A'}</TableCell>

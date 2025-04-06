@@ -35,15 +35,33 @@ export function ContractDetailDialog({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedNotes, setEditedNotes] = useState('');
-  const [paymentHistory, setPaymentHistory] = useState<CarInstallmentPayment[] | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<CarInstallmentPayment[]>([]);
 
   useEffect(() => {
     if (contract) {
       setEditedNotes(contract.notes || '');
-      // Fetch payment history here if needed
-      // Example: fetchPaymentHistory(contract.id).then(setPaymentHistory);
-      // For now, let's assume paymentHistory is part of the contract
-      setPaymentHistory(contract.payments || null);
+      // Properly transform contract payments to match CarInstallmentPayment type
+      if (contract.payments && contract.payments.length > 0) {
+        const formattedPayments: CarInstallmentPayment[] = contract.payments.map(payment => ({
+          id: payment.id || '', // Ensure id is not undefined
+          contract_id: contract.id || '',
+          payment_number: payment.payment_number || '',
+          payment_date: payment.payment_date instanceof Date 
+            ? payment.payment_date 
+            : new Date(payment.payment_date || ''),
+          due_date: payment.due_date instanceof Date 
+            ? payment.due_date 
+            : new Date(payment.due_date || ''),
+          amount: payment.amount || 0,
+          status: payment.status || 'pending',
+          payment_method: payment.payment_method,
+          reference: payment.reference,
+          notes: payment.notes
+        }));
+        setPaymentHistory(formattedPayments);
+      } else {
+        setPaymentHistory([]);
+      }
     }
   }, [contract]);
 
@@ -60,19 +78,12 @@ export function ContractDetailDialog({
   };
 
   const renderPaymentsList = () => {
-    if (!contract || !paymentHistory) return null;
-
-    // Ensure the payments are typed correctly
-    const contractPayments: CarInstallmentPayment[] = paymentHistory.map(payment => ({
-      ...payment,
-      payment_number: payment.payment_number || '',
-      due_date: payment.due_date || new Date()
-    }));
+    if (!contract || !paymentHistory.length) return null;
 
     return (
       <div className="space-y-4 mt-4">
         <h3 className="text-lg font-medium">{t('financials.carSales.paymentHistory')}</h3>
-        <PaymentHistoryTable payments={contractPayments} />
+        <PaymentHistoryTable payments={paymentHistory} />
       </div>
     );
   };
@@ -142,7 +153,7 @@ export function ContractDetailDialog({
           <div>{t('financials.carSales.noContractDetails')}</div>
         )}
 
-        <AlertDialog>
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>{t('financials.carSales.deleteContract')}</AlertDialogTitle>
