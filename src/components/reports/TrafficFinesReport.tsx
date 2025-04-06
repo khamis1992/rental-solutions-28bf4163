@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, CheckCircle, Filter, Search, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
+import ReportDownloadOptions from './ReportDownloadOptions';
 
 export default function TrafficFinesReport() {
   const { trafficFines, isLoading, error } = useTrafficFines();
@@ -74,6 +75,21 @@ export default function TrafficFinesReport() {
         return <Badge className="bg-red-500 text-white"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
     }
   };
+  
+  // Function to get report data for export
+  const getReportData = () => {
+    return filteredFines.map(fine => ({
+      violationNumber: fine.violationNumber,
+      licensePlate: fine.licensePlate,
+      vehicleModel: fine.vehicleModel,
+      violationDate: formatDate(fine.violationDate),
+      location: fine.location || 'N/A',
+      fineAmount: fine.fineAmount,
+      status: fine.paymentStatus,
+      customerName: fine.customerName || 'Unassigned',
+      paymentDate: fine.paymentDate ? formatDate(fine.paymentDate) : 'N/A'
+    }));
+  };
 
   if (isLoading) {
     return (
@@ -96,33 +112,45 @@ export default function TrafficFinesReport() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-start gap-4 mb-4">
-        {/* Search and filter controls */}
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search license plate, customer..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+      <div className="flex flex-col md:flex-row items-start justify-between gap-4 mb-4">
+        <div className="w-full md:w-auto flex flex-col md:flex-row gap-4">
+          {/* Search and filter controls */}
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search license plate, customer..."
+              className="pl-8"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex gap-2 items-center w-full md:w-auto">
+            <Label className="flex items-center gap-2">
+              <Filter className="h-4 w-4" /> Status:
+            </Label>
+            <select 
+              className="p-2 border rounded-md" 
+              onChange={(e) => setFilterStatus(e.target.value === 'all' ? null : e.target.value)}
+              defaultValue="all"
+            >
+              <option value="all">All</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="disputed">Disputed</option>
+            </select>
+          </div>
         </div>
         
-        <div className="flex gap-2 items-center w-full md:w-auto">
-          <Label className="flex items-center gap-2">
-            <Filter className="h-4 w-4" /> Status:
-          </Label>
-          <select 
-            className="p-2 border rounded-md" 
-            onChange={(e) => setFilterStatus(e.target.value === 'all' ? null : e.target.value)}
-            defaultValue="all"
-          >
-            <option value="all">All</option>
-            <option value="paid">Paid</option>
-            <option value="pending">Pending</option>
-            <option value="disputed">Disputed</option>
-          </select>
-        </div>
+        <ReportDownloadOptions 
+          reportType="traffic-fines"
+          getReportData={getReportData}
+          reportTitle="Traffic Fines Report"
+          dateRange={{ 
+            from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 
+            to: new Date() 
+          }}
+        />
       </div>
 
       {/* Summary statistics */}
