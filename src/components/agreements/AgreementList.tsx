@@ -21,9 +21,12 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { doesLicensePlateMatch } from '@/utils/searchUtils';
+
 interface AgreementListProps {
   searchQuery?: string;
 }
+
 export function AgreementList({
   searchQuery = ''
 }: AgreementListProps) {
@@ -41,7 +44,6 @@ export function AgreementList({
   const queryClient = useQueryClient();
   const {
     agreements = [],
-    // Provide empty array as default 
     isLoading,
     error,
     searchParams,
@@ -51,22 +53,48 @@ export function AgreementList({
     query: searchQuery,
     status: statusFilter
   });
+
+  const filteredAgreements = React.useMemo(() => {
+    if (!searchQuery || !searchQuery.trim() || !agreements) {
+      return agreements;
+    }
+    
+    const alreadyFiltered = agreements.some(agreement => {
+      const vehicle = agreement.vehicle || agreement.vehicles;
+      return vehicle && vehicle.license_plate && 
+        doesLicensePlateMatch(vehicle.license_plate, searchQuery);
+    });
+    
+    if (alreadyFiltered) {
+      return agreements;
+    }
+    
+    return agreements.filter(agreement => {
+      const vehicle = agreement.vehicle || agreement.vehicles;
+      return vehicle && vehicle.license_plate && 
+        doesLicensePlateMatch(vehicle.license_plate, searchQuery);
+    });
+  }, [agreements, searchQuery]);
+
   useEffect(() => {
     setSearchParams(prev => ({
       ...prev,
       query: searchQuery
     }));
   }, [searchQuery, setSearchParams]);
+
   const {
     useRealtimeUpdates: useVehicleRealtimeUpdates
   } = useVehicles();
   useVehicleRealtimeUpdates();
+
   const [sorting, setSorting] = useState<SortingState>([{
     id: 'created_at',
     desc: true
   }]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
   const navigate = useNavigate();
+
   useEffect(() => {
     setRowSelection({});
     setPagination({
@@ -74,6 +102,7 @@ export function AgreementList({
       pageSize: 10
     });
   }, [agreements, statusFilter, searchQuery]);
+
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
     setSearchParams(prev => ({
@@ -81,7 +110,9 @@ export function AgreementList({
       status
     }));
   };
+
   const selectedCount = Object.keys(rowSelection).length;
+
   const handleBulkDelete = async () => {
     if (!agreements || agreements.length === 0) return;
     setIsDeleting(true);
@@ -109,6 +140,7 @@ export function AgreementList({
     setBulkDeleteDialogOpen(false);
     setIsDeleting(false);
   };
+
   const handleSingleDelete = async () => {
     if (!singleDeleteId) return;
     try {
@@ -121,6 +153,7 @@ export function AgreementList({
       toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
+
   const columns: ColumnDef<SimpleAgreement>[] = [{
     id: "select",
     header: ({
@@ -272,13 +305,15 @@ export function AgreementList({
           </DropdownMenu>;
     }
   }];
+
   const statusCounts = Array.isArray(agreements) ? agreements.reduce((acc: Record<string, number>, agreement) => {
     const status = agreement.status || 'unknown';
     acc[status] = (acc[status] || 0) + 1;
     return acc;
   }, {}) : {};
+
   const table = useReactTable({
-    data: agreements || [],
+    data: filteredAgreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -295,8 +330,9 @@ export function AgreementList({
       pagination
     },
     manualPagination: false,
-    pageCount: Math.ceil((agreements?.length || 0) / 10)
+    pageCount: Math.ceil((filteredAgreements?.length || 0) / 10)
   });
+
   return <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center w-full sm:w-auto space-x-2">

@@ -4,10 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Search } from 'lucide-react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
 import { cn } from '@/lib/utils';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { normalizeLicensePlate } from '@/utils/searchUtils';
 
 const Agreements = () => {
   const navigate = useNavigate();
@@ -16,6 +19,8 @@ const Agreements = () => {
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
   const [addButtonText, setAddButtonText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [vehicleSearchQuery, setVehicleSearchQuery] = useState('');
 
   // Pre-translate the page title, description, and button text to avoid flickering
   useEffect(() => {
@@ -31,6 +36,25 @@ const Agreements = () => {
     
     loadTranslations();
   }, [t, translateText, isRTL]);
+
+  // Debounce the search input to prevent too many re-renders
+  const debouncedSetSearch = useDebouncedCallback((value: string) => {
+    setSearchQuery(value);
+  }, 300);
+
+  // Handle vehicle number search input changes
+  const handleVehicleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setVehicleSearchQuery(value);
+    
+    // Use normalized license plate search for better matching
+    if (value.trim()) {
+      const normalizedValue = normalizeLicensePlate(value);
+      debouncedSetSearch(normalizedValue);
+    } else {
+      debouncedSetSearch('');
+    }
+  };
 
   const handleAddAgreement = () => {
     navigate('/agreements/add');
@@ -50,7 +74,19 @@ const Agreements = () => {
         </Button>
       }
     >
-      <AgreementList />
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search by vehicle license plate..."
+            className="pl-8 w-full md:w-[300px]"
+            value={vehicleSearchQuery}
+            onChange={handleVehicleSearchChange}
+          />
+        </div>
+      </div>
+      <AgreementList searchQuery={searchQuery} />
     </PageContainer>
   );
 };
