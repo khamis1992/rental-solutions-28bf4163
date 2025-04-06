@@ -16,8 +16,11 @@ export default function TrafficFinesReport() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   
-  // Filter fines based on search term and status filter
+  // Filter fines based on search term, status filter, and only show assigned fines (with customerId)
   const filteredFines = trafficFines ? trafficFines.filter(fine => {
+    // Only include fines that are assigned to customers (have a customerId)
+    if (!fine.customerId) return false;
+    
     const matchesSearch = searchTerm === '' || 
       (fine.licensePlate?.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (fine.customerName?.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -34,7 +37,7 @@ export default function TrafficFinesReport() {
     
     if (filteredFines && filteredFines.length > 0) {
       filteredFines.forEach(fine => {
-        const customerId = fine.customerId || 'unassigned';
+        const customerId = fine.customerId || '';
         if (!grouped[customerId]) {
           grouped[customerId] = [];
         }
@@ -45,16 +48,19 @@ export default function TrafficFinesReport() {
     return grouped;
   }, [filteredFines]);
 
-  // Calculate statistics
+  // Calculate statistics - only for assigned fines
   const statistics = React.useMemo(() => {
     if (!trafficFines) return { total: 0, paid: 0, pending: 0, disputed: 0, totalAmount: 0 };
     
+    // Only include fines that are assigned to customers
+    const assignedFines = trafficFines.filter(fine => fine.customerId);
+    
     return {
-      total: trafficFines.length,
-      paid: trafficFines.filter(fine => fine.paymentStatus === 'paid').length,
-      pending: trafficFines.filter(fine => fine.paymentStatus === 'pending').length,
-      disputed: trafficFines.filter(fine => fine.paymentStatus === 'disputed').length,
-      totalAmount: trafficFines.reduce((sum, fine) => sum + fine.fineAmount, 0)
+      total: assignedFines.length,
+      paid: assignedFines.filter(fine => fine.paymentStatus === 'paid').length,
+      pending: assignedFines.filter(fine => fine.paymentStatus === 'pending').length,
+      disputed: assignedFines.filter(fine => fine.paymentStatus === 'disputed').length,
+      totalAmount: assignedFines.reduce((sum, fine) => sum + fine.fineAmount, 0)
     };
   }, [trafficFines]);
 
@@ -164,12 +170,12 @@ export default function TrafficFinesReport() {
           <Card key={customerId} className="overflow-hidden">
             <CardHeader className="bg-muted/30 pb-2">
               <CardTitle className="text-lg">
-                {customerFines[0].customerName || 'Unassigned Fines'}
+                {customerFines[0].customerName || 'Customer Name Not Available'}
                 <Badge variant="outline" className="ml-3">
                   {customerFines.length} {customerFines.length === 1 ? 'Fine' : 'Fines'}
                 </Badge>
               </CardTitle>
-              {customerFines[0].customerId && (
+              {customerFines[0].leaseId && (
                 <div className="text-sm text-muted-foreground grid grid-cols-1 md:grid-cols-2 gap-2">
                   <span>Agreement ID: {customerFines[0].leaseId || 'N/A'}</span>
                 </div>
