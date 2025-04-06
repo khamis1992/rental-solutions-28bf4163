@@ -15,26 +15,15 @@ import LegalCaseManagement from './LegalCaseManagement';
 import ComplianceCalendar from './ComplianceCalendar';
 import LegalRiskAssessment from './LegalRiskAssessment';
 import ComplianceReporting from './ComplianceReporting';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useDirectionalClasses } from '@/utils/rtl-utils';
 
 const LegalDashboard = () => {
   const [activeTab, setActiveTab] = useState('documents');
-  const { t } = useI18nTranslation();
-  const { direction, isRTL } = useTranslation();
-  
-  const tabsClasses = useDirectionalClasses(
-    "grid grid-cols-1 md:grid-cols-5 gap-4",
-    "",
-    ""
-  );
   
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-xl font-semibold">{t('legal.dashboard')}</CardTitle>
+          <CardTitle className="text-xl font-semibold">Legal Management Dashboard</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs 
@@ -42,28 +31,27 @@ const LegalDashboard = () => {
             className="space-y-4"
             value={activeTab}
             onValueChange={setActiveTab}
-            dir={direction}
           >
-            <TabsList className={tabsClasses}>
-              <TabsTrigger value="documents" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+            <TabsList className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <TabsTrigger value="documents" className="flex items-center space-x-2">
                 <FileText className="h-4 w-4" />
-                <span>{t('legal.documents')}</span>
+                <span>Legal Documents</span>
               </TabsTrigger>
-              <TabsTrigger value="cases" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+              <TabsTrigger value="cases" className="flex items-center space-x-2">
                 <Gavel className="h-4 w-4" />
-                <span>{t('legal.caseManagement')}</span>
+                <span>Case Management</span>
               </TabsTrigger>
-              <TabsTrigger value="compliance" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+              <TabsTrigger value="compliance" className="flex items-center space-x-2">
                 <Calendar className="h-4 w-4" />
-                <span>{t('legal.complianceCalendar')}</span>
+                <span>Compliance Calendar</span>
               </TabsTrigger>
-              <TabsTrigger value="risk" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+              <TabsTrigger value="risk" className="flex items-center space-x-2">
                 <ShieldAlert className="h-4 w-4" />
-                <span>{t('legal.riskAssessment')}</span>
+                <span>Risk Assessment</span>
               </TabsTrigger>
-              <TabsTrigger value="reporting" className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
+              <TabsTrigger value="reporting" className="flex items-center space-x-2">
                 <BarChart4 className="h-4 w-4" />
-                <span>{t('legal.complianceReporting')}</span>
+                <span>Compliance Reporting</span>
               </TabsTrigger>
             </TabsList>
             

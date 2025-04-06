@@ -1,9 +1,7 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
-import i18next from 'i18next';
 
 export interface DashboardStats {
   vehicleStats: {
@@ -78,19 +76,17 @@ export function useDashboardData() {
         // Fetch real payment data for current month
         const { data: currentMonthPayments, error: paymentsError } = await supabase
           .from('unified_payments')
-          .select('amount_paid, amount, type')
-          .gte('payment_date', firstDayCurrentMonth.toISOString())
-          .or(`type.eq.Income,type.eq.rent,type.ilike.%income%,type.ilike.%rent%`);
+          .select('amount_paid')
+          .gte('payment_date', firstDayCurrentMonth.toISOString());
           
         if (paymentsError) throw paymentsError;
         
         // Fetch real payment data for last month for growth calculation
         const { data: lastMonthPayments, error: lastMonthError } = await supabase
           .from('unified_payments')
-          .select('amount_paid, amount, type')
+          .select('amount_paid')
           .gte('payment_date', firstDayLastMonth.toISOString())
-          .lt('payment_date', firstDayCurrentMonth.toISOString())
-          .or(`type.eq.Income,type.eq.rent,type.ilike.%income%,type.ilike.%rent%`);
+          .lt('payment_date', firstDayCurrentMonth.toISOString());
           
         if (lastMonthError) throw lastMonthError;
         
@@ -140,21 +136,16 @@ export function useDashboardData() {
           critical: (statusCounts['accident'] || 0) + (statusCounts['stolen'] || 0)
         };
         
-        // Calculate financial stats from real payment data - Using the same approach as useFinancials hook
+        // Calculate financial stats from real payment data - IMPORTANT CHANGE:
+        // Only use amount_paid for revenue calculation, NOT amount
         const currentMonthTotal = currentMonthPayments.reduce((sum, payment) => {
-          // Use amount_paid when available, otherwise fallback to amount field
-          const value = (payment.amount_paid !== null && payment.amount_paid !== undefined) 
-            ? Number(payment.amount_paid) 
-            : Number(payment.amount) || 0;
-          return sum + value;
+          // Only consider amount_paid and treat null/undefined as 0
+          return sum + (payment.amount_paid || 0);
         }, 0);
         
         const lastMonthTotal = lastMonthPayments.reduce((sum, payment) => {
-          // Use amount_paid when available, otherwise fallback to amount field
-          const value = (payment.amount_paid !== null && payment.amount_paid !== undefined) 
-            ? Number(payment.amount_paid) 
-            : Number(payment.amount) || 0;
-          return sum + value;
+          // Only consider amount_paid and treat null/undefined as 0
+          return sum + (payment.amount_paid || 0);
         }, 0);
         
         // Calculate real growth percentage
@@ -388,7 +379,7 @@ export function useDashboardData() {
   };
 }
 
-// Updated helper function to calculate time ago using translation keys
+// Helper function to calculate time ago
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
@@ -396,43 +387,26 @@ function getTimeAgo(date: Date): string {
   const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
-  const currentLang = i18next.language;
-  
   if (diffInMinutes < 60) {
-    return i18next.t('dashboard.timeAgo.minutes', { count: diffInMinutes });
+    return `${diffInMinutes} minutes ago`;
   } else if (diffInHours < 24) {
-    return i18next.t('dashboard.timeAgo.hours', { count: diffInHours });
+    return `${diffInHours} hours ago`;
   } else {
-    return i18next.t('dashboard.timeAgo.days', { count: diffInDays });
+    return `${diffInDays} days ago`;
   }
 }
 
 // Helper function to parse time ago for sorting
 function parseTimeAgo(timeAgo: string): number {
-  // Extract numerical value from time ago string using regex
-  const match = timeAgo.match(/(\d+)/);
+  const match = timeAgo.match(/(\d+)\s+(\w+)/);
   if (!match) return 9999;
   
-  const numValue = parseInt(match[1]);
+  const [_, value, unit] = match;
+  const numValue = parseInt(value);
   
-  // Determine unit by checking for translated strings
-  if (timeAgo.includes(i18next.t('dashboard.timeAgo.minuteUnit', { count: 2 }).split(' ')[1]) || 
-      timeAgo.includes('minute') || 
-      timeAgo.includes('دقيقة')) {
-    return numValue;
-  }
-  
-  if (timeAgo.includes(i18next.t('dashboard.timeAgo.hourUnit', { count: 2 }).split(' ')[1]) || 
-      timeAgo.includes('hour') || 
-      timeAgo.includes('ساعة')) {
-    return numValue * 60;
-  }
-  
-  if (timeAgo.includes(i18next.t('dashboard.timeAgo.dayUnit', { count: 2 }).split(' ')[1]) || 
-      timeAgo.includes('day') || 
-      timeAgo.includes('يوم')) {
-    return numValue * 60 * 24;
-  }
+  if (unit.includes('minute')) return numValue;
+  if (unit.includes('hour')) return numValue * 60;
+  if (unit.includes('day')) return numValue * 60 * 24;
   
   return 9999;
 }

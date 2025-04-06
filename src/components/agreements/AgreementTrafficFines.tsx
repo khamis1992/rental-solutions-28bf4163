@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
+import { format } from 'date-fns';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useDateFormatter } from '@/lib/date-utils';
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -14,9 +12,6 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
-  const { formatDate } = useDateFormatter();
   const { isLoading, trafficFines } = useTrafficFines();
   const [showLoader, setShowLoader] = useState(false);
 
@@ -50,11 +45,11 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     return (
       <div className="space-y-4">
         <p className="text-center py-4 text-muted-foreground">
-          {t("trafficFines.noFines")}
+          No traffic fines recorded for this rental period.
         </p>
         <div className="flex justify-center">
           <Button onClick={handleRefresh} variant="outline" size="sm">
-            {t("trafficFines.checkNew")}
+            Check for new fines
           </Button>
         </div>
       </div>
@@ -64,14 +59,14 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto">
-        <table className={`w-full text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b">
-              <th className={`py-3 px-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t("common.date")}</th>
-              <th className={`py-3 px-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t("trafficFines.location")}</th>
-              <th className={`py-3 px-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t("trafficFines.violationNumber")}</th>
-              <th className={`py-3 px-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t("common.amount")}</th>
-              <th className={`py-3 px-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t("common.status")}</th>
+              <th className="text-left py-3 px-4">Date</th>
+              <th className="text-left py-3 px-4">Location</th>
+              <th className="text-left py-3 px-4">Violation</th>
+              <th className="text-right py-3 px-4">Amount</th>
+              <th className="text-right py-3 px-4">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -79,15 +74,15 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
               <tr key={fine.id} className="border-b hover:bg-muted/50">
                 <td className="py-3 px-4">
                   {fine.violationDate 
-                    ? formatDate(new Date(fine.violationDate))
-                    : t("common.notProvided")}
+                    ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
+                    : 'N/A'}
                 </td>
-                <td className="py-3 px-4">{fine.location || t("common.notProvided")}</td>
-                <td className="py-3 px-4">{fine.violationCharge || t("common.notProvided")}</td>
+                <td className="py-3 px-4">{fine.location || 'N/A'}</td>
+                <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
                 <td className="py-3 px-4 text-right">
                   {fine.fineAmount 
                     ? `QAR ${fine.fineAmount.toLocaleString()}` 
-                    : t("common.notProvided")}
+                    : 'N/A'}
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className={`px-2 py-1 rounded-full text-xs ${
@@ -95,9 +90,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {fine.paymentStatus === 'paid' 
-                      ? t("trafficFines.status.paid") 
-                      : t("trafficFines.status.pending")}
+                    {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
                   </span>
                 </td>
               </tr>
@@ -106,15 +99,15 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
         </table>
       </div>
       
-      <div className={`flex justify-between items-center pt-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className="flex justify-between items-center pt-4">
         <div>
           <p className="text-sm text-muted-foreground">
-            {t("common.showing", { count: filteredFines.length })}
+            Showing {filteredFines.length} fine{filteredFines.length !== 1 ? 's' : ''}
           </p>
         </div>
         
         <Button onClick={handleRefresh} variant="outline" size="sm">
-          {t("common.refresh")}
+          Refresh
         </Button>
       </div>
     </div>

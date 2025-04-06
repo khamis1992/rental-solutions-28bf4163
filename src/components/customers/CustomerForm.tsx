@@ -1,7 +1,5 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTranslation } from 'react-i18next';
 import { customerSchema, Customer } from "@/lib/validation-schemas/customer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +22,6 @@ import {
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
-import { useTranslation as useAppTranslation } from "@/contexts/TranslationContext";
-import { getDirectionalClasses } from "@/utils/rtl-utils";
 
 interface CustomerFormProps {
   initialData?: Customer;
@@ -34,8 +30,6 @@ interface CustomerFormProps {
 }
 
 export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormProps) {
-  const { t } = useTranslation();
-  const { isRTL } = useAppTranslation();
   const navigate = useNavigate();
   const formInitialized = useRef(false);
   
@@ -76,16 +70,16 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={`space-y-6 max-w-2xl ${isRTL ? 'text-right' : 'text-left'}`}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="full_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('common.name')}</FormLabel>
+                <FormLabel>Full Name</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('customers.name')} {...field} value={field.value || ''} />
+                  <Input placeholder="Enter customer's full name" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -97,7 +91,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('customers.emailAddress')}</FormLabel>
+                <FormLabel>Email Address</FormLabel>
                 <FormControl>
                   <Input type="email" placeholder="customer@example.com" {...field} value={field.value || ''} />
                 </FormControl>
@@ -111,12 +105,12 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('customers.phoneNumber')}</FormLabel>
+                <FormLabel>Phone Number</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('common.phone')} {...field} value={field.value || ''} />
+                  <Input placeholder="33123456" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormDescription>
-                  {t('customers.phoneNumber')}
+                  Enter 8 digits only. The +974 country code will be added automatically.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -128,9 +122,9 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             name="driver_license"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('customers.driverLicense')}</FormLabel>
+                <FormLabel>Driver License</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('customers.license')} {...field} value={field.value || ''} />
+                  <Input placeholder="License number" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -142,9 +136,9 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             name="nationality"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('common.nationality')}</FormLabel>
+                <FormLabel>Nationality</FormLabel>
                 <FormControl>
-                  <Input placeholder={t('common.nationality')} {...field} value={field.value || ''} />
+                  <Input placeholder="Enter customer's nationality" {...field} value={field.value || ''} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -156,22 +150,22 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
             name="status"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>{t('common.status')}</FormLabel>
+                <FormLabel>Status</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value || 'active'}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder={t('customers.selectStatus')} />
+                      <SelectValue placeholder="Select customer status" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent align={isRTL ? "end" : "start"}>
-                    <SelectItem value="active">{t('customers.status.active')}</SelectItem>
-                    <SelectItem value="inactive">{t('customers.status.inactive')}</SelectItem>
-                    <SelectItem value="blacklisted">{t('customers.status.blacklisted')}</SelectItem>
-                    <SelectItem value="pending_review">{t('customers.status.pendingreview')}</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="blacklisted">Blacklisted</SelectItem>
+                    <SelectItem value="pending_review">Pending Review</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  {t('common.status')}
+                  Customer's current status in the system
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -184,9 +178,9 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('customers.address')}</FormLabel>
+              <FormLabel>Address</FormLabel>
               <FormControl>
-                <Textarea placeholder={t('customers.address')} {...field} value={field.value || ''} />
+                <Textarea placeholder="Customer's address" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -198,25 +192,25 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
           name="notes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{t('customers.additionalNotes')}</FormLabel>
+              <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea placeholder={t('customers.additionalNotes')} {...field} value={field.value || ''} />
+                <Textarea placeholder="Additional notes about the customer" {...field} value={field.value || ''} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         
-        <div className={`flex items-center ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} space-x-4 ${isRTL ? 'space-x-reverse' : ''}`}>
+        <div className="flex items-center justify-end space-x-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate("/customers")}
           >
-            {t('common.cancel')}
+            Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? t('common.loading') : initialData ? t('customers.editCustomer') : t('customers.addCustomer')}
+            {isLoading ? "Saving..." : initialData ? "Update Customer" : "Add Customer"}
           </Button>
         </div>
       </form>

@@ -11,17 +11,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
-import { useTranslation } from 'react-i18next';
-import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
-import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bucketError, setBucketError] = useState<string | null>(null);
   const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
-  const { t } = useTranslation();
-  const { isRTL } = useContextTranslation();
   
   const { useVehicle, useUpdate } = useVehicles();
   const { data: vehicle, isLoading, error, refetch } = useVehicle(id || '');
@@ -30,8 +25,8 @@ const EditVehicle = () => {
   useEffect(() => {
     if (!id) {
       console.error('No vehicle ID provided in URL');
-      toast.error(t('common.error'), {
-        description: t('vehicles.noIdProvided')
+      toast.error('No vehicle ID provided', {
+        description: 'Please go back to the vehicles list and try again'
       });
       return;
     }
@@ -51,7 +46,7 @@ const EditVehicle = () => {
       console.log('Vehicle data loaded:', vehicle);
       checkForModelImage();
     }
-  }, [vehicle, id, t]);
+  }, [vehicle, id]);
   
   // Check if bucket exists and create it if needed
   const ensureVehicleImagesBucket = async () => {
@@ -62,7 +57,7 @@ const EditVehicle = () => {
       
       if (listError) {
         console.error('Error listing buckets:', listError);
-        setBucketError(`${t('common.error')}: ${listError.message}`);
+        setBucketError(`Error checking storage buckets: ${listError.message}`);
         return false;
       }
       
@@ -78,12 +73,12 @@ const EditVehicle = () => {
         
         if (createError) {
           console.error('Error creating bucket:', createError);
-          setBucketError(`${t('common.error')}: ${createError.message}`);
+          setBucketError(`Error creating storage bucket: ${createError.message}`);
           return false;
         }
         
         console.log('Storage bucket created successfully');
-        toast.success(t('vehicles.bucketCreatedSuccess'));
+        toast.success('Vehicle images storage bucket created successfully');
       } else {
         console.log('vehicle-images bucket already exists');
       }
@@ -91,7 +86,7 @@ const EditVehicle = () => {
       return true;
     } catch (error) {
       console.error('Error ensuring vehicle images bucket exists:', error);
-      setBucketError(`${t('common.unexpectedError')}: ${error instanceof Error ? error.message : t('common.unknownError')}`);
+      setBucketError(`Unexpected error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return false;
     }
   };
@@ -99,8 +94,8 @@ const EditVehicle = () => {
   const handleSubmit = async (formData: any) => {
     if (!id) {
       console.error('No vehicle ID provided for update');
-      toast.error(t('common.error'), {
-        description: t('vehicles.missingId')
+      toast.error('Missing vehicle ID', {
+        description: 'Cannot update vehicle without an ID'
       });
       return;
     }
@@ -110,8 +105,8 @@ const EditVehicle = () => {
     // Validate required fields
     if (!formData.make || !formData.model || !formData.year || !formData.license_plate || !formData.vin) {
       console.error('Missing required fields in form data:', formData);
-      toast.error(t('common.error'), {
-        description: t('common.requiredFields')
+      toast.error('Missing required fields', {
+        description: 'Please fill in all required fields'
       });
       return;
     }
@@ -128,7 +123,7 @@ const EditVehicle = () => {
         const bucketReady = await ensureVehicleImagesBucket();
         if (!bucketReady) {
           console.error('Failed to prepare storage bucket:', bucketError);
-          toast.error(t('common.error'), { description: bucketError || t('vehicles.bucketPrepareFailed') });
+          toast.error('Storage bucket issue', { description: bucketError || 'Failed to prepare storage for vehicle images' });
           return;
         }
       }
@@ -149,13 +144,13 @@ const EditVehicle = () => {
         {
           onSuccess: (updatedVehicle) => {
             console.log('Vehicle updated successfully:', updatedVehicle);
-            toast.success(t('vehicles.updateSuccess'));
+            toast.success('Vehicle updated successfully');
             navigate(`/vehicles/${id}`);
           },
           onError: (error) => {
             console.error('Update vehicle error:', error);
-            toast.error(t('vehicles.updateFailed'), {
-              description: error instanceof Error ? error.message : t('common.unknownError'),
+            toast.error('Failed to update vehicle', {
+              description: error instanceof Error ? error.message : 'Unknown error occurred',
             });
             // Try to refetch the vehicle data to ensure our UI is in sync
             refetch();
@@ -164,8 +159,8 @@ const EditVehicle = () => {
       );
     } catch (error) {
       console.error('Edit vehicle submission error:', error);
-      toast.error(t('common.formSubmitError'), {
-        description: error instanceof Error ? error.message : t('common.unexpectedError')
+      toast.error('Error submitting form', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     }
   };
@@ -189,17 +184,17 @@ const EditVehicle = () => {
         <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg">
           <div className="flex items-center mb-4">
             <AlertOctagon className="h-6 w-6 mr-2" />
-            <h2 className="text-xl font-semibold">{t('vehicles.notFound')}</h2>
+            <h2 className="text-xl font-semibold">Vehicle Not Found</h2>
           </div>
-          <p>{t('vehicles.removedOrDoesNotExist')}</p>
-          <p className="mt-2 text-sm">{error instanceof Error ? error.message : t('common.unknownError')}</p>
+          <p>The vehicle you're trying to edit doesn't exist or has been removed.</p>
+          <p className="mt-2 text-sm">{error instanceof Error ? error.message : 'Unknown error'}</p>
           <CustomButton 
             className="mt-4" 
             variant="outline" 
             onClick={() => navigate('/vehicles')}
           >
-            <ArrowLeft className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t('vehicles.returnToVehicles')}
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Return to Vehicles
           </CustomButton>
         </div>
       </PageContainer>
@@ -209,7 +204,7 @@ const EditVehicle = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title={`${t('vehicles.edit')}: ${vehicle.make} ${vehicle.model}`}
+        title={`Edit Vehicle: ${vehicle.make} ${vehicle.model}`}
         description={`${vehicle.year} • ${vehicle.licensePlate}`}
         icon={Car}
         actions={
@@ -218,8 +213,8 @@ const EditVehicle = () => {
             variant="outline" 
             onClick={() => navigate(`/vehicles/${vehicle.id}`)}
           >
-            <ArrowLeft className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-            {t('common.back')} {t('common.to')} {t('vehicles.details')}
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Details
           </CustomButton>
         }
       />

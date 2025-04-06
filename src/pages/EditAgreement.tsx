@@ -1,147 +1,113 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import AgreementFormWithVehicleCheck from '@/components/agreements/AgreementFormWithVehicleCheck';
+import AgreementForm from '@/components/agreements/AgreementForm';
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
-import type { Agreement } from '@/lib/validation-schemas/agreement';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { updateAgreementWithCheck } from '@/utils/agreement-utils';
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 const EditAgreement = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getAgreement, updateAgreement } = useAgreements();
+  const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [agreementData, setAgreementData] = useState<Agreement | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { t } = useI18nTranslation();
-  const { translateText } = useTranslation();
-  const [pageTitle, setPageTitle] = useState('');
-  const [pageDescription, setPageDescription] = useState('');
+  const { user } = useAuth();
 
-  // Pre-translate the page title and description
   useEffect(() => {
-    const loadTranslations = async () => {
-      const title = await translateText(t('agreements.edit'));
-      const description = await translateText(t('agreements.description'));
-      
-      setPageTitle(title);
-      setPageDescription(description);
-    };
+    // Guard against multiple fetches in rapid succession
+    if (hasAttemptedFetch) return;
     
-    loadTranslations();
-  }, [t, translateText]);
-  
-  useEffect(() => {
     const fetchAgreement = async () => {
-      if (!id) return;
+      if (!id) {
+        toast.error("Agreement ID is required");
+        navigate("/agreements");
+        return;
+      }
       
+      console.log("Fetching agreement with ID:", id);
+      setIsLoading(true);
       try {
-        const agreement = await getAgreement(id);
-        if (agreement) {
-          // Convert date strings to Date objects for the form
-          const processedAgreement: Agreement = {
-            ...agreement,
-            start_date: agreement.start_date ? new Date(agreement.start_date) : new Date(),
-            end_date: agreement.end_date ? new Date(agreement.end_date) : new Date(),
-            // Convert string timestamps to Date objects
-            created_at: agreement.created_at ? new Date(agreement.created_at) : undefined,
-            updated_at: agreement.updated_at ? new Date(agreement.updated_at) : undefined,
-            // Ensure status is of the correct type
-            status: (agreement.status as "active" | "pending" | "draft" | "expired" | "cancelled" | "closed") || "draft"
-          };
-          setAgreementData(processedAgreement);
+        const data = await getAgreement(id);
+        console.log("Fetched agreement data:", data);
+        if (data) {
+          // Convert SimpleAgreement to Agreement type
+          setAgreement(adaptSimpleToFullAgreement(data));
         } else {
-          const translatedError = await translateText(t('agreements.notFound'));
-          setError(translatedError);
+          toast.error("Agreement not found");
+          navigate("/agreements");
         }
-      } catch (err) {
-        console.error('Error fetching agreement:', err);
-        const translatedError = await translateText(t('agreements.loadError'));
-        setError(translatedError);
+      } catch (error) {
+        console.error("Error fetching agreement for edit:", error);
+        toast.error("Failed to load agreement details");
+        navigate("/agreements");
+      } finally {
+        setIsLoading(false);
+        setHasAttemptedFetch(true);
       }
     };
-    
-    fetchAgreement();
-  }, [id, getAgreement, t, translateText]);
 
-  const handleUpdateAgreement = async (data: Agreement) => {
+    fetchAgreement();
+  }, [id, getAgreement, navigate, hasAttemptedFetch]);
+
+  const handleSubmit = async (updatedAgreement: Agreement) => {
     if (!id) return;
     
     try {
       setIsSubmitting(true);
       
-      // Convert date objects to ISO strings for database storage
-      const formattedData = {
-        ...data,
-        id,
-        start_date: data.start_date instanceof Date 
-          ? data.start_date.toISOString() 
-          : data.start_date,
-        end_date: data.end_date instanceof Date 
-          ? data.end_date.toISOString() 
-          : data.end_date
-      };
+      // Check if status is being changed to active
+      const isChangingToActive = updatedAgreement.status === 'active' && 
+                              agreement?.status !== 'active';
+                              
+      if (isChangingToActive) {
+        console.log("Status is being changed to active, payment schedule will be generated");
+      }
       
-      // Use mutateAsync from the mutation
-      await updateAgreement.mutateAsync({
-        id,
-        data: formattedData
-      });
-      
-      const successMessage = await translateText(t('common.success'));
-      toast.success(successMessage);
-      
-      navigate(`/agreements/${id}`);
-    } catch (err) {
-      console.error('Error updating agreement:', err);
-      
-      const errorMessage = await translateText(t('common.error'));
-      toast.error(errorMessage);
+      await updateAgreementWithCheck(
+        { id, data: updatedAgreement },
+        user?.id, // Pass the user ID for audit tracking
+        () => navigate(`/agreements/${id}`), // Success callback
+        (error: any) => console.error("Error updating agreement:", error) // Error callback
+      );
+    } catch (error) {
+      console.error("Error updating agreement:", error);
+      toast.error("Failed to update agreement");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (error) {
-    return (
-      <PageContainer
-        title={pageTitle || t('agreements.edit')}
-        description={pageDescription || t('agreements.description')}
-        backLink="/agreements"
-      >
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>{t('agreements.notFound')}</AlertTitle>
-          <AlertDescription>{t('agreements.notFoundDesc')}</AlertDescription>
-        </Alert>
-        <Button onClick={() => navigate('/agreements')}>
-          {t('agreements.returnToAgreements')}
-        </Button>
-      </PageContainer>
-    );
-  }
-
   return (
     <PageContainer
-      title={pageTitle || t('agreements.edit')}
-      description={pageDescription || t('agreements.description')}
-      backLink={id ? `/agreements/${id}` : '/agreements'}
+      title="Edit Agreement"
+      description="Modify existing rental agreement details"
+      backLink={`/agreements/${id}`}
     >
-      {agreementData ? (
-        <AgreementFormWithVehicleCheck
-          onSubmit={handleUpdateAgreement}
+      {isLoading ? (
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-2/3" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      ) : agreement ? (
+        <AgreementForm 
+          initialData={agreement} 
+          onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
-          initialData={agreementData}
         />
       ) : (
-        <div className="flex items-center justify-center p-6">
-          <div className="animate-pulse">{t('common.loading')}</div>
+        <div className="text-center py-12">
+          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
+          <p className="text-muted-foreground">
+            The agreement you're looking for doesn't exist or has been removed.
+          </p>
         </div>
       )}
     </PageContainer>

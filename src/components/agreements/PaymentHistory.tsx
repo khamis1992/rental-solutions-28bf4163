@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,13 +9,11 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { supabase } from '@/lib/supabase';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
+import { isAfter, subMonths, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
-import { usePayments } from '@/hooks/use-payments';
-import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 export interface Payment {
   id: string;
@@ -36,7 +33,8 @@ export interface Payment {
 }
 
 interface PaymentHistoryProps {
-  agreementId: string;
+  payments: Payment[];
+  isLoading: boolean;
   rentAmount: number | null;
   onPaymentDeleted: () => void;
   leaseStartDate?: Date | string;
@@ -44,13 +42,15 @@ interface PaymentHistoryProps {
 }
 
 export function PaymentHistory({
-  agreementId,
+  payments,
+  isLoading,
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
   leaseEndDate
 }: PaymentHistoryProps) {
-  const { t } = useI18nTranslation();
+  console.log('PaymentHistory received payments:', payments);
+  console.log('PaymentHistory isLoading:', isLoading);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -61,31 +61,6 @@ export function PaymentHistory({
     amount: number;
     daysLate: number;
   } | null>(null);
-  
-  const isDeleteOperationInProgress = useRef(false);
-  const isMounted = useRef(true);
-  
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, rentAmount);
-  
-  console.log(`PaymentHistory for agreement ${agreementId} received ${payments?.length} payments`);
-  console.log('PaymentHistory isLoading:', isLoadingPayments);
-  
-  // Track component mount status to prevent state updates after unmount
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-  
-  // Create debounced refresh function
-  const debouncedRefresh = useDebouncedCallback(() => {
-    console.log("Running debounced payment refresh");
-    if (isMounted.current) {
-      fetchPayments(true);
-      onPaymentDeleted();
-    }
-  }, 1000);
   
   useEffect(() => {
     const today = new Date();
@@ -122,82 +97,76 @@ export function PaymentHistory({
   };
   
   const confirmDeletePayment = async () => {
-    if (!selectedPayment || isDeleteOperationInProgress.current || !isMounted.current) return;
-    
+    if (!selectedPayment) return;
     try {
-      isDeleteOperationInProgress.current = true;
       setIsDeletingPayment(true);
-      
-      const { error } = await supabase.from('unified_payments').delete().eq('id', selectedPayment.id);
-      
+      const {
+        error
+      } = await supabase.from('unified_payments').delete().eq('id', selectedPayment.id);
       if (error) {
-        toast.error(`${t('payments.deleteError')}: ${error.message}`);
+        toast.error(`Failed to delete payment: ${error.message}`);
       } else {
-        toast.success(t('payments.deleteSuccess'));
-        debouncedRefresh();
+        toast.success('Payment deleted successfully');
+        onPaymentDeleted();
       }
     } catch (err) {
       console.error('Error deleting payment:', err);
-      toast.error(t('payments.deleteError'));
+      toast.error('Failed to delete payment');
     } finally {
-      if (isMounted.current) {
-        setIsDeletingPayment(false);
-        setIsDeleteConfirmOpen(false);
-      }
-      isDeleteOperationInProgress.current = false;
+      setIsDeletingPayment(false);
+      setIsDeleteConfirmOpen(false);
     }
   };
   
   const handleFixPayments = async () => {
-    if (!agreementId) {
-      toast.error(t('payments.noAgreementId'));
+    if (!payments.length || !payments[0].lease_id) {
+      toast.error("Cannot fix payments: No lease ID available");
       return;
     }
     
     setIsFixingPayments(true);
-    toast.info(t('payments.checkingPayments'));
+    toast.info("Checking and fixing payments...");
     
     try {
-      const result = await ensureAllMonthlyPayments(agreementId);
+      const leaseId = payments[0].lease_id;
+      const result = await ensureAllMonthlyPayments(leaseId);
       
       if (result.success) {
         if (result.generatedCount === 0 && result.updatedCount === 0) {
-          toast.success(t('payments.recordsUpToDate'));
+          toast.success("Payment records are up to date");
         } else {
-          toast.success(result.message || t('payments.recordsFixedSuccess'));
-          debouncedRefresh();
+          toast.success(result.message || "Payment records fixed successfully");
+          onPaymentDeleted(); // Refresh the payment list
         }
       } else {
-        toast.error(result.message || t('payments.recordsFixFailed'));
+        toast.error(result.message || "Failed to fix payment records");
       }
     } catch (error) {
       console.error("Error fixing payments:", error);
-      toast.error(t('payments.unexpectedError'));
+      toast.error("An unexpected error occurred while fixing payments");
     } finally {
-      if (isMounted.current) {
-        setIsFixingPayments(false);
-      }
+      setIsFixingPayments(false);
     }
   };
   
   const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number) => {
-    if (!status) return <Badge className="bg-gray-500">{t('common.unknown')}</Badge>;
+    if (!status) return <Badge className="bg-gray-500">Unknown</Badge>;
     switch (status.toLowerCase()) {
       case 'completed':
       case 'paid':
-        return <Badge variant="success">{t('payments.status.paid')}</Badge>;
+        return <Badge variant="success">Paid</Badge>;
       case 'partially_paid':
-        return <Badge variant="partial">{t('payments.status.partial')}</Badge>;
+        return <Badge variant="partial">Partially Paid</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-500">
-            {t('payments.status.pending')} {daysOverdue && daysOverdue > 0 ? `(${daysOverdue} ${t('agreements.daysLate')})` : ''}
+            Pending {daysOverdue && daysOverdue > 0 ? `(${daysOverdue} days overdue)` : ''}
           </Badge>;
       case 'overdue':
         return <Badge variant="destructive">
-            {t('payments.status.overdue')} {daysOverdue && daysOverdue > 0 ? `(${daysOverdue} ${t('common.days')})` : ''}
+            Overdue {daysOverdue && daysOverdue > 0 ? `(${daysOverdue} days)` : ''}
           </Badge>;
       case 'cancelled':
-        return <Badge variant="outline">{t('common.cancelled')}</Badge>;
+        return <Badge variant="outline">Cancelled</Badge>;
       default:
         return <Badge className="bg-gray-500">{status}</Badge>;
     }
@@ -231,10 +200,10 @@ export function PaymentHistory({
       return <>
           QAR {displayAmount}
           <div className="text-xs text-red-500 mt-1">
-            +QAR {payment.late_fine_amount.toLocaleString()} {t('payments.lateFee')}
+            +QAR {payment.late_fine_amount.toLocaleString()} late fee
           </div>
           <div className="text-xs text-muted-foreground mt-1">
-            {t('common.total')}: QAR {(baseAmount + payment.late_fine_amount).toLocaleString()}
+            Total: QAR {(baseAmount + payment.late_fine_amount).toLocaleString()}
           </div>
         </>;
     }
@@ -242,10 +211,10 @@ export function PaymentHistory({
       return <>
           QAR {displayAmount}
           <div className="text-xs text-blue-500 mt-1">
-            {t('payments.paid')}: QAR {amountPaid.toLocaleString()}
+            Paid: QAR {amountPaid.toLocaleString()}
           </div>
           <div className="text-xs text-amber-500 mt-1">
-            {t('payments.remaining')}: QAR {balance.toLocaleString()}
+            Remaining: QAR {balance.toLocaleString()}
           </div>
         </>;
     }
@@ -258,29 +227,23 @@ export function PaymentHistory({
   return <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>{t('payments.history')}</CardTitle>
-          <CardDescription>{t('payments.historyDesc')}</CardDescription>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>Track all payments for this agreement</CardDescription>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => fetchPayments(true)} 
-            className="h-8"
-            disabled={isLoadingPayments}
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoadingPayments ? 'animate-spin' : ''}`} />
-            {t('dashboard.refresh')}
+          <Button variant="outline" size="sm" onClick={onPaymentDeleted} className="h-8">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleFixPayments}
-            disabled={isFixingPayments || isLoadingPayments}
+            disabled={isFixingPayments}
             className="h-8"
           >
             <ShieldCheck className="mr-2 h-4 w-4" />
-            {isFixingPayments ? t('payments.fixing') : t('payments.fixPayments')}
+            {isFixingPayments ? "Fixing..." : "Fix Payments"}
           </Button>
           <Button
             variant="default"
@@ -289,42 +252,38 @@ export function PaymentHistory({
             className="h-8"
           >
             <DollarSign className="mr-2 h-4 w-4" />
-            {t('payments.recordPayment')}
+            Record Payment
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {isLoadingPayments ? (
-          <div className="space-y-2">
+        {isLoading ? <div className="space-y-2">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-full" />
-          </div>
-        ) : payments?.length > 0 ? (
-          <Table>
+          </div> : payments?.length > 0 ? <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t('common.date')}</TableHead>
-                <TableHead>{t('common.amount')}</TableHead>
-                <TableHead>{t('payments.method')}</TableHead>
-                <TableHead>{t('common.status')}</TableHead>
-                <TableHead>{t('common.notes')}</TableHead>
-                <TableHead className="text-right">{t('common.actions')}</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Payment Method</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {payments.map(payment => (
-                <TableRow key={payment.id}>
+              {payments.map(payment => <TableRow key={payment.id}>
                   <TableCell>
-                    {payment.payment_date ? formatDate(new Date(payment.payment_date), 'PPP') : payment.original_due_date ? <span className="text-yellow-600">{t('common.dueDate')}: {formatDate(new Date(payment.original_due_date), 'PPP')}</span> : t('common.pending')}
+                    {payment.payment_date ? formatDate(new Date(payment.payment_date), 'PPP') : payment.original_due_date ? <span className="text-yellow-600">Due: {formatDate(new Date(payment.original_due_date), 'PPP')}</span> : 'Pending'}
                   </TableCell>
                   <TableCell>
                     {formatAmount(payment)}
                   </TableCell>
                   <TableCell>
-                    {payment.payment_method ? payment.payment_method : t('common.notProvided')}
+                    {payment.payment_method ? payment.payment_method : 'N/A'}
                     {payment.reference_number && <div className="text-xs text-muted-foreground mt-1">
-                        {t('payments.ref')}: {payment.reference_number}
+                        Ref: {payment.reference_number}
                       </div>}
                   </TableCell>
                   <TableCell>
@@ -340,72 +299,48 @@ export function PaymentHistory({
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={() => handleRecordPayment(payment)} title={t('payments.recordPayment')}>
+                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={() => handleRecordPayment(payment)} title="Record Payment">
                           <DollarSign className="h-4 w-4" />
-                        </Button> : <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)} title={t('common.edit')}>
+                        </Button> : <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)} title="Edit payment">
                           <Edit className="h-4 w-4" />
                         </Button>}
-                      <Button variant="ghost" size="sm" onClick={() => handleDeletePayment(payment)} title={t('common.delete')}>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeletePayment(payment)} title="Delete payment">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
-              ))}
+                </TableRow>)}
             </TableBody>
-          </Table>
-        ) : (
-          <Alert>
+          </Table> : <Alert>
             <AlertDescription className="text-center py-4">
-              {t('payments.noRecords')}
+              No payments recorded for this agreement yet.
             </AlertDescription>
-          </Alert>
-        )}
+          </Alert>}
 
-        {selectedPayment && (
-          <PaymentEditDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} payment={selectedPayment} onSaved={() => {
-            debouncedRefresh();
-          }} />
-        )}
+        {selectedPayment && <PaymentEditDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} payment={selectedPayment} onSaved={onPaymentDeleted} />}
 
-        <PaymentEntryDialog 
-          open={isPaymentDialogOpen} 
-          onOpenChange={setIsPaymentDialogOpen} 
-          onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
-            console.log("Recording payment with payment ID:", targetPaymentId);
-            setIsPaymentDialogOpen(false);
-            debouncedRefresh();
-          }} 
-          defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} 
-          title={selectedPayment ? t('payments.recordPayment') : t('payments.recordManualPayment')} 
-          description={selectedPayment ? t('payments.recordPaymentForItem') : t('payments.recordNewManualPayment')} 
-          lateFeeDetails={lateFeeDetails} 
-          selectedPayment={selectedPayment} 
-        />
+        <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
+        console.log("Recording payment with payment ID:", targetPaymentId);
+        setIsPaymentDialogOpen(false);
+        onPaymentDeleted();
+      }} defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} title={selectedPayment ? "Record Payment" : "Record Manual Payment"} description={selectedPayment ? "Record payment for this item." : "Record a new manual payment for this agreement."} lateFeeDetails={lateFeeDetails} selectedPayment={selectedPayment} />
 
-        <Dialog open={isDeleteConfirmOpen} onOpenChange={(open) => {
-          // Only allow closing if not currently deleting
-          if (!isDeletingPayment) {
-            setIsDeleteConfirmOpen(open);
-          }
-        }}>
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t('payments.deletePayment')}</DialogTitle>
+              <DialogTitle>Confirm Payment Deletion</DialogTitle>
               <DialogDescription>
-                {t('payments.deleteConfirmation')}
+                Are you sure you want to delete this payment? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)} disabled={isDeletingPayment}>
-                {t('common.cancel')}
+              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+                Cancel
               </Button>
               <Button variant="destructive" onClick={confirmDeletePayment} disabled={isDeletingPayment}>
-                {isDeletingPayment ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> {t('payments.deleting')}
-                  </>
-                ) : t('common.delete')}
+                {isDeletingPayment ? <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                  </> : 'Delete Payment'}
               </Button>
             </DialogFooter>
           </DialogContent>

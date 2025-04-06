@@ -1,8 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,33 +9,24 @@ import FinancialReport from '@/components/reports/FinancialReport';
 import CustomerReport from '@/components/reports/CustomerReport';
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import LegalReport from '@/components/reports/LegalReport';
-import TrafficFinesReport from '@/components/reports/TrafficFinesReport';
 import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 import { SectionHeader } from '@/components/ui/section-header';
-import { FileText, Download, Calendar, AlertCircle, AlertTriangle } from 'lucide-react';
+import { FileText, Download, Calendar, AlertCircle } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
-import { useAgreements } from '@/hooks/use-agreements';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const Reports = () => {
   const navigate = useNavigate();
-  const { t } = useI18nTranslation();
-  const { direction, isRTL } = useTranslation();
-  
   const [selectedTab, setSelectedTab] = useState('fleet');
   const { vehicles } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
-  const { agreements } = useAgreements();
-  const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
   useEffect(() => {
@@ -66,76 +55,11 @@ const Reports = () => {
     // Simulate report generation
     setTimeout(() => {
       setIsGenerating(false);
-      toast.success(t('reports.scheduledReportGenerated'));
+      toast.success('Scheduled report generated successfully');
     }, 2000);
   };
   
-  const getFinancialReportData = () => {
-    if (!agreements) return [];
-    
-    try {
-      const reportData = agreements.map(agreement => {
-        const paymentsForAgreement = transactions ? transactions.filter(t => 
-          t.lease_id === agreement.id) : [];
-        
-        const finesForAgreement = trafficFines ? 
-          trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
-        
-        const totalPaid = paymentsForAgreement.reduce((sum, payment) => {
-          const isPaid = 
-            payment.status === 'completed' || 
-            payment.status === 'success' || 
-            payment.status.toLowerCase() === 'paid';
-          return isPaid ? sum + (payment.amount || 0) : sum;
-        }, 0);
-          
-        const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
-        
-        const totalFinesAmount = finesForAgreement.reduce((sum, fine) => 
-          sum + (fine.fineAmount || 0), 0);
-          
-        const paidFinesAmount = finesForAgreement.reduce((sum, fine) => 
-          fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
-          
-        const outstandingFines = totalFinesAmount - paidFinesAmount;
-        
-        let paymentStatus = 'Paid';
-        if (outstandingBalance > 0) {
-          paymentStatus = 'Partially Paid';
-        } 
-        if (totalPaid === 0) {
-          paymentStatus = 'Unpaid';
-        }
-        
-        const lastPayment = paymentsForAgreement.length > 0 ? 
-          paymentsForAgreement.sort((a, b) => {
-            const dateA = a.date ? new Date(a.date).getTime() : 0;
-            const dateB = b.date ? new Date(b.date).getTime() : 0;
-            return dateB - dateA;
-          })[0] : null;
-        
-        return {
-          ...agreement,
-          payments: paymentsForAgreement,
-          fines: finesForAgreement,
-          totalPaid,
-          outstandingBalance,
-          totalFinesAmount,
-          paidFinesAmount,
-          outstandingFines,
-          paymentStatus,
-          lastPaymentDate: lastPayment?.date || null
-        };
-      });
-      
-      return reportData;
-    } catch (error) {
-      console.error('Error preparing financial report data:', error);
-      return [];
-    }
-  };
-  
-  const getReportData = (): Record<string, any>[] => {
+  const getReportData = () => {
     switch (selectedTab) {
       case 'fleet':
         return vehicles.map(v => ({
@@ -147,7 +71,7 @@ const Reports = () => {
           daily_rate: v.dailyRate
         }));
       case 'financial':
-        return getFinancialReportData();
+        return transactions;
       case 'customers':
         return customers.map(customer => ({
           id: customer.id,
@@ -172,19 +96,8 @@ const Reports = () => {
           service_provider: record.service_provider || record.performed_by || 'N/A',
           notes: record.notes || 'N/A'
         }));
-      case 'traffic-fines':
-        return trafficFines ? trafficFines.map(fine => ({
-          violation_number: fine.violationNumber,
-          license_plate: fine.licensePlate,
-          vehicle_model: fine.vehicleModel || 'N/A', // Add fallback for vehicleModel
-          violation_date: fine.violationDate,
-          location: fine.location,
-          fine_amount: fine.fineAmount,
-          status: fine.paymentStatus,
-          customer_name: fine.customerName,
-          payment_date: fine.paymentDate
-        })) : [];
       case 'legal':
+        // Legal reports data would be implemented here
         return [];
       default:
         return [];
@@ -193,46 +106,44 @@ const Reports = () => {
 
   return (
     <PageContainer 
-      title={t('reports.title')} 
-      description={t('reports.description')}
+      title="Reports & Analytics" 
+      description="Comprehensive reports and analytics for your rental business"
       actions={
         <Button 
           variant="outline"
           onClick={() => navigate('/reports/scheduled')}
           className="flex items-center space-x-2"
-          dir={direction}
         >
-          <Calendar className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-          <span>{t('reports.scheduledReports')}</span>
+          <Calendar className="h-4 w-4" />
+          <span>Scheduled Reports</span>
         </Button>
       }
     >
       <div className="flex items-center mb-6">
         <SectionHeader 
-          title={t('reports.generateReports')} 
-          description={t('reports.generateReportsDescription')} 
+          title="Generate Reports" 
+          description="Select a report type to view detailed analytics and insights" 
           icon={FileText} 
         />
       </div>
       
       <Alert className="mb-6">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>{t('reports.proTip')}</AlertTitle>
+        <AlertTitle>Pro Tip</AlertTitle>
         <AlertDescription>
-          {t('reports.scheduleReportsDescription')}
+          You can schedule reports to be automatically generated and sent to your email on a recurring basis.
         </AlertDescription>
       </Alert>
       
       <Card>
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-6 mb-8">
-              <TabsTrigger value="fleet">{t('reports.fleetReport')}</TabsTrigger>
-              <TabsTrigger value="financial">{t('reports.financialReport')}</TabsTrigger>
-              <TabsTrigger value="customers">{t('reports.customerReport')}</TabsTrigger>
-              <TabsTrigger value="maintenance">{t('reports.maintenanceReport')}</TabsTrigger>
-              <TabsTrigger value="traffic-fines">{t('reports.trafficFines')}</TabsTrigger>
-              <TabsTrigger value="legal">{t('reports.legalReport')}</TabsTrigger>
+            <TabsList className="grid grid-cols-5 mb-8">
+              <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
+              <TabsTrigger value="financial">Financial Report</TabsTrigger>
+              <TabsTrigger value="customers">Customer Report</TabsTrigger>
+              <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
+              <TabsTrigger value="legal">Legal Report</TabsTrigger>
             </TabsList>
             
             <div className="mb-6">
@@ -256,10 +167,6 @@ const Reports = () => {
             
             <TabsContent value="maintenance" className="mt-0">
               <MaintenanceReport />
-            </TabsContent>
-            
-            <TabsContent value="traffic-fines" className="mt-0">
-              <TrafficFinesReport />
             </TabsContent>
             
             <TabsContent value="legal" className="mt-0">

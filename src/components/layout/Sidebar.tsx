@@ -27,9 +27,6 @@ import {
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 type NavLinkProps = {
   to: string;
@@ -40,21 +37,18 @@ type NavLinkProps = {
 };
 
 const NavLink: React.FC<NavLinkProps> = ({ to, icon, label, isActive, badgeCount }) => {
-  const { isRTL } = useTranslation();
-  
   return (
     <Link
       to={to}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-3 text-sm transition-all",
-        isActive ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800",
-        isRTL ? "flex-row-reverse text-right" : ""
+        isActive ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
       )}
     >
       {icon}
       <span>{label}</span>
       {badgeCount !== undefined && badgeCount > 0 && (
-        <div className={`${isRTL ? 'mr-auto' : 'ml-auto'} flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground`}>
+        <div className="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
           {badgeCount}
         </div>
       )}
@@ -71,15 +65,14 @@ type NavGroupProps = {
 
 const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const { isRTL } = useTranslation();
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
       <CollapsibleTrigger asChild>
-        <div className={`flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+        <div className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium cursor-pointer text-gray-200 hover:bg-gray-800">
           {icon}
           <span>{label}</span>
-          <div className={`${isRTL ? 'mr-auto' : 'ml-auto'}`}>
+          <div className="ml-auto">
             {isOpen ? (
               <ChevronDown className="h-4 w-4" />
             ) : (
@@ -88,7 +81,7 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
           </div>
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent className={`${isRTL ? 'pr-10' : 'pl-10'} space-y-1 mt-1`}>
+      <CollapsibleContent className="pl-10 space-y-1 mt-1">
         {children}
       </CollapsibleContent>
     </Collapsible>
@@ -100,8 +93,6 @@ const Sidebar = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
-  const { isRTL, direction } = useTranslation();
-  const { t } = useI18nTranslation();
 
   const isActive = (path: string) => {
     return location.pathname === path || location.pathname.startsWith(`${path}/`);
@@ -115,21 +106,12 @@ const Sidebar = () => {
     setExpanded(!expanded);
   };
 
-  // Choose appropriate chevron icon based on direction and expanded state
-  const SidebarChevron = !expanded ? 
-    (isRTL ? ChevronLeft : ChevronRight) : 
-    (isRTL ? ChevronRight : ChevronLeft);
-
-  // Adjust sidebar position based on RTL setting
-  const sidebarPosition = isRTL ? 'right-0' : 'left-0';
-  const sidebarButtonPosition = isRTL ? '-left-12' : '-right-12';
-
   return (
     <>
       <Button
         variant="outline"
         size="icon"
-        className={`md:hidden fixed top-4 ${isRTL ? 'right-4' : 'left-4'} z-50`}
+        className="md:hidden fixed top-4 left-4 z-50"
         onClick={toggleSidebar}
       >
         {expanded ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -137,19 +119,18 @@ const Sidebar = () => {
 
       <div
         className={cn(
-          `fixed inset-y-0 ${sidebarPosition} z-40 flex flex-col bg-[#111827] border-${isRTL ? 'l' : 'r'} border-gray-800 transition-all duration-300 ease-in-out`,
+          "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#111827] border-r border-gray-800 transition-all duration-300 ease-in-out",
           expanded ? "w-64" : "w-0 md:w-20",
           expanded ? "" : "md:px-2 md:py-4"
         )}
-        dir={direction}
       >
         <Button
           variant="ghost"
           size="icon"
-          className={`hidden md:flex absolute ${sidebarButtonPosition} top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white`}
+          className="hidden md:flex absolute -right-12 top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white"
           onClick={toggleSidebar}
         >
-          <SidebarChevron className="h-4 w-4" />
+          {expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         </Button>
 
         <div className={cn(
@@ -157,7 +138,7 @@ const Sidebar = () => {
           expanded ? "" : "md:justify-center"
         )}>
           {expanded ? (
-            <h2 className="text-lg font-semibold text-white">{t('common.rentalSolutions')}</h2>
+            <h2 className="text-lg font-semibold text-white">Rental Solutions</h2>
           ) : (
             <div className="hidden md:block">
               <Car className="h-6 w-6 text-white" />
@@ -175,70 +156,70 @@ const Sidebar = () => {
                 <NavLink
                   to="/dashboard"
                   icon={<LayoutDashboard className="h-5 w-5" />}
-                  label={t('common.dashboard')}
+                  label="Dashboard"
                   isActive={isActive('/dashboard')}
                 />
 
                 <NavLink
                   to="/customers"
                   icon={<Users className="h-5 w-5" />}
-                  label={t('common.customers')}
+                  label="Customers"
                   isActive={isActive('/customers')}
                 />
 
                 <NavLink
                   to="/agreements"
                   icon={<FileText className="h-5 w-5" />}
-                  label={t('common.agreements')}
+                  label="Agreements"
                   isActive={isActive('/agreements')}
                 />
 
                 <NavLink
                   to="/vehicles"
                   icon={<Car className="h-5 w-5" />}
-                  label={t('common.vehicles')}
+                  label="Vehicles"
                   isActive={isActive('/vehicles')}
                 />
 
                 <NavLink
                   to="/maintenance"
                   icon={<Wrench className="h-5 w-5" />}
-                  label={t('common.maintenance')}
+                  label="Maintenance"
                   isActive={isActive('/maintenance')}
                 />
 
                 <NavLink
                   to="/fines"
                   icon={<AlertTriangle className="h-5 w-5" />}
-                  label={t('common.trafficFines')}
+                  label="Traffic Fines"
                   isActive={isActive('/fines')}
                 />
 
                 <NavLink
                   to="/financials"
                   icon={<DollarSign className="h-5 w-5" />}
-                  label={t('common.financials')}
+                  label="Financials"
                   isActive={isActive('/financials')}
                 />
 
                 <NavLink
                   to="/legal"
                   icon={<Scale className="h-5 w-5" />}
-                  label={t('common.legal')}
+                  label="Legal"
                   isActive={isActive('/legal')}
                 />
 
                 <NavLink
                   to="/reports"
                   icon={<BarChart2 className="h-5 w-5" />}
-                  label={t('common.reports')}
+                  label="Reports"
                   isActive={isActive('/reports')}
                 />
 
                 <NavLink
                   to="/user-management"
                   icon={<Users className="h-5 w-5" />}
-                  label={t('common.userManagement')}
+                  label="User Management"
                   isActive={isActive('/user-management')}
                 />
 
@@ -247,14 +228,14 @@ const Sidebar = () => {
                     <NavLink
                       to="/settings"
                       icon={<UserCog className="h-5 w-5" />}
-                      label={t('settings.title')}
+                      label="User Settings"
                       isActive={isActive('/settings') && !isActive('/settings/system')}
                     />
                     
                     <NavLink
                       to="/settings/system"
                       icon={<Sliders className="h-5 w-5" />}
-                      label={t('settings.systemSettings')}
+                      label="System Settings"
                       isActive={isActive('/settings/system')}
                     />
                   </>
@@ -262,30 +243,30 @@ const Sidebar = () => {
                 
                 {expanded && (
                   <NavGroup 
-                    label={t('common.settings')}
+                    label="Settings" 
                     icon={<Settings className="h-5 w-5" />}
                     defaultOpen={hasActiveChild(['/settings', '/settings/system'])}
                   >
                     <Link
                       to="/settings"
                       className={cn(
-                        `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all ${isRTL ? 'flex-row-reverse text-right' : ''}`,
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
                         isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
                       )}
                     >
                       <UserCog className="h-4 w-4" />
-                      <span>{t('settings.title')}</span>
+                      <span>User Settings</span>
                     </Link>
                     
                     <Link
                       to="/settings/system"
                       className={cn(
-                        `flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all ${isRTL ? 'flex-row-reverse text-right' : ''}`,
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
                         isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
                       )}
                     >
                       <Sliders className="h-4 w-4" />
-                      <span>{t('settings.systemSettings')}</span>
+                      <span>System Settings</span>
                     </Link>
                   </NavGroup>
                 )}
@@ -299,18 +280,18 @@ const Sidebar = () => {
           expanded ? "" : "md:px-2 md:flex md:justify-center"
         )}>
           {expanded ? (
-            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 border border-gray-700">
                 <AvatarImage src="" />
                 <AvatarFallback className="bg-gray-700 text-white">{profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U"}</AvatarFallback>
               </Avatar>
-              <div className={`flex flex-col ${isRTL ? 'items-end' : ''}`}>
+              <div className="flex flex-col">
                 <span className="text-sm font-medium text-white">{profile?.full_name || "User"}</span>
                 <span className="text-xs text-gray-400 truncate max-w-[120px]">
                   Admin
                 </span>
               </div>
-              <Button variant="ghost" size="icon" onClick={signOut} className={`${isRTL ? 'mr-auto' : 'ml-auto'} text-gray-400 hover:text-white hover:bg-gray-800`}>
+              <Button variant="ghost" size="icon" onClick={signOut} className="ml-auto text-gray-400 hover:text-white hover:bg-gray-800">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>

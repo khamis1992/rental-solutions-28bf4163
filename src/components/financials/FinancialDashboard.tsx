@@ -8,7 +8,6 @@ import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChartBig, TrendingUp, TrendingDown } from 'lucide-react';
 import { useDashboardData } from '@/hooks/use-dashboard';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 // Helper function to calculate percentage change - DEFINED BEFORE USAGE
 const getPercentageChange = (current, previous) => {
@@ -24,7 +23,6 @@ const FinancialDashboard = () => {
   } = useFinancials();
   
   const { revenue: revenueData } = useDashboardData();
-  const { isRTL } = useTranslation();
 
   // Get current month name for display
   const currentMonth = useMemo(() => {
@@ -74,13 +72,7 @@ const FinancialDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.totalIncome)}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                <span>{trendData.revenueChange.toFixed(1)}%</span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {trendData.revenueChange >= 0 ? '+' : ''}
-                </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>from last month</span>
-              </span>
+              {trendData.revenueChange >= 0 ? '+' : ''}{trendData.revenueChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -93,13 +85,7 @@ const FinancialDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.totalExpenses)}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                <span>{trendData.expenseChange.toFixed(1)}%</span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {trendData.expenseChange >= 0 ? '+' : ''}
-                </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>from last month</span>
-              </span>
+              {trendData.expenseChange >= 0 ? '+' : ''}{trendData.expenseChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>
@@ -112,13 +98,7 @@ const FinancialDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(displayValues.netRevenue)}</div>
             <p className="text-xs text-muted-foreground">
-              <span className={`inline-flex items-center ${isRTL ? 'flex-row-reverse' : 'flex-row'}`}>
-                <span>{trendData.profitChange.toFixed(1)}%</span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>
-                  {trendData.profitChange >= 0 ? '+' : ''}
-                </span>
-                <span className={isRTL ? 'mr-1' : 'ml-1'}>from last month</span>
-              </span>
+              {trendData.profitChange >= 0 ? '+' : ''}{trendData.profitChange.toFixed(1)}% from last month
             </p>
           </CardContent>
         </Card>

@@ -1,37 +1,13 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
-import { CustomerStatus } from '@/types/customer';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
 
-// Define type for database status values
-type DbCustomerStatus = 'active' | 'inactive' | 'pending_review' | 'blacklisted' | 'pending_payment' | 'suspended';
-
-// Convert app format status to database format
-const convertAppStatusToDbFormat = (appStatus: CustomerStatus): DbCustomerStatus => {
-  if (appStatus === 'pendingreview') return 'pending_review';
-  if (appStatus === 'pendingpayment') return 'pending_payment';
-  return appStatus as DbCustomerStatus; // 'active', 'inactive', 'blacklisted' are the same in both formats
-};
-
-// Convert database format status to app format
-const convertDbStatusToAppFormat = (dbStatus: string | null | undefined): CustomerStatus => {
-  if (!dbStatus) return 'active';
-  
-  if (dbStatus === 'pending_review') return 'pendingreview';
-  if (dbStatus === 'pending_payment') return 'pendingpayment';
-  
-  return dbStatus as CustomerStatus; // 'active', 'inactive', 'blacklisted' are the same in both formats
-};
-
 const formatQatarPhoneNumber = (phone: string): string => {
-  if (!phone) return '';
-  
   const cleanPhone = phone.replace(/^\+974/, '').trim();
   
   if (/^[3-9]\d{7}$/.test(cleanPhone)) {
@@ -42,7 +18,6 @@ const formatQatarPhoneNumber = (phone: string): string => {
 };
 
 const stripCountryCode = (phone: string): string => {
-  if (!phone) return '';
   return phone.replace(/^\+974/, '').trim();
 };
 
@@ -71,9 +46,7 @@ export const useCustomers = () => {
           .order('created_at', { ascending: false });
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          // Convert app status to DB status if needed
-          const dbStatus = convertAppStatusToDbFormat(searchParams.status as CustomerStatus);
-          query = query.eq('status', dbStatus);
+          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
         }
 
         if (searchParams.query) {
@@ -100,13 +73,13 @@ export const useCustomers = () => {
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: convertDbStatusToAppFormat(profile.status),
+          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
           created_at: profile.created_at,
           updated_at: profile.updated_at,
         }));
         
         console.log('Processed customers from profiles:', processedCustomers);
-        return processedCustomers;
+        return processedCustomers as Customer[];
       } catch (catchError) {
         console.error('Unexpected error in customer fetch:', catchError);
         return [];
@@ -126,8 +99,6 @@ export const useCustomers = () => {
       const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
       console.log('Formatted phone number:', formattedPhone);
       
-      const dbStatus = convertAppStatusToDbFormat(newCustomer.status || 'active');
-      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .insert([{ 
@@ -138,7 +109,7 @@ export const useCustomers = () => {
           driver_license: newCustomer.driver_license,
           nationality: newCustomer.nationality,
           notes: newCustomer.notes,
-          status: dbStatus,
+          status: newCustomer.status || 'active',
           role: CUSTOMER_ROLE,
           created_at: new Date().toISOString() 
         }])
@@ -153,8 +124,7 @@ export const useCustomers = () => {
       console.log('Created customer:', data);
       return {
         ...data,
-        phone: stripCountryCode(data.phone_number || ''),
-        status: convertDbStatusToAppFormat(data.status)
+        phone: stripCountryCode(data.phone_number || '')
       } as Customer;
     },
     onSuccess: () => {
@@ -171,8 +141,6 @@ export const useCustomers = () => {
       const formattedPhone = formatQatarPhoneNumber(customer.phone);
       console.log('Updating customer with formatted phone:', formattedPhone);
       
-      const dbStatus = convertAppStatusToDbFormat(customer.status);
-      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .update({ 
@@ -183,7 +151,7 @@ export const useCustomers = () => {
           driver_license: customer.driver_license,
           nationality: customer.nationality,
           notes: customer.notes,
-          status: dbStatus,
+          status: customer.status,
           updated_at: new Date().toISOString() 
         })
         .eq('id', customer.id)
@@ -193,8 +161,7 @@ export const useCustomers = () => {
       
       return {
         ...data[0],
-        phone: stripCountryCode(data[0].phone_number || ''),
-        status: convertDbStatusToAppFormat(data[0].status)
+        phone: stripCountryCode(data[0].phone_number || '')
       } as Customer;
     },
     onSuccess: () => {
@@ -257,12 +224,11 @@ export const useCustomers = () => {
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: convertDbStatusToAppFormat(data.status),
+        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
       
-      console.log('Processed customer data:', customerData);
       return customerData;
     } catch (error) {
       console.error('Unexpected error fetching customer:', error);

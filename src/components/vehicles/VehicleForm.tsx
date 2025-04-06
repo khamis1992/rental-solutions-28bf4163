@@ -26,7 +26,6 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { format, isValid } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { useTranslation } from 'react-i18next';
 
 // Create a more robust schema with better validations
 const vehicleSchema = z.object({
@@ -63,8 +62,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isLoading = false,
   isEditMode = false,
 }) => {
-  const { t } = useTranslation();
-  
   // Fixed default values to prevent undefined issues
   const defaultValues = {
     make: initialData?.make || '',
@@ -157,13 +154,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{isEditMode ? t('vehicles.editVehicle') : t('vehicles.addNewVehicle')}</CardTitle>
+        <CardTitle>{isEditMode ? 'Edit Vehicle' : 'Add New Vehicle'}</CardTitle>
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleFormSubmit)}>
           <CardContent className="space-y-6">
             <div className="mb-6">
-              <FormLabel className="mb-2 block">{t('vehicles.vehicleImage')}</FormLabel>
+              <FormLabel className="mb-2 block">Vehicle Image</FormLabel>
               <VehicleImageUpload 
                 onImageSelected={setSelectedImage}
                 initialImageUrl={initialData?.imageUrl || initialData?.image_url}
@@ -176,9 +173,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="make"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.make')}</FormLabel>
+                    <FormLabel>Make</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.makePlaceholder')} {...field} />
+                      <Input placeholder="Toyota" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -190,9 +187,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="model"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.model')}</FormLabel>
+                    <FormLabel>Model</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.modelPlaceholder')} {...field} />
+                      <Input placeholder="Camry" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -204,7 +201,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="year"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.year')}</FormLabel>
+                    <FormLabel>Year</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
@@ -218,9 +215,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="license_plate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.licensePlate')}</FormLabel>
+                    <FormLabel>License Plate</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.licensePlatePlaceholder')} {...field} />
+                      <Input placeholder="ABC-123" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -232,9 +229,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="vin"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.vin')}</FormLabel>
+                    <FormLabel>VIN</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.vinPlaceholder')} {...field} />
+                      <Input placeholder="1HGCM82633A123456" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -246,7 +243,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('common.status')}</FormLabel>
+                    <FormLabel>Status</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
@@ -254,18 +251,18 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('vehicles.selectStatus')} />
+                          <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="available">{t('vehicles.status.available')}</SelectItem>
-                        <SelectItem value="rented">{t('vehicles.status.rented')}</SelectItem>
-                        <SelectItem value="reserved">{t('vehicles.status.reserved')}</SelectItem>
-                        <SelectItem value="maintenance">{t('vehicles.status.maintenance')}</SelectItem>
-                        <SelectItem value="police_station">{t('vehicles.status.policeStation')}</SelectItem>
-                        <SelectItem value="accident">{t('vehicles.status.accident')}</SelectItem>
-                        <SelectItem value="stolen">{t('vehicles.status.stolen')}</SelectItem>
-                        <SelectItem value="retired">{t('vehicles.status.retired')}</SelectItem>
+                        <SelectItem value="available">Available</SelectItem>
+                        <SelectItem value="rented">Rented</SelectItem>
+                        <SelectItem value="reserved">Reserved</SelectItem>
+                        <SelectItem value="maintenance">Maintenance</SelectItem>
+                        <SelectItem value="police_station">Police Station</SelectItem>
+                        <SelectItem value="accident">Accident</SelectItem>
+                        <SelectItem value="stolen">Stolen</SelectItem>
+                        <SelectItem value="retired">Retired</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -278,9 +275,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.color')}</FormLabel>
+                    <FormLabel>Color</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.colorPlaceholder')} {...field} />
+                      <Input placeholder="Silver" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -292,7 +289,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="mileage"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.mileage')}</FormLabel>
+                    <FormLabel>Mileage</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -313,9 +310,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="location"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.location')}</FormLabel>
+                    <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.locationPlaceholder')} {...field} />
+                      <Input placeholder="Main Office" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -327,9 +324,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="insurance_company"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.insuranceCompany')}</FormLabel>
+                    <FormLabel>Insurance Company</FormLabel>
                     <FormControl>
-                      <Input placeholder={t('vehicles.insuranceCompanyPlaceholder')} {...field} />
+                      <Input placeholder="Insurance Provider" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -341,7 +338,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="insurance_expiry"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>{t('vehicles.insuranceExpiryDate')}</FormLabel>
+                    <FormLabel>Insurance Expiry Date</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -355,9 +352,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                             {field.value ? (
                               isValid(new Date(field.value)) ? 
                                 format(new Date(field.value), "PPP") : 
-                                t('common.invalidDate')
+                                "Invalid date"
                             ) : (
-                              <span>{t('common.pickDate')}</span>
+                              <span>Pick a date</span>
                             )}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
@@ -385,7 +382,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="rent_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.dailyRate')}</FormLabel>
+                    <FormLabel>Daily Rate ($)</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -406,7 +403,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 name="vehicle_type_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('vehicles.vehicleType')}</FormLabel>
+                    <FormLabel>Vehicle Type</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
@@ -414,13 +411,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={t('vehicles.selectVehicleType')} />
+                          <SelectValue placeholder="Select vehicle type" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="none">{t('common.none')}</SelectItem>
+                        <SelectItem value="none">None</SelectItem>
                         {isLoadingTypes ? (
-                          <SelectItem value="loading">{t('common.loading')}</SelectItem>
+                          <SelectItem value="loading">Loading...</SelectItem>
                         ) : (
                           vehicleTypes && vehicleTypes.map((type) => (
                             type.id ? (
@@ -443,10 +440,10 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('vehicles.description')}</FormLabel>
+                  <FormLabel>Description/Notes</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder={t('vehicles.descriptionPlaceholder')} 
+                      placeholder="Additional information about the vehicle" 
                       {...field} 
                     />
                   </FormControl>
@@ -462,12 +459,12 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               variant="outline"
               onClick={() => window.history.back()}
             >
-              {t('common.cancel')}
+              Cancel
             </CustomButton>
             
             <CustomButton type="submit" disabled={isLoading} glossy>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEditMode ? t('vehicles.updateVehicle') : t('vehicles.addVehicle')}
+              {isEditMode ? 'Update Vehicle' : 'Add Vehicle'}
             </CustomButton>
           </CardFooter>
         </form>
