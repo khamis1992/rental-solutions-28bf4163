@@ -7,8 +7,8 @@ import React from 'react';
 // Mock the TranslationContext
 jest.mock('@/contexts/TranslationContext', () => ({
   useTranslation: jest.fn(),
-  TranslationProvider: ({ children }: { children: React.ReactNode }) => {
-    return <>{children}</>;
+  TranslationProvider: function MockTranslationProvider({ children }: { children: React.ReactNode }) {
+    return React.createElement(React.Fragment, null, children);
   }
 }));
 
