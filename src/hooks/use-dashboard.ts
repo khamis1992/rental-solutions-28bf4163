@@ -58,8 +58,15 @@ export interface RecentActivity {
   time: string;
 }
 
+import { PerformanceMonitor } from '@/utils/performance-monitor';
+
 export function useDashboardData() {
+  PerformanceMonitor.startMeasure('dashboard_data_load');
+  
   const statsQuery = useQuery({
+    onSuccess: () => {
+      PerformanceMonitor.endMeasure('dashboard_data_load');
+    },
     queryKey: ['dashboard', 'stats'],
     queryFn: async (): Promise<DashboardStats> => {
       try {

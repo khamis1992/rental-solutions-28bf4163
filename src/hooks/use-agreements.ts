@@ -137,6 +137,8 @@ export const useAgreements = (initialParams?: SearchParams) => {
   const useAgreementsList = () => {
     return useQuery({
       queryKey: ['agreements', searchParams],
+      staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+      cacheTime: 1000 * 60 * 30, // Keep in cache for 30 minutes
       queryFn: async () => {
         let query = supabase
           .from('leases')

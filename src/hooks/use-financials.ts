@@ -51,6 +51,20 @@ export function useFinancials() {
     dateTo: '',
     searchQuery: '',
   });
+  
+  // Add cache configuration
+  const queryConfig = {
+    staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
+    cacheTime: 1000 * 60 * 30, // Cache retained for 30 minutes
+    refetchOnWindowFocus: false,
+    retry: 2,
+  };
+    transactionType: '',
+    category: '',
+    dateFrom: '',
+    dateTo: '',
+    searchQuery: '',
+  });
 
   const [expenseFilters, setExpenseFilters] = useState({
     category: '',

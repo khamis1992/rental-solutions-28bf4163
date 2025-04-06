@@ -24,6 +24,25 @@ export class PerformanceMonitor {
     
     const measure = performance.getEntriesByName(name).pop();
     if (measure) {
+      // Log to analytics if duration exceeds threshold
+      if (measure.duration > this.PERFORMANCE_THRESHOLD) {
+        console.warn(`Performance warning: ${name} took ${Math.round(measure.duration)}ms`);
+        // Clear old entries to prevent memory leaks
+        performance.clearMarks();
+        performance.clearMeasures();
+      }
+      
+      // Track memory usage
+      if ('memory' in performance) {
+        const memory = (performance as any).memory;
+        if (memory && memory.usedJSHeapSize > 100 * 1024 * 1024) { // 100MB threshold
+          console.warn('High memory usage detected');
+        }
+      }
+    }
+    
+    const measure = performance.getEntriesByName(name).pop();
+    if (measure) {
       if (!this.metrics.has(name)) {
         this.metrics.set(name, []);
       }

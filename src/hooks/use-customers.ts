@@ -28,12 +28,17 @@ export const useCustomers = () => {
     status: 'all',
   });
 
+  const [page, setPage] = useState(1);
+  const pageSize = 20;
+
   const { 
     data: customers, 
     isLoading, 
     error,
     refetch
   } = useQuery({
+    keepPreviousData: true,
+    staleTime: 1000 * 60 * 5,
     queryKey: ['customers', searchParams],
     queryFn: async () => {
       console.log('Fetching customers with params:', searchParams);
