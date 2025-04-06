@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel } from "@tanstack/react-table";
@@ -13,6 +14,8 @@ import { Customer } from '@/lib/validation-schemas/customer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export function CustomerList() {
   const {
@@ -27,8 +30,8 @@ export function CustomerList() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [isUpdatingStatuses, setIsUpdatingStatuses] = useState(false);
-  
-  console.log("CustomerList received customers:", customers);
+  const { t } = useI18nTranslation();
+  const { isRTL, getNumberFormat } = useTranslation();
   
   // Function to trigger customer status updates
   const handleUpdateCustomerStatuses = async () => {
@@ -38,17 +41,17 @@ export function CustomerList() {
       
       if (error) {
         console.error("Error updating customer statuses:", error);
-        toast.error("Failed to update customer statuses", {
+        toast.error(t('customers.statusUpdateFailed'), {
           description: error.message
         });
       } else {
-        toast.success("Customer statuses updated successfully");
+        toast.success(t('customers.statusUpdateSuccess'));
         // Refresh customer list to show updated statuses
         refreshCustomers();
       }
     } catch (err) {
       console.error("Unexpected error updating customer statuses:", err);
-      toast.error("An unexpected error occurred while updating customer statuses");
+      toast.error(t('customers.unexpectedError'));
     } finally {
       setIsUpdatingStatuses(false);
     }
@@ -56,37 +59,37 @@ export function CustomerList() {
   
   const columns: ColumnDef<Customer>[] = [{
     accessorKey: "full_name",
-    header: "Customer Name",
+    header: t('customers.name'),
     cell: ({
       row
     }) => {
       const fullName = row.getValue("full_name") as string;
       return <div>
             <Link to={`/customers/${row.original.id}`} className="font-medium text-primary hover:underline">
-              {fullName || 'Unnamed Customer'}
+              {fullName || t('customers.unnamed')}
             </Link>
           </div>;
     }
   }, {
     accessorKey: "email",
-    header: "Email"
+    header: t('common.email')
   }, {
     accessorKey: "phone",
-    header: "Phone"
+    header: t('common.phone')
   }, {
     accessorKey: "driver_license",
-    header: "License",
+    header: t('customers.license'),
     cell: ({
       row
     }) => {
       const license = row.getValue("driver_license") as string;
       return license ? <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
             {license}
-          </code> : <span className="text-muted-foreground text-sm">Not provided</span>;
+          </code> : <span className="text-muted-foreground text-sm">{t('customers.notProvided')}</span>;
     }
   }, {
     accessorKey: "status",
-    header: "Status",
+    header: t('common.status'),
     cell: ({
       row
     }) => {
@@ -122,7 +125,7 @@ export function CustomerList() {
       }
       return <Badge className={`capitalize ${badgeClass}`}>
             <Icon className="h-3 w-3 mr-1" />
-            {status.replace('_', ' ')}
+            {t(`customers.status.${status.replace('_', '')}`)}
           </Badge>;
     }
   }, {
@@ -134,30 +137,30 @@ export function CustomerList() {
       return <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
+                <span className="sr-only">{t('common.actions')}</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('common.actions')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to={`/customers/${customer.id}`}>
-                  View details
+                  {t('customers.viewDetails')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to={`/customers/edit/${customer.id}`}>
-                  Edit customer
+                  {t('customers.editCustomer')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
-            if (window.confirm(`Are you sure you want to delete ${customer.full_name}?`)) {
+            if (window.confirm(t('customers.deleteConfirmation', { name: customer.full_name }))) {
               deleteCustomer.mutate(customer.id as string);
             }
           }}>
-                Delete customer
+                {t('customers.deleteCustomer')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>;
@@ -181,38 +184,41 @@ export function CustomerList() {
   // Display an error message if there was an error fetching customers
   if (error) {
     return <div className="p-4 bg-destructive/10 text-destructive rounded-md">
-        <h3 className="font-semibold mb-2">Error loading customers</h3>
-        <p>{error instanceof Error ? error.message : 'An unknown error occurred'}</p>
+        <h3 className="font-semibold mb-2">{t('customers.errorLoadingTitle')}</h3>
+        <p>{error instanceof Error ? error.message : t('customers.unknownError')}</p>
       </div>;
   }
+  
+  const flexDirection = isRTL ? "flex-row-reverse" : "flex-row";
+  
   return <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center w-full sm:w-auto space-x-2">
+      <div className={`flex flex-col sm:${flexDirection} justify-between items-start sm:items-center gap-4`}>
+        <div className={`flex items-center ${isRTL ? "flex-row-reverse" : ""} w-full sm:w-auto space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
           <div className="relative w-full sm:w-[250px] md:w-[300px]">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50" />
-            <Input placeholder="Search customers..." value={searchParams.query || ''} onChange={e => setSearchParams({
+            <Search className={`absolute ${isRTL ? "right-3" : "left-3"} top-1/2 transform -translate-y-1/2 h-4 w-4 opacity-50`} />
+            <Input placeholder={t('customers.searchPlaceholder')} value={searchParams.query || ''} onChange={e => setSearchParams({
             ...searchParams,
             query: e.target.value
-          })} className="h-9 pl-9 w-full" />
+          })} className={`h-9 ${isRTL ? "pr-9 text-right" : "pl-9"} w-full`} />
           </div>
           <Select value={searchParams.status} onValueChange={value => setSearchParams({
           ...searchParams,
           status: value
         })}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select status" />
+              <SelectValue placeholder={t('customers.selectStatus')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="blacklisted">Blacklisted</SelectItem>
-              <SelectItem value="pending_review">Pending Review</SelectItem>
-              <SelectItem value="pending_payment">Pending Payment</SelectItem>
+              <SelectItem value="all">{t('customers.allStatuses')}</SelectItem>
+              <SelectItem value="active">{t('customers.status.active')}</SelectItem>
+              <SelectItem value="inactive">{t('customers.status.inactive')}</SelectItem>
+              <SelectItem value="blacklisted">{t('customers.status.blacklisted')}</SelectItem>
+              <SelectItem value="pending_review">{t('customers.status.pendingreview')}</SelectItem>
+              <SelectItem value="pending_payment">{t('customers.status.pendingpayment')}</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 items-center">
           <Button 
             variant="outline" 
             onClick={handleUpdateCustomerStatuses}
@@ -220,7 +226,7 @@ export function CustomerList() {
             className="flex items-center gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${isUpdatingStatuses ? 'animate-spin' : ''}`} />
-            Update Statuses
+            {t('customers.updateStatuses')}
           </Button>
         </div>
       </div>
@@ -251,19 +257,19 @@ export function CustomerList() {
                     </TableCell>)}
                 </TableRow>) : <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No customers found. {searchParams.query || searchParams.status !== 'all' ? 'Try adjusting your filters.' : 'Add your first customer using the button above.'}
+                  {t('customers.noCustomers')} {searchParams.query || searchParams.status !== 'all' ? t('customers.adjustFilters') : t('customers.addFirstCustomer')}
                 </TableCell>
               </TableRow>}
           </TableBody>
         </Table>
       </div>
       
-      <div className="flex items-center justify-end space-x-2">
+      <div className={`flex items-center ${isRTL ? "justify-start" : "justify-end"} space-x-2 ${isRTL ? "space-x-reverse" : ""}`}>
         <Button variant="outline" size="sm" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-          Previous
+          {t('common.back')}
         </Button>
         <Button variant="outline" size="sm" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-          Next
+          {t('common.next')}
         </Button>
       </div>
     </div>;

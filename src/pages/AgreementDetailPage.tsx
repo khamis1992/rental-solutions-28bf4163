@@ -1,254 +1,169 @@
-import React, { useEffect, useState } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { AgreementDetail } from '@/components/agreements/AgreementDetail';
-import PageContainer from '@/components/layout/PageContainer';
-import { useAgreements } from '@/hooks/use-agreements';
-import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
+import PageContainer from '@/components/layout/PageContainer';
+import { AgreementDetail } from '@/components/agreements/AgreementDetail';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { supabase } from '@/lib/supabase';
-import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
-import { getDateObject } from '@/lib/date-utils';
-import { usePayments } from '@/hooks/use-payments';
-import { fixAgreementPayments } from '@/lib/supabase';
+import { useAgreements } from '@/hooks/use-agreements';
+import { useRentAmount } from '@/hooks/use-rent-amount';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const AgreementDetailPage = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { getAgreement, deleteAgreement } = useAgreements();
-  const [agreement, setAgreement] = useState<Agreement | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
-  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
-  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
-  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { t } = useI18nTranslation();
+  const { language, isRTL } = useTranslation();
+  const [pageTitle, setPageTitle] = useState('');
+  const [pageDescription, setPageDescription] = useState('');
+  const isRefreshing = useRef(false);
+  const refreshCount = useRef(0);
+  const lastRefreshTime = useRef(0);
+  
+  // Use the useAgreements hook to fetch agreement data and access delete functionality
+  const { 
+    getAgreement, 
+    deleteAgreement
+  } = useAgreements();
 
+  const [agreement, setAgreement] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Use the useRentAmount hook to calculate rent and contract amount
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', rentAmount);
-
-  const fetchAgreementData = async () => {
-    if (!id) return;
-
-    try {
-      setIsLoading(true);
-      const data = await getAgreement(id);
+  // Set page title and description directly from i18n translation files
+  useEffect(() => {
+    if (id) {
+      console.log(`Setting page title and description for language: ${language}`);
+      // Directly use the translated values from i18n
+      const title = t('agreements.details');
+      const description = t('agreements.viewDetails');
       
+      console.log(`Page title from i18n: "${title}"`);
+      console.log(`Page description from i18n: "${description}"`);
+      
+      setPageTitle(title);
+      setPageDescription(description);
+    }
+  }, [t, id, language]); // When language changes, this will update
+
+  // Fetch agreement data
+  const fetchAgreementData = useCallback(async () => {
+    if (!id) return;
+    
+    if (isRefreshing.current) {
+      console.log("Agreement fetch already in progress, skipping");
+      return;
+    }
+    
+    const now = Date.now();
+    if (now - lastRefreshTime.current < 1000) {
+      console.log("Throttling agreement data refresh (too frequent)");
+      return;
+    }
+    
+    isRefreshing.current = true;
+    lastRefreshTime.current = now;
+    setIsLoading(true);
+    
+    try {
+      console.log("Fetching agreement data for ID:", id);
+      refreshCount.current += 1;
+      const data = await getAgreement(id);
       if (data) {
-        const adaptedAgreement = adaptSimpleToFullAgreement(data);
-        
-        if (adaptedAgreement.start_date) {
-          const safeDate = getDateObject(adaptedAgreement.start_date);
-          adaptedAgreement.start_date = safeDate || new Date();
-        }
-        
-        if (adaptedAgreement.end_date) {
-          const safeDate = getDateObject(adaptedAgreement.end_date);
-          adaptedAgreement.end_date = safeDate || new Date();
-        }
-        
-        if (adaptedAgreement.created_at) {
-          const safeDate = getDateObject(adaptedAgreement.created_at);
-          adaptedAgreement.created_at = safeDate;
-        }
-        
-        if (adaptedAgreement.updated_at) {
-          const safeDate = getDateObject(adaptedAgreement.updated_at);
-          adaptedAgreement.updated_at = safeDate;
-        }
-        
-        setAgreement(adaptedAgreement);
-        fetchPayments();
+        setAgreement(data);
       } else {
-        toast.error("Agreement not found");
-        navigate("/agreements");
+        setError(t('agreements.notFound'));
       }
-    } catch (error) {
-      console.error('Error fetching agreement:', error);
-      toast.error('Failed to load agreement details');
+    } catch (err) {
+      console.error("Error fetching agreement:", err);
+      setError(t('agreements.loadError'));
     } finally {
       setIsLoading(false);
-      setHasAttemptedFetch(true);
+      isRefreshing.current = false;
     }
-  };
+  }, [id, getAgreement, t]);
 
   useEffect(() => {
-    if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
-      fetchAgreementData();
-    }
-  }, [id, refreshTrigger]);
+    fetchAgreementData();
+  }, [fetchAgreementData]);
 
-  useEffect(() => {
-    if (id && !isLoading && agreement && payments && payments.length > 0) {
-      const paymentDates = payments
-        .filter(p => p.original_due_date)
-        .map(p => {
-          const date = new Date(p.original_due_date as string);
-          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        });
-      
-      const monthCounts = paymentDates.reduce((acc, date) => {
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const hasDuplicates = Object.values(monthCounts).some(count => count > 1);
-      
-      if (hasDuplicates) {
-        console.log("Detected duplicate payments - will fix automatically");
-        fixAgreementPayments(id).then(() => {
-          fetchPayments();
-        });
-      }
-    }
-  }, [id, isLoading, agreement, payments]);
-
-  const handleDelete = async (agreementId: string) => {
+  const handleDelete = useCallback(async (agreementId: string) => {
     try {
       await deleteAgreement.mutateAsync(agreementId);
-      toast.success("Agreement deleted successfully");
-      navigate("/agreements");
-    } catch (error) {
-      console.error("Error deleting agreement:", error);
-      toast.error("Failed to delete agreement");
+      toast.success(t('agreements.deleteSuccess'));
+      navigate('/agreements');
+    } catch (err) {
+      console.error("Error deleting agreement:", err);
+      toast.error(t('agreements.deleteError'));
     }
-  };
+  }, [deleteAgreement, navigate, t]);
 
-  const refreshAgreementData = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
+  // Create debounced data refresh functions to prevent cascade refreshes
+  const debouncedDataRefresh = useDebouncedCallback(() => {
+    console.log("Running debounced agreement refresh");
+    fetchAgreementData();
+  }, 1000);
+  
+  const handlePaymentDeleted = useCallback(() => {
+    debouncedDataRefresh();
+  }, [debouncedDataRefresh]);
 
-  const handleGenerateDocument = () => {
-    setIsDocumentDialogOpen(true);
-  };
+  const handleDataRefresh = useCallback(() => {
+    debouncedDataRefresh();
+  }, [debouncedDataRefresh]);
 
-  const handleGeneratePayment = async () => {
-    if (!id || !agreement) return;
-    
-    setIsGeneratingPayment(true);
-    try {
-      const result = await forceGeneratePaymentForAgreement(supabase, id);
-      
-      if (result.success) {
-        toast.success("Payment schedule generated successfully");
-        refreshAgreementData();
-      } else {
-        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error("Error generating payment:", error);
-      toast.error("Failed to generate payment schedule");
-    } finally {
-      setIsGeneratingPayment(false);
-    }
-  };
-
-  const handleRunMaintenanceJob = async () => {
-    if (!id) return;
-    
-    setIsRunningMaintenance(true);
-    try {
-      toast.info("Running payment maintenance check...");
-      const result = await manuallyRunPaymentMaintenance();
-      
-      if (result.success) {
-        toast.success(result.message || "Payment schedule maintenance completed");
-        refreshAgreementData();
-        fetchPayments();
-      } else {
-        toast.error(result.message || "Payment maintenance failed");
-      }
-    } catch (error) {
-      console.error("Error running maintenance job:", error);
-      toast.error("Failed to run maintenance job");
-    } finally {
-      setIsRunningMaintenance(false);
-    }
-  };
+  if (error) {
+    return (
+      <PageContainer
+        title={pageTitle || t('agreements.details')}
+        description={pageDescription || t('agreements.viewDetails')}
+        backLink="/agreements"
+      >
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+          <AlertTitle>{t('agreements.notFound')}</AlertTitle>
+          <AlertDescription>{t('agreements.notFoundDesc')}</AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate('/agreements')}>
+          {t('agreements.returnToAgreements')}
+        </Button>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer
-      title="Agreement Details"
-      description="View and manage rental agreement details"
+      title={pageTitle || t('agreements.details')}
+      description={pageDescription || t('agreements.viewDetails')}
       backLink="/agreements"
-      actions={
-        <>
-          {agreement && agreement.status === AgreementStatus.ACTIVE && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGeneratePayment}
-              disabled={isGeneratingPayment}
-              className="gap-2 mr-2"
-            >
-              <Calendar className="h-4 w-4" />
-              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRunMaintenanceJob}
-            disabled={isRunningMaintenance}
-            className="gap-2"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
-          </Button>
-        </>
-      }
     >
       {isLoading ? (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <Skeleton className="h-12 w-2/3" />
           <div className="grid gap-6 md:grid-cols-2">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full md:col-span-2" />
+            <Skeleton className="h-64" />
+            <Skeleton className="h-64" />
           </div>
+          <Skeleton className="h-96" />
         </div>
-      ) : agreement ? (
-        <>
-          <AgreementDetail 
-            agreement={agreement}
-            onDelete={handleDelete}
-            rentAmount={rentAmount}
-            contractAmount={contractAmount}
-            onPaymentDeleted={refreshAgreementData}
-            onDataRefresh={refreshAgreementData}
-            onGenerateDocument={handleGenerateDocument}
-          />
-          
-          <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
-            <DialogContent className="max-w-4xl">
-              <InvoiceGenerator 
-                recordType="agreement" 
-                recordId={agreement.id} 
-                onClose={() => setIsDocumentDialogOpen(false)} 
-              />
-            </DialogContent>
-          </Dialog>
-        </>
       ) : (
-        <div className="text-center py-12">
-          <div className="flex items-center justify-center mb-4">
-            <AlertTriangle className="h-12 w-12 text-amber-500" />
-          </div>
-          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
-          <p className="text-muted-foreground mb-4">
-            The agreement you're looking for doesn't exist or has been removed.
-          </p>
-          <Button variant="outline" onClick={() => navigate("/agreements")}>
-            Return to Agreements
-          </Button>
-        </div>
+        <AgreementDetail
+          agreement={agreement}
+          onDelete={handleDelete}
+          rentAmount={rentAmount}
+          contractAmount={contractAmount}
+          onPaymentDeleted={handlePaymentDeleted}
+          onDataRefresh={handleDataRefresh}
+        />
       )}
     </PageContainer>
   );

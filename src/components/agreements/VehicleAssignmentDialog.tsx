@@ -4,11 +4,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Button } from "@/components/ui/button";
 import { AlertCircle, AlertTriangle, CheckCircle, X, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { Loader2 } from "lucide-react";
 import { TrafficFine, TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation as useI18nTranslation } from "react-i18next";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { cn } from "@/lib/utils";
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -62,6 +65,9 @@ export function VehicleAssignmentDialog({
   const [acknowledgedFines, setAcknowledgedFines] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isPaymentHistoryOpen, setIsPaymentHistoryOpen] = useState(false);
+  
+  const { t } = useI18nTranslation();
+  const { direction, isRTL } = useTranslation();
 
   useEffect(() => {
     if (isOpen && existingAgreement) {
@@ -74,7 +80,6 @@ export function VehicleAssignmentDialog({
     
     setIsLoading(true);
     try {
-      // Fetch vehicle information
       if (vehicleId) {
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
@@ -87,7 +92,6 @@ export function VehicleAssignmentDialog({
         }
       }
       
-      // Fetch pending payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
@@ -108,7 +112,6 @@ export function VehicleAssignmentDialog({
         setPendingPayments(formattedPayments);
       }
       
-      // Fetch traffic fines
       const { data: finesData, error: finesError } = await supabase
         .from('traffic_fines')
         .select('*')
@@ -118,7 +121,6 @@ export function VehicleAssignmentDialog({
       if (finesError) {
         console.error("Error fetching traffic fines:", finesError);
       } else {
-        // Transform the data to ensure payment_status is a proper TrafficFineStatusType
         const transformedFines: TrafficFine[] = (finesData || []).map(fine => ({
           id: fine.id,
           violationNumber: fine.violation_number || "",
@@ -135,7 +137,6 @@ export function VehicleAssignmentDialog({
         setTrafficFines(transformedFines);
       }
       
-      // Fetch customer information
       const { data: agreementData, error: agreementError } = await supabase
         .from('leases')
         .select('customer_id')
@@ -160,11 +161,31 @@ export function VehicleAssignmentDialog({
     }
   };
 
-  // Check if we need acknowledgments for payments or fines
+  const formatDate = (date: Date | undefined) => {
+    if (!date) return t("common.notProvided");
+    return new Intl.DateTimeFormat(isRTL ? 'ar-SA' : 'en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    }).format(date);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'paid':
+        return <Badge className="bg-green-500">{t("agreements.statuses.paid")}</Badge>;
+      case 'overdue':
+        return <Badge className="bg-red-500">{t("agreements.statuses.overdue")}</Badge>;
+      case 'pending':
+        return <Badge className="bg-amber-500">{t("agreements.statuses.pending")}</Badge>;
+      default:
+        return <Badge className="bg-slate-500">{status}</Badge>;
+    }
+  };
+
   const needsPaymentAcknowledgment = pendingPayments.length > 0;
   const needsFinesAcknowledgment = trafficFines.length > 0;
   
-  // Can proceed if no acknowledgments needed, or all are acknowledged
   const canProceed = (!needsPaymentAcknowledgment || acknowledgedPayments) && 
                     (!needsFinesAcknowledgment || acknowledgedFines);
 
@@ -175,44 +196,22 @@ export function VehicleAssignmentDialog({
     onClose();
   };
 
-  const formatDate = (date: Date | undefined) => {
-    if (!date) return 'N/A';
-    return new Intl.DateTimeFormat('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    }).format(date);
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'paid':
-        return <Badge className="bg-green-500">Paid</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-500">Overdue</Badge>;
-      case 'pending':
-        return <Badge className="bg-amber-500">Pending</Badge>;
-      default:
-        return <Badge className="bg-slate-500">{status}</Badge>;
-    }
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className={cn("sm:max-w-md", isRTL ? "rtl-mode text-right" : "")}>
         <DialogHeader>
-          <div className="flex items-center space-x-2">
+          <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <DialogTitle>Vehicle Already Assigned</DialogTitle>
+            <DialogTitle>{t("agreements.vehicleAlreadyAssigned")}</DialogTitle>
           </div>
         </DialogHeader>
         
         <div className="py-4">
           <p className="text-sm">
-            This vehicle is currently assigned to Agreement <strong>#{existingAgreement.agreement_number}</strong>.
+            {t("agreements.vehicleAlreadyAssignedDesc1", { agreementNumber: existingAgreement.agreement_number })}
           </p>
           <p className="text-sm mt-2">
-            If you proceed, the existing agreement will be closed automatically, and the vehicle will be assigned to your new agreement.
+            {t("agreements.vehicleAlreadyAssignedDesc2")}
           </p>
         </div>
 
@@ -222,7 +221,6 @@ export function VehicleAssignmentDialog({
           </div>
         ) : (
           <>
-            {/* Collapsible Section for Vehicle Information */}
             {vehicleInfo && (
               <Collapsible
                 open={isDetailsOpen}
@@ -231,9 +229,9 @@ export function VehicleAssignmentDialog({
               >
                 <div className="bg-slate-50 p-3">
                   <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <div className="flex items-center space-x-2">
+                    <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
                       <Info className="h-4 w-4 text-slate-500" />
-                      <h3 className="text-sm font-medium">Vehicle & Agreement Details</h3>
+                      <h3 className="text-sm font-medium">{t("agreements.vehicleAndAgreementDetails")}</h3>
                     </div>
                     {isDetailsOpen ? (
                       <ChevronUp className="h-4 w-4" />
@@ -245,23 +243,23 @@ export function VehicleAssignmentDialog({
                 <CollapsibleContent className="p-3 bg-white">
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Vehicle Information</h4>
+                      <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">{t("vehicles.vehicleInformation")}</h4>
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div><span className="font-medium">Make:</span> {vehicleInfo.make}</div>
-                        <div><span className="font-medium">Model:</span> {vehicleInfo.model}</div>
-                        <div><span className="font-medium">License Plate:</span> {vehicleInfo.license_plate}</div>
-                        {vehicleInfo.year && <div><span className="font-medium">Year:</span> {vehicleInfo.year}</div>}
-                        {vehicleInfo.color && <div><span className="font-medium">Color:</span> {vehicleInfo.color}</div>}
+                        <div><span className="font-medium">{t("common.make")}:</span> {vehicleInfo.make}</div>
+                        <div><span className="font-medium">{t("common.model")}:</span> {vehicleInfo.model}</div>
+                        <div><span className="font-medium">{t("common.licensePlate")}:</span> {vehicleInfo.license_plate}</div>
+                        {vehicleInfo.year && <div><span className="font-medium">{t("common.year")}:</span> {vehicleInfo.year}</div>}
+                        {vehicleInfo.color && <div><span className="font-medium">{t("common.color")}:</span> {vehicleInfo.color}</div>}
                       </div>
                     </div>
                     
                     {customerInfo && (
                       <div>
-                        <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Current Customer</h4>
-                        <div className="grid grid-cols-1 gap-1 text-sm">
-                          <div><span className="font-medium">Name:</span> {customerInfo.full_name}</div>
-                          {customerInfo.email && <div><span className="font-medium">Email:</span> {customerInfo.email}</div>}
-                          {customerInfo.phone_number && <div><span className="font-medium">Phone:</span> {customerInfo.phone_number}</div>}
+                        <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">{t("customers.customerDetails")}</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          <div><span className="font-medium">{t("common.name")}:</span> {customerInfo.full_name}</div>
+                          {customerInfo.email && <div><span className="font-medium">{t("common.email")}:</span> {customerInfo.email}</div>}
+                          {customerInfo.phone_number && <div><span className="font-medium">{t("common.phone")}:</span> {customerInfo.phone_number}</div>}
                         </div>
                       </div>
                     )}
@@ -269,120 +267,131 @@ export function VehicleAssignmentDialog({
                 </CollapsibleContent>
               </Collapsible>
             )}
-
-            {/* Collapsible Section for Payment History */}
+            
             {pendingPayments.length > 0 && (
-              <Collapsible
-                open={isPaymentHistoryOpen}
-                onOpenChange={setIsPaymentHistoryOpen}
-                className="border rounded-md overflow-hidden mb-3"
-              >
-                <div className="bg-slate-50 p-3">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <div className="flex items-center space-x-2">
-                      <Info className="h-4 w-4 text-slate-500" />
-                      <h3 className="text-sm font-medium">Payment History</h3>
+              <div className="border rounded-md overflow-hidden mb-3">
+                <div className="bg-amber-50 p-3 border-b border-amber-200">
+                  <div className="flex items-center justify-between">
+                    <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      <h3 className="text-sm font-medium text-amber-800">{t("agreements.pendingPayments")}</h3>
                     </div>
-                    {isPaymentHistoryOpen ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </CollapsibleTrigger>
-                </div>
-                <CollapsibleContent className="p-3 bg-white">
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Payments</h4>
-                    <div className="max-h-48 overflow-y-auto">
-                      <table className="w-full text-xs">
-                        <thead className="bg-slate-100">
-                          <tr>
-                            <th className="p-2 text-left">Amount</th>
-                            <th className="p-2 text-left">Status</th>
-                            <th className="p-2 text-left">Due Date</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {pendingPayments.map((payment) => (
-                            <tr key={payment.id} className="border-b">
-                              <td className="p-2">{payment.amount} QAR</td>
-                              <td className="p-2">{getStatusBadge(payment.status)}</td>
-                              <td className="p-2">{formatDate(payment.due_date)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                    <Badge variant="outline" className="text-amber-700 border-amber-300">
+                      {pendingPayments.length}
+                    </Badge>
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            {pendingPayments.length > 0 && (
-              <div className="mt-2 border rounded-md p-3 bg-amber-50">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <h3 className="text-sm font-medium">Pending Payments</h3>
                 </div>
-                <p className="text-sm mt-1 text-gray-600">
-                  There {pendingPayments.length === 1 ? 'is' : 'are'} {pendingPayments.length} pending {pendingPayments.length === 1 ? 'payment' : 'payments'} associated with this agreement.
-                </p>
-                <div className="mt-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={acknowledgedPayments}
-                      onChange={() => setAcknowledgedPayments(!acknowledgedPayments)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm">I acknowledge the pending payments</span>
-                  </label>
+                <div className="p-3">
+                  <p className="text-sm mb-3">{t("agreements.pendingPaymentsWarning")}</p>
+                  
+                  <div className="space-y-2">
+                    {pendingPayments.slice(0, 3).map((payment) => (
+                      <div key={payment.id} className="flex items-center justify-between text-sm">
+                        <div>{payment.description || t("agreements.payment")}</div>
+                        <div className="flex items-center gap-2">
+                          <span>{payment.amount} QAR</span>
+                          {getStatusBadge(payment.status)}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {pendingPayments.length > 3 && (
+                      <div className="text-sm italic text-center">
+                        {t("agreements.andMore", { count: pendingPayments.length - 3 })}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {needsPaymentAcknowledgment && (
+                    <div className={cn("mt-3 flex items-center", isRTL ? "flex-row-reverse" : "")}>
+                      <label className={cn("flex items-center text-sm cursor-pointer", isRTL ? "flex-row-reverse" : "")}>
+                        <input
+                          type="checkbox"
+                          checked={acknowledgedPayments}
+                          onChange={(e) => setAcknowledgedPayments(e.target.checked)}
+                          className={cn(isRTL ? "ml-2" : "mr-2")}
+                        />
+                        {t("agreements.acknowledgePendingPayments")}
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
-
+            
             {trafficFines.length > 0 && (
-              <div className="mt-2 border rounded-md p-3 bg-amber-50">
-                <div className="flex items-center space-x-2">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <h3 className="text-sm font-medium">Outstanding Traffic Fines</h3>
+              <div className="border rounded-md overflow-hidden mb-3">
+                <div className="bg-amber-50 p-3 border-b border-amber-200">
+                  <div className="flex items-center justify-between">
+                    <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
+                      <AlertCircle className="h-4 w-4 text-amber-500" />
+                      <h3 className="text-sm font-medium text-amber-800">{t("customers.trafficFines")}</h3>
+                    </div>
+                    <Badge variant="outline" className="text-amber-700 border-amber-300">
+                      {trafficFines.length}
+                    </Badge>
+                  </div>
                 </div>
-                <p className="text-sm mt-1 text-gray-600">
-                  There {trafficFines.length === 1 ? 'is' : 'are'} {trafficFines.length} unpaid traffic {trafficFines.length === 1 ? 'fine' : 'fines'} associated with this vehicle.
-                </p>
-                <div className="mt-2">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={acknowledgedFines}
-                      onChange={() => setAcknowledgedFines(!acknowledgedFines)}
-                      className="rounded border-gray-300 text-primary focus:ring-primary"
-                    />
-                    <span className="text-sm">I acknowledge the outstanding traffic fines</span>
-                  </label>
+                <div className="p-3">
+                  <p className="text-sm mb-3">{t("agreements.trafficFinesWarning")}</p>
+                  
+                  <div className="space-y-2">
+                    {trafficFines.slice(0, 3).map((fine) => (
+                      <div key={fine.id} className="flex items-center justify-between text-sm">
+                        <div>{fine.violationCharge || t("agreements.trafficViolation")}</div>
+                        <div className="flex items-center gap-2">
+                          <span>{fine.fineAmount} QAR</span>
+                          {getStatusBadge(fine.paymentStatus)}
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {trafficFines.length > 3 && (
+                      <div className="text-sm italic text-center">
+                        {t("agreements.andMore", { count: trafficFines.length - 3 })}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {needsFinesAcknowledgment && (
+                    <div className={cn("mt-3 flex items-center", isRTL ? "flex-row-reverse" : "")}>
+                      <label className={cn("flex items-center text-sm cursor-pointer", isRTL ? "flex-row-reverse" : "")}>
+                        <input
+                          type="checkbox"
+                          checked={acknowledgedFines}
+                          onChange={(e) => setAcknowledgedFines(e.target.checked)}
+                          className={cn(isRTL ? "ml-2" : "mr-2")}
+                        />
+                        {t("agreements.acknowledgeTrafficFines")}
+                      </label>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
+            
+            <div className="border rounded-md overflow-hidden mb-3">
+              <div className="bg-slate-50 p-3 border-b border-slate-200">
+                <div className={cn("flex items-center", isRTL ? "space-x-reverse space-x-2" : "space-x-2")}>
+                  <Info className="h-4 w-4 text-slate-500" />
+                  <h3 className="text-sm font-medium">{t("common.notes")}</h3>
+                </div>
+              </div>
+              <div className="p-3">
+                <p className="text-sm mb-3">{t("agreements.vehicleReassignmentConfirmed")}</p>
+              </div>
+            </div>
           </>
         )}
 
-        <Separator />
-        
-        <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+        <DialogFooter className={cn(isRTL ? "flex-row-reverse justify-start" : "")}>
+          <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
           <Button 
             onClick={handleConfirm} 
-            disabled={isLoading || !canProceed}
-            className="bg-red-600 hover:bg-red-700 text-white"
+            disabled={!canProceed}
+            className={canProceed ? "" : "opacity-50 cursor-not-allowed"}
           >
-            {isLoading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <CheckCircle className="mr-2 h-4 w-4" />
-            )}
-            Close Old Agreement & Reassign
+            {t("agreements.proceedWithAssignment")}
           </Button>
         </DialogFooter>
       </DialogContent>

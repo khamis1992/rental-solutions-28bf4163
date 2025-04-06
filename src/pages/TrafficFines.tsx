@@ -7,9 +7,11 @@ import { AlertTriangle, BarChart2, FileText } from "lucide-react";
 import TrafficFinesList from "@/components/fines/TrafficFinesList";
 import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
+import { useTranslation } from "react-i18next";
 
 const TrafficFines = () => {
   const [activeTab, setActiveTab] = useState("list");
+  const { t } = useTranslation();
   
   const handleAddFine = () => {
     setActiveTab("add");
@@ -22,8 +24,8 @@ const TrafficFines = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title="Traffic Fines Management"
-        description="Record, track, and manage traffic violations"
+        title={t("trafficFines.title")}
+        description={t("trafficFines.description")}
         icon={AlertTriangle}
       />
       
@@ -31,15 +33,15 @@ const TrafficFines = () => {
         <TabsList className="grid grid-cols-1 md:grid-cols-3 w-full">
           <TabsTrigger value="list" className="flex items-center">
             <FileText className="h-4 w-4 mr-2" />
-            Fines List
+            {t("trafficFines.list")}
           </TabsTrigger>
           <TabsTrigger value="add" className="flex items-center">
             <AlertTriangle className="h-4 w-4 mr-2" />
-            Record New Fine
+            {t("trafficFines.recordNew")}
           </TabsTrigger>
           <TabsTrigger value="reports" className="flex items-center">
             <BarChart2 className="h-4 w-4 mr-2" />
-            Fine Analytics
+            {t("trafficFines.analytics")}
           </TabsTrigger>
         </TabsList>
         

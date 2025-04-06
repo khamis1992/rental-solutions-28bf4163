@@ -1,105 +1,76 @@
 
-import React, { Suspense, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList';
-import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
-import { CSVImportModal } from '@/components/agreements/CSVImportModal';
-import { Loader2, Search, X, FileUp, AlertTriangle } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, Search } from 'lucide-react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { cn } from '@/lib/utils';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { useAgreements } from '@/hooks/use-agreements';
-import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
-import { toast } from 'sonner';
-import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
+import { normalizeLicensePlate } from '@/utils/searchUtils';
 
 const Agreements = () => {
+  const navigate = useNavigate();
+  const { t } = useI18nTranslation();
+  const { isRTL, translateText } = useTranslation();
+  const [pageTitle, setPageTitle] = useState('');
+  const [pageDescription, setPageDescription] = useState('');
+  const [addButtonText, setAddButtonText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
-  const { setSearchParams } = useAgreements();
-  
+  const [vehicleSearchQuery, setVehicleSearchQuery] = useState('');
+
+  // Pre-translate the page title, description, and button text to avoid flickering
   useEffect(() => {
-    if (typeof sessionStorage !== 'undefined') {
-      const cachedStatus = sessionStorage.getItem('edge_function_available_process-agreement-imports');
-      if (cachedStatus) {
-        try {
-          const { available, timestamp } = JSON.parse(cachedStatus);
-          const now = Date.now();
-          if (now - timestamp < 60 * 60 * 1000) {
-            setIsEdgeFunctionAvailable(available);
-            return;
-          }
-        } catch (e) {
-          console.warn('Error parsing cached edge function status:', e);
-        }
-      }
-    }
-    
-    const checkAvailability = async () => {
-      const available = await checkEdgeFunctionAvailability('process-agreement-imports');
-      setIsEdgeFunctionAvailable(available);
-      if (!available) {
-        toast.error("CSV import feature is unavailable. Please try again later or contact support.", {
-          duration: 6000,
-        });
-      }
+    const loadTranslations = async () => {
+      const title = await translateText(t('agreements.title'));
+      const description = await translateText(t('agreements.description'));
+      const buttonText = await translateText(t('agreements.newAgreement'));
+      
+      setPageTitle(title);
+      setPageDescription(description);
+      setAddButtonText(buttonText);
     };
     
-    checkAvailability();
-  }, []);
-  
-  // Run payment schedule maintenance job silently on page load
-  useEffect(() => {
-    const runMaintenanceJob = async () => {
-      try {
-        console.log("Running automatic payment schedule maintenance check");
-        await runPaymentScheduleMaintenanceJob();
-      } catch (error) {
-        console.error("Error running payment maintenance job:", error);
-        // We don't show a toast here since this is a background task
-      }
-    };
-    
-    // Run after a 3-second delay to allow other initial page operations to complete
-    const timer = setTimeout(() => {
-      runMaintenanceJob();
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  const handleSearchChange = useDebouncedCallback((value: string) => {
+    loadTranslations();
+  }, [t, translateText, isRTL]);
+
+  // Debounce the search input to prevent too many re-renders
+  const debouncedSetSearch = useDebouncedCallback((value: string) => {
     setSearchQuery(value);
   }, 300);
 
-  const clearSearch = () => {
-    setSearchQuery('');
+  // Handle vehicle number search input changes
+  const handleVehicleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setVehicleSearchQuery(value);
+    
+    // Use normalized license plate search for better matching
+    if (value.trim()) {
+      const normalizedValue = normalizeLicensePlate(value);
+      debouncedSetSearch(normalizedValue);
+    } else {
+      debouncedSetSearch('');
+    }
   };
-  
-  const handleImportComplete = () => {
-    setSearchParams({ 
-      query: '', 
-      status: 'all' 
-    });
+
+  const handleAddAgreement = () => {
+    navigate('/agreements/add');
   };
 
   return (
-    <PageContainer 
-      title="Rental Agreements" 
-      description="Manage customer rental agreements and contracts"
+    <PageContainer
+      title={pageTitle || t('agreements.title')}
+      description={pageDescription || t('agreements.description')}
       actions={
         <Button 
-          variant="outline" 
-          onClick={() => setIsImportModalOpen(true)}
-          className="flex items-center gap-2"
-          disabled={!isEdgeFunctionAvailable}
+          onClick={handleAddAgreement}
+          className={cn("gap-2", isRTL ? "flex-row-reverse" : "")}
         >
-          {!isEdgeFunctionAvailable && (
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-          )}
-          <FileUp className="h-4 w-4" />
-          Import CSV
+          <Plus className="h-4 w-4" />
+          {addButtonText || t('agreements.newAgreement')}
         </Button>
       }
     >
@@ -107,42 +78,15 @@ const Agreements = () => {
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            type="text"
-            placeholder="Search by customer name or vehicle license plate..."
-            className="w-full pl-9 pr-9"
-            onChange={(e) => handleSearchChange(e.target.value)}
-            value={searchQuery}
+            type="search"
+            placeholder="Search by vehicle license plate..."
+            className="pl-8 w-full md:w-[300px]"
+            value={vehicleSearchQuery}
+            onChange={handleVehicleSearchChange}
           />
-          {searchQuery && (
-            <button 
-              className="absolute right-2.5 top-2.5"
-              onClick={clearSearch}
-              aria-label="Clear search"
-            >
-              <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-            </button>
-          )}
         </div>
       </div>
-      
-      <Suspense fallback={
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Loading agreements...</span>
-        </div>
-      }>
-        <AgreementList searchQuery={searchQuery} />
-      </Suspense>
-      
-      <div className="mt-8">
-        <ImportHistoryList />
-      </div>
-      
-      <CSVImportModal 
-        open={isImportModalOpen}
-        onOpenChange={setIsImportModalOpen}
-        onImportComplete={handleImportComplete}
-      />
+      <AgreementList searchQuery={searchQuery} />
     </PageContainer>
   );
 };

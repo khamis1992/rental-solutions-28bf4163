@@ -1,5 +1,5 @@
 
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,7 +16,10 @@ import { LegalCaseCard } from './LegalCaseCard';
 import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { usePayments } from '@/hooks/use-payments';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
+import { useDateFormatter } from '@/lib/date-utils';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -46,21 +49,11 @@ export function AgreementDetail({
     daysLate: number;
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const refreshRequested = useRef(false);
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
+  const { formatAgreementDate } = useDateFormatter();
 
-  const {
-    payments,
-    isLoadingPayments,
-    fetchPayments
-  } = usePayments(agreement?.id, rentAmount);
-  console.log('Agreement ID from AgreementDetail:', agreement?.id);
-  console.log('Payments from usePayments:', payments);
-  console.log('Loading state:', isLoadingPayments);
-  useEffect(() => {
-    if (agreement?.id) {
-      console.log('Fetching payments for agreement:', agreement.id);
-      fetchPayments();
-    }
-  }, [agreement?.id, fetchPayments]);
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
@@ -90,29 +83,29 @@ export function AgreementDetail({
     if (agreement) {
       try {
         setIsGeneratingPdf(true);
-        toast.info("Preparing agreement PDF document...");
+        toast.info(t('agreements.preparingPdf'));
         const success = await generatePdfDocument(agreement);
         if (success) {
-          toast.success("Agreement PDF downloaded successfully");
+          toast.success(t('agreements.pdfSuccess'));
         } else {
-          toast.error("Failed to generate PDF");
+          toast.error(t('agreements.pdfError'));
         }
       } catch (error) {
         console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF");
+        toast.error(t('agreements.pdfError'));
       } finally {
         setIsGeneratingPdf(false);
       }
     }
-  }, [agreement]);
+  }, [agreement, t]);
 
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {
       onGenerateDocument();
     } else {
-      toast.info("Document generation functionality is being configured");
+      toast.info(t('agreements.documentGenerationConfig'));
     }
-  }, [agreement, onGenerateDocument]);
+  }, [agreement, onGenerateDocument, t]);
 
   const handlePaymentSubmit = useCallback(async (
     amount: number, 
@@ -136,16 +129,21 @@ export function AgreementDetail({
         );
         if (success) {
           setIsPaymentDialogOpen(false);
-          onDataRefresh();
-          fetchPayments();
-          toast.success("Payment recorded successfully");
+          if (!refreshRequested.current) {
+            refreshRequested.current = true;
+            onDataRefresh();
+            setTimeout(() => {
+              refreshRequested.current = false;
+            }, 500);
+          }
+          toast.success(t('payments.recordSuccess'));
         }
       } catch (error) {
         console.error("Error recording payment:", error);
-        toast.error("Failed to record payment");
+        toast.error(t('payments.recordError'));
       }
     }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
+  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, t]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
@@ -167,75 +165,86 @@ export function AgreementDetail({
     }
   }, []);
 
+  const handlePaymentHistoryRefresh = useCallback(() => {
+    if (!refreshRequested.current) {
+      refreshRequested.current = true;
+      onPaymentDeleted();
+      setTimeout(() => {
+        refreshRequested.current = false;
+      }, 500);
+    }
+  }, [onPaymentDeleted]);
+
   if (!agreement) {
     return <Alert>
-        <AlertDescription>Agreement details not available.</AlertDescription>
+        <AlertDescription>{t('agreements.detailsNotAvailable')}</AlertDescription>
       </Alert>;
   }
 
   const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
   const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
   const duration = calculateDuration(startDate, endDate);
+  
+  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : 
+    new Date(agreement.created_at || new Date());
 
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return <Badge className="bg-green-500 text-white ml-2">ACTIVE</Badge>;
+        return <Badge className={`bg-green-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.active').toUpperCase()}</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white ml-2">PENDING</Badge>;
+        return <Badge className={`bg-yellow-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.pending').toUpperCase()}</Badge>;
       case 'closed':
-        return <Badge className="bg-blue-500 text-white ml-2">CLOSED</Badge>;
+        return <Badge className={`bg-blue-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.closed').toUpperCase()}</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-500 text-white ml-2">CANCELLED</Badge>;
+        return <Badge className={`bg-red-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.cancelled').toUpperCase()}</Badge>;
       case 'expired':
-        return <Badge className="bg-gray-500 text-white ml-2">EXPIRED</Badge>;
+        return <Badge className={`bg-gray-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.expired').toUpperCase()}</Badge>;
       case 'draft':
-        return <Badge className="bg-purple-500 text-white ml-2">DRAFT</Badge>;
+        return <Badge className={`bg-purple-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.draft').toUpperCase()}</Badge>;
       default:
-        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
+        return <Badge className={`bg-gray-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{status.toUpperCase()}</Badge>;
     }
   };
 
-  const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
-
   return <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
-          Agreement {agreement.agreement_number}
+        <h2 className={`text-3xl font-bold tracking-tight print:text-2xl ${isRTL ? 'text-right' : 'text-left'}`}>
+          {t('agreements.agreement')} {agreement.agreement_number}
           {formattedStatus(agreement.status)}
         </h2>
-        <p className="text-muted-foreground">
-          Created on {format(createdDate, 'MMMM d, yyyy')}
+        <p className={`text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+          {t('agreements.createdOn')} {formatAgreementDate(createdDate)}
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Customer Information</CardTitle>
-            <CardDescription>Details about the customer</CardDescription>
+            <CardTitle>{t('agreements.customerInformation')}</CardTitle>
+            <CardDescription>{t('agreements.customerDetails')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
-                <p className="font-medium">Name</p>
-                <p>{agreement.customers?.full_name || 'N/A'}</p>
+                <p className="font-medium">{t('common.name')}</p>
+                <p>{agreement.customers?.full_name || t('common.notProvided')}</p>
               </div>
               <div>
-                <p className="font-medium">Email</p>
-                <p>{agreement.customers?.email || 'N/A'}</p>
+                <p className="font-medium">{t('common.email')}</p>
+                <p>{agreement.customers?.email || t('common.notProvided')}</p>
               </div>
               <div>
-                <p className="font-medium">Phone</p>
-                <p>{agreement.customers?.phone_number || 'N/A'}</p>
+                <p className="font-medium">{t('common.phone')}</p>
+                <p>{agreement.customers?.phone || agreement.customers?.phone_number || t('common.notProvided')}</p>
               </div>
               <div>
-                <p className="font-medium">Address</p>
-                <p>{agreement.customers?.address || 'N/A'}</p>
+                <p className="font-medium">{t('common.address')}</p>
+                <p>{agreement.customers?.address || t('common.notProvided')}</p>
               </div>
               <div>
-                <p className="font-medium">Driver License</p>
-                <p>{agreement.customers?.driver_license || 'N/A'}</p>
+                <p className="font-medium">{t('customers.driverLicense')}</p>
+                <p>{agreement.customers?.driver_license || t('common.notProvided')}</p>
               </div>
             </div>
           </CardContent>
@@ -243,26 +252,26 @@ export function AgreementDetail({
 
         <Card>
           <CardHeader>
-            <CardTitle>Vehicle Information</CardTitle>
-            <CardDescription>Details about the rented vehicle</CardDescription>
+            <CardTitle>{t('agreements.vehicleInformation')}</CardTitle>
+            <CardDescription>{t('agreements.vehicleDetails')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
-                <p className="font-medium">Vehicle</p>
-                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
+                <p className="font-medium">{t('common.vehicle')}</p>
+                <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || t('common.notProvided')})</p>
               </div>
               <div>
-                <p className="font-medium">License Plate</p>
+                <p className="font-medium">{t('common.licensePlate')}</p>
                 <p>{agreement.vehicles?.license_plate}</p>
               </div>
               <div>
-                <p className="font-medium">Color</p>
-                <p>{agreement.vehicles?.color || 'N/A'}</p>
+                <p className="font-medium">{t('common.color')}</p>
+                <p>{agreement.vehicles?.color || t('common.notProvided')}</p>
               </div>
               <div>
-                <p className="font-medium">VIN</p>
-                <p>{agreement.vehicles?.vin || 'N/A'}</p>
+                <p className="font-medium">{t('common.vin')}</p>
+                <p>{agreement.vehicles?.vin || t('common.notProvided')}</p>
               </div>
             </div>
           </CardContent>
@@ -271,111 +280,130 @@ export function AgreementDetail({
 
       <Card>
         <CardHeader>
-          <CardTitle>Agreement Details</CardTitle>
-          <CardDescription>Rental terms and payment information</CardDescription>
+          <CardTitle>{t('agreements.details')}</CardTitle>
+          <CardDescription>{t('agreements.rentalTerms')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
-                <p className="font-medium">Rental Period</p>
-                <p className="flex items-center">
-                  <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}
+                <p className="font-medium">{t('agreements.rentalPeriod')}</p>
+                <p className={`flex items-center ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                  <CalendarDays className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} text-muted-foreground`} />
+                  {formatAgreementDate(startDate)} {t('agreements.to')} {formatAgreementDate(endDate)}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t('agreements.duration')}: {duration} {duration === 1 ? t('agreements.month') : t('agreements.months')}
+                </p>
               </div>
               
               <div>
-                <p className="font-medium">Additional Drivers</p>
-                <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
+                <p className="font-medium">{t('agreements.additionalDrivers')}</p>
+                <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : t('agreements.none')}</p>
               </div>
               
               <div>
-                <p className="font-medium">Notes</p>
-                <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
+                <p className="font-medium">{t('common.notes')}</p>
+                <p className="whitespace-pre-line">{agreement.notes || t('agreements.noNotes')}</p>
               </div>
             </div>
             
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
-                <p className="font-medium">Monthly Rent Amount</p>
+                <p className="font-medium">{t('agreements.monthlyRentAmount')}</p>
                 <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
               </div>
               
               <div>
-                <p className="font-medium">Total Contract Amount</p>
+                <p className="font-medium">{t('agreements.totalContractAmount')}</p>
                 <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
-                <p className="text-xs text-muted-foreground">Monthly rent × {duration} months</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('agreements.monthlyRentMultiplied', { duration })}
+                </p>
               </div>
               
               <div>
-                <p className="font-medium">Deposit Amount</p>
+                <p className="font-medium">{t('agreements.depositAmount')}</p>
                 <p>QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
               </div>
               
               <div>
-                <p className="font-medium">Terms Accepted</p>
-                <p>{agreement.terms_accepted ? 'Yes' : 'No'}</p>
+                <p className="font-medium">{t('agreements.termsAccepted')}</p>
+                <p>{agreement.terms_accepted ? t('common.yes') : t('common.no')}</p>
               </div>
               
               <div>
-                <p className="font-medium">Signature</p>
-                <p>{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
+                <p className="font-medium">{t('agreements.signature')}</p>
+                <p>{agreement.signature_url ? t('agreements.signed') : t('agreements.notSigned')}</p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
+      <div className={`flex flex-wrap items-center gap-4 mb-4 print:hidden ${isRTL ? 'flex-row-reverse' : ''}`}>
         <Button variant="outline" onClick={handleEdit}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit
+          <Edit className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+          {t('common.edit')}
         </Button>
         
         <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
-          <Download className="mr-2 h-4 w-4" />
-          {isGeneratingPdf ? 'Generating...' : 'Agreement Copy'}
+          <Download className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+          {isGeneratingPdf ? t('common.generating') : t('agreements.agreementCopy')}
         </Button>
         <Button variant="outline" onClick={handleGenerateDocument}>
-          <FilePlus className="mr-2 h-4 w-4" />
-          Generate Document
+          <FilePlus className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+          {t('agreements.generateDocument')}
         </Button>
         <div className="flex-grow"></div>
-        <Button variant="destructive" onClick={handleDelete} className="ml-auto">
-          Delete
+        <Button variant="destructive" onClick={handleDelete} className={isRTL ? 'mr-auto' : 'ml-auto'}>
+          {t('common.delete')}
         </Button>
       </div>
 
-      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
-      onPaymentDeleted();
-      fetchPayments();
-    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
+      {agreement && <PaymentHistory 
+        agreementId={agreement.id}
+        rentAmount={rentAmount} 
+        onPaymentDeleted={handlePaymentHistoryRefresh} 
+        leaseStartDate={agreement.start_date} 
+        leaseEndDate={agreement.end_date} 
+      />}
 
-      {agreement.start_date && agreement.end_date && <Card>
+      {agreement.start_date && agreement.end_date && (
+        <Card>
           <CardHeader>
-            <CardTitle>Traffic Fines</CardTitle>
-            <CardDescription>Violations during the rental period</CardDescription>
+            <CardTitle>{t('agreements.trafficFines')}</CardTitle>
+            <CardDescription>{t('agreements.trafficViolationsDesc')}</CardDescription>
           </CardHeader>
           <CardContent>
             <AgreementTrafficFines agreementId={agreement.id} startDate={startDate} endDate={endDate} />
           </CardContent>
-        </Card>}
+        </Card>
+      )}
 
-      {agreement.id && <LegalCaseCard agreementId={agreement.id} />}
+      {agreement.id && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('agreements.legalCases')}</CardTitle>
+            <CardDescription>{t('legal.caseManagement')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LegalCaseCard agreementId={agreement.id} />
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle>{t('agreements.confirmDeletion')}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
+              {t('agreements.deleteConfirmText', { number: agreement.agreement_number })}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
+          <DialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
+            <Button variant="destructive" onClick={confirmDelete}>{t('common.delete')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -385,11 +413,10 @@ export function AgreementDetail({
         onOpenChange={setIsPaymentDialogOpen} 
         onSubmit={handlePaymentSubmit} 
         defaultAmount={rentAmount || 0} 
-        title="Record Rent Payment" 
-        description="Record a new rental payment for this agreement." 
+        title={t('payments.recordPayment')}
+        description={t('payments.recordPaymentDesc')}
         lateFeeDetails={lateFeeDetails} 
         selectedPayment={selectedPayment}
       />
     </div>;
 }
-

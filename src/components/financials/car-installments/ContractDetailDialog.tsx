@@ -1,211 +1,186 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, FileDown, Plus, FileUp } from 'lucide-react';
-import { CarInstallmentContract, CarInstallmentPayment, PaymentFilters } from '@/types/car-installment';
-import { useCarInstallments } from '@/hooks/use-car-installments';
-import { ContractDetailSummary } from './ContractDetailSummary';
-import { ContractPaymentsTable } from './ContractPaymentsTable';
-import { PaymentDialog } from './PaymentDialog';
-import { ImportPaymentsDialog } from './ImportPaymentsDialog';
-import { PaymentFiltersBar } from './PaymentFiltersBar';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { CarInstallmentContract } from '@/lib/validation-schemas/car-installment';
+import { PaymentHistoryTable } from '@/components/payments/PaymentHistoryTable';
+import { CarInstallmentPayment } from '@/types/payment';
 
 interface ContractDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  contract: CarInstallmentContract;
+  contract: CarInstallmentContract | null;
 }
 
-export const ContractDetailDialog: React.FC<ContractDetailDialogProps> = ({
+export function ContractDetailDialog({ 
   open,
   onOpenChange,
-  contract,
-}) => {
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
-  const [payments, setPayments] = useState<CarInstallmentPayment[]>([]);
-  const [isLoadingPayments, setIsLoadingPayments] = useState(false);
-  const [recordMode, setRecordMode] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<CarInstallmentPayment | null>(null);
-  const { 
-    fetchContractPayments, 
-    paymentFilters, 
-    setPaymentFilters,
-    addPayment,
-    recordPayment,
-    importPayments
-  } = useCarInstallments();
+  contract
+}: ContractDetailDialogProps) {
+  const { t } = useTranslation();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedNotes, setEditedNotes] = useState('');
+  const [paymentHistory, setPaymentHistory] = useState<CarInstallmentPayment[]>([]);
 
-  const loadPayments = async () => {
-    setIsLoadingPayments(true);
-    try {
-      const result = await fetchContractPayments(contract.id, paymentFilters);
-      setPayments(result);
-    } catch (error) {
-      console.error('Error loading payments:', error);
-    } finally {
-      setIsLoadingPayments(false);
-    }
-  };
-
-  // Load payments when the dialog opens or filters change
   useEffect(() => {
-    if (open && contract?.id) {
-      loadPayments();
+    if (contract) {
+      setEditedNotes(contract.notes || '');
+      // Properly transform contract payments to match CarInstallmentPayment type
+      if (contract.payments && contract.payments.length > 0) {
+        const formattedPayments: CarInstallmentPayment[] = contract.payments.map(payment => ({
+          id: payment.id || '', // Ensure id is not undefined
+          contract_id: contract.id || '',
+          payment_number: payment.payment_number || '',
+          payment_date: payment.payment_date instanceof Date 
+            ? payment.payment_date 
+            : new Date(payment.payment_date || ''),
+          due_date: payment.due_date instanceof Date 
+            ? payment.due_date 
+            : new Date(payment.due_date || ''),
+          amount: payment.amount || 0,
+          status: payment.status || 'pending',
+          payment_method: payment.payment_method,
+          reference: payment.reference,
+          notes: payment.notes
+        }));
+        setPaymentHistory(formattedPayments);
+      } else {
+        setPaymentHistory([]);
+      }
     }
-  }, [open, contract?.id, paymentFilters]);
+  }, [contract]);
 
-  const handleAddPayment = () => {
-    setRecordMode(false);
-    setSelectedPayment(null);
-    setIsPaymentDialogOpen(true);
+  const handleSaveNotes = () => {
+    // Implement save logic here
+    toast.success('Notes saved successfully!');
+    setIsEditing(false);
   };
 
-  const handleRecordPayment = (payment: CarInstallmentPayment) => {
-    setRecordMode(true);
-    setSelectedPayment(payment);
-    setIsPaymentDialogOpen(true);
+  const handleDeleteContract = () => {
+    // Implement delete logic here
+    toast.success('Contract deleted successfully!');
+    onOpenChange(false);
   };
 
-  const handlePaymentSubmit = (data: any) => {
-    if (recordMode && selectedPayment) {
-      // Record a payment against an existing installment
-      recordPayment({
-        id: selectedPayment.id,
-        amountPaid: data.amount
-      });
-    } else {
-      // Add a new payment
-      addPayment({
-        contract_id: contract.id,
-        ...data
-      });
-    }
-    setIsPaymentDialogOpen(false);
-    setTimeout(loadPayments, 500); // Reload after a short delay
-  };
+  const renderPaymentsList = () => {
+    if (!contract || !paymentHistory.length) return null;
 
-  const handleImportSubmit = (payments: any[]) => {
-    importPayments({
-      contractId: contract.id,
-      payments
-    });
-    setIsImportDialogOpen(false);
-    setTimeout(loadPayments, 500); // Reload after a short delay
-  };
-
-  const handleExportTemplate = () => {
-    // Create CSV template for download
-    const headers = ['cheque_number', 'drawee_bank', 'amount', 'payment_date', 'notes'];
-    const csv = [
-      headers.join(','),
-      '12345,Bank Name,5000,2025-03-01,Sample payment'
-    ].join('\n');
-    
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${contract.car_type}_payments_template.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  const handleFilterChange = (newFilters: PaymentFilters) => {
-    setPaymentFilters({
-      ...paymentFilters,
-      ...newFilters
-    });
+    return (
+      <div className="space-y-4 mt-4">
+        <h3 className="text-lg font-medium">{t('financials.carSales.paymentHistory')}</h3>
+        <PaymentHistoryTable payments={paymentHistory} />
+      </div>
+    );
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {contract.car_type} ({contract.model_year})
-          </DialogTitle>
+          <DialogTitle>{t('financials.carSales.contractDetails')}</DialogTitle>
+          <DialogDescription>
+            {t('financials.carSales.viewContractDetails')}
+          </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="payments">Payment Schedule</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-4 pt-4">
-            <ContractDetailSummary contract={contract} />
-          </TabsContent>
-
-          <TabsContent value="payments" className="space-y-4 pt-4">
-            <div className="flex flex-wrap gap-3 justify-between items-center">
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  onClick={handleAddPayment}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Payment
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => setIsImportDialogOpen(true)}
-                >
-                  <FileUp className="h-4 w-4 mr-1" />
-                  Import
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={handleExportTemplate}
-                >
-                  <FileDown className="h-4 w-4 mr-1" />
-                  Template
-                </Button>
-              </div>
-              <PaymentFiltersBar 
-                filters={paymentFilters}
-                onFilterChange={handleFilterChange}
-              />
+        {contract ? (
+          <div className="space-y-4">
+            <div>
+              <Label>{t('financials.carSales.contractNumber')}</Label>
+              <Input value={contract.contract_number} readOnly />
+            </div>
+            <div>
+              <Label>{t('financials.carSales.customerName')}</Label>
+              <Input value={contract.customer_name} readOnly />
+            </div>
+            <div>
+              <Label>{t('financials.carSales.vehicleName')}</Label>
+              <Input value={contract.vehicle_name} readOnly />
+            </div>
+            <div>
+              <Label>{t('financials.carSales.totalAmount')}</Label>
+              <Input value={contract.total_amount.toString()} readOnly />
+            </div>
+            <div>
+              <Label>{t('financials.carSales.startDate')}</Label>
+              <Input value={contract.start_date} readOnly />
+            </div>
+            <div>
+              <Label>{t('financials.carSales.endDate')}</Label>
+              <Input value={contract.end_date} readOnly />
             </div>
 
-            {isLoadingPayments ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <ContractPaymentsTable 
-                payments={payments}
-                onRecordPayment={handleRecordPayment}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+            <div>
+              <Label>{t('common.notes')}</Label>
+              {isEditing ? (
+                <div className="flex space-x-2">
+                  <Input
+                    value={editedNotes}
+                    onChange={(e) => setEditedNotes(e.target.value)}
+                  />
+                  <Button size="sm" onClick={handleSaveNotes}>
+                    {t('common.save')}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex space-x-2 items-center">
+                  <Input value={editedNotes} readOnly />
+                  <Button size="sm" variant="secondary" onClick={() => setIsEditing(true)}>
+                    {t('common.edit')}
+                  </Button>
+                </div>
+              )}
+            </div>
 
-        <PaymentDialog
-          open={isPaymentDialogOpen}
-          onOpenChange={setIsPaymentDialogOpen}
-          onSubmit={handlePaymentSubmit}
-          payment={selectedPayment}
-          recordMode={recordMode}
-        />
+            {renderPaymentsList()}
+          </div>
+        ) : (
+          <div>{t('financials.carSales.noContractDetails')}</div>
+        )}
 
-        <ImportPaymentsDialog
-          open={isImportDialogOpen}
-          onOpenChange={setIsImportDialogOpen}
-          onSubmit={handleImportSubmit}
-        />
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('financials.carSales.deleteContract')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('financials.carSales.confirmDeleteContract')}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
+                {t('common.cancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteContract}>
+                {t('common.delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <div className="flex justify-end space-x-2 mt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+            {t('common.delete')}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
-};
+}

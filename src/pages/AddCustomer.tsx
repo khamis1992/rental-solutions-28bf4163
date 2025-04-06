@@ -1,14 +1,18 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import PageContainer from '@/components/layout/PageContainer';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
 
 const AddCustomer = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const { isRTL } = useAppTranslation();
   const { createCustomer } = useCustomers();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -16,12 +20,12 @@ const AddCustomer = () => {
     setIsSubmitting(true);
     try {
       await createCustomer.mutateAsync(data);
-      toast('Customer added successfully');
+      toast(t('customers.statusUpdateSuccess'));
       navigate('/customers');
     } catch (error) {
       console.error('Error creating customer:', error);
-      toast('Failed to create customer', {
-        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      toast(t('customers.statusUpdateFailed'), {
+        description: error instanceof Error ? error.message : t('customers.unexpectedError')
       });
     } finally {
       setIsSubmitting(false);
@@ -30,8 +34,8 @@ const AddCustomer = () => {
 
   return (
     <PageContainer
-      title="Add New Customer"
-      description="Create a new customer record in the system."
+      title={t('customers.addCustomer')}
+      description={t('customers.description')}
       backLink="/customers"
     >
       <CustomerForm onSubmit={handleSubmit} isLoading={isSubmitting} />

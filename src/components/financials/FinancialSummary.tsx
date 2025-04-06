@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { FinancialSummary as FinancialSummaryType } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface FinancialSummaryProps {
   summary?: FinancialSummaryType;
@@ -18,6 +19,7 @@ interface FinancialSummaryProps {
 const FinancialSummary: React.FC<FinancialSummaryProps> = ({ summary, isLoading }) => {
   // Get current month name for display
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
+  const { isRTL } = useTranslation();
 
   if (isLoading) {
     return (

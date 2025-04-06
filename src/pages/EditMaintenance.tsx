@@ -4,11 +4,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import MaintenanceForm from '@/components/maintenance/MaintenanceForm';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Wrench } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import PageContainer from '@/components/layout/PageContainer';
 import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
 import { useToast } from '@/hooks/use-toast';
+import { SectionHeader } from '@/components/ui/section-header';
+import { CustomButton } from '@/components/ui/custom-button';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const EditMaintenance = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +23,8 @@ const EditMaintenance = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
 
   // Fetch maintenance record
   useEffect(() => {
@@ -35,18 +41,18 @@ const EditMaintenance = () => {
           setMaintenance(record);
         } else {
           console.error("Maintenance record not found for ID:", id);
-          setError('Maintenance record not found');
+          setError(t('maintenance.records'));
         }
       } catch (err) {
         console.error('Error fetching maintenance record:', err);
-        setError('Failed to load maintenance record');
+        setError(t('common.error'));
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchMaintenance();
-  }, [id, getAllRecords]);
+  }, [id, getAllRecords, t]);
 
   // Convert string maintenance type to enum with default fallback
   const mapStringToMaintenanceType = (typeString: string): keyof typeof MaintenanceType => {
@@ -92,15 +98,14 @@ const EditMaintenance = () => {
       });
       
       toast({
-        title: "Success",
-        description: "Maintenance record updated successfully",
-        variant: "default"
+        title: t('common.success'),
+        description: t('maintenance.records')
       });
       
       navigate('/maintenance');
     } catch (err) {
       console.error('Error updating maintenance record:', err);
-      setError('Failed to update maintenance record. Please try again.');
+      setError(t('common.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -108,7 +113,12 @@ const EditMaintenance = () => {
 
   if (isLoading) {
     return (
-      <PageContainer title="Edit Maintenance Record" description="Loading maintenance details...">
+      <PageContainer>
+        <SectionHeader
+          title={t('maintenance.edit')}
+          description={t('common.loading')}
+          icon={Wrench}
+        />
         <div className="space-y-4">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-72 w-full" />
@@ -119,12 +129,17 @@ const EditMaintenance = () => {
 
   if (error || !maintenance) {
     return (
-      <PageContainer title="Edit Maintenance Record" description="Error loading maintenance details">
+      <PageContainer>
+        <SectionHeader
+          title={t('maintenance.edit')}
+          description={t('maintenance.details')}
+          icon={Wrench}
+        />
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t('common.error')}</AlertTitle>
           <AlertDescription>
-            {error || 'Unable to load maintenance record'}
+            {error || t('maintenance.records')}
           </AlertDescription>
         </Alert>
       </PageContainer>
@@ -146,14 +161,27 @@ const EditMaintenance = () => {
   console.log("Prepared maintenance record for form:", formattedMaintenance);
 
   return (
-    <PageContainer 
-      title="Edit Maintenance Record" 
-      description="Update maintenance record details"
-    >
+    <PageContainer>
+      <SectionHeader
+        title={t('maintenance.edit')}
+        description={t('maintenance.details')}
+        icon={Wrench}
+        actions={
+          <CustomButton
+            size="sm"
+            variant="outline"
+            onClick={() => navigate('/maintenance')}
+          >
+            <ArrowLeft className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('common.back')}
+          </CustomButton>
+        }
+      />
+      
       {error && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
+          <AlertTitle>{t('common.error')}</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}

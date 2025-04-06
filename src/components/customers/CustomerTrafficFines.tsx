@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
@@ -18,6 +19,7 @@ interface CustomerTrafficFinesProps {
 }
 
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
+  const { t } = useTranslation();
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -211,7 +213,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   };
 
   if (loading) {
-    return <div className="py-4 text-center text-muted-foreground">Loading traffic fines...</div>;
+    return <div className="py-4 text-center text-muted-foreground">{t('common.loading')}</div>;
   }
 
   if (error) {
@@ -225,7 +227,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   }
 
   if (fines.length === 0) {
-    return <div className="py-4 text-center text-muted-foreground">No traffic fines found for this customer.</div>;
+    return <div className="py-4 text-center text-muted-foreground">{t('customers.noTrafficFines')}</div>;
   }
 
   return (

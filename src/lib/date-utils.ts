@@ -1,88 +1,125 @@
 
-import { format, parseISO, isValid } from 'date-fns';
+import { format, formatDistance, formatRelative, Locale } from 'date-fns';
+import { ar, enUS } from 'date-fns/locale';
+import { useTranslation } from '@/contexts/TranslationContext';
 
-/**
- * Safely converts a date string or Date object to a Date object
- * @param dateInput Date input that might be string, Date, or invalid
- * @returns Valid Date object or null if invalid
- */
-const safelyParseDate = (dateInput: Date | string | null | undefined): Date | null => {
-  if (!dateInput) return null;
-  
-  try {
-    // If it's already a Date object
-    if (dateInput instanceof Date) {
-      return isValid(dateInput) ? dateInput : null;
-    }
-    
-    // If it's a string, try to parse it
-    if (typeof dateInput === 'string') {
-      // Try to handle ISO strings
-      const parsed = parseISO(dateInput);
-      if (isValid(parsed)) return parsed;
-      
-      // If ISO parsing failed, try creating date directly
-      const fallbackDate = new Date(dateInput);
-      return isValid(fallbackDate) ? fallbackDate : null;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error parsing date:', error, 'Input was:', dateInput);
-    return null;
-  }
+const locales: Record<string, Locale> = {
+  en: enUS,
+  ar: ar
 };
 
 /**
- * Formats a date into a readable string
- * @param date The date to format
- * @param formatString Optional format string (defaults to 'MMMM d, yyyy')
+ * Format a date with the current locale
+ * @param date Date to format
+ * @param formatString Format string (default: 'PPP')
+ * @param options Additional options
  * @returns Formatted date string
  */
-export const formatDate = (date: Date | string | null | undefined, formatString = 'MMMM d, yyyy'): string => {
-  const parsedDate = safelyParseDate(date);
-  if (!parsedDate) return 'N/A';
+export function formatDate(date: Date | number, formatString: string = 'PPP', options?: {
+  locale?: string;
+}): string {
+  if (!date) return '';
+  
+  // Get the stored language from localStorage or default to 'en'
+  const currentLocale = options?.locale || localStorage.getItem('language') || 'en';
   
   try {
-    return format(parsedDate, formatString);
+    return format(date, formatString, {
+      locale: locales[currentLocale] || enUS
+    });
   } catch (error) {
-    console.error('Error formatting date:', error, 'Input was:', date);
-    return 'Invalid date';
+    console.error('Error formatting date:', error);
+    return format(date, formatString); // Fallback to default locale
   }
-};
+}
 
 /**
- * Formats a date with time into a readable string
- * @param date The date to format
- * @param formatString Optional format string (defaults to 'MMMM d, yyyy h:mm a')
- * @returns Formatted date and time string
+ * Format distance between dates with the current locale
+ * @param date Date to compare
+ * @param baseDate Base date to compare against
+ * @returns Formatted distance string
  */
-export const formatDateTime = (date: Date | string | null | undefined, formatString = 'MMMM d, yyyy h:mm a'): string => {
-  return formatDate(date, formatString);
-};
-
-/**
- * Returns a date object from a string or date input
- * @param date Date or string to convert
- * @returns Date object or null if invalid
- */
-export const getDateObject = (date: Date | string | null | undefined): Date | null => {
-  return safelyParseDate(date);
-};
-
-/**
- * Formats a date for use in form inputs (YYYY-MM-DD)
- * @param date The date to format
- * @returns Formatted date string for form inputs
- */
-export const formatDateForInput = (date: Date | string | null | undefined): string => {
-  const parsedDate = safelyParseDate(date);
-  if (!parsedDate) return '';
+export function formatDateDistance(date: Date | number, baseDate: Date | number): string {
+  if (!date || !baseDate) return '';
+  
+  const currentLocale = localStorage.getItem('language') || 'en';
   
   try {
-    return format(parsedDate, 'yyyy-MM-dd');
+    return formatDistance(date, baseDate, {
+      locale: locales[currentLocale] || enUS,
+      addSuffix: true
+    });
   } catch (error) {
-    console.error('Error formatting date for input:', error);
-    return '';
+    console.error('Error formatting date distance:', error);
+    return formatDistance(date, baseDate, { addSuffix: true }); // Fallback
   }
-};
+}
+
+/**
+ * Get the appropriate date-fns locale
+ * @returns The current locale object
+ */
+export function getDateLocale(): Locale {
+  const currentLocale = localStorage.getItem('language') || 'en';
+  return locales[currentLocale] || enUS;
+}
+
+/**
+ * Hook to provide date formatting utilities with current locale
+ */
+export function useDateFormatter() {
+  const { language, isRTL } = useTranslation();
+  
+  return {
+    formatDate: (date: Date | number, formatString: string = 'PPP') => 
+      formatDate(date, formatString, { locale: language }),
+    
+    formatDistance: (date: Date | number, baseDate: Date | number) => 
+      formatDateDistance(date, baseDate),
+    
+    getLocale: () => locales[language] || enUS,
+    
+    isRTL,
+    
+    // Helper method for formatting in agreement contexts
+    formatAgreementDate: (date: Date | number) => {
+      if (!date) return '';
+      
+      try {
+        return formatDate(date, 'MMMM d, yyyy', { locale: language });
+      } catch (error) {
+        console.error('Error formatting agreement date:', error);
+        return format(date, 'MMM d, yyyy');
+      }
+    }
+  };
+}
+
+// Fix the build errors in other components by ensuring dates are properly parsed
+export function ensureDate(dateValue: string | Date | number | null | undefined): Date | null {
+  if (!dateValue) return null;
+  
+  if (dateValue instanceof Date) {
+    return dateValue;
+  }
+  
+  if (typeof dateValue === 'number') {
+    return new Date(dateValue);
+  }
+  
+  if (typeof dateValue === 'string') {
+    try {
+      const parsedDate = new Date(dateValue);
+      if (isNaN(parsedDate.getTime())) {
+        console.error('Invalid date string:', dateValue);
+        return null;
+      }
+      return parsedDate;
+    } catch (error) {
+      console.error('Error parsing date string:', error);
+      return null;
+    }
+  }
+  
+  return null;
+}

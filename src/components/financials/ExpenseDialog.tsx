@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,14 +41,15 @@ import * as z from 'zod';
 import { format, addMonths, addWeeks, addDays } from 'date-fns';
 import { FinancialTransaction } from '@/hooks/use-financials';
 
-// Schema for expense form validation
+// Schema for expense form validation - updated to include all status types
 const expenseSchema = z.object({
   amount: z.number().positive('Amount must be positive'),
   description: z.string().min(3, 'Description is required').max(100),
   date: z.date(),
-  status: z.enum(['completed', 'pending', 'failed']),
-  reference: z.string().optional(),
-  paymentMethod: z.string().optional(),
+  // Update to match all possible status values
+  status: z.enum(['completed', 'pending', 'failed', 'paid', 'success']),
+  reference: z.string().optional().nullable(),
+  paymentMethod: z.string().optional().nullable(),
   isRecurring: z.boolean().default(false),
   recurringInterval: z.string().optional().nullable(),
   nextPaymentDate: z.date().optional().nullable(),
@@ -245,6 +247,8 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
                         <SelectItem value="completed">Completed</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="failed">Failed</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="success">Success</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

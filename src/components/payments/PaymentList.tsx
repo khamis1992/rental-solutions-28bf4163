@@ -1,332 +1,202 @@
-import { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Edit, Trash2, AlertTriangle } from 'lucide-react';
-import { usePayments } from '@/hooks/use-payments';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/date-utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { differenceInDays } from 'date-fns';
+import { Payment } from '@/types/payment';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
+import { cn, formatCurrency } from '@/lib/utils';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
+import { useDateFormatter } from '@/lib/date-utils';
+import { ensureDate } from '@/lib/date-utils'; // Import the ensureDate helper function
 
-export interface Payment {
-  id: string;
-  amount: number;
-  payment_date: string;
-  payment_method: string;
-  reference_number?: string;
-  notes?: string;
-  type: string;
+interface PaymentBadgeProps {
   status: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  lease_id: string;
 }
+
+const PaymentBadge: React.FC<PaymentBadgeProps> = ({ status }) => {
+  const { t } = useTranslation();
+
+  const getPaymentStatus = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return { label: t('payments.status.paid'), className: 'bg-green-100 text-green-800' };
+      case 'pending':
+        return { label: t('payments.status.pending'), className: 'bg-amber-100 text-amber-800' };
+      case 'overdue':
+        return { label: t('payments.status.overdue'), className: 'bg-red-100 text-red-800' };
+      case 'partial':
+        return { label: t('payments.status.partial'), className: 'bg-blue-100 text-blue-800' };
+      default:
+        return { label: t('common.unknown'), className: 'bg-gray-100 text-gray-800' };
+    }
+  };
+
+  const { label, className } = getPaymentStatus(status);
+
+  return (
+    <Badge className={className}>
+      {label}
+    </Badge>
+  );
+};
+
+// Update the formatPaymentDate function to use the ensureDate helper
+const formatPaymentDate = (date: string | Date): string => {
+  const validDate = ensureDate(date);
+  if (!validDate) return 'Invalid Date';
+  
+  try {
+    return formatDate(validDate, 'MMM dd, yyyy');
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return 'Invalid Date';
+  }
+};
+
+// Import the formatDate function from date-fns to use in the component
+import { format as formatDate } from 'date-fns';
 
 interface PaymentListProps {
-  agreementId: string;
-  onPaymentDeleted: () => void;
+  payments: Payment[];
+  onDeletePayment?: (paymentId: string) => Promise<void>;
+  isLoading?: boolean;
+  agreementId?: string;
 }
 
-export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
+export const PaymentList = ({ 
+  payments, 
+  onDeletePayment,
+  isLoading = false,
+  agreementId
+}: PaymentListProps) => {
+  const { t } = useTranslation();
+  const { isRTL } = useContextTranslation();
+  const { formatDate } = useDateFormatter();
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
-  const [missingPayments, setMissingPayments] = useState<any[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (agreementId) {
-      fetchPayments();
-    }
-  }, [agreementId, fetchPayments]);
-
-  useEffect(() => {
-    const calculateMissingPayments = async () => {
+  const handleDelete = async () => {
+    if (selectedPaymentId && onDeletePayment) {
+      setIsDeleting(true);
       try {
-        const { data: lease, error } = await supabase
-          .from('leases')
-          .select('start_date, rent_amount')
-          .eq('id', agreementId)
-          .single();
-          
-        if (error || !lease) {
-          console.error("Error fetching lease details:", error);
-          return;
-        }
-        
-        const today = new Date();
-        const startDate = new Date(lease.start_date);
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-        
-        const { data: currentMonthPayment } = await supabase
-          .from('unified_payments')
-          .select('id')
-          .eq('lease_id', agreementId)
-          .gte('payment_date', new Date(currentYear, currentMonth, 1).toISOString())
-          .lt('payment_date', new Date(currentYear, currentMonth + 1, 0).toISOString());
-          
-        if (currentMonthPayment && currentMonthPayment.length > 0) {
-          setMissingPayments([]);
-          return;
-        }
-        
-        const dueDate = new Date(currentYear, currentMonth, 1);
-        const daysOverdue = differenceInDays(today, dueDate);
-        const dailyLateFee = 120;
-        const lateFee = Math.min(daysOverdue * dailyLateFee, 3000);
-        
-        if (daysOverdue > 0) {
-          setMissingPayments([{
-            month: today.toLocaleString('default', { month: 'long', year: 'numeric' }),
-            amount: lease.rent_amount || 0,
-            daysOverdue: daysOverdue,
-            lateFee: lateFee,
-            totalDue: (lease.rent_amount || 0) + lateFee
-          }]);
-        } else {
-          setMissingPayments([]);
-        }
-      } catch (err) {
-        console.error("Error calculating missing payments:", err);
+        await onDeletePayment(selectedPaymentId);
+        setIsDeleteDialogOpen(false);
+      } catch (error) {
+        console.error("Error deleting payment:", error);
+        // Handle error appropriately
+      } finally {
+        setIsDeleting(false);
+        setSelectedPaymentId(null);
       }
-    };
-    
-    if (agreementId) {
-      calculateMissingPayments();
     }
-  }, [agreementId, payments]);
+  };
 
-  const confirmDeletePayment = (id: string) => {
-    setPaymentToDelete(id);
+  const confirmDelete = (paymentId: string) => {
+    setSelectedPaymentId(paymentId);
     setIsDeleteDialogOpen(true);
   };
 
-  const handleDeletePayment = async () => {
-    if (!paymentToDelete) return;
-
-    try {
-      const { error } = await supabase
-        .from('unified_payments')
-        .delete()
-        .eq('id', paymentToDelete);
-
-      if (error) {
-        console.error("Error deleting payment:", error);
-        toast.error("Failed to delete payment");
-        return;
-      }
-
-      toast.success("Payment deleted successfully");
-      setIsDeleteDialogOpen(false);
-      onPaymentDeleted();
-    } catch (error) {
-      console.error("Error in payment deletion:", error);
-      toast.error("An unexpected error occurred");
-    }
-  };
-
-  const renderPaymentMethodBadge = (method: string) => {
-    switch(method.toLowerCase()) {
-      case 'cash':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Cash</Badge>;
-      case 'credit_card':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Credit Card</Badge>;
-      case 'bank_transfer':
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Bank Transfer</Badge>;
-      case 'debit_card':
-        return <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Debit Card</Badge>;
-      case 'check':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Check</Badge>;
-      case 'mobile_payment':
-        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Mobile Payment</Badge>;
-      default:
-        return <Badge variant="outline">{method}</Badge>;
-    }
-  };
-
-  const renderStatusBadge = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'completed':
+  const getPaymentStatus = (status: string) => {
+    switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500 text-white">Paid</Badge>;
+        return { label: t('payments.status.paid'), className: 'bg-green-100 text-green-800' };
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-500 text-white">Cancelled</Badge>;
+        return { label: t('payments.status.pending'), className: 'bg-amber-100 text-amber-800' };
+      case 'overdue':
+        return { label: t('payments.status.overdue'), className: 'bg-red-100 text-red-800' };
+      case 'partial':
+        return { label: t('payments.status.partial'), className: 'bg-blue-100 text-blue-800' };
       default:
-        return <Badge>{status}</Badge>;
+        return { label: t('common.unknown'), className: 'bg-gray-100 text-gray-800' };
     }
   };
+
+  // Convert the payments to ensure they have all required fields
+  const normalizedPayments: Payment[] = payments.map(payment => ({
+    ...payment,
+    status: payment.status || 'pending', // Ensure status is always set
+    payment_date: payment.payment_date || new Date()
+  }));
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>View and manage payment records</CardDescription>
-        </div>
-        {missingPayments.length > 0 && (
-          <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            <span className="text-sm font-medium">Missing {missingPayments.length} payment{missingPayments.length > 1 ? 's' : ''}</span>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        {isLoadingPayments ? (
-          <div className="space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ) : (
-          <>
-            {missingPayments.length > 0 && (
-              <div className="mb-6 border border-red-200 rounded-md p-4 bg-red-50">
-                <h3 className="text-sm font-medium text-red-800 mb-2 flex items-center">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Missing Payments
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {missingPayments.map((item, index) => (
-                    <div key={index} className="bg-white text-red-700 border border-red-200 px-3 py-2 rounded text-sm">
-                      <div className="font-medium">{item.month}</div>
-                      <div className="font-semibold">{formatCurrency(item.amount)}</div>
-                      {item.daysOverdue > 0 && (
-                        <div className="mt-1 text-xs">
-                          <div className="text-amber-700">
-                            {item.daysOverdue} {item.daysOverdue === 1 ? 'day' : 'days'} overdue
-                          </div>
-                          <div className="text-red-600 font-medium">
-                            + {formatCurrency(item.lateFee)} fine
-                          </div>
-                          <div className="mt-1 font-bold text-red-700">
-                            Total: {formatCurrency(item.totalDue)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {payments.length > 0 ? (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {payments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell>{formatDate(payment.payment_date)}</TableCell>
-                        <TableCell className="font-medium">
-                          {formatCurrency(payment.amount)}
-                          {payment.late_fine_amount && payment.late_fine_amount > 0 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Badge variant="destructive" className="ml-2">+Fine</Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Includes late fine: {formatCurrency(payment.late_fine_amount)}</p>
-                                  {payment.days_overdue && (
-                                    <p>{payment.days_overdue} days overdue</p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {payment.type === "rent" ? "Monthly Rent" : 
-                          payment.type === "deposit" ? "Security Deposit" : 
-                          payment.type === "fee" ? "Fee" : 
-                          payment.type || "Other"}
-                        </TableCell>
-                        <TableCell>{renderPaymentMethodBadge(payment.payment_method)}</TableCell>
-                        <TableCell>{renderStatusBadge(payment.status)}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger className="w-full text-left">
-                                <span className="block truncate">{payment.notes || "-"}</span>
-                              </TooltipTrigger>
-                              {payment.notes && (
-                                <TooltipContent className="max-w-[300px]">
-                                  <p className="whitespace-normal">{payment.notes}</p>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end space-x-1">
-                            <Button variant="ghost" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {payment.status.toLowerCase() !== 'paid' && payment.status.toLowerCase() !== 'completed' && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => confirmDeletePayment(payment.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+    <div className={isRTL ? 'rtl-direction' : ''}>
+      <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="px-6 py-3">{t('payments.date')}</TableHead>
+              <TableHead className="px-6 py-3">{t('payments.amount')}</TableHead>
+              <TableHead className="px-6 py-3">{t('payments.method')}</TableHead>
+              <TableHead className="px-6 py-3">{t('payments.reference')}</TableHead>
+              <TableHead className="px-6 py-3">{t('common.status')}</TableHead>
+              <TableHead className="px-6 py-3 sr-only">{t('common.edit')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                </TableCell>
+              </TableRow>
+            ) : normalizedPayments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4">
+                  {t('payments.noRecords')}
+                </TableCell>
+              </TableRow>
             ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                <AlertCircle className="mb-2 h-10 w-10" />
-                <h3 className="text-lg font-medium">No payments found</h3>
-                <p className="mt-1">No payment records exist for this agreement.</p>
-              </div>
+              normalizedPayments.map((payment) => (
+                <TableRow key={payment.id} className="border-b dark:border-gray-700">
+                  <TableCell className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    {formatDate(ensureDate(payment.payment_date) || new Date(), 'MMM dd, yyyy')}
+                  </TableCell>
+                  <TableCell className="px-6 py-4">{formatCurrency(payment.amount)}</TableCell>
+                  <TableCell className="px-6 py-4">{payment.payment_method || 'N/A'}</TableCell>
+                  <TableCell className="px-6 py-4">{payment.reference || 'N/A'}</TableCell>
+                  <TableCell className="px-6 py-4">
+                    <PaymentBadge status={payment.status} />
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => confirmDelete(payment.id)}
+                      disabled={isLoading}
+                    >
+                      {t('common.delete')}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-          </>
-        )}
-      </CardContent>
-
+          </TableBody>
+        </Table>
+      </div>
+      
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Payment</AlertDialogTitle>
+            <AlertDialogTitle>{t('payments.deletePayment')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this payment? This action cannot be undone.
+              {t('payments.deleteConfirmation')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeletePayment}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              Delete
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className={cn(isDeleting && "cursor-not-allowed")}>
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Card>
+    </div>
   );
-}
+};

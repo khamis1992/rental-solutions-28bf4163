@@ -8,12 +8,16 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 const MaintenanceReport = () => {
   const { getAllRecords } = useMaintenance();
   const [maintenanceData, setMaintenanceData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { t } = useI18nTranslation();
+  const { getNumberFormat } = useTranslation();
   
   useEffect(() => {
     const fetchData = async () => {
@@ -50,9 +54,9 @@ const MaintenanceReport = () => {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
+        <AlertTitle>{t('common.error')}</AlertTitle>
         <AlertDescription>
-          Failed to load maintenance data. Please try again later.
+          {t('common.error')}
         </AlertDescription>
       </Alert>
     );
@@ -61,8 +65,9 @@ const MaintenanceReport = () => {
   // Process data for status chart
   const statusData = Object.values(MaintenanceStatus).map(status => {
     const count = maintenanceData.filter(item => item.status === status).length;
+    const statusKey = status.replace(/_/g, '');
     return {
-      name: status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      name: t(`maintenance.status.${statusKey}`),
       value: count
     };
   }).filter(item => item.value > 0);
@@ -70,8 +75,9 @@ const MaintenanceReport = () => {
   // Process data for maintenance type chart
   const typeData = Object.values(MaintenanceType).map(type => {
     const count = maintenanceData.filter(item => item.maintenance_type === type).length;
+    const typeKey = type.toLowerCase();
     return {
-      name: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      name: t(`maintenance.types.${typeKey}`),
       count: count
     };
   }).filter(item => item.count > 0);
@@ -80,8 +86,9 @@ const MaintenanceReport = () => {
   const costByType = Object.values(MaintenanceType).map(type => {
     const records = maintenanceData.filter(item => item.maintenance_type === type);
     const totalCost = records.reduce((sum, item) => sum + (item.cost || 0), 0);
+    const typeKey = type.toLowerCase();
     return {
-      name: type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      name: t(`maintenance.types.${typeKey}`),
       cost: totalCost
     };
   }).filter(item => item.cost > 0);
@@ -92,14 +99,14 @@ const MaintenanceReport = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Maintenance Analysis</CardTitle>
+        <CardTitle>{t('maintenance.analytics.title')}</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="status">
           <TabsList className="mb-4">
-            <TabsTrigger value="status">Status Distribution</TabsTrigger>
-            <TabsTrigger value="type">Maintenance Types</TabsTrigger>
-            <TabsTrigger value="cost">Cost Analysis</TabsTrigger>
+            <TabsTrigger value="status">{t('maintenance.analytics.statusDistribution')}</TabsTrigger>
+            <TabsTrigger value="type">{t('maintenance.analytics.maintenanceTypes')}</TabsTrigger>
+            <TabsTrigger value="cost">{t('maintenance.analytics.costAnalysis')}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="status" className="space-y-4">
@@ -121,13 +128,13 @@ const MaintenanceReport = () => {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`${value} records`, 'Count']} />
+                    <Tooltip formatter={(value) => [`${value} ${t('common.records')}`, t('common.count')]} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No maintenance data available
+                  {t('maintenance.noRecords')}
                 </div>
               )}
             </div>
@@ -151,12 +158,12 @@ const MaintenanceReport = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="count" fill="#8884d8" name="Number of Records" />
+                    <Bar dataKey="count" fill="#8884d8" name={t('common.records')} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No maintenance data available
+                  {t('maintenance.noRecords')}
                 </div>
               )}
             </div>
@@ -181,16 +188,16 @@ const MaintenanceReport = () => {
                     <Tooltip 
                       formatter={(value) => {
                         // Ensure value is a number before calling toFixed
-                        return [`$${typeof value === 'number' ? value.toFixed(2) : value}`, 'Cost'];
+                        return [`$${typeof value === 'number' ? value.toFixed(2) : value}`, t('common.cost')];
                       }} 
                     />
                     <Legend />
-                    <Bar dataKey="cost" fill="#82ca9d" name="Total Cost" />
+                    <Bar dataKey="cost" fill="#82ca9d" name={t('common.totalCost')} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full text-muted-foreground">
-                  No cost data available
+                  {t('common.noResults')}
                 </div>
               )}
             </div>
@@ -198,10 +205,10 @@ const MaintenanceReport = () => {
         </Tabs>
         
         <div className="mt-4 text-sm text-muted-foreground">
-          Total Records: {maintenanceData.length} | 
-          Completed: {maintenanceData.filter(item => item.status === MaintenanceStatus.COMPLETED).length} | 
-          In Progress: {maintenanceData.filter(item => item.status === MaintenanceStatus.IN_PROGRESS).length} | 
-          Scheduled: {maintenanceData.filter(item => item.status === MaintenanceStatus.SCHEDULED).length}
+          {t('maintenance.analytics.totalRecords')}: {getNumberFormat(maintenanceData.length)} | 
+          {t('maintenance.analytics.completed')}: {getNumberFormat(maintenanceData.filter(item => item.status === MaintenanceStatus.COMPLETED).length)} | 
+          {t('maintenance.analytics.inProgress')}: {getNumberFormat(maintenanceData.filter(item => item.status === MaintenanceStatus.IN_PROGRESS).length)} | 
+          {t('maintenance.analytics.scheduled')}: {getNumberFormat(maintenanceData.filter(item => item.status === MaintenanceStatus.SCHEDULED).length)}
         </div>
       </CardContent>
     </Card>

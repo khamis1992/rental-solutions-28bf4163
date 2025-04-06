@@ -1,179 +1,186 @@
 
 import React, { useState } from 'react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CalendarIcon, FileDown } from 'lucide-react';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { jsPDF } from 'jspdf';
-import { addReportHeader, addReportFooter, downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
+import { Download, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
+import { generateStandardReport } from '@/utils/report-utils';
+import { generateCSV, downloadCSV, downloadExcel } from '@/utils/report-utils';
+import { toast } from 'sonner';
+import { generateTrafficFinesCSV, generateTrafficFinesPDF } from '@/utils/traffic-fines-report-utils';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
-  getReportData?: () => Record<string, any>[];
+  getReportData: () => Record<string, any>[];
+  reportTitle?: string;
+  dateRange?: { from: Date; to: Date };
 }
 
-const ReportDownloadOptions = ({
-  reportType,
-  getReportData = () => []
+const ReportDownloadOptions = ({ 
+  reportType, 
+  getReportData,
+  reportTitle,
+  dateRange 
 }: ReportDownloadOptionsProps) => {
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
-    from: new Date(),
-    to: new Date()
-  });
-  const [fileFormat, setFileFormat] = useState('pdf');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const { toast } = useToast();
+  const { t } = useI18nTranslation();
+  const { direction, isRTL } = useTranslation();
+  const { trafficFines } = useTrafficFines();
+  const [isGenerating, setIsGenerating] = useState<'csv' | 'excel' | 'pdf' | null>(null);
 
-  const handleDownload = async () => {
+  const handleDownloadCSV = async () => {
     try {
-      setIsGenerating(true);
-      
-      // Get data for the report
-      const reportData = getReportData();
-      
-      // Format title based on report type
-      const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
-      
-      // Generate report based on file format
-      if (fileFormat === 'pdf') {
-        // Use the standardized report generator instead of creating a PDF directly
-        const doc = generateStandardReport(
-          title,
-          dateRange,
-          (doc, startY) => {
-            // Add content based on report type
-            let yPos = startY;
-            
-            // Add summary section heading
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Report Summary:', 14, yPos);
-            yPos += 10;
-            
-            // Add content specific to each report type
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            
-            switch (reportType) {
-              case 'fleet':
-                doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
-                doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
-                doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
-                break;
-              case 'financial':
-                doc.text('• Revenue Summary', 20, yPos); yPos += 10;
-                doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                doc.text('• Profit Margin', 20, yPos); yPos += 10;
-                doc.text('• Financial Projections', 20, yPos); yPos += 10;
-                break;
-              case 'customers':
-                doc.text('• Customer Demographics', 20, yPos); yPos += 10;
-                doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
-                doc.text('• Top Customers', 20, yPos); yPos += 10;
-                break;
-              case 'maintenance':
-                doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
-                doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Maintenance History', 20, yPos); yPos += 10;
-                break;
-              default:
-                doc.text('No data available for this report type.', 20, yPos);
-            }
-            
-            return yPos; // Return the final y position
-          }
-        );
-        
-        // Save the PDF
-        doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
-      } else if (fileFormat === 'excel') {
-        downloadExcel(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-      } else if (fileFormat === 'csv') {
-        downloadCSV(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      setIsGenerating('csv');
+      let csvData: string;
+      let filename: string;
+
+      // Use specialized CSV generators for specific report types
+      if (reportType === 'traffic-fines' && trafficFines) {
+        // Only include customer-assigned fines for traffic fines reports
+        csvData = generateTrafficFinesCSV(trafficFines);
+        filename = `traffic-fines-report-${new Date().toISOString().split('T')[0]}.csv`;
+      } else {
+        const data = getReportData();
+        csvData = generateCSV(data);
+        filename = `${reportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
       }
+
+      // Create and download CSV file
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
-      // Show success toast notification
-      toast({
-        title: "Report downloaded successfully!",
-        description: `Your ${reportType} report has been downloaded.`,
-        variant: "default"
-      });
+      toast.success(t('reports.csvDownloadSuccess'));
     } catch (error) {
-      console.error('Error generating report:', error);
-      toast({
-        title: "Download failed",
-        description: "There was a problem generating your report. Please try again.",
-        variant: "destructive"
-      });
+      console.error("Error generating CSV:", error);
+      toast.error(t('reports.csvDownloadError'));
     } finally {
-      setIsGenerating(false);
+      setIsGenerating(null);
     }
   };
 
-  return <div className="space-y-4">
-      <div className="flex flex-col">
-        <div className="flex items-center justify-between mb-2">
-          
-          
-        </div>
-        
-        <div className="border-t pt-1 mb-2">
-          <h3 className="text-lg font-semibold">Report Options</h3>
-        </div>
-      </div>
+  const handleDownloadExcel = async () => {
+    try {
+      setIsGenerating('excel');
+      // For now, we just use the CSV format with .xlsx extension
+      // In a production app, you might want to use a library like xlsx
+      const data = getReportData();
+      const filename = `${reportType}-report-${new Date().toISOString().split('T')[0]}.xlsx`;
       
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="flex-1">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dateRange && "text-muted-foreground")}>
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? dateRange.to ? <>
-                      {format(dateRange.from, "LLL dd, y")} -{" "}
-                      {format(dateRange.to, "LLL dd, y")}
-                    </> : format(dateRange.from, "LLL dd, y") : <span>Pick a date range</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar initialFocus mode="range" defaultMonth={dateRange?.from} selected={dateRange as any} onSelect={range => setDateRange(range as any)} numberOfMonths={2} />
-            </PopoverContent>
-          </Popover>
-        </div>
+      downloadExcel(data, filename);
+      toast.success(t('reports.excelDownloadSuccess'));
+    } catch (error) {
+      console.error("Error generating Excel:", error);
+      toast.error(t('reports.excelDownloadError'));
+    } finally {
+      setIsGenerating(null);
+    }
+  };
 
-        <div className="w-40">
-          <Select value={fileFormat} onValueChange={setFileFormat}>
-            <SelectTrigger>
-              <SelectValue placeholder="Format" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="pdf">PDF</SelectItem>
-              <SelectItem value="excel">Excel</SelectItem>
-              <SelectItem value="csv">CSV</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+  const handleDownloadPDF = async () => {
+    try {
+      setIsGenerating('pdf');
+      toast.info(t('reports.generatingPdf'), { duration: 2000 });
 
-        <Button onClick={handleDownload} disabled={isGenerating}>
-          <FileDown className="mr-2 h-4 w-4" />
-          {isGenerating ? 'Generating...' : 'Download Report'}
-        </Button>
-      </div>
+      let doc;
+      let filename: string;
+
+      // Use specialized PDF generators for specific report types
+      if (reportType === 'traffic-fines' && trafficFines) {
+        // Use custom PDF generation for traffic fines
+        doc = await generateTrafficFinesPDF(trafficFines);
+        filename = `traffic-fines-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      } else {
+        // Use standard report generator for other report types
+        const title = reportTitle || `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
+        const reportDateRange = dateRange || { 
+          from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 
+          to: new Date() 
+        };
+        
+        doc = await generateStandardReport(
+          title,
+          reportDateRange,
+          async (doc, startY) => {
+            let y = startY + 10;
+            
+            // Add report-specific content here based on reportType
+            doc.setFontSize(12);
+            doc.text(`${reportType.toUpperCase()} REPORT CONTENT`, 14, y);
+            
+            return y + 20; // Return the new Y position
+          }
+        );
+        filename = `${reportType}-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      }
+
+      // Download the PDF
+      doc.save(filename);
+      toast.success(t('reports.pdfDownloadSuccess'));
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast.error(t('reports.pdfDownloadError'));
+    } finally {
+      setIsGenerating(null);
+    }
+  };
+
+  return (
+    <div 
+      className={`flex flex-wrap gap-2 ${isRTL ? 'justify-start' : 'justify-end'}`}
+      dir={direction}
+    >
+      <Button 
+        variant="outline"
+        size="sm"
+        className="flex items-center"
+        onClick={handleDownloadCSV}
+        disabled={isGenerating !== null}
+      >
+        {isGenerating === 'csv' ? (
+          <Loader2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
+        ) : (
+          <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+        )}
+        <span>{t('reports.csv')}</span>
+      </Button>
       
-      <div className="mt-6 pt-4 border-t flex flex-col items-center">
-        
-        
-      </div>
-    </div>;
+      <Button 
+        variant="outline"
+        size="sm"
+        className="flex items-center"
+        onClick={handleDownloadExcel}
+        disabled={isGenerating !== null}
+      >
+        {isGenerating === 'excel' ? (
+          <Loader2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
+        ) : (
+          <FileSpreadsheet className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+        )}
+        <span>{t('reports.excel')}</span>
+      </Button>
+      
+      <Button 
+        variant="outline"
+        size="sm"
+        className="flex items-center"
+        onClick={handleDownloadPDF}
+        disabled={isGenerating !== null}
+      >
+        {isGenerating === 'pdf' ? (
+          <Loader2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
+        ) : (
+          <Download className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+        )}
+        <span>{t('reports.pdf')}</span>
+      </Button>
+    </div>
+  );
 };
+
 export default ReportDownloadOptions;

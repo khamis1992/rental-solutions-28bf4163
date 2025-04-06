@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +34,9 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { checkVehicleAvailability } from "@/utils/agreement-utils";
 import { VehicleAssignmentDialog } from "./VehicleAssignmentDialog";
 import { toast } from "sonner";
+import { useTranslation as useI18nTranslation } from "react-i18next";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { getDirectionalClasses, getDirectionalFlexClass } from "@/utils/rtl-utils";
 
 interface AgreementFormProps {
   onSubmit: (data: any) => void;
@@ -43,22 +45,6 @@ interface AgreementFormProps {
   standardTemplateExists?: boolean;
   isCheckingTemplate?: boolean;
 }
-
-const formSchema = z.object({
-  agreement_number: z.string().min(1, "Agreement number is required"),
-  start_date: z.date(),
-  end_date: z.date(),
-  customer_id: z.string().min(1, "Customer is required"),
-  vehicle_id: z.string().min(1, "Vehicle is required"),
-  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
-  rent_amount: z.number().positive("Rent amount must be positive"),
-  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
-  total_amount: z.number().positive("Total amount must be positive"),
-  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
-  agreement_duration: z.string().optional(),
-  notes: z.string().optional(),
-  terms_accepted: z.boolean().default(false),
-});
 
 const AgreementFormWithVehicleCheck = ({
   onSubmit,
@@ -75,6 +61,8 @@ const AgreementFormWithVehicleCheck = ({
   const [isVehicleDialogOpen, setIsVehicleDialogOpen] = useState(false);
   const [vehicleAvailabilityResult, setVehicleAvailabilityResult] = useState<any>(null);
   const [isCheckingVehicle, setIsCheckingVehicle] = useState(false);
+  const { t } = useI18nTranslation();
+  const { direction, isRTL, translateText } = useTranslation();
 
   const generateAgreementNumber = () => {
     const prefix = "AGR";
@@ -82,6 +70,22 @@ const AgreementFormWithVehicleCheck = ({
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
     return `${prefix}-${timestamp}-${random}`;
   };
+
+  const formSchema = z.object({
+    agreement_number: z.string().min(1, t("agreements.validations.agreementNumberRequired")),
+    start_date: z.date(),
+    end_date: z.date(),
+    customer_id: z.string().min(1, t("agreements.validations.customerRequired")),
+    vehicle_id: z.string().min(1, t("agreements.validations.vehicleRequired")),
+    status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
+    rent_amount: z.number().positive(t("agreements.validations.rentAmountPositive")),
+    deposit_amount: z.number().nonnegative(t("agreements.validations.depositAmountNonNegative")),
+    total_amount: z.number().positive(t("agreements.validations.totalAmountPositive")),
+    daily_late_fee: z.number().nonnegative(t("agreements.validations.dailyLateFeeNonNegative")),
+    agreement_duration: z.string().optional(),
+    notes: z.string().optional(),
+    terms_accepted: z.boolean().default(false),
+  });
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -124,7 +128,6 @@ const AgreementFormWithVehicleCheck = ({
   useEffect(() => {
     const fetchVehicles = async () => {
       try {
-        // Fetch all vehicles, not just available ones, so we can show assigned vehicles too
         const { data, error } = await supabase
           .from("vehicles")
           .select("*");
@@ -157,13 +160,14 @@ const AgreementFormWithVehicleCheck = ({
       setSelectedCustomer(data);
     } catch (error) {
       console.error("Error fetching customer details:", error);
+      const errorMessage = await translateText(t("common.error"));
+      toast.error(errorMessage);
     }
   };
 
   const handleVehicleChange = async (vehicleId: string) => {
     setIsCheckingVehicle(true);
     try {
-      // Check if vehicle is already assigned to an active agreement
       const availabilityResult = await checkVehicleAvailability(vehicleId);
       setVehicleAvailabilityResult(availabilityResult);
       
@@ -171,7 +175,6 @@ const AgreementFormWithVehicleCheck = ({
         setIsVehicleDialogOpen(true);
       }
       
-      // Get vehicle details regardless of availability
       const { data, error } = await supabase
         .from("vehicles")
         .select("*")
@@ -187,7 +190,8 @@ const AgreementFormWithVehicleCheck = ({
       calculateTotalAmount(data.rent_amount || 0, form.getValues("deposit_amount"));
     } catch (error) {
       console.error("Error checking vehicle availability:", error);
-      toast.error("Error checking vehicle availability");
+      const errorMessage = await translateText(t("agreements.vehicleCheckError"));
+      toast.error(errorMessage);
     } finally {
       setIsCheckingVehicle(false);
     }
@@ -197,7 +201,7 @@ const AgreementFormWithVehicleCheck = ({
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + months);
     form.setValue("end_date", endDate);
-    form.setValue("agreement_duration", `${months} months`);
+    form.setValue("agreement_duration", `${months} ${months === 1 ? t("agreements.month") : t("agreements.months")}`);
     calculateTotalAmount(form.getValues("rent_amount"), form.getValues("deposit_amount"));
   };
 
@@ -219,9 +223,9 @@ const AgreementFormWithVehicleCheck = ({
     onSubmit(finalData);
   };
 
-  const handleVehicleConfirmation = () => {
-    // User has confirmed they want to proceed with the vehicle assignment
-    // This will be handled in the submission logic which will close the old agreement
+  const handleVehicleConfirmation = async () => {
+    const confirmMsg = await translateText(t("agreements.vehicleReassignmentConfirmed"));
+    toast.success(confirmMsg);
     console.log("User confirmed vehicle reassignment");
   };
 
@@ -241,8 +245,8 @@ const AgreementFormWithVehicleCheck = ({
             <InfoIcon className="h-4 w-4 text-blue-500" />
           </div>
           <div>
-            <p className="font-medium">Checking Template Status</p>
-            <p className="text-sm">Verifying if the standard agreement template exists...</p>
+            <p className="font-medium">{t("agreements.checkingTemplateStatus")}</p>
+            <p className="text-sm">{t("agreements.verifyingTemplate")}</p>
           </div>
         </div>
       );
@@ -252,10 +256,9 @@ const AgreementFormWithVehicleCheck = ({
       return (
         <Alert variant="destructive" className="mt-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Template Not Found</AlertTitle>
+          <AlertTitle>{t("agreements.templateNotFound")}</AlertTitle>
           <AlertDescription>
-            The standard agreement template "agreement temp" was not found in the database.
-            The agreement will use the default template format.
+            {t("agreements.templateNotFoundDesc")}
           </AlertDescription>
         </Alert>
       );
@@ -267,8 +270,8 @@ const AgreementFormWithVehicleCheck = ({
           <CheckCircle className="h-4 w-4 text-green-500" />
         </div>
         <div>
-          <p className="font-medium">Using Standard Template</p>
-          <p className="text-sm">The agreement will use the standard template from the database.</p>
+          <p className="font-medium">{t("agreements.usingStandardTemplate")}</p>
+          <p className="text-sm">{t("agreements.usingStandardTemplateDesc")}</p>
         </div>
       </div>
     );
@@ -281,26 +284,26 @@ const AgreementFormWithVehicleCheck = ({
     
     return (
       <div className="space-y-4 pt-4 border-t">
-        <h3 className="text-lg font-medium">Agreement Preview</h3>
+        <h3 className="text-lg font-medium">{t("agreements.agreementPreview")}</h3>
         
         <div className="bg-muted p-4 rounded-md text-sm">
           <div className="flex justify-between items-center mb-4">
-            <h4 className="font-bold text-base">AGREEMENT TEMPLATE PREVIEW</h4>
+            <h4 className="font-bold text-base">{t("agreements.agreementTemplatePreview")}</h4>
           </div>
           
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Template Information</AlertTitle>
+            <AlertTitle>{t("agreements.templateInformation")}</AlertTitle>
             <AlertDescription>
               {standardTemplateExists ? 
-                "Using the standard 'agreement temp' template from the database." : 
-                "Standard template not found. Using default format."}
+                t("agreements.usingStandardTemplateInfo") : 
+                t("agreements.standardTemplateNotFound")}
             </AlertDescription>
           </Alert>
           
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 ${isRTL ? 'rtl-mode' : ''}`}>
             <div className="border p-3 rounded-md">
-              <h5 className="font-semibold mb-2">Customer Data</h5>
+              <h5 className="font-semibold mb-2">{t("agreements.customerData")}</h5>
               <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
               <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
               <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
@@ -309,7 +312,7 @@ const AgreementFormWithVehicleCheck = ({
             </div>
             
             <div className="border p-3 rounded-md">
-              <h5 className="font-semibold mb-2">Vehicle Data</h5>
+              <h5 className="font-semibold mb-2">{t("agreements.vehicleData")}</h5>
               <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
               <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
               <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
@@ -319,7 +322,7 @@ const AgreementFormWithVehicleCheck = ({
           </div>
           
           <div className="mt-4 border p-3 rounded-md">
-            <h5 className="font-semibold mb-2">Agreement Data</h5>
+            <h5 className="font-semibold mb-2">{t("agreements.agreementData")}</h5>
             <div className="grid grid-cols-2 gap-2">
               <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
               <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
@@ -334,22 +337,26 @@ const AgreementFormWithVehicleCheck = ({
     );
   };
 
+  const formatLocalDate = (date: Date) => {
+    return format(date, isRTL ? 'yyyy/MM/dd' : 'PPP');
+  };
+
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className={`space-y-6 ${isRTL ? 'rtl-mode text-right' : ''}`}>
           {renderTemplateStatus()}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Agreement Details</h3>
+              <h3 className="text-lg font-medium">{t("agreements.agreementDetails")}</h3>
               
               <FormField
                 control={form.control}
                 name="agreement_number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Agreement Number</FormLabel>
+                    <FormLabel>{t("agreements.agreementNumber")}</FormLabel>
                     <FormControl>
                       <Input {...field} disabled />
                     </FormControl>
@@ -363,7 +370,7 @@ const AgreementFormWithVehicleCheck = ({
                 name="start_date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
+                    <FormLabel>{t("agreements.startDate")}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -375,11 +382,11 @@ const AgreementFormWithVehicleCheck = ({
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              formatLocalDate(field.value)
                             ) : (
-                              <span>Pick a date</span>
+                              <span>{t("agreements.pickDate")}</span>
                             )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            <CalendarIcon className={`${isRTL ? 'mr-auto' : 'ml-auto'} h-4 w-4 opacity-50`} />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
@@ -403,7 +410,7 @@ const AgreementFormWithVehicleCheck = ({
               />
             
               <FormItem>
-                <FormLabel>Duration (Months)</FormLabel>
+                <FormLabel>{t("agreements.durationMonths")}</FormLabel>
                 <Select 
                   value={durationMonths.toString()} 
                   onValueChange={(value) => {
@@ -413,12 +420,12 @@ const AgreementFormWithVehicleCheck = ({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select duration" />
+                    <SelectValue placeholder={t("agreements.selectDuration")} />
                   </SelectTrigger>
                   <SelectContent>
                     {[1, 3, 6, 12, 24, 36].map((month) => (
                       <SelectItem key={month} value={month.toString()}>
-                        {month} {month === 1 ? "month" : "months"}
+                        {month} {month === 1 ? t("agreements.month") : t("agreements.months")}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -430,7 +437,7 @@ const AgreementFormWithVehicleCheck = ({
                 name="end_date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
-                    <FormLabel>End Date</FormLabel>
+                    <FormLabel>{t("agreements.endDate")}</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -442,11 +449,11 @@ const AgreementFormWithVehicleCheck = ({
                             )}
                           >
                             {field.value ? (
-                              format(field.value, "PPP")
+                              formatLocalDate(field.value)
                             ) : (
-                              <span>Pick a date</span>
+                              <span>{t("agreements.pickDate")}</span>
                             )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            <CalendarIcon className={`${isRTL ? 'mr-auto' : 'ml-auto'} h-4 w-4 opacity-50`} />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
@@ -470,20 +477,20 @@ const AgreementFormWithVehicleCheck = ({
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Status</FormLabel>
+                    <FormLabel>{t("common.status")}</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
+                          <SelectValue placeholder={t("agreements.selectStatus")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="draft">Draft</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="draft">{t("agreements.status.draft")}</SelectItem>
+                        <SelectItem value="active">{t("agreements.status.active")}</SelectItem>
+                        <SelectItem value="pending">{t("agreements.status.pending")}</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -493,14 +500,14 @@ const AgreementFormWithVehicleCheck = ({
             </div>
             
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Customer & Vehicle</h3>
+              <h3 className="text-lg font-medium">{t("agreements.customerAndVehicle")}</h3>
               
               <FormField
                 control={form.control}
                 name="customer_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Customer</FormLabel>
+                    <FormLabel>{t("customers.title")}</FormLabel>
                     <Select 
                       onValueChange={(value) => {
                         field.onChange(value);
@@ -510,7 +517,7 @@ const AgreementFormWithVehicleCheck = ({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select customer" />
+                          <SelectValue placeholder={t("agreements.selectCustomer")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -528,10 +535,10 @@ const AgreementFormWithVehicleCheck = ({
               
               {selectedCustomer && (
                 <div className="bg-muted p-3 rounded-md text-sm">
-                  <p><strong>Email:</strong> {selectedCustomer.email}</p>
-                  <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
-                  <p><strong>Driver License:</strong> {selectedCustomer.driver_license}</p>
-                  <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
+                  <p><strong>{t("customers.emailAddress")}:</strong> {selectedCustomer.email}</p>
+                  <p><strong>{t("customers.phoneNumber")}:</strong> {selectedCustomer.phone_number}</p>
+                  <p><strong>{t("customers.driverLicense")}:</strong> {selectedCustomer.driver_license}</p>
+                  <p><strong>{t("common.nationality")}:</strong> {selectedCustomer.nationality}</p>
                 </div>
               )}
               
@@ -540,7 +547,7 @@ const AgreementFormWithVehicleCheck = ({
                 name="vehicle_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vehicle</FormLabel>
+                    <FormLabel>{t("vehicles.title")}</FormLabel>
                     <Select 
                       onValueChange={(value) => {
                         field.onChange(value);
@@ -551,7 +558,7 @@ const AgreementFormWithVehicleCheck = ({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={isCheckingVehicle ? "Checking vehicle..." : "Select vehicle"} />
+                          <SelectValue placeholder={isCheckingVehicle ? t("agreements.checkingVehicle") : t("agreements.selectVehicle")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -564,7 +571,7 @@ const AgreementFormWithVehicleCheck = ({
                               className={!isAvailable ? "text-amber-500" : ""}
                             >
                               {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                              {!isAvailable && " [Assigned]"}
+                              {!isAvailable && ` [${t("agreements.assigned")}]`}
                             </SelectItem>
                           );
                         })}
@@ -578,27 +585,28 @@ const AgreementFormWithVehicleCheck = ({
               {vehicleAvailabilityResult && !vehicleAvailabilityResult.isAvailable && !isVehicleDialogOpen && (
                 <Alert variant="warning" className="bg-amber-50 border-amber-200">
                   <AlertTriangle className="h-4 w-4 text-amber-600" />
-                  <AlertTitle className="text-amber-800">Vehicle Already Assigned</AlertTitle>
+                  <AlertTitle className="text-amber-800">{t("agreements.vehicleAlreadyAssigned")}</AlertTitle>
                   <AlertDescription className="text-amber-700">
-                    This vehicle is currently assigned to Agreement #{vehicleAvailabilityResult.existingAgreement.agreement_number}.
-                    When you submit this form, that agreement will be closed automatically.
+                    {t("agreements.vehicleAlreadyAssignedDesc", { 
+                      agreementNumber: vehicleAvailabilityResult.existingAgreement.agreement_number 
+                    })}
                   </AlertDescription>
                 </Alert>
               )}
               
               {selectedVehicle && (
                 <div className="bg-muted p-3 rounded-md text-sm">
-                  <p><strong>Make:</strong> {selectedVehicle.make}</p>
-                  <p><strong>Model:</strong> {selectedVehicle.model}</p>
-                  <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
-                  <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
+                  <p><strong>{t("common.make")}:</strong> {selectedVehicle.make}</p>
+                  <p><strong>{t("common.model")}:</strong> {selectedVehicle.model}</p>
+                  <p><strong>{t("common.licensePlate")}:</strong> {selectedVehicle.license_plate}</p>
+                  <p><strong>{t("vehicles.vin")}:</strong> {selectedVehicle.vin}</p>
                 </div>
               )}
             </div>
           </div>
           
           <div className="space-y-4 pt-4 border-t">
-            <h3 className="text-lg font-medium">Payment Information</h3>
+            <h3 className="text-lg font-medium">{t("agreements.paymentInformation")}</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
@@ -606,7 +614,7 @@ const AgreementFormWithVehicleCheck = ({
                 name="rent_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Monthly Rent Amount</FormLabel>
+                    <FormLabel>{t("agreements.monthlyRentAmount")}</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -624,7 +632,7 @@ const AgreementFormWithVehicleCheck = ({
                 name="deposit_amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Deposit Amount</FormLabel>
+                    <FormLabel>{t("agreements.depositAmount")}</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -642,7 +650,7 @@ const AgreementFormWithVehicleCheck = ({
                 name="daily_late_fee"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Daily Late Fee</FormLabel>
+                    <FormLabel>{t("agreements.dailyLateFee")}</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 
@@ -661,7 +669,7 @@ const AgreementFormWithVehicleCheck = ({
               name="total_amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Total Contract Amount</FormLabel>
+                  <FormLabel>{t("agreements.totalContractAmount")}</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
@@ -680,7 +688,7 @@ const AgreementFormWithVehicleCheck = ({
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>{t("common.notes")}</FormLabel>
                   <FormControl>
                     <textarea 
                       className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -695,19 +703,18 @@ const AgreementFormWithVehicleCheck = ({
           
           {renderAgreementPreview()}
           
-          <div className="flex justify-end">
+          <div className={`flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
             <Button 
               type="submit" 
               disabled={isSubmitting || isCheckingVehicle}
               className="w-full md:w-auto"
             >
-              {isSubmitting ? "Creating Agreement..." : "Create Agreement"}
+              {isSubmitting ? t("agreements.creatingAgreement") : t("agreements.createAgreement")}
             </Button>
           </div>
         </form>
       </Form>
 
-      {/* Vehicle Assignment Confirmation Dialog */}
       <VehicleAssignmentDialog
         isOpen={isVehicleDialogOpen}
         onClose={() => setIsVehicleDialogOpen(false)}

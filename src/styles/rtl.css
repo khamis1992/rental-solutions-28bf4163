@@ -1,0 +1,194 @@
+
+/* Global RTL Styles */
+.rtl-mode {
+  /* Add any global RTL styles here */
+  text-align: right;
+  direction: rtl;
+}
+
+/* Core layout adjustments */
+.rtl-mode .reverse-children {
+  flex-direction: row-reverse;
+}
+
+.rtl-mode .align-right {
+  text-align: right;
+}
+
+.rtl-mode .align-left {
+  text-align: left;
+}
+
+.rtl-mode .margin-right {
+  margin-right: auto;
+  margin-left: 0 !important;
+}
+
+.rtl-mode .margin-left {
+  margin-left: auto;
+  margin-right: 0 !important;
+}
+
+/* RTL table adjustments */
+.rtl-mode table th,
+.rtl-mode table td {
+  text-align: right;
+}
+
+/* Fix Tailwind flex direction for RTL mode */
+.rtl-mode .flex-row {
+  flex-direction: row-reverse;
+}
+
+.rtl-mode .justify-start {
+  justify-content: flex-end;
+}
+
+.rtl-mode .justify-end {
+  justify-content: flex-start;
+}
+
+/* Fix for inputs and form elements */
+.rtl-mode input[type="text"],
+.rtl-mode input[type="email"],
+.rtl-mode input[type="password"],
+.rtl-mode input[type="number"],
+.rtl-mode input[type="tel"],
+.rtl-mode input[type="search"],
+.rtl-mode textarea {
+  text-align: right;
+  direction: rtl;
+}
+
+/* Fix for select elements */
+.rtl-mode select {
+  background-position: 0.5rem center;
+  padding-right: 1rem;
+  padding-left: 2rem;
+}
+
+/* Fix for checkboxes and radio buttons */
+.rtl-mode input[type="checkbox"],
+.rtl-mode input[type="radio"] {
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+/* Shadcn UI Component adjustments for RTL */
+.rtl-mode .react-select__menu {
+  text-align: right;
+}
+
+.rtl-mode .react-select__option {
+  text-align: right;
+}
+
+/* Chart adjustments for RTL */
+.rtl-mode .recharts-wrapper {
+  direction: ltr;  /* Keep charts in LTR mode for correct data display */
+}
+
+.rtl-mode .recharts-tooltip-wrapper {
+  direction: rtl;
+}
+
+.rtl-mode .recharts-default-tooltip {
+  text-align: right;
+}
+
+/* Card and container adjustments */
+.rtl-mode .card-content {
+  text-align: right;
+}
+
+/* Navigation and sidebar adjustments */
+.rtl-mode .sidebar-navigation {
+  right: 0;
+  left: auto;
+}
+
+.rtl-mode .sidebar-item-icon {
+  margin-left: 0.75rem;
+  margin-right: 0;
+}
+
+/* Badge and tag adjustments */
+.rtl-mode .badge-icon {
+  margin-left: 0.25rem;
+  margin-right: 0;
+}
+
+/* Dialog and modal adjustments */
+.rtl-mode .dialog-content {
+  text-align: right;
+}
+
+/* Fix for grid layouts */
+.rtl-mode .grid-direction {
+  direction: rtl;
+}
+
+/* Dashboard specific RTL fixes */
+.rtl-mode .dashboard-stat-card {
+  text-align: right;
+}
+
+.rtl-mode .dashboard-chart {
+  direction: ltr; /* Keep charts in LTR mode for correct data display */
+}
+
+.rtl-mode .dashboard-stat-card-icon {
+  margin-left: 0.75rem;
+  margin-right: 0;
+}
+
+/* Dropdown menus */
+.rtl-mode .dropdown-content {
+  text-align: right;
+}
+
+/* Fix for tooltip positioning */
+.rtl-mode .tooltip {
+  text-align: right;
+}
+
+/* Icon spacing adjustments for RTL mode */
+.rtl-mode button svg + span,
+.rtl-mode a svg + span,
+.rtl-mode .icon-text-spacing svg + span {
+  margin-right: 0.75rem;
+}
+
+.rtl-mode button span + svg,
+.rtl-mode a span + svg,
+.rtl-mode .icon-text-spacing span + svg {
+  margin-left: 0.75rem;
+}
+
+/* For flex layouts with icons and text */
+.rtl-mode .flex-row svg,
+.rtl-mode .flex-row-reverse svg {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.rtl-mode .flex items-center svg {
+  margin-left: 0.5rem;
+  margin-right: 0;
+}
+
+/* Financial statistics and trend indicators */
+.rtl-mode .text-muted-foreground .inline-flex {
+  display: inline-flex;
+  align-items: center;
+}
+
+.rtl-mode .text-xs.text-muted-foreground span + span {
+  margin-right: 0.25rem;
+}
+
+/* Percentage indicators in RTL */
+.rtl-mode .rounded-full + span {
+  margin-right: 0.5rem;
+  margin-left: 0;
+}

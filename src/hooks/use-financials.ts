@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -7,7 +8,9 @@ import { supabase, checkAndGenerateMonthlyPayments } from '@/lib/supabase';
 const getSystemDate = () => new Date();
 
 export type TransactionType = 'income' | 'expense';
-export type TransactionStatusType = 'completed' | 'pending' | 'failed';
+
+// Update to include all possible status values
+export type TransactionStatusType = 'completed' | 'pending' | 'failed' | 'paid' | 'success';
 
 export interface FinancialTransaction {
   id: string;
@@ -25,6 +28,7 @@ export interface FinancialTransaction {
   isRecurring?: boolean;
   recurringInterval?: string;
   nextPaymentDate?: Date;
+  lease_id?: string; // Added to fix Reports.tsx errors
 }
 
 export interface FinancialSummary {
@@ -181,10 +185,11 @@ export function useFinancials() {
         
         console.log(`Filtering income for current month: ${startOfMonth} to ${endOfMonth}`);
 
+        // Query for income with consistent approach between both dashboard components
         const { data: incomeData, error: incomeError } = await supabase
           .from('unified_payments')
-          .select('amount, status')
-          .eq('type', 'Income')
+          .select('amount_paid, amount, status, type')
+          .or(`type.eq.Income,type.eq.rent,type.ilike.%income%,type.ilike.%rent%`)
           .gte('payment_date', startOfMonth)
           .lte('payment_date', endOfMonth);
 
@@ -194,6 +199,7 @@ export function useFinancials() {
         }
         
         console.log(`Found ${incomeData?.length || 0} income transactions for current month`);
+        console.log("Income data:", incomeData);
 
         const { data: expenseData, error: expenseError } = await supabase
           .from('unified_payments')
@@ -300,9 +306,16 @@ export function useFinancials() {
 
         console.log("Total pending installments:", installmentsPending);
 
+        // Use amount_paid for consistent calculation with dashboard
         const totalIncome = (incomeData || [])
           .filter(item => item.status !== 'failed')
-          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          .reduce((sum, item) => {
+            // Prefer amount_paid if available (consistent with dashboard), otherwise fallback to amount
+            const value = (item.amount_paid !== null && item.amount_paid !== undefined) 
+              ? Number(item.amount_paid) 
+              : Number(item.amount) || 0;
+            return sum + value;
+          }, 0);
           
         const expensesFromPayments = (expenseData || [])
           .filter(item => item.status !== 'failed')
@@ -322,7 +335,13 @@ export function useFinancials() {
         
         const pendingPayments = (incomeData || [])
           .filter(item => item.status === 'pending')
-          .reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+          .reduce((sum, item) => {
+            // Prefer amount_paid if available, otherwise fallback to amount
+            const value = (item.amount_paid !== null && item.amount_paid !== undefined) 
+              ? Number(item.amount_paid) 
+              : Number(item.amount) || 0;
+            return sum + value;
+          }, 0);
 
         const netRevenue = Number(totalIncome) - Number(totalExpenses);
         
@@ -686,7 +705,7 @@ export function useFinancials() {
       if (data.description) updateData.description = data.description;
       if (data.status) updateData.status = data.status;
       if (data.reference !== undefined) updateData.reference = data.reference;
-      if (data.paymentMethod) updateData.payment_method = data.paymentMethod;
+      if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
       if (data.isRecurring !== undefined) updateData.is_recurring = data.isRecurring;
       if (data.recurringInterval) updateData.recurring_interval = data.recurringInterval;
       if (data.nextPaymentDate) updateData.next_payment_date = data.nextPaymentDate.toISOString();
