@@ -1,6 +1,6 @@
-
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { SimpleAgreement } from '@/hooks/use-agreements';
 
 /**
  * Finds and fixes duplicate payment entries for a given lease
@@ -398,3 +398,158 @@ export const ensureAllMonthlyPayments = async (leaseId: string): Promise<{
   }
 };
 
+/**
+ * Records a payment and reconciles it against outstanding balances
+ * @param agreement The agreement/lease details
+ * @param amount The payment amount to process
+ * @param paymentDate The date of payment
+ * @param paymentMethod The payment method used
+ * @param description Optional description for the payment
+ * @returns Updated list of payments after reconciliation
+ */
+export const reconcilePayments = async (
+  agreement: SimpleAgreement,
+  amount?: number,
+  paymentDate?: Date,
+  paymentMethod: string = 'cash',
+  description: string = ''
+): Promise<any[]> => {
+  try {
+    // If no amount provided, just update payment statuses
+    if (!amount || amount <= 0) {
+      // Call the ensureAllMonthlyPayments function to update payment statuses
+      const result = await ensureAllMonthlyPayments(agreement.id);
+      
+      // Get updated payment list
+      const { data: updatedPayments, error: fetchError } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', agreement.id)
+        .order('payment_date', { ascending: false });
+        
+      if (fetchError) {
+        console.error('Error fetching updated payments:', fetchError);
+        throw new Error(`Failed to fetch updated payments: ${fetchError.message}`);
+      }
+      
+      return updatedPayments || [];
+    }
+    
+    // With amount - process actual payment
+    // First fix any duplicate/missing payments
+    await fixDuplicatePayments(agreement.id);
+    
+    // Get payments that need to be paid, ordered by date (oldest first)
+    const { data: pendingPayments, error: pendingError } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', agreement.id)
+      .in('status', ['pending', 'partially_paid', 'overdue'])
+      .order('original_due_date', { ascending: true });
+    
+    if (pendingError) {
+      console.error('Error fetching pending payments:', pendingError);
+      throw new Error(`Failed to fetch pending payments: ${pendingError.message}`);
+    }
+    
+    if (!pendingPayments || pendingPayments.length === 0) {
+      // If no pending payments, create a new payment record
+      const paymentRecord = {
+        lease_id: agreement.id,
+        amount: amount,
+        amount_paid: amount,
+        payment_date: paymentDate ? paymentDate.toISOString() : new Date().toISOString(),
+        payment_method: paymentMethod,
+        status: 'paid',
+        type: 'additional_payment',
+        description: description || `Additional payment`,
+        transaction_id: `TXN-${Date.now()}`
+      };
+      
+      const { error: insertError } = await supabase
+        .from('unified_payments')
+        .insert(paymentRecord);
+        
+      if (insertError) {
+        console.error('Error recording payment:', insertError);
+        throw new Error(`Failed to record payment: ${insertError.message}`);
+      }
+    } else {
+      // We have pending payments to reconcile
+      let remainingAmount = amount;
+      
+      // Apply payment to each pending invoice until the amount is used up
+      for (const payment of pendingPayments) {
+        if (remainingAmount <= 0) break;
+        
+        // Calculate how much to apply to this payment
+        const pendingAmount = payment.amount - (payment.amount_paid || 0);
+        const amountToApply = Math.min(remainingAmount, pendingAmount);
+        
+        // Update the payment record
+        const updatedPayment = {
+          amount_paid: (payment.amount_paid || 0) + amountToApply,
+          payment_date: paymentDate ? paymentDate.toISOString() : new Date().toISOString(),
+          payment_method: paymentMethod,
+          status: (payment.amount_paid || 0) + amountToApply >= payment.amount ? 'paid' : 'partially_paid',
+          description: payment.description,
+          transaction_id: payment.transaction_id || `TXN-${Date.now()}`
+        };
+        
+        const { error: updateError } = await supabase
+          .from('unified_payments')
+          .update(updatedPayment)
+          .eq('id', payment.id);
+          
+        if (updateError) {
+          console.error(`Error updating payment ${payment.id}:`, updateError);
+          throw new Error(`Failed to update payment: ${updateError.message}`);
+        }
+        
+        // Reduce remaining amount
+        remainingAmount -= amountToApply;
+      }
+      
+      // If we still have remaining amount, create a new payment record
+      if (remainingAmount > 0) {
+        const overpaymentRecord = {
+          lease_id: agreement.id,
+          amount: remainingAmount,
+          amount_paid: remainingAmount,
+          payment_date: paymentDate ? paymentDate.toISOString() : new Date().toISOString(),
+          payment_method: paymentMethod,
+          status: 'paid',
+          type: 'overpayment',
+          description: description || `Overpayment`,
+          transaction_id: `TXN-${Date.now()}`
+        };
+        
+        const { error: insertError } = await supabase
+          .from('unified_payments')
+          .insert(overpaymentRecord);
+          
+        if (insertError) {
+          console.error('Error recording overpayment:', insertError);
+          throw new Error(`Failed to record overpayment: ${insertError.message}`);
+        }
+      }
+    }
+    
+    // Get the updated payment list
+    const { data: updatedPayments, error: fetchError } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', agreement.id)
+      .order('payment_date', { ascending: false });
+      
+    if (fetchError) {
+      console.error('Error fetching updated payments:', fetchError);
+      throw new Error(`Failed to fetch updated payments: ${fetchError.message}`);
+    }
+    
+    return updatedPayments || [];
+  } catch (error) {
+    console.error('Error in reconcilePayments:', error);
+    throw error;
+  }
+};

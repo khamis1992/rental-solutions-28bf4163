@@ -50,7 +50,7 @@ import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 
-interface Payment {
+export interface Payment {
   id: string;
   lease_id: string;
   amount: number;
@@ -87,7 +87,7 @@ type PaymentFormValues = z.infer<typeof paymentFormSchema>
 
 export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: PaymentHistoryProps) {
   const { t } = useTranslation();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [date, setDate] = useState<DateRange | undefined>(undefined);
   const [isReconciling, setIsReconciling] = useState(false);
   const [isCreatingPayment, setIsCreatingPayment] = useState(false);
@@ -111,7 +111,7 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
 
         if (error) {
           console.error('Error fetching agreement:', error);
-          toast({
+          uiToast({
             title: 'Error',
             description: `Failed to load agreement: ${error.message}`,
             variant: 'destructive',
@@ -125,7 +125,7 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
     };
 
     fetchAgreement();
-  }, [agreementId, toast]);
+  }, [agreementId, uiToast]);
 
   const reconcileForm = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
@@ -262,7 +262,6 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
         return;
       }
 
-      // Optimistically update the payments list
       const updatedPayments = [...payments, newPayment];
       onPaymentsUpdated(updatedPayments);
 

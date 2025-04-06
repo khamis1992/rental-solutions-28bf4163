@@ -2,14 +2,14 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PageContainer from '@/components/layout/PageContainer';
-import { CompanySettings } from '@/components/settings/CompanySettings';
-import { NotificationSettings } from '@/components/settings/NotificationSettings';
+import CompanySettings from '@/components/settings/CompanySettings';
+import NotificationSettings from '@/components/settings/NotificationSettings';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
-import { LanguageSelector } from '@/components/settings/LanguageSelector';
+import LanguageSelector from '@/components/settings/LanguageSelector';
 import { ApiIntegrationGuide } from '@/components/settings/ApiIntegrationGuide';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Settings, Bell, Globe, Tool, Code } from 'lucide-react';
+import { Settings, Bell, Globe, Wrench, Code } from 'lucide-react';
 
 const SystemSettings = () => {
   const { t } = useTranslation();
@@ -45,7 +45,7 @@ const SystemSettings = () => {
           </TabsTrigger>
           
           <TabsTrigger value="tools">
-            <Tool className="h-4 w-4 mr-2" />
+            <Wrench className="h-4 w-4 mr-2" />
             <span className="hidden md:inline">{t('settings.tools')}</span>
             <span className="inline md:hidden">{t('settings.toolsShort')}</span>
           </TabsTrigger>
