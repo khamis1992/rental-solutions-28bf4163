@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { format } from 'date-fns';
@@ -10,7 +9,6 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, CheckCircle, Filter, Search, X } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
-import ReportDownloadOptions from './ReportDownloadOptions';
 
 export default function TrafficFinesReport() {
   const { trafficFines, isLoading, error } = useTrafficFines();
@@ -76,7 +74,7 @@ export default function TrafficFinesReport() {
     }
   };
   
-  // Function to get report data for export
+  // Function to get report data for export - keeping this for potential future use
   const getReportData = () => {
     return filteredFines.map(fine => ({
       violationNumber: fine.violationNumber,
@@ -141,16 +139,6 @@ export default function TrafficFinesReport() {
             </select>
           </div>
         </div>
-        
-        <ReportDownloadOptions 
-          reportType="traffic-fines"
-          getReportData={getReportData}
-          reportTitle="Traffic Fines Report"
-          dateRange={{ 
-            from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 
-            to: new Date() 
-          }}
-        />
       </div>
 
       {/* Summary statistics */}
