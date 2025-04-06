@@ -20,6 +20,8 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const imageCache = new Map<string, string>();
+
   const compressImage = async (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       const img = new Image();
@@ -83,10 +85,18 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       }
 
       try {
+        const cacheKey = await generateFileHash(file);
+        if (imageCache.has(cacheKey)) {
+          setPreviewUrl(imageCache.get(cacheKey));
+          setIsLoading(false);
+          return;
+        }
+
         const optimizedImage = await compressImage(file);
         // Create preview URL from optimized image
         const url = URL.createObjectURL(optimizedImage);
         setPreviewUrl(url);
+        imageCache.set(cacheKey, url); // Add to cache
 
         // Pass the optimized file back to parent component
         onImageSelected(new File([optimizedImage], file.name, { type: 'image/jpeg' }));
@@ -103,6 +113,14 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       setIsLoading(false);
     }
   };
+
+  async function generateFileHash(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    return Array.from(new Uint8Array(hashBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+  }
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

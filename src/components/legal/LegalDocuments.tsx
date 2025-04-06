@@ -87,8 +87,11 @@ const LegalDocuments = () => {
   const rowVirtualizer = useVirtualizer({
     count: filteredDocuments.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 64, // Adjust as needed based on row height
-    overscan: 5,
+    estimateSize: () => 64,
+    overscan: 3,
+    initialRect: { width: 0, height: 800 },
+    lanes: 1,
+    enableSmoothScroll: true,
   });
 
 

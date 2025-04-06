@@ -49,10 +49,17 @@ export const getDirectionalMargin = (
  * @param classes - Space-separated string of classes
  * @returns Properly flipped classes for RTL
  */
+const classCache = new Map<string, string>();
+
 export const getDirectionalClasses = (classes: string): string => {
   const { isRTL } = useTranslation();
   
-  if (!isRTL) return classes; // No changes needed for LTR
+  if (!isRTL) return classes;
+  
+  const cacheKey = `${classes}-${isRTL}`;
+  if (classCache.has(cacheKey)) {
+    return classCache.get(cacheKey)!;
+  } // No changes needed for LTR
   
   return classes.split(' ').map(cls => {
     // Match padding and margin patterns

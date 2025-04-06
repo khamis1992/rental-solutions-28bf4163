@@ -33,6 +33,28 @@ export class PerformanceMonitor {
       performance.mark(name + '_end');
       performance.measure(name, name + '_start', name + '_end');
       
+      // Track layout shifts
+      if ('web-vital' in performance) {
+        const observer = new PerformanceObserver((list) => {
+          list.getEntries().forEach((entry) => {
+            if (entry.value > 0.1) {
+              console.warn(`Layout shift detected during ${name}: ${entry.value}`);
+            }
+          });
+        });
+        observer.observe({ entryTypes: ['layout-shift'] });
+      }
+      
+      // Monitor long tasks
+      const longTaskObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+          if (entry.duration > 50) {
+            console.warn(`Long task detected during ${name}: ${entry.duration}ms`);
+          }
+        });
+      });
+      longTaskObserver.observe({ entryTypes: ['longtask'] });
+      
       const measure = performance.getEntriesByName(name).pop();
       if (measure) {
         // Track metrics
