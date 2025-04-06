@@ -71,14 +71,6 @@ export function useFinancials() {
     []
   );
 
-  const [filters, setFilters] = useState({
-    transactionType: '',
-    category: '',
-    dateFrom: '',
-    dateTo: '',
-    searchQuery: ''
-  });
-
   const [expenseFilters, setExpenseFilters] = useState({
     category: '',
     dateFrom: '',
