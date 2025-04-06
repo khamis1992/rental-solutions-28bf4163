@@ -1,138 +1,198 @@
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { Payment } from '@/types/payment'; // Updated to use the consistent Payment type
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Loader2 } from 'lucide-react';
+import { cn, formatCurrency } from '@/lib/utils';
+import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
+import { useDateFormatter } from '@/lib/date-utils';
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertTriangle } from 'lucide-react';
-import { usePayments } from '@/hooks/use-payments';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
-import { PaymentListTable } from './PaymentListTable';
-import { EmptyPaymentState } from './EmptyPaymentState';
-import { DeletePaymentDialog } from './DeletePaymentDialog';
-import { MissingPaymentsAlert } from './MissingPaymentsAlert';
-import { useMissingPayments } from '@/hooks/use-missing-payments';
-
-interface PaymentListProps {
-  agreementId: string;
-  onPaymentDeleted: () => void;
+interface PaymentBadgeProps {
+  status: string;
 }
 
-export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
+const PaymentBadge: React.FC<PaymentBadgeProps> = ({ status }) => {
+  const { t } = useTranslation();
+
+  const getPaymentStatus = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return { label: t('payments.status.paid'), className: 'bg-green-100 text-green-800' };
+      case 'pending':
+        return { label: t('payments.status.pending'), className: 'bg-amber-100 text-amber-800' };
+      case 'overdue':
+        return { label: t('payments.status.overdue'), className: 'bg-red-100 text-red-800' };
+      case 'partial':
+        return { label: t('payments.status.partial'), className: 'bg-blue-100 text-blue-800' };
+      default:
+        return { label: t('common.unknown'), className: 'bg-gray-100 text-gray-800' };
+    }
+  };
+
+  const { label, className } = getPaymentStatus(status);
+
+  return (
+    <Badge className={className}>
+      {label}
+    </Badge>
+  );
+};
+
+const formatPaymentDate = (date: string | Date): string => {
+  try {
+    if (typeof date === 'string') {
+      return format(new Date(date), 'MMM dd, yyyy');
+    } else {
+      return format(date, 'MMM dd, yyyy');
+    }
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return 'Invalid Date';
+  }
+};
+
+interface PaymentListProps {
+  payments: Payment[];
+  onDeletePayment?: (paymentId: string) => Promise<void>;
+  isLoading?: boolean;
+  agreementId?: string;
+}
+
+export const PaymentList = ({ 
+  payments, 
+  onDeletePayment,
+  isLoading = false,
+  agreementId
+}: PaymentListProps) => {
+  const { t } = useTranslation();
+  const { isRTL } = useContextTranslation();
+  const { formatDate } = useDateFormatter();
+  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const initialFetchDone = useRef(false);
-  const isDeleting = useRef(false);
-  const isMounted = useRef(true);
-  
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
-  const { missingPayments } = useMissingPayments(agreementId, isMounted);
-  
-  // Debounced refresh to prevent multiple rapid refreshes
-  const debouncedRefresh = useDebouncedCallback(() => {
-    console.log("Running debounced payment refresh in PaymentList");
-    if (isMounted.current) {
-      fetchPayments(true);
-      onPaymentDeleted();
-    }
-  }, 1000);
-  
-  // Ensure we mark component as mounted/unmounted
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (agreementId && !initialFetchDone.current) {
-      console.log("Initial payment fetch in PaymentList for:", agreementId);
-      fetchPayments(true);
-      initialFetchDone.current = true;
+  const handleDelete = async () => {
+    if (selectedPaymentId && onDeletePayment) {
+      setIsDeleting(true);
+      try {
+        await onDeletePayment(selectedPaymentId);
+        setIsDeleteDialogOpen(false);
+      } catch (error) {
+        console.error("Error deleting payment:", error);
+        // Handle error appropriately
+      } finally {
+        setIsDeleting(false);
+        setSelectedPaymentId(null);
+      }
     }
-  }, [agreementId, fetchPayments]);
+  };
 
-  const confirmDeletePayment = (id: string) => {
-    setPaymentToDelete(id);
+  const confirmDelete = (paymentId: string) => {
+    setSelectedPaymentId(paymentId);
     setIsDeleteDialogOpen(true);
   };
 
-  const handleDeletePayment = async () => {
-    if (!paymentToDelete || isDeleting.current || !isMounted.current) return;
-
-    try {
-      isDeleting.current = true;
-      
-      const { error } = await supabase
-        .from('unified_payments')
-        .delete()
-        .eq('id', paymentToDelete);
-
-      if (error) {
-        console.error("Error deleting payment:", error);
-        toast.error("Failed to delete payment");
-        return;
-      }
-
-      toast.success("Payment deleted successfully");
-      setIsDeleteDialogOpen(false);
-      
-      // Use debounced refresh to prevent multiple refreshes
-      debouncedRefresh();
-      
-    } catch (error) {
-      console.error("Error in payment deletion:", error);
-      toast.error("An unexpected error occurred");
-    } finally {
-      isDeleting.current = false;
+  const getPaymentStatus = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return { label: t('payments.status.paid'), className: 'bg-green-100 text-green-800' };
+      case 'pending':
+        return { label: t('payments.status.pending'), className: 'bg-amber-100 text-amber-800' };
+      case 'overdue':
+        return { label: t('payments.status.overdue'), className: 'bg-red-100 text-red-800' };
+      case 'partial':
+        return { label: t('payments.status.partial'), className: 'bg-blue-100 text-blue-800' };
+      default:
+        return { label: t('common.unknown'), className: 'bg-gray-100 text-gray-800' };
     }
   };
 
+  // Convert the payments to ensure they have all required fields
+  const normalizedPayments: Payment[] = payments.map(payment => ({
+    ...payment,
+    status: payment.status || 'pending', // Ensure status is always set
+    payment_date: payment.payment_date || new Date()
+  }));
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>View and manage payment records</CardDescription>
-        </div>
-        {missingPayments.length > 0 && (
-          <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            <span className="text-sm font-medium">
-              Missing {missingPayments.length} payment{missingPayments.length > 1 ? 's' : ''}
-            </span>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        {isLoadingPayments ? (
-          <div className="space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ) : (
-          <>
-            <MissingPaymentsAlert missingPayments={missingPayments} />
-
-            {payments.length > 0 ? (
-              <PaymentListTable 
-                payments={payments} 
-                onDelete={confirmDeletePayment} 
-              />
+    <div className={isRTL ? 'rtl-direction' : ''}>
+      <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="px-6 py-3">{t('payments.date')}</TableHead>
+              <TableHead className="px-6 py-3">{t('payments.amount')}</TableHead>
+              <TableHead className="px-6 py-3">{t('payments.method')}</TableHead>
+              <TableHead className="px-6 py-3">{t('payments.reference')}</TableHead>
+              <TableHead className="px-6 py-3">{t('common.status')}</TableHead>
+              <TableHead className="px-6 py-3 sr-only">{t('common.edit')}</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                </TableCell>
+              </TableRow>
+            ) : normalizedPayments.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-4">
+                  {t('payments.noRecords')}
+                </TableCell>
+              </TableRow>
             ) : (
-              <EmptyPaymentState />
+              normalizedPayments.map((payment) => (
+                <TableRow key={payment.id} className="border-b dark:border-gray-700">
+                  <TableCell className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                    {formatDate(payment.payment_date, 'MMM dd, yyyy')}
+                  </TableCell>
+                  <TableCell className="px-6 py-4">{formatCurrency(payment.amount)}</TableCell>
+                  <TableCell className="px-6 py-4">{payment.payment_method || 'N/A'}</TableCell>
+                  <TableCell className="px-6 py-4">{payment.reference || 'N/A'}</TableCell>
+                  <TableCell className="px-6 py-4">
+                    <PaymentBadge status={payment.status} />
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => confirmDelete(payment.id)}
+                      disabled={isLoading}
+                    >
+                      {t('common.delete')}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-          </>
-        )}
-      </CardContent>
-
-      <DeletePaymentDialog 
-        isOpen={isDeleteDialogOpen} 
-        onOpenChange={setIsDeleteDialogOpen} 
-        onConfirm={handleDeletePayment} 
-      />
-    </Card>
+          </TableBody>
+        </Table>
+      </div>
+      
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('payments.deletePayment')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('payments.deleteConfirmation')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className={cn(isDeleting && "cursor-not-allowed")}>
+              {isDeleting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
-}
+};

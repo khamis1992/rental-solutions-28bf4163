@@ -298,10 +298,15 @@
     "expires": "ينتهي",
     "expired": "منتهي الصلاحية",
     "fuelLevel": "مستوى الوقود",
-    "mileage": "ال��سافة المقطوعة",
     "category": "الفئة",
     "vehicleDetails": "تفاصيل المركبة",
-    "noInsurance": "لا يوجد تأمين"
+    "noInsurance": "لا يوجد تأمين",
+    "transmission": "ناقل الحركة",
+    "fuelType": "نوع الوقود",
+    "lastServiced": "آخر صيانة",
+    "nextServiceDue": "موعد الصيانة التالية",
+    "features": "الميزات",
+    "notes": "ملاحظات"
   },
   "reports": {
     "title": "التقارير",
@@ -329,7 +334,7 @@
     "editCustomer": "تعديل العميل",
     "deleteCustomer": "حذف العميل",
     "viewDetails": "عرض معلومات مفصلة عن العميل",
-    "details": "تفاصيل العميل",
+    "details": "تفاصيل العم��ل",
     "searchPlaceholder": "البحث عن العملاء...",
     "name": "اسم العميل",
     "license": "رخصة القيادة",
@@ -393,7 +398,7 @@
     "noAgreements": "لم يتم العثور على اتفاقيات",
     "adjustFilters": "حاول تعديل المرشحات الخاصة بك",
     "addFirstAgreement": "أضف أول اتفاقية باستخدام الزر أعلاه",
-    "createSuccess": "تم إنشاء الاتفاقية بنجاح",
+    "createSuccess": "تم ��نشاء الاتفاقية بنجاح",
     "createError": "فشل في إنشاء الاتفاقية",
     "notFound": "الاتفاقية غير موجودة",
     "notFoundDesc": "الاتفاقية التي تبحث عنها غير موجودة أو تمت إزالتها",
@@ -536,7 +541,62 @@
     "schedule": "جدولة الصيانة",
     "history": "سجل الصيانة",
     "noRecords": "لا توجد سجلات صيانة",
-    "noRecordsDesc": "لم يتم العثور على سجلات صيانة. أضف أول سجل صيانة للبدء."
+    "noRecordsDesc": "لم يتم العثور على سجلات صيانة. أضف أول سجل صيانة للبدء.",
+    "filters": {
+      "status": "تصفية حسب الحالة",
+      "vehicle": "تصفية حسب المركبة",
+      "type": "تصفية حسب النوع",
+      "date": "تصفية حسب التاريخ"
+    },
+    "status": {
+      "allStatuses": "كل الحالات",
+      "scheduled": "مجدول",
+      "inProgress": "قيد ال��نفيذ",
+      "completed": "مكتمل",
+      "cancelled": "ملغي"
+    },
+    "form": {
+      "vehicleRequired": "المركبة مطلوبة",
+      "maintenanceType": "نوع الصيانة",
+      "status": "الحالة",
+      "scheduledDate": "تاريخ الجدولة",
+      "completionDate": "تاريخ الإكمال",
+      "description": "الوصف",
+      "cost": "التكلفة ($)",
+      "serviceProvider": "مزود الخدمة",
+      "invoiceNumber": "رقم الفاتورة",
+      "odometerReading": "قراءة عداد المسافات",
+      "notes": "ملاحظات"
+    },
+    "types": {
+      "oilChange": "تغيير الزيت",
+      "tireReplacement": "استبدال الإطارات",
+      "brakeService": "خدمة المكابح",
+      "regularInspection": "فحص دوري",
+      "engineRepair": "إصلاح المحرك",
+      "transmissionService": "خدمة ناقل الحركة",
+      "electricalRepair": "إصلاح كهربائي",
+      "bodyRepair": "إصلاح الهيكل",
+      "airConditioning": "تكييف الهواء",
+      "other": "أخرى"
+    },
+    "analytics": {
+      "title": "تحليل الصيانة",
+      "statusDistribution": "توزيع الحالة",
+      "maintenanceTypes": "أنواع الصيانة",
+      "costAnalysis": "تحليل التكلفة",
+      "totalRecords": "إجمالي السجلات",
+      "completed": "مكتملة",
+      "inProgress": "قيد التنفيذ",
+      "scheduled": "مجدولة"
+    },
+    "type": "نوع الصيانة",
+    "date": "تاريخ الصيانة",
+    "status": "حالة الصيانة",
+    "cost": "التكلفة",
+    "provider": "مزود الخدمة",
+    "actions": "الإجراءات",
+    "view": "عرض"
   },
   "payments": {
     "deletePayment": "حذف الدفعة",

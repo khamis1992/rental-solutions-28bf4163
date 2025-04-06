@@ -17,3 +17,19 @@ export interface Customer {
   created_at?: string;
   updated_at?: string;
 }
+
+// This type is used for customer data coming from the API that may have incomplete fields
+export interface PartialCustomer {
+  id?: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  phone_number?: string;
+  driver_license?: string;
+  nationality?: string;
+  address?: string;
+  notes?: string;
+  status?: CustomerStatus;
+  created_at?: string;
+  updated_at?: string;
+}

@@ -30,7 +30,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
+  const { isRTL, language } = useTranslation();
   const { formatDate: formatDateWithLocale } = useDateFormatter();
   
   const {
@@ -245,6 +245,16 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
     }
   }, [agreements]);
 
+  const formatDateDisplay = (dateString: string | undefined) => {
+    if (!dateString) return t('common.notProvided');
+    try {
+      return formatDateWithLocale(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Date formatting error:', error);
+      return t('common.notProvided');
+    }
+  };
+
   return <Card className="w-full overflow-hidden card-transition">
       <div className="relative h-56 md:h-72 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent z-10" />
@@ -257,7 +267,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">{vehicle.make} {vehicle.model}</h1>
             <Badge className={cn(statusColors[vehicle.status])}>
-              {vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
+              {t(`vehicles.status.${vehicle.status}`) || vehicle.status.charAt(0).toUpperCase() + vehicle.status.slice(1)}
             </Badge>
           </div>
           <div className="flex items-center mt-2">
@@ -356,14 +366,14 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                 <Calendar className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
                 <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.lastServiced')}:</span>
                 <span>
-                  {vehicle.lastServiced ? format(new Date(vehicle.lastServiced), 'MMM d, yyyy') : t('common.notProvided')}
+                  {vehicle.lastServiced ? formatDateDisplay(vehicle.lastServiced) : t('common.notProvided')}
                 </span>
               </li>
               <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <Calendar className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
                 <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.nextServiceDue')}:</span>
                 <span>
-                  {vehicle.nextServiceDue ? format(new Date(vehicle.nextServiceDue), 'MMM d, yyyy') : t('common.notProvided')}
+                  {vehicle.nextServiceDue ? formatDateDisplay(vehicle.nextServiceDue) : t('common.notProvided')}
                 </span>
               </li>
             </ul>
@@ -380,11 +390,11 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           </div>}
         
         {vehicle.notes && <div className="mt-6">
-            <CardTitle className="mb-4 text-lg">{t('vehicles.notes')}</CardTitle>
+            <CardTitle className="mb-4 text-lg">{t('common.notes')}</CardTitle>
             <div className="bg-muted/50 p-3 rounded-md text-sm">
               <div className="flex items-start">
-                <Info className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
-                <p>{vehicle.notes}</p>
+                <Info className={`h-4 w-4 mt-0.5 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <p className={isRTL ? 'text-right w-full' : ''}>{vehicle.notes}</p>
               </div>
             </div>
           </div>}
@@ -400,7 +410,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           </div>
           
           {isLoadingAgreements ? <div className="text-center py-8 text-muted-foreground">
-              Loading agreements...
+              {t('common.loading')}
             </div> : agreements && agreements.length > 0 ? <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -411,7 +421,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                     <TableHead>{t('agreements.endDate')}</TableHead>
                     <TableHead>{t('agreements.status')}</TableHead>
                     <TableHead>{t('agreements.amount')}</TableHead>
-                    <TableHead className="text-right">{t('agreements.actions')}</TableHead>
+                    <TableHead className={isRTL ? 'text-left' : 'text-right'}>{t('agreements.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -426,20 +436,20 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                           {adaptedAgreement.customers?.full_name || t('common.notProvided')}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.start_date ? format(new Date(adaptedAgreement.start_date), 'MMM d, yyyy') : t('common.notProvided')}
+                          {adaptedAgreement.start_date ? formatDateWithLocale(new Date(adaptedAgreement.start_date), 'MMM d, yyyy') : t('common.notProvided')}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.end_date ? format(new Date(adaptedAgreement.end_date), 'MMM d, yyyy') : t('common.notProvided')}
+                          {adaptedAgreement.end_date ? formatDateWithLocale(new Date(adaptedAgreement.end_date), 'MMM d, yyyy') : t('common.notProvided')}
                         </TableCell>
                         <TableCell>
                           <Badge className={getAgreementStatusColor(adaptedAgreement.status)}>
-                            {formatAgreementStatus(adaptedAgreement.status)}
+                            {t(`agreements.status.${adaptedAgreement.status}`) || formatAgreementStatus(adaptedAgreement.status)}
                           </Badge>
                         </TableCell>
                         <TableCell>{formatCurrency(adaptedAgreement.total_amount)}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className={isRTL ? 'text-left' : 'text-right'}>
                           <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(adaptedAgreement.id)}>
-                            {t('agreements.view')}
+                            {t('common.view')}
                           </CustomButton>
                         </TableCell>
                       </TableRow>
@@ -455,11 +465,15 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         <div className="mt-6">
           <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <CardTitle className="text-lg">{t('maintenance.history')}</CardTitle>
-            
+            <CustomButton
+              size="sm"
+              onClick={handleAddMaintenance}>
+              {t('maintenance.add')}
+            </CustomButton>
           </div>
           
           {isLoadingMaintenance ? <div className="text-center py-8 text-muted-foreground">
-              Loading maintenance records...
+              {t('common.loading')}
             </div> : maintenanceRecords && maintenanceRecords.length > 0 ? <div className="rounded-md border">
               <Table>
                 <TableHeader>
@@ -469,27 +483,27 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                     <TableHead>{t('maintenance.status')}</TableHead>
                     <TableHead>{t('maintenance.cost')}</TableHead>
                     <TableHead>{t('maintenance.provider')}</TableHead>
-                    <TableHead className="text-right">{t('maintenance.actions')}</TableHead>
+                    <TableHead className={isRTL ? 'text-left' : 'text-right'}>{t('maintenance.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {maintenanceRecords.map(record => <TableRow key={record.id}>
                       <TableCell className="font-medium">
-                        {formatMaintenanceType(record.maintenance_type)}
+                        {t(`maintenance.types.${record.maintenance_type.toLowerCase()}`) || formatMaintenanceType(record.maintenance_type)}
                       </TableCell>
                       <TableCell>
-                        {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : t('common.notProvided')}
+                        {record.scheduled_date ? formatDateWithLocale(new Date(record.scheduled_date), 'MMM d, yyyy') : t('common.notProvided')}
                       </TableCell>
                       <TableCell>
                         <Badge className={getMaintenanceStatusColor(record.status)}>
-                          {record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                          {t(`maintenance.status.${record.status.toLowerCase()}`) || record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
                         </Badge>
                       </TableCell>
                       <TableCell>{formatCurrency(record.cost)}</TableCell>
                       <TableCell>{record.service_provider || t('common.notProvided')}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className={isRTL ? 'text-left' : 'text-right'}>
                         <CustomButton size="sm" variant="ghost" onClick={() => handleViewMaintenance(record.id)}>
-                          {t('maintenance.view')}
+                          {t('common.view')}
                         </CustomButton>
                       </TableCell>
                     </TableRow>)}

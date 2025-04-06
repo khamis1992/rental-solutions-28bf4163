@@ -6,7 +6,7 @@ import { CustomerDetail } from '@/components/customers/CustomerDetail';
 import { useParams } from 'react-router-dom';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 import { useCustomers } from '@/hooks/use-customers';
-import { Customer } from '@/types/customer';
+import { Customer, PartialCustomer } from '@/types/customer';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const CustomerDetailPage = () => {
@@ -21,17 +21,35 @@ const CustomerDetailPage = () => {
     const fetchCustomerData = async () => {
       if (id) {
         setLoading(true);
-        const data = await getCustomer(id);
-        setCustomer(data);
-        setLoading(false);
+        try {
+          const data = await getCustomer(id);
+          if (data) {
+            // Ensure we have all required fields before setting as Customer
+            setCustomer(data as Customer);
+          } else {
+            setCustomer(null);
+          }
+        } catch (error) {
+          console.error("Error fetching customer:", error);
+          setCustomer(null);
+        } finally {
+          setLoading(false);
+        }
       }
     };
     
     fetchCustomerData();
   }, [id, getCustomer]);
 
-  const handleDelete = async (customerId: string) => {
-    return await deleteCustomer.mutateAsync(customerId);
+  const handleDelete = async (customerId: string): Promise<void> => {
+    try {
+      await deleteCustomer.mutateAsync(customerId);
+      // Return void to match the expected type
+      return;
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      throw error; // Rethrow to let the caller handle it
+    }
   };
   
   return (
