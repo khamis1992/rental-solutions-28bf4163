@@ -13,13 +13,14 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDebouncedCallback } from '@/hooks/use-debounced-callback';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
 const AgreementDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const { t } = useI18nTranslation();
-  const { language } = useTranslation();
+  const { language, isRTL } = useTranslation();
   const [pageTitle, setPageTitle] = useState('');
   const [pageDescription, setPageDescription] = useState('');
   const isRefreshing = useRef(false);
@@ -128,7 +129,7 @@ const AgreementDetailPage = () => {
         backLink="/agreements"
       >
         <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
           <AlertTitle>{t('agreements.notFound')}</AlertTitle>
           <AlertDescription>{t('agreements.notFoundDesc')}</AlertDescription>
         </Alert>

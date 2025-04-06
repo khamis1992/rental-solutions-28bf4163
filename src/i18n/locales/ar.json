@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -97,7 +96,7 @@
     "recentActivity": "النشاط الأخير",
     "fleetUtilization": "استخدام الأسطول",
     "revenueOverview": "نظرة عامة على الإيرادات",
-    "vsLastMonth": "مقارنة بالشهر الماضي",
+    "vsLastMonth": "مقارنة ب��لشهر الماضي",
     "thisMonth": "هذا الشهر",
     "availabilityRate": "معدل التوفر",
     "activityTypes": {
@@ -173,7 +172,7 @@
     "receiveSystemNotifications": "تلقي إشعارات داخل التطبيق لأحداث النظام",
     "receiveReportNotifications": "تلقي إشعارات لإنشاء التقارير",
     "securitySettings": "إعدادات الأمان",
-    "testTranslation": "اختبار الترجمة"
+    "testTranslation": "اختبار التر��مة"
   },
   "legal": {
     "dashboard": "لوحة إدارة الشؤون القانونية",
@@ -285,7 +284,19 @@
     "addVehicle": "إضافة مركبة",
     "updateVehicle": "تحديث المركبة",
     "noIdProvided": "لم يتم توفير معرف المركبة في الرابط",
-    "missingId": "معرف المركبة مفقود"
+    "missingId": "معرف المركبة مفقود",
+    "multipleActiveAgreements": "اتفاقيات متعددة نشطة",
+    "multipleActiveAgreementsDesc": "هذه المركبة مخصصة لعدة اتفاقيات نشطة. قد تكون هذه حالة مؤقتة خلال انتقال الاتفاقية. سيضمن النظام أن اتفاقية واحدة فقط تظل نشطة.",
+    "additionalInformation": "معلومات إضافية",
+    "insurance": "التأمين",
+    "valid": "ساري",
+    "expires": "ينتهي",
+    "expired": "منتهي الصلاحية",
+    "fuelLevel": "مستوى الوقود",
+    "mileage": "ال��سافة المقطوعة",
+    "category": "الفئة",
+    "vehicleDetails": "تفاصيل المركبة",
+    "noInsurance": "لا يوجد تأمين"
   },
   "reports": {
     "title": "التقارير",
@@ -501,7 +512,11 @@
     "pdfError": "فشل في إنشاء PDF",
     "documentGenerationConfig": "وظيفة إنشاء المستند قيد التكوين",
     "legalCases": "القضايا القانونية",
-    "daysLate": "أيام متأخرة"
+    "daysLate": "أيام متأخرة",
+    "rentalAgreements": "اتفاقيات الإيجار",
+    "addAgreement": "إضافة اتفاقية",
+    "viewAgreement": "عرض الاتفاقية",
+    "pickDate": "اختر تاريخاً"
   },
   "maintenance": {
     "title": "الصيانة",

@@ -17,6 +17,9 @@ import { getVehicleImageByPrefix, getModelSpecificImage } from '@/lib/vehicles/v
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useDateFormatter } from '@/lib/date-utils';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -26,6 +29,10 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   vehicle
 }) => {
   const navigate = useNavigate();
+  const { t } = useI18nTranslation();
+  const { isRTL } = useTranslation();
+  const { formatDate: formatDateWithLocale } = useDateFormatter();
+  
   const {
     useList: useMaintenanceList
   } = useMaintenance();
@@ -149,8 +156,8 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
   };
 
   const getInsuranceStatusText = () => {
-    if (!hasInsurance) return 'No Insurance';
-    return isInsuranceValid ? 'Valid' : 'Expired';
+    if (!hasInsurance) return t('vehicles.noInsurance');
+    return isInsuranceValid ? t('vehicles.valid') : t('vehicles.expired');
   };
 
   const handleViewMaintenance = (id: string) => {
@@ -265,60 +272,59 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
       <CardContent className="p-6">
         {multipleActiveAgreements && (
           <Alert variant="warning" className="mb-6 border-amber-500 bg-amber-50">
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-            <AlertTitle className="text-amber-700">Multiple Active Agreements</AlertTitle>
-            <AlertDescription className="text-amber-700">
-              This vehicle is assigned to multiple active agreements. This could be a temporary state during agreement transitions.
-              The system will ensure only one agreement remains active.
+            <AlertCircle className={`h-4 w-4 text-amber-500 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            <AlertTitle className="text-amber-700">{t('vehicles.multipleActiveAgreements')}</AlertTitle>
+            <AlertDescription className={`text-amber-700 ${isRTL ? 'text-right' : ''}`}>
+              {t('vehicles.multipleActiveAgreementsDesc')}
             </AlertDescription>
           </Alert>
         )}
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <CardTitle className="mb-4 text-lg">Vehicle Details</CardTitle>
+          <div className={isRTL ? 'text-right' : ''}>
+            <CardTitle className="mb-4 text-lg">{t('vehicles.vehicleDetails')}</CardTitle>
             <ul className="space-y-3">
-              <li className="flex items-center text-sm">
-                <Key className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">VIN:</span>
-                <span>{vehicle.vin || 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Key className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('common.vin')}:</span>
+                <span>{vehicle.vin || t('common.notProvided')}</span>
               </li>
-              <li className="flex items-center text-sm">
-                <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Location:</span>
-                <span>{vehicle.location || 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <MapPin className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('common.location')}:</span>
+                <span>{vehicle.location || t('common.notProvided')}</span>
               </li>
-              <li className="flex items-center text-sm">
-                <Fuel className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Fuel Level:</span>
-                <span>{vehicle.fuelLevel !== undefined ? `${vehicle.fuelLevel}%` : 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Fuel className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.fuelLevel')}:</span>
+                <span>{vehicle.fuelLevel !== undefined ? `${vehicle.fuelLevel}%` : t('common.notProvided')}</span>
               </li>
-              <li className="flex items-center text-sm">
-                <Activity className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Mileage:</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Activity className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.mileage')}:</span>
                 <span>
-                  {vehicle.mileage !== undefined && vehicle.mileage !== null ? `${vehicle.mileage.toLocaleString()} km` : 'N/A'}
+                  {vehicle.mileage !== undefined && vehicle.mileage !== null ? `${vehicle.mileage.toLocaleString()} km` : t('common.notProvided')}
                 </span>
               </li>
-              <li className="flex items-center text-sm">
-                <Palette className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Color:</span>
-                <span>{vehicle.color || 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Palette className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('common.color')}:</span>
+                <span>{vehicle.color || t('common.notProvided')}</span>
               </li>
-              <li className="flex items-center text-sm">
-                <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Category:</span>
-                <span className="capitalize">{vehicle.category || 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Car className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.category')}:</span>
+                <span className="capitalize">{vehicle.category || t('common.notProvided')}</span>
               </li>
             </ul>
           </div>
           
-          <div>
-            <CardTitle className="mb-4 text-lg">Additional Information</CardTitle>
+          <div className={isRTL ? 'text-right' : ''}>
+            <CardTitle className="mb-4 text-lg">{t('vehicles.additionalInformation')}</CardTitle>
             <ul className="space-y-3">
-              <li className="flex items-center text-sm">
-                <Shield className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Insurance:</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Shield className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.insurance')}:</span>
                 <div>
                   <Badge className={getInsuranceBadgeStyle()}>
                     {getInsuranceStatusText()}
@@ -326,38 +332,38 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                   {hasInsurance && <div className="mt-1">
                       <div>{vehicle.insurance_company}</div>
                       {insuranceExpiry && <div className="text-xs text-muted-foreground">
-                          {isInsuranceValid ? 'Expires' : 'Expired'}: {format(insuranceExpiry, 'MMM d, yyyy')}
+                          {isInsuranceValid ? t('vehicles.expires') : t('vehicles.expired')}: {formatDateWithLocale(insuranceExpiry, 'MMM d, yyyy')}
                         </div>}
                     </div>}
                 </div>
               </li>
-              <li className="flex items-center text-sm">
-                <Settings className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Transmission:</span>
-                <span className="capitalize">{vehicle.transmission || 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Settings className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.transmission')}:</span>
+                <span className="capitalize">{vehicle.transmission || t('common.notProvided')}</span>
               </li>
-              <li className="flex items-center text-sm">
-                <Fuel className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Fuel Type:</span>
-                <span className="capitalize">{vehicle.fuelType || 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Fuel className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.fuelType')}:</span>
+                <span className="capitalize">{vehicle.fuelType || t('common.notProvided')}</span>
               </li>
-              <li className="flex items-center text-sm">
-                <CreditCard className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Daily Rate:</span>
-                <span>{vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : 'N/A'}</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <CreditCard className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.dailyRate')}:</span>
+                <span>{vehicle.dailyRate ? formatCurrency(vehicle.dailyRate) : t('common.notProvided')}</span>
               </li>
-              <li className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Last Serviced:</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Calendar className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.lastServiced')}:</span>
                 <span>
-                  {vehicle.lastServiced ? format(new Date(vehicle.lastServiced), 'MMM d, yyyy') : 'N/A'}
+                  {vehicle.lastServiced ? format(new Date(vehicle.lastServiced), 'MMM d, yyyy') : t('common.notProvided')}
                 </span>
               </li>
-              <li className="flex items-center text-sm">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span className="text-muted-foreground w-28">Next Service:</span>
+              <li className={`flex items-center text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Calendar className={`h-4 w-4 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className={`text-muted-foreground w-28 ${isRTL ? 'text-right' : ''}`}>{t('vehicles.nextServiceDue')}:</span>
                 <span>
-                  {vehicle.nextServiceDue ? format(new Date(vehicle.nextServiceDue), 'MMM d, yyyy') : 'N/A'}
+                  {vehicle.nextServiceDue ? format(new Date(vehicle.nextServiceDue), 'MMM d, yyyy') : t('common.notProvided')}
                 </span>
               </li>
             </ul>
@@ -365,7 +371,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
         </div>
         
         {vehicle.features && vehicle.features.length > 0 && <div className="mt-6">
-            <CardTitle className="mb-4 text-lg">Features</CardTitle>
+            <CardTitle className="mb-4 text-lg">{t('vehicles.features')}</CardTitle>
             <div className="flex flex-wrap gap-2">
               {vehicle.features.map((feature, index) => <Badge key={index} variant="secondary" className="rounded-md">
                   {feature}
@@ -374,7 +380,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           </div>}
         
         {vehicle.notes && <div className="mt-6">
-            <CardTitle className="mb-4 text-lg">Notes</CardTitle>
+            <CardTitle className="mb-4 text-lg">{t('vehicles.notes')}</CardTitle>
             <div className="bg-muted/50 p-3 rounded-md text-sm">
               <div className="flex items-start">
                 <Info className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
@@ -384,12 +390,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
           </div>}
         
         <div className="mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-lg">Rental Agreements</CardTitle>
+          <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <CardTitle className="text-lg">{t('agreements.rentalAgreements')}</CardTitle>
             <CustomButton
               size="sm"
               onClick={() => handleCreateAgreement()}>
-              Add Agreement
+              {t('agreements.addAgreement')}
             </CustomButton>
           </div>
           
@@ -399,13 +405,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Agreement #</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Start Date</TableHead>
-                    <TableHead>End Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('agreements.agreementNumber')}</TableHead>
+                    <TableHead>{t('agreements.customer')}</TableHead>
+                    <TableHead>{t('agreements.startDate')}</TableHead>
+                    <TableHead>{t('agreements.endDate')}</TableHead>
+                    <TableHead>{t('agreements.status')}</TableHead>
+                    <TableHead>{t('agreements.amount')}</TableHead>
+                    <TableHead className="text-right">{t('agreements.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -417,13 +423,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                           {adaptedAgreement.agreement_number}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.customers?.full_name || 'N/A'}
+                          {adaptedAgreement.customers?.full_name || t('common.notProvided')}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.start_date ? format(new Date(adaptedAgreement.start_date), 'MMM d, yyyy') : 'N/A'}
+                          {adaptedAgreement.start_date ? format(new Date(adaptedAgreement.start_date), 'MMM d, yyyy') : t('common.notProvided')}
                         </TableCell>
                         <TableCell>
-                          {adaptedAgreement.end_date ? format(new Date(adaptedAgreement.end_date), 'MMM d, yyyy') : 'N/A'}
+                          {adaptedAgreement.end_date ? format(new Date(adaptedAgreement.end_date), 'MMM d, yyyy') : t('common.notProvided')}
                         </TableCell>
                         <TableCell>
                           <Badge className={getAgreementStatusColor(adaptedAgreement.status)}>
@@ -433,7 +439,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                         <TableCell>{formatCurrency(adaptedAgreement.total_amount)}</TableCell>
                         <TableCell className="text-right">
                           <CustomButton size="sm" variant="ghost" onClick={() => handleViewAgreement(adaptedAgreement.id)}>
-                            View
+                            {t('agreements.view')}
                           </CustomButton>
                         </TableCell>
                       </TableRow>
@@ -442,13 +448,13 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                 </TableBody>
               </Table>
             </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
-              No rental agreements found for this vehicle.
+              {t('agreements.noAgreements')}
             </div>}
         </div>
         
         <div className="mt-6">
-          <div className="flex items-center justify-between mb-4">
-            <CardTitle className="text-lg">Maintenance History</CardTitle>
+          <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <CardTitle className="text-lg">{t('maintenance.history')}</CardTitle>
             
           </div>
           
@@ -458,12 +464,12 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Provider</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t('maintenance.type')}</TableHead>
+                    <TableHead>{t('maintenance.date')}</TableHead>
+                    <TableHead>{t('maintenance.status')}</TableHead>
+                    <TableHead>{t('maintenance.cost')}</TableHead>
+                    <TableHead>{t('maintenance.provider')}</TableHead>
+                    <TableHead className="text-right">{t('maintenance.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -472,7 +478,7 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                         {formatMaintenanceType(record.maintenance_type)}
                       </TableCell>
                       <TableCell>
-                        {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'N/A'}
+                        {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : t('common.notProvided')}
                       </TableCell>
                       <TableCell>
                         <Badge className={getMaintenanceStatusColor(record.status)}>
@@ -480,17 +486,17 @@ export const VehicleDetail: React.FC<VehicleDetailProps> = ({
                         </Badge>
                       </TableCell>
                       <TableCell>{formatCurrency(record.cost)}</TableCell>
-                      <TableCell>{record.service_provider || 'N/A'}</TableCell>
+                      <TableCell>{record.service_provider || t('common.notProvided')}</TableCell>
                       <TableCell className="text-right">
                         <CustomButton size="sm" variant="ghost" onClick={() => handleViewMaintenance(record.id)}>
-                          View
+                          {t('maintenance.view')}
                         </CustomButton>
                       </TableCell>
                     </TableRow>)}
                 </TableBody>
               </Table>
             </div> : <div className="text-center py-8 border rounded-md text-muted-foreground">
-              No maintenance records found for this vehicle.
+              {t('maintenance.noRecords')}
             </div>}
         </div>
       </CardContent>

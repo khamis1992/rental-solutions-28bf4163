@@ -11,6 +11,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { formatDate } from "@/lib/date-utils";
+import { useTranslation } from "@/contexts/TranslationContext";
+import { useTranslation as useI18nTranslation } from "react-i18next";
 
 interface DatePickerProps {
   date?: Date;
@@ -19,6 +21,9 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ date, setDate, className }: DatePickerProps) {
+  const { isRTL } = useTranslation();
+  const { t } = useI18nTranslation();
+  
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -30,17 +35,18 @@ export function DatePicker({ date, setDate, className }: DatePickerProps) {
             className
           )}
         >
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          {date ? formatDate(date) : <span>Pick a date</span>}
+          <CalendarIcon className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
+          {date ? formatDate(date) : <span>{t('agreements.pickDate')}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0">
+      <PopoverContent className="w-auto p-0" align={isRTL ? "end" : "start"}>
         <Calendar
           mode="single"
           selected={date}
           onSelect={setDate}
           initialFocus
           className="pointer-events-auto"
+          dir={isRTL ? "rtl" : "ltr"}
         />
       </PopoverContent>
     </Popover>

@@ -18,6 +18,8 @@ import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTranslation } from '@/contexts/TranslationContext';
+import { getDirectionalClasses, getDirectionalFlexClass } from '@/utils/rtl-utils';
+import { useDateFormatter } from '@/lib/date-utils';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -50,6 +52,7 @@ export function AgreementDetail({
   const refreshRequested = useRef(false);
   const { t } = useI18nTranslation();
   const { isRTL } = useTranslation();
+  const { formatAgreementDate } = useDateFormatter();
 
   const {
     handleSpecialAgreementPayments
@@ -188,30 +191,30 @@ export function AgreementDetail({
   const formattedStatus = (status: string) => {
     switch (status.toLowerCase()) {
       case 'active':
-        return <Badge className="bg-green-500 text-white ml-2">{t('agreements.status.active').toUpperCase()}</Badge>;
+        return <Badge className={`bg-green-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.active').toUpperCase()}</Badge>;
       case 'pending':
-        return <Badge className="bg-yellow-500 text-white ml-2">{t('agreements.status.pending').toUpperCase()}</Badge>;
+        return <Badge className={`bg-yellow-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.pending').toUpperCase()}</Badge>;
       case 'closed':
-        return <Badge className="bg-blue-500 text-white ml-2">{t('agreements.status.closed').toUpperCase()}</Badge>;
+        return <Badge className={`bg-blue-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.closed').toUpperCase()}</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-500 text-white ml-2">{t('agreements.status.cancelled').toUpperCase()}</Badge>;
+        return <Badge className={`bg-red-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.cancelled').toUpperCase()}</Badge>;
       case 'expired':
-        return <Badge className="bg-gray-500 text-white ml-2">{t('agreements.status.expired').toUpperCase()}</Badge>;
+        return <Badge className={`bg-gray-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.expired').toUpperCase()}</Badge>;
       case 'draft':
-        return <Badge className="bg-purple-500 text-white ml-2">{t('agreements.status.draft').toUpperCase()}</Badge>;
+        return <Badge className={`bg-purple-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{t('agreements.status.draft').toUpperCase()}</Badge>;
       default:
-        return <Badge className="bg-gray-500 text-white ml-2">{status.toUpperCase()}</Badge>;
+        return <Badge className={`bg-gray-500 text-white ${isRTL ? 'mr-2' : 'ml-2'}`}>{status.toUpperCase()}</Badge>;
     }
   };
 
   return <div className="space-y-8">
       <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
+        <h2 className={`text-3xl font-bold tracking-tight print:text-2xl ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('agreements.agreement')} {agreement.agreement_number}
           {formattedStatus(agreement.status)}
         </h2>
-        <p className="text-muted-foreground">
-          {t('agreements.createdOn')} {format(createdDate, 'MMMM d, yyyy')}
+        <p className={`text-muted-foreground ${isRTL ? 'text-right' : 'text-left'}`}>
+          {t('agreements.createdOn')} {formatAgreementDate(createdDate)}
         </p>
       </div>
 
@@ -222,7 +225,7 @@ export function AgreementDetail({
             <CardDescription>{t('agreements.customerDetails')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
                 <p className="font-medium">{t('common.name')}</p>
                 <p>{agreement.customers?.full_name || t('common.notProvided')}</p>
@@ -253,7 +256,7 @@ export function AgreementDetail({
             <CardDescription>{t('agreements.vehicleDetails')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
                 <p className="font-medium">{t('common.vehicle')}</p>
                 <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || t('common.notProvided')})</p>
@@ -282,12 +285,12 @@ export function AgreementDetail({
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
                 <p className="font-medium">{t('agreements.rentalPeriod')}</p>
-                <p className="flex items-center">
-                  <CalendarDays className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {format(startDate, "MMMM d, yyyy")} {t('agreements.to')} {format(endDate, "MMMM d, yyyy")}
+                <p className={`flex items-center ${isRTL ? 'flex-row-reverse justify-end' : ''}`}>
+                  <CalendarDays className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} text-muted-foreground`} />
+                  {formatAgreementDate(startDate)} {t('agreements.to')} {formatAgreementDate(endDate)}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
                   {t('agreements.duration')}: {duration} {duration === 1 ? t('agreements.month') : t('agreements.months')}
@@ -305,7 +308,7 @@ export function AgreementDetail({
               </div>
             </div>
             
-            <div className="space-y-4">
+            <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
               <div>
                 <p className="font-medium">{t('agreements.monthlyRentAmount')}</p>
                 <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
@@ -338,22 +341,22 @@ export function AgreementDetail({
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
+      <div className={`flex flex-wrap items-center gap-4 mb-4 print:hidden ${isRTL ? 'flex-row-reverse' : ''}`}>
         <Button variant="outline" onClick={handleEdit}>
-          <Edit className="mr-2 h-4 w-4" />
+          <Edit className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
           {t('common.edit')}
         </Button>
         
         <Button variant="outline" onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
-          <Download className="mr-2 h-4 w-4" />
+          <Download className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
           {isGeneratingPdf ? t('common.generating') : t('agreements.agreementCopy')}
         </Button>
         <Button variant="outline" onClick={handleGenerateDocument}>
-          <FilePlus className="mr-2 h-4 w-4" />
+          <FilePlus className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
           {t('agreements.generateDocument')}
         </Button>
         <div className="flex-grow"></div>
-        <Button variant="destructive" onClick={handleDelete} className="ml-auto">
+        <Button variant="destructive" onClick={handleDelete} className={isRTL ? 'mr-auto' : 'ml-auto'}>
           {t('common.delete')}
         </Button>
       </div>
@@ -398,7 +401,7 @@ export function AgreementDetail({
               {t('agreements.deleteConfirmText', { number: agreement.agreement_number })}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
             <Button variant="destructive" onClick={confirmDelete}>{t('common.delete')}</Button>
           </DialogFooter>
