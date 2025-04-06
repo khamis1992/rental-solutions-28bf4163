@@ -48,26 +48,7 @@ import { SimpleAgreement } from '@/hooks/use-agreements';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
-
-export interface Payment {
-  id: string;
-  lease_id: string;
-  amount: number;
-  amount_paid: number;
-  payment_date: string;
-  payment_method: string;
-  status: string;
-  type: string;
-  description: string;
-  transaction_id: string;
-  balance: number;
-  late_fine_amount?: number;
-  daily_late_fee?: number;
-  original_due_date?: string | null;
-  days_overdue?: number;
-  notes?: string;
-  reference_number?: string | null;
-}
+import { Payment } from '@/hooks/use-payments';
 
 interface PaymentHistoryProps {
   agreementId: string;
@@ -266,7 +247,7 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
   };
 
   const calculateBalance = (payment: Payment): number => {
-    return payment.amount - payment.amount_paid;
+    return payment.amount - (payment.amount_paid || 0);
   };
 
   const totalBalance = payments.reduce((sum, payment) => sum + calculateBalance(payment), 0);
@@ -310,17 +291,10 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
                     try {
                       const updatedPayments = await reconcilePayments(agreement);
                       onPaymentsUpdated(updatedPayments);
-                      toast({
-                        title: 'Success',
-                        description: 'Payments reconciled successfully!',
-                      });
+                      toast.success('Payments reconciled successfully!');
                     } catch (error) {
                       console.error('Error during payment reconciliation:', error);
-                      toast({
-                        title: 'Error',
-                        description: 'Failed to reconcile payments. Please try again.',
-                        variant: 'destructive',
-                      });
+                      toast.error('Failed to reconcile payments. Please try again.');
                     } finally {
                       setIsReconciling(false);
                     }
@@ -493,10 +467,10 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
           <TableBody>
             {payments.map((payment) => (
               <TableRow key={payment.id}>
-                <TableCell>{formatDate(new Date(payment.payment_date))}</TableCell>
-                <TableCell>{formatCurrency(payment.amount_paid)}</TableCell>
+                <TableCell>{payment.payment_date ? formatDate(new Date(payment.payment_date)) : '-'}</TableCell>
+                <TableCell>{formatCurrency(payment.amount_paid || 0)}</TableCell>
                 <TableCell>{payment.payment_method}</TableCell>
-                <TableCell>{payment.description}</TableCell>
+                <TableCell>{payment.description || payment.notes}</TableCell>
                 <TableCell>{formatCurrency(calculateBalance(payment))}</TableCell>
                 <TableCell className="text-right">
                   {payment.status === 'paid' ? (
