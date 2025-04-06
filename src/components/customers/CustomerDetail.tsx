@@ -33,48 +33,13 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
   const handleDelete = async () => {
     try {
       await onDelete(customer.id);
-      navigate('/customers');
+      // Navigation handled in parent component
       toast.success(t('customers.deleteSuccess'));
     } catch (error) {
       console.error('Error deleting customer:', error);
       toast.error(t('customers.deleteError'));
     }
     setIsDeleteDialogOpen(false);
-  };
-
-  // Normalized status for correct translation mapping
-  const normalizeStatus = (status: string): CustomerStatus => {
-    // Convert to lowercase and remove underscores
-    const normalized = status.toLowerCase().replace(/_/g, '');
-    
-    if (['active', 'inactive', 'blacklisted', 'pendingreview', 'pendingpayment'].includes(normalized)) {
-      return normalized as CustomerStatus;
-    }
-    
-    // Map specific cases
-    if (normalized === 'pending_review') return 'pendingreview';
-    if (normalized === 'pending_payment') return 'pendingpayment';
-    
-    return 'active'; // Default fallback
-  };
-
-  const getStatusBadge = (status: string) => {
-    const normalizedStatus = normalizeStatus(status);
-    
-    switch (normalizedStatus) {
-      case 'active':
-        return <Badge className="bg-green-500">{t(`customers.status.${normalizedStatus}`)}</Badge>;
-      case 'inactive':
-        return <Badge variant="outline">{t(`customers.status.${normalizedStatus}`)}</Badge>;
-      case 'blacklisted':
-        return <Badge variant="destructive">{t(`customers.status.${normalizedStatus}`)}</Badge>;
-      case 'pendingreview':
-        return <Badge className="bg-yellow-500">{t('customers.status.pendingreview')}</Badge>;
-      case 'pendingpayment':
-        return <Badge className="bg-blue-500">{t('customers.status.pendingpayment')}</Badge>;
-      default:
-        return <Badge variant="outline">{status || t('common.unknown')}</Badge>;
-    }
   };
 
   // Format phone number for display
@@ -86,6 +51,23 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
       return `+974 ${phone}`;
     }
     return phone;
+  };
+
+  const getStatusBadge = (status: CustomerStatus) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500">{t(`customers.status.${status}`)}</Badge>;
+      case 'inactive':
+        return <Badge variant="outline">{t(`customers.status.${status}`)}</Badge>;
+      case 'blacklisted':
+        return <Badge variant="destructive">{t(`customers.status.${status}`)}</Badge>;
+      case 'pendingreview':
+        return <Badge className="bg-yellow-500">{t('customers.status.pendingreview')}</Badge>;
+      case 'pendingpayment':
+        return <Badge className="bg-blue-500">{t('customers.status.pendingpayment')}</Badge>;
+      default:
+        return <Badge variant="outline">{status || t('common.unknown')}</Badge>;
+    }
   };
 
   return (
@@ -140,7 +122,7 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
               <Phone className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-3' : 'mr-3'} mt-0.5`} />
               <div>
                 <Label>{t('customers.phoneNumber')}</Label>
-                <p>{formatPhoneNumber(customer.phone || (customer.phone_number || ''))}</p>
+                <p>{formatPhoneNumber(customer.phone)}</p>
               </div>
             </div>
             

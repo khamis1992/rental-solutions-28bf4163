@@ -30,6 +30,8 @@ const convertDbStatusToAppFormat = (dbStatus: string | null | undefined): Custom
 };
 
 const formatQatarPhoneNumber = (phone: string): string => {
+  if (!phone) return '';
+  
   const cleanPhone = phone.replace(/^\+974/, '').trim();
   
   if (/^[3-9]\d{7}$/.test(cleanPhone)) {
@@ -40,6 +42,7 @@ const formatQatarPhoneNumber = (phone: string): string => {
 };
 
 const stripCountryCode = (phone: string): string => {
+  if (!phone) return '';
   return phone.replace(/^\+974/, '').trim();
 };
 
@@ -69,13 +72,8 @@ export const useCustomers = () => {
 
         if (searchParams.status !== 'all' && searchParams.status) {
           // Convert app status to DB status if needed
-          const dbStatus = searchParams.status === 'pendingreview' 
-            ? 'pending_review' 
-            : searchParams.status === 'pendingpayment'
-              ? 'pending_payment'
-              : searchParams.status;
-              
-          query = query.eq('status', dbStatus as DbCustomerStatus);
+          const dbStatus = convertAppStatusToDbFormat(searchParams.status as CustomerStatus);
+          query = query.eq('status', dbStatus);
         }
 
         if (searchParams.query) {
@@ -102,13 +100,13 @@ export const useCustomers = () => {
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: convertDbStatusToAppFormat(profile.status || 'active'),
+          status: convertDbStatusToAppFormat(profile.status),
           created_at: profile.created_at,
           updated_at: profile.updated_at,
         }));
         
         console.log('Processed customers from profiles:', processedCustomers);
-        return processedCustomers as Customer[];
+        return processedCustomers;
       } catch (catchError) {
         console.error('Unexpected error in customer fetch:', catchError);
         return [];

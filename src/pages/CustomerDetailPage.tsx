@@ -6,7 +6,7 @@ import { CustomerDetail } from '@/components/customers/CustomerDetail';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 import { useCustomers } from '@/hooks/use-customers';
-import { Customer, PartialCustomer } from '@/types/customer';
+import { Customer } from '@/types/customer';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -28,14 +28,7 @@ const CustomerDetailPage = () => {
           const data = await getCustomer(id);
           console.log('Customer data received:', data);
           if (data) {
-            // Ensure we have all required fields before setting as Customer
-            if (data.id && data.full_name !== undefined && data.email !== undefined) {
-              setCustomer(data as Customer);
-            } else {
-              console.error("Received incomplete customer data:", data);
-              toast.error(t('customers.loadError'));
-              setCustomer(null);
-            }
+            setCustomer(data);
           } else {
             console.log('No customer data found for ID:', id);
             setCustomer(null);
@@ -54,18 +47,19 @@ const CustomerDetailPage = () => {
     };
     
     fetchCustomerData();
+    // Only depend on id and getCustomer to prevent unnecessary re-fetches
   }, [id, getCustomer, navigate, t]);
 
   const handleDelete = async (customerId: string): Promise<void> => {
     try {
       await deleteCustomer.mutateAsync(customerId);
       toast.success(t('customers.deleteSuccess'));
-      // Return void to match the expected type
+      navigate('/customers');
       return;
     } catch (error) {
       console.error("Error deleting customer:", error);
       toast.error(t('customers.deleteError'));
-      throw error; // Rethrow to let the caller handle it
+      throw error;
     }
   };
   
