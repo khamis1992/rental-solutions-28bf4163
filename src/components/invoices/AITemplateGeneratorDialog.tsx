@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
   Dialog, 
@@ -15,6 +14,9 @@ import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { TemplateVariable } from '@/utils/invoiceTemplateUtils';
+import { useTranslation } from 'next-i18next';
+import { useIsRTL } from '@/utils/rtl-utils';
+
 
 interface AITemplateGeneratorDialogProps {
   open: boolean;
@@ -31,13 +33,15 @@ const AITemplateGeneratorDialog: React.FC<AITemplateGeneratorDialogProps> = ({
   variables,
   templateType,
 }) => {
+  const { t } = useTranslation();
+  const isRTL = useIsRTL();
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
-      
+
       // Call our edge function
       const { data, error } = await supabase.functions.invoke('generate-template', {
         body: {
@@ -46,21 +50,21 @@ const AITemplateGeneratorDialog: React.FC<AITemplateGeneratorDialogProps> = ({
           variables,
         },
       });
-      
+
       if (error) {
         throw new Error(error.message);
       }
-      
+
       if (data?.template) {
         onTemplateGenerated(data.template);
         onOpenChange(false);
-        toast.success('Template generated successfully!');
+        toast.success(t('common:templateGeneratedSuccessfully')); // Use translation
       } else {
-        throw new Error('No template was generated');
+        throw new Error(t('common:noTemplateGenerated')); // Use translation
       }
     } catch (error) {
       console.error('Error generating template:', error);
-      toast.error('Failed to generate template: ' + (error as Error).message);
+      toast.error(t('common:failedToGenerateTemplate', { message: (error as Error).message })); // Use translation
     } finally {
       setIsGenerating(false);
     }
@@ -70,31 +74,31 @@ const AITemplateGeneratorDialog: React.FC<AITemplateGeneratorDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Generate Template with AI</DialogTitle>
+          <DialogTitle>{t('common:generateTemplateWithAI')}</DialogTitle> {/* Use translation */}
           <DialogDescription>
-            Describe what kind of template you want, and our AI will generate it using your available variables.
+            {t('common:describeTemplate')} {/* Use translation */}
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="grid gap-4 py-4">
+
+        <div className={`grid gap-4 py-4 ${isRTL ? 'text-right' : 'text-left'}`}> {/* Added RTL support */}
           <div className="grid gap-2">
-            <label htmlFor="prompt" className="text-sm font-medium">Prompt</label>
+            <label htmlFor="prompt" className="text-sm font-medium">{t('common:prompt')}</label> {/* Use translation */}
             <Textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="E.g., Create a modern invoice template with a clean layout and subtle color palette"
+              placeholder={t('common:promptPlaceholder')} {/* Use translation */}
               className="min-h-[150px]"
             />
             <p className="text-xs text-muted-foreground">
-              The AI will use {variables.length} available variables and create a {templateType} template.
+              {t('common:aiWillUseVariables', { count: variables.length, type: templateType })} {/* Use translation */}
             </p>
           </div>
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('common:cancel')} {/* Use translation */}
           </Button>
           <Button 
             onClick={handleGenerate} 
@@ -104,12 +108,12 @@ const AITemplateGeneratorDialog: React.FC<AITemplateGeneratorDialogProps> = ({
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Generating...
+                {t('common:generating')} {/* Use translation */}
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                Generate Template
+                {t('common:generateTemplate')} {/* Use translation */}
               </>
             )}
           </Button>

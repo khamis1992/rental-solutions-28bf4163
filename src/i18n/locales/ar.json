@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "لوحة القيادة",
@@ -173,7 +172,16 @@
     "receiveSystemNotifications": "تلقي إشعارات داخل التطبيق لأحداث النظام",
     "receiveReportNotifications": "تلقي إشعارات لإنشاء التقارير",
     "securitySettings": "إعدادات الأمان",
-    "testTranslation": "اختبار الترجمة"
+    "testTranslation": "اختبار الترجمة",
+    "templates": {
+      "generation": "توليد القالب",
+      "preview": "معاينة القالب",
+      "save": "حفظ القالب",
+      "test": "اختبار القالب",
+      "generatingTemplate": "جاري توليد القالب...",
+      "templateGenerated": "تم توليد القالب بنجاح",
+      "templateError": "حدث خطأ أثناء توليد القالب"
+    }
   },
   "legal": {
     "dashboard": "لوحة إدارة الشؤون القانونية",
