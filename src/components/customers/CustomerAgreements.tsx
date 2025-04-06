@@ -82,7 +82,7 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
           end_date: agreement.end_date,
           vehicle_id: agreement.vehicle_id,
           vehicle: agreement.vehicles
-        }));
+        })) as Agreement[];
         
         setAgreements(formattedAgreements);
       } catch (err) {

@@ -85,21 +85,30 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         console.log(`Found ${trafficFines?.length || 0} traffic fines`);
             
         // Transform the data to match the TrafficFine interface
-        const formattedFines = (trafficFines || []).map(fine => ({
-          id: fine.id,
-          violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
-          licensePlate: fine.license_plate,
-          vehicleModel: fine.vehicles ? `${fine.vehicles.make} ${fine.vehicles.model}` : undefined,
-          violationDate: new Date(fine.violation_date),
-          fineAmount: fine.fine_amount,
-          violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status as TrafficFineStatusType,
-          location: fine.fine_location || '',
-          vehicleId: fine.vehicle_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-          customerId: customerId,
-          leaseId: fine.lease_id
-        }));
+        const formattedFines = (trafficFines || []).map(fine => {
+          // Safely access vehicle data which might be null
+          let vehicleModel: string | undefined = undefined;
+          if (fine.vehicles) {
+            // Access as a singular object, not an array
+            vehicleModel = `${fine.vehicles.make} ${fine.vehicles.model}`;
+          }
+
+          return {
+            id: fine.id,
+            violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
+            licensePlate: fine.license_plate,
+            vehicleModel,
+            violationDate: new Date(fine.violation_date),
+            fineAmount: fine.fine_amount,
+            violationCharge: fine.violation_charge,
+            paymentStatus: fine.payment_status as TrafficFineStatusType,
+            location: fine.fine_location || '',
+            vehicleId: fine.vehicle_id,
+            paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
+            customerId: customerId,
+            leaseId: fine.lease_id
+          };
+        });
             
         setFines(formattedFines);
       } catch (err) {
