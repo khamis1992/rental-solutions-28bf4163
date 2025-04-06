@@ -72,11 +72,30 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
   const paidColor = "#F2FCE2";
   const disputedColor = "#FFDEE2";
   
-  // Add header with enhanced styling
-  const startY = await addReportHeader(doc, 'Traffic Fines Report', { 
-    from: assignedFines.length > 0 ? new Date(Math.min(...assignedFines.map(f => new Date(f.violationDate).getTime()))) : undefined,
-    to: new Date()
-  });
+  // Add header with enhanced styling - using explicit date format to avoid issues
+  let startY = 20; // Start with a fixed position
+  
+  // Set the title
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Traffic Fines Report', pageWidth / 2, startY, { align: 'center' });
+  startY += 20;
+  
+  // Add date range with proper formatting
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  // Format dates properly using date-fns format directly to avoid any issues
+  const fromDate = assignedFines.length > 0 
+    ? format(new Date(Math.min(...assignedFines.map(f => new Date(f.violationDate).getTime()))), 'MMMM d, yyyy')
+    : 'N/A';
+  const toDate = format(new Date(), 'MMMM d, yyyy');
+  
+  doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, startY, { align: 'center' });
+  startY += 5;
+  
+  // Add date of generation with proper formatting
+  doc.text(`Generated on: ${format(new Date(), 'MMMM d, yyyy')}`, pageWidth / 2, startY + 5, { align: 'center' });
   
   let currentY = startY + 15;
   
@@ -302,26 +321,6 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     currentY += 15; // Space between customer sections
   });
   
-  // Final notes section
-  if (currentY > pageHeight - 40) {
-    doc.addPage();
-    currentY = 20;
-  } else {
-    currentY += 10;
-  }
-  
-  // Final notes section
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(100, 100, 100);
-  doc.text("Notes:", 14, currentY);
-  currentY += 5;
-  doc.text("1. All traffic fines should be addressed within 30 days of receipt.", 16, currentY);
-  currentY += 5;
-  doc.text("2. Disputed fines require supporting documentation and review.", 16, currentY);
-  currentY += 5;
-  doc.text("3. For questions regarding this report, please contact the traffic fines department.", 16, currentY);
-  
   // Add a page number to each page
   const totalPages = doc.getNumberOfPages();
   for(let i = 1; i <= totalPages; i++) {
@@ -336,3 +335,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
   
   return doc;
 };
+
+// Import date-fns format function for direct date formatting
+import { format } from 'date-fns';
+

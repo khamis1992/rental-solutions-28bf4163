@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
@@ -88,7 +87,7 @@ const ReportDownloadOptions = ({
 
       // Use specialized PDF generators for specific report types
       if (reportType === 'traffic-fines' && trafficFines) {
-        // Generate traffic fines PDF - now filtering for customer-assigned fines is done within this function
+        // Use custom PDF generation for traffic fines
         doc = await generateTrafficFinesPDF(trafficFines);
         filename = `traffic-fines-report-${new Date().toISOString().split('T')[0]}.pdf`;
       } else {
