@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/utils';
@@ -48,7 +49,10 @@ import { SimpleAgreement } from '@/hooks/use-agreements';
 import { supabase } from '@/lib/supabase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
-import { Payment } from '@/hooks/use-payments';
+import { Payment as PaymentType } from '@/hooks/use-payments';
+
+// Re-export the Payment type for other components to use
+export type Payment = PaymentType;
 
 interface PaymentHistoryProps {
   agreementId: string;
@@ -470,7 +474,7 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
                 <TableCell>{payment.payment_date ? formatDate(new Date(payment.payment_date)) : '-'}</TableCell>
                 <TableCell>{formatCurrency(payment.amount_paid || 0)}</TableCell>
                 <TableCell>{payment.payment_method}</TableCell>
-                <TableCell>{payment.description || payment.notes}</TableCell>
+                <TableCell>{payment.notes || payment.description}</TableCell>
                 <TableCell>{formatCurrency(calculateBalance(payment))}</TableCell>
                 <TableCell className="text-right">
                   {payment.status === 'paid' ? (
