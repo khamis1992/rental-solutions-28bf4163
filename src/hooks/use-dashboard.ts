@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -387,7 +388,7 @@ export function useDashboardData() {
   };
 }
 
-// Helper function to calculate time ago
+// Updated helper function to calculate time ago using translation keys
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffInMs = now.getTime() - date.getTime();
@@ -396,37 +397,42 @@ function getTimeAgo(date: Date): string {
   const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
   const currentLang = i18next.language;
-  const isArabic = currentLang === 'ar';
-
+  
   if (diffInMinutes < 60) {
-    if (isArabic) {
-      return `منذ ${diffInMinutes} دقيقة`;
-    }
-    return `${diffInMinutes} minutes ago`;
+    return i18next.t('dashboard.timeAgo.minutes', { count: diffInMinutes });
   } else if (diffInHours < 24) {
-    if (isArabic) {
-      return `منذ ${diffInHours} ساعة`;
-    }
-    return `${diffInHours} hours ago`;
+    return i18next.t('dashboard.timeAgo.hours', { count: diffInHours });
   } else {
-    if (isArabic) {
-      return `منذ ${diffInDays} يوم`;
-    }
-    return `${diffInDays} days ago`;
+    return i18next.t('dashboard.timeAgo.days', { count: diffInDays });
   }
 }
 
 // Helper function to parse time ago for sorting
 function parseTimeAgo(timeAgo: string): number {
-  const match = timeAgo.match(/(\d+)\s+(\w+)/);
+  // Extract numerical value from time ago string using regex
+  const match = timeAgo.match(/(\d+)/);
   if (!match) return 9999;
   
-  const [_, value, unit] = match;
-  const numValue = parseInt(value);
+  const numValue = parseInt(match[1]);
   
-  if (unit.includes('minute')) return numValue;
-  if (unit.includes('hour')) return numValue * 60;
-  if (unit.includes('day')) return numValue * 60 * 24;
+  // Determine unit by checking for translated strings
+  if (timeAgo.includes(i18next.t('dashboard.timeAgo.minuteUnit', { count: 2 }).split(' ')[1]) || 
+      timeAgo.includes('minute') || 
+      timeAgo.includes('دقيقة')) {
+    return numValue;
+  }
+  
+  if (timeAgo.includes(i18next.t('dashboard.timeAgo.hourUnit', { count: 2 }).split(' ')[1]) || 
+      timeAgo.includes('hour') || 
+      timeAgo.includes('ساعة')) {
+    return numValue * 60;
+  }
+  
+  if (timeAgo.includes(i18next.t('dashboard.timeAgo.dayUnit', { count: 2 }).split(' ')[1]) || 
+      timeAgo.includes('day') || 
+      timeAgo.includes('يوم')) {
+    return numValue * 60 * 24;
+  }
   
   return 9999;
 }

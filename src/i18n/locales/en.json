@@ -1,4 +1,3 @@
-
 {
   "common": {
     "dashboard": "Dashboard",
@@ -83,7 +82,21 @@
     "total": "Total",
     "dueDate": "Due",
     "showing": "Showing {{count}} item",
-    "showing_plural": "Showing {{count}} items"
+    "showing_plural": "Showing {{count}} items",
+    "timeAgo": {
+      "minutes": "{{count}} minute ago",
+      "minutes_plural": "{{count}} minutes ago",
+      "hours": "{{count}} hour ago",
+      "hours_plural": "{{count}} hours ago",
+      "days": "{{count}} day ago",
+      "days_plural": "{{count}} days ago",
+      "minuteUnit": "minute",
+      "minuteUnit_plural": "minutes",
+      "hourUnit": "hour",
+      "hourUnit_plural": "hours",
+      "dayUnit": "day",
+      "dayUnit_plural": "days"
+    }
   },
   "dashboard": {
     "title": "Dashboard",
