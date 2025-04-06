@@ -5,23 +5,25 @@ import '@testing-library/jest-dom';
 // Mock for window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
+  value: function mockMatchMedia(query: string) {
+    return {
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: function() {},
+      removeListener: function() {},
+      addEventListener: function() {},
+      removeEventListener: function() {},
+      dispatchEvent: function() {},
+    };
+  },
 });
 
 // Mock for IntersectionObserver
 class MockIntersectionObserver {
-  observe = jest.fn();
-  unobserve = jest.fn();
-  disconnect = jest.fn();
+  observe() { return null; }
+  unobserve() { return null; }
+  disconnect() { return null; }
 }
 
 Object.defineProperty(window, 'IntersectionObserver', {
@@ -30,8 +32,11 @@ Object.defineProperty(window, 'IntersectionObserver', {
 });
 
 // Set up global test utilities
-global.ResizeObserver = jest.fn().mockImplementation(() => ({
-  observe: jest.fn(),
-  unobserve: jest.fn(),
-  disconnect: jest.fn(),
-}));
+// @ts-ignore
+global.ResizeObserver = function() {
+  return {
+    observe: function() {},
+    unobserve: function() {},
+    disconnect: function() {},
+  };
+};

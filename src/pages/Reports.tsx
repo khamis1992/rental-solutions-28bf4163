@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -170,7 +171,7 @@ const Reports = () => {
         return trafficFines ? trafficFines.map(fine => ({
           violation_number: fine.violationNumber,
           license_plate: fine.licensePlate,
-          vehicle_model: fine.vehicleModel,
+          vehicle_model: fine.vehicleModel || 'N/A', // Add fallback for vehicleModel
           violation_date: fine.violationDate,
           location: fine.location,
           fine_amount: fine.fineAmount,
