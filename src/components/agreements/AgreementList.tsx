@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable, SortingState, getSortedRowModel, getPaginationRowModel, ColumnFiltersState, getFilteredRowModel, RowSelectionState } from "@tanstack/react-table";
 import { MoreHorizontal, FileText, FileCheck, FileX, FileClock, FileEdit, FilePlus, AlertTriangle, Loader2, ChevronLeft, ChevronRight, Info, X, ArrowUpDown, Trash2 } from 'lucide-react';
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { doesLicensePlateMatch } from '@/utils/searchUtils';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -30,6 +31,7 @@ interface AgreementListProps {
 export function AgreementList({
   searchQuery = ''
 }: AgreementListProps) {
+  const initialRender = useRef(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -42,6 +44,9 @@ export function AgreementList({
   const [singleDeleteNumber, setSingleDeleteNumber] = useState<string | null>(null);
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  
+  const [internalSearchQuery, setInternalSearchQuery] = useState(searchQuery || '');
+  
   const {
     agreements = [],
     isLoading,
@@ -50,19 +55,19 @@ export function AgreementList({
     setSearchParams,
     deleteAgreement
   } = useAgreements({
-    query: searchQuery,
+    query: internalSearchQuery,
     status: statusFilter
   });
 
   const filteredAgreements = React.useMemo(() => {
-    if (!searchQuery || !searchQuery.trim() || !agreements) {
+    if (!internalSearchQuery || !internalSearchQuery.trim() || !agreements) {
       return agreements;
     }
     
     const alreadyFiltered = agreements.some(agreement => {
       const vehicle = agreement.vehicle || agreement.vehicles;
       return vehicle && vehicle.license_plate && 
-        doesLicensePlateMatch(vehicle.license_plate, searchQuery);
+        doesLicensePlateMatch(vehicle.license_plate, internalSearchQuery);
     });
     
     if (alreadyFiltered) {
@@ -72,15 +77,27 @@ export function AgreementList({
     return agreements.filter(agreement => {
       const vehicle = agreement.vehicle || agreement.vehicles;
       return vehicle && vehicle.license_plate && 
-        doesLicensePlateMatch(vehicle.license_plate, searchQuery);
+        doesLicensePlateMatch(vehicle.license_plate, internalSearchQuery);
     });
-  }, [agreements, searchQuery]);
+  }, [agreements, internalSearchQuery]);
 
   useEffect(() => {
-    setSearchParams(prev => ({
-      ...prev,
-      query: searchQuery
-    }));
+    if (initialRender.current) {
+      initialRender.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      if (searchQuery !== internalSearchQuery) {
+        setInternalSearchQuery(searchQuery);
+        setSearchParams(prev => ({
+          ...prev,
+          query: searchQuery
+        }));
+      }
+    }, 300);
+    
+    return () => clearTimeout(timer);
   }, [searchQuery, setSearchParams]);
 
   const {
@@ -101,7 +118,7 @@ export function AgreementList({
       pageIndex: 0,
       pageSize: 10
     });
-  }, [agreements, statusFilter, searchQuery]);
+  }, [agreements, statusFilter]);
 
   const handleStatusFilterChange = (status: string) => {
     setStatusFilter(status);
@@ -116,29 +133,41 @@ export function AgreementList({
   const handleBulkDelete = async () => {
     if (!agreements || agreements.length === 0) return;
     setIsDeleting(true);
-    const selectedIds = Object.keys(rowSelection).map(index => agreements[parseInt(index)]?.id as string).filter(Boolean);
-    console.log("Selected IDs for deletion:", selectedIds);
-    let successCount = 0;
-    let errorCount = 0;
-    for (const id of selectedIds) {
-      try {
-        await deleteAgreement.mutateAsync(id);
-        successCount++;
-      } catch (error) {
-        console.error(`Failed to delete agreement ${id}:`, error);
-        errorCount++;
+    
+    try {
+      const selectedIds = Object.keys(rowSelection)
+        .map(index => agreements[parseInt(index)]?.id as string)
+        .filter(Boolean);
+      
+      console.log("Selected IDs for deletion:", selectedIds);
+      let successCount = 0;
+      let errorCount = 0;
+      
+      for (const id of selectedIds) {
+        try {
+          await deleteAgreement.mutateAsync(id);
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to delete agreement ${id}:`, error);
+          errorCount++;
+        }
       }
+      
+      if (errorCount === 0) {
+        toast.success(`Successfully deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}`);
+      } else if (successCount === 0) {
+        toast.error(`Failed to delete any agreements`);
+      } else {
+        toast.warning(`Deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}, but failed to delete ${errorCount}`);
+      }
+    } catch (err) {
+      console.error("Bulk delete error:", err);
+      toast.error("An unexpected error occurred during bulk delete");
+    } finally {
+      setRowSelection({});
+      setBulkDeleteDialogOpen(false);
+      setIsDeleting(false);
     }
-    if (errorCount === 0) {
-      toast.success(`Successfully deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}`);
-    } else if (successCount === 0) {
-      toast.error(`Failed to delete any agreements`);
-    } else {
-      toast.warning(`Deleted ${successCount} agreement${successCount !== 1 ? 's' : ''}, but failed to delete ${errorCount}`);
-    }
-    setRowSelection({});
-    setBulkDeleteDialogOpen(false);
-    setIsDeleting(false);
   };
 
   const handleSingleDelete = async () => {
@@ -333,42 +362,54 @@ export function AgreementList({
     pageCount: Math.ceil((filteredAgreements?.length || 0) / 10)
   });
 
-  return <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center w-full sm:w-auto space-x-2">
-          <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
-              <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
-              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
-              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error loading agreements</AlertTitle>
+        <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <ErrorBoundary fallback={<div className="p-4 text-red-500">Something went wrong loading agreements. Please try refreshing the page.</div>}>
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center w-full sm:w-auto space-x-2">
+            <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
+                <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
+                <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
+                <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
+                <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex gap-2">
+            {selectedCount > 0 && <Button variant="destructive" onClick={() => setBulkDeleteDialogOpen(true)} className="flex items-center gap-1">
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete ({selectedCount})
+              </Button>}
+            <Button asChild>
+              
+            </Button>
+          </div>
         </div>
         
-        <div className="flex gap-2">
-          {selectedCount > 0 && <Button variant="destructive" onClick={() => setBulkDeleteDialogOpen(true)} className="flex items-center gap-1">
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete ({selectedCount})
-            </Button>}
-          <Button asChild>
-            
-          </Button>
-        </div>
-      </div>
-      
-      {error && <Alert variant="destructive" className="mb-4">
+        {error && <Alert variant="destructive" className="mb-4">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
         </Alert>}
       
-      {(searchQuery || statusFilter !== 'all') && <div className="flex items-center text-sm text-muted-foreground mb-1">
+      {searchQuery || statusFilter !== 'all' && <div className="flex items-center text-sm text-muted-foreground mb-1">
           <span>Filtering by:</span>
           {searchQuery && <Badge variant="outline" className="ml-2 gap-1">
               Search: {searchQuery}
@@ -381,113 +422,115 @@ export function AgreementList({
             </Badge>}
         </div>}
       
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map(headerGroup => <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map(header => <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>)}
-              </TableRow>)}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? Array.from({
-            length: 5
-          }).map((_, i) => <TableRow key={`skeleton-${i}`}>
-                  {Array.from({
-              length: columns.length
-            }).map((_, j) => <TableCell key={`skeleton-cell-${i}-${j}`}>
-                      <Skeleton className="h-8 w-full" />
-                    </TableCell>)}
-                </TableRow>) : table.getRowModel().rows?.length ? table.getRowModel().rows.map(row => <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-                  {row.getVisibleCells().map(cell => <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>)}
-                </TableRow>) : <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Info className="h-5 w-5 text-muted-foreground" />
-                    <p>
-                      {searchParams.status && searchParams.status !== 'all' ? 'No agreements found with the selected status.' : 'Add your first agreement using the button above.'}
-                    </p>
-                  </div>
-                </TableCell>
-              </TableRow>}
-          </TableBody>
-        </Table>
-      </div>
-      
-      {agreements && agreements.length > 0 && <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <Button variant="outline" size="default" className="gap-1 pl-2.5" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Go to previous page">
-                <ChevronLeft className="h-4 w-4" />
-                <span>Previous</span>
-              </Button>
-            </PaginationItem>
-            
-            {Array.from({
-          length: table.getPageCount()
-        }).map((_, index) => <PaginationItem key={index}>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map(headerGroup => <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map(header => <TableHead key={header.id}>
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>)}
+                </TableRow>)}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? Array.from({
+              length: 5
+            }).map((_, i) => <TableRow key={`skeleton-${i}`}>
+                    {Array.from({
+                length: columns.length
+              }).map((_, j) => <TableCell key={`skeleton-cell-${i}-${j}`}>
+                        <Skeleton className="h-8 w-full" />
+                      </TableCell>)}
+                  </TableRow>) : table.getRowModel().rows?.length ? table.getRowModel().rows.map(row => <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                    {row.getVisibleCells().map(cell => <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>)}
+                  </TableRow>) : <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Info className="h-5 w-5 text-muted-foreground" />
+                      <p>
+                        {searchParams.status && searchParams.status !== 'all' ? 'No agreements found with the selected status.' : 'Add your first agreement using the button above.'}
+                      </p>
+                    </div>
+                  </TableCell>
+                </TableRow>}
+            </TableBody>
+          </Table>
+        </div>
+        
+        {agreements && agreements.length > 0 && <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <Button variant="outline" size="default" className="gap-1 pl-2.5" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} aria-label="Go to previous page">
+                  <ChevronLeft className="h-4 w-4" />
+                  <span>Previous</span>
+                </Button>
+              </PaginationItem>
+              
+              {Array.from({
+            length: table.getPageCount()
+          }).map((_, index) => <PaginationItem key={index}>
                 <PaginationLink isActive={table.getState().pagination.pageIndex === index} onClick={() => table.setPageIndex(index)}>
                   {index + 1}
                 </PaginationLink>
               </PaginationItem>).slice(Math.max(0, table.getState().pagination.pageIndex - 1), Math.min(table.getPageCount(), table.getState().pagination.pageIndex + 3))}
-            
-            <PaginationItem>
-              <Button variant="outline" size="default" className="gap-1 pr-2.5" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Go to next page">
-                <span>Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>}
+              
+              <PaginationItem>
+                <Button variant="outline" size="default" className="gap-1 pr-2.5" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} aria-label="Go to next page">
+                  <span>Next</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>}
 
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedCount} Agreements</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete {selectedCount} selected agreements? 
-              This action cannot be undone and will permanently remove the selected agreements from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={e => {
-            e.preventDefault();
-            handleBulkDelete();
-          }} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {isDeleting ? <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </> : 'Delete Agreements'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete {selectedCount} Agreements</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete {selectedCount} selected agreements? 
+                This action cannot be undone and will permanently remove the selected agreements from the system.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={e => {
+              e.preventDefault();
+              handleBulkDelete();
+            }} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                {isDeleting ? <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </> : 'Delete Agreements'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
-      <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Agreement</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete agreement {singleDeleteNumber}?
-              This action cannot be undone and will permanently remove all associated data including payments and records.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-            setSingleDeleteId(null);
-            setSingleDeleteNumber(null);
-          }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleSingleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>;
+        <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Agreement</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete agreement {singleDeleteNumber}?
+                This action cannot be undone and will permanently remove all associated data including payments and records.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+              setSingleDeleteId(null);
+              setSingleDeleteNumber(null);
+            }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={handleSingleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </ErrorBoundary>
+  );
 }

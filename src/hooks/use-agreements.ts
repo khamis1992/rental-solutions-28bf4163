@@ -125,6 +125,24 @@ function isSupabaseError(obj: any): obj is { code: string; message: string; deta
          typeof obj.message === 'string';
 }
 
+// Helper to parse safely parse dates
+function safeParseDateString(dateString: string | null | undefined): string {
+  if (!dateString) return '';
+  
+  try {
+    // Try to standardize date format
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn(`Invalid date encountered: ${dateString}`);
+      return dateString || '';
+    }
+    return date.toISOString();
+  } catch (err) {
+    console.warn(`Error parsing date ${dateString}:`, err);
+    return dateString || '';
+  }
+}
+
 export const useAgreements = (initialParams?: SearchParams) => {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useState<SearchParams>(initialParams || {
@@ -175,65 +193,79 @@ export const useAgreements = (initialParams?: SearchParams) => {
           query = query.lte('end_date', searchParams.endDate);
         }
 
-        const { data, error } = await query;
+        try {
+          console.log("Executing agreements query with params:", searchParams);
+          const { data, error } = await query;
 
-        if (error) {
-          throw new Error(`Error fetching agreements: ${error.message}`);
+          if (error) {
+            console.error("Supabase error fetching agreements:", error);
+            throw new Error(`Error fetching agreements: ${error.message}`);
+          }
+
+          return (data || []).map(item => {
+            // Initialize with default values
+            let safeCustomerData = {...DEFAULT_CUSTOMER};
+            let safeVehicleData = {...DEFAULT_VEHICLE};
+            
+            // Process customer data if it exists
+            if (item.customer) {
+              if (!isSupabaseError(item.customer)) {
+                safeCustomerData = {
+                  id: item.customer.id || DEFAULT_CUSTOMER.id,
+                  full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
+                  email: item.customer.email || DEFAULT_CUSTOMER.email,
+                  phone: item.customer.phone_number || DEFAULT_CUSTOMER.phone, // Use phone_number as phone
+                  phone_number: item.customer.phone_number || DEFAULT_CUSTOMER.phone_number,
+                  address: item.customer.address || DEFAULT_CUSTOMER.address,
+                  driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
+                };
+              } else {
+                console.warn("Customer data returned an error:", item.customer.message);
+              }
+            }
+            
+            // Process vehicle data if it exists
+            if (item.vehicle) {
+              if (!isSupabaseError(item.vehicle)) {
+                safeVehicleData = {
+                  id: item.vehicle.id || DEFAULT_VEHICLE.id,
+                  make: item.vehicle.make || DEFAULT_VEHICLE.make,
+                  model: item.vehicle.model || DEFAULT_VEHICLE.model,
+                  license_plate: item.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
+                  year: item.vehicle.year || DEFAULT_VEHICLE.year,
+                  color: item.vehicle.color || DEFAULT_VEHICLE.color,
+                  vin: item.vehicle.vin || DEFAULT_VEHICLE.vin
+                };
+              } else {
+                console.warn("Vehicle data returned an error:", item.vehicle.message);
+              }
+            }
+
+            // Ensure dates are properly formatted
+            const agreement: FlattenType<SimpleAgreement> = {
+              ...item,
+              status: mapDatabaseStatus(item.status || ''),
+              total_amount: item.total_amount || 0,
+              agreement_number: item.agreement_number || '',
+              start_date: safeParseDateString(item.start_date),
+              end_date: safeParseDateString(item.end_date),
+              created_at: safeParseDateString(item.created_at),
+              updated_at: safeParseDateString(item.updated_at),
+              customer: safeCustomerData,
+              vehicle: safeVehicleData,
+              customers: safeCustomerData,
+              vehicles: safeVehicleData,
+              total_cost: item.total_amount || 0
+            };
+            return agreement;
+          });
+        } catch (error) {
+          console.error("Unexpected error in useAgreementsList:", error);
+          throw error;
         }
-
-        return (data || []).map(item => {
-          // Initialize with default values
-          let safeCustomerData = {...DEFAULT_CUSTOMER};
-          let safeVehicleData = {...DEFAULT_VEHICLE};
-          
-          // Process customer data if it exists
-          if (item.customer) {
-            if (!isSupabaseError(item.customer)) {
-              safeCustomerData = {
-                id: item.customer.id || DEFAULT_CUSTOMER.id,
-                full_name: item.customer.full_name || DEFAULT_CUSTOMER.full_name,
-                email: item.customer.email || DEFAULT_CUSTOMER.email,
-                phone: item.customer.phone_number || DEFAULT_CUSTOMER.phone, // Use phone_number as phone
-                phone_number: item.customer.phone_number || DEFAULT_CUSTOMER.phone_number,
-                address: item.customer.address || DEFAULT_CUSTOMER.address,
-                driver_license: item.customer.driver_license || DEFAULT_CUSTOMER.driver_license
-              };
-            } else {
-              console.warn("Customer data returned an error:", item.customer.message);
-            }
-          }
-          
-          // Process vehicle data if it exists
-          if (item.vehicle) {
-            if (!isSupabaseError(item.vehicle)) {
-              safeVehicleData = {
-                id: item.vehicle.id || DEFAULT_VEHICLE.id,
-                make: item.vehicle.make || DEFAULT_VEHICLE.make,
-                model: item.vehicle.model || DEFAULT_VEHICLE.model,
-                license_plate: item.vehicle.license_plate || DEFAULT_VEHICLE.license_plate,
-                year: item.vehicle.year || DEFAULT_VEHICLE.year,
-                color: item.vehicle.color || DEFAULT_VEHICLE.color,
-                vin: item.vehicle.vin || DEFAULT_VEHICLE.vin
-              };
-            } else {
-              console.warn("Vehicle data returned an error:", item.vehicle.message);
-            }
-          }
-
-          const agreement: FlattenType<SimpleAgreement> = {
-            ...item,
-            status: mapDatabaseStatus(item.status || ''),
-            total_amount: item.total_amount || 0,
-            agreement_number: item.agreement_number || '',
-            customer: safeCustomerData,
-            vehicle: safeVehicleData,
-            customers: safeCustomerData,
-            vehicles: safeVehicleData,
-            total_cost: item.total_amount || 0
-          };
-          return agreement;
-        });
-      }
+      },
+      staleTime: 30000, // 30 seconds before refetching
+      retry: 2, // Retry failed requests up to 2 times
     });
   };
 
