@@ -118,6 +118,8 @@ export const useCustomers = () => {
       const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
       console.log('Formatted phone number:', formattedPhone);
       
+      const dbStatus = convertAppStatusToDbFormat(newCustomer.status || 'active');
+      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .insert([{ 
@@ -128,7 +130,7 @@ export const useCustomers = () => {
           driver_license: newCustomer.driver_license,
           nationality: newCustomer.nationality,
           notes: newCustomer.notes,
-          status: convertAppStatusToDbFormat(newCustomer.status || 'active'),
+          status: dbStatus,
           role: CUSTOMER_ROLE,
           created_at: new Date().toISOString() 
         }])
@@ -143,7 +145,8 @@ export const useCustomers = () => {
       console.log('Created customer:', data);
       return {
         ...data,
-        phone: stripCountryCode(data.phone_number || '')
+        phone: stripCountryCode(data.phone_number || ''),
+        status: convertDbStatusToAppFormat(data.status)
       } as Customer;
     },
     onSuccess: () => {
@@ -160,6 +163,8 @@ export const useCustomers = () => {
       const formattedPhone = formatQatarPhoneNumber(customer.phone);
       console.log('Updating customer with formatted phone:', formattedPhone);
       
+      const dbStatus = convertAppStatusToDbFormat(customer.status);
+      
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .update({ 
@@ -170,7 +175,7 @@ export const useCustomers = () => {
           driver_license: customer.driver_license,
           nationality: customer.nationality,
           notes: customer.notes,
-          status: convertAppStatusToDbFormat(customer.status),
+          status: dbStatus,
           updated_at: new Date().toISOString() 
         })
         .eq('id', customer.id)
@@ -180,7 +185,8 @@ export const useCustomers = () => {
       
       return {
         ...data[0],
-        phone: stripCountryCode(data[0].phone_number || '')
+        phone: stripCountryCode(data[0].phone_number || ''),
+        status: convertDbStatusToAppFormat(data[0].status)
       } as Customer;
     },
     onSuccess: () => {
