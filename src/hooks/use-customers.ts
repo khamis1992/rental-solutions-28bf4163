@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +8,23 @@ import { CustomerStatus } from '@/types/customer';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
+
+// Convert app format status to database format
+const convertAppStatusToDbFormat = (appStatus: CustomerStatus): string => {
+  if (appStatus === 'pendingreview') return 'pending_review';
+  if (appStatus === 'pendingpayment') return 'pending_payment';
+  return appStatus; // 'active', 'inactive', 'blacklisted' are the same in both formats
+};
+
+// Convert database format status to app format
+const convertDbStatusToAppFormat = (dbStatus: string | null | undefined): CustomerStatus => {
+  if (!dbStatus) return 'active';
+  
+  if (dbStatus === 'pending_review') return 'pendingreview';
+  if (dbStatus === 'pending_payment') return 'pendingpayment';
+  
+  return dbStatus as CustomerStatus; // 'active', 'inactive', 'blacklisted' are the same in both formats
+};
 
 const formatQatarPhoneNumber = (phone: string): string => {
   const cleanPhone = phone.replace(/^\+974/, '').trim();
@@ -74,7 +92,7 @@ export const useCustomers = () => {
           nationality: profile.nationality || '',
           address: profile.address || '',
           notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+          status: convertDbStatusToAppFormat(profile.status || 'active'),
           created_at: profile.created_at,
           updated_at: profile.updated_at,
         }));
@@ -110,7 +128,7 @@ export const useCustomers = () => {
           driver_license: newCustomer.driver_license,
           nationality: newCustomer.nationality,
           notes: newCustomer.notes,
-          status: newCustomer.status || 'active',
+          status: convertAppStatusToDbFormat(newCustomer.status || 'active'),
           role: CUSTOMER_ROLE,
           created_at: new Date().toISOString() 
         }])
@@ -152,7 +170,7 @@ export const useCustomers = () => {
           driver_license: customer.driver_license,
           nationality: customer.nationality,
           notes: customer.notes,
-          status: customer.status,
+          status: convertAppStatusToDbFormat(customer.status),
           updated_at: new Date().toISOString() 
         })
         .eq('id', customer.id)
@@ -216,15 +234,6 @@ export const useCustomers = () => {
 
       console.log('Raw customer data from profiles:', data);
 
-      const convertStatusToAppFormat = (dbStatus: string | null | undefined): CustomerStatus => {
-        if (!dbStatus) return 'active';
-        
-        if (dbStatus === 'pending_review') return 'pendingreview';
-        if (dbStatus === 'pending_payment') return 'pendingpayment';
-        
-        return dbStatus as CustomerStatus;
-      };
-
       const customerData: Customer = {
         id: data.id,
         full_name: data.full_name || '',
@@ -234,7 +243,7 @@ export const useCustomers = () => {
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: convertStatusToAppFormat(data.status),
+        status: convertDbStatusToAppFormat(data.status),
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
