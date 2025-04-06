@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
@@ -94,7 +95,8 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           let vehicleModel: string | undefined = undefined;
           
           if (fine.vehicles) {
-            vehicleModel = `${fine.vehicles.make} ${fine.vehicles.model}`;
+            const vehicleInfo = fine.vehicles as VehicleInfo;
+            vehicleModel = `${vehicleInfo.make} ${vehicleInfo.model}`;
           }
 
           return {

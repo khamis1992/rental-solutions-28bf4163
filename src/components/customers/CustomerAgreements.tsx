@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -80,11 +81,7 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
           start_date: agreement.start_date,
           end_date: agreement.end_date,
           vehicle_id: agreement.vehicle_id,
-          vehicle: agreement.vehicles ? {
-            make: agreement.vehicles.make,
-            model: agreement.vehicles.model,
-            license_plate: agreement.vehicles.license_plate
-          } : undefined
+          vehicle: agreement.vehicles as Vehicle
         }));
         
         setAgreements(formattedAgreements);
