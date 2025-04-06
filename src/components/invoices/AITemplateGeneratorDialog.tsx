@@ -16,6 +16,13 @@ import { supabase } from '@/lib/supabase';
 import { TemplateVariable } from '@/utils/invoiceTemplateUtils';
 import { useTranslation } from 'next-i18next';
 import { useIsRTL } from '@/utils/rtl-utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 
 interface AITemplateGeneratorDialogProps {
