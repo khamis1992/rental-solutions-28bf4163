@@ -1,8 +1,10 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { CustomerStatus } from '@/types/customer';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
