@@ -82,46 +82,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     finesByCustomer[customerId].push(fine);
   });
   
-  // --- Enhanced Summary Section ---
-  // Apply colored background for summary section
-  doc.setFillColor(primaryColor);
-  doc.rect(14, currentY - 5, pageWidth - 28, 40, 'F');
-  
-  // Summary Title
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(255, 255, 255); // White text
-  doc.text('TRAFFIC FINES SUMMARY', pageWidth / 2, currentY, { align: 'center' });
-  currentY += 10;
-  
-  // Summary Statistics
-  doc.setFontSize(11);
-  doc.setTextColor(255, 255, 255); // White text
-  
-  const paidFines = fines.filter(f => f.paymentStatus === 'paid').length;
-  const pendingFines = fines.filter(f => f.paymentStatus === 'pending').length;
-  const disputedFines = fines.filter(f => f.paymentStatus === 'disputed').length;
-  const paidAmount = fines.filter(f => f.paymentStatus === 'paid').reduce((sum, f) => sum + f.fineAmount, 0);
-  const pendingAmount = fines.filter(f => f.paymentStatus === 'pending').reduce((sum, f) => sum + f.fineAmount, 0);
-  const totalAmount = fines.reduce((sum, f) => sum + f.fineAmount, 0);
-  
-  // Draw summary info
-  const leftColX = 25;
-  const rightColX = pageWidth - 25;
-  const midColX = pageWidth / 2;
-  
-  doc.text(`Total Fines: ${fines.length}`, leftColX, currentY);
-  doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, rightColX, currentY, { align: 'right' });
-  currentY += 8;
-  
-  doc.text(`Paid: ${paidFines} (${formatCurrency(paidAmount)})`, leftColX, currentY);
-  doc.text(`Pending: ${pendingFines} (${formatCurrency(pendingAmount)})`, midColX, currentY);
-  doc.text(`Disputed: ${disputedFines}`, rightColX, currentY, { align: 'right' });
-  
-  currentY += 20; // Space after summary box
-  
-  // Reset text color for the rest of the document
-  doc.setTextColor(textColor);
+  // REMOVED: Enhanced Summary Section (as requested by user)
   
   // If there are no fines, show a message
   if (fines.length === 0) {
@@ -134,63 +95,6 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     return doc;
   }
   
-  // --- Add fines grouped by customer with enhanced styling ---
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Customer Breakdown', 14, currentY);
-  currentY += 10;
-  
-  // Create a visualization of fine distribution by status
-  if (fines.length > 0) {
-    const chartWidth = pageWidth - 40;
-    const chartHeight = 15;
-    const chartX = 20;
-
-    // Draw status distribution chart
-    if (totalAmount > 0) {
-      const paidWidth = chartWidth * (paidAmount / totalAmount);
-      const pendingWidth = chartWidth * (pendingAmount / totalAmount);
-      const disputedWidth = chartWidth * ((totalAmount - paidAmount - pendingAmount) / totalAmount);
-      
-      // Draw chart bars
-      if (paidAmount > 0) {
-        doc.setFillColor(152, 251, 152); // Light green
-        doc.rect(chartX, currentY, paidWidth, chartHeight, 'F');
-      }
-      
-      if (pendingAmount > 0) {
-        doc.setFillColor(255, 215, 0); // Gold
-        doc.rect(chartX + paidWidth, currentY, pendingWidth, chartHeight, 'F');
-      }
-      
-      if (totalAmount - paidAmount - pendingAmount > 0) {
-        doc.setFillColor(255, 127, 127); // Light red
-        doc.rect(chartX + paidWidth + pendingWidth, currentY, disputedWidth, chartHeight, 'F');
-      }
-      
-      // Add chart legend
-      doc.setFontSize(8);
-      currentY += chartHeight + 10;
-      doc.setFont('helvetica', 'normal');
-      
-      // Legend entries
-      const legendX = pageWidth / 2 - 100;
-      doc.setFillColor(152, 251, 152);
-      doc.rect(legendX, currentY - 6, 10, 6, 'F');
-      doc.text("Paid", legendX + 15, currentY);
-      
-      doc.setFillColor(255, 215, 0);
-      doc.rect(legendX + 60, currentY - 6, 10, 6, 'F');
-      doc.text("Pending", legendX + 75, currentY);
-      
-      doc.setFillColor(255, 127, 127);
-      doc.rect(legendX + 140, currentY - 6, 10, 6, 'F');
-      doc.text("Disputed", legendX + 155, currentY);
-      
-      currentY += 15;
-    }
-  }
-
   // Process each customer's fines
   Object.entries(finesByCustomer).forEach(([customerId, customerFines], index) => {
     // Check if we need to add a new page
@@ -225,14 +129,13 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     doc.setFontSize(9);
     doc.setFont('helvetica', 'bold');
     
-    // Define column settings
+    // Define column settings - REMOVED Location column as requested
     const columns = [
-      { header: 'Violation #', width: 30 },
-      { header: 'Date', width: 25 },
-      { header: 'Location', width: 45 },
-      { header: 'Amount', width: 25, align: 'right' as const },
-      { header: 'Status', width: 25, align: 'center' as const },
-      { header: 'Payment Date', width: 30, align: 'center' as const }
+      { header: 'Violation #', width: 35 },
+      { header: 'Date', width: 30 },
+      { header: 'Amount', width: 30, align: 'right' as const },
+      { header: 'Status', width: 30, align: 'center' as const },
+      { header: 'Payment Date', width: 35, align: 'center' as const }
     ];
     
     // Calculate positions
@@ -273,6 +176,9 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     const customerPaidFines = customerFines.filter(f => f.paymentStatus === 'paid').length;
     const customerPendingFines = customerFines.filter(f => f.paymentStatus === 'pending').length;
     
+    // Increased row height for more spacing between rows (from 6 to 9)
+    const rowHeight = 9;
+    
     // Customer fine details with alternating row colors and status highlighting
     customerFines.forEach((fine, fineIndex) => {
       // Check if we need to add a new page
@@ -312,7 +218,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       // Row background (alternating)
       if (fineIndex % 2 === 0) {
         doc.setFillColor(252, 252, 252);
-        doc.rect(14, currentY - 3, pageWidth - 28, 6, 'F');
+        doc.rect(14, currentY - 3, pageWidth - 28, rowHeight, 'F');
       }
       
       // Highlight status with color for better visual cues
@@ -329,13 +235,13 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       }
       
       // Draw status background
-      const statusColIndex = 4;
+      const statusColIndex = 3; // Updated index since we removed location
       doc.setFillColor(statusFill);
       doc.rect(
         colPositions[statusColIndex], 
         currentY - 3, 
         columns[statusColIndex].width, 
-        6, 
+        rowHeight, 
         'F'
       );
       
@@ -346,18 +252,10 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       // Date
       doc.text(formatDate(fine.violationDate), colPositions[1] + 1, currentY + 1);
       
-      // Location (truncate if needed)
-      const location = fine.location || 'N/A';
-      doc.text(
-        location.length > 24 ? location.substring(0, 22) + '...' : location, 
-        colPositions[2] + 1, 
-        currentY + 1
-      );
-      
-      // Amount (right-aligned)
+      // Amount (right-aligned) - Moved up one position since location was removed
       doc.text(
         formatCurrency(fine.fineAmount), 
-        colPositions[3] + columns[3].width - 2, 
+        colPositions[2] + columns[2].width - 2, 
         currentY + 1, 
         { align: 'right' }
       );
@@ -365,7 +263,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       // Status (center-aligned)
       doc.text(
         fine.paymentStatus, 
-        colPositions[4] + columns[4].width/2, 
+        colPositions[3] + columns[3].width/2, 
         currentY + 1, 
         { align: 'center' }
       );
@@ -373,12 +271,13 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       // Payment date (center-aligned)
       doc.text(
         fine.paymentDate ? formatDate(fine.paymentDate) : '-', 
-        colPositions[5] + columns[5].width/2, 
+        colPositions[4] + columns[4].width/2, 
         currentY + 1, 
         { align: 'center' }
       );
       
-      currentY += 6;
+      // Increase current Y position by row height
+      currentY += rowHeight;
     });
     
     // Add customer total with styled background
