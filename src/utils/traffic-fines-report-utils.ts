@@ -230,9 +230,9 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       { header: 'Violation #', width: 30 },
       { header: 'Date', width: 25 },
       { header: 'Location', width: 45 },
-      { header: 'Amount', width: 25, align: 'right' },
-      { header: 'Status', width: 25, align: 'center' },
-      { header: 'Payment Date', width: 30, align: 'center' }
+      { header: 'Amount', width: 25, align: 'right' as const },
+      { header: 'Status', width: 25, align: 'center' as const },
+      { header: 'Payment Date', width: 30, align: 'center' as const }
     ];
     
     // Calculate positions
