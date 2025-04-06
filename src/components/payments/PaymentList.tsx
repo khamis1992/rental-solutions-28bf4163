@@ -1,15 +1,16 @@
+
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { Payment } from '@/types/payment'; // Updated to use the consistent Payment type
+import { Payment } from '@/types/payment';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
 import { useDateFormatter } from '@/lib/date-utils';
+import { ensureDate } from '@/lib/date-utils'; // Import the ensureDate helper function
 
 interface PaymentBadgeProps {
   status: string;
@@ -42,18 +43,21 @@ const PaymentBadge: React.FC<PaymentBadgeProps> = ({ status }) => {
   );
 };
 
+// Update the formatPaymentDate function to use the ensureDate helper
 const formatPaymentDate = (date: string | Date): string => {
+  const validDate = ensureDate(date);
+  if (!validDate) return 'Invalid Date';
+  
   try {
-    if (typeof date === 'string') {
-      return format(new Date(date), 'MMM dd, yyyy');
-    } else {
-      return format(date, 'MMM dd, yyyy');
-    }
+    return formatDate(validDate, 'MMM dd, yyyy');
   } catch (error) {
     console.error("Error formatting date:", error);
     return 'Invalid Date';
   }
 };
+
+// Import the formatDate function from date-fns to use in the component
+import { format as formatDate } from 'date-fns';
 
 interface PaymentListProps {
   payments: Payment[];
@@ -149,7 +153,7 @@ export const PaymentList = ({
               normalizedPayments.map((payment) => (
                 <TableRow key={payment.id} className="border-b dark:border-gray-700">
                   <TableCell className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                    {formatDate(payment.payment_date, 'MMM dd, yyyy')}
+                    {formatDate(ensureDate(payment.payment_date) || new Date(), 'MMM dd, yyyy')}
                   </TableCell>
                   <TableCell className="px-6 py-4">{formatCurrency(payment.amount)}</TableCell>
                   <TableCell className="px-6 py-4">{payment.payment_method || 'N/A'}</TableCell>

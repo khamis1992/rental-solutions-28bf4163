@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   AlertDialog,
@@ -10,14 +11,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { CarInstallmentContract } from '@/lib/validation-schemas/car-installment';
 import { PaymentHistoryTable } from '@/components/payments/PaymentHistoryTable';
-import { ContractPayment } from '@/types/payment';
+import { CarInstallmentPayment } from '@/types/payment';
 
 interface ContractDetailDialogProps {
   open: boolean;
@@ -34,7 +35,7 @@ export function ContractDetailDialog({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedNotes, setEditedNotes] = useState('');
-  const [paymentHistory, setPaymentHistory] = useState<ContractPayment[] | null>(null);
+  const [paymentHistory, setPaymentHistory] = useState<CarInstallmentPayment[] | null>(null);
 
   useEffect(() => {
     if (contract) {
@@ -62,7 +63,7 @@ export function ContractDetailDialog({
     if (!contract || !paymentHistory) return null;
 
     // Ensure the payments are typed correctly
-    const contractPayments: ContractPayment[] = paymentHistory.map(payment => ({
+    const contractPayments: CarInstallmentPayment[] = paymentHistory.map(payment => ({
       ...payment,
       payment_number: payment.payment_number || '',
       due_date: payment.due_date || new Date()
