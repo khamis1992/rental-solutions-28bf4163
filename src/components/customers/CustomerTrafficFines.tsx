@@ -19,6 +19,11 @@ interface CustomerTrafficFinesProps {
   customerId: string;
 }
 
+interface VehicleInfo {
+  make: string;
+  model: string;
+}
+
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
   const { t } = useTranslation();
   const [fines, setFines] = useState<TrafficFine[]>([]);
@@ -86,10 +91,10 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             
         // Transform the data to match the TrafficFine interface
         const formattedFines = (trafficFines || []).map(fine => {
-          // Safely access vehicle data which might be null
+          // Safely access vehicle data
           let vehicleModel: string | undefined = undefined;
+          
           if (fine.vehicles) {
-            // Access as a singular object, not an array
             vehicleModel = `${fine.vehicles.make} ${fine.vehicles.model}`;
           }
 

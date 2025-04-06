@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatDate } from '@/lib/date-utils';
@@ -115,10 +116,10 @@ export function AgreementDetail({
               <div className="text-muted-foreground">
                 <div className="flex items-center">
                   <Car className="h-4 w-4 mr-2" />
-                  <span>{t('agreements.vehicle')}: {agreement.vehicle_make} {agreement.vehicle_model}</span>
+                  <span>{t('agreements.vehicle')}: {agreement.vehicle?.make} {agreement.vehicle?.model}</span>
                 </div>
                 <div className="flex items-center">
-                  <span>{t('agreements.licensePlate')}: {agreement.license_plate}</span>
+                  <span>{t('agreements.licensePlate')}: {agreement.vehicle?.license_plate}</span>
                 </div>
               </div>
             </div>

@@ -40,7 +40,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { reconcilePaymentSchema } from '@/lib/validation-schemas/payment';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -62,10 +61,12 @@ export interface Payment {
   description: string;
   transaction_id: string;
   balance: number;
-  late_fine_amount: number;
-  daily_late_fee: number;
-  original_due_date: string;
-  days_overdue: number;
+  late_fine_amount?: number;
+  daily_late_fee?: number;
+  original_due_date?: string | null;
+  days_overdue?: number;
+  notes?: string;
+  reference_number?: string | null;
 }
 
 interface PaymentHistoryProps {
@@ -180,11 +181,7 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
 
   const handleReconcilePayments = async (data: PaymentFormValues) => {
     if (!agreement) {
-      toast({
-        title: 'Error',
-        description: 'Agreement details not loaded. Please try again.',
-        variant: 'destructive',
-      });
+      toast.error('Agreement details not loaded. Please try again.');
       return;
     }
 
@@ -199,18 +196,11 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
       );
 
       onPaymentsUpdated(updatedPayments);
-      toast({
-        title: 'Success',
-        description: 'Payment recorded successfully!',
-      });
+      toast.success('Payment recorded successfully!');
       handleCloseCreatePaymentDialog();
     } catch (error) {
       console.error('Error during payment reconciliation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to record payment. Please try again.',
-        variant: 'destructive',
-      });
+      toast.error('Failed to record payment. Please try again.');
     } finally {
       setIsReconciling(false);
     }

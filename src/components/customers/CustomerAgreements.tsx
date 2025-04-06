@@ -13,6 +13,12 @@ import { Car, Clock, Calendar, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useNavigate } from 'react-router-dom';
 
+interface Vehicle {
+  make: string;
+  model: string;
+  license_plate: string;
+}
+
 interface Agreement {
   id: string;
   agreement_number: string;
@@ -21,11 +27,7 @@ interface Agreement {
   start_date: string;
   end_date: string;
   vehicle_id: string;
-  vehicle?: {
-    make: string;
-    model: string;
-    license_plate: string;
-  };
+  vehicle?: Vehicle;
 }
 
 interface CustomerAgreementsProps {
