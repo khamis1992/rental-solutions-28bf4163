@@ -13,14 +13,26 @@ export function useOptimizedQuery<T>(
   queryFn: () => Promise<T>,
   options?: UseQueryOptions<T>
 ) {
-  const requestCache = useRef(new Map<string, Promise<T>>());
+  const requestCache = useRef(new Map<string, { data: T; timestamp: number }>());
   const retryCount = useRef(0);
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
   
+  const clearStaleCache = useCallback(() => {
+    const now = Date.now();
+    Array.from(requestCache.current.entries()).forEach(([key, value]) => {
+      if (now - value.timestamp > CACHE_TTL) {
+        requestCache.current.delete(key);
+      }
+    });
+  }, []);
+
   useEffect(() => {
+    const interval = setInterval(clearStaleCache, CACHE_TTL);
     return () => {
+      clearInterval(interval);
       requestCache.current.clear();
     };
-  }, []);
+  }, [clearStaleCache]);
 
   const retryWithDelay = useCallback(async (error: Error): Promise<T> => {
     if (retryCount.current >= MAX_RETRIES) {

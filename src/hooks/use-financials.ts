@@ -52,15 +52,20 @@ export function useFinancials() {
     searchQuery: '',
   });
   
-  // Add cache configuration
+  // Add cache configuration with optimized settings
   const queryConfig = {
     staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
     cacheTime: 1000 * 60 * 30, // Cache retained for 30 minutes
     refetchOnWindowFocus: false,
     retry: 2,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
   };
 
-  const [filters, setFilters] = useState({
+  const debouncedSetFilters = useCallback(
+    debounce((newFilters) => setFilters(newFilters), 300),
+    []
+  );
     transactionType: '',
     category: '',
     dateFrom: '',

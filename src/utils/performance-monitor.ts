@@ -1,4 +1,3 @@
-
 import { toast } from '@/components/ui/use-toast';
 
 interface PerformanceMetric {
@@ -15,7 +14,10 @@ export class PerformanceMonitor {
   private static readonly PERFORMANCE_THRESHOLD = 1000; // 1 second
   private static readonly METRICS_LIMIT = 100; // Prevent memory leaks
   private static readonly MEMORY_THRESHOLD = 100 * 1024 * 1024; // 100MB threshold
-  
+  private static readonly FPS_THRESHOLD = 30;
+  private static readonly LONG_TASK_THRESHOLD = 50; // ms
+  private static readonly metrics_buffer = new Map<string, number[]>();
+
   private static trimMetrics(name: string) {
     const metrics = this.metrics.get(name) || [];
     if (metrics.length > this.METRICS_LIMIT) {
@@ -23,16 +25,16 @@ export class PerformanceMonitor {
       this.metrics.set(name, metrics);
     }
   }
-  
+
   static startMeasure(name: string) {
     performance.mark(name + '_start');
   }
-  
+
   static endMeasure(name: string) {
     try {
       performance.mark(name + '_end');
       performance.measure(name, name + '_start', name + '_end');
-      
+
       // Track layout shifts
       if ('web-vital' in performance) {
         const observer = new PerformanceObserver((list) => {
@@ -44,7 +46,7 @@ export class PerformanceMonitor {
         });
         observer.observe({ entryTypes: ['layout-shift'] });
       }
-      
+
       // Monitor long tasks
       const longTaskObserver = new PerformanceObserver((list) => {
         list.getEntries().forEach((entry) => {
@@ -54,7 +56,7 @@ export class PerformanceMonitor {
         });
       });
       longTaskObserver.observe({ entryTypes: ['longtask'] });
-      
+
       const measure = performance.getEntriesByName(name).pop();
       if (measure) {
         // Track metrics
@@ -107,5 +109,26 @@ export class PerformanceMonitor {
     } else {
       this.metrics.clear();
     }
+  }
+
+  private static measureFPS() {
+    let frameCount = 0;
+    let lastTime = performance.now();
+
+    const countFrame = () => {
+      frameCount++;
+      const currentTime = performance.now();
+      if (currentTime - lastTime >= 1000) {
+        const fps = frameCount;
+        if (fps < this.FPS_THRESHOLD) {
+          console.warn(`Low FPS detected: ${fps}`);
+        }
+        frameCount = 0;
+        lastTime = currentTime;
+      }
+      requestAnimationFrame(countFrame);
+    };
+
+    requestAnimationFrame(countFrame);
   }
 }

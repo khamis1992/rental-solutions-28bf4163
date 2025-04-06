@@ -1,19 +1,36 @@
-import * as React from "react"
 
-const MOBILE_BREAKPOINT = 768
+import * as React from "react"
+import { debounce } from 'lodash';
+
+const MOBILE_BREAKPOINT = 768;
+const DEBOUNCE_DELAY = 150;
 
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+  const [isMobile, setIsMobile] = React.useState<boolean>(() => 
+    typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
+  );
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+    const handleResize = debounce(() => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    }, DEBOUNCE_DELAY);
 
-  return !!isMobile
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
+    if (mql.addEventListener) {
+      mql.addEventListener('change', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      handleResize.cancel();
+      if (mql.removeEventListener) {
+        mql.removeEventListener('change', handleResize);
+      } else {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
+
+  return isMobile;
 }
