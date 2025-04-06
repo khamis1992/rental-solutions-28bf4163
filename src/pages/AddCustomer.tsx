@@ -7,10 +7,12 @@ import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
 
 const AddCustomer = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { isRTL } = useAppTranslation();
   const { createCustomer } = useCustomers();
   const [isSubmitting, setIsSubmitting] = useState(false);
 

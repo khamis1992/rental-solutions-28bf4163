@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useRef } from "react";
+import { useTranslation as useAppTranslation } from "@/contexts/TranslationContext";
+import { getDirectionalClasses } from "@/utils/rtl-utils";
 
 interface CustomerFormProps {
   initialData?: Customer;
@@ -33,6 +35,7 @@ interface CustomerFormProps {
 
 export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormProps) {
   const { t } = useTranslation();
+  const { isRTL } = useAppTranslation();
   const navigate = useNavigate();
   const formInitialized = useRef(false);
   
@@ -73,7 +76,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={`space-y-6 max-w-2xl ${isRTL ? 'text-right' : 'text-left'}`}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -110,7 +113,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
               <FormItem>
                 <FormLabel>{t('customers.phoneNumber')}</FormLabel>
                 <FormControl>
-                  <Input placeholder="33123456" {...field} value={field.value || ''} />
+                  <Input placeholder={t('common.phone')} {...field} value={field.value || ''} />
                 </FormControl>
                 <FormDescription>
                   {t('customers.phoneNumber')}
@@ -160,7 +163,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
                       <SelectValue placeholder={t('customers.selectStatus')} />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent align={isRTL ? "end" : "start"}>
                     <SelectItem value="active">{t('customers.status.active')}</SelectItem>
                     <SelectItem value="inactive">{t('customers.status.inactive')}</SelectItem>
                     <SelectItem value="blacklisted">{t('customers.status.blacklisted')}</SelectItem>
@@ -168,7 +171,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
                   </SelectContent>
                 </Select>
                 <FormDescription>
-                  {t('customers.status')}
+                  {t('common.status')}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -204,7 +207,7 @@ export function CustomerForm({ initialData, onSubmit, isLoading }: CustomerFormP
           )}
         />
         
-        <div className="flex items-center justify-end space-x-4">
+        <div className={`flex items-center ${isRTL ? 'justify-start flex-row-reverse' : 'justify-end'} space-x-4 ${isRTL ? 'space-x-reverse' : ''}`}>
           <Button
             type="button"
             variant="outline"
