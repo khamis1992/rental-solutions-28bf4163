@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { TemplateVariable } from '@/utils/invoiceTemplateUtils';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useIsRTL } from '@/utils/rtl-utils';
 
 
