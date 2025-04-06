@@ -70,11 +70,13 @@ export function useFinancials() {
     debounce((newFilters) => setFilters(newFilters), 300),
     []
   );
+
+  const [filters, setFilters] = useState({
     transactionType: '',
     category: '',
     dateFrom: '',
     dateTo: '',
-    searchQuery: '',
+    searchQuery: ''
   });
 
   const [expenseFilters, setExpenseFilters] = useState({
