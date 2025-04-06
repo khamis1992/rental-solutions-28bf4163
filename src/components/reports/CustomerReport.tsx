@@ -31,7 +31,7 @@ const CustomerReport = () => {
   const activeCustomers = customers.filter(customer => customer.status === 'active').length;
   const inactiveCustomers = customers.filter(customer => customer.status === 'inactive').length;
   const blacklistedCustomers = customers.filter(customer => customer.status === 'blacklisted').length;
-  const pendingCustomers = customers.filter(customer => customer.status === 'pending_review').length;
+  const pendingCustomers = customers.filter(customer => customer.status === 'pendingreview').length;
 
   // Prepare data for customer segments chart
   const customerSegmentData = [{
@@ -211,10 +211,17 @@ const CustomerStatusBadge = ({
     'active': 'bg-green-100 text-green-800',
     'inactive': 'bg-gray-100 text-gray-800',
     'blacklisted': 'bg-red-100 text-red-800',
-    'pending_review': 'bg-purple-100 text-purple-800'
+    'pendingreview': 'bg-purple-100 text-purple-800',
+    'pendingpayment': 'bg-orange-100 text-orange-800'
   };
+  
+  // Format status for display
+  const displayStatus = status === 'pendingreview' ? 'pending review' : 
+                        status === 'pendingpayment' ? 'pending payment' : 
+                        status;
+  
   return <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-      {status.replace('_', ' ')}
+      {displayStatus}
     </Badge>;
 };
 export default CustomerReport;
