@@ -83,7 +83,8 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
             if (Array.isArray(agreement.vehicles)) {
               // It's an array, take the first item if it exists
               if (agreement.vehicles.length > 0) {
-                const firstVehicle = agreement.vehicles[0];
+                // Use type assertion to tell TypeScript this is a valid object with the expected properties
+                const firstVehicle = agreement.vehicles[0] as any;
                 vehicleData = {
                   make: firstVehicle.make,
                   model: firstVehicle.model,
@@ -91,11 +92,12 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
                 };
               }
             } else {
-              // It's a direct object
+              // It's a direct object, use type assertion
+              const vehicleObj = agreement.vehicles as any;
               vehicleData = {
-                make: agreement.vehicles.make,
-                model: agreement.vehicles.model,
-                license_plate: agreement.vehicles.license_plate
+                make: vehicleObj.make,
+                model: vehicleObj.model,
+                license_plate: vehicleObj.license_plate
               };
             }
           }

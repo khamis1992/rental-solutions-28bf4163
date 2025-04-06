@@ -101,9 +101,11 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             if (Array.isArray(fine.vehicles)) {
               // It's an array, use the first element if it exists
               if (fine.vehicles.length > 0) {
+                // Use type assertion to tell TypeScript this is a valid object
+                const firstVehicle = fine.vehicles[0] as any;
                 vehicleInfo = {
-                  make: fine.vehicles[0].make,
-                  model: fine.vehicles[0].model
+                  make: firstVehicle.make,
+                  model: firstVehicle.model
                 };
               } else {
                 // Empty array, set default values
@@ -113,10 +115,11 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                 };
               }
             } else {
-              // It's a direct object
+              // It's a direct object, use type assertion
+              const vehicleObj = fine.vehicles as any;
               vehicleInfo = {
-                make: fine.vehicles.make,
-                model: fine.vehicles.model
+                make: vehicleObj.make,
+                model: vehicleObj.model
               };
             }
             
