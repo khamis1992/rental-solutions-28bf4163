@@ -20,12 +20,48 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const compressImage = async (file: File): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d')!;
+        const maxWidth = 1200;
+        const maxHeight = 1200;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxWidth) {
+            height *= maxWidth / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width *= maxHeight / height;
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(img.src);
+          resolve(blob!);
+        }, 'image/jpeg', 0.8);
+      };
+    });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     handleFile(file);
   };
 
-  const handleFile = (file: File | null) => {
+  const handleFile = async (file: File | null) => {
     setErrorMessage(null);
     setIsLoading(true);
 
@@ -47,12 +83,13 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       }
 
       try {
-        // Create preview URL
-        const url = URL.createObjectURL(file);
+        const optimizedImage = await compressImage(file);
+        // Create preview URL from optimized image
+        const url = URL.createObjectURL(optimizedImage);
         setPreviewUrl(url);
 
-        // Pass the file back to parent component
-        onImageSelected(file);
+        // Pass the optimized file back to parent component
+        onImageSelected(new File([optimizedImage], file.name, { type: 'image/jpeg' }));
         setIsLoading(false);
       } catch (error) {
         console.error('Error creating object URL:', error);

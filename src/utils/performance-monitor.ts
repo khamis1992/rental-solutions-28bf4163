@@ -1,8 +1,17 @@
 
 import { toast } from '@/components/ui/use-toast';
 
+interface PerformanceMetric {
+  duration: number;
+  timestamp: number;
+  memoryUsage?: number;
+}
+
 export class PerformanceMonitor {
-  private static metrics = new Map<string, number[]>();
+  private static metrics = new Map<string, PerformanceMetric[]>();
+  private static readonly MEMORY_THRESHOLD = 100 * 1024 * 1024; // 100MB
+  private static readonly PERFORMANCE_THRESHOLD = 1000; // 1 second
+  private static readonly METRICS_HISTORY_LIMIT = 100;
   private static readonly PERFORMANCE_THRESHOLD = 1000; // 1 second
   private static readonly METRICS_LIMIT = 100; // Prevent memory leaks
   private static readonly MEMORY_THRESHOLD = 100 * 1024 * 1024; // 100MB threshold

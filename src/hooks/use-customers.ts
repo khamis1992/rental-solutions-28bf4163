@@ -3,17 +3,19 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { useOptimizedQuery } from './use-optimized-query';
+import { PerformanceMonitor } from '@/utils/performance-monitor';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
 
 const formatQatarPhoneNumber = (phone: string): string => {
   const cleanPhone = phone.replace(/^\+974/, '').trim();
-  
+
   if (/^[3-9]\d{7}$/.test(cleanPhone)) {
     return `+974${cleanPhone}`;
   }
-  
+
   return phone;
 };
 
@@ -36,60 +38,62 @@ export const useCustomers = () => {
     isLoading, 
     error,
     refetch
-  } = useQuery({
+  } = useOptimizedQuery(['customers', searchParams], async () => {
+    PerformanceMonitor.startMeasure('customer_data_load');
+
+    console.log('Fetching customers with params:', searchParams);
+
+    try {
+      let query = supabase
+        .from(PROFILES_TABLE)
+        .select('*')
+        .eq('role', CUSTOMER_ROLE)
+        .order('created_at', { ascending: false });
+
+      if (searchParams.status !== 'all' && searchParams.status) {
+        query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
+      }
+
+      if (searchParams.query) {
+        query = query.or(
+          `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone_number.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
+        );
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Supabase query error:', error);
+        throw new Error(error.message);
+      }
+
+      console.log('Raw customer data from profiles table:', data);
+
+      const processedCustomers = (data || []).map(profile => ({
+        id: profile.id,
+        full_name: profile.full_name || '',
+        email: profile.email || '',
+        phone: stripCountryCode(profile.phone_number || ''),
+        driver_license: profile.driver_license || '',
+        nationality: profile.nationality || '',
+        address: profile.address || '',
+        notes: profile.notes || '',
+        status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+        created_at: profile.created_at,
+        updated_at: profile.updated_at,
+      }));
+
+      console.log('Processed customers from profiles:', processedCustomers);
+      PerformanceMonitor.endMeasure('customer_data_load');
+      return processedCustomers as Customer[];
+    } catch (catchError) {
+      console.error('Unexpected error in customer fetch:', catchError);
+      PerformanceMonitor.endMeasure('customer_data_load');
+      return [];
+    }
+  }, {
     keepPreviousData: true,
     staleTime: 1000 * 60 * 5,
-    queryKey: ['customers', searchParams],
-    queryFn: async () => {
-      console.log('Fetching customers with params:', searchParams);
-      
-      try {
-        let query = supabase
-          .from(PROFILES_TABLE)
-          .select('*')
-          .eq('role', CUSTOMER_ROLE)
-          .order('created_at', { ascending: false });
-
-        if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
-        }
-
-        if (searchParams.query) {
-          query = query.or(
-            `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone_number.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
-          );
-        }
-
-        const { data, error } = await query;
-        
-        if (error) {
-          console.error('Supabase query error:', error);
-          throw new Error(error.message);
-        }
-        
-        console.log('Raw customer data from profiles table:', data);
-        
-        const processedCustomers = (data || []).map(profile => ({
-          id: profile.id,
-          full_name: profile.full_name || '',
-          email: profile.email || '',
-          phone: stripCountryCode(profile.phone_number || ''),
-          driver_license: profile.driver_license || '',
-          nationality: profile.nationality || '',
-          address: profile.address || '',
-          notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
-        }));
-        
-        console.log('Processed customers from profiles:', processedCustomers);
-        return processedCustomers as Customer[];
-      } catch (catchError) {
-        console.error('Unexpected error in customer fetch:', catchError);
-        return [];
-      }
-    },
     initialData: []
   });
 
@@ -100,10 +104,10 @@ export const useCustomers = () => {
   const createCustomer = useMutation({
     mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
       console.log('Creating new customer with data:', newCustomer);
-      
+
       const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
       console.log('Formatted phone number:', formattedPhone);
-      
+
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .insert([{ 
@@ -125,7 +129,7 @@ export const useCustomers = () => {
         console.error('Error creating customer:', error);
         throw new Error(error.message);
       }
-      
+
       console.log('Created customer:', data);
       return {
         ...data,
@@ -145,7 +149,7 @@ export const useCustomers = () => {
     mutationFn: async (customer: Customer) => {
       const formattedPhone = formatQatarPhoneNumber(customer.phone);
       console.log('Updating customer with formatted phone:', formattedPhone);
-      
+
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .update({ 
@@ -163,7 +167,7 @@ export const useCustomers = () => {
         .select();
 
       if (error) throw new Error(error.message);
-      
+
       return {
         ...data[0],
         phone: stripCountryCode(data[0].phone_number || '')
@@ -200,7 +204,7 @@ export const useCustomers = () => {
   const getCustomer = async (id: string): Promise<Customer | null> => {
     try {
       console.log('Fetching customer with ID:', id);
-      
+
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .select('*')
@@ -233,7 +237,7 @@ export const useCustomers = () => {
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
-      
+
       return customerData;
     } catch (error) {
       console.error('Unexpected error fetching customer:', error);
