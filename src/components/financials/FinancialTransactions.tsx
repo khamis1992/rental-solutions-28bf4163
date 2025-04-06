@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+
+import React, { useState } from 'react';
 import { 
   Table, 
   TableBody, 
@@ -53,7 +54,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { FinancialTransaction } from '@/hooks/use-financials';
 import { format } from 'date-fns';
-import { useVirtualizer } from '@tanstack/react-virtual';
 
 interface FinancialTransactionsProps {
   transactions: FinancialTransaction[];
@@ -86,7 +86,6 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
   filters,
   setFilters
 }) => {
-  const parentRef = useRef<HTMLDivElement>(null);
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters(prev => ({ ...prev, searchQuery: e.target.value }));
   };
@@ -131,13 +130,6 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
       <Download className="h-4 w-4 text-green-500" /> : 
       <Upload className="h-4 w-4 text-red-500" />;
   };
-
-  const rowVirtualizer = useVirtualizer({
-    count: transactions.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 64,
-    overscan: 5,
-  });
 
   if (isLoading) {
     return (
@@ -195,7 +187,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                 />
               </div>
             </div>
-
+            
             <div className="w-full sm:w-auto">
               <Select value={filters.transactionType} onValueChange={handleTypeChange}>
                 <SelectTrigger className="w-[180px]">
@@ -208,7 +200,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                 </SelectContent>
               </Select>
             </div>
-
+            
             <div className="w-full sm:w-auto">
               <Select value={filters.category} onValueChange={handleCategoryChange}>
                 <SelectTrigger className="w-[180px]">
@@ -224,7 +216,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                 </SelectContent>
               </Select>
             </div>
-
+            
             <div className="w-full sm:w-auto">
               <Popover>
                 <PopoverTrigger asChild>
@@ -243,7 +235,7 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                 </PopoverContent>
               </Popover>
             </div>
-
+            
             <div className="w-full sm:w-auto">
               <Popover>
                 <PopoverTrigger asChild>
@@ -263,8 +255,8 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
               </Popover>
             </div>
           </div>
-
-          <div ref={parentRef} className="rounded-md border max-h-[600px] overflow-auto">
+          
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -285,63 +277,48 @@ const FinancialTransactions: React.FC<FinancialTransactionsProps> = ({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  <div
-                    style={{
-                      height: `${rowVirtualizer.getTotalSize()}px`,
-                      width: '100%',
-                      position: 'relative',
-                    }}
-                  >
-                    {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                      const transaction = transactions[virtualRow.index];
-                      return (
-                        <TableRow key={transaction.id} style={{
-                          position: 'absolute',
-                          top: `${virtualRow.start}px`,
-                          height: `${virtualRow.size}px`
-                        }}>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {getTypeIcon(transaction.type)}
-                              <span className="ml-2 capitalize">{transaction.type}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(transaction.date), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell>{transaction.description}</TableCell>
-                          <TableCell>{transaction.category}</TableCell>
-                          <TableCell className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                            {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
-                          </TableCell>
-                          <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Open menu</span>
-                                  <MoreVertical className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => onEditTransaction?.(transaction.id)}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  <span>Edit</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => onDeleteTransaction?.(transaction.id)}
-                                  className="text-red-600"
-                                >
-                                  <Trash className="mr-2 h-4 w-4" />
-                                  <span>Delete</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </div>
+                  transactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        <div className="flex items-center">
+                          {getTypeIcon(transaction.type)}
+                          <span className="ml-2 capitalize">{transaction.type}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(transaction.date), 'MMM d, yyyy')}
+                      </TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell>{transaction.category}</TableCell>
+                      <TableCell className={`font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                        {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                      </TableCell>
+                      <TableCell>{getStatusBadge(transaction.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => onEditTransaction?.(transaction.id)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Edit</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => onDeleteTransaction?.(transaction.id)}
+                              className="text-red-600"
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>

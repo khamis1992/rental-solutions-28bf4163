@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image, AlertCircle, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -20,53 +21,15 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const imageCache = new Map<string, string>();
-
-  const compressImage = async (file: File): Promise<Blob> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d')!;
-        const maxWidth = 1200;
-        const maxHeight = 1200;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxWidth) {
-            height *= maxWidth / width;
-            width = maxWidth;
-          }
-        } else {
-          if (height > maxHeight) {
-            width *= maxHeight / height;
-            height = maxHeight;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob((blob) => {
-          URL.revokeObjectURL(img.src);
-          resolve(blob!);
-        }, 'image/jpeg', 0.8);
-      };
-    });
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     handleFile(file);
   };
 
-  const handleFile = async (file: File | null) => {
+  const handleFile = (file: File | null) => {
     setErrorMessage(null);
     setIsLoading(true);
-
+    
     if (file) {
       // Check file type
       if (!file.type.startsWith('image/')) {
@@ -75,7 +38,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         setIsLoading(false);
         return;
       }
-
+      
       // Check file size (limit to 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setErrorMessage('File size should be less than 5MB');
@@ -83,23 +46,14 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         setIsLoading(false);
         return;
       }
-
+      
       try {
-        const cacheKey = await generateFileHash(file);
-        if (imageCache.has(cacheKey)) {
-          setPreviewUrl(imageCache.get(cacheKey));
-          setIsLoading(false);
-          return;
-        }
-
-        const optimizedImage = await compressImage(file);
-        // Create preview URL from optimized image
-        const url = URL.createObjectURL(optimizedImage);
+        // Create preview URL
+        const url = URL.createObjectURL(file);
         setPreviewUrl(url);
-        imageCache.set(cacheKey, url); // Add to cache
-
-        // Pass the optimized file back to parent component
-        onImageSelected(new File([optimizedImage], file.name, { type: 'image/jpeg' }));
+        
+        // Pass the file back to parent component
+        onImageSelected(file);
         setIsLoading(false);
       } catch (error) {
         console.error('Error creating object URL:', error);
@@ -114,14 +68,6 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
     }
   };
 
-  async function generateFileHash(file: File): Promise<string> {
-    const buffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    return Array.from(new Uint8Array(hashBuffer))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-  }
-
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
@@ -135,7 +81,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-
+    
     const file = e.dataTransfer.files?.[0] || null;
     handleFile(file);
   };
@@ -175,7 +121,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         accept="image/*"
         className="hidden"
       />
-
+      
       {isLoading ? (
         <div className="py-12 flex flex-col items-center">
           <Loader2 className="h-12 w-12 text-primary animate-spin mb-3" />
@@ -187,16 +133,6 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
             src={previewUrl} 
             alt="Vehicle preview" 
             className="mx-auto max-h-64 rounded-md object-contain"
-            loading="lazy"
-            decoding="async"
-            onLoad={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.style.opacity = '1';
-            }}
-            style={{
-              opacity: '0',
-              transition: 'opacity 0.3s ease-in-out',
-            }}
           />
           <CustomButton
             type="button"
@@ -227,7 +163,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
           <p className="text-xs text-muted-foreground mt-3">
             JPG, PNG or WEBP (max. 5MB)
           </p>
-
+          
           {errorMessage && (
             <div className="mt-3 flex items-center text-red-500 text-sm">
               <AlertCircle className="h-4 w-4 mr-1" />

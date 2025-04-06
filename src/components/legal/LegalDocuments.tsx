@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { 
   Card, 
   CardContent, 
@@ -26,10 +26,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { MoreVertical, Plus, FileText, Search, Download, Eye } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { lazy, Suspense } from 'react';
-
-const DocumentViewer = lazy(() => import('./DocumentViewer'));
 
 const MOCK_DOCUMENTS = [
   { 
@@ -76,24 +72,12 @@ const MOCK_DOCUMENTS = [
 
 const LegalDocuments = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const parentRef = useRef(null);
-
+  
   const filteredDocuments = MOCK_DOCUMENTS.filter(doc => 
     doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
     doc.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const rowVirtualizer = useVirtualizer({
-    count: filteredDocuments.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 64,
-    overscan: 3,
-    initialRect: { width: 0, height: 800 },
-    lanes: 1,
-    enableSmoothScroll: true,
-  });
-
 
   return (
     <div className="space-y-6">
@@ -123,8 +107,8 @@ const LegalDocuments = () => {
               />
             </div>
           </div>
-
-          <div className="rounded-md border" ref={parentRef}>
+          
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -137,26 +121,26 @@ const LegalDocuments = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rowVirtualizer.getVirtualItems().map((virtualRow) => (
-                  <Suspense key={virtualRow.index} fallback={<TableRow><TableCell colSpan={6} className="h-24 text-center">Loading...</TableCell></TableRow>}>
-                    <TableRow >
+                {filteredDocuments.length > 0 ? (
+                  filteredDocuments.map((doc) => (
+                    <TableRow key={doc.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center">
                           <FileText className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {filteredDocuments[virtualRow.index].title}
+                          {doc.title}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell capitalize">{filteredDocuments[virtualRow.index].category}</TableCell>
-                      <TableCell className="hidden md:table-cell capitalize">{filteredDocuments[virtualRow.index].type}</TableCell>
-                      <TableCell className="hidden md:table-cell">{formatDate(filteredDocuments[virtualRow.index].lastUpdated)}</TableCell>
+                      <TableCell className="hidden md:table-cell capitalize">{doc.category}</TableCell>
+                      <TableCell className="hidden md:table-cell capitalize">{doc.type}</TableCell>
+                      <TableCell className="hidden md:table-cell">{formatDate(doc.lastUpdated)}</TableCell>
                       <TableCell>
                         <Badge 
                           variant={
-                            filteredDocuments[virtualRow.index].status === 'active' ? 'default' : 
-                            filteredDocuments[virtualRow.index].status === 'draft' ? 'outline' : 'secondary'
+                            doc.status === 'active' ? 'default' : 
+                            doc.status === 'draft' ? 'outline' : 'secondary'
                           }
                         >
-                          {filteredDocuments[virtualRow.index].status}
+                          {doc.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -177,9 +161,8 @@ const LegalDocuments = () => {
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  </Suspense>
-                ))}
-                {filteredDocuments.length === 0 && (
+                  ))
+                ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="h-24 text-center">
                       No documents found.

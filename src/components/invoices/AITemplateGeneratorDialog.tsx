@@ -1,20 +1,20 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { TemplateVariable } from '@/utils/invoiceTemplateUtils';
-import { useTranslation } from '@/contexts/TranslationContext';
-import { useIsRTL } from '@/contexts/TranslationContext';
-
 
 interface AITemplateGeneratorDialogProps {
   open: boolean;
@@ -24,22 +24,21 @@ interface AITemplateGeneratorDialogProps {
   templateType: string;
 }
 
-export function AITemplateGeneratorDialog({
+const AITemplateGeneratorDialog: React.FC<AITemplateGeneratorDialogProps> = ({
   open,
   onOpenChange,
   onTemplateGenerated,
   variables,
-  templateType
-}: AITemplateGeneratorDialogProps) {
-  const { t } = useTranslation();
-  const isRTL = useIsRTL();
+  templateType,
+}) => {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
-
+      
+      // Call our edge function
       const { data, error } = await supabase.functions.invoke('generate-template', {
         body: {
           prompt,
@@ -47,21 +46,21 @@ export function AITemplateGeneratorDialog({
           variables,
         },
       });
-
+      
       if (error) {
         throw new Error(error.message);
       }
-
+      
       if (data?.template) {
         onTemplateGenerated(data.template);
         onOpenChange(false);
-        toast.success(t('common:templateGeneratedSuccessfully'));
+        toast.success('Template generated successfully!');
       } else {
-        throw new Error(t('common:noTemplateGenerated'));
+        throw new Error('No template was generated');
       }
     } catch (error) {
       console.error('Error generating template:', error);
-      toast.error(t('common:failedToGenerateTemplate', { message: (error as Error).message }));
+      toast.error('Failed to generate template: ' + (error as Error).message);
     } finally {
       setIsGenerating(false);
     }
@@ -71,37 +70,46 @@ export function AITemplateGeneratorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{t('common:generateTemplateWithAI')}</DialogTitle>
+          <DialogTitle>Generate Template with AI</DialogTitle>
+          <DialogDescription>
+            Describe what kind of template you want, and our AI will generate it using your available variables.
+          </DialogDescription>
         </DialogHeader>
-        <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-          <Input
-            placeholder={t('common:promptPlaceholder')}
-            className="min-h-[150px]"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            {t('common:aiWillUseVariables', { count: variables.length, type: templateType })}
-          </p>
+        
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <label htmlFor="prompt" className="text-sm font-medium">Prompt</label>
+            <Textarea
+              id="prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="E.g., Create a modern invoice template with a clean layout and subtle color palette"
+              className="min-h-[150px]"
+            />
+            <p className="text-xs text-muted-foreground">
+              The AI will use {variables.length} available variables and create a {templateType} template.
+            </p>
+          </div>
         </div>
+        
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t('common:cancel')}
+            Cancel
           </Button>
-          <Button
-            onClick={handleGenerate}
+          <Button 
+            onClick={handleGenerate} 
             disabled={isGenerating || !prompt.trim()}
             className="gap-2"
           >
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                {t('common:generating')}
+                Generating...
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                {t('common:generateTemplate')}
+                Generate Template
               </>
             )}
           </Button>
@@ -109,4 +117,6 @@ export function AITemplateGeneratorDialog({
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default AITemplateGeneratorDialog;

@@ -1,38 +1,3 @@
-/* RTL Layout Styles */
-.rtl-mode {
-  direction: rtl;
-  text-align: right;
-}
-
-/* RTL Font */
-.font-arabic {
-  font-family: 'Tajawal', sans-serif;
-}
-
-/* RTL specific margins and paddings */
-.rtl-mode .ml-auto {
-  margin-left: unset;
-  margin-right: auto;
-}
-
-.rtl-mode .mr-auto {
-  margin-right: unset;
-  margin-left: auto;
-}
-
-/* RTL flexbox */
-.rtl-mode .flex-row {
-  flex-direction: row-reverse;
-}
-
-/* RTL text alignment */
-.rtl-mode .text-left {
-  text-align: right;
-}
-
-.rtl-mode .text-right {
-  text-align: left;
-}
 
 /* Global RTL Styles */
 .rtl-mode {

@@ -42,12 +42,8 @@ export interface FinancialSummary {
   overdueExpenses: number;
 }
 
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-const BATCH_SIZE = 50;
-
 export function useFinancials() {
   const { toast } = useToast();
-  const cache = useRef(new Map());
   const [filters, setFilters] = useState({
     transactionType: '',
     category: '',
@@ -55,21 +51,6 @@ export function useFinancials() {
     dateTo: '',
     searchQuery: '',
   });
-  
-  // Add cache configuration with optimized settings
-  const queryConfig = {
-    staleTime: 1000 * 60 * 5, // Data stays fresh for 5 minutes
-    cacheTime: 1000 * 60 * 30, // Cache retained for 30 minutes
-    refetchOnWindowFocus: false,
-    retry: 2,
-    refetchOnMount: false,
-    refetchOnReconnect: false,
-  };
-
-  const debouncedSetFilters = useCallback(
-    debounce((newFilters) => setFilters(newFilters), 300),
-    []
-  );
 
   const [expenseFilters, setExpenseFilters] = useState({
     category: '',
