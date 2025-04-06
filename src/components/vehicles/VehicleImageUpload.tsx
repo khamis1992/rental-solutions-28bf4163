@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image, AlertCircle, Loader2 } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
@@ -29,7 +28,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const handleFile = (file: File | null) => {
     setErrorMessage(null);
     setIsLoading(true);
-    
+
     if (file) {
       // Check file type
       if (!file.type.startsWith('image/')) {
@@ -38,7 +37,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         setIsLoading(false);
         return;
       }
-      
+
       // Check file size (limit to 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setErrorMessage('File size should be less than 5MB');
@@ -46,12 +45,12 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         setIsLoading(false);
         return;
       }
-      
+
       try {
         // Create preview URL
         const url = URL.createObjectURL(file);
         setPreviewUrl(url);
-        
+
         // Pass the file back to parent component
         onImageSelected(file);
         setIsLoading(false);
@@ -81,7 +80,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const file = e.dataTransfer.files?.[0] || null;
     handleFile(file);
   };
@@ -121,7 +120,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
         accept="image/*"
         className="hidden"
       />
-      
+
       {isLoading ? (
         <div className="py-12 flex flex-col items-center">
           <Loader2 className="h-12 w-12 text-primary animate-spin mb-3" />
@@ -133,6 +132,16 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
             src={previewUrl} 
             alt="Vehicle preview" 
             className="mx-auto max-h-64 rounded-md object-contain"
+            loading="lazy"
+            decoding="async"
+            onLoad={(e) => {
+              const img = e.target as HTMLImageElement;
+              img.style.opacity = '1';
+            }}
+            style={{
+              opacity: '0',
+              transition: 'opacity 0.3s ease-in-out',
+            }}
           />
           <CustomButton
             type="button"
@@ -163,7 +172,7 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
           <p className="text-xs text-muted-foreground mt-3">
             JPG, PNG or WEBP (max. 5MB)
           </p>
-          
+
           {errorMessage && (
             <div className="mt-3 flex items-center text-red-500 text-sm">
               <AlertCircle className="h-4 w-4 mr-1" />

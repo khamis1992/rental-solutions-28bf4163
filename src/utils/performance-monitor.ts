@@ -39,9 +39,6 @@ export class PerformanceMonitor {
           console.warn('High memory usage detected');
         }
       }
-    }
-    
-    const measure = performance.getEntriesByName(name).pop();
     if (measure) {
       if (!this.metrics.has(name)) {
         this.metrics.set(name, []);

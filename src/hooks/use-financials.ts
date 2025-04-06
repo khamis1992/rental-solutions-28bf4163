@@ -59,6 +59,8 @@ export function useFinancials() {
     refetchOnWindowFocus: false,
     retry: 2,
   };
+
+  const [filters, setFilters] = useState({
     transactionType: '',
     category: '',
     dateFrom: '',
