@@ -10,7 +10,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. Check your .env file.')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = typeof window !== 'undefined' ? createClient(supabaseUrl, supabaseAnonKey, {
+  shouldInitialize: !window['supabaseInstance']
+}) : createClient(supabaseUrl, supabaseAnonKey)
+
+if (typeof window !== 'undefined') {
+  window['supabaseInstance'] = true
+}
 
 export const checkAndGenerateMonthlyPayments = async (): Promise<{ success: boolean; message?: string; error?: any }> => {
   try {

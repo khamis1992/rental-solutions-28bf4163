@@ -13,7 +13,7 @@ import { Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { TemplateVariable } from '@/utils/invoiceTemplateUtils';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useIsRTL } from '@/utils/rtl-utils';
+import { useIsRTL } from '@/contexts/TranslationContext';
 
 
 interface AITemplateGeneratorDialogProps {
