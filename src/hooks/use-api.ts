@@ -1,4 +1,3 @@
-
 import { toast } from '@/hooks/use-toast';
 import { PostgrestError } from '@supabase/supabase-js';
 import { useMutation, useQuery, UseQueryOptions, UseMutationOptions, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
@@ -9,9 +8,9 @@ import { useMutation, useQuery, UseQueryOptions, UseMutationOptions, UseMutation
  */
 export function handleApiError(error: unknown, context?: string): void {
   console.error('API Error:', error);
-  
+
   let errorMessage = 'An unexpected error occurred';
-  
+
   // Handle specific error types
   if (error instanceof Error) {
     errorMessage = error.message;
@@ -19,7 +18,7 @@ export function handleApiError(error: unknown, context?: string): void {
     errorMessage = error;
   } else if (isPostgrestError(error)) {
     errorMessage = `Database error: ${error.message}`;
-    
+
     // Handle specific database errors
     if (error.code === '23505') {
       errorMessage = 'A record with this information already exists.';
@@ -29,12 +28,12 @@ export function handleApiError(error: unknown, context?: string): void {
       errorMessage = 'Database table not found. Please contact support.';
     }
   }
-  
+
   // Add context to the error message if provided
   if (context) {
     errorMessage = `${context}: ${errorMessage}`;
   }
-  
+
   // Show toast notification for the error
   toast({
     title: 'Error',
@@ -146,27 +145,27 @@ export function useCrudApi<TData, TInsert, TUpdate = Partial<TInsert>>(
   }
 ) {
   const getAll = useApiQuery<TData[]>([resourceName], endpoint.getAll);
-  
+
   const getById = (id: string) => useApiQuery<TData>(
     [resourceName, id],
     () => endpoint.getById(id)
   );
-  
+
   const create = useApiMutation<TData, TInsert>(
     (data) => endpoint.create(data),
     { successMessage: `${resourceName} created successfully` }
   );
-  
+
   const update = useApiMutation<TData, { id: string; data: TUpdate }>(
     ({ id, data }) => endpoint.update(id, data),
     { successMessage: `${resourceName} updated successfully` }
   );
-  
+
   const remove = useApiMutation<void, string>(
     (id) => endpoint.delete(id),
     { successMessage: `${resourceName} deleted successfully` }
   );
-  
+
   return {
     getAll,
     getById,

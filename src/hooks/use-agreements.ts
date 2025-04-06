@@ -1,7 +1,6 @@
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { FlattenType } from '@/utils/type-utils';
 
@@ -88,7 +87,7 @@ const mapDatabaseStatus = (status: string): string => {
     'closed': 'closed',
     'terminated': 'cancelled'
   };
-  
+
   // Convert status to lowercase and get mapped value, fallback to original
   const lowerStatus = status.toLowerCase();
   return statusMap[lowerStatus] || status;
@@ -131,6 +130,9 @@ export const useAgreements = (initialParams?: SearchParams) => {
     query: '',
     status: 'all'
   });
+  const [agreements, setAgreements] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const agreementsCache = useRef(new Map());
 
   const useAgreementsList = () => {
     return useQuery({
@@ -185,7 +187,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
           // Initialize with default values
           let safeCustomerData = {...DEFAULT_CUSTOMER};
           let safeVehicleData = {...DEFAULT_VEHICLE};
-          
+
           // Process customer data if it exists
           if (item.customer) {
             if (!isSupabaseError(item.customer)) {
@@ -202,7 +204,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
               console.warn("Customer data returned an error:", item.customer.message);
             }
           }
-          
+
           // Process vehicle data if it exists
           if (item.vehicle) {
             if (!isSupabaseError(item.vehicle)) {
@@ -322,7 +324,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
     // Initialize with default values
     let safeCustomerData = {...DEFAULT_CUSTOMER};
     let safeVehicleData = {...DEFAULT_VEHICLE};
-    
+
     // Process customer data if it exists
     if (data.customer) {
       if (!isSupabaseError(data.customer)) {
@@ -339,7 +341,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
         console.warn("Customer data returned an error:", data.customer.message);
       }
     }
-    
+
     // Process vehicle data if it exists
     if (data.vehicle) {
       if (!isSupabaseError(data.vehicle)) {
@@ -400,7 +402,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
       // Initialize with default values
       let safeCustomerData = {...DEFAULT_CUSTOMER};
       let safeVehicleData = {...DEFAULT_VEHICLE};
-      
+
       // Process customer data if it exists
       if (item.customer) {
         if (!isSupabaseError(item.customer)) {
@@ -417,7 +419,7 @@ export const useAgreements = (initialParams?: SearchParams) => {
           console.warn("Customer data returned an error:", item.customer.message);
         }
       }
-      
+
       // Process vehicle data if it exists
       if (item.vehicle) {
         if (!isSupabaseError(item.vehicle)) {

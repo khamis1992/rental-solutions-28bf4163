@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import i18n from '@/i18n';
 import { translateText } from '@/utils/translation-api';
 import { toast } from 'sonner';
@@ -139,6 +139,9 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     }
   }, [language, changeLanguage]);
+
+  const [translations, setTranslations] = useState<Record<string, string>>({});
+  const memoizedTranslations = useMemo(() => translations, [translations]);
 
   return (
     <TranslationContext.Provider 
