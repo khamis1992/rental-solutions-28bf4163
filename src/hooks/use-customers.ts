@@ -9,11 +9,14 @@ import { CustomerStatus } from '@/types/customer';
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
 
+// Define type for database status values
+type DbCustomerStatus = 'active' | 'inactive' | 'pending_review' | 'blacklisted' | 'pending_payment' | 'suspended';
+
 // Convert app format status to database format
-const convertAppStatusToDbFormat = (appStatus: CustomerStatus): string => {
+const convertAppStatusToDbFormat = (appStatus: CustomerStatus): DbCustomerStatus => {
   if (appStatus === 'pendingreview') return 'pending_review';
   if (appStatus === 'pendingpayment') return 'pending_payment';
-  return appStatus; // 'active', 'inactive', 'blacklisted' are the same in both formats
+  return appStatus as DbCustomerStatus; // 'active', 'inactive', 'blacklisted' are the same in both formats
 };
 
 // Convert database format status to app format
@@ -65,7 +68,14 @@ export const useCustomers = () => {
           .order('created_at', { ascending: false });
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
+          // Convert app status to DB status if needed
+          const dbStatus = searchParams.status === 'pendingreview' 
+            ? 'pending_review' 
+            : searchParams.status === 'pendingpayment'
+              ? 'pending_payment'
+              : searchParams.status;
+              
+          query = query.eq('status', dbStatus as DbCustomerStatus);
         }
 
         if (searchParams.query) {
