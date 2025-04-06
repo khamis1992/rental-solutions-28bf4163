@@ -20,3 +20,18 @@ export interface ContractPayment extends BasePayment {
 export interface CarInstallmentPayment extends BasePayment {
   contract_id: string;
 }
+
+// Generic Payment type that can be used across components
+export interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string | Date | null;
+  due_date?: string | Date;
+  payment_method?: string;
+  reference?: string;
+  reference_number?: string | null;
+  notes?: string;
+  status: string;
+  payment_number?: string;
+  contract_id?: string;
+}
