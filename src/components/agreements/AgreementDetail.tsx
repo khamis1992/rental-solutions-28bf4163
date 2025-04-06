@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -5,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, DollarSign, FilePlus } from 'lucide-react';
+import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -104,10 +105,6 @@ export function AgreementDetail({
       }
     }
   }, [agreement]);
-
-  const handleRecordPayment = useCallback(() => {
-    setIsPaymentDialogOpen(true);
-  }, []);
 
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {
@@ -345,10 +342,6 @@ export function AgreementDetail({
           <FilePlus className="mr-2 h-4 w-4" />
           Generate Document
         </Button>
-        <Button variant="default" className="bg-blue-500 hover:bg-blue-600" onClick={handleRecordPayment}>
-          <DollarSign className="mr-2 h-4 w-4" />
-          Record Payment
-        </Button>
         <div className="flex-grow"></div>
         <Button variant="destructive" onClick={handleDelete} className="ml-auto">
           Delete
@@ -399,3 +392,4 @@ export function AgreementDetail({
       />
     </div>;
 }
+

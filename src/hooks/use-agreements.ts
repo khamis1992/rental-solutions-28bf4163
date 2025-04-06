@@ -31,6 +31,8 @@ export type SimpleAgreement = {
   notes?: string;
   customers?: any;
   vehicles?: any;
+  rent_amount?: number;
+  daily_late_fee?: number;
 };
 
 // Function to convert database status to AgreementStatus enum value
@@ -158,7 +160,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         notes: data.notes || '',
         customers: customerData,
         vehicles: vehicleData,
-        signature_url: (data as any).signature_url
+        signature_url: (data as any).signature_url,
+        rent_amount: data.rent_amount || 0,
+        daily_late_fee: data.daily_late_fee || 0
       };
 
       console.log("Transformed agreement data:", agreement);
@@ -276,7 +280,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           notes: item.notes || '',
           customers: item.profiles,
           vehicles: item.vehicles,
-          signature_url: (item as any).signature_url
+          signature_url: (item as any).signature_url,
+          rent_amount: item.rent_amount || 0,
+          daily_late_fee: item.daily_late_fee || 0
         };
       });
 
@@ -295,7 +301,20 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
-      return {};
+      
+      try {
+        const { data: result, error } = await supabase
+          .from('leases')
+          .update(data)
+          .eq('id', id)
+          .select();
+        
+        if (error) throw error;
+        return result;
+      } catch (error) {
+        console.error("Error in updateAgreement mutation:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });

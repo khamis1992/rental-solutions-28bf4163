@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,6 +39,7 @@ interface AgreementFormProps {
   initialData?: any;
   standardTemplateExists?: boolean;
   isCheckingTemplate?: boolean;
+  mode?: 'create' | 'edit';
 }
 
 const formSchema = z.object({
@@ -62,6 +64,7 @@ const AgreementForm = ({
   initialData,
   standardTemplateExists = true,
   isCheckingTemplate = false,
+  mode = 'create',
 }: AgreementFormProps) => {
   const [customers, setCustomers] = useState<any[]>([]);
   const [vehicles, setVehicles] = useState<any[]>([]);
@@ -75,6 +78,9 @@ const AgreementForm = ({
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
     return `${prefix}-${timestamp}-${random}`;
   };
+  
+  // Log the initialData to debug
+  console.log("AgreementForm initialData:", initialData);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -193,9 +199,12 @@ const AgreementForm = ({
       customer_data: selectedCustomer,
       vehicle_data: selectedVehicle,
       deposit_amount: data.deposit_amount,
+      rent_amount: data.rent_amount, // Make sure this field is passed
+      daily_late_fee: data.daily_late_fee, // Make sure this field is passed
       terms_accepted: true
     };
     
+    console.log("Form submission data:", finalData);
     onSubmit(finalData);
   };
 
@@ -654,7 +663,9 @@ const AgreementForm = ({
             disabled={isSubmitting}
             className="w-full md:w-auto"
           >
-            {isSubmitting ? "Creating Agreement..." : "Create Agreement"}
+            {isSubmitting 
+              ? (mode === 'edit' ? "Updating Agreement..." : "Creating Agreement...")
+              : (mode === 'edit' ? "Update Agreement" : "Create Agreement")}
           </Button>
         </div>
       </form>
