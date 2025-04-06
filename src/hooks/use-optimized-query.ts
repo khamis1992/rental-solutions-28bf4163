@@ -1,4 +1,3 @@
-
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { useCallback, useRef } from 'react';
 
@@ -16,7 +15,7 @@ export function useOptimizedQuery<T>(
   const requestCache = useRef(new Map<string, { data: T; timestamp: number }>());
   const retryCount = useRef(0);
   const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-  
+
   const clearStaleCache = useCallback(() => {
     const now = Date.now();
     Array.from(requestCache.current.entries()).forEach(([key, value]) => {
@@ -38,7 +37,7 @@ export function useOptimizedQuery<T>(
     if (retryCount.current >= MAX_RETRIES) {
       throw error;
     }
-    
+
     await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * Math.pow(2, retryCount.current)));
     retryCount.current++;
     return queryFn();
@@ -68,9 +67,19 @@ export function useOptimizedQuery<T>(
   return useQuery({
     queryKey,
     queryFn: optimizedQueryFn,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    cacheTime: 1000 * 60 * 30, // 30 minutes
+    staleTime: 1000 * 60 * 5,
+    cacheTime: 1000 * 60 * 30,
     retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+    keepPreviousData: true,
     ...options,
+    select: (data) => {
+      if (options?.select) {
+        return options.select(data);
+      }
+      return data;
+    },
   });
 }

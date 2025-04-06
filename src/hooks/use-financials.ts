@@ -42,8 +42,12 @@ export interface FinancialSummary {
   overdueExpenses: number;
 }
 
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const BATCH_SIZE = 50;
+
 export function useFinancials() {
   const { toast } = useToast();
+  const cache = useRef(new Map());
   const [filters, setFilters] = useState({
     transactionType: '',
     category: '',

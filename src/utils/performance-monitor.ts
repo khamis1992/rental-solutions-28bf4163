@@ -16,7 +16,10 @@ export class PerformanceMonitor {
   private static readonly MEMORY_THRESHOLD = 100 * 1024 * 1024; // 100MB threshold
   private static readonly FPS_THRESHOLD = 30;
   private static readonly LONG_TASK_THRESHOLD = 50; // ms
-  private static readonly metrics_buffer = new Map<string, number[]>();
+  private static readonly BATCH_SIZE = 10;
+  private static readonly FLUSH_INTERVAL = 5000;
+  private static metrics_buffer = new Map<string, number[]>();
+  private static batchTimeout: NodeJS.Timeout | null = null;
 
   private static trimMetrics(name: string) {
     const metrics = this.metrics.get(name) || [];
@@ -60,11 +63,14 @@ export class PerformanceMonitor {
       const measure = performance.getEntriesByName(name).pop();
       if (measure) {
         // Track metrics
-        if (!this.metrics.has(name)) {
-          this.metrics.set(name, []);
+        if (!this.metrics_buffer.has(name)) {
+          this.metrics_buffer.set(name, []);
         }
-        this.metrics.get(name)?.push(measure.duration);
-        this.trimMetrics(name);
+        this.metrics_buffer.get(name)?.push(measure.duration);
+
+        // Flush metrics buffer if necessary
+        clearTimeout(this.batchTimeout);
+        this.batchTimeout = setTimeout(this.flushMetricsBuffer, this.FLUSH_INTERVAL);
 
         // Check performance threshold
         if (measure.duration > this.PERFORMANCE_THRESHOLD) {
@@ -98,6 +104,23 @@ export class PerformanceMonitor {
       console.error('Error in performance monitoring:', error);
     }
   }
+
+  private static flushMetricsBuffer() {
+    if (this.metrics_buffer.size > 0) {
+      for (const [key, values] of this.metrics_buffer.entries()) {
+        if (!this.metrics.has(key)) {
+          this.metrics.set(key, []);
+        }
+        const metrics = this.metrics.get(key)!;
+        metrics.push(...values);
+        if (metrics.length > this.METRICS_LIMIT) {
+          metrics.splice(0, metrics.length - this.METRICS_LIMIT);
+        }
+      }
+      this.metrics_buffer.clear();
+    }
+  }
+
 
   static getMetrics(name: string): number[] {
     return this.metrics.get(name) || [];

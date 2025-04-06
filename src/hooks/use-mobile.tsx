@@ -4,6 +4,8 @@ import { debounce } from 'lodash';
 
 const MOBILE_BREAKPOINT = 768;
 const DEBOUNCE_DELAY = 150;
+const RESIZE_OBSERVER_OPTIONS = { box: 'border-box' };
+const PERFORMANCE_MODE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean>(() => 
