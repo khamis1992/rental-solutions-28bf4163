@@ -95,7 +95,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           let vehicleModel: string | undefined = undefined;
           
           if (fine.vehicles) {
-            const vehicleInfo = fine.vehicles as VehicleInfo;
+            const vehicleInfo = fine.vehicles as unknown as VehicleInfo;
             vehicleModel = `${vehicleInfo.make} ${vehicleInfo.model}`;
           }
 
