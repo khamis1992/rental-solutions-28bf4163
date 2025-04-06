@@ -28,7 +28,14 @@ const CustomerDetailPage = () => {
           const data = await getCustomer(id);
           console.log('Customer data received:', data);
           if (data) {
-            setCustomer(data);
+            // Ensure we have a valid customer object with all required fields
+            if (data.id) {
+              setCustomer(data);
+            } else {
+              console.error('Customer data missing required ID field');
+              toast.error(t('customers.loadError'));
+              setCustomer(null);
+            }
           } else {
             console.log('No customer data found for ID:', id);
             setCustomer(null);
@@ -47,15 +54,14 @@ const CustomerDetailPage = () => {
     };
     
     fetchCustomerData();
-    // Only depend on id and getCustomer to prevent unnecessary re-fetches
-  }, [id, getCustomer, navigate, t]);
+    // Only depend on id and navigation to prevent unnecessary re-fetches
+  }, [id, navigate, t]);
 
   const handleDelete = async (customerId: string): Promise<void> => {
     try {
       await deleteCustomer.mutateAsync(customerId);
       toast.success(t('customers.deleteSuccess'));
       navigate('/customers');
-      return;
     } catch (error) {
       console.error("Error deleting customer:", error);
       toast.error(t('customers.deleteError'));

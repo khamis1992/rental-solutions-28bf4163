@@ -262,6 +262,7 @@ export const useCustomers = () => {
         updated_at: data.updated_at,
       };
       
+      console.log('Processed customer data:', customerData);
       return customerData;
     } catch (error) {
       console.error('Unexpected error fetching customer:', error);
