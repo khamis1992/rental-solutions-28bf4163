@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import i18n from '@/i18n';
-import { translateText } from '@/utils/translation-api';
 import { toast } from 'sonner';
 
 type Direction = 'ltr' | 'rtl';
@@ -10,7 +9,7 @@ interface TranslationContextProps {
   direction: Direction;
   isRTL: boolean;
   changeLanguage: (lang: string) => void;
-  translateText: (text: string, targetLang?: string) => Promise<string>;
+  t: (key: string) => string; // Using the simplified translation function
   getNumberFormat: (num: number) => string;
 }
 
@@ -19,11 +18,11 @@ const TranslationContext = createContext<TranslationContextProps>({
   direction: 'ltr',
   isRTL: false,
   changeLanguage: () => {},
-  translateText: async () => '',
+  t: (key) => key, // Default to returning the key if no translation is found
   getNumberFormat: (num) => num.toString(),
 });
 
-const useTranslation = () => useContext(TranslationContext);
+export const useTranslation = () => useContext(TranslationContext);
 
 export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'en');
@@ -84,21 +83,6 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, []);
 
-  // Function to translate text dynamically
-  const translateTextFn = async (text: string, targetLang?: string): Promise<string> => {
-    if (!text) return '';
-
-    const target = targetLang || language;
-    if (target === 'en') return text; // Don't translate if target is English
-
-    try {
-      return await translateText(text, 'en', target);
-    } catch (error) {
-      console.error('Translation error:', error);
-      return text; // Return original text if translation fails
-    }
-  };
-
   // Function to format numbers according to locale
   const getNumberFormat = (num: number): string => {
     if (isRTL) {
@@ -140,18 +124,15 @@ export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [language, changeLanguage]);
 
-  const [translations, setTranslations] = useState<Record<string, string>>({});
-  const memoizedTranslations = useMemo(() => translations, [translations]);
-
   return (
-    <TranslationContext.Provider 
-      value={{ 
-        language, 
-        direction, 
+    <TranslationContext.Provider
+      value={{
+        language,
+        direction,
         isRTL,
-        changeLanguage, 
-        translateText: translateTextFn,
-        getNumberFormat
+        changeLanguage,
+        t: i18n.t, // Use i18n.t for translation
+        getNumberFormat,
       }}
     >
       {children}

@@ -5,6 +5,7 @@ export class PerformanceMonitor {
   private static metrics = new Map<string, number[]>();
   private static readonly PERFORMANCE_THRESHOLD = 1000; // 1 second
   private static readonly METRICS_LIMIT = 100; // Prevent memory leaks
+  private static readonly MEMORY_THRESHOLD = 100 * 1024 * 1024; // 100MB threshold
   
   private static trimMetrics(name: string) {
     const metrics = this.metrics.get(name) || [];
@@ -15,43 +16,65 @@ export class PerformanceMonitor {
   }
   
   static startMeasure(name: string) {
-    return performance.mark(name + '_start');
+    performance.mark(name + '_start');
   }
   
   static endMeasure(name: string) {
-    performance.mark(name + '_end');
-    performance.measure(name, name + '_start', name + '_end');
-    
-    const measure = performance.getEntriesByName(name).pop();
-    if (measure) {
-      // Log to analytics if duration exceeds threshold
-      if (measure.duration > this.PERFORMANCE_THRESHOLD) {
-        console.warn(`Performance warning: ${name} took ${Math.round(measure.duration)}ms`);
-        // Clear old entries to prevent memory leaks
-        performance.clearMarks();
-        performance.clearMeasures();
-      }
+    try {
+      performance.mark(name + '_end');
+      performance.measure(name, name + '_start', name + '_end');
       
-      // Track memory usage
-      if ('memory' in performance) {
-        const memory = (performance as any).memory;
-        if (memory && memory.usedJSHeapSize > 100 * 1024 * 1024) { // 100MB threshold
-          console.warn('High memory usage detected');
+      const measure = performance.getEntriesByName(name).pop();
+      if (measure) {
+        // Track metrics
+        if (!this.metrics.has(name)) {
+          this.metrics.set(name, []);
         }
+        this.metrics.get(name)?.push(measure.duration);
+        this.trimMetrics(name);
+
+        // Check performance threshold
+        if (measure.duration > this.PERFORMANCE_THRESHOLD) {
+          console.warn(`Performance warning: ${name} took ${Math.round(measure.duration)}ms`);
+          toast({
+            title: "Performance Warning",
+            description: `Operation ${name} took ${Math.round(measure.duration)}ms`,
+            variant: "destructive"
+          });
+        }
+
+        // Check memory usage
+        if ('memory' in performance) {
+          const memory = (performance as any).memory;
+          if (memory?.usedJSHeapSize > this.MEMORY_THRESHOLD) {
+            console.warn('High memory usage detected');
+            toast({
+              title: "Memory Warning",
+              description: "High memory usage detected",
+              variant: "destructive"
+            });
+          }
+        }
+
+        // Clear measurements
+        performance.clearMarks(name + '_start');
+        performance.clearMarks(name + '_end');
+        performance.clearMeasures(name);
       }
-    if (measure) {
-      if (!this.metrics.has(name)) {
-        this.metrics.set(name, []);
-      }
-      this.metrics.get(name)?.push(measure.duration);
-      
-      if (measure.duration > 1000) {
-        toast({
-          title: "Performance Warning",
-          description: `Operation ${name} took ${Math.round(measure.duration)}ms`,
-          variant: "destructive"
-        });
-      }
+    } catch (error) {
+      console.error('Error in performance monitoring:', error);
+    }
+  }
+
+  static getMetrics(name: string): number[] {
+    return this.metrics.get(name) || [];
+  }
+
+  static clearMetrics(name?: string) {
+    if (name) {
+      this.metrics.delete(name);
+    } else {
+      this.metrics.clear();
     }
   }
 }

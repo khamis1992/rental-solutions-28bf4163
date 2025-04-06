@@ -139,3 +139,19 @@ export const getDirectionalIcon = (iconType: 'arrow' | 'chevron') => {
     return isRTL ? 'ChevronRight' : 'ChevronLeft';
   }
 };
+
+import { useTranslation } from 'react-i18next';
+
+export const useIsRTL = () => {
+  const { i18n } = useTranslation();
+  return i18n.dir() === 'rtl';
+};
+
+export const applyRTLStyle = (isRTL: boolean, style: React.CSSProperties = {}): React.CSSProperties => {
+  if (!isRTL) return style;
+  return {
+    ...style,
+    direction: 'rtl',
+    textAlign: 'right'
+  };
+};

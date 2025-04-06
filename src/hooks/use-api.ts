@@ -82,12 +82,19 @@ export function useApiQuery<TData>(
   queryFn: () => Promise<TData>,
   options?: Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TData, Error> {
-  const cacheTime = 1000 * 60 * 10; // 10 minutes
+  const cacheTime = 1000 * 60 * 60; // 1 hour
   const defaultOptions = {
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 15, // 15 minutes
     cacheTime,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes('network')) {
+        return failureCount < 3;
+      }
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   };
   return useQuery({
     queryKey,
@@ -99,10 +106,7 @@ export function useApiQuery<TData>(
         throw error;
       }
     },
-    // Add reasonable default staleTime to prevent excessive refreshing
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    // Only refetch on window focus if data is stale
-    refetchOnWindowFocus: false,
+    ...defaultOptions,
     ...options
   });
 }
