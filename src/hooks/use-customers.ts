@@ -215,6 +215,21 @@ export const useCustomers = () => {
 
       console.log('Raw customer data from profiles:', data);
 
+      const normalizeStatus = (status: string | null | undefined): CustomerStatus => {
+        if (!status) return 'active';
+        
+        const normalized = status.toLowerCase().replace(/[_\s]/g, '');
+        
+        if (['active', 'inactive', 'blacklisted', 'pendingreview', 'pendingpayment'].includes(normalized)) {
+          return normalized as CustomerStatus;
+        }
+        
+        if (normalized === 'pending_review' || normalized === 'pendingreview') return 'pendingreview';
+        if (normalized === 'pending_payment' || normalized === 'pendingpayment') return 'pendingpayment';
+        
+        return 'active';
+      };
+
       const customerData: Customer = {
         id: data.id,
         full_name: data.full_name || '',
@@ -224,7 +239,7 @@ export const useCustomers = () => {
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+        status: normalizeStatus(data.status),
         created_at: data.created_at,
         updated_at: data.updated_at,
       };

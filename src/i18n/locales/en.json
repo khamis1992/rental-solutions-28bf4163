@@ -1,3 +1,4 @@
+
 {
   "common": {
     "dashboard": "Dashboard",
@@ -360,6 +361,10 @@
     "allStatuses": "All Statuses",
     "deleteConfirmation": "Are you sure you want to delete {name}?",
     "unnamed": "Unnamed Customer",
+    "loadError": "Failed to load customer data",
+    "notFound": "Customer not found",
+    "deleteSuccess": "Customer deleted successfully",
+    "deleteError": "Failed to delete customer",
     "status": {
       "active": "Active",
       "inactive": "Inactive",

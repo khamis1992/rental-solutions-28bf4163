@@ -42,14 +42,32 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
     setIsDeleteDialogOpen(false);
   };
 
-  const getStatusBadge = (status: CustomerStatus) => {
-    switch (status) {
+  // Normalized status for correct translation mapping
+  const normalizeStatus = (status: string): CustomerStatus => {
+    // Convert to lowercase and remove underscores
+    const normalized = status.toLowerCase().replace(/_/g, '');
+    
+    if (['active', 'inactive', 'blacklisted', 'pendingreview', 'pendingpayment'].includes(normalized)) {
+      return normalized as CustomerStatus;
+    }
+    
+    // Map specific cases
+    if (normalized === 'pending_review') return 'pendingreview';
+    if (normalized === 'pending_payment') return 'pendingpayment';
+    
+    return 'active'; // Default fallback
+  };
+
+  const getStatusBadge = (status: string) => {
+    const normalizedStatus = normalizeStatus(status);
+    
+    switch (normalizedStatus) {
       case 'active':
-        return <Badge className="bg-green-500">{t(`customers.status.${status}`)}</Badge>;
+        return <Badge className="bg-green-500">{t(`customers.status.${normalizedStatus}`)}</Badge>;
       case 'inactive':
-        return <Badge variant="outline">{t(`customers.status.${status}`)}</Badge>;
+        return <Badge variant="outline">{t(`customers.status.${normalizedStatus}`)}</Badge>;
       case 'blacklisted':
-        return <Badge variant="destructive">{t(`customers.status.${status}`)}</Badge>;
+        return <Badge variant="destructive">{t(`customers.status.${normalizedStatus}`)}</Badge>;
       case 'pendingreview':
         return <Badge className="bg-yellow-500">{t('customers.status.pendingreview')}</Badge>;
       case 'pendingpayment':
@@ -57,6 +75,17 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
       default:
         return <Badge variant="outline">{status || t('common.unknown')}</Badge>;
     }
+  };
+
+  // Format phone number for display
+  const formatPhoneNumber = (phone: string) => {
+    if (!phone) return t('common.notProvided');
+    
+    // If the phone number doesn't start with +974, add it
+    if (!phone.startsWith('+974')) {
+      return `+974 ${phone}`;
+    }
+    return phone;
   };
 
   return (
@@ -67,7 +96,7 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
             {customer.full_name || t('customers.unnamed')}
           </h2>
           <div className="flex items-center gap-2 mt-1">
-            {getStatusBadge(customer.status as CustomerStatus)}
+            {getStatusBadge(customer.status)}
           </div>
         </div>
         <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -111,7 +140,7 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
               <Phone className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-3' : 'mr-3'} mt-0.5`} />
               <div>
                 <Label>{t('customers.phoneNumber')}</Label>
-                <p>{customer.phone || customer.phone_number || t('common.notProvided')}</p>
+                <p>{formatPhoneNumber(customer.phone || (customer.phone_number || ''))}</p>
               </div>
             </div>
             
@@ -145,7 +174,7 @@ export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
                 <span className="font-medium">{t('common.status')}</span>
               </div>
               <p className="mt-1">
-                {getStatusBadge(customer.status as CustomerStatus)}
+                {getStatusBadge(customer.status)}
               </p>
             </div>
             
