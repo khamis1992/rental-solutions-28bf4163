@@ -216,7 +216,7 @@ export const useCustomers = () => {
 
       console.log('Raw customer data from profiles:', data);
 
-      const convertStatusFormat = (dbStatus: string | null | undefined): CustomerStatus => {
+      const convertStatusToAppFormat = (dbStatus: string | null | undefined): CustomerStatus => {
         if (!dbStatus) return 'active';
         
         if (dbStatus === 'pending_review') return 'pendingreview';
@@ -234,7 +234,7 @@ export const useCustomers = () => {
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: convertStatusFormat(data.status),
+        status: convertStatusToAppFormat(data.status),
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
