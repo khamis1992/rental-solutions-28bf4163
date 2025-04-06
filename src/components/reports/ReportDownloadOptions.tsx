@@ -32,6 +32,7 @@ const ReportDownloadOptions = ({
 
       // Use specialized CSV generators for specific report types
       if (reportType === 'traffic-fines' && trafficFines) {
+        // Only include customer-assigned fines for traffic fines reports
         csvData = generateTrafficFinesCSV(trafficFines);
         filename = `traffic-fines-report-${new Date().toISOString().split('T')[0]}.csv`;
       } else {
@@ -87,6 +88,7 @@ const ReportDownloadOptions = ({
 
       // Use specialized PDF generators for specific report types
       if (reportType === 'traffic-fines' && trafficFines) {
+        // Generate traffic fines PDF - now filtering for customer-assigned fines is done within this function
         doc = await generateTrafficFinesPDF(trafficFines);
         filename = `traffic-fines-report-${new Date().toISOString().split('T')[0]}.pdf`;
       } else {

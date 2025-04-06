@@ -11,6 +11,11 @@ import { formatCurrency } from '@/lib/utils';
 export const generateTrafficFinesCSV = (fines: TrafficFine[]): string => {
   if (!fines || fines.length === 0) return '';
   
+  // Filter fines to only include those assigned to customers
+  const assignedFines = fines.filter(fine => fine.customerId);
+  
+  if (assignedFines.length === 0) return '';
+  
   // Define CSV header
   const headers = [
     'Violation Number',
@@ -27,7 +32,7 @@ export const generateTrafficFinesCSV = (fines: TrafficFine[]): string => {
   let csv = headers.join(',') + '\n';
   
   // Add data rows
-  fines.forEach(fine => {
+  assignedFines.forEach(fine => {
     const row = [
       `"${fine.violationNumber || ''}"`,
       `"${fine.licensePlate || ''}"`,
@@ -50,6 +55,9 @@ export const generateTrafficFinesCSV = (fines: TrafficFine[]): string => {
  * Generates a PDF document for traffic fines
  */
 export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsPDF> => {
+  // Filter fines to only include those assigned to customers
+  const assignedFines = fines.filter(fine => fine.customerId);
+  
   // Create PDF document
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -66,7 +74,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
   
   // Add header with enhanced styling
   const startY = await addReportHeader(doc, 'Traffic Fines Report', { 
-    from: fines.length > 0 ? new Date(Math.min(...fines.map(f => new Date(f.violationDate).getTime()))) : undefined,
+    from: assignedFines.length > 0 ? new Date(Math.min(...assignedFines.map(f => new Date(f.violationDate).getTime()))) : undefined,
     to: new Date()
   });
   
@@ -74,7 +82,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
   
   // Group fines by customer for better organization
   const finesByCustomer: { [key: string]: TrafficFine[] } = {};
-  fines.forEach(fine => {
+  assignedFines.forEach(fine => {
     const customerId = fine.customerId || 'unassigned';
     if (!finesByCustomer[customerId]) {
       finesByCustomer[customerId] = [];
@@ -82,10 +90,8 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     finesByCustomer[customerId].push(fine);
   });
   
-  // REMOVED: Enhanced Summary Section (as requested by user)
-  
   // If there are no fines, show a message
-  if (fines.length === 0) {
+  if (assignedFines.length === 0) {
     currentY += 10;
     doc.setFontSize(12);
     doc.text("No traffic fines found for the selected period.", pageWidth/2, currentY, { align: 'center' });
@@ -176,8 +182,8 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     const customerPaidFines = customerFines.filter(f => f.paymentStatus === 'paid').length;
     const customerPendingFines = customerFines.filter(f => f.paymentStatus === 'pending').length;
     
-    // Increased row height for more spacing between rows (from 6 to 9)
-    const rowHeight = 9;
+    // Increased row height for more spacing between rows (from 6 to 12 for better spacing)
+    const rowHeight = 12;
     
     // Customer fine details with alternating row colors and status highlighting
     customerFines.forEach((fine, fineIndex) => {
@@ -247,16 +253,16 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       
       // Draw table cell data
       // Violation number
-      doc.text(fine.violationNumber || '', colPositions[0] + 1, currentY + 1);
+      doc.text(fine.violationNumber || '', colPositions[0] + 1, currentY + 2);
       
       // Date
-      doc.text(formatDate(fine.violationDate), colPositions[1] + 1, currentY + 1);
+      doc.text(formatDate(fine.violationDate), colPositions[1] + 1, currentY + 2);
       
-      // Amount (right-aligned) - Moved up one position since location was removed
+      // Amount (right-aligned)
       doc.text(
         formatCurrency(fine.fineAmount), 
         colPositions[2] + columns[2].width - 2, 
-        currentY + 1, 
+        currentY + 2, 
         { align: 'right' }
       );
       
@@ -264,7 +270,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       doc.text(
         fine.paymentStatus, 
         colPositions[3] + columns[3].width/2, 
-        currentY + 1, 
+        currentY + 2, 
         { align: 'center' }
       );
       
@@ -272,7 +278,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
       doc.text(
         fine.paymentDate ? formatDate(fine.paymentDate) : '-', 
         colPositions[4] + columns[4].width/2, 
-        currentY + 1, 
+        currentY + 2, 
         { align: 'center' }
       );
       
@@ -296,7 +302,7 @@ export const generateTrafficFinesPDF = async (fines: TrafficFine[]): Promise<jsP
     currentY += 15; // Space between customer sections
   });
   
-  // Add a general note about fines at the end of the document
+  // Final notes section
   if (currentY > pageHeight - 40) {
     doc.addPage();
     currentY = 20;
