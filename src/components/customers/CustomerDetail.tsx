@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,10 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Pencil, UserRound, Phone, Mail, MapPin, Clock, CalendarDays, FileText, AlertTriangle } from 'lucide-react';
 import { DeleteCustomerDialog } from './DeleteCustomerDialog';
-import { Customer } from '@/types/customer';
+import { Customer, CustomerStatus } from '@/types/customer';
 import { useTranslation } from 'react-i18next';
 import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
-import { CustomerStatus } from '@/lib/validation-schemas/customer';
 import { formatDate, ensureDate } from '@/lib/date-utils';
 import { getDirectionalClasses } from '@/utils/rtl-utils';
 

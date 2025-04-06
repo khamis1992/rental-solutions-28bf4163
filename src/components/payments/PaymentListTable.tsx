@@ -10,9 +10,10 @@ import { formatDate, ensureDate } from '@/lib/date-utils';
 interface PaymentListTableProps {
   payments: Payment[];
   onPaymentClick?: (payment: Payment) => void;
+  onDelete?: (id: string) => void;
 }
 
-export const PaymentListTable: React.FC<PaymentListTableProps> = ({ payments, onPaymentClick }) => {
+export const PaymentListTable: React.FC<PaymentListTableProps> = ({ payments, onPaymentClick, onDelete }) => {
   const { t } = useTranslation();
   const { isRTL } = useAppTranslation();
   
