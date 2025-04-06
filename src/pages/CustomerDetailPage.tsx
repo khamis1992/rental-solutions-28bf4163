@@ -30,7 +30,8 @@ const CustomerDetailPage = () => {
           if (data) {
             // Ensure we have a valid customer object with all required fields
             if (data.id) {
-              setCustomer(data);
+              // Cast to Customer type since we've verified the required field exists
+              setCustomer(data as Customer);
             } else {
               console.error('Customer data missing required ID field');
               toast.error(t('customers.loadError'));
