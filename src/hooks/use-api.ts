@@ -82,6 +82,13 @@ export function useApiQuery<TData>(
   queryFn: () => Promise<TData>,
   options?: Omit<UseQueryOptions<TData, Error>, 'queryKey' | 'queryFn'>
 ): UseQueryResult<TData, Error> {
+  const cacheTime = 1000 * 60 * 10; // 10 minutes
+  const defaultOptions = {
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    cacheTime,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  };
   return useQuery({
     queryKey,
     queryFn: async () => {

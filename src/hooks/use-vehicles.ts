@@ -14,6 +14,9 @@ export const useVehicles = () => {
     useList: (filters?: VehicleFilterParams, page = 1, limit = 20) => {
       return useQuery({
         queryKey: ['vehicles', filters, page, limit],
+        staleTime: 1000 * 60 * 5, // 5 minutes
+        cacheTime: 1000 * 60 * 10, // 10 minutes
+        keepPreviousData: true, // Keep previous data while fetching new data
         queryFn: async () => {
           try {
             // Start with the base query

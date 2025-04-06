@@ -28,7 +28,7 @@ const useTranslation = () => useContext(TranslationContext);
 export const TranslationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'en');
   const [direction, setDirection] = useState<Direction>(language === 'ar' ? 'rtl' : 'ltr');
-  const isRTL = direction === 'rtl';
+  const isRTL = useMemo(() => direction === 'rtl', [direction]);
 
   const changeLanguage = useCallback((lang: string) => {
     try {
