@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -217,19 +216,13 @@ export const useCustomers = () => {
 
       console.log('Raw customer data from profiles:', data);
 
-      const normalizeStatus = (status: string | null | undefined): CustomerStatus => {
-        if (!status) return 'active';
+      const convertStatusFormat = (dbStatus: string | null | undefined): CustomerStatus => {
+        if (!dbStatus) return 'active';
         
-        const normalized = status.toLowerCase().replace(/[_\s]/g, '');
+        if (dbStatus === 'pending_review') return 'pendingreview';
+        if (dbStatus === 'pending_payment') return 'pendingpayment';
         
-        if (['active', 'inactive', 'blacklisted', 'pendingreview', 'pendingpayment'].includes(normalized)) {
-          return normalized as CustomerStatus;
-        }
-        
-        if (normalized === 'pending_review' || normalized === 'pendingreview') return 'pendingreview';
-        if (normalized === 'pending_payment' || normalized === 'pendingpayment') return 'pendingpayment';
-        
-        return 'active';
+        return dbStatus as CustomerStatus;
       };
 
       const customerData: Customer = {
@@ -241,7 +234,7 @@ export const useCustomers = () => {
         nationality: data.nationality || '',
         address: data.address || '',
         notes: data.notes || '',
-        status: normalizeStatus(data.status),
+        status: convertStatusFormat(data.status),
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
