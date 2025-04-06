@@ -1,374 +1,191 @@
 
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { useCustomers } from '@/hooks/use-customers';
-import { Customer } from '@/lib/validation-schemas/customer';
+import { Separator } from '@/components/ui/separator';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { CustomerTrafficFines } from './CustomerTrafficFines';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { formatDate, formatDateTime } from '@/lib/date-utils';
-import { useAgreements } from '@/hooks/use-agreements';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useTranslation as useContextTranslation } from '@/contexts/TranslationContext';
+import { Pencil, UserRound, Phone, Mail, MapPin, Clock, CalendarDays, FileText, AlertTriangle } from 'lucide-react';
+import { DeleteCustomerDialog } from './DeleteCustomerDialog';
+import { Customer } from '@/types/customer';
+import { useTranslation } from 'react-i18next';
+import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
+import { CustomerStatus } from '@/lib/validation-schemas/customer';
+import { formatDate, ensureDate } from '@/lib/date-utils';
+import { getDirectionalClasses } from '@/utils/rtl-utils';
 
-export interface CustomerDetailProps {
-  id: string;
+interface CustomerDetailProps {
+  customer: Customer;
+  onDelete: (id: string) => Promise<void>;
 }
 
-export function CustomerDetail({ id }: CustomerDetailProps) {
-  const { t } = useTranslation();
+export function CustomerDetail({ customer, onDelete }: CustomerDetailProps) {
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
-  const { getCustomer, deleteCustomer } = useCustomers();
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ 
-    customerId: id
-  });
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const { isRTL, translateText } = useContextTranslation();
-  const [translatedNotes, setTranslatedNotes] = useState<string | null>(null);
+  const { t } = useTranslation();
+  const { isRTL } = useAppTranslation();
 
-  const fetchCustomer = useCallback(async () => {
-    if (!id || hasLoaded) return;
-    
-    setLoading(true);
-    setFetchError(null);
-    
-    try {
-      const data = await getCustomer(id);
-      if (data) {
-        setCustomer(data);
-        setHasLoaded(true);
-        
-        // Translate customer notes if available
-        if (data.notes) {
-          try {
-            const translated = await translateText(data.notes);
-            setTranslatedNotes(translated);
-          } catch (error) {
-            console.error("Error translating notes:", error);
-            setTranslatedNotes(data.notes); // Fall back to original notes
-          }
-        }
-      } else {
-        setFetchError(t('customers.errorLoadingTitle'));
-      }
-    } catch (error) {
-      console.error("Error fetching customer:", error);
-      setFetchError(t('customers.errorLoadingTitle'));
-      toast.error(t('customers.errorLoadingTitle'));
-    } finally {
-      setLoading(false);
-    }
-  }, [id, getCustomer, hasLoaded, t, translateText]);
-
-  useEffect(() => {
-    fetchCustomer();
-  }, [fetchCustomer]);
+  const handleEdit = () => {
+    navigate(`/customers/edit/${customer.id}`);
+  };
 
   const handleDelete = async () => {
-    if (!customer?.id || isDeleting) return;
-    
-    setIsDeleting(true);
     try {
-      await deleteCustomer.mutateAsync(customer.id, {
-        onSuccess: () => {
-          toast.success(t('customers.statusUpdateSuccess'));
-          navigate('/customers');
-        },
-        onError: (error) => {
-          console.error("Delete error:", error);
-          toast.error(t('customers.statusUpdateFailed'));
-          setIsDeleting(false);
-        }
-      });
+      await onDelete(customer.id);
+      navigate('/customers');
+      toast.success(t('customers.deleteSuccess'));
     } catch (error) {
-      console.error("Unexpected error during delete:", error);
-      toast.error(t('customers.unexpectedError'));
-      setIsDeleting(false);
+      console.error('Error deleting customer:', error);
+      toast.error(t('customers.deleteError'));
+    }
+    setIsDeleteDialogOpen(false);
+  };
+
+  const getStatusBadge = (status: CustomerStatus) => {
+    switch (status) {
+      case 'active':
+        return <Badge className="bg-green-500">{t(`customers.status.${status}`)}</Badge>;
+      case 'inactive':
+        return <Badge variant="outline">{t(`customers.status.${status}`)}</Badge>;
+      case 'blacklisted':
+        return <Badge variant="destructive">{t(`customers.status.${status}`)}</Badge>;
+      case 'pendingreview':
+        return <Badge className="bg-yellow-500">{t('customers.status.pendingreview')}</Badge>;
+      case 'pendingpayment':
+        return <Badge className="bg-blue-500">{t('customers.status.pendingpayment')}</Badge>;
+      default:
+        return <Badge variant="outline">{status || t('common.unknown')}</Badge>;
     }
   };
 
-  if (loading && !hasLoaded) {
-    return <div className="flex justify-center items-center p-8">{t('common.loading')}</div>;
-  }
-
-  if (fetchError || !customer) {
-    return (
-      <Card className="mx-auto max-w-2xl">
-        <CardHeader className="text-center">
-          <CardTitle>{t('customers.errorLoadingTitle')}</CardTitle>
-          <CardDescription>
-            {fetchError || t('customers.unknownError')}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex justify-center">
-          <Button asChild>
-            <Link to="/customers">{t('common.back')}</Link>
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className={`flex ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">{customer.full_name}</h2>
-          <p className="text-muted-foreground">
-            {t('customers.customerSince')} {formatDate(customer.created_at || '')}
-          </p>
+          <h2 className={`text-3xl font-bold tracking-tight ${isRTL ? 'text-right' : ''}`}>
+            {customer.full_name || t('customers.unnamed')}
+          </h2>
+          <div className="flex items-center gap-2 mt-1">
+            {getStatusBadge(customer.status as CustomerStatus)}
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
-          <Button asChild variant="outline">
-            <Link to={`/customers/edit/${customer.id}`}>
-              <Edit className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
-              {t('common.edit')}
-            </Link>
+        <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <Button onClick={handleEdit} variant="outline" className={isRTL ? 'ml-2' : 'mr-2'}>
+            <Pencil className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('common.edit')}
           </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" disabled={isDeleting}>
-                <Trash2 className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4`} />
-                {isDeleting ? t('common.loading') : t('common.delete')}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('common.areYouSure')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('customers.deleteCustomerConfirmation', { name: customer.full_name })}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                  {t('common.delete')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button 
+            variant="destructive" 
+            onClick={() => setIsDeleteDialogOpen(true)}
+          >
+            {t('common.delete')}
+          </Button>
         </div>
       </div>
-      
-      <Separator />
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <UserCog className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
-              {t('customers.contactInformation')}
-            </CardTitle>
+            <CardTitle>{t('customers.contactInformation')}</CardTitle>
+            <CardDescription>{t('customers.customerDetails')}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.emailAddress')}</h4>
-              <p className="text-foreground">{customer.email || t('common.notProvided')}</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.phoneNumber')}</h4>
-              <p className="text-foreground">{customer.phone || t('common.notProvided')}</p>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.address')}</h4>
-              <p className="text-foreground whitespace-pre-line">{customer.address || t('customers.noAddressProvided')}</p>
-            </div>
-            {customer.nationality && (
+          <CardContent className={`space-y-4 ${isRTL ? 'text-right' : ''}`}>
+            <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <UserRound className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-3' : 'mr-3'} mt-0.5`} />
               <div>
-                <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('common.nationality')}</h4>
-                <p className="text-foreground">{customer.nationality}</p>
+                <Label>{t('common.name')}</Label>
+                <p className="text-lg font-medium">{customer.full_name || t('common.notProvided')}</p>
               </div>
-            )}
+            </div>
+            
+            <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Mail className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-3' : 'mr-3'} mt-0.5`} />
+              <div>
+                <Label>{t('customers.emailAddress')}</Label>
+                <p>{customer.email || t('common.notProvided')}</p>
+              </div>
+            </div>
+            
+            <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <Phone className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-3' : 'mr-3'} mt-0.5`} />
+              <div>
+                <Label>{t('customers.phoneNumber')}</Label>
+                <p>{customer.phone || customer.phone_number || t('common.notProvided')}</p>
+              </div>
+            </div>
+            
+            <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <MapPin className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-3' : 'mr-3'} mt-0.5`} />
+              <div>
+                <Label>{t('common.address')}</Label>
+                <p>{customer.address || t('customers.noAddressProvided')}</p>
+              </div>
+            </div>
+            
+            <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <FileText className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-3' : 'mr-3'} mt-0.5`} />
+              <div>
+                <Label>{t('customers.driverLicense')}</Label>
+                <p>{customer.driver_license || t('common.notProvided')}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              <CalendarClock className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
-              {t('customers.customerDetails')}
-            </CardTitle>
+            <CardTitle>{t('common.details')}</CardTitle>
+            <CardDescription>{t('customers.additionalNotes')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('common.status')}</h4>
-              <Badge
-                variant={
-                  customer.status === "active" ? "success" : 
-                  customer.status === "inactive" ? "outline" : 
-                  customer.status === "blacklisted" ? "destructive" :
-                  customer.status === "pending_review" ? "warning" :
-                  "secondary"
-                }
-                className="capitalize"
-              >
-                {t(`customers.status.${customer.status?.replace('_', '') || 'unknown'}`)}
-              </Badge>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.driverLicense')}</h4>
-              <code className="relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono text-sm">
-                {customer.driver_license || t('customers.notProvided')}
-              </code>
-            </div>
-            <div>
-              <h4 className="font-medium text-sm text-muted-foreground mb-1">{t('customers.lastUpdated')}</h4>
-              <div className="flex items-center">
-                <Clock className={`${isRTL ? 'ml-2' : 'mr-2'} h-4 w-4 text-muted-foreground`} />
-                {customer.updated_at 
-                  ? formatDateTime(customer.updated_at) 
-                  : t('customers.neverUpdated')}
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <AlertTriangle className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className="font-medium">{t('common.status')}</span>
               </div>
+              <p className="mt-1">
+                {getStatusBadge(customer.status as CustomerStatus)}
+              </p>
+            </div>
+            
+            <div>
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Clock className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className="font-medium">{t('customers.lastUpdated')}</span>
+              </div>
+              <p className="mt-1">
+                {ensureDate(customer.updated_at) ? formatDate(ensureDate(customer.updated_at)!) : t('customers.neverUpdated')}
+              </p>
+            </div>
+            
+            <div>
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <CalendarDays className={`h-5 w-5 text-muted-foreground ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                <span className="font-medium">{t('customers.customerSince')}</span>
+              </div>
+              <p className="mt-1">
+                {ensureDate(customer.created_at) ? formatDate(ensureDate(customer.created_at)!) : t('common.unknown')}
+              </p>
+            </div>
+            
+            <Separator className="my-4" />
+            
+            <div>
+              <Label className={isRTL ? 'text-right block' : ''}>{t('common.notes')}</Label>
+              <p className={`whitespace-pre-line mt-2 ${isRTL ? 'text-right' : ''}`}>{customer.notes || t('customers.noAdditionalNotes')}</p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileText className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
-            {t('customers.agreementHistory')}
-          </CardTitle>
-          <CardDescription>
-            {t('customers.agreementList')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t('agreements.title')}</TableHead>
-                  <TableHead>{t('vehicles.title')}</TableHead>
-                  <TableHead>{t('common.startDate')}</TableHead>
-                  <TableHead>{t('common.endDate')}</TableHead>
-                  <TableHead>{t('common.status')}</TableHead>
-                  <TableHead>{t('common.total')}</TableHead>
-                  <TableHead></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingAgreements ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={`skeleton-${i}`}>
-                      {Array.from({ length: 7 }).map((_, j) => (
-                        <TableCell key={`skeleton-cell-${i}-${j}`}>
-                          <Skeleton className="h-6 w-full" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : agreements && agreements.length > 0 ? (
-                  agreements.map((agreement) => (
-                    <TableRow key={agreement.id}>
-                      <TableCell className="font-medium">{agreement.agreement_number || t('common.notProvided')}</TableCell>
-                      <TableCell>
-                        {agreement.vehicle ? (
-                          <span>
-                            {agreement.vehicle.make} {agreement.vehicle.model} ({agreement.vehicle.license_plate})
-                          </span>
-                        ) : (
-                          t('vehicles.unknown')
-                        )}
-                      </TableCell>
-                      <TableCell>{agreement.start_date ? formatDate(agreement.start_date) : t('common.notProvided')}</TableCell>
-                      <TableCell>{agreement.end_date ? formatDate(agreement.end_date) : t('common.notProvided')}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            agreement.status === 'ACTIVE' ? 'success' :
-                            agreement.status === 'PENDING' ? 'warning' :
-                            agreement.status === 'CANCELLED' ? 'destructive' :
-                            agreement.status === 'CLOSED' ? 'outline' :
-                            agreement.status === 'EXPIRED' ? 'secondary' :
-                            'default'
-                          }
-                          className="capitalize"
-                        >
-                          {t(`agreements.status.${agreement.status?.toLowerCase().replace('_', '') || 'unknown'}`)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : t('common.notProvided')}</TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/agreements/${agreement.id}`}>
-                            {t('common.view')}
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
-                      {t('agreements.noAgreements')}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <AlertTriangle className={`${isRTL ? 'ml-2' : 'mr-2'} h-5 w-5`} />
-            {t('customers.trafficFines')}
-          </CardTitle>
-          <CardDescription>
-            {t('customers.trafficViolations')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CustomerTrafficFines customerId={id} />
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('customers.additionalNotes')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="prose prose-sm max-w-none">
-            {customer.notes ? (
-              <p className="whitespace-pre-line">{translatedNotes || customer.notes}</p>
-            ) : (
-              <p className="text-muted-foreground italic">{t('customers.noAdditionalNotes')}</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <DeleteCustomerDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDelete}
+        customerName={customer.full_name || t('customers.unnamed')}
+      />
     </div>
   );
 }

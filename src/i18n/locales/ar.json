@@ -96,7 +96,7 @@
     "recentActivity": "النشاط الأخير",
     "fleetUtilization": "استخدام الأسطول",
     "revenueOverview": "نظرة عامة على الإيرادات",
-    "vsLastMonth": "مقارنة ب��لشهر الماضي",
+    "vsLastMonth": "مقارنة ب����لشهر الماضي",
     "thisMonth": "هذا الشهر",
     "availabilityRate": "معدل التوفر",
     "activityTypes": {
@@ -180,7 +180,12 @@
     "caseManagement": "إدارة القضايا",
     "complianceCalendar": "تقويم الامتثال",
     "riskAssessment": "تقييم المخاطر",
-    "complianceReporting": "تقارير الامتثال"
+    "complianceReporting": "تقارير الامتثال",
+    "cases": "القضايا القانونية",
+    "associatedMatters": "القضايا المرتبطة",
+    "noCases": "لا توجد قضايا قانونية مرتبطة بهذه الاتفاقية",
+    "caseDetails": "تفاصيل القضية",
+    "viewDetails": "عرض التفاصيل"
   },
   "financials": {
     "dashboard": "لوحة المالية",
@@ -392,7 +397,7 @@
     "createError": "فشل في إنشاء الاتفاقية",
     "notFound": "الاتفاقية غير موجودة",
     "notFoundDesc": "الاتفاقية التي تبحث عنها غير موجودة أو تمت إزالتها",
-    "returnToAgreements": "العودة إلى الاتفاقيات",
+    "returnToAgreements": "العودة إلى الاتفاق��ات",
     "loadError": "فشل في تحميل تفاصيل الاتفاقية",
     "deleteSuccess": "تم حذف الاتفاقية بنجاح",
     "deleteError": "فشل في حذف الاتفاقية",
@@ -572,5 +577,21 @@
     "recordsFixedSuccess": "تم إصلاح سجلات الدفع بنجاح",
     "recordsFixFailed": "فشل في إصلاح سجلات الدفع",
     "unexpectedError": "حدث خطأ غير متوقع أثناء إصلاح الدفعات"
+  },
+  "trafficFines": {
+    "title": "مخالفات المرور",
+    "management": "إدارة مخالفات المرور",
+    "description": "تسجيل وتتبع وإدارة مخالفات المرور",
+    "list": "قائمة المخالفات",
+    "recordNew": "تسجيل مخالفة جديدة",
+    "analytics": "تحليل المخالفات",
+    "noFines": "لا توجد مخالفات مرورية مرتبطة بهذه الاتفاقية",
+    "checkNew": "التحقق من المخالفات الجديدة",
+    "location": "الموقع",
+    "violationNumber": "رقم المخالفة",
+    "status": {
+      "paid": "مدفوعة",
+      "pending": "معلقة"
+    }
   }
 }

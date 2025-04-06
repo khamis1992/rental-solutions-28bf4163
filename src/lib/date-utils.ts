@@ -18,6 +18,8 @@ const locales: Record<string, Locale> = {
 export function formatDate(date: Date | number, formatString: string = 'PPP', options?: {
   locale?: string;
 }): string {
+  if (!date) return '';
+  
   // Get the stored language from localStorage or default to 'en'
   const currentLocale = options?.locale || localStorage.getItem('language') || 'en';
   
@@ -38,6 +40,8 @@ export function formatDate(date: Date | number, formatString: string = 'PPP', op
  * @returns Formatted distance string
  */
 export function formatDateDistance(date: Date | number, baseDate: Date | number): string {
+  if (!date || !baseDate) return '';
+  
   const currentLocale = localStorage.getItem('language') || 'en';
   
   try {
@@ -79,6 +83,8 @@ export function useDateFormatter() {
     
     // Helper method for formatting in agreement contexts
     formatAgreementDate: (date: Date | number) => {
+      if (!date) return '';
+      
       try {
         return formatDate(date, 'MMMM d, yyyy', { locale: language });
       } catch (error) {
@@ -87,4 +93,33 @@ export function useDateFormatter() {
       }
     }
   };
+}
+
+// Fix the build errors in other components by ensuring dates are properly parsed
+export function ensureDate(dateValue: string | Date | number | null | undefined): Date | null {
+  if (!dateValue) return null;
+  
+  if (dateValue instanceof Date) {
+    return dateValue;
+  }
+  
+  if (typeof dateValue === 'number') {
+    return new Date(dateValue);
+  }
+  
+  if (typeof dateValue === 'string') {
+    try {
+      const parsedDate = new Date(dateValue);
+      if (isNaN(parsedDate.getTime())) {
+        console.error('Invalid date string:', dateValue);
+        return null;
+      }
+      return parsedDate;
+    } catch (error) {
+      console.error('Error parsing date string:', error);
+      return null;
+    }
+  }
+  
+  return null;
 }
