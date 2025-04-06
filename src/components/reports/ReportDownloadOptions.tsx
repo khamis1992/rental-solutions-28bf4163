@@ -1,4 +1,7 @@
+
 import React, { useState } from 'react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, FileSpreadsheet, Loader2 } from 'lucide-react';
 import { generateStandardReport } from '@/utils/report-utils';
@@ -20,6 +23,8 @@ const ReportDownloadOptions = ({
   reportTitle,
   dateRange 
 }: ReportDownloadOptionsProps) => {
+  const { t } = useI18nTranslation();
+  const { direction, isRTL } = useTranslation();
   const { trafficFines } = useTrafficFines();
   const [isGenerating, setIsGenerating] = useState<'csv' | 'excel' | 'pdf' | null>(null);
 
@@ -50,10 +55,10 @@ const ReportDownloadOptions = ({
       link.click();
       document.body.removeChild(link);
       
-      toast.success('CSV report downloaded successfully');
+      toast.success(t('reports.csvDownloadSuccess'));
     } catch (error) {
       console.error("Error generating CSV:", error);
-      toast.error('Failed to generate CSV report');
+      toast.error(t('reports.csvDownloadError'));
     } finally {
       setIsGenerating(null);
     }
@@ -68,10 +73,10 @@ const ReportDownloadOptions = ({
       const filename = `${reportType}-report-${new Date().toISOString().split('T')[0]}.xlsx`;
       
       downloadExcel(data, filename);
-      toast.success('Excel report downloaded successfully');
+      toast.success(t('reports.excelDownloadSuccess'));
     } catch (error) {
       console.error("Error generating Excel:", error);
-      toast.error('Failed to generate Excel report');
+      toast.error(t('reports.excelDownloadError'));
     } finally {
       setIsGenerating(null);
     }
@@ -80,7 +85,7 @@ const ReportDownloadOptions = ({
   const handleDownloadPDF = async () => {
     try {
       setIsGenerating('pdf');
-      toast.info('Generating PDF report...', { duration: 2000 });
+      toast.info(t('reports.generatingPdf'), { duration: 2000 });
 
       let doc;
       let filename: string;
@@ -116,17 +121,20 @@ const ReportDownloadOptions = ({
 
       // Download the PDF
       doc.save(filename);
-      toast.success('PDF report downloaded successfully');
+      toast.success(t('reports.pdfDownloadSuccess'));
     } catch (error) {
       console.error("Error generating PDF:", error);
-      toast.error('Failed to generate PDF report');
+      toast.error(t('reports.pdfDownloadError'));
     } finally {
       setIsGenerating(null);
     }
   };
 
   return (
-    <div className="flex flex-wrap gap-2 justify-end">
+    <div 
+      className={`flex flex-wrap gap-2 ${isRTL ? 'justify-start' : 'justify-end'}`}
+      dir={direction}
+    >
       <Button 
         variant="outline"
         size="sm"
@@ -135,11 +143,11 @@ const ReportDownloadOptions = ({
         disabled={isGenerating !== null}
       >
         {isGenerating === 'csv' ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <Loader2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
         ) : (
-          <FileText className="h-4 w-4 mr-2" />
+          <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
         )}
-        <span>CSV</span>
+        <span>{t('reports.csv')}</span>
       </Button>
       
       <Button 
@@ -150,11 +158,11 @@ const ReportDownloadOptions = ({
         disabled={isGenerating !== null}
       >
         {isGenerating === 'excel' ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <Loader2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
         ) : (
-          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          <FileSpreadsheet className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
         )}
-        <span>Excel</span>
+        <span>{t('reports.excel')}</span>
       </Button>
       
       <Button 
@@ -165,11 +173,11 @@ const ReportDownloadOptions = ({
         disabled={isGenerating !== null}
       >
         {isGenerating === 'pdf' ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <Loader2 className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />
         ) : (
-          <Download className="h-4 w-4 mr-2" />
+          <Download className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
         )}
-        <span>PDF</span>
+        <span>{t('reports.pdf')}</span>
       </Button>
     </div>
   );

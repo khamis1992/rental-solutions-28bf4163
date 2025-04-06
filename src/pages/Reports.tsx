@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { useTranslation } from '@/contexts/TranslationContext';
 import PageContainer from '@/components/layout/PageContainer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,6 +28,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Reports = () => {
   const navigate = useNavigate();
+  const { t } = useI18nTranslation();
+  const { direction, isRTL } = useTranslation();
+  
   const [selectedTab, setSelectedTab] = useState('fleet');
   const { vehicles } = useFleetReport();
   const { transactions } = useFinancials();
@@ -61,7 +66,7 @@ const Reports = () => {
     // Simulate report generation
     setTimeout(() => {
       setIsGenerating(false);
-      toast.success('Scheduled report generated successfully');
+      toast.success(t('reports.scheduledReportGenerated'));
     }, 2000);
   };
   
@@ -188,32 +193,33 @@ const Reports = () => {
 
   return (
     <PageContainer 
-      title="Reports & Analytics" 
-      description="Comprehensive reports and analytics for your rental business"
+      title={t('reports.title')} 
+      description={t('reports.description')}
       actions={
         <Button 
           variant="outline"
           onClick={() => navigate('/reports/scheduled')}
           className="flex items-center space-x-2"
+          dir={direction}
         >
-          <Calendar className="h-4 w-4" />
-          <span>Scheduled Reports</span>
+          <Calendar className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+          <span>{t('reports.scheduledReports')}</span>
         </Button>
       }
     >
       <div className="flex items-center mb-6">
         <SectionHeader 
-          title="Generate Reports" 
-          description="Select a report type to view detailed analytics and insights" 
+          title={t('reports.generateReports')} 
+          description={t('reports.generateReportsDescription')} 
           icon={FileText} 
         />
       </div>
       
       <Alert className="mb-6">
         <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Pro Tip</AlertTitle>
+        <AlertTitle>{t('reports.proTip')}</AlertTitle>
         <AlertDescription>
-          You can schedule reports to be automatically generated and sent to your email on a recurring basis.
+          {t('reports.scheduleReportsDescription')}
         </AlertDescription>
       </Alert>
       
@@ -221,12 +227,12 @@ const Reports = () => {
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
             <TabsList className="grid grid-cols-6 mb-8">
-              <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
-              <TabsTrigger value="financial">Financial Report</TabsTrigger>
-              <TabsTrigger value="customers">Customer Report</TabsTrigger>
-              <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
-              <TabsTrigger value="traffic-fines">Traffic Fines</TabsTrigger>
-              <TabsTrigger value="legal">Legal Report</TabsTrigger>
+              <TabsTrigger value="fleet">{t('reports.fleetReport')}</TabsTrigger>
+              <TabsTrigger value="financial">{t('reports.financialReport')}</TabsTrigger>
+              <TabsTrigger value="customers">{t('reports.customerReport')}</TabsTrigger>
+              <TabsTrigger value="maintenance">{t('reports.maintenanceReport')}</TabsTrigger>
+              <TabsTrigger value="traffic-fines">{t('reports.trafficFines')}</TabsTrigger>
+              <TabsTrigger value="legal">{t('reports.legalReport')}</TabsTrigger>
             </TabsList>
             
             <div className="mb-6">
