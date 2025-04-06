@@ -29,7 +29,7 @@ import { formatDate } from '@/lib/date-utils';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { lazy, Suspense } from 'react';
 
-const DocumentViewer = lazy(() => import('./DocumentViewer')); // Assumed import path
+const DocumentViewer = lazy(() => import('./DocumentViewer'));
 
 const MOCK_DOCUMENTS = [
   { 
@@ -124,7 +124,7 @@ const LegalDocuments = () => {
             </div>
           </div>
 
-          <div className="rounded-md border" ref={parentRef}> {/* Added ref for virtualizer */}
+          <div className="rounded-md border" ref={parentRef}>
             <Table>
               <TableHeader>
                 <TableRow>
