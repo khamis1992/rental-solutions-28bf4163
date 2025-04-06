@@ -1,3 +1,4 @@
+
 import { getDirectionalClasses, getDirectionalFlexClass, getDirectionalTextAlign } from '@/utils/rtl-utils';
 import { TranslationProvider, useTranslation } from '@/contexts/TranslationContext';
 import { renderHook } from '@testing-library/react-hooks';
@@ -6,7 +7,9 @@ import React from 'react';
 // Mock the TranslationContext
 jest.mock('@/contexts/TranslationContext', () => ({
   useTranslation: jest.fn(),
-  TranslationProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>
+  TranslationProvider: ({ children }: { children: React.ReactNode }) => {
+    return <>{children}</>;
+  }
 }));
 
 describe('RTL Utilities', () => {
