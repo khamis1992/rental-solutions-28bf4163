@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency } from '@/lib/utils';
@@ -474,7 +473,7 @@ export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: Pay
                 <TableCell>{payment.payment_date ? formatDate(new Date(payment.payment_date)) : '-'}</TableCell>
                 <TableCell>{formatCurrency(payment.amount_paid || 0)}</TableCell>
                 <TableCell>{payment.payment_method}</TableCell>
-                <TableCell>{payment.notes || payment.description}</TableCell>
+                <TableCell>{payment.notes || (payment.description as string || '')}</TableCell>
                 <TableCell>{formatCurrency(calculateBalance(payment))}</TableCell>
                 <TableCell className="text-right">
                   {payment.status === 'paid' ? (

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -48,7 +47,6 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
       try {
         setLoading(true);
         
-        // Fetch agreements with vehicle information
         const { data, error } = await supabase
           .from('leases')
           .select(`
@@ -74,7 +72,6 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
           return;
         }
         
-        // Transform the data to match our Agreement interface
         const formattedAgreements = data.map(agreement => ({
           id: agreement.id,
           agreement_number: agreement.agreement_number,

@@ -10,6 +10,7 @@ export interface Payment {
   payment_method?: string;
   reference_number?: string | null;
   notes?: string;
+  description?: string;
   type?: string;
   status?: string;
   late_fine_amount?: number;

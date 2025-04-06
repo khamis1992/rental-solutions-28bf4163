@@ -171,7 +171,7 @@ export function PaymentEntryDialog({
   const showLateFeeOption = lateFeeDetails !== null;
 
   const formatPaymentDescription = (payment: Payment) => {
-    let desc = payment.description || 
+    let desc = (payment.description as string) || 
                `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
     
     let status = "";
