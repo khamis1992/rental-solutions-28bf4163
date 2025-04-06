@@ -98,12 +98,20 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             // Handle proper structure of vehicles data
             let vehicleInfo: VehicleInfo;
             
-            if (Array.isArray(fine.vehicles) && fine.vehicles.length > 0) {
-              // It's an array, use the first element
-              vehicleInfo = {
-                make: fine.vehicles[0].make,
-                model: fine.vehicles[0].model
-              };
+            if (Array.isArray(fine.vehicles)) {
+              // It's an array, use the first element if it exists
+              if (fine.vehicles.length > 0) {
+                vehicleInfo = {
+                  make: fine.vehicles[0].make,
+                  model: fine.vehicles[0].model
+                };
+              } else {
+                // Empty array, set default values
+                vehicleInfo = {
+                  make: '',
+                  model: ''
+                };
+              }
             } else {
               // It's a direct object
               vehicleInfo = {

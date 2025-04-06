@@ -80,15 +80,16 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
           
           if (agreement.vehicles) {
             // Handle vehicles data properly based on its actual structure
-            // Could be either a direct object or the first item of an array
-            if (Array.isArray(agreement.vehicles) && agreement.vehicles.length > 0) {
-              // It's an array, take the first item
-              const firstVehicle = agreement.vehicles[0];
-              vehicleData = {
-                make: firstVehicle.make,
-                model: firstVehicle.model,
-                license_plate: firstVehicle.license_plate
-              };
+            if (Array.isArray(agreement.vehicles)) {
+              // It's an array, take the first item if it exists
+              if (agreement.vehicles.length > 0) {
+                const firstVehicle = agreement.vehicles[0];
+                vehicleData = {
+                  make: firstVehicle.make,
+                  model: firstVehicle.model,
+                  license_plate: firstVehicle.license_plate
+                };
+              }
             } else {
               // It's a direct object
               vehicleData = {
