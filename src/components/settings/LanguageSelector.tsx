@@ -51,7 +51,7 @@ const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         </SelectTrigger>
         <SelectContent align={isRTL ? 'end' : 'start'} className={isRTL ? 'text-right' : ''}>
           <SelectItem value="en">English</SelectItem>
-          <SelectItem value="ar" className="font-arabic">العربية</SelectItem>
+          <SelectItem value="ar" className="font-arabic font-medium">العربية</SelectItem>
         </SelectContent>
       </Select>
     </div>
