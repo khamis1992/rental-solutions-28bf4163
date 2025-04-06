@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -113,6 +114,91 @@ export function PaymentHistory({
     }
   };
 
+  // Add the missing handler functions
+  const handleFixPayments = async () => {
+    if (!agreementId) return;
+    
+    setIsFixingPayments(true);
+    try {
+      const result = await ensureAllMonthlyPayments(agreementId);
+      if (result.success) {
+        toast.success(`Payment schedule fixed: ${result.message}`);
+        debouncedRefresh();
+      } else {
+        toast.error(`Error fixing payments: ${result.message}`);
+      }
+    } catch (err) {
+      console.error("Error fixing payments:", err);
+      toast.error("Failed to fix payment schedule");
+    } finally {
+      setIsFixingPayments(false);
+    }
+  };
+  
+  const handleRecordManualPayment = () => {
+    setSelectedPayment(null);
+    setLateFeeDetails(null);
+    setIsPaymentDialogOpen(true);
+  };
+  
+  const handleRecordPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    
+    // If payment is overdue, set late fee details
+    const lateFee = payment.late_fine_amount || 0;
+    const daysLate = payment.days_overdue || 0;
+    
+    if (lateFee > 0 && daysLate > 0) {
+      setLateFeeDetails({
+        amount: lateFee,
+        daysLate: daysLate
+      });
+    } else {
+      setLateFeeDetails(null);
+    }
+    
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDeletePayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsDeleteConfirmOpen(true);
+  };
+  
+  const confirmDeletePayment = async () => {
+    if (!selectedPayment || !selectedPayment.id || isDeleteOperationInProgress.current) return;
+    
+    setIsDeletingPayment(true);
+    isDeleteOperationInProgress.current = true;
+    
+    try {
+      const { error } = await supabase
+        .from('unified_payments')
+        .delete()
+        .eq('id', selectedPayment.id);
+        
+      if (error) {
+        console.error("Error deleting payment:", error);
+        toast.error(t('payments.deleteError'));
+      } else {
+        toast.success(t('payments.deleteSuccess'));
+        setIsDeleteConfirmOpen(false);
+        debouncedRefresh();
+      }
+    } catch (err) {
+      console.error("Unexpected error deleting payment:", err);
+      toast.error(t('common.error'));
+    } finally {
+      setIsDeletingPayment(false);
+      isDeleteOperationInProgress.current = false;
+    }
+  };
+
   if (!agreementId) {
     return (
       <Alert>
@@ -188,7 +274,7 @@ export function PaymentHistory({
                       {payment.payment_date ? safeDateFormat(payment.payment_date) : payment.original_due_date ? <span className="text-yellow-600">{t('common.dueDate')}: {safeDateFormat(payment.original_due_date)}</span> : t('common.pending')}
                     </TableCell>
                     <TableCell>
-                      {formatAmount(payment)}
+                      {formatAmount(payment, t)}
                     </TableCell>
                     <TableCell>
                       {payment.payment_method ? payment.payment_method : t('common.notProvided')}
@@ -199,7 +285,7 @@ export function PaymentHistory({
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         {getStatusIcon(payment.status)}
-                        <span>{getStatusBadge(payment.status, payment.days_overdue, payment.balance, payment.amount)}</span>
+                        <span>{getStatusBadge(payment.status, payment.days_overdue, payment.balance, payment.amount, t)}</span>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -284,7 +370,7 @@ export function PaymentHistory({
   );
 }
 
-const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number) => {
+const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number, t: any) => {
   if (!status) return <Badge className="bg-gray-500">{t('common.unknown')}</Badge>;
   switch (status.toLowerCase()) {
     case 'completed':
@@ -326,7 +412,7 @@ const getStatusIcon = (status?: string) => {
   }
 };
 
-const formatAmount = (payment: Payment) => {
+const formatAmount = (payment: Payment, t: any) => {
   const baseAmount = payment.amount || 0;
   const amountPaid = payment.amount_paid || 0;
   const balance = payment.balance || 0;
