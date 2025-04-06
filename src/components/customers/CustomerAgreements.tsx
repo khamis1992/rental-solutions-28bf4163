@@ -73,20 +73,43 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
           return;
         }
         
-        const formattedAgreements = data.map(agreement => ({
-          id: agreement.id,
-          agreement_number: agreement.agreement_number,
-          status: agreement.status,
-          rent_amount: agreement.rent_amount,
-          start_date: agreement.start_date,
-          end_date: agreement.end_date,
-          vehicle_id: agreement.vehicle_id,
-          vehicle: agreement.vehicles ? {
-            make: agreement.vehicles.make,
-            model: agreement.vehicles.model,
-            license_plate: agreement.vehicles.license_plate
-          } : undefined
-        }));
+        const formattedAgreements = data.map(agreement => {
+          // Check if vehicles exists and handle it properly
+          // The Supabase response structure may have vehicles as a property that needs to be accessed correctly
+          let vehicleData: Vehicle | undefined = undefined;
+          
+          if (agreement.vehicles) {
+            // Handle vehicles data properly based on its actual structure
+            // Could be either a direct object or the first item of an array
+            if (Array.isArray(agreement.vehicles) && agreement.vehicles.length > 0) {
+              // It's an array, take the first item
+              const firstVehicle = agreement.vehicles[0];
+              vehicleData = {
+                make: firstVehicle.make,
+                model: firstVehicle.model,
+                license_plate: firstVehicle.license_plate
+              };
+            } else {
+              // It's a direct object
+              vehicleData = {
+                make: agreement.vehicles.make,
+                model: agreement.vehicles.model,
+                license_plate: agreement.vehicles.license_plate
+              };
+            }
+          }
+          
+          return {
+            id: agreement.id,
+            agreement_number: agreement.agreement_number,
+            status: agreement.status,
+            rent_amount: agreement.rent_amount,
+            start_date: agreement.start_date,
+            end_date: agreement.end_date,
+            vehicle_id: agreement.vehicle_id,
+            vehicle: vehicleData
+          };
+        });
         
         setAgreements(formattedAgreements);
       } catch (err) {
