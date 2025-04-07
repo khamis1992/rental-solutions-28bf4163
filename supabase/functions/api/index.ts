@@ -18,8 +18,26 @@ const supabaseClient = createClient(
 // Define supported API resources
 type ApiResourceType = 'vehicles' | 'customers' | 'agreements' | 'traffic-fines';
 
+// Helper function to log API requests
+async function logApiRequest(apiKeyId: string, endpoint: string, method: string, statusCode: number, responseTimeMs: number, ipAddress?: string, userAgent?: string) {
+  try {
+    await supabaseClient.from('api_request_logs').insert({
+      api_key_id: apiKeyId,
+      endpoint,
+      method,
+      status_code: statusCode,
+      response_time_ms: responseTimeMs,
+      ip_address: ipAddress,
+      user_agent: userAgent
+    });
+  } catch (error) {
+    console.error("Error logging API request:", error);
+  }
+}
+
 serve(async (req: Request) => {
   console.log(`API request: ${req.method} ${req.url}`);
+  const startTime = performance.now();
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -56,7 +74,7 @@ serve(async (req: Request) => {
     
     const apiKey = authHeader.replace('Bearer ', '');
     
-    // Validate API key (in a real implementation, check against stored API keys)
+    // Validate API key
     const { data: apiKeyData, error: apiKeyError } = await supabaseClient
       .from('api_keys')
       .select('id, permissions')
@@ -65,6 +83,9 @@ serve(async (req: Request) => {
       .single();
       
     if (apiKeyError || !apiKeyData) {
+      const endTime = performance.now();
+      const responseTime = Math.round(endTime - startTime);
+      
       return new Response(JSON.stringify({ 
         error: 'Invalid API key' 
       }), { 
@@ -76,6 +97,20 @@ serve(async (req: Request) => {
     // Check resource permissions
     const permissions = apiKeyData.permissions as string[];
     if (!permissions.includes(resourceType) && !permissions.includes('*')) {
+      const endTime = performance.now();
+      const responseTime = Math.round(endTime - startTime);
+      
+      // Log the unauthorized access attempt
+      await logApiRequest(
+        apiKeyData.id,
+        url.pathname,
+        req.method,
+        403,
+        responseTime,
+        req.headers.get('x-forwarded-for') || undefined,
+        req.headers.get('user-agent') || undefined
+      );
+      
       return new Response(JSON.stringify({ 
         error: `Access denied to resource: ${resourceType}` 
       }), { 
@@ -85,17 +120,22 @@ serve(async (req: Request) => {
     }
     
     // Handle different resources
+    let response: Response;
     switch(resourceType) {
       case 'traffic-fines':
-        return await handleTrafficFineRequests(req, resourceId);
+        response = await handleTrafficFineRequests(req, resourceId);
+        break;
       case 'vehicles':
-        return await handleVehicleRequests(req, resourceId);
+        response = await handleVehicleRequests(req, resourceId);
+        break;
       case 'customers':
-        return await handleCustomerRequests(req, resourceId);
+        response = await handleCustomerRequests(req, resourceId);
+        break;
       case 'agreements':
-        return await handleAgreementRequests(req, resourceId);
+        response = await handleAgreementRequests(req, resourceId);
+        break;
       default:
-        return new Response(JSON.stringify({ 
+        response = new Response(JSON.stringify({ 
           error: 'Unsupported resource type' 
         }), { 
           status: 400, 
@@ -103,6 +143,21 @@ serve(async (req: Request) => {
         });
     }
     
+    const endTime = performance.now();
+    const responseTime = Math.round(endTime - startTime);
+    
+    // Log the successful request
+    await logApiRequest(
+      apiKeyData.id,
+      url.pathname,
+      req.method,
+      response.status,
+      responseTime,
+      req.headers.get('x-forwarded-for') || undefined,
+      req.headers.get('user-agent') || undefined
+    );
+    
+    return response;
   } catch (error) {
     console.error('API error:', error);
     return new Response(JSON.stringify({ 

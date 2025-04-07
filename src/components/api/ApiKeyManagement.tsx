@@ -177,13 +177,13 @@ const ApiKeyManagement: React.FC = () => {
               </TableCell>
               <TableCell>
                 <div className="flex flex-wrap gap-1">
-                  {apiKey.permissions.includes('*') ? (
+                  {apiKey.permissions?.includes('*') ? (
                     <Badge variant="secondary" className="flex items-center gap-1">
                       <Shield className="h-3 w-3" />
                       All Resources
                     </Badge>
                   ) : (
-                    apiKey.permissions.map(permission => (
+                    apiKey.permissions?.map(permission => (
                       <Badge key={permission} variant="outline" className="text-xs">
                         {permission}
                       </Badge>
@@ -192,7 +192,7 @@ const ApiKeyManagement: React.FC = () => {
                 </div>
               </TableCell>
               <TableCell>
-                {format(new Date(apiKey.created_at), 'MMM d, yyyy')}
+                {apiKey.created_at ? format(new Date(apiKey.created_at), 'MMM d, yyyy') : 'N/A'}
               </TableCell>
               <TableCell>
                 {apiKey.last_used_at ? (

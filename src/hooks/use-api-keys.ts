@@ -38,7 +38,10 @@ export function useApiKeys() {
             p_expires_at: keyData.expires_at
           });
           
-        if (error) throw error;
+        if (error) {
+          console.error('API key creation error:', error);
+          throw error;
+        }
         return data as FlattenType<ApiKey>;
       } finally {
         setLoading(false);
@@ -48,9 +51,9 @@ export function useApiKeys() {
       toast.success('API key created successfully');
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error creating API key:', error);
-      toast.error('Failed to create API key');
+      toast.error(`Failed to create API key: ${error?.message || 'Unknown error'}`);
     }
   });
 
@@ -59,13 +62,23 @@ export function useApiKeys() {
     mutationFn: async (keyId: string) => {
       setLoading(true);
       try {
+        // Use the stored procedure for revoking keys
         const { data, error } = await supabase
+          .rpc('revoke_api_key', {
+            p_key_id: keyId
+          });
+          
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        // Fallback to direct update if RPC fails
+        const { data, error: updateError } = await supabase
           .from('api_keys')
           .update({ is_active: false })
           .eq('id', keyId)
           .select();
           
-        if (error) throw error;
+        if (updateError) throw updateError;
         return data;
       } finally {
         setLoading(false);
@@ -75,9 +88,9 @@ export function useApiKeys() {
       toast.success('API key revoked successfully');
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error revoking API key:', error);
-      toast.error('Failed to revoke API key');
+      toast.error(`Failed to revoke API key: ${error?.message || 'Unknown error'}`);
     }
   });
 
@@ -100,7 +113,7 @@ export function useApiKeys() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   return {
     apiKeys,
