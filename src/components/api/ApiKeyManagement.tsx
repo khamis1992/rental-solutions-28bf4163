@@ -37,7 +37,6 @@ import { AlertCircle, Check, Copy, Key, Shield, ShieldAlert, Trash2 } from 'luci
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow } from 'date-fns';
 
 const ApiKeyManagement: React.FC = () => {
   const { apiKeys, isLoading, createApiKey, revokeApiKey } = useApiKeys();
