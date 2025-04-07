@@ -1,12 +1,42 @@
 
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
 import { useQueryWithCache } from './use-query-with-cache';
+
+// Define Agreement status enum
+export enum AgreementStatus {
+  ACTIVE = 'active',
+  PENDING = 'pending',
+  CANCELLED = 'cancelled',
+  EXPIRED = 'expired',
+  CLOSED = 'closed',
+  DRAFT = 'draft'
+}
+
+// Define Agreement type
+export interface Agreement {
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  agreement_type?: string;
+  agreement_number?: string;
+  status?: string;
+  total_amount?: number;
+  monthly_payment?: number;
+  agreement_duration?: any;
+  created_at?: string;
+  updated_at?: string;
+  signature_url?: string;
+  deposit_amount?: number;
+  notes?: string;
+  customers?: any;
+  vehicles?: any;
+}
 
 // Simplified type to avoid excessive deep instantiation
 export type SimpleAgreement = {
@@ -172,7 +202,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
+  const fetchAgreements = async (): Promise<Agreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
@@ -259,7 +289,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: SimpleAgreement[] = data.map(item => {
+      const agreements: Agreement[] = data.map(item => {
         // Use the helper function to map status
         const mappedStatus = mapDBStatusToEnum(item.status);
 
@@ -392,17 +422,17 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   });
 
   // Use our new optimized query hook with caching
-  const { data: agreements, isLoading, error } = useQueryWithCache(
+  const { data: agreements, isLoading, error } = useQueryWithCache<Agreement[]>(
     ['agreements', searchParams],
     fetchAgreements,
     {
       staleTime: 600000, // 10 minutes (increased from 5 minutes)
-      cacheTime: 900000, // 15 minutes (increased from 10 minutes)
+      gcTime: 900000, // 15 minutes (replaced cacheTime)
     }
   );
 
   return {
-    agreements,
+    agreements: agreements || [], // Return empty array if undefined
     isLoading,
     error,
     searchParams,

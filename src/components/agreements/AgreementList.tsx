@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -8,59 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "@/hooks/use-toast";
-import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import { MoreVertical, Edit, Copy, Trash2, FileInput, Loader2, ArrowLeft, Search, X } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -70,48 +19,19 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { DatePicker } from "@/components/ui/date-picker";
-import { format } from 'date-fns';
-import { cn } from "@/lib/utils";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-  PopoverArrow,
-  PopoverClose,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { useAgreements } from '@/hooks/use-agreements';
-import { Agreement, AgreementStatus } from '@/types/agreement';
-import { useProfiles } from '@/hooks/use-profiles';
-import { useVehicles } from '@/hooks/use-vehicles';
-import { useAgreementImport } from '@/hooks/use-agreement-import';
-import { supabase } from '@/lib/supabase';
-import { CustomButton } from '@/components/ui/custom-button';
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, AlertTriangle, Search, X, Filter, Plus, MoreHorizontal, FileText } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { formatDate } from '@/lib/date-utils';
-import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-  CommandDialog,
-} from "@/components/ui/command";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -124,110 +44,16 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { DataTable, DataTableColumnHeader, DataTableFacetedFilter, DataTableViewOptions } from "@/components/ui/data-table";
-import { useDebounce } from "@/hooks/use-debounce";
+import { DataTable } from "@/components/ui/data-table";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardDescription,
-  HoverCardFooter,
-  HoverCardHeader,
-  HoverCardTitle,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import {
-  AspectRatio,
-} from "@/components/ui/aspect-ratio";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-  ResizableSeparator,
-} from "@/components/ui/resizable";
-import {
-  ScrollArea,
-} from "@/components/ui/scroll-area";
-import {
-  Separator,
-} from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Skeleton,
-} from "@/components/ui/skeleton";
-import {
-  Switch,
-} from "@/components/ui/switch";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import {
-  Slider,
-} from "@/components/ui/slider";
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Check,
-  ChevronsUpDown,
-  Copy,
-  Download,
-  Edit,
-  File,
-  FileText,
-  Filter,
-  FolderPlus,
-  MoreHorizontal,
-  Plus,
-  Share2,
-  Trash,
-  Upload,
-  UserRoundPlus,
-} from "lucide-react";
-import * as XLSX from 'xlsx';
+import { Agreement, AgreementStatus, useAgreements } from '@/hooks/use-agreements';
 
 const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const navigate = useNavigate();
@@ -243,11 +69,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const columns: ColumnDef<Agreement>[] = [
     {
       accessorKey: "agreement_number",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Agreement #" />
-      ),
+      header: "Agreement #",
       cell: ({ row }) => (
         <div className="w-[80px]">
           {row.getValue("agreement_number")}
@@ -258,11 +80,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     },
     {
       accessorKey: "customers.full_name",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Customer Name" />
-      ),
+      header: "Customer Name",
       cell: ({ row }) => {
         const customerName = row.original.customers?.full_name || 'N/A';
         return (
@@ -276,11 +94,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     },
     {
       accessorKey: "vehicles.license_plate",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="License Plate" />
-      ),
+      header: "License Plate",
       cell: ({ row }) => {
         const licensePlate = row.original.vehicles?.license_plate || 'N/A';
         return (
@@ -294,11 +108,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     },
     {
       accessorKey: "start_date",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Start Date" />
-      ),
+      header: "Start Date",
       cell: ({ row }) => {
         const startDate = row.original.start_date ? formatDate(row.original.start_date) : 'N/A';
         return (
@@ -312,11 +122,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     },
     {
       accessorKey: "end_date",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="End Date" />
-      ),
+      header: "End Date",
       cell: ({ row }) => {
         const endDate = row.original.end_date ? formatDate(row.original.end_date) : 'N/A';
         return (
@@ -330,25 +136,21 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     },
     {
       accessorKey: "status",
-      header: ({ column }) => (
-        <DataTableColumnHeader
-          column={column}
-          title="Status" />
-      ),
+      header: "Status",
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
         return (
           <div className="w-[80px]">
             <Badge 
-              className={cn(
-                "capitalize",
-                status === AgreementStatus.ACTIVE && "bg-green-500",
-                status === AgreementStatus.PENDING && "bg-yellow-500",
-                status === AgreementStatus.CANCELLED && "bg-red-500",
-                status === AgreementStatus.EXPIRED && "bg-gray-500",
-                status === AgreementStatus.CLOSED && "bg-blue-500",
-                status === AgreementStatus.DRAFT && "bg-purple-500",
-              )}
+              className={
+                status === AgreementStatus.ACTIVE ? "bg-green-500" :
+                status === AgreementStatus.PENDING ? "bg-yellow-500" :
+                status === AgreementStatus.CANCELLED ? "bg-red-500" :
+                status === AgreementStatus.EXPIRED ? "bg-gray-500" :
+                status === AgreementStatus.CLOSED ? "bg-blue-500" :
+                status === AgreementStatus.DRAFT ? "bg-purple-500" :
+                ""
+              }
             >
               {status?.toLowerCase()}
             </Badge>
@@ -376,16 +178,11 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
                 <FileText className="mr-2 h-4 w-4" />
                 View Details
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/agreements/edit/${agreement.id}`)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Agreement
-              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => setAgreementToDelete(agreement.id)}
                 className="text-destructive"
               >
-                <Trash className="mr-2 h-4 w-4" />
                 Delete Agreement
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -407,7 +204,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     if (!agreementToDelete) return;
     
     try {
-      await agreements?.deleteAgreement.mutateAsync(agreementToDelete);
+      await deleteAgreement.mutateAsync(agreementToDelete);
       setAgreementToDelete(null);
       toast({
         title: "Agreement deleted",

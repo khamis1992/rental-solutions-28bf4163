@@ -94,7 +94,7 @@ export function useDashboardData() {
     queryKey: ['dashboard', 'all'],
     queryFn: fetchAllDashboardData,
     staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes
-    cacheTime: 10 * 60 * 1000, // Cache persists for 10 minutes
+    gcTime: 10 * 60 * 1000, // Cache persists for 10 minutes (formerly cacheTime)
     refetchOnWindowFocus: false, // Don't refetch when window is focused
     retry: 1, // Only retry once on failure
   });

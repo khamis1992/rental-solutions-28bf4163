@@ -1,75 +1,77 @@
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { handleApiError } from '@/hooks/use-api';
+import { useQuery, UseQueryOptions, QueryKey } from '@tanstack/react-query';
 
 /**
- * Generic query hook with optimized caching settings
+ * A wrapper around useQuery that adds caching functionality
  * 
- * @param queryKey - The key for this query
- * @param queryFn - The function that returns a promise resolving the data
- * @param options - Optional React Query options
+ * @param queryKey The query key to use for caching
+ * @param queryFn The query function to execute
+ * @param options Additional options for the query
+ * @returns The query result
  */
-export function useQueryWithCache<TData, TError = Error>(
-  queryKey: unknown[],
+export function useQueryWithCache<
+  TData = unknown,
+  TError = Error,
+  TQueryKey extends QueryKey = QueryKey
+>(
+  queryKey: TQueryKey,
   queryFn: () => Promise<TData>,
-  options: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'> = {}
+  options?: Omit<UseQueryOptions<TData, TError, TData, TQueryKey>, 'queryKey' | 'queryFn'>,
 ) {
-  return useQuery<TData, TError>({
+  // Check if we have the data in localStorage
+  const cacheKey = Array.isArray(queryKey) ? queryKey.join('-') : String(queryKey);
+  
+  return useQuery({
     queryKey,
     queryFn: async () => {
       try {
-        return await queryFn();
+        // Execute the query function
+        const data = await queryFn();
+        
+        // Store in localStorage if needed for offline support
+        if (typeof localStorage !== 'undefined') {
+          try {
+            localStorage.setItem(
+              `query-cache-${cacheKey}`,
+              JSON.stringify({
+                data,
+                timestamp: Date.now(),
+              })
+            );
+          } catch (e) {
+            console.warn('Failed to cache query result:', e);
+          }
+        }
+        
+        return data;
       } catch (error) {
-        handleApiError(error, `Error fetching ${queryKey[0]}`);
+        // If offline and we have cached data, use it
+        if (
+          typeof localStorage !== 'undefined' &&
+          (error instanceof Error && error.message.includes('network') || 
+          navigator.onLine === false)
+        ) {
+          const cachedItem = localStorage.getItem(`query-cache-${cacheKey}`);
+          if (cachedItem) {
+            try {
+              const { data, timestamp } = JSON.parse(cachedItem);
+              // Only use cache if it's less than 24 hours old
+              if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+                return data as TData;
+              }
+            } catch (e) {
+              console.warn('Failed to parse cached data:', e);
+            }
+          }
+        }
+        
         throw error;
       }
     },
-    // Default aggressive caching
-    staleTime: options.staleTime ?? 5 * 60 * 1000, // 5 minutes
-    cacheTime: options.cacheTime ?? 10 * 60 * 1000, // 10 minutes
-    refetchOnWindowFocus: options.refetchOnWindowFocus ?? false,
-    retry: options.retry ?? 1,
-    ...options
+    // Setting reasonable defaults
+    staleTime: options?.staleTime ?? 5 * 60 * 1000, // 5 minutes
+    gcTime: options?.gcTime ?? 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    refetchOnWindowFocus: options?.refetchOnWindowFocus ?? false,
+    ...options,
   });
-}
-
-/**
- * Query hook specifically tailored for dashboard components
- * with aggressive caching to minimize re-fetching
- */
-export function useDashboardQuery<TData, TError = Error>(
-  subKey: string,
-  queryFn: () => Promise<TData>,
-  options: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'> = {}
-) {
-  return useQueryWithCache<TData, TError>(
-    ['dashboard', subKey],
-    queryFn,
-    {
-      // Dashboard specific caching settings
-      staleTime: 10 * 60 * 1000, // 10 minutes
-      ...options
-    }
-  );
-}
-
-/**
- * Query hook for infrequently changing data like reference data
- * with very aggressive caching to minimize re-fetching
- */
-export function useStaticQuery<TData, TError = Error>(
-  queryKey: unknown[],
-  queryFn: () => Promise<TData>,
-  options: Omit<UseQueryOptions<TData, TError>, 'queryKey' | 'queryFn'> = {}
-) {
-  return useQueryWithCache<TData, TError>(
-    queryKey,
-    queryFn,
-    {
-      // Static data caching settings
-      staleTime: 24 * 60 * 60 * 1000, // 24 hours
-      cacheTime: 30 * 24 * 60 * 60 * 1000, // 30 days
-      ...options
-    }
-  );
 }
