@@ -87,7 +87,16 @@ export function useApiQuery<TData>(
     queryKey,
     queryFn: async () => {
       try {
-        return await queryFn();
+        // Add performance monitoring
+        const startTime = performance.now();
+        console.debug(`API Query started: ${queryKey[0]}`);
+        
+        const result = await queryFn();
+        
+        const endTime = performance.now();
+        console.debug(`API Query completed: ${queryKey[0]} in ${(endTime - startTime).toFixed(2)}ms`);
+        
+        return result;
       } catch (error) {
         handleApiError(error, `Error fetching ${queryKey[0]}`);
         throw error;
@@ -116,7 +125,15 @@ export function useApiMutation<TData, TVariables>(
   return useMutation({
     mutationFn: async (variables) => {
       try {
+        // Add performance monitoring
+        const startTime = performance.now();
+        console.debug('API Mutation started');
+        
         const result = await mutationFn(variables);
+        
+        const endTime = performance.now();
+        console.debug(`API Mutation completed in ${(endTime - startTime).toFixed(2)}ms`);
+        
         if (options?.successMessage) {
           handleApiSuccess(options.successMessage);
         }
@@ -130,6 +147,57 @@ export function useApiMutation<TData, TVariables>(
     onError: options?.onError,
     onSettled: options?.onSettled
   });
+}
+
+// New hook for paginated data
+export function usePaginatedApiQuery<TData>(
+  queryKey: unknown[],
+  fetchFn: (page: number, pageSize: number) => Promise<{ data: TData[], totalCount: number }>,
+  options?: {
+    initialPage?: number;
+    pageSize?: number;
+    enabled?: boolean;
+    onSuccess?: (data: { data: TData[], totalCount: number }) => void;
+    onError?: (error: Error) => void;
+  }
+): {
+  data: TData[] | undefined;
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  setPage: (page: number) => void;
+  setPageSize: (size: number) => void;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  refetch: () => Promise<any>;
+} {
+  const [page, setPage] = useState(options?.initialPage || 1);
+  const [pageSize, setPageSize] = useState(options?.pageSize || 10);
+  
+  const queryResult = useApiQuery<{ data: TData[], totalCount: number }>(
+    [...queryKey, page, pageSize],
+    () => fetchFn(page, pageSize),
+    {
+      keepPreviousData: true,
+      enabled: options?.enabled !== false,
+      onSuccess: options?.onSuccess,
+      onError: options?.onError,
+    }
+  );
+  
+  return {
+    data: queryResult.data?.data,
+    totalCount: queryResult.data?.totalCount || 0,
+    page,
+    pageSize,
+    setPage,
+    setPageSize,
+    isLoading: queryResult.isLoading,
+    isError: queryResult.isError,
+    error: queryResult.error,
+    refetch: queryResult.refetch
+  };
 }
 
 /**
