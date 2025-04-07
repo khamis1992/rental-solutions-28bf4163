@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/use-customers';
 import { formatCurrency } from '@/lib/utils';
-import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import { ReportDownloadOptions } from '@/components/reports/ReportDownloadOptions';
 
 const CustomerReport = () => {
   const {

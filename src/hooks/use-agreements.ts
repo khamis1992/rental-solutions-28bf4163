@@ -1,112 +1,155 @@
-import { useState, useCallback } from 'react';
+
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ApiKey, CreateApiKeyRequest } from '@/types/api-types';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Simplify, FlattenType } from '@/utils/type-utils';
+import { TrafficFine } from '@/types/models';
 
-export function useApiKeys() {
+// Create a simplified agreement type to avoid recursion issues
+export interface SimpleAgreement {
+  id: string;
+  start_date?: string | Date | null;
+  end_date?: string | Date | null;
+  status?: string;
+  vehicle_id?: string;
+  customer_id?: string;
+  total_amount?: number;
+  payment_status?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+  deposit_amount?: number;
+  notes?: string;
+  lease_number?: string;
+}
+
+export function useAgreements() {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
-  // Fetch all API keys
-  const { data: apiKeys, isLoading, error } = useQuery({
-    queryKey: ['api-keys'],
+  // Fetch all agreements
+  const { data: agreements, isLoading, error } = useQuery({
+    queryKey: ['agreements'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('api_keys')
+        .from('leases')
         .select('*')
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      return data as FlattenType<ApiKey[]>;
+      return data as SimpleAgreement[];
     }
   });
 
-  // Create new API key
-  const createApiKey = useMutation({
-    mutationFn: async (keyData: CreateApiKeyRequest) => {
-      setLoading(true);
-      try {
-        // Call the stored function that creates the API key with a secure random value
-        const { data, error } = await supabase
-          .rpc('create_api_key', {
-            p_name: keyData.name,
-            p_description: keyData.description || null,
-            p_permissions: keyData.permissions,
-            p_expires_at: keyData.expires_at
-          });
-          
-        if (error) throw error;
-        return data as FlattenType<ApiKey>;
-      } finally {
-        setLoading(false);
-      }
-    },
-    onSuccess: () => {
-      toast.success('API key created successfully');
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
-    },
-    onError: (error) => {
-      console.error('Error creating API key:', error);
-      toast.error('Failed to create API key');
-    }
-  });
-
-  // Revoke API key
-  const revokeApiKey = useMutation({
-    mutationFn: async (keyId: string) => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('api_keys')
-          .update({ is_active: false })
-          .eq('id', keyId)
-          .select();
-          
-        if (error) throw error;
-        return data;
-      } finally {
-        setLoading(false);
-      }
-    },
-    onSuccess: () => {
-      toast.success('API key revoked successfully');
-      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
-    },
-    onError: (error) => {
-      console.error('Error revoking API key:', error);
-      toast.error('Failed to revoke API key');
-    }
-  });
-
-  // Get API key usage logs
-  const getApiKeyUsage = useCallback(async (keyId: string) => {
+  // Get agreement details
+  const getAgreementDetails = async (id: string) => {
     try {
       setLoading(true);
       const { data, error } = await supabase
-        .from('api_request_logs')
-        .select('*')
-        .eq('api_key_id', keyId)
-        .order('created_at', { ascending: false })
-        .limit(100);
+        .from('leases')
+        .select(`
+          *,
+          vehicles (*),
+          customers (*)
+        `)
+        .eq('id', id)
+        .single();
         
       if (error) throw error;
       return data;
     } catch (error) {
-      console.error('Error fetching API key usage:', error);
-      return [];
+      console.error('Error fetching agreement details:', error);
+      return null;
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
+
+  // Create new agreement
+  const createAgreement = useMutation({
+    mutationFn: async (agreementData: Partial<SimpleAgreement>) => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('leases')
+          .insert([agreementData])
+          .select();
+          
+        if (error) throw error;
+        return data[0];
+      } finally {
+        setLoading(false);
+      }
+    },
+    onSuccess: () => {
+      toast.success('Agreement created successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      console.error('Error creating agreement:', error);
+      toast.error('Failed to create agreement');
+    }
+  });
+
+  // Update agreement
+  const updateAgreement = useMutation({
+    mutationFn: async ({ id, ...agreementData }: { id: string } & Partial<SimpleAgreement>) => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('leases')
+          .update(agreementData)
+          .eq('id', id)
+          .select();
+          
+        if (error) throw error;
+        return data[0];
+      } finally {
+        setLoading(false);
+      }
+    },
+    onSuccess: () => {
+      toast.success('Agreement updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      console.error('Error updating agreement:', error);
+      toast.error('Failed to update agreement');
+    }
+  });
+
+  // Delete agreement
+  const deleteAgreement = useMutation({
+    mutationFn: async (id: string) => {
+      setLoading(true);
+      try {
+        const { error } = await supabase
+          .from('leases')
+          .delete()
+          .eq('id', id);
+          
+        if (error) throw error;
+        return id;
+      } finally {
+        setLoading(false);
+      }
+    },
+    onSuccess: () => {
+      toast.success('Agreement deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      console.error('Error deleting agreement:', error);
+      toast.error('Failed to delete agreement');
+    }
+  });
 
   return {
-    apiKeys,
+    agreements,
     isLoading: isLoading || loading,
     error,
-    createApiKey,
-    revokeApiKey,
-    getApiKeyUsage
+    getAgreementDetails,
+    createAgreement,
+    updateAgreement,
+    deleteAgreement
   };
 }

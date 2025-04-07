@@ -10,7 +10,7 @@ import CustomerReport from '@/components/reports/CustomerReport';
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import LegalReport from '@/components/reports/LegalReport';
 import TrafficFinesReport from '@/components/reports/TrafficFinesReport';
-import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import { ReportDownloadOptions } from '@/components/reports/ReportDownloadOptions';
 import { SectionHeader } from '@/components/ui/section-header';
 import { FileText, Download, Calendar, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
