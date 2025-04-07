@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   ColumnDef, 
   flexRender, 
@@ -82,6 +82,7 @@ interface AgreementListProps {
 }
 
 export function AgreementList({ searchQuery = '' }: AgreementListProps) {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -284,7 +285,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         <div className="font-medium">
           <Link 
             to={`/agreements/${row.original.id}`}
-            className="font-medium text-primary hover:underline"
+            className="font-medium text-primary hover:underline relative z-10"
           >
             {row.getValue("agreement_number")}
           </Link>
@@ -301,7 +302,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             {customer && customer.id ? (
               <Link 
                 to={`/customers/${customer.id}`}
-                className="hover:underline"
+                className="hover:underline relative z-10"
               >
                 {customer.full_name || 'N/A'}
               </Link>
@@ -322,7 +323,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             {vehicle && vehicle.id ? (
               <Link 
                 to={`/vehicles/${vehicle.id}`}
-                className="hover:underline"
+                className="hover:underline relative z-10"
               >
                 {vehicle.make && vehicle.model ? (
                   <div className="flex items-center">
@@ -342,7 +343,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             ) : row.original.vehicle_id ? (
               <Link 
                 to={`/vehicles/${row.original.vehicle_id}`}
-                className="hover:underline text-amber-600"
+                className="hover:underline text-amber-600 relative z-10"
               >
                 Vehicle ID: {row.original.vehicle_id}
               </Link>
@@ -445,23 +446,30 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="z-50">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to={`/agreements/${agreement.id}`}>
-                  View details
-                </Link>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/agreements/${agreement.id}`);
+                }}
+              >
+                View details
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to={`/agreements/edit/${agreement.id}`}>
-                  Edit agreement
-                </Link>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/agreements/edit/${agreement.id}`);
+                }}
+              >
+                Edit agreement
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setSingleDeleteId(agreement.id);
                   setSingleDeleteNumber(agreement.agreement_number);
                   setSingleDeleteDialogOpen(true);
@@ -618,9 +626,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="relative"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="relative">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -704,10 +713,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleBulkDelete();
-              }}
+              onClick={() => handleBulkDelete()}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
