@@ -61,40 +61,45 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: async () => {
-      let query = supabase
-        .from('leases')
-        .select(`
-          *,
-          vehicles(*),
-          customers(*)
-        `)
-        .order('created_at', { ascending: false });
+      try {
+        let query = supabase
+          .from('leases')
+          .select(`
+            *,
+            vehicles(*),
+            customers(*)
+          `)
+          .order('created_at', { ascending: false });
+          
+        // Apply filters based on search params
+        if (searchParams.status && searchParams.status !== 'all') {
+          query = query.eq('status', searchParams.status);
+        }
         
-      // Apply filters based on search params
-      if (searchParams.status && searchParams.status !== 'all') {
-        query = query.eq('status', searchParams.status);
-      }
-      
-      if (searchParams.customer_id) {
-        query = query.eq('customer_id', searchParams.customer_id);
-      }
-      
-      if (searchParams.vehicle_id) {
-        query = query.eq('vehicle_id', searchParams.vehicle_id);
-      }
-      
-      if (searchParams.query) {
-        query = query.or(`
-          customers.full_name.ilike.%${searchParams.query}%,
-          vehicles.license_plate.ilike.%${searchParams.query}%,
-          agreement_number.ilike.%${searchParams.query}%
-        `);
-      }
+        if (searchParams.customer_id) {
+          query = query.eq('customer_id', searchParams.customer_id);
+        }
         
-      const { data, error } = await query;
+        if (searchParams.vehicle_id) {
+          query = query.eq('vehicle_id', searchParams.vehicle_id);
+        }
         
-      if (error) throw error;
-      return data as SimpleAgreement[];
+        if (searchParams.query) {
+          query = query.or(`
+            customers.full_name.ilike.%${searchParams.query}%,
+            vehicles.license_plate.ilike.%${searchParams.query}%,
+            agreement_number.ilike.%${searchParams.query}%
+          `);
+        }
+          
+        const { data, error } = await query;
+          
+        if (error) throw error;
+        return data as SimpleAgreement[];
+      } catch (error) {
+        console.error("Error fetching agreements:", error);
+        throw error; // Re-throw to let React Query handle it
+      }
     }
   });
 
@@ -149,7 +154,7 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
     },
     onError: (error) => {
       console.error('Error creating agreement:', error);
-      toast.error('Failed to create agreement');
+      toast.error(`Failed to create agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
@@ -176,7 +181,7 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
     },
     onError: (error) => {
       console.error('Error updating agreement:', error);
-      toast.error('Failed to update agreement');
+      toast.error(`Failed to update agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 
@@ -202,7 +207,7 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
     },
     onError: (error) => {
       console.error('Error deleting agreement:', error);
-      toast.error('Failed to delete agreement');
+      toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   });
 

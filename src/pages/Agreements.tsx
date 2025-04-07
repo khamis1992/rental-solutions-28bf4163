@@ -37,12 +37,17 @@ const Agreements = () => {
     }
     
     const checkAvailability = async () => {
-      const available = await checkEdgeFunctionAvailability('process-agreement-imports');
-      setIsEdgeFunctionAvailable(available);
-      if (!available) {
-        toast.error("CSV import feature is unavailable. Please try again later or contact support.", {
-          duration: 6000,
-        });
+      try {
+        const available = await checkEdgeFunctionAvailability('process-agreement-imports');
+        setIsEdgeFunctionAvailable(available);
+        if (!available) {
+          toast.error("CSV import feature is unavailable. Please try again later or contact support.", {
+            duration: 6000,
+          });
+        }
+      } catch (error) {
+        console.error("Error checking edge function availability:", error);
+        setIsEdgeFunctionAvailable(false);
       }
     };
     

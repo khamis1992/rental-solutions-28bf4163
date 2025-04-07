@@ -255,8 +255,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     }
   };
 
-  
-  const columns = [
+  const columns: ColumnDef<SimpleAgreement>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -483,8 +482,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
+  const tableData = agreements || [];
+
   const table = useReactTable({
-    data: agreements || [],
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -501,7 +502,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       pagination,
     },
     manualPagination: false,
-    pageCount: Math.ceil((agreements?.length || 0) / 10),
+    pageCount: Math.ceil((tableData.length || 0) / 10),
   });
 
   const handleStatusFilterChange = (value: string) => {
@@ -513,8 +514,20 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   };
 
   const selectedCount = Object.keys(rowSelection).length;
-
   
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error loading agreements</AlertTitle>
+        <AlertDescription>
+          {error instanceof Error 
+            ? error.message 
+            : "An unknown error occurred while loading agreements. Please try again."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
   
   return (
     <div className="space-y-4">
@@ -557,14 +570,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </Button>
         </div>
       </div>
-      
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
-        </Alert>
-      )}
       
       {(searchQuery || statusFilter !== 'all') && (
         <div className="flex items-center text-sm text-muted-foreground mb-1">
@@ -614,7 +619,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                   ))}
                 </TableRow>
               ))
-            ) : table.getRowModel().rows?.length ? (
+            ) : tableData.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -645,7 +650,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         </Table>
       </div>
       
-      {agreements && agreements.length > 0 && (
+      {tableData.length > 0 && (
         <Pagination>
           <PaginationContent>
             <PaginationItem>
