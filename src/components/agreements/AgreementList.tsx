@@ -120,7 +120,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     { id: 'created_at', desc: true }
   ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     setRowSelection({});
@@ -537,11 +536,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
-              <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
-              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
-              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
