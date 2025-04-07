@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -307,10 +308,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  type MutationParams = { 
+  // Use a simpler type for mutations to avoid deep type instantiation issues
+  interface MutationParams {
     id: string; 
-    data: Record<string, any> 
-  };
+    data: Record<string, any>;
+  }
   
   const updateAgreementMutation = useMutation({
     mutationFn: async (params: MutationParams) => {
