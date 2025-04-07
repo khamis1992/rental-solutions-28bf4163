@@ -883,6 +883,101 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expires_at: string | null
+          id: string
+          ip_restrictions: string[] | null
+          is_active: boolean
+          key_value: string
+          last_used_at: string | null
+          name: string
+          permissions: string[]
+          rate_limit: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_restrictions?: string[] | null
+          is_active?: boolean
+          key_value: string
+          last_used_at?: string | null
+          name: string
+          permissions?: string[]
+          rate_limit?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expires_at?: string | null
+          id?: string
+          ip_restrictions?: string[] | null
+          is_active?: boolean
+          key_value?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: string[]
+          rate_limit?: number | null
+        }
+        Relationships: []
+      }
+      api_request_logs: {
+        Row: {
+          api_key_id: string | null
+          created_at: string
+          endpoint: string
+          id: string
+          ip_address: string | null
+          method: string
+          request_body: Json | null
+          response_body: Json | null
+          response_time_ms: number | null
+          status_code: number | null
+          user_agent: string | null
+        }
+        Insert: {
+          api_key_id?: string | null
+          created_at?: string
+          endpoint: string
+          id?: string
+          ip_address?: string | null
+          method: string
+          request_body?: Json | null
+          response_body?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Update: {
+          api_key_id?: string | null
+          created_at?: string
+          endpoint?: string
+          id?: string
+          ip_address?: string | null
+          method?: string
+          request_body?: Json | null
+          response_body?: Json | null
+          response_time_ms?: number | null
+          status_code?: number | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_request_logs_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "api_keys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       applied_discounts: {
         Row: {
           created_at: string
@@ -9945,6 +10040,15 @@ export type Database = {
           updated_at: string | null
         }[]
       }
+      create_api_key: {
+        Args: {
+          p_name: string
+          p_description: string
+          p_permissions: string[]
+          p_expires_at?: string
+        }
+        Returns: Json
+      }
       create_default_agreement_if_not_exists: {
         Args: {
           p_agreement_number: string
@@ -9988,6 +10092,10 @@ export type Database = {
           full_name: string
           similarity: number
         }[]
+      }
+      generate_api_key: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       generate_cash_flow_alerts: {
         Args: Record<PropertyKey, never>
@@ -10131,6 +10239,10 @@ export type Database = {
           p_existing_late_fee_id: string
         }
         Returns: Json
+      }
+      revoke_api_key: {
+        Args: { p_key_id: string }
+        Returns: boolean
       }
       send_payment_reminders: {
         Args: Record<PropertyKey, never>
