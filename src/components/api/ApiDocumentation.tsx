@@ -71,7 +71,7 @@ const ApiDocumentation: React.FC = () => {
                 <p className="mb-2">When using PowerShell, make sure to format the request correctly:</p>
                 <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
                   Invoke-WebRequest -Uri "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" `<br />
-                  -Headers @{"Authorization" = "Bearer YOUR_API_KEY"}
+                  -Headers @{{"Authorization" = "Bearer YOUR_API_KEY"}}
                 </code>
                 <p className="mt-2 text-sm">Note: Remove backticks and line breaks for a single-line command.</p>
               </AlertDescription>
@@ -99,10 +99,10 @@ const ApiDocumentation: React.FC = () => {
                   &nbsp;&nbsp;method: "GET",<br />
                   &nbsp;&nbsp;headers: {'{'}<br />
                   &nbsp;&nbsp;&nbsp;&nbsp;"Authorization": "Bearer YOUR_API_KEY"<br />
-                  &nbsp;&nbsp;{'}'}<br />
+                  &nbsp;&nbsp;{'}'},<br />
                   {'}'})<br />
-                  .then(response => response.json())<br />
-                  .then(data => console.log(data))
+                  .then(response =&gt; response.json())<br />
+                  .then(data =&gt; console.log(data))
                 </code>
               </AlertDescription>
             </Alert>
