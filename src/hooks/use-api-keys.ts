@@ -30,12 +30,13 @@ export function useApiKeys() {
       setLoading(true);
       try {
         // Call the stored function that creates the API key with a secure random value
+        // Note: The parameter order matters and must match the function signature in the database
         const { data, error } = await supabase
           .rpc('create_api_key', {
             p_name: keyData.name,
             p_description: keyData.description || null,
             p_permissions: keyData.permissions,
-            p_expires_at: keyData.expires_at
+            p_expires_at: keyData.expires_at || null
           });
           
         if (error) {
