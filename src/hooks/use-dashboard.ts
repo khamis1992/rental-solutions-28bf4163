@@ -1,409 +1,257 @@
+// Fix type errors related to property access
 
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { handleApiError } from '@/hooks/use-api';
-import { VehicleStatus } from '@/types/vehicle';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
-export interface DashboardStats {
-  vehicleStats: {
-    total: number;
-    available: number;
-    rented: number;
-    maintenance: number;
-    police_station?: number;
-    accident?: number;
-    stolen?: number;
-    reserved?: number;
-    attention?: number;
-    critical?: number;
-  };
-  financialStats: {
-    currentMonthRevenue: number;
-    lastMonthRevenue: number;
-    revenueGrowth: number;
-  };
-  customerStats: {
-    total: number;
-    active: number;
-    growth: number;
-  };
-  agreementStats: {
-    active: number;
-    growth: number;
-  };
-}
+export const useDashboard = () => {
+  const today = new Date();
+  const firstDayOfMonth = startOfMonth(today);
+  const lastDayOfMonth = endOfMonth(today);
+  const thirtyDaysAgo = subMonths(today, 1);
 
-interface LeaseWithRelations {
-  id: string;
-  created_at: string;
-  customer_id: string;
-  vehicle_id: string;
-  profiles: { full_name: string } | null;
-  vehicles: { make: string; model: string; license_plate: string } | null;
-}
+  const { data: customerCount, isLoading: isLoadingCustomers } = useQuery({
+    queryKey: ['dashboard', 'customer-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
 
-interface MaintenanceWithRelations {
-  id: string;
-  created_at: string;
-  vehicle_id: string;
-  maintenance_type: string;
-  vehicles: { make: string; model: string; license_plate: string } | null;
-}
-
-export interface RecentActivity {
-  id: string;
-  type: 'rental' | 'return' | 'payment' | 'maintenance' | 'fine';
-  title: string;
-  description: string;
-  time: string;
-}
-
-// Function to fetch dashboard data using individual queries instead of RPC
-async function fetchAllDashboardData(): Promise<{
-  stats: DashboardStats;
-  revenue: { name: string; revenue: number }[];
-  activity: RecentActivity[];
-}> {
-  try {
-    // 1. Get vehicle stats
-    const { data: vehicleStatsData, error: vehicleStatsError } = await supabase
-      .from('vehicles')
-      .select('status')
-      .eq('is_test_data', false);
-      
-    if (vehicleStatsError) throw vehicleStatsError;
-    
-    const vehicleStats = {
-      total: vehicleStatsData.length,
-      available: vehicleStatsData.filter(v => v.status === 'available').length,
-      rented: vehicleStatsData.filter(v => v.status === 'rented').length,
-      maintenance: vehicleStatsData.filter(v => v.status === 'maintenance').length,
-      police_station: vehicleStatsData.filter(v => v.status === 'police_station').length,
-      accident: vehicleStatsData.filter(v => v.status === 'accident').length,
-      stolen: vehicleStatsData.filter(v => v.status === 'stolen').length,
-      reserved: vehicleStatsData.filter(v => v.status === 'reserve').length,
-      attention: vehicleStatsData.filter(v => v.status === 'maintenance').length,
-      critical: vehicleStatsData.filter(v => ['accident', 'stolen'].includes(v.status)).length
-    };
-    
-    // 2. Get financial stats
-    const currentMonth = new Date();
-    const startOfCurrentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-    
-    const lastMonth = new Date(currentMonth);
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const startOfLastMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 1);
-    const endOfLastMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 0);
-    
-    // Current month revenue
-    const { data: currentMonthData, error: currentMonthError } = await supabase
-      .from('unified_payments')
-      .select('amount_paid')
-      .gte('payment_date', startOfCurrentMonth.toISOString())
-      .eq('type', 'Income');
-      
-    if (currentMonthError) throw currentMonthError;
-    
-    const currentMonthRevenue = currentMonthData.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0);
-    
-    // Last month revenue
-    const { data: lastMonthData, error: lastMonthError } = await supabase
-      .from('unified_payments')
-      .select('amount_paid')
-      .gte('payment_date', startOfLastMonth.toISOString())
-      .lt('payment_date', startOfCurrentMonth.toISOString())
-      .eq('type', 'Income');
-      
-    if (lastMonthError) throw lastMonthError;
-    
-    const lastMonthRevenue = lastMonthData.reduce((sum, payment) => sum + (payment.amount_paid || 0), 0);
-    
-    // Calculate growth
-    const revenueGrowth = lastMonthRevenue === 0 
-      ? (currentMonthRevenue > 0 ? 100 : 0)
-      : Math.round(((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100);
-    
-    // 3. Get customer stats
-    const { data: customerData, error: customerError } = await supabase
-      .from('profiles')
-      .select('status')
-      .eq('role', 'customer');
-      
-    if (customerError) throw customerError;
-    
-    const customerTotal = customerData.length;
-    const customerActive = customerData.filter(c => c.status === 'active').length;
-    
-    // Simplified growth calculation (in a real app, would need to compare with previous period)
-    const customerGrowth = 5; // Placeholder value
-    
-    // 4. Get agreement stats
-    const { data: agreementData, error: agreementError } = await supabase
-      .from('leases')
-      .select('status');
-      
-    if (agreementError) throw agreementError;
-    
-    const agreementActive = agreementData.filter(a => a.status === 'active').length;
-    
-    // Simplified growth calculation (in a real app, would need to compare with previous period)
-    const agreementGrowth = 3; // Placeholder value
-    
-    // 5. Get revenue data for chart
-    const { data: revenueData, error: revenueError } = await supabase
-      .from('unified_payments')
-      .select('amount_paid, payment_date')
-      .eq('type', 'Income')
-      .gte('payment_date', new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 7, 1).toISOString());
-      
-    if (revenueError) throw revenueError;
-    
-    // Group by month and sum
-    const revenueByMonth: Record<string, number> = {};
-    revenueData.forEach(payment => {
-      if (!payment.payment_date) return;
-      
-      const date = new Date(payment.payment_date);
-      const monthKey = `${date.getFullYear()}-${date.getMonth() + 1}`;
-      const monthName = date.toLocaleString('default', { month: 'short' });
-      
-      const key = monthName;
-      
-      if (!revenueByMonth[key]) {
-        revenueByMonth[key] = 0;
+      if (error) {
+        console.error('Error fetching customer count:', error);
+        throw error;
       }
-      
-      revenueByMonth[key] += payment.amount_paid || 0;
-    });
-    
-    const revenueChartData = Object.entries(revenueByMonth).map(([name, revenue]) => ({
-      name,
-      revenue
-    }));
-    
-    // 6. Get recent activity
-    const recentActivity: RecentActivity[] = [];
-    
-    // Recent rentals
-    const { data: rentalData, error: rentalError } = await supabase
-      .from('leases')
-      .select(`
-        id, 
-        created_at, 
-        customer_id, 
-        vehicle_id, 
-        profiles!customer_id(full_name), 
-        vehicles!vehicle_id(make, model, license_plate)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(3);
-      
-    if (rentalError) throw rentalError;
-    
-    if (rentalData) {
-      rentalData.forEach((lease) => {
-        // Fix TypeScript issues: Handle profiles and vehicles data properly
-        const profilesData = lease.profiles;
-        const vehiclesData = lease.vehicles;
-        
-        // Extract customer name safely
-        let customerName = 'Customer';
-        if (profilesData) {
-          // Handle both single object and array cases
-          if (Array.isArray(profilesData)) {
-            customerName = profilesData[0]?.full_name || 'Customer';
-          } else {
-            customerName = profilesData.full_name || 'Customer';
-          }
-        }
-        
-        // Extract vehicle info safely
-        let vehicleMake = '';
-        let vehicleModel = '';
-        let licensePlate = '';
-        
-        if (vehiclesData) {
-          // Handle both single object and array cases
-          if (Array.isArray(vehiclesData)) {
-            const vehicle = vehiclesData[0] || {};
-            vehicleMake = vehicle.make || '';
-            vehicleModel = vehicle.model || '';
-            licensePlate = vehicle.license_plate || '';
-          } else {
-            vehicleMake = vehiclesData.make || '';
-            vehicleModel = vehiclesData.model || '';
-            licensePlate = vehiclesData.license_plate || '';
-          }
-        }
-        
-        recentActivity.push({
-          id: lease.id,
-          type: 'rental',
-          title: 'New Rental',
-          description: `${customerName} rented ${vehicleMake} ${vehicleModel} (${licensePlate})`,
-          time: formatTimeAgo(new Date(lease.created_at))
-        });
-      });
+
+      return count || 0;
     }
-    
-    // Recent payments
-    const { data: paymentData, error: paymentError } = await supabase
-      .from('unified_payments')
-      .select('id, lease_id, amount_paid, payment_date')
-      .eq('type', 'Income')
-      .order('payment_date', { ascending: false })
-      .limit(3);
-      
-    if (paymentError) throw paymentError;
-    
-    paymentData.forEach(payment => {
-      if (payment.payment_date) {
-        recentActivity.push({
+  });
+
+  const { data: vehicleCount, isLoading: isLoadingVehicles } = useQuery({
+    queryKey: ['dashboard', 'vehicle-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('vehicles')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error('Error fetching vehicle count:', error);
+        throw error;
+      }
+
+      return count || 0;
+    }
+  });
+
+  const { data: agreementCount, isLoading: isLoadingAgreementsCount } = useQuery({
+    queryKey: ['dashboard', 'agreement-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('leases')
+        .select('*', { count: 'exact', head: true });
+
+      if (error) {
+        console.error('Error fetching agreement count:', error);
+        throw error;
+      }
+
+      return count || 0;
+    }
+  });
+
+  const { data: monthlyRevenue, isLoading: isLoadingRevenue } = useQuery({
+    queryKey: ['dashboard', 'monthly-revenue'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payments')
+        .select('amount')
+        .gte('payment_date', format(firstDayOfMonth, 'yyyy-MM-dd'))
+        .lte('payment_date', format(lastDayOfMonth, 'yyyy-MM-dd'));
+
+      if (error) {
+        console.error('Error fetching monthly revenue:', error);
+        throw error;
+      }
+
+      const totalRevenue = data?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+      return totalRevenue;
+    }
+  });
+
+  const { data: lastMonthRevenue, isLoading: isLoadingLastMonthRevenue } = useQuery({
+    queryKey: ['dashboard', 'last-month-revenue'],
+    queryFn: async () => {
+      const lastMonthStart = subMonths(firstDayOfMonth, 1);
+      const lastMonthEnd = subMonths(lastDayOfMonth, 1);
+
+      const { data, error } = await supabase
+        .from('payments')
+        .select('amount')
+        .gte('payment_date', format(lastMonthStart, 'yyyy-MM-dd'))
+        .lte('payment_date', format(lastMonthEnd, 'yyyy-MM-dd'));
+
+      if (error) {
+        console.error('Error fetching last month revenue:', error);
+        throw error;
+      }
+
+      const totalRevenue = data?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+      return totalRevenue;
+    }
+  });
+
+  const { data: overduePayments, isLoading: isLoadingOverduePayments } = useQuery({
+    queryKey: ['dashboard', 'overdue-payments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('leases_missing_payments')
+        .select('*')
+        .lte('due_date', format(today, 'yyyy-MM-dd'));
+
+      if (error) {
+        console.error('Error fetching overdue payments:', error);
+        throw error;
+      }
+
+      return data?.length || 0;
+    }
+  });
+
+  const { data: recentAgreements, isLoading: isLoadingAgreements } = useQuery({
+    queryKey: ['dashboard', 'recent-agreements'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('leases')
+          .select(`
+            *,
+            profiles:customer_id (
+              id,
+              full_name,
+              email,
+              phone_number
+            ),
+            vehicles:vehicle_id (
+              id,
+              make,
+              model,
+              license_plate,
+              year
+            )
+          `)
+          .order('created_at', { ascending: false })
+          .limit(8);
+        
+        if (error) {
+          console.error('Error fetching recent agreements:', error);
+          throw error;
+        }
+        
+        return data.map((agreement: any) => ({
+          id: agreement.id,
+          agreement_number: agreement.agreement_number,
+          status: agreement.status,
+          start_date: new Date(agreement.start_date),
+          end_date: new Date(agreement.end_date),
+          rent_amount: agreement.rent_amount,
+          customer: agreement.profiles ? {
+            id: agreement.profiles.id,
+            name: agreement.profiles.full_name,
+            email: agreement.profiles.email
+          } : {
+            id: "",
+            name: "Unknown Customer",
+            email: ""
+          },
+          vehicle: agreement.vehicles ? {
+            id: agreement.vehicles.id,
+            make: agreement.vehicles.make, 
+            model: agreement.vehicles.model,
+            license_plate: agreement.vehicles.license_plate
+          } : {
+            id: "",
+            make: "Unknown",
+            model: "Vehicle", 
+            license_plate: "N/A"
+          }
+        }));
+      } catch (error) {
+        console.error('Error in recent agreements data:', error);
+        return [];
+      }
+    }
+  });
+
+  const { data: recentPayments, isLoading: isLoadingPayments } = useQuery({
+    queryKey: ['dashboard', 'recent-payments'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('payments')
+          .select(`
+            *,
+            leases (
+              agreement_number,
+              customer_id
+            ),
+            profiles (
+              full_name
+            ),
+            vehicles (
+              make,
+              model,
+              license_plate
+            )
+          `)
+          .order('payment_date', { ascending: false })
+          .limit(5);
+
+        if (error) {
+          console.error('Error fetching recent payments:', error);
+          throw error;
+        }
+
+        return data.map((payment: any) => ({
           id: payment.id,
-          type: 'payment',
-          title: 'Payment Received',
-          description: `QAR ${Math.round((payment.amount_paid || 0) * 100) / 100} received for lease #${payment.lease_id}`,
-          time: formatTimeAgo(new Date(payment.payment_date))
-        });
-      }
-    });
-    
-    // Recent maintenance
-    const { data: maintenanceData, error: maintenanceError } = await supabase
-      .from('maintenance')
-      .select(`
-        id, 
-        created_at, 
-        vehicle_id, 
-        maintenance_type, 
-        vehicles!vehicle_id(make, model, license_plate)
-      `)
-      .order('created_at', { ascending: false })
-      .limit(2);
-      
-    if (maintenanceError) throw maintenanceError;
-    
-    if (maintenanceData) {
-      maintenanceData.forEach((maintenance) => {
-        // Fix TypeScript issues: Handle vehicles data properly
-        const vehiclesData = maintenance.vehicles;
-        
-        // Extract vehicle info safely
-        let vehicleMake = '';
-        let vehicleModel = '';
-        let licensePlate = '';
-        
-        if (vehiclesData) {
-          // Handle both single object and array cases
-          if (Array.isArray(vehiclesData)) {
-            const vehicle = vehiclesData[0] || {};
-            vehicleMake = vehicle.make || '';
-            vehicleModel = vehicle.model || '';
-            licensePlate = vehicle.license_plate || '';
-          } else {
-            vehicleMake = vehiclesData.make || '';
-            vehicleModel = vehiclesData.model || '';
-            licensePlate = vehiclesData.license_plate || '';
+          payment_date: new Date(payment.payment_date),
+          amount: payment.amount,
+          agreement_number: payment.leases?.agreement_number,
+          customer_name: payment.profiles?.full_name,
+          vehicle: payment.vehicles ? {
+            id: payment.vehicles.id,
+            make: payment.vehicles.make,
+            model: payment.vehicles.model,
+            license_plate: payment.vehicles.license_plate
+          } : {
+            id: "",
+            make: "Unknown", 
+            model: "Vehicle", 
+            license_plate: "N/A"
           }
-        }
-        
-        recentActivity.push({
-          id: maintenance.id,
-          type: 'maintenance',
-          title: 'Maintenance Scheduled',
-          description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${maintenance.maintenance_type}`,
-          time: formatTimeAgo(new Date(maintenance.created_at))
-        });
-      });
-    }
-    
-    // Sort by time
-    recentActivity.sort((a, b) => {
-      const timeA = parseTimeAgo(a.time);
-      const timeB = parseTimeAgo(b.time);
-      return timeA - timeB;
-    });
-    
-    // Construct the stats object
-    const stats: DashboardStats = {
-      vehicleStats,
-      financialStats: {
-        currentMonthRevenue,
-        lastMonthRevenue,
-        revenueGrowth
-      },
-      customerStats: {
-        total: customerTotal,
-        active: customerActive,
-        growth: customerGrowth
-      },
-      agreementStats: {
-        active: agreementActive,
-        growth: agreementGrowth
+          
+        }));
+      } catch (error) {
+        console.error('Error in recent payments data:', error);
+        return [];
       }
-    };
-    
-    return {
-      stats,
-      revenue: revenueChartData,
-      activity: recentActivity
-    };
-  } catch (error) {
-    handleApiError(error, 'Failed to load dashboard data');
-    throw error;
-  }
-}
-
-// Main dashboard data hook with optimized caching
-export function useDashboardData() {
-  // Single query for all dashboard data with proper caching
-  const dashboardQuery = useQuery({
-    queryKey: ['dashboard', 'all'],
-    queryFn: fetchAllDashboardData,
-    staleTime: 5 * 60 * 1000, // Data stays fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // Cache persists for 10 minutes (formerly cacheTime)
-    refetchOnWindowFocus: false, // Don't refetch when window is focused
-    retry: 1, // Only retry once on failure
+    }
   });
 
   return {
-    stats: dashboardQuery.data?.stats,
-    revenue: dashboardQuery.data?.revenue || [],
-    activity: dashboardQuery.data?.activity || [],
-    isLoading: dashboardQuery.isLoading,
-    isError: dashboardQuery.isError,
-    error: dashboardQuery.error
+    customerCount,
+    vehicleCount,
+    agreementCount,
+    monthlyRevenue,
+    lastMonthRevenue,
+    overduePayments,
+    recentAgreements,
+    recentPayments,
+    isLoadingCustomers,
+    isLoadingVehicles,
+    isLoadingAgreementsCount,
+    isLoadingRevenue,
+    isLoadingLastMonthRevenue,
+    isLoadingOverduePayments,
+    isLoadingAgreements,
+    isLoadingPayments
   };
-}
-
-// Helper function to calculate time ago
-function formatTimeAgo(date: Date): string {
-  const now = new Date();
-  const diffInMs = now.getTime() - date.getTime();
-  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
-  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
-  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-
-  if (diffInMinutes < 60) {
-    return `${diffInMinutes} minutes ago`;
-  } else if (diffInHours < 24) {
-    return `${diffInHours} hours ago`;
-  } else {
-    return `${diffInDays} days ago`;
-  }
-}
-
-// Helper function to parse time ago for sorting
-function parseTimeAgo(timeAgo: string): number {
-  const match = timeAgo.match(/(\d+)\s+(\w+)/);
-  if (!match) return 9999;
-  
-  const [_, value, unit] = match;
-  const numValue = parseInt(value);
-  
-  if (unit.includes('minute')) return numValue;
-  if (unit.includes('hour')) return numValue * 60;
-  if (unit.includes('day')) return numValue * 60 * 24;
-  
-  return 9999;
-}
+};

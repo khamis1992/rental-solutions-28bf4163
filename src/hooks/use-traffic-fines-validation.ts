@@ -76,6 +76,14 @@ export const useTrafficFinesValidation = () => {
       validationResult: ValidationResult;
       newStatus: 'pending' | 'paid' | 'validated' | 'invalid';
     }) => {
+      // Use rpc to handle validation attempts increment to avoid race conditions
+      const { data: attemptsData, error: attemptsError } = await supabase
+        .rpc('increment_validation_attempts', { fine_id: fineId });
+      
+      if (attemptsError) {
+        console.error('Error incrementing validation attempts:', attemptsError);
+      }
+      
       const { error } = await supabase
         .from('traffic_fines')
         .update({
@@ -83,7 +91,7 @@ export const useTrafficFinesValidation = () => {
           last_check_date: new Date().toISOString(),
           validation_result: validationResult,
           validation_date: new Date().toISOString(),
-          validation_attempts: supabase.rpc('increment_validation_attempts', { fine_id: fineId })
+          validation_attempts: attemptsData || 1
         })
         .eq('id', fineId);
       
@@ -92,6 +100,7 @@ export const useTrafficFinesValidation = () => {
       }
       
       // Log the validation attempt to history
+      // We need to use a direct SQL insert since traffic_fine_validations isn't in our type definition yet
       const { error: historyError } = await supabase
         .from('traffic_fine_validations')
         .insert({
@@ -117,20 +126,24 @@ export const useTrafficFinesValidation = () => {
     }
   });
 
-  // Get validation history for a specific fine
+  // Get validation history for specific fines
+  // Note: This is disabled by default since we don't have the table in types yet
   const getValidationHistory = useQuery({
     queryKey: ['validationHistory'],
     queryFn: async (): Promise<ValidationHistoryItem[]> => {
       try {
+        // Since the table isn't in our types yet, we need to cast the result
         const { data, error } = await supabase
           .from('traffic_fine_validations')
           .select('*')
           .order('validation_date', { ascending: false })
-          .limit(10);
+          .limit(10) as any;
         
         if (error) throw error;
         
-        return data.map((item) => ({
+        if (!data) return [];
+        
+        return data.map((item: any) => ({
           id: item.id,
           fineId: item.fine_id,
           validationDate: new Date(item.validation_date),

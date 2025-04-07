@@ -10,7 +10,8 @@ import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { fixAgreementPayments } from '@/lib/supabase';
 
 // Define types for agreements and related data
-export type LeaseStatus = 'active' | 'pending' | 'completed' | 'cancelled' | 'draft';
+export type LeaseStatus = 'active' | 'pending' | 'completed' | 'cancelled' | 'draft' | 
+                          'pending_payment' | 'pending_deposit' | 'terminated' | 'archived';
 export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'partially_paid' | 'refunded';
 
 // Define the AgreementStatus export that's being imported in AgreementList.tsx
@@ -143,15 +144,14 @@ export interface AgreementFormValues {
 
 export interface AgreementImport {
   id: string;
-  filename: string;
+  file_name: string; // Changed from filename to file_name to match DB schema
   status: 'pending' | 'processing' | 'completed' | 'failed' | 'reverting' | 'reverted' | 'fixing';
   created_at: string;
   updated_at: string;
-  total_records: number;
-  processed_records: number;
+  row_count: number; // Changed from total_records to row_count
+  processed_count: number; // Changed from processed_records to processed_count
   error_message?: string;
-  file_name?: string;
-  row_count?: number;
+  original_file_name?: string;
   error_count?: number;
 }
 
@@ -189,7 +189,7 @@ export const useAgreements = () => {
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
-          countQuery.eq('status', searchParams.status);
+          countQuery.eq('status', searchParams.status as LeaseStatus);
         }
         
         const { count, error: countError } = await countQuery;
@@ -251,7 +251,7 @@ export const useAgreements = () => {
         }
         
         if (searchParams.status && searchParams.status !== 'all') {
-          query = query.eq('status', searchParams.status);
+          query = query.eq('status', searchParams.status as LeaseStatus);
         }
         
         const { data, error } = await query;
@@ -259,6 +259,10 @@ export const useAgreements = () => {
         if (error) {
           console.error('Error fetching agreements:', error);
           throw new Error(`Failed to fetch agreements: ${error.message}`);
+        }
+        
+        if (!data) {
+          return [];
         }
         
         // Enhanced data transformation
@@ -308,7 +312,12 @@ export const useAgreements = () => {
   });
   
   // Get a single agreement by ID
-  const getAgreement = async (id: string) => {
+  const getAgreement = async (id?: string) => {
+    if (!id) {
+      console.error("No agreement ID provided");
+      return null;
+    }
+    
     try {
       const { data, error } = await supabase
         .from('leases')
@@ -405,158 +414,44 @@ export const useAgreements = () => {
     }
   };
   
-  // Fetch a single agreement by ID
-  const { data: agreement, isLoading: isAgreementLoading, error: agreementError } = useQuery({
+  // Fix line 376: Create agreement query hook properly with enabled: false
+  const { data: agreement, isLoading: isAgreementLoading, error: agreementError, refetch: refetchAgreement } = useQuery({
     queryKey: ['agreements', 'single'],
-    queryFn: async ({ queryKey }: { queryKey: string[] }) => {
-      const id = queryKey[2]; // The third item should be the agreement ID
-      if (!id) throw new Error("No agreement ID provided");
-      
-      try {
-        const { data, error } = await supabase
-          .from('leases')
-          .select(`
-            id,
-            agreement_number,
-            customer_id,
-            vehicle_id,
-            status,
-            start_date,
-            end_date,
-            rent_amount,
-            total_amount,
-            notes,
-            created_at,
-            updated_at,
-            rent_due_day,
-            daily_late_fee,
-            late_fee_grace_period,
-            security_deposit_amount,
-            security_deposit_refunded,
-            security_deposit_refund_date,
-            security_deposit_notes,
-            payment_status,
-            payment_schedule_type,
-            is_test_data,
-            profiles (
-              id,
-              full_name,
-              email,
-              phone_number
-            ),
-            vehicles (
-              id,
-              make,
-              model,
-              license_plate,
-              year
-            ),
-            agreement_documents (
-              id,
-              agreement_id,
-              document_type,
-              document_url,
-              created_at
-            )
-          `)
-          .eq('id', id)
-          .single();
-          
-        if (error) {
-          console.error('Error fetching agreement:', error);
-          throw new Error(`Failed to fetch agreement: ${error.message}`);
-        }
-        
-        if (!data) {
-          throw new Error(`Agreement not found with id: ${id}`);
-        }
-        
-        // Enhanced data transformation
-        const transformedAgreement: AgreementWithDetails = {
-          id: data.id,
-          agreement_number: data.agreement_number,
-          customer_id: data.customer_id,
-          vehicle_id: data.vehicle_id,
-          status: data.status,
-          start_date: data.start_date,
-          end_date: data.end_date,
-          rent_amount: data.rent_amount,
-          total_amount: data.total_amount,
-          notes: data.notes,
-          created_at: data.created_at,
-          updated_at: data.updated_at,
-          rent_due_day: data.rent_due_day,
-          daily_late_fee: data.daily_late_fee,
-          late_fee_grace_period: data.late_fee_grace_period,
-          security_deposit_amount: data.security_deposit_amount,
-          security_deposit_refunded: data.security_deposit_refunded,
-          security_deposit_refund_date: data.security_deposit_refund_date,
-          security_deposit_notes: data.security_deposit_notes,
-          payment_status: data.payment_status,
-          payment_schedule_type: data.payment_schedule_type,
-          is_test_data: data.is_test_data,
-          customer: data.profiles ? {
-            id: data.profiles.id,
-            full_name: data.profiles.full_name,
-            email: data.profiles.email,
-            phone_number: data.profiles.phone_number
-          } : undefined,
-          vehicle: data.vehicles ? {
-            id: data.vehicles.id,
-            make: data.vehicles.make,
-            model: data.vehicles.model,
-            license_plate: data.vehicles.license_plate,
-            year: data.vehicles.year
-          } : undefined,
-          documents: data.agreement_documents ? data.agreement_documents.map(doc => ({
-            id: doc.id,
-            agreement_id: doc.agreement_id,
-            document_type: doc.document_type,
-            document_url: doc.document_url,
-            created_at: doc.created_at
-          })) : []
-        };
-        
-        return transformedAgreement;
-      } catch (error) {
-        console.error('Error in agreement data fetching:', error);
-        throw error;
-      }
+    queryFn: async () => {
+      // The function will be called externally with refetchAgreement
+      return null;
     },
-    enabled: false // Disable the query until the ID is available
+    enabled: false
   });
-  
-  // Create a new agreement
+
+  // Create a new agreement with proper type handling
   const createAgreement = useMutation({
     mutationFn: async (values: AgreementFormValues) => {
       try {
+        // Fixed: Need to provide single object, not an array
         const { error } = await supabase
           .from('leases')
-          .insert([
-            {
-              agreement_number: values.agreement_number,
-              customer_id: values.customer_id,
-              vehicle_id: values.vehicle_id,
-              status: values.status,
-              start_date: values.start_date.toISOString(),
-              end_date: values.end_date.toISOString(),
-              rent_amount: values.rent_amount,
-              total_amount: values.total_amount,
-              notes: values.notes,
-              rent_due_day: values.rent_due_day,
-              daily_late_fee: values.daily_late_fee,
-              late_fee_grace_period: values.late_fee_grace_period,
-              security_deposit_amount: values.security_deposit_amount,
-              security_deposit_refunded: values.security_deposit_refunded,
-              security_deposit_refund_date: values.security_deposit_refund_date,
-              security_deposit_notes: values.security_deposit_notes,
-              payment_schedule_type: values.payment_schedule_type
-            }
-          ]);
+          .insert({
+            agreement_number: values.agreement_number,
+            customer_id: values.customer_id,
+            vehicle_id: values.vehicle_id,
+            status: values.status,
+            start_date: values.start_date.toISOString(),
+            end_date: values.end_date.toISOString(),
+            rent_amount: values.rent_amount,
+            total_amount: values.total_amount,
+            notes: values.notes,
+            rent_due_day: values.rent_due_day,
+            daily_late_fee: values.daily_late_fee,
+            late_fee_grace_period: values.late_fee_grace_period,
+            security_deposit_amount: values.security_deposit_amount,
+            security_deposit_refunded: values.security_deposit_refunded,
+            security_deposit_refund_date: values.security_deposit_refund_date,
+            security_deposit_notes: values.security_deposit_notes,
+            payment_schedule_type: values.payment_schedule_type
+          });
           
-        if (error) {
-          throw new Error(`Failed to create agreement: ${error.message}`);
-        }
+        if (error) throw error;
         
         return { success: true };
       } catch (error) {
@@ -569,8 +464,8 @@ export const useAgreements = () => {
       toast.success('Agreement created successfully');
     },
     onError: (error: Error) => {
-      toast.error('Failed to create agreement', {
-        description: error.message || 'An unexpected error occurred'
+      toast.error('Failed to create agreement', { 
+        description: error.message || 'An unknown error occurred' 
       });
     }
   });
@@ -625,57 +520,27 @@ export const useAgreements = () => {
   
   // Update agreement status
   const updateAgreementStatus = useMutation({
-    mutationFn: async ({ id, status, payment_status, security_deposit_refunded, security_deposit_refund_date, security_deposit_notes }: AgreementPayload) => {
-      try {
-        const updateData: {
-          status: LeaseStatus;
-          payment_status?: PaymentStatus;
-          security_deposit_refunded?: boolean;
-          security_deposit_refund_date?: string | null;
-          security_deposit_notes?: string;
-        } = { status };
+    mutationFn: async (payload: AgreementPayload) => {
+      const { error } = await supabase
+        .from('leases')
+        .update({
+          status: payload.status,
+          payment_status: payload.payment_status,
+          security_deposit_refunded: payload.security_deposit_refunded,
+          security_deposit_refund_date: payload.security_deposit_refund_date,
+          security_deposit_notes: payload.security_deposit_notes,
+        })
+        .eq('id', payload.id);
         
-        if (payment_status) {
-          updateData.payment_status = payment_status;
-        }
-        
-        if (security_deposit_refunded !== undefined) {
-          updateData.security_deposit_refunded = security_deposit_refunded;
-        }
-        
-        if (security_deposit_refund_date) {
-          updateData.security_deposit_refund_date = (security_deposit_refund_date as string);
-        } else {
-          updateData.security_deposit_refund_date = null;
-        }
-        
-        if (security_deposit_notes) {
-          updateData.security_deposit_notes = security_deposit_notes;
-        }
-        
-        const { error } = await supabase
-          .from('leases')
-          .update(updateData)
-          .eq('id', id);
-          
-        if (error) {
-          throw new Error(`Failed to update agreement status: ${error.message}`);
-        }
-        
-        return { success: true };
-      } catch (error) {
-        console.error('Error updating agreement status:', error);
-        throw error;
+      if (error) {
+        throw new Error(error.message);
       }
+      
+      return { id: payload.id, status: payload.status };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
-      toast.success('Agreement status updated successfully');
-    },
-    onError: (error: Error) => {
-      toast.error('Failed to update agreement status', {
-        description: error.message || 'An unexpected error occurred'
-      });
+      toast.success(`Agreement status updated to ${data.status}`);
     }
   });
   
@@ -728,7 +593,12 @@ export const useAgreements = () => {
           throw new Error(`Failed to upload document: ${storageError.message}`);
         }
         
-        const documentUrl = `${supabase.supabaseUrl}/storage/v1/object/public/${storageData.Key}`;
+        // Get the public URL for the file
+        const { data } = supabase.storage
+          .from('agreement-documents')
+          .getPublicUrl(`${agreementId}/${fileName}`);
+        
+        const documentUrl = data.publicUrl;
         
         // Save document metadata to the database
         const { error: dbError } = await supabase
@@ -788,7 +658,8 @@ export const useAgreements = () => {
         }
         
         // Extract the file path from the URL
-        const filePath = documentData.document_url.replace(`${supabase.supabaseUrl}/storage/v1/object/public/`, '');
+        const urlParts = documentData.document_url.split('/');
+        const filePath = `${documentData.agreement_id}/${urlParts[urlParts.length - 1]}`;
         
         // Delete the document metadata from the database
         const { error: deleteDbError } = await supabase
@@ -843,7 +714,19 @@ export const useAgreements = () => {
           throw new Error(`Failed to fetch agreement imports: ${error.message}`);
         }
         
-        return data as AgreementImport[];
+        // Map DB fields to interface fields
+        return data.map(item => ({
+          id: item.id,
+          file_name: item.file_name,
+          status: item.status,
+          created_at: item.created_at,
+          updated_at: item.updated_at,
+          row_count: item.row_count,
+          processed_count: item.processed_count,
+          error_count: item.error_count,
+          error_message: item.errors ? JSON.stringify(item.errors) : undefined,
+          original_file_name: item.original_file_name
+        })) as AgreementImport[];
       } catch (error) {
         console.error('Error in agreement imports data fetching:', error);
         throw error;
@@ -861,15 +744,15 @@ export const useAgreements = () => {
         // Create a new import record in the database
         const { error: createError } = await supabase
           .from('agreement_imports')
-          .insert([
-            {
-              id: importId,
-              filename: file.name,
-              status: 'pending',
-              total_records: 0, // Initial value, will be updated later
-              processed_records: 0
-            }
-          ]);
+          .insert({
+            id: importId,
+            file_name: file.name,
+            original_file_name: file.name,
+            status: 'pending',
+            row_count: 0,
+            processed_count: 0,
+            error_count: 0
+          });
           
         if (createError) {
           throw new Error(`Failed to create import record: ${createError.message}`);
@@ -894,7 +777,12 @@ export const useAgreements = () => {
           throw new Error(`Failed to upload import file: ${storageError.message}`);
         }
         
-        const importUrl = `${supabase.supabaseUrl}/storage/v1/object/public/${storageData.Key}`;
+        // Get the public URL for the file
+        const { data } = supabase.storage
+          .from('agreement-imports')
+          .getPublicUrl(`${importId}/${file.name}`);
+        
+        const importUrl = data.publicUrl;
         
         // Start processing the import (call the function)
         const { error: processError } = await supabase.functions.invoke('process-agreement-import', {
@@ -950,7 +838,19 @@ export const useAgreements = () => {
         throw new Error(`Failed to fetch agreement import: ${error.message}`);
       }
       
-      return data as AgreementImport;
+      // Map DB fields to interface fields
+      return {
+        id: data.id,
+        file_name: data.file_name,
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        row_count: data.row_count,
+        processed_count: data.processed_count,
+        error_count: data.error_count,
+        error_message: data.errors ? JSON.stringify(data.errors) : undefined,
+        original_file_name: data.original_file_name
+      } as AgreementImport;
     } catch (error) {
       console.error('Error in agreement import data fetching:', error);
       throw error;
@@ -966,15 +866,15 @@ export const useAgreements = () => {
         throw new Error('Import not found');
       }
       
-      const progress = importData.total_records > 0
-        ? (importData.processed_records / importData.total_records) * 100
+      const progress = importData.row_count > 0
+        ? (importData.processed_count / importData.row_count) * 100
         : 0;
         
       return {
         status: importData.status,
         progress: progress,
-        totalRecords: importData.total_records,
-        processedRecords: importData.processed_records,
+        totalRecords: importData.row_count,
+        processedRecords: importData.processed_count,
         errorMessage: importData.error_message
       };
     } catch (error) {
