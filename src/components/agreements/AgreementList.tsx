@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, SimpleAgreement, AgreementSearchParams } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -76,6 +76,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -96,6 +97,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   
   const { 
     agreements, 
@@ -146,7 +148,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
-        
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
@@ -484,11 +485,117 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
+  const mobileColumns: ColumnDef<SimpleAgreement>[] = [
+    {
+      accessorKey: "agreement_number",
+      header: "Agreement",
+      cell: ({ row }) => {
+        const status = row.original.status;
+        return (
+          <div className="space-y-1">
+            <div className="font-medium flex items-center justify-between">
+              <Link 
+                to={`/agreements/${row.original.id}`}
+                className="text-primary hover:underline"
+              >
+                {row.getValue("agreement_number")}
+              </Link>
+              <Badge 
+                variant={
+                  status === AgreementStatus.ACTIVE ? "success" : 
+                  status === AgreementStatus.DRAFT ? "secondary" : 
+                  status === AgreementStatus.PENDING ? "warning" :
+                  status === AgreementStatus.EXPIRED ? "outline" :
+                  "destructive"
+                }
+                className="capitalize"
+              >
+                {status === AgreementStatus.ACTIVE ? (
+                  <FileCheck className="h-3 w-3 mr-1" />
+                ) : status === AgreementStatus.DRAFT ? (
+                  <FileEdit className="h-3 w-3 mr-1" />
+                ) : status === AgreementStatus.PENDING ? (
+                  <FileClock className="h-3 w-3 mr-1" />
+                ) : status === AgreementStatus.EXPIRED ? (
+                  <FileText className="h-3 w-3 mr-1" />
+                ) : (
+                  <FileX className="h-3 w-3 mr-1" />
+                )}
+                {status}
+              </Badge>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {formatCurrency(row.original.total_amount)} · 
+              {format(new Date(row.original.start_date), 'MMM d')} - {format(new Date(row.original.end_date), 'MMM d, yyyy')}
+            </div>
+            <div className="text-sm">
+              {(() => {
+                const customer = row.original.customers || row.original.profiles;
+                const customerName = customer?.full_name || 'N/A';
+                const vehicle = row.original.vehicles;
+                const vehicleInfo = vehicle ? (vehicle.license_plate || 'Unknown vehicle') : 'N/A';
+                
+                return (
+                  <div className="flex justify-between items-center">
+                    <span>{customerName}</span>
+                    <span className="text-primary font-medium">{vehicleInfo}</span>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => {
+        const agreement = row.original;
+        
+        return (
+          <div className="flex items-center justify-end">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="z-50">
+                <DropdownMenuItem
+                  onClick={() => navigate(`/agreements/${agreement.id}`)}
+                >
+                  View details
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => navigate(`/agreements/edit/${agreement.id}`)}
+                >
+                  Edit agreement
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => {
+                    setSingleDeleteId(agreement.id);
+                    setSingleDeleteNumber(agreement.agreement_number);
+                    setSingleDeleteDialogOpen(true);
+                  }}
+                >
+                  Delete agreement
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        );
+      },
+    },
+  ];
+
   const tableData = agreements || [];
 
   const table = useReactTable({
     data: tableData,
-    columns,
+    columns: isMobile ? mobileColumns : columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -539,7 +646,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             value={statusFilter}
             onValueChange={handleStatusFilterChange}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px]" aria-label="Filter by status">
               <SelectValue placeholder="Select status" />
             </SelectTrigger>
             <SelectContent>
@@ -553,19 +660,20 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </Select>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           {selectedCount > 0 && (
             <Button 
               variant="destructive" 
               onClick={() => setBulkDeleteDialogOpen(true)}
               className="flex items-center gap-1"
+              aria-live="polite"
             >
               <Trash2 className="h-4 w-4 mr-1" />
               Delete ({selectedCount})
             </Button>
           )}
-          <Button asChild>
-            <Link to="/agreements/add">
+          <Button asChild className="w-full sm:w-auto">
+            <Link to="/agreements/add" className="flex items-center whitespace-nowrap">
               <FilePlus className="h-4 w-4 mr-2" />
               New Agreement
             </Link>
@@ -574,18 +682,32 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       </div>
       
       {(searchQuery || statusFilter !== 'all') && (
-        <div className="flex items-center text-sm text-muted-foreground mb-1">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground mb-1">
           <span>Filtering by:</span>
           {searchQuery && (
-            <Badge variant="outline" className="ml-2 gap-1">
+            <Badge variant="outline" className="gap-1 pl-2">
               Search: {searchQuery}
+              <button onClick={() => {
+                setSearchQuery('');
+                setSearchParams({
+                  ...searchParams,
+                  query: ''
+                });
+              }} className="ml-1 hover:bg-accent rounded-full p-0.5">
+                <X className="h-3 w-3" />
+                <span className="sr-only">Clear search filter</span>
+              </button>
             </Badge>
           )}
           {statusFilter !== 'all' && (
-            <Badge variant="outline" className="ml-2 gap-1">
+            <Badge variant="outline" className="gap-1 pl-2">
               Status: {statusFilter}
-              <button onClick={() => handleStatusFilterChange('all')}>
+              <button 
+                onClick={() => handleStatusFilterChange('all')}
+                className="ml-1 hover:bg-accent rounded-full p-0.5"
+              >
                 <X className="h-3 w-3" />
+                <span className="sr-only">Clear status filter</span>
               </button>
             </Badge>
           )}
@@ -614,7 +736,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  {Array.from({ length: columns.length }).map((_, j) => (
+                  {Array.from({ length: isMobile ? mobileColumns.length : columns.length }).map((_, j) => (
                     <TableCell key={`skeleton-cell-${i}-${j}`}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
@@ -637,7 +759,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
+                <TableCell colSpan={isMobile ? mobileColumns.length : columns.length} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
                     <p>
@@ -666,11 +788,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 aria-label="Go to previous page"
               >
                 <ChevronLeft className="h-4 w-4" />
-                <span>Previous</span>
+                <span className={isMobile ? "sr-only" : ""}>Previous</span>
               </Button>
             </PaginationItem>
             
-            {Array.from({ length: table.getPageCount() }).map((_, index) => (
+            {!isMobile && Array.from({ length: table.getPageCount() }).map((_, index) => (
               <PaginationItem key={index}>
                 <PaginationLink
                   isActive={table.getState().pagination.pageIndex === index}
@@ -684,6 +806,14 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               Math.min(table.getPageCount(), table.getState().pagination.pageIndex + 3)
             )}
             
+            {isMobile && (
+              <PaginationItem>
+                <span className="px-2">
+                  Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
+                </span>
+              </PaginationItem>
+            )}
+            
             <PaginationItem>
               <Button 
                 variant="outline" 
@@ -693,7 +823,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 disabled={!table.getCanNextPage()}
                 aria-label="Go to next page"
               >
-                <span>Next</span>
+                <span className={isMobile ? "sr-only" : ""}>Next</span>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </PaginationItem>
@@ -710,7 +840,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               This action cannot be undone and will permanently remove the selected agreements from the system.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-3 sm:gap-0">
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => handleBulkDelete()}
@@ -739,7 +869,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               This action cannot be undone and will permanently remove all associated data including payments and records.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-3 sm:gap-0">
             <AlertDialogCancel onClick={() => {
               setSingleDeleteId(null);
               setSingleDeleteNumber(null);

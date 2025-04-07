@@ -12,12 +12,15 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
 
 const Agreements = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
   const { setSearchParams } = useAgreements();
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     if (typeof sessionStorage !== 'undefined') {
@@ -80,6 +83,7 @@ const Agreements = () => {
 
   const clearSearch = () => {
     setSearchQuery('');
+    document.querySelector('input[type="text"]')?.focus();
   };
   
   const handleImportComplete = () => {
@@ -97,30 +101,31 @@ const Agreements = () => {
         <Button 
           variant="outline" 
           onClick={() => setIsImportModalOpen(true)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 whitespace-nowrap"
           disabled={!isEdgeFunctionAvailable}
         >
           {!isEdgeFunctionAvailable && (
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           )}
           <FileUp className="h-4 w-4" />
-          Import CSV
+          <span className={isMobile ? "sr-only" : ""}>Import CSV</span>
         </Button>
       }
     >
       <div className="mb-6">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
             placeholder="Search by customer name or vehicle license plate..."
-            className="w-full pl-9 pr-9"
+            className="w-full pl-10 pr-10 h-11"
             onChange={(e) => handleSearchChange(e.target.value)}
             value={searchQuery}
+            aria-label="Search agreements"
           />
           {searchQuery && (
             <button 
-              className="absolute right-2.5 top-2.5"
+              className="absolute right-3 top-1/2 -translate-y-1/2"
               onClick={clearSearch}
               aria-label="Clear search"
             >
@@ -130,16 +135,21 @@ const Agreements = () => {
         </div>
       </div>
       
+      <div aria-live="polite" className="sr-only">
+        {searchQuery ? `Searching for ${searchQuery}` : 'All agreements displayed'}
+      </div>
+      
       <Suspense fallback={
-        <div className="flex items-center justify-center h-64">
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2">Loading agreements...</span>
+          <span>Loading agreements...</span>
         </div>
       }>
         <AgreementList searchQuery={searchQuery} />
       </Suspense>
       
-      <div className="mt-8">
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold mb-4">Import History</h2>
         <ImportHistoryList />
       </div>
       
