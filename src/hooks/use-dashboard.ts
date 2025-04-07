@@ -187,21 +187,33 @@ async function fetchAllDashboardData(): Promise<{
     // Recent rentals
     const { data: rentalData, error: rentalError } = await supabase
       .from('leases')
-      .select('id, created_at, customer_id, vehicle_id, profiles:customer_id(full_name), vehicles:vehicle_id(make, model, license_plate)')
+      .select(`
+        id, 
+        created_at, 
+        customer_id, 
+        vehicle_id, 
+        profiles!customer_id(full_name), 
+        vehicles!vehicle_id(make, model, license_plate)
+      `)
       .order('created_at', { ascending: false })
       .limit(3);
       
     if (rentalError) throw rentalError;
     
-    rentalData.forEach((lease: LeaseWithRelations) => {
-      recentActivity.push({
-        id: lease.id,
-        type: 'rental',
-        title: 'New Rental',
-        description: `${lease.profiles?.full_name || 'Customer'} rented ${lease.vehicles?.make || ''} ${lease.vehicles?.model || ''} (${lease.vehicles?.license_plate || ''})`,
-        time: formatTimeAgo(new Date(lease.created_at))
+    if (rentalData) {
+      rentalData.forEach((lease) => {
+        const profiles = lease.profiles as { full_name: string } | null;
+        const vehicles = lease.vehicles as { make: string; model: string; license_plate: string } | null;
+        
+        recentActivity.push({
+          id: lease.id,
+          type: 'rental',
+          title: 'New Rental',
+          description: `${profiles?.full_name || 'Customer'} rented ${vehicles?.make || ''} ${vehicles?.model || ''} (${vehicles?.license_plate || ''})`,
+          time: formatTimeAgo(new Date(lease.created_at))
+        });
       });
-    });
+    }
     
     // Recent payments
     const { data: paymentData, error: paymentError } = await supabase
@@ -228,21 +240,31 @@ async function fetchAllDashboardData(): Promise<{
     // Recent maintenance
     const { data: maintenanceData, error: maintenanceError } = await supabase
       .from('maintenance')
-      .select('id, created_at, vehicle_id, maintenance_type, vehicles:vehicle_id(make, model, license_plate)')
+      .select(`
+        id, 
+        created_at, 
+        vehicle_id, 
+        maintenance_type, 
+        vehicles!vehicle_id(make, model, license_plate)
+      `)
       .order('created_at', { ascending: false })
       .limit(2);
       
     if (maintenanceError) throw maintenanceError;
     
-    maintenanceData.forEach((maintenance: MaintenanceWithRelations) => {
-      recentActivity.push({
-        id: maintenance.id,
-        type: 'maintenance',
-        title: 'Maintenance Scheduled',
-        description: `${maintenance.vehicles?.make || ''} ${maintenance.vehicles?.model || ''} (${maintenance.vehicles?.license_plate || ''}) scheduled for ${maintenance.maintenance_type}`,
-        time: formatTimeAgo(new Date(maintenance.created_at))
+    if (maintenanceData) {
+      maintenanceData.forEach((maintenance) => {
+        const vehicles = maintenance.vehicles as { make: string; model: string; license_plate: string } | null;
+        
+        recentActivity.push({
+          id: maintenance.id,
+          type: 'maintenance',
+          title: 'Maintenance Scheduled',
+          description: `${vehicles?.make || ''} ${vehicles?.model || ''} (${vehicles?.license_plate || ''}) scheduled for ${maintenance.maintenance_type}`,
+          time: formatTimeAgo(new Date(maintenance.created_at))
+        });
       });
-    });
+    }
     
     // Sort by time
     recentActivity.sort((a, b) => {

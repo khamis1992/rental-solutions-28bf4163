@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { useQueryWithCache } from './use-query-with-cache';
-import { Simplify, MutationVariables } from '@/utils/type-utils';
+import { Simplify } from '@/utils/type-utils';
 
 // Define Agreement status enum
 export enum AgreementStatus {
@@ -66,7 +66,7 @@ export type SimpleAgreement = {
 };
 
 // Function to convert database status to AgreementStatus enum value
-export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
+export const mapDBStatusToEnum = (dbStatus: string): AgreementStatus => {
   switch(dbStatus) {
     case 'active':
       return AgreementStatus.ACTIVE;
@@ -95,9 +95,6 @@ interface SearchParams {
   page?: number;
   pageSize?: number;
 }
-
-// Simplify the delete agreement mutation by using a plain string type
-type DeleteAgreementVariables = string;
 
 // Track pagination state in this hook
 export const useAgreements = (initialFilters: SearchParams = {}) => {
@@ -412,7 +409,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const updateAgreement = updateAgreementMutation;
 
   // Define the delete mutation with a simpler type to avoid excessive instantiation
-  const deleteAgreementMutation = useMutation<string, Error, string>({
+  const deleteAgreementMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log(`Starting deletion process for agreement ${id}`);
       

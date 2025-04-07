@@ -35,10 +35,12 @@ import { ArrowUp, ArrowDown } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
   table: ReturnType<typeof useReactTable<TData>>
+  onRowClick?: (row: TData) => void
 }
 
 export function DataTable<TData, TValue>({
   table,
+  onRowClick,
 }: DataTableProps<TData, TValue>) {
   return (
     <div className="rounded-md border">
@@ -67,6 +69,8 @@ export function DataTable<TData, TValue>({
               <TableRow
                 key={row.id}
                 data-state={row.getIsSelected() && "selected"}
+                onClick={() => onRowClick && onRowClick(row.original)}
+                className={onRowClick ? "cursor-pointer hover:bg-muted" : ""}
               >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>

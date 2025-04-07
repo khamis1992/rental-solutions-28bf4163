@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -56,7 +55,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Agreement, AgreementStatus, useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Create skeleton loader components for agreements table
 const AgreementListSkeleton = () => {
   return (
     <div className="space-y-4">
@@ -107,10 +105,13 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
   
-  // Pagination state
   const [pageSize, setPageSize] = useState<number>(10);
   const [pageIndex, setPageIndex] = useState<number>(1);
   const totalPages = Math.ceil((totalCount || 0) / pageSize);
+
+  const handleRowClick = (agreement: Agreement) => {
+    navigate(`/agreements/${agreement.id}`);
+  };
 
   const columns: ColumnDef<Agreement>[] = [
     {
@@ -246,7 +247,6 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     }
   }, [searchQuery, setSearchParams]);
 
-  // Update the internal pagination state when searchParams change
   useEffect(() => {
     if (searchParams.page) {
       setPageIndex(searchParams.page);
@@ -256,7 +256,6 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     }
   }, [searchParams]);
 
-  // Handle page change
   const handlePageChange = (newPage: number) => {
     setPageIndex(newPage);
     setSearchParams(prev => ({ ...prev, page: newPage }));
@@ -303,7 +302,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
-    manualPagination: true, // Tell the table we're doing manual pagination
+    manualPagination: true,
     pageCount: totalPages,
     state: {
       sorting,
@@ -311,7 +310,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
       columnVisibility,
       rowSelection,
       pagination: {
-        pageIndex: pageIndex - 1, // Convert from 1-based to 0-based
+        pageIndex: pageIndex - 1,
         pageSize,
       },
     },
@@ -381,7 +380,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
         </Select>
       </div>
       
-      <DataTable table={table} />
+      <DataTable table={table} onRowClick={handleRowClick} />
       
       <div className="flex items-center justify-between space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
@@ -398,20 +397,15 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
           </Button>
           <div className="flex items-center">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              // Show pages around current page
               let pageNum = pageIndex;
               if (pageIndex <= 3) {
-                // Near the start
                 pageNum = i + 1;
               } else if (pageIndex >= totalPages - 2) {
-                // Near the end
                 pageNum = totalPages - 4 + i;
               } else {
-                // In the middle
                 pageNum = pageIndex - 2 + i;
               }
               
-              // Ensure page numbers are valid
               if (pageNum > 0 && pageNum <= totalPages) {
                 return (
                   <Button
