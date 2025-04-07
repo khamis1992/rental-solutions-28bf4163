@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -119,7 +120,7 @@ export const useTrafficFines = () => {
   
   // Assign a traffic fine to a customer
   const assignToCustomer = useMutation({
-    mutationFn: async ({ id }: TrafficFinePayload) => {
+    mutationFn: async ({ id }: { id: string }) => {
       try {
         // First get the traffic fine details to find license plate
         const { data: fine, error: fineError } = await supabase
@@ -198,7 +199,7 @@ export const useTrafficFines = () => {
   
   // Pay a traffic fine
   const payTrafficFine = useMutation({
-    mutationFn: async ({ id }: TrafficFinePayload) => {
+    mutationFn: async ({ id }: { id: string }) => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ 
@@ -220,7 +221,7 @@ export const useTrafficFines = () => {
   
   // Dispute a traffic fine
   const disputeTrafficFine = useMutation({
-    mutationFn: async ({ id }: TrafficFinePayload) => {
+    mutationFn: async ({ id }: { id: string }) => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ payment_status: 'disputed' })

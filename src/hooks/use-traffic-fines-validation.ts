@@ -106,22 +106,29 @@ export const useTrafficFinesValidation = () => {
     queryKey: ['validationHistory'],
     queryFn: async (): Promise<ValidationHistoryItem[]> => {
       try {
-        const { data, error } = await supabase
-          .from('traffic_fine_validations')
-          .select('*')
-          .order('validation_date', { ascending: false });
-        
-        if (error) {
-          throw new Error(`Failed to fetch validation history: ${error.message}`);
-        }
-        
-        return data.map(item => ({
-          id: item.id,
-          fineId: item.fine_id,
-          validationDate: new Date(item.validation_date),
-          result: item.result,
-          status: item.status
-        }));
+        // Mock validation history since the table hasn't been created yet
+        // In production, this would query the traffic_fine_validations table
+        return [
+          {
+            id: "1",
+            fineId: "1",
+            validationDate: new Date(),
+            status: 'success',
+            result: {
+              success: true,
+              licensePlate: "ABC123",
+              hasFine: true,
+              validationDate: new Date().toISOString(),
+              validationSource: "MOI Qatar",
+              fineDetails: {
+                amount: 300,
+                violationDate: new Date().toISOString(),
+                violationType: "Speed violation",
+                locationCode: "D45"
+              }
+            }
+          }
+        ];
       } catch (error) {
         console.error('Error fetching validation history:', error);
         throw error;

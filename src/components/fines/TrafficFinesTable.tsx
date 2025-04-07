@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   useReactTable,
@@ -65,7 +64,7 @@ const TrafficFinesTable = ({ onAddFine, isAutoAssigning = false }: TrafficFinesT
   const [assigningFines, setAssigningFines] = useState(false);
   
   // Column definitions
-  const columns: ColumnDef<TrafficFine>[] = useMemo(() => [
+  const columns = useMemo<ColumnDef<TrafficFine>[]>(() => [
     {
       accessorKey: "violationNumber",
       header: "Violation #",
@@ -220,7 +219,7 @@ const TrafficFinesTable = ({ onAddFine, isAutoAssigning = false }: TrafficFinesT
   // Event handlers
   const handlePayFine = async (id: string) => {
     try {
-      await payTrafficFine.mutate({ id });
+      await payTrafficFine.mutateAsync({ id } as any);
       toast.success("Fine marked as paid successfully");
     } catch (error) {
       console.error("Error paying fine:", error);
@@ -232,7 +231,7 @@ const TrafficFinesTable = ({ onAddFine, isAutoAssigning = false }: TrafficFinesT
 
   const handleDisputeFine = async (id: string) => {
     try {
-      await disputeTrafficFine.mutate({ id });
+      await disputeTrafficFine.mutateAsync({ id } as any);
       toast.success("Fine marked as disputed successfully");
     } catch (error) {
       console.error("Error disputing fine:", error);
@@ -244,7 +243,7 @@ const TrafficFinesTable = ({ onAddFine, isAutoAssigning = false }: TrafficFinesT
   
   const handleAssignToCustomer = async (id: string) => {
     try {
-      await assignToCustomer.mutate({ id });
+      await assignToCustomer.mutateAsync({ id } as any);
     } catch (error) {
       console.error("Error assigning fine:", error);
     }
@@ -277,7 +276,7 @@ const TrafficFinesTable = ({ onAddFine, isAutoAssigning = false }: TrafficFinesT
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutate({ id: fine.id });
+          await assignToCustomer.mutateAsync({ id: fine.id } as any);
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);

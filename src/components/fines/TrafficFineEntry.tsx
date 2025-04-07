@@ -1,154 +1,118 @@
 
-import React, { useState } from "react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { useTrafficFines } from "@/hooks/use-traffic-fines";
-import { useVehicles } from "@/hooks/use-vehicles";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CalendarIcon, Loader2, SaveIcon } from 'lucide-react';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { Textarea } from '@/components/ui/textarea';
 
-// Define validation schema
+interface TrafficFineEntryProps {
+  onFineSaved?: () => void;
+}
+
 const trafficFineSchema = z.object({
-  violationNumber: z.string().optional(),
-  licensePlate: z.string().min(1, { message: "License plate is required" }),
+  violationNumber: z.string().min(1, { message: 'Violation number is required' }),
+  licensePlate: z.string().min(1, { message: 'License plate is required' }),
   violationDate: z.date({
-    required_error: "Violation date is required",
+    required_error: 'Violation date is required',
   }),
-  fineAmount: z.coerce.number({
-    required_error: "Fine amount is required",
-    invalid_type_error: "Fine amount must be a number",
-  }).min(0, { message: "Fine amount must be non-negative" }),
-  violationCharge: z.string().min(1, { message: "Violation charge is required" }),
+  fineAmount: z.coerce.number().min(1, { message: 'Fine amount must be greater than 0' }),
+  violationCharge: z.string().min(1, { message: 'Violation charge is required' }),
   location: z.string().optional(),
-  paymentStatus: z.string().default("pending"),
-  notes: z.string().optional(),
-  serialNumber: z.string().optional(),
+  violationDescription: z.string().optional()
 });
 
 type TrafficFineFormValues = z.infer<typeof trafficFineSchema>;
 
-interface TrafficFineEntryProps {
-  onFineSaved: () => void;
-}
-
-const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const { toast } = useToast();
+export default function TrafficFineEntry({ onFineSaved }: TrafficFineEntryProps) {
   const { addTrafficFine } = useTrafficFines();
-  const { useList: useVehiclesList } = useVehicles();
-  const { data: vehicles, isLoading: isLoadingVehicles } = useVehiclesList();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Initialize form with default values
   const form = useForm<TrafficFineFormValues>({
     resolver: zodResolver(trafficFineSchema),
     defaultValues: {
-      violationNumber: "",
-      licensePlate: "",
+      violationNumber: '',
+      licensePlate: '',
       violationDate: new Date(),
       fineAmount: 0,
-      violationCharge: "",
-      location: "",
-      paymentStatus: "pending",
-      notes: "",
-      serialNumber: "",
+      violationCharge: '',
+      location: '',
+      violationDescription: ''
     },
   });
-  
+
   const onSubmit = async (data: TrafficFineFormValues) => {
-    setIsSubmitting(true);
     try {
-      // Find vehicle ID based on license plate
-      const vehicle = vehicles?.find(v => v.license_plate === data.licensePlate);
-      
       await addTrafficFine.mutateAsync({
-        violationNumber: data.violationNumber || undefined,
+        violationNumber: data.violationNumber,
         licensePlate: data.licensePlate,
         violationDate: data.violationDate,
         fineAmount: data.fineAmount,
         violationCharge: data.violationCharge,
-        location: data.location || undefined,
-        paymentStatus: data.paymentStatus as any,
-        notes: data.notes || undefined,
-        serialNumber: data.serialNumber || undefined,
-        vehicleId: vehicle?.id,
-      });
-      
-      toast({
-        title: "Fine recorded successfully",
-        description: "The traffic fine has been added to the system.",
+        location: data.location,
       });
       
       form.reset();
-      onFineSaved();
+      
+      if (onFineSaved) {
+        onFineSaved();
+      }
     } catch (error) {
-      console.error("Failed to create traffic fine:", error);
-      toast({
-        title: "Error",
-        description: "Failed to record the traffic fine. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
+      console.error('Error adding traffic fine:', error);
     }
   };
-  
+
   return (
     <Card>
-      <CardContent className="pt-6">
+      <CardHeader>
+        <CardTitle>Record New Traffic Fine</CardTitle>
+        <CardDescription>
+          Enter details of a new traffic fine to record in the system
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* License Plate */}
+              <FormField
+                control={form.control}
+                name="violationNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Violation Number *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter violation number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="licensePlate"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>License Plate *</FormLabel>
-                    <Select
-                      disabled={isSubmitting || isLoadingVehicles}
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a license plate" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vehicles?.map(vehicle => (
-                          <SelectItem 
-                            key={vehicle.id} 
-                            value={vehicle.license_plate || ''}
-                          >
-                            {vehicle.license_plate} ({vehicle.make} {vehicle.model})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <Input placeholder="Enter license plate" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the vehicle's license plate
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* Violation Date */}
               <FormField
                 control={form.control}
                 name="violationDate"
@@ -164,7 +128,6 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                               "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
-                            disabled={isSubmitting}
                           >
                             {field.value ? (
                               format(field.value, "PPP")
@@ -192,19 +155,16 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                 )}
               />
               
-              {/* Fine Amount */}
               <FormField
                 control={form.control}
                 name="fineAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fine Amount *</FormLabel>
+                    <FormLabel>Fine Amount (QAR) *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="0.00"
-                        type="number"
-                        step="0.01"
-                        disabled={isSubmitting}
+                      <Input 
+                        type="number" 
+                        placeholder="Enter fine amount"
                         {...field}
                       />
                     </FormControl>
@@ -213,45 +173,26 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                 )}
               />
               
-              {/* Violation Charge */}
               <FormField
                 control={form.control}
                 name="violationCharge"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Violation Charge *</FormLabel>
+                    <FormLabel>Violation Type *</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Enter violation charge"
-                        disabled={isSubmitting}
+                      <Input 
+                        placeholder="Enter violation type"
                         {...field}
                       />
                     </FormControl>
+                    <FormDescription>
+                      E.g. Speeding, Parking, Red Light
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              {/* Violation Number */}
-              <FormField
-                control={form.control}
-                name="violationNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Violation Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter violation number"
-                        disabled={isSubmitting}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Location */}
               <FormField
                 control={form.control}
                 name="location"
@@ -259,78 +200,30 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Enter location"
-                        disabled={isSubmitting}
+                      <Input 
+                        placeholder="Enter violation location"
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Serial Number */}
-              <FormField
-                control={form.control}
-                name="serialNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Serial Number</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter serial number"
-                        disabled={isSubmitting}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Payment Status */}
-              <FormField
-                control={form.control}
-                name="paymentStatus"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Status</FormLabel>
-                    <Select
-                      disabled={isSubmitting}
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="disputed">Disputed</SelectItem>
-                        <SelectItem value="waived">Waived</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormDescription>
+                      Where did the violation occur?
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
             
-            {/* Notes */}
             <FormField
               control={form.control}
-              name="notes"
+              name="violationDescription"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Notes</FormLabel>
+                  <FormLabel>Additional Notes</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter any additional notes"
-                      className="min-h-32"
-                      disabled={isSubmitting}
+                    <Textarea 
+                      placeholder="Enter any additional details about the violation"
+                      className="min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
@@ -339,27 +232,26 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
               )}
             />
             
-            <div className="flex justify-end space-x-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onFineSaved}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Saving..." : "Save Fine"}
-              </Button>
-            </div>
+            <Button 
+              type="submit"
+              className="w-full sm:w-auto"
+              disabled={addTrafficFine.isPending}
+            >
+              {addTrafficFine.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4" /> 
+                  Save Traffic Fine
+                </>
+              )}
+            </Button>
           </form>
         </Form>
       </CardContent>
     </Card>
   );
-};
-
-export default TrafficFineEntry;
+}

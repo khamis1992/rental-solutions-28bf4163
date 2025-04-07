@@ -1,7 +1,6 @@
 
 // validate-traffic-fine edge function
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts';
-import puppeteer from 'https://deno.land/x/puppeteer@16.2.0/mod.ts';
 
 // CORS headers for browser requests
 const corsHeaders = {
