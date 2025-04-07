@@ -11,7 +11,7 @@ export function useApiKeys() {
   const [loading, setLoading] = useState(false);
 
   // Fetch all API keys
-  const { data: apiKeys, isLoading, error } = useQuery({
+  const { data: apiKeys, isLoading, error, refetch } = useQuery({
     queryKey: ['api-keys'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -51,6 +51,7 @@ export function useApiKeys() {
     onSuccess: () => {
       toast.success('API key created successfully');
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      refetch(); // Immediately refetch the API keys list to show the new key
     },
     onError: (error: any) => {
       console.error('Error creating API key:', error);
@@ -88,6 +89,7 @@ export function useApiKeys() {
     onSuccess: () => {
       toast.success('API key revoked successfully');
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      refetch(); // Immediately refetch the API keys list after revoking
     },
     onError: (error: any) => {
       console.error('Error revoking API key:', error);
@@ -122,6 +124,7 @@ export function useApiKeys() {
     error,
     createApiKey,
     revokeApiKey,
-    getApiKeyUsage
+    getApiKeyUsage,
+    refetch
   };
 }

@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApiKeys } from '@/hooks/use-api-keys';
 import { 
   Card, 
@@ -33,13 +32,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiKeyPermission } from '@/types/api-types';
 import { format } from 'date-fns';
-import { AlertCircle, Check, Copy, Key, Shield, ShieldAlert, Trash2 } from 'lucide-react';
+import { AlertCircle, Check, Copy, Key, Shield, ShieldAlert, Trash2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 
 const ApiKeyManagement: React.FC = () => {
-  const { apiKeys, isLoading, createApiKey, revokeApiKey } = useApiKeys();
+  const { apiKeys, isLoading, createApiKey, revokeApiKey, refetch } = useApiKeys();
   const [isCreating, setIsCreating] = useState(false);
   const [showNewKey, setShowNewKey] = useState(false);
   const [newKeyValue, setNewKeyValue] = useState('');
@@ -49,6 +48,11 @@ const ApiKeyManagement: React.FC = () => {
   const [description, setDescription] = useState('');
   const [permissions, setPermissions] = useState<ApiKeyPermission[]>([]);
   const [expiryDays, setExpiryDays] = useState<number | ''>('');
+  
+  // Force refresh data when component mounts
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
   
   // Permission options
   const permissionOptions: { value: ApiKeyPermission; label: string }[] = [
@@ -61,7 +65,6 @@ const ApiKeyManagement: React.FC = () => {
   
   const togglePermission = (permission: ApiKeyPermission) => {
     if (permission === '*') {
-      // If selecting "All Resources", remove other permissions
       if (!permissions.includes('*')) {
         setPermissions(['*']);
       } else {
@@ -70,13 +73,11 @@ const ApiKeyManagement: React.FC = () => {
       return;
     }
     
-    // If "All Resources" is currently selected, remove it
     if (permissions.includes('*')) {
       setPermissions([permission]);
       return;
     }
     
-    // Toggle the selected permission
     if (permissions.includes(permission)) {
       setPermissions(permissions.filter(p => p !== permission));
     } else {
@@ -96,7 +97,6 @@ const ApiKeyManagement: React.FC = () => {
     }
     
     try {
-      // Calculate expiry date if specified
       let expires_at = null;
       if (expiryDays !== '') {
         const days = parseInt(expiryDays.toString());
@@ -119,7 +119,6 @@ const ApiKeyManagement: React.FC = () => {
         setShowNewKey(true);
       }
       
-      // Reset form
       setName('');
       setDescription('');
       setPermissions([]);
@@ -150,6 +149,16 @@ const ApiKeyManagement: React.FC = () => {
       return (
         <div className="text-center py-8 text-muted-foreground">
           No API keys found. Create your first API key to integrate with external applications.
+          <div className="flex justify-center mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => refetch()} 
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </div>
       );
     }
@@ -240,10 +249,16 @@ const ApiKeyManagement: React.FC = () => {
               Manage API keys for third-party application access
             </CardDescription>
           </div>
-          <Button onClick={() => setIsCreating(true)}>
-            <Key className="h-4 w-4 mr-2" />
-            Generate New Key
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+            <Button onClick={() => setIsCreating(true)}>
+              <Key className="h-4 w-4 mr-2" />
+              Generate New Key
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {renderApiKeyTable()}
