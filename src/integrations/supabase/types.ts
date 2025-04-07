@@ -7857,6 +7857,47 @@ export type Database = {
           },
         ]
       }
+      traffic_fine_validations: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          error_message: string | null
+          fine_id: string | null
+          id: string
+          result: Json | null
+          status: string
+          validation_date: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          fine_id?: string | null
+          id?: string
+          result?: Json | null
+          status: string
+          validation_date?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          error_message?: string | null
+          fine_id?: string | null
+          id?: string
+          result?: Json | null
+          status?: string
+          validation_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "traffic_fine_validations_fine_id_fkey"
+            columns: ["fine_id"]
+            isOneToOne: false
+            referencedRelation: "traffic_fines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       traffic_fines: {
         Row: {
           assignment_status: string | null
@@ -7866,6 +7907,7 @@ export type Database = {
           fine_location: string | null
           fine_type: string | null
           id: string
+          last_check_date: string | null
           lease_id: string | null
           license_plate: string | null
           payment_date: string | null
@@ -7873,6 +7915,9 @@ export type Database = {
           payment_status: string | null
           serial_number: string | null
           updated_at: string | null
+          validation_attempts: number | null
+          validation_date: string | null
+          validation_result: Json | null
           validation_status: string | null
           vehicle_id: string | null
           violation_charge: string | null
@@ -7888,6 +7933,7 @@ export type Database = {
           fine_location?: string | null
           fine_type?: string | null
           id?: string
+          last_check_date?: string | null
           lease_id?: string | null
           license_plate?: string | null
           payment_date?: string | null
@@ -7895,6 +7941,9 @@ export type Database = {
           payment_status?: string | null
           serial_number?: string | null
           updated_at?: string | null
+          validation_attempts?: number | null
+          validation_date?: string | null
+          validation_result?: Json | null
           validation_status?: string | null
           vehicle_id?: string | null
           violation_charge?: string | null
@@ -7910,6 +7959,7 @@ export type Database = {
           fine_location?: string | null
           fine_type?: string | null
           id?: string
+          last_check_date?: string | null
           lease_id?: string | null
           license_plate?: string | null
           payment_date?: string | null
@@ -7917,6 +7967,9 @@ export type Database = {
           payment_status?: string | null
           serial_number?: string | null
           updated_at?: string | null
+          validation_attempts?: number | null
+          validation_date?: string | null
+          validation_result?: Json | null
           validation_status?: string | null
           vehicle_id?: string | null
           violation_charge?: string | null

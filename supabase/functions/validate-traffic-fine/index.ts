@@ -51,11 +51,20 @@ serve(async (req: Request) => {
     
     // Mock validation result - randomly return found/not found
     const hasFine = Math.random() > 0.5;
+    const violationTypes = [
+      "Speed violation", 
+      "Illegal parking", 
+      "Red light violation", 
+      "Driving in emergency lane",
+      "Illegal turn"
+    ];
+    const locationCodes = ["D45", "A12", "B37", "C55", "E23"];
     
     return new Response(
       JSON.stringify({
         success: true,
         result: {
+          success: true,
           licensePlate,
           hasFine,
           validationDate: new Date().toISOString(),
@@ -65,8 +74,8 @@ serve(async (req: Request) => {
             fineDetails: {
               amount: Math.floor(Math.random() * 500) + 100,
               violationDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-              violationType: "Speed violation",
-              locationCode: "D" + Math.floor(Math.random() * 100)
+              violationType: violationTypes[Math.floor(Math.random() * violationTypes.length)],
+              locationCode: locationCodes[Math.floor(Math.random() * locationCodes.length)]
             }
           } : {})
         }

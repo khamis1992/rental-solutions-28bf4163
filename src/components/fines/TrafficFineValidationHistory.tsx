@@ -71,7 +71,10 @@ export const TrafficFineValidationHistory: React.FC = () => {
           <div className="p-4 border border-red-200 rounded-md bg-red-50 text-red-800">
             <AlertTriangle className="h-5 w-5 mb-2" />
             <p className="font-semibold">Error loading validation history</p>
-            <p className="text-sm">{getValidationHistory.error.message || "Unknown error"}</p>
+            <p className="text-sm">{getValidationHistory.error instanceof Error 
+              ? getValidationHistory.error.message 
+              : "Unknown error"}
+            </p>
           </div>
         ) : getValidationHistory.data?.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
