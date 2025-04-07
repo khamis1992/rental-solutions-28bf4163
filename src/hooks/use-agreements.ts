@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -5,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { FlattenType } from '@/utils/type-utils';
+import { useQueryWithCache } from './use-query-with-cache';
 
 // Simplified type to avoid excessive deep instantiation
 export type SimpleAgreement = {
@@ -389,12 +391,15 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  const { data: agreements, isLoading, error } = useQuery({
-    queryKey: ['agreements', searchParams],
-    queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes (increased from 5 minutes)
-    gcTime: 900000, // 15 minutes (increased from 10 minutes)
-  });
+  // Use our new optimized query hook with caching
+  const { data: agreements, isLoading, error } = useQueryWithCache(
+    ['agreements', searchParams],
+    fetchAgreements,
+    {
+      staleTime: 600000, // 10 minutes (increased from 5 minutes)
+      cacheTime: 900000, // 15 minutes (increased from 10 minutes)
+    }
+  );
 
   return {
     agreements,

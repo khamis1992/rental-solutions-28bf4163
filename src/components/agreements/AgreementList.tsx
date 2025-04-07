@@ -1279,17 +1279,9 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
+
   useQueryClient,
-} from "@tanstack/react-query"
+} from "@tanstack/react-query";
 import {
   Check,
   ChevronsUpDown,
@@ -1306,124 +1298,96 @@ import {
   Trash,
   Upload,
   UserRoundPlus,
-} from "lucide-react"
+} from "lucide-react";
 import * as XLSX from 'xlsx';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Slider,
-} from "@/components/ui/slider"
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-  useToast,
-} from "@/hooks/use-toast"
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from "@/components/ui/command"
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardDescription,
-  HoverCardFooter,
-  HoverCardHeader,
-  HoverCardTitle,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card"
-import {
-  AspectRatio,
-} from "@/components/ui/aspect-ratio"
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-  ResizableSeparator,
-} from "@/components/ui/resizable"
-import {
-  ScrollArea,
-} from "@/components/ui/scroll-area"
-import {
-  Separator,
-} from "@/components/ui/separator"
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
-import {
-  Skeleton,
-} from "@/components/ui/skeleton"
-import {
-  Switch,
-} from "@/components/ui/switch"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import {
+
+const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
+  const navigate = useNavigate();
+  const { agreements, isLoading, error, setSearchParams } = useAgreements();
+  const [agreementToDelete, setAgreementToDelete] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [rowSelection, setRowSelection] = React.useState({})
+
+  const columns: ColumnDef<Agreement>[] = [
+    {
+      accessorKey: "agreement_number",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Agreement #" />
+      ),
+      cell: ({ row }) => (
+        <div className="w-[80px]">
+          {row.getValue("agreement_number")}
+        </div>
+      ),
+      enableSorting: true,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "customers.full_name",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Customer Name" />
+      ),
+      cell: ({ row }) => {
+        const customerName = row.original.customers?.full_name || 'N/A';
+        return (
+          <div className="w-[150px]">
+            {customerName}
+          </div>
+        );
+      },
+      enableSorting: true,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "vehicles.license_plate",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="License Plate" />
+      ),
+      cell: ({ row }) => {
+        const licensePlate = row.original.vehicles?.license_plate || 'N/A';
+        return (
+          <div className="w-[100px]">
+            {licensePlate}
+          </div>
+        );
+      },
+      enableSorting: true,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "start_date",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="Start Date" />
+      ),
+      cell: ({ row }) => {
+        const startDate = row.original.start_date ? formatDate(row.original.start_date) : 'N/A';
+        return (
+          <div className="w-[100px]">
+            {startDate}
+          </div>
+        );
+      },
+      enableSorting: true,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "end_date",
+      header: ({ column }) => (
+        <DataTableColumnHeader
+          column={column}
+          title="End Date" />
+      ),
+      cell: ({ row }) => {
+        const endDate =
