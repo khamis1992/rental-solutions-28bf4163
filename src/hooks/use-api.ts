@@ -1,4 +1,4 @@
-
+import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { PostgrestError } from '@supabase/supabase-js';
 import { useMutation, useQuery, UseQueryOptions, UseMutationOptions, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
@@ -179,7 +179,7 @@ export function usePaginatedApiQuery<TData>(
     [...queryKey, page, pageSize],
     () => fetchFn(page, pageSize),
     {
-      keepPreviousData: true,
+      placeholderData: (oldData) => oldData,
       enabled: options?.enabled !== false,
       onSuccess: options?.onSuccess,
       onError: options?.onError,

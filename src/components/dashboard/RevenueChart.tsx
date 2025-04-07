@@ -7,9 +7,10 @@ import { formatCurrency } from '@/lib/utils';
 interface RevenueChartProps {
   data: { name: string; revenue: number }[];
   fullWidth?: boolean;
+  showTooltip?: boolean; // Add missing prop
 }
 
-const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
+const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false, showTooltip = true }) => {
   // Get current month name for dynamic title
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   
@@ -76,15 +77,17 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
                 tick={{ fill: '#64748b', fontSize: 12 }}
                 tickFormatter={(value) => formatCurrency(value).split('.')[0]} // Remove decimals for Y-axis labels
               />
-              <Tooltip 
-                formatter={(value: number) => [formatCurrency(value), 'Revenue']}
-                contentStyle={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}
-              />
+              {showTooltip && (
+                <Tooltip 
+                  formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+              )}
               <Area 
                 type="monotone" 
                 dataKey="revenue" 

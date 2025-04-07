@@ -252,10 +252,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     }
   };
 
-  const columns: ColumnDef<any>[] = [
+  const columns = [
     {
       id: "select",
-      header: ({ table }) => (
+      header: ({ table }: any) => (
         <Checkbox
           checked={
             table.getIsAllPageRowsSelected() ||
@@ -265,7 +265,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           aria-label="Select all"
         />
       ),
-      cell: ({ row }) => (
+      cell: ({ row }: any) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}

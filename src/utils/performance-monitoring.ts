@@ -1,3 +1,4 @@
+
 /**
  * Performance monitoring utility functions for application-wide usage
  */
@@ -95,12 +96,19 @@ export function initPerformanceMonitoring(): void {
   if (typeof window === 'undefined') return;
   
   // Report real user metrics if supported
-  if ('web-vitals' in window) {
-    import('web-vitals').then(({ getCLS, getFID, getLCP }) => {
-      getCLS(metric => console.log('CLS:', metric.value));
-      getFID(metric => console.log('FID:', metric.value));
-      getLCP(metric => console.log('LCP:', metric.value));
-    });
+  try {
+    // Dynamic import of web-vitals
+    import('web-vitals')
+      .then(({ getCLS, getFID, getLCP }) => {
+        getCLS((metric) => console.log('CLS:', metric.value));
+        getFID((metric) => console.log('FID:', metric.value));
+        getLCP((metric) => console.log('LCP:', metric.value));
+      })
+      .catch(error => {
+        console.warn('Failed to load web-vitals:', error);
+      });
+  } catch (e) {
+    console.warn('Web Vitals monitoring failed to initialize:', e);
   }
   
   // Monitor long tasks
