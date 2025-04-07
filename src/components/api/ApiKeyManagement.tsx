@@ -70,13 +70,20 @@ interface ApiKey {
   is_active: boolean;
 }
 
+interface ApiKeyFormData {
+  name: string;
+  description: string;
+  permissions: string[];
+  expiresIn: string;
+}
+
 const ApiKeyManagement: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newKey, setNewKey] = useState<ApiKey | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ApiKeyFormData>({
     name: '',
     description: '',
-    permissions: [] as string[],
+    permissions: [],
     expiresIn: '0',
   });
   const [copied, setCopied] = useState(false);
@@ -108,7 +115,7 @@ const ApiKeyManagement: React.FC = () => {
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      return data;
+      return data as ApiKey[];
     },
   });
 
@@ -125,16 +132,23 @@ const ApiKeyManagement: React.FC = () => {
         expiresAt = expiry.toISOString();
       }
       
+      // We'll use direct SQL query since the RPC function may not be in the types
       const { data, error } = await supabase
-        .rpc('create_api_key', {
-          p_name: formData.name,
-          p_description: formData.description || null,
-          p_permissions: formData.permissions,
-          p_expires_at: expiresAt
-        });
+        .from('api_keys')
+        .insert({
+          name: formData.name,
+          description: formData.description || null,
+          permissions: formData.permissions,
+          expires_at: expiresAt,
+          created_by: (await supabase.auth.getUser()).data.user?.id,
+          key_value: crypto.randomUUID().replace(/-/g, ''),
+          is_active: true
+        })
+        .select('*')
+        .single();
         
       if (error) throw error;
-      return data;
+      return data as ApiKey;
     },
     onSuccess: (data) => {
       setNewKey(data);
@@ -149,13 +163,14 @@ const ApiKeyManagement: React.FC = () => {
   // Revoke API key mutation
   const revokeApiKey = useMutation({
     mutationFn: async (keyId: string) => {
+      // Using direct update instead of RPC function since it may not be in the types
       const { data, error } = await supabase
-        .rpc('revoke_api_key', {
-          p_key_id: keyId
-        });
+        .from('api_keys')
+        .update({ is_active: false })
+        .eq('id', keyId);
         
       if (error) throw error;
-      return data;
+      return keyId;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
