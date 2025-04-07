@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -233,7 +234,11 @@ const ReportDownloadOptions = ({
               initialFocus
               mode="range"
               selected={dateRange}
-              onSelect={(range) => setDateRange(range || { from: undefined, to: undefined })}
+              onSelect={(range) => {
+                if (range) {
+                  setDateRange(range);
+                }
+              }}
               numberOfMonths={2}
             />
           </PopoverContent>

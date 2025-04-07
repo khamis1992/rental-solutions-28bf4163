@@ -2,360 +2,331 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Code } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Copy, Code, Info, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
-export const ApiDocumentation = () => {
-  const [selectedEndpoint, setSelectedEndpoint] = useState<string | null>(null);
-
-  const baseUrl = `${window.location.protocol}//${window.location.host}/api`;
-
-  // Example API documentation
-  const endpoints = [
-    {
-      name: 'Traffic Fines',
-      path: '/traffic-fines',
-      description: 'Manage traffic fines and violations',
-      methods: [
-        {
-          type: 'GET',
-          path: '/traffic-fines',
-          description: 'List all traffic fines with optional filtering',
-          parameters: [
-            { name: 'license_plate', type: 'string', description: 'Filter by vehicle license plate' },
-            { name: 'status', type: 'string', description: 'Filter by payment status: pending, paid, disputed' },
-            { name: 'limit', type: 'number', description: 'Maximum number of results to return (default: 100)' }
-          ],
-          response: {
-            type: 'object',
-            properties: {
-              data: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    id: { type: 'string' },
-                    violation_number: { type: 'string' },
-                    license_plate: { type: 'string' },
-                    violation_date: { type: 'string', format: 'date-time' },
-                    fine_amount: { type: 'number' },
-                    payment_status: { type: 'string', enum: ['pending', 'paid', 'disputed'] }
-                  }
-                }
-              }
-            }
-          }
-        },
-        {
-          type: 'GET',
-          path: '/traffic-fines/{id}',
-          description: 'Get a specific traffic fine by ID',
-          parameters: [
-            { name: 'id', type: 'string', description: 'Traffic fine ID', required: true }
-          ],
-          response: {
-            type: 'object',
-            properties: {
-              data: {
-                type: 'object',
-                properties: {
-                  id: { type: 'string' },
-                  violation_number: { type: 'string' },
-                  license_plate: { type: 'string' },
-                  violation_date: { type: 'string', format: 'date-time' },
-                  fine_amount: { type: 'number' },
-                  violation_charge: { type: 'string' },
-                  payment_status: { type: 'string', enum: ['pending', 'paid', 'disputed'] },
-                  fine_location: { type: 'string' },
-                  vehicle_id: { type: 'string' },
-                  lease_id: { type: 'string' },
-                  payment_date: { type: 'string', format: 'date-time', nullable: true }
-                }
-              }
-            }
-          }
-        },
-        {
-          type: 'POST',
-          path: '/traffic-fines',
-          description: 'Create a new traffic fine',
-          requestBody: {
-            type: 'object',
-            required: ['violation_number', 'violation_date', 'fine_amount', 'payment_status'],
-            properties: {
-              violation_number: { type: 'string' },
-              license_plate: { type: 'string' },
-              violation_date: { type: 'string', format: 'date-time' },
-              fine_amount: { type: 'number' },
-              violation_charge: { type: 'string' },
-              payment_status: { type: 'string', enum: ['pending', 'paid', 'disputed'] },
-              fine_location: { type: 'string' },
-              vehicle_id: { type: 'string' }
-            }
-          },
-          response: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' },
-              data: { type: 'object' }
-            }
-          }
-        },
-        {
-          type: 'PUT',
-          path: '/traffic-fines/{id}',
-          description: 'Update a traffic fine',
-          parameters: [
-            { name: 'id', type: 'string', description: 'Traffic fine ID', required: true }
-          ],
-          requestBody: {
-            type: 'object',
-            properties: {
-              violation_number: { type: 'string' },
-              license_plate: { type: 'string' },
-              violation_date: { type: 'string', format: 'date-time' },
-              fine_amount: { type: 'number' },
-              violation_charge: { type: 'string' },
-              payment_status: { type: 'string', enum: ['pending', 'paid', 'disputed'] },
-              fine_location: { type: 'string' },
-              vehicle_id: { type: 'string' },
-              payment_date: { type: 'string', format: 'date-time' }
-            }
-          },
-          response: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' },
-              data: { type: 'object' }
-            }
-          }
-        },
-        {
-          type: 'DELETE',
-          path: '/traffic-fines/{id}',
-          description: 'Delete a traffic fine',
-          parameters: [
-            { name: 'id', type: 'string', description: 'Traffic fine ID', required: true }
-          ],
-          response: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' }
-            }
-          }
-        }
-      ]
-    },
-    {
-      name: 'Vehicles',
-      path: '/vehicles',
-      description: 'Vehicle management endpoints',
-      methods: [
-        {
-          type: 'GET',
-          path: '/vehicles',
-          description: 'List all vehicles',
-          parameters: [
-            { name: 'status', type: 'string', description: 'Filter by vehicle status' }
-          ],
-          response: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' },
-              resourceId: { type: 'string', nullable: true }
-            }
-          }
-        }
-      ]
-    },
-    {
-      name: 'Customers',
-      path: '/customers',
-      description: 'Customer management endpoints',
-      methods: [
-        {
-          type: 'GET',
-          path: '/customers',
-          description: 'List all customers',
-          parameters: [],
-          response: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' },
-              resourceId: { type: 'string', nullable: true }
-            }
-          }
-        }
-      ]
-    },
-    {
-      name: 'Agreements',
-      path: '/agreements',
-      description: 'Rental agreement management endpoints',
-      methods: [
-        {
-          type: 'GET',
-          path: '/agreements',
-          description: 'List all rental agreements',
-          parameters: [],
-          response: {
-            type: 'object',
-            properties: {
-              message: { type: 'string' },
-              resourceId: { type: 'string', nullable: true }
-            }
-          }
-        }
-      ]
-    }
-  ];
-
-  const getMethodBadgeColor = (method: string) => {
-    switch (method) {
-      case 'GET':
-        return 'bg-blue-500 text-white';
-      case 'POST':
-        return 'bg-green-500 text-white';
-      case 'PUT':
-        return 'bg-amber-500 text-white';
-      case 'DELETE':
-        return 'bg-red-500 text-white';
-      default:
-        return 'bg-gray-500 text-white';
-    }
+const ApiDocumentation: React.FC = () => {
+  const baseUrl = 'https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api';
+  const [copied, setCopied] = useState<string | null>(null);
+  
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    toast.success('Code copied to clipboard');
+    
+    setTimeout(() => {
+      setCopied(null);
+    }, 2000);
   };
-
-  const renderMethod = (method: any) => {
-    return (
-      <div key={`${method.type}-${method.path}`} className="mb-8">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge className={`${getMethodBadgeColor(method.type)} font-mono`}>
-            {method.type}
-          </Badge>
-          <span className="font-mono text-sm">{method.path}</span>
-        </div>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">{method.description}</p>
-        
-        {method.parameters && method.parameters.length > 0 && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-2">Parameters</h4>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead>
-                  <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Name</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Type</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Description</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Required</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {method.parameters.map((param: any) => (
-                    <tr key={param.name}>
-                      <td className="px-4 py-2 text-sm font-medium">{param.name}</td>
-                      <td className="px-4 py-2 text-sm">{param.type}</td>
-                      <td className="px-4 py-2 text-sm">{param.description}</td>
-                      <td className="px-4 py-2 text-sm">{param.required ? '✓' : ''}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-        
-        {method.requestBody && (
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-2">Request Body</h4>
-            <pre className="bg-gray-50 dark:bg-gray-800 p-4 rounded text-xs overflow-x-auto">
-              {JSON.stringify(method.requestBody, null, 2)}
-            </pre>
-          </div>
-        )}
-        
-        {method.response && (
-          <div>
-            <h4 className="text-sm font-medium mb-2">Response</h4>
-            <pre className="bg-gray-50 dark:bg-gray-800 p-4 rounded text-xs overflow-x-auto">
-              {JSON.stringify(method.response, null, 2)}
-            </pre>
-          </div>
-        )}
-
-        <div className="mt-4">
-          <h4 className="text-sm font-medium mb-2">Example Request</h4>
-          <pre className="bg-gray-50 dark:bg-gray-800 p-4 rounded text-xs overflow-x-auto">
-            {`fetch("${baseUrl}${method.path.replace(/{([^}]+)}/g, '123')}",{
-  method: "${method.type}",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer YOUR_API_KEY"
-  }${method.type !== 'GET' && method.type !== 'DELETE' ? ',\n  body: JSON.stringify({\n    // request payload\n  })' : ''}
-})
-.then(response => response.json())
-.then(data => console.log(data));`}
-          </pre>
-        </div>
-      </div>
-    );
-  };
-
+  
+  const CodeBlock = ({ code, id }: { code: string; id: string }) => (
+    <div className="relative">
+      <pre className="bg-slate-950 text-slate-50 p-4 rounded-md overflow-x-auto">
+        <code>{code}</code>
+      </pre>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="absolute top-2 right-2 bg-slate-800 hover:bg-slate-700 text-white"
+        onClick={() => copyToClipboard(code, id)}
+      >
+        {copied === id ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+  
   return (
-    <div className="container mx-auto">
-      <div className="flex items-center space-x-2 mb-6">
-        <Code size={24} className="text-primary" />
-        <h1 className="text-2xl font-bold">API Documentation</h1>
-      </div>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Authentication</CardTitle>
-          <CardDescription>
-            All API requests require authentication using API keys
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="mb-4">
-            To authenticate API requests, include an <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded">Authorization</code> header with a Bearer token:
-          </p>
-          <pre className="bg-gray-50 dark:bg-gray-800 p-4 rounded text-xs overflow-x-auto">
-            Authorization: Bearer YOUR_API_KEY
-          </pre>
-        </CardContent>
-      </Card>
-
+    <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>API Endpoints</CardTitle>
+          <CardTitle>API Documentation</CardTitle>
           <CardDescription>
-            Available resources and operations
+            Learn how to integrate with our API for third-party applications
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue={endpoints[0].path} className="w-full">
-            <TabsList className="mb-4 w-full flex overflow-x-auto border-b border-gray-200 dark:border-gray-700 pb-0">
-              {endpoints.map((endpoint) => (
-                <TabsTrigger 
-                  key={endpoint.path} 
-                  value={endpoint.path}
-                  onClick={() => setSelectedEndpoint(endpoint.path)}
-                  className="flex-1"
-                >
-                  {endpoint.name}
-                </TabsTrigger>
-              ))}
+          <div className="prose max-w-none">
+            <h3 className="text-lg font-semibold mt-0">Authentication</h3>
+            <p>
+              All API requests must include your API key in the Authorization header:
+            </p>
+            
+            <CodeBlock 
+              id="auth-example" 
+              code={`Authorization: Bearer YOUR_API_KEY`} 
+            />
+            
+            <div className="flex items-center p-4 rounded-md bg-blue-50 text-blue-800 my-4">
+              <Info className="w-5 h-5 mr-2 flex-shrink-0" />
+              <p className="text-sm">
+                To generate an API key, go to the "API Keys" tab and create a new key with the appropriate permissions.
+              </p>
+            </div>
+            
+            <h3 className="text-lg font-semibold">Base URL</h3>
+            <p>All API requests should be made to:</p>
+            <div className="bg-muted p-2 rounded font-mono text-sm">
+              {baseUrl}
+            </div>
+            
+            <h3 className="text-lg font-semibold mt-6">Rate Limiting</h3>
+            <p>
+              API requests are limited to 100 requests per minute by default. Rate limits can be adjusted for specific API keys.
+            </p>
+          </div>
+          
+          <Tabs defaultValue="traffic-fines" className="mt-6">
+            <TabsList className="grid grid-cols-4">
+              <TabsTrigger value="traffic-fines">Traffic Fines</TabsTrigger>
+              <TabsTrigger value="vehicles">Vehicles</TabsTrigger>
+              <TabsTrigger value="customers">Customers</TabsTrigger>
+              <TabsTrigger value="agreements">Agreements</TabsTrigger>
             </TabsList>
             
-            {endpoints.map((endpoint) => (
-              <TabsContent key={endpoint.path} value={endpoint.path}>
-                <div>
-                  <p className="text-gray-600 dark:text-gray-400 mb-6">{endpoint.description}</p>
+            <TabsContent value="traffic-fines" className="space-y-4 mt-4">
+              <div>
+                <h3 className="text-lg font-semibold">Traffic Fines API</h3>
+                <p className="text-muted-foreground">
+                  Endpoints for managing traffic violation records
+                </p>
+                
+                <div className="mt-6 space-y-8">
+                  {/* GET Traffic Fines */}
+                  <div>
+                    <h4 className="text-md font-semibold flex items-center">
+                      <Code className="mr-2 h-4 w-4" />
+                      Get All Traffic Fines
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Retrieves a list of all traffic fines, with optional filtering
+                    </p>
+                    
+                    <div className="bg-muted p-2 rounded flex items-center mb-2">
+                      <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded mr-2 text-xs font-medium">GET</span>
+                      <code className="text-sm">{`${baseUrl}/traffic-fines`}</code>
+                    </div>
+                    
+                    <h5 className="text-sm font-medium mt-4">Query Parameters</h5>
+                    <ul className="list-disc list-inside text-sm space-y-1 mb-4">
+                      <li><code>license_plate</code> - Filter by license plate</li>
+                      <li><code>status</code> - Filter by payment status</li>
+                      <li><code>limit</code> - Maximum number of records to return (default: 100)</li>
+                    </ul>
+                    
+                    <h5 className="text-sm font-medium">Example Request</h5>
+                    <CodeBlock 
+                      id="get-fines" 
+                      code={`curl -X GET "${baseUrl}/traffic-fines?license_plate=ABC123&status=pending" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`} 
+                    />
+                    
+                    <h5 className="text-sm font-medium mt-4">Example Response</h5>
+                    <CodeBlock 
+                      id="get-fines-response" 
+                      code={`{
+  "data": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "violation_number": "VN-2025-0042",
+      "license_plate": "ABC123",
+      "violation_date": "2025-04-01T14:32:00.000Z",
+      "fine_amount": 500,
+      "violation_charge": "Speeding",
+      "payment_status": "pending",
+      "fine_location": "Al Corniche St",
+      "vehicle_id": "7f9c24e0-5f9a-4d5d-b5d8-3a37a9766ea7",
+      "lease_id": "c29142e5-9d9e-4f4c-b4d6-5d8d93c5e34a",
+      "payment_date": null
+    }
+  ]
+}`} 
+                    />
+                  </div>
                   
-                  {endpoint.methods.map((method) => renderMethod(method))}
+                  {/* GET Traffic Fine by ID */}
+                  <div>
+                    <h4 className="text-md font-semibold flex items-center">
+                      <Code className="mr-2 h-4 w-4" />
+                      Get Traffic Fine by ID
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Retrieves details for a specific traffic fine
+                    </p>
+                    
+                    <div className="bg-muted p-2 rounded flex items-center mb-2">
+                      <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded mr-2 text-xs font-medium">GET</span>
+                      <code className="text-sm">{`${baseUrl}/traffic-fines/{fine_id}`}</code>
+                    </div>
+                    
+                    <h5 className="text-sm font-medium mt-4">Example Request</h5>
+                    <CodeBlock 
+                      id="get-fine-by-id" 
+                      code={`curl -X GET "${baseUrl}/traffic-fines/550e8400-e29b-41d4-a716-446655440000" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`} 
+                    />
+                  </div>
+                  
+                  {/* CREATE Traffic Fine */}
+                  <div>
+                    <h4 className="text-md font-semibold flex items-center">
+                      <Code className="mr-2 h-4 w-4" />
+                      Create Traffic Fine
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Creates a new traffic fine record
+                    </p>
+                    
+                    <div className="bg-muted p-2 rounded flex items-center mb-2">
+                      <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded mr-2 text-xs font-medium">POST</span>
+                      <code className="text-sm">{`${baseUrl}/traffic-fines`}</code>
+                    </div>
+                    
+                    <h5 className="text-sm font-medium mt-4">Request Body</h5>
+                    <CodeBlock 
+                      id="create-fine-body" 
+                      code={`{
+  "violation_number": "VN-2025-0043",
+  "license_plate": "DEF456",
+  "violation_date": "2025-04-05T10:15:00.000Z",
+  "fine_amount": 350,
+  "violation_charge": "Illegal Parking",
+  "payment_status": "pending",
+  "fine_location": "West Bay"
+}`} 
+                    />
+                    
+                    <h5 className="text-sm font-medium mt-4">Example Request</h5>
+                    <CodeBlock 
+                      id="create-fine" 
+                      code={`curl -X POST "${baseUrl}/traffic-fines" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "violation_number": "VN-2025-0043",
+    "license_plate": "DEF456",
+    "violation_date": "2025-04-05T10:15:00.000Z",
+    "fine_amount": 350,
+    "violation_charge": "Illegal Parking",
+    "payment_status": "pending",
+    "fine_location": "West Bay"
+  }'`} 
+                    />
+                  </div>
+                  
+                  {/* UPDATE Traffic Fine */}
+                  <div>
+                    <h4 className="text-md font-semibold flex items-center">
+                      <Code className="mr-2 h-4 w-4" />
+                      Update Traffic Fine
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Updates an existing traffic fine record
+                    </p>
+                    
+                    <div className="bg-muted p-2 rounded flex items-center mb-2">
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded mr-2 text-xs font-medium">PUT</span>
+                      <code className="text-sm">{`${baseUrl}/traffic-fines/{fine_id}`}</code>
+                    </div>
+                    
+                    <h5 className="text-sm font-medium mt-4">Example Request</h5>
+                    <CodeBlock 
+                      id="update-fine" 
+                      code={`curl -X PUT "${baseUrl}/traffic-fines/550e8400-e29b-41d4-a716-446655440000" \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "payment_status": "paid",
+    "payment_date": "2025-04-07T09:30:00.000Z"
+  }'`} 
+                    />
+                  </div>
+                  
+                  {/* DELETE Traffic Fine */}
+                  <div>
+                    <h4 className="text-md font-semibold flex items-center">
+                      <Code className="mr-2 h-4 w-4" />
+                      Delete Traffic Fine
+                    </h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Deletes a traffic fine record
+                    </p>
+                    
+                    <div className="bg-muted p-2 rounded flex items-center mb-2">
+                      <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded mr-2 text-xs font-medium">DELETE</span>
+                      <code className="text-sm">{`${baseUrl}/traffic-fines/{fine_id}`}</code>
+                    </div>
+                    
+                    <h5 className="text-sm font-medium mt-4">Example Request</h5>
+                    <CodeBlock 
+                      id="delete-fine" 
+                      code={`curl -X DELETE "${baseUrl}/traffic-fines/550e8400-e29b-41d4-a716-446655440000" \\
+  -H "Authorization: Bearer YOUR_API_KEY"`} 
+                    />
+                  </div>
                 </div>
-              </TabsContent>
-            ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="vehicles" className="mt-4">
+              <div className="flex items-center p-4 rounded-md bg-amber-50 text-amber-800">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                <p>
+                  The Vehicles API is currently under development. Check back soon for full documentation.
+                </p>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-md font-semibold">Available Endpoints</h4>
+                <ul className="list-disc list-inside text-sm space-y-2 mt-2">
+                  <li><code>GET /api/vehicles</code> - Retrieve all vehicles</li>
+                  <li><code>GET /api/vehicles/:id</code> - Get vehicle by ID</li>
+                  <li><code>POST /api/vehicles</code> - Create a new vehicle</li>
+                  <li><code>PUT /api/vehicles/:id</code> - Update vehicle details</li>
+                  <li><code>DELETE /api/vehicles/:id</code> - Remove a vehicle</li>
+                </ul>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="customers" className="mt-4">
+              <div className="flex items-center p-4 rounded-md bg-amber-50 text-amber-800">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                <p>
+                  The Customers API is currently under development. Check back soon for full documentation.
+                </p>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-md font-semibold">Available Endpoints</h4>
+                <ul className="list-disc list-inside text-sm space-y-2 mt-2">
+                  <li><code>GET /api/customers</code> - Retrieve all customers</li>
+                  <li><code>GET /api/customers/:id</code> - Get customer by ID</li>
+                  <li><code>POST /api/customers</code> - Create a new customer</li>
+                  <li><code>PUT /api/customers/:id</code> - Update customer details</li>
+                  <li><code>DELETE /api/customers/:id</code> - Remove a customer</li>
+                </ul>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="agreements" className="mt-4">
+              <div className="flex items-center p-4 rounded-md bg-amber-50 text-amber-800">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                <p>
+                  The Agreements API is currently under development. Check back soon for full documentation.
+                </p>
+              </div>
+              
+              <div className="mt-4">
+                <h4 className="text-md font-semibold">Available Endpoints</h4>
+                <ul className="list-disc list-inside text-sm space-y-2 mt-2">
+                  <li><code>GET /api/agreements</code> - Retrieve all agreements</li>
+                  <li><code>GET /api/agreements/:id</code> - Get agreement by ID</li>
+                  <li><code>POST /api/agreements</code> - Create a new agreement</li>
+                  <li><code>PUT /api/agreements/:id</code> - Update agreement details</li>
+                  <li><code>DELETE /api/agreements/:id</code> - Remove an agreement</li>
+                </ul>
+              </div>
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>

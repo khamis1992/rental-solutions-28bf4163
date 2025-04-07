@@ -1,134 +1,114 @@
 
-import { useState } from 'react';
-import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useCallback } from 'react';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { ApiKey, CreateApiKeyRequest } from '@/types/api-types';
 import { toast } from 'sonner';
-import { ApiKey } from '@/types/api-key';
-import { FlattenType } from '@/utils/type-utils';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Simplify, FlattenType } from '@/utils/type-utils';
 
-/**
- * Custom hook for API key management operations
- */
 export function useApiKeys() {
+  const supabase = useSupabaseClient();
   const queryClient = useQueryClient();
+  const [loading, setLoading] = useState(false);
 
-  // Query for fetching API keys
-  const fetchKeysQuery = useQuery({
-    queryKey: ['apiKeys'],
-    queryFn: async (): Promise<ApiKey[]> => {
-      try {
-        console.log("Fetching API keys from database");
+  // Fetch all API keys
+  const { data: apiKeys, isLoading, error } = useQuery({
+    queryKey: ['api-keys'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .order('created_at', { ascending: false });
         
-        // Use direct table query instead of RPC
-        const { data, error } = await supabase
-          .from('api_keys')
-          .select('*')
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error("Error fetching API keys:", error);
-          throw new Error(`Failed to fetch API keys: ${error.message}`);
-        }
-        
-        if (!data) return [];
-        
-        // Cast to proper type
-        return data as ApiKey[];
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error('Failed to fetch API keys');
-        console.error("API key fetch error:", error);
-        throw error;
-      }
+      if (error) throw error;
+      return data as FlattenType<ApiKey[]>;
     }
   });
 
-  // Create API key mutation
+  // Create new API key
   const createApiKey = useMutation({
-    mutationFn: async (formData: {
-      name: string;
-      description: string;
-      permissions: string[];
-      expiresIn: string;
-    }) => {
+    mutationFn: async (keyData: CreateApiKeyRequest) => {
+      setLoading(true);
       try {
-        // Calculate expiry date if needed
-        let expiresAt = null;
-        const daysToExpire = parseInt(formData.expiresIn, 10);
-        
-        if (daysToExpire > 0) {
-          const expiry = new Date();
-          expiry.setDate(expiry.getDate() + daysToExpire);
-          expiresAt = expiry.toISOString();
-        }
-        
-        // Generate a unique key value
-        const keyValue = crypto.randomUUID().replace(/-/g, '');
-        
-        // Use direct table insert instead of RPC
+        // Call the stored function that creates the API key with a secure random value
         const { data, error } = await supabase
-          .from('api_keys')
-          .insert({
-            name: formData.name,
-            description: formData.description || null,
-            permissions: formData.permissions,
-            expires_at: expiresAt,
-            key_value: keyValue,
-            created_by: (await supabase.auth.getUser()).data.user?.id
-          })
-          .select()
-          .single();
+          .rpc('create_api_key', {
+            p_name: keyData.name,
+            p_description: keyData.description || null,
+            p_permissions: keyData.permissions,
+            p_expires_at: keyData.expires_at
+          });
           
-        if (error) throw new Error(`Failed to create API key: ${error.message}`);
-        
-        return data as ApiKey;
-      } catch (err) {
-        console.error('Error creating API key:', err);
-        throw err;
+        if (error) throw error;
+        return data as FlattenType<ApiKey>;
+      } finally {
+        setLoading(false);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
       toast.success('API key created successfully');
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     },
     onError: (error) => {
-      toast.error(`Failed to create API key: ${error.message}`);
-    },
+      console.error('Error creating API key:', error);
+      toast.error('Failed to create API key');
+    }
   });
 
-  // Revoke API key mutation
+  // Revoke API key
   const revokeApiKey = useMutation({
     mutationFn: async (keyId: string) => {
+      setLoading(true);
       try {
-        // Use direct table update instead of RPC
         const { data, error } = await supabase
           .from('api_keys')
           .update({ is_active: false })
           .eq('id', keyId)
           .select();
           
-        if (error) throw new Error(`Failed to revoke API key: ${error.message}`);
-        
+        if (error) throw error;
         return data;
-      } catch (err) {
-        console.error('Error revoking API key:', err);
-        throw err;
+      } finally {
+        setLoading(false);
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['apiKeys'] });
       toast.success('API key revoked successfully');
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     },
     onError: (error) => {
-      toast.error(`Failed to revoke API key: ${error.message}`);
-    },
+      console.error('Error revoking API key:', error);
+      toast.error('Failed to revoke API key');
+    }
   });
 
+  // Get API key usage logs
+  const getApiKeyUsage = useCallback(async (keyId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('api_request_logs')
+        .select('*')
+        .eq('api_key_id', keyId)
+        .order('created_at', { ascending: false })
+        .limit(100);
+        
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching API key usage:', error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase]);
+
   return {
-    apiKeys: fetchKeysQuery.data || [],
-    isLoading: fetchKeysQuery.isLoading,
-    error: fetchKeysQuery.error,
-    fetchApiKeys: () => queryClient.invalidateQueries({ queryKey: ['apiKeys'] }),
+    apiKeys,
+    isLoading: isLoading || loading,
+    error,
     createApiKey,
-    revokeApiKey
+    revokeApiKey,
+    getApiKeyUsage
   };
 }
