@@ -70,8 +70,8 @@ const ApiDocumentation: React.FC = () => {
               <AlertDescription>
                 <p className="mb-2">When using PowerShell, make sure to format the request correctly:</p>
                 <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
-                  Invoke-WebRequest -Uri "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" `<br />
-                  -Headers @{{"Authorization" = "Bearer YOUR_API_KEY"}}
+                  {`Invoke-WebRequest -Uri "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" \`}<br />
+                  {`-Headers @{"Authorization" = "Bearer YOUR_API_KEY"}`}
                 </code>
                 <p className="mt-2 text-sm">Note: Remove backticks and line breaks for a single-line command.</p>
               </AlertDescription>
@@ -83,8 +83,8 @@ const ApiDocumentation: React.FC = () => {
               <AlertDescription>
                 <p className="mb-2">Basic cURL example for retrieving traffic fines:</p>
                 <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
-                  curl -X GET "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" \<br />
-                  -H "Authorization: Bearer YOUR_API_KEY"
+                  {`curl -X GET "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" \\`}<br />
+                  {`-H "Authorization: Bearer YOUR_API_KEY"`}
                 </code>
               </AlertDescription>
             </Alert>
@@ -95,14 +95,14 @@ const ApiDocumentation: React.FC = () => {
               <AlertDescription>
                 <p className="mb-2">Using the Fetch API in JavaScript:</p>
                 <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
-                  fetch("https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines", {'{'}<br />
-                  &nbsp;&nbsp;method: "GET",<br />
-                  &nbsp;&nbsp;headers: {'{'}<br />
-                  &nbsp;&nbsp;&nbsp;&nbsp;"Authorization": "Bearer YOUR_API_KEY"<br />
-                  &nbsp;&nbsp;{'}'},<br />
-                  {'}'})<br />
-                  .then(response =&gt; response.json())<br />
-                  .then(data =&gt; console.log(data))
+                  {`fetch("https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines", {`}<br />
+                  {`  method: "GET",`}<br />
+                  {`  headers: {`}<br />
+                  {`    "Authorization": "Bearer YOUR_API_KEY"`}<br />
+                  {`  },`}<br />
+                  {`})`}<br />
+                  {`.then(response => response.json())`}<br />
+                  {`.then(data => console.log(data))`}
                 </code>
               </AlertDescription>
             </Alert>
