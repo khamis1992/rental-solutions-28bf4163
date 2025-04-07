@@ -1,13 +1,12 @@
 
 import { useState, useCallback } from 'react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { supabase } from '@/lib/supabase';
 import { ApiKey, CreateApiKeyRequest } from '@/types/api-types';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Simplify, FlattenType } from '@/utils/type-utils';
 
 export function useApiKeys() {
-  const supabase = useSupabaseClient();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
 
