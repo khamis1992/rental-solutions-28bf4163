@@ -1,6 +1,13 @@
 
 import { useCallback, useRef, useEffect } from 'react';
 
+/**
+ * A hook that returns a debounced version of the callback function
+ * 
+ * @param callback - The function to debounce
+ * @param delay - Delay in milliseconds
+ * @returns A debounced version of the callback
+ */
 export function useDebouncedCallback<T extends (...args: any[]) => any>(
   callback: T,
   delay: number

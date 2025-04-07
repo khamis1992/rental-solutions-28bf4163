@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -12,6 +12,16 @@ import { fixAgreementPayments } from '@/lib/supabase';
 // Define types for agreements and related data
 export type LeaseStatus = 'active' | 'pending' | 'completed' | 'cancelled' | 'draft';
 export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'partially_paid' | 'refunded';
+
+// Define the AgreementStatus export that's being imported in AgreementList.tsx
+export const AgreementStatus = {
+  ACTIVE: 'active',
+  PENDING: 'pending',
+  CANCELLED: 'cancelled',
+  CLOSED: 'closed',
+  EXPIRED: 'expired',
+  DRAFT: 'draft'
+} as const;
 
 // Define types for agreements and related data
 export interface Agreement {
@@ -132,16 +142,53 @@ export interface AgreementImport {
   error_message?: string;
 }
 
+// For backward compatibility
+export type SimpleAgreement = AgreementWithDetails;
+
 export const useAgreements = () => {
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   
+  // Add searchParams state to track filter params
+  const [searchParams, setSearchParams] = useState({
+    query: '',
+    status: 'all',
+    page: 1,
+    pageSize: 10
+  });
+
+  // Add state for total count
+  const [totalCount, setTotalCount] = useState(0);
+  
   // Fetch all agreements
   const { data: agreements, isLoading, error, refetch } = useQuery({
-    queryKey: ['agreements', debouncedSearchTerm],
+    queryKey: ['agreements', searchParams],
     queryFn: async () => {
       try {
+        // First get total count for pagination
+        const countQuery = supabase
+          .from('leases')
+          .select('id', { count: 'exact', head: true });
+        
+        if (searchParams.query) {
+          countQuery.ilike('agreement_number', `%${searchParams.query}%`);
+        }
+        
+        if (searchParams.status && searchParams.status !== 'all') {
+          countQuery.eq('status', searchParams.status);
+        }
+        
+        const { count, error: countError } = await countQuery;
+        
+        if (countError) {
+          console.error('Error counting agreements:', countError);
+          throw new Error(`Failed to count agreements: ${countError.message}`);
+        }
+        
+        setTotalCount(count || 0);
+        
+        // Now fetch the actual data with pagination
         let query = supabase
           .from('leases')
           .select(`
@@ -157,15 +204,7 @@ export const useAgreements = () => {
             notes,
             created_at,
             updated_at,
-            rent_due_day,
-            daily_late_fee,
-            late_fee_grace_period,
-            security_deposit_amount,
-            security_deposit_refunded,
-            security_deposit_refund_date,
-            security_deposit_notes,
             payment_status,
-            payment_schedule_type,
             is_test_data,
             profiles (
               id,
@@ -188,10 +227,18 @@ export const useAgreements = () => {
               created_at
             )
           `)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .range(
+            (searchParams.page - 1) * searchParams.pageSize,
+            searchParams.page * searchParams.pageSize - 1
+          );
           
-        if (debouncedSearchTerm) {
-          query = query.ilike('agreement_number', `%${debouncedSearchTerm}%`);
+        if (searchParams.query) {
+          query = query.ilike('agreement_number', `%${searchParams.query}%`);
+        }
+        
+        if (searchParams.status && searchParams.status !== 'all') {
+          query = query.eq('status', searchParams.status);
         }
         
         const { data, error } = await query;
@@ -215,15 +262,7 @@ export const useAgreements = () => {
           notes: agreement.notes,
           created_at: agreement.created_at,
           updated_at: agreement.updated_at,
-          rent_due_day: agreement.rent_due_day,
-          daily_late_fee: agreement.daily_late_fee,
-          late_fee_grace_period: agreement.late_fee_grace_period,
-          security_deposit_amount: agreement.security_deposit_amount,
-          security_deposit_refunded: agreement.security_deposit_refunded,
-          security_deposit_refund_date: agreement.security_deposit_refund_date,
-          security_deposit_notes: agreement.security_deposit_notes,
           payment_status: agreement.payment_status,
-          payment_schedule_type: agreement.payment_schedule_type,
           is_test_data: agreement.is_test_data,
           customer: agreement.profiles ? {
             id: agreement.profiles.id,
@@ -254,6 +293,100 @@ export const useAgreements = () => {
       }
     },
   });
+  
+  // Get a single agreement by ID
+  const getAgreement = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('leases')
+        .select(`
+          id,
+          agreement_number,
+          customer_id,
+          vehicle_id,
+          status,
+          start_date,
+          end_date,
+          rent_amount,
+          total_amount,
+          notes,
+          created_at,
+          updated_at,
+          payment_status,
+          is_test_data,
+          profiles (
+            id,
+            full_name,
+            email,
+            phone_number
+          ),
+          vehicles (
+            id,
+            make,
+            model,
+            license_plate,
+            year
+          ),
+          agreement_documents (
+            id,
+            agreement_id,
+            document_type,
+            document_url,
+            created_at
+          )
+        `)
+        .eq('id', id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching agreement:', error);
+        throw new Error(`Failed to fetch agreement: ${error.message}`);
+      }
+      
+      // Transform the data to our expected format
+      const transformedAgreement: AgreementWithDetails = {
+        id: data.id,
+        agreement_number: data.agreement_number,
+        customer_id: data.customer_id,
+        vehicle_id: data.vehicle_id,
+        status: data.status,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        rent_amount: data.rent_amount,
+        total_amount: data.total_amount,
+        notes: data.notes,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        payment_status: data.payment_status,
+        is_test_data: data.is_test_data,
+        customer: data.profiles ? {
+          id: data.profiles.id,
+          full_name: data.profiles.full_name,
+          email: data.profiles.email,
+          phone_number: data.profiles.phone_number
+        } : undefined,
+        vehicle: data.vehicles ? {
+          id: data.vehicles.id,
+          make: data.vehicles.make,
+          model: data.vehicles.model,
+          license_plate: data.vehicles.license_plate,
+          year: data.vehicles.year
+        } : undefined,
+        documents: data.agreement_documents ? data.agreement_documents.map(doc => ({
+          id: doc.id,
+          agreement_id: doc.agreement_id,
+          document_type: doc.document_type,
+          document_url: doc.document_url,
+          created_at: doc.created_at
+        })) : []
+      };
+      
+      return transformedAgreement;
+    } catch (error) {
+      console.error('Error in agreement data fetching:', error);
+      throw error;
+    }
+  };
   
   // Fetch a single agreement by ID
   const { data: agreement, isLoading: isAgreementLoading, error: agreementError } = useQuery({
@@ -853,6 +986,10 @@ export const useAgreements = () => {
     uploadAgreementImportFile,
     fetchAgreementImport,
     getAgreementImportProgress,
-    setSearchTerm
+    setSearchTerm,
+    searchParams,
+    setSearchParams,
+    getAgreement,
+    totalCount
   };
 };

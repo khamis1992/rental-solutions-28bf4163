@@ -52,7 +52,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
-import { Agreement, AgreementStatus, useAgreements } from '@/hooks/use-agreements';
+import { 
+  AgreementStatus, 
+  AgreementWithDetails, 
+  useAgreements 
+} from '@/hooks/use-agreements';
 import { Skeleton } from "@/components/ui/skeleton";
 
 const AgreementListSkeleton = () => {
@@ -96,7 +100,16 @@ const AgreementListSkeleton = () => {
 
 const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const navigate = useNavigate();
-  const { agreements, totalCount, isLoading, error, setSearchParams, deleteAgreement, searchParams } = useAgreements();
+  const { 
+    agreements, 
+    totalCount, 
+    isLoading, 
+    error, 
+    setSearchParams, 
+    deleteAgreement, 
+    searchParams 
+  } = useAgreements();
+  
   const [agreementToDelete, setAgreementToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -109,11 +122,11 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const [pageIndex, setPageIndex] = useState<number>(1);
   const totalPages = Math.ceil((totalCount || 0) / pageSize);
 
-  const handleRowClick = (agreement: Agreement) => {
+  const handleRowClick = (agreement: AgreementWithDetails) => {
     navigate(`/agreements/${agreement.id}`);
   };
 
-  const columns: ColumnDef<Agreement>[] = [
+  const columns: ColumnDef<AgreementWithDetails>[] = [
     {
       accessorKey: "agreement_number",
       header: "Agreement #",
@@ -126,10 +139,10 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
       enableHiding: false,
     },
     {
-      accessorKey: "customers.full_name",
+      accessorKey: "customer.full_name",
       header: "Customer Name",
       cell: ({ row }) => {
-        const customerName = row.original.customers?.full_name || 'N/A';
+        const customerName = row.original.customer?.full_name || 'N/A';
         return (
           <div className="w-[150px]">
             {customerName}
@@ -140,10 +153,10 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
       enableHiding: false,
     },
     {
-      accessorKey: "vehicles.license_plate",
+      accessorKey: "vehicle.license_plate",
       header: "License Plate",
       cell: ({ row }) => {
-        const licensePlate = row.original.vehicles?.license_plate || 'N/A';
+        const licensePlate = row.original.vehicle?.license_plate || 'N/A';
         return (
           <div className="w-[100px]">
             {licensePlate}
