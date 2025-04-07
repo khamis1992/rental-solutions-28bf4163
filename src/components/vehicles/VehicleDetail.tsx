@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,10 +23,8 @@ const VehicleDetail = ({ vehicleId }: { vehicleId: string }) => {
           throw new Error("Invalid vehicle ID");
         }
     
-        const agreementQuery = getAgreement;
-        
-        if (agreementQuery) {
-          const agreementData = await agreementQuery(vehicleId);
+        if (getAgreement) {
+          const agreementData = await getAgreement(vehicleId);
           setAgreement(agreementData);
         } else {
           setError("Agreement not found for this vehicle.");
@@ -39,7 +38,7 @@ const VehicleDetail = ({ vehicleId }: { vehicleId: string }) => {
     };
 
     fetchData();
-  }, [vehicleId]);
+  }, [vehicleId, getAgreement]);
 
   if (loading) {
     return <div className="py-4 text-center text-muted-foreground">Loading vehicle details...</div>;

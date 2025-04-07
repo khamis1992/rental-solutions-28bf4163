@@ -1,203 +1,124 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Mail, Phone, User, Car, FileText, ExternalLink } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/date-utils';
-import { useAgreements, AgreementWithDetails } from '@/hooks/use-agreements';
-import { CustomerTrafficFines } from './CustomerTrafficFines';
 
-const CustomerDetail = ({ customerId }: { customerId: string }) => {
-  const [customer, setCustomer] = useState<{
-    id: string;
-    full_name: string;
-    email: string;
-    phone_number: string;
-  } | null>(null);
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { CustomerTrafficFines } from '@/components/customers/CustomerTrafficFines';
+import { CustomerAgreements } from '@/components/customers/CustomerAgreements';
+import { CustomerPayments } from '@/components/customers/CustomerPayments';
+import { CustomerDocuments } from '@/components/customers/CustomerDocuments';
+import { CustomerDrivingHistory } from '@/components/customers/CustomerDrivingHistory';
+import { supabase } from '@/integrations/supabase/client';
+
+interface CustomerDetailProps {
+  customerId: string;
+}
+
+const CustomerDetail = ({ customerId }: CustomerDetailProps) => {
+  const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { getAgreement } = useAgreements();
-  const [activeAgreements, setActiveAgreements] = useState<AgreementWithDetails[]>([]);
-  const [pastAgreements, setPastAgreements] = useState<AgreementWithDetails[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCustomer = async () => {
       try {
         setLoading(true);
-        setError(null);
-
-        // Fetch customer data from Supabase
-        const { data: customerData, error: customerError } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', customerId)
           .single();
 
-        if (customerError) {
-          throw new Error(`Failed to fetch customer: ${customerError.message}`);
+        if (error) {
+          throw error;
         }
 
-        if (customerData) {
-          setCustomer(customerData);
-          const agreementQuery = getAgreement;
-          const activeAgreement = await agreementQuery(customerId);
-
-          if (activeAgreement) {
-            setActiveAgreements([activeAgreement]);
-          } else {
-            setActiveAgreements([]);
-          }
-        }
+        setCustomer(data);
       } catch (error) {
-        console.error("Error fetching customer data:", error);
-        setError(error instanceof Error ? error.message : 'An unexpected error occurred');
+        console.error('Error fetching customer:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
+    fetchCustomer();
   }, [customerId]);
 
   if (loading) {
-    return <div className="text-center py-4">Loading customer details...</div>;
-  }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
+    return <div>Loading customer details...</div>;
   }
 
   if (!customer) {
-    return <div className="text-center py-4">Customer not found.</div>;
+    return <div>Customer not found</div>;
   }
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold flex items-center">
-            <User className="mr-2 h-5 w-5" />
-            {customer.full_name}
-          </CardTitle>
-          <CardDescription>
-            View customer details and manage agreements
-          </CardDescription>
+        <CardHeader className="pb-3">
+          <div className="flex justify-between items-center">
+            <CardTitle>Customer Information</CardTitle>
+            <Button variant="outline" size="sm">Edit Customer</Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="text-lg font-semibold">Contact Information</h3>
-              <div className="mt-2 space-y-2">
-                <div className="flex items-center">
-                  <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <a href={`mailto:${customer.email}`} className="hover:underline">
-                    {customer.email}
-                  </a>
-                </div>
-                <div className="flex items-center">
-                  <Phone className="mr-2 h-4 w-4 text-muted-foreground" />
-                  <span>{customer.phone_number}</span>
-                </div>
-              </div>
+              <h3 className="text-sm font-semibold mb-1">Full Name</h3>
+              <p>{customer.full_name}</p>
             </div>
             <div>
-              <h3 className="text-lg font-semibold">Customer Actions</h3>
-              <div className="mt-2 space-y-2">
-                <Button asChild>
-                  <Link to="/agreements/new">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Create New Agreement
-                  </Link>
-                </Button>
-                <Button asChild variant="secondary">
-                  <Link to={`/customers/${customerId}/edit`}>
-                    <User className="mr-2 h-4 w-4" />
-                    Edit Customer Details
-                  </Link>
-                </Button>
-              </div>
+              <h3 className="text-sm font-semibold mb-1">Email</h3>
+              <p>{customer.email}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-1">Phone</h3>
+              <p>{customer.phone_number}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-1">Nationality</h3>
+              <p>{customer.nationality}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-1">Driver License</h3>
+              <p>{customer.driver_license}</p>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold mb-1">Address</h3>
+              <p>{customer.address || 'Not specified'}</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {activeAgreements.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Agreement Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-lg font-semibold">Vehicle Information</h3>
-                <div className="mt-2 space-y-2">
-                  {activeAgreements[0].vehicle && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Make/Model:</span>
-                        <span>{activeAgreements[0].vehicle.make} {activeAgreements[0].vehicle.model} ({activeAgreements[0].vehicle.year})</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">License Plate:</span>
-                        <span>{activeAgreements[0].vehicle.license_plate}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold">Agreement Information</h3>
-                <div className="mt-2 space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Agreement Number:</span>
-                    <span>
-                      <Link
-                        to={`/agreements/${activeAgreements[0].id}`}
-                        className="text-primary hover:underline flex items-center"
-                      >
-                        {activeAgreements[0].agreement_number}
-                        <ExternalLink className="ml-1 h-3 w-3" />
-                      </Link>
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Start Date:</span>
-                    <span>{formatDate(new Date(activeAgreements[0].start_date as string))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">End Date:</span>
-                    <span>{formatDate(new Date(activeAgreements[0].end_date as string))}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Rent Amount:</span>
-                    <span>{activeAgreements[0].rent_amount}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <Tabs defaultValue="agreements">
+        <TabsList className="grid grid-cols-5 mb-6">
+          <TabsTrigger value="agreements">Agreements</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+          <TabsTrigger value="traffic-fines">Traffic Fines</TabsTrigger>
+          <TabsTrigger value="driving-history">Driving History</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Traffic Fines</CardTitle>
-          <CardDescription>
-            View and manage traffic fines associated with this customer
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <TabsContent value="agreements">
+          <CustomerAgreements customerId={customerId} />
+        </TabsContent>
+        
+        <TabsContent value="payments">
+          <CustomerPayments customerId={customerId} />
+        </TabsContent>
+        
+        <TabsContent value="documents">
+          <CustomerDocuments customerId={customerId} />
+        </TabsContent>
+        
+        <TabsContent value="traffic-fines">
           <CustomerTrafficFines customerId={customerId} />
-        </CardContent>
-      </Card>
+        </TabsContent>
+        
+        <TabsContent value="driving-history">
+          <CustomerDrivingHistory customerId={customerId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

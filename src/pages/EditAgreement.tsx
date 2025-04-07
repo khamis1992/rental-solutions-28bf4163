@@ -7,8 +7,7 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { updateAgreementWithCheck } from '@/utils/agreement-utils';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { updateAgreementWithCheck, adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 const EditAgreement = () => {

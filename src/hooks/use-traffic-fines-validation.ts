@@ -76,22 +76,27 @@ export const useTrafficFinesValidation = () => {
       validationResult: ValidationResult;
       newStatus: 'pending' | 'paid' | 'validated' | 'invalid';
     }) => {
-      // Use rpc to handle validation attempts increment to avoid race conditions
-      const { data: attemptsData, error: attemptsError } = await supabase
-        .rpc('increment_validation_attempts', { fine_id: fineId });
-      
-      if (attemptsError) {
-        console.error('Error incrementing validation attempts:', attemptsError);
+      // Use regular update to increment validation attempts, since RPC is not available
+      const { data: currentFine, error: fetchError } = await supabase
+        .from('traffic_fines')
+        .select('validation_attempts')
+        .eq('id', fineId)
+        .single();
+        
+      if (fetchError) {
+        console.error('Error getting current validation attempts:', fetchError);
       }
+      
+      const attempts = (currentFine?.validation_attempts || 0) + 1;
       
       const { error } = await supabase
         .from('traffic_fines')
         .update({
           validation_status: newStatus,
           last_check_date: new Date().toISOString(),
-          validation_result: validationResult,
+          validation_result: JSON.stringify(validationResult), // Convert to JSON string for storage
           validation_date: new Date().toISOString(),
-          validation_attempts: attemptsData || 1
+          validation_attempts: attempts
         })
         .eq('id', fineId);
       
@@ -99,19 +104,30 @@ export const useTrafficFinesValidation = () => {
         throw new Error(`Failed to update fine status: ${error.message}`);
       }
       
-      // Log the validation attempt to history
-      // We need to use a direct SQL insert since traffic_fine_validations isn't in our type definition yet
-      const { error: historyError } = await supabase
-        .from('traffic_fine_validations')
-        .insert({
-          fine_id: fineId,
-          status: validationResult.success ? 'success' : 'error',
-          result: validationResult,
-          error_message: validationResult.error
+      // Log the validation attempt to history table directly
+      try {
+        await supabase.rpc('log_traffic_fine_validation', {
+          p_fine_id: fineId,
+          p_status: validationResult.success ? 'success' : 'error',
+          p_result: JSON.stringify(validationResult),
+          p_error_message: validationResult.error || null
         });
+      } catch (historyError) {
+        console.error('Failed to log validation history using RPC:', historyError);
         
-      if (historyError) {
-        console.error('Failed to log validation history:', historyError);
+        // Fallback to direct insertion if RPC fails
+        const { error: insertError } = await supabase
+          .from('traffic_fine_validations')
+          .insert({
+            fine_id: fineId,
+            status: validationResult.success ? 'success' : 'error',
+            result: JSON.stringify(validationResult),
+            error_message: validationResult.error
+          });
+          
+        if (insertError) {
+          console.error('Failed to log validation history:', insertError);
+        }
       }
       
       return { success: true, fineId };
@@ -127,27 +143,27 @@ export const useTrafficFinesValidation = () => {
   });
 
   // Get validation history for specific fines
-  // Note: This is disabled by default since we don't have the table in types yet
   const getValidationHistory = useQuery({
     queryKey: ['validationHistory'],
     queryFn: async (): Promise<ValidationHistoryItem[]> => {
       try {
-        // Since the table isn't in our types yet, we need to cast the result
+        // Use data from a view or directly query the table if it exists
         const { data, error } = await supabase
-          .from('traffic_fine_validations')
+          .from('traffic_fine_validations_view') // Using a view for compatibility
           .select('*')
           .order('validation_date', { ascending: false })
-          .limit(10) as any;
+          .limit(10);
         
         if (error) throw error;
         
         if (!data) return [];
         
+        // Parse the JSON result field
         return data.map((item: any) => ({
           id: item.id,
           fineId: item.fine_id,
           validationDate: new Date(item.validation_date),
-          result: item.result as ValidationResult,
+          result: JSON.parse(item.result),
           status: item.status as 'success' | 'error'
         }));
       } catch (error) {
