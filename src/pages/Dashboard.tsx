@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import DashboardStats from '@/components/dashboard/DashboardStats';
@@ -10,7 +10,6 @@ import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 // Suppress Supabase schema cache errors more comprehensively
@@ -44,6 +43,7 @@ const Dashboard = () => {
     error,
     refetch 
   } = useDashboardData();
+  
   const [isRefreshing, setIsRefreshing] = useState(false);
   const isMobile = useIsMobile();
   
@@ -67,6 +67,9 @@ const Dashboard = () => {
       localStorage.setItem('dashboardLastFetch', now.toString());
     }
   }, [refetch]);
+  
+  // Memoize the revenue data to prevent unnecessary chart re-renders
+  const memoizedRevenueData = useMemo(() => revenue, [revenue]);
 
   return (
     <PageContainer>
@@ -123,7 +126,7 @@ const Dashboard = () => {
             
             <div className="grid grid-cols-1 gap-6 section-transition">
               <MemoizedRevenueChart 
-                data={revenue} 
+                data={memoizedRevenueData} 
                 fullWidth={true}
                 showTooltip={!isMobile} // Hide tooltip on mobile for better performance
               />

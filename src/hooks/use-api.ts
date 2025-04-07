@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { PostgrestError } from '@supabase/supabase-js';
@@ -184,7 +185,6 @@ export function usePaginatedApiQuery<TData>(
     [...queryKey, page, pageSize],
     () => fetchFn(page, pageSize),
     {
-      placeholderData: (oldData) => oldData,
       enabled: options?.enabled !== false,
     }
   );

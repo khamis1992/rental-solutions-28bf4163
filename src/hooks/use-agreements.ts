@@ -5,9 +5,8 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
 
-// Define a simpler customer type
+// Define simplified types to avoid excessive type instantiation
 type SimpleCustomer = {
   id: string;
   full_name?: string;
@@ -15,7 +14,6 @@ type SimpleCustomer = {
   phone_number?: string;
 };
 
-// Define a simpler vehicle type
 type SimpleVehicle = {
   id: string;
   make?: string;
@@ -27,7 +25,7 @@ type SimpleVehicle = {
   vin?: string;
 };
 
-// Simplify the type to avoid excessive type instantiation
+// Simplify the agreement type to avoid deep instantiation issues
 export type SimpleAgreement = {
   id: string;
   customer_id: string;
