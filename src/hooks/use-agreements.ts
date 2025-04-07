@@ -5,6 +5,7 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
+import { FlattenType } from '@/utils/type-utils';
 
 // Define simplified types to avoid excessive type instantiation
 type SimpleCustomer = {
@@ -311,10 +312,15 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Simplify mutation type to avoid excessive instantiation
   // Using Record<string, any> instead of complex nested types
+  // This is where the "excessively deep" error was occurring
+  type MutationParams = { 
+    id: string; 
+    data: Record<string, any> 
+  };
+  
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
+    mutationFn: async ({ id, data }: MutationParams) => {
       console.log("Update mutation called with:", { id, data });
       
       try {
