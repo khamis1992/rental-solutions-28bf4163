@@ -40,11 +40,18 @@ export type SimpleAgreement = {
   signature_url?: string;
   deposit_amount?: number;
   notes?: string;
-  customers?: SimpleCustomer;
-  vehicles?: SimpleVehicle;
+  customers?: Record<string, any>;
+  vehicles?: Record<string, any>;
   rent_amount?: number;
   daily_late_fee?: number;
 };
+
+interface SearchParams {
+  query?: string;
+  status?: string;
+  vehicle_id?: string;
+  customer_id?: string;
+}
 
 export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
   switch(dbStatus) {
@@ -66,13 +73,6 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
       return AgreementStatus.DRAFT;
   }
 };
-
-interface SearchParams {
-  query?: string;
-  status?: string;
-  vehicle_id?: string;
-  customer_id?: string;
-}
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
@@ -297,17 +297,13 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const createAgreement = async (data: Partial<SimpleAgreement>) => {
-    return {} as SimpleAgreement;
-  };
-
   type MutationParams = { 
     id: string; 
     data: Record<string, any> 
   };
   
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: { id: string; data: any }) => {
+    mutationFn: async (params: MutationParams) => {
       console.log("Update mutation called with:", params);
       
       try {

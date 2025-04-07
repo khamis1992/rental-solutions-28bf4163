@@ -57,9 +57,9 @@ const TrafficFinesReport = () => {
   
   // Calculate metrics
   const totalFines = filteredFines.length;
-  const totalAmount = filteredFines.reduce((sum, fine) => sum + fine.fineAmount, 0);
+  const totalAmount = filteredFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
   const paidFines = filteredFines.filter(fine => fine.paymentStatus === 'paid');
-  const paidAmount = paidFines.reduce((sum, fine) => sum + fine.fineAmount, 0);
+  const paidAmount = paidFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
   const pendingAmount = totalAmount - paidAmount;
   
   const getStatusBadge = (status: string) => {
