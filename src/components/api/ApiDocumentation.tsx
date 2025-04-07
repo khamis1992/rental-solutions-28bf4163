@@ -71,7 +71,7 @@ const ApiDocumentation: React.FC = () => {
                 <p className="mb-2">When using PowerShell, make sure to format the request correctly:</p>
                 <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
                   Invoke-WebRequest -Uri "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" `<br />
-                  -Headers @&#123;"Authorization" = "Bearer YOUR_API_KEY"&#125;
+                  -Headers @{"Authorization" = "Bearer YOUR_API_KEY"}
                 </code>
                 <p className="mt-2 text-sm">Note: Remove backticks and line breaks for a single-line command.</p>
               </AlertDescription>
@@ -95,12 +95,12 @@ const ApiDocumentation: React.FC = () => {
               <AlertDescription>
                 <p className="mb-2">Using the Fetch API in JavaScript:</p>
                 <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
-                  fetch("https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines", &#123;<br />
+                  fetch("https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines", {'{'}<br />
                   &nbsp;&nbsp;method: "GET",<br />
-                  &nbsp;&nbsp;headers: &#123;<br />
+                  &nbsp;&nbsp;headers: {'{'}<br />
                   &nbsp;&nbsp;&nbsp;&nbsp;"Authorization": "Bearer YOUR_API_KEY"<br />
-                  &nbsp;&nbsp;&#125;<br />
-                  &#125;)<br />
+                  &nbsp;&nbsp;{'}'}<br />
+                  {'}'})<br />
                   .then(response => response.json())<br />
                   .then(data => console.log(data))
                 </code>
@@ -129,6 +129,18 @@ const ApiDocumentation: React.FC = () => {
                 <div>
                   <h4 className="text-md font-medium">GET /vehicles</h4>
                   <p className="text-muted-foreground">List all vehicles</p>
+                  
+                  <div className="mt-2">
+                    <h5 className="font-medium">Query Parameters</h5>
+                    <ul className="list-disc list-inside ml-4 mt-1">
+                      <li><code>status</code> - Filter by vehicle status</li>
+                      <li><code>make</code> - Filter by vehicle make</li>
+                      <li><code>model</code> - Filter by vehicle model</li>
+                      <li><code>location</code> - Filter by location</li>
+                      <li><code>limit</code> - Limit number of results (default: 100)</li>
+                    </ul>
+                  </div>
+                  
                   <div className="mt-2">
                     <h5 className="font-medium">Response Example</h5>
                     <pre className="bg-slate-100 p-3 rounded-md text-xs overflow-auto mt-1">
@@ -140,7 +152,10 @@ const ApiDocumentation: React.FC = () => {
       "model": "Camry",
       "year": 2023,
       "license_plate": "ABC123",
-      "status": "available"
+      "status": "available",
+      "color": "blue",
+      "mileage": 15000,
+      "created_at": "2023-01-01T12:00:00.000Z"
     }
   ]
 }`}
@@ -151,6 +166,57 @@ const ApiDocumentation: React.FC = () => {
                 <div>
                   <h4 className="text-md font-medium">GET /vehicles/{'{id}'}</h4>
                   <p className="text-muted-foreground">Get a specific vehicle by ID</p>
+                  <div className="mt-2">
+                    <h5 className="font-medium">Response Example</h5>
+                    <pre className="bg-slate-100 p-3 rounded-md text-xs overflow-auto mt-1">
+{`{
+  "data": {
+    "id": "12345-uuid",
+    "make": "Toyota",
+    "model": "Camry",
+    "year": 2023,
+    "license_plate": "ABC123",
+    "status": "available",
+    "color": "blue",
+    "vin": "1HGCM82633A123456",
+    "mileage": 15000,
+    "image_url": "https://example.com/car.jpg",
+    "description": "Sedan in excellent condition",
+    "vehicle_types": {
+      "id": "type-uuid",
+      "name": "Economy Sedan",
+      "size": "compact",
+      "daily_rate": 50.00
+    }
+  }
+}`}
+                    </pre>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-md font-medium">POST /vehicles</h4>
+                  <p className="text-muted-foreground">Create a new vehicle</p>
+                  <div className="mt-2">
+                    <h5 className="font-medium">Required Fields</h5>
+                    <ul className="list-disc list-inside ml-4 mt-1">
+                      <li><code>make</code> - Vehicle manufacturer</li>
+                      <li><code>model</code> - Vehicle model</li>
+                      <li><code>year</code> - Vehicle year</li>
+                      <li><code>license_plate</code> - License plate number</li>
+                      <li><code>vin</code> - Vehicle identification number</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="text-md font-medium">PUT /vehicles/{'{id}'}</h4>
+                  <p className="text-muted-foreground">Update a specific vehicle</p>
+                </div>
+                
+                <div>
+                  <h4 className="text-md font-medium">DELETE /vehicles/{'{id}'}</h4>
+                  <p className="text-muted-foreground">Delete a specific vehicle</p>
                 </div>
               </div>
             </CardContent>

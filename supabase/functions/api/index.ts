@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
@@ -450,14 +449,257 @@ async function handleTrafficFineRequests(req: Request, fineId?: string): Promise
   }
 }
 
-// Handler for Vehicle API requests (stub - implement similarly to traffic fines)
+// Handler for Vehicle API requests
 async function handleVehicleRequests(req: Request, vehicleId?: string): Promise<Response> {
-  return new Response(JSON.stringify({ 
-    message: 'Vehicle API not yet implemented',
-    resourceId: vehicleId
-  }), { 
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-  });
+  const method = req.method;
+  
+  try {
+    // GET request handling
+    if (method === 'GET') {
+      if (vehicleId) {
+        // Get specific vehicle
+        const { data, error } = await supabaseClient
+          .from('vehicles')
+          .select(`
+            id,
+            make,
+            model,
+            year,
+            license_plate,
+            vin,
+            color,
+            status,
+            mileage,
+            image_url,
+            description,
+            location,
+            insurance_company,
+            insurance_expiry,
+            rent_amount,
+            vehicle_type_id,
+            registration_number,
+            created_at,
+            updated_at,
+            vehicle_types(
+              id,
+              name,
+              size,
+              daily_rate,
+              weekly_rate,
+              monthly_rate,
+              description,
+              features
+            )
+          `)
+          .eq('id', vehicleId)
+          .single();
+          
+        if (error) {
+          return new Response(JSON.stringify({ 
+            error: `Vehicle not found: ${error.message}` 
+          }), { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          });
+        }
+        
+        return new Response(JSON.stringify({ data }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      } else {
+        // Get all vehicles with optional filtering
+        const url = new URL(req.url);
+        const status = url.searchParams.get('status');
+        const make = url.searchParams.get('make');
+        const model = url.searchParams.get('model');
+        const location = url.searchParams.get('location');
+        const limit = parseInt(url.searchParams.get('limit') || '100');
+        
+        let query = supabaseClient
+          .from('vehicles')
+          .select(`
+            id,
+            make, 
+            model,
+            year,
+            license_plate,
+            vin,
+            color,
+            status,
+            mileage,
+            image_url,
+            description,
+            location,
+            insurance_company,
+            insurance_expiry,
+            rent_amount,
+            vehicle_type_id,
+            registration_number,
+            created_at,
+            updated_at
+          `)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+          
+        if (status) {
+          query = query.eq('status', status);
+        }
+        
+        if (make) {
+          query = query.ilike('make', `%${make}%`);
+        }
+        
+        if (model) {
+          query = query.ilike('model', `%${model}%`);
+        }
+        
+        if (location) {
+          query = query.eq('location', location);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          return new Response(JSON.stringify({ 
+            error: `Failed to fetch vehicles: ${error.message}` 
+          }), { 
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          });
+        }
+        
+        return new Response(JSON.stringify({ data }), { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+    }
+    
+    // POST request - Create a new vehicle
+    if (method === 'POST') {
+      const body = await req.json();
+      
+      // Validate required fields
+      const requiredFields = ['make', 'model', 'year', 'license_plate', 'vin'];
+      const missingFields = requiredFields.filter(field => !body[field]);
+      
+      if (missingFields.length > 0) {
+        return new Response(JSON.stringify({ 
+          error: `Missing required fields: ${missingFields.join(', ')}` 
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+      
+      // Insert new vehicle
+      const { data, error } = await supabaseClient
+        .from('vehicles')
+        .insert(body)
+        .select()
+        .single();
+        
+      if (error) {
+        return new Response(JSON.stringify({ 
+          error: `Failed to create vehicle: ${error.message}` 
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+      
+      return new Response(JSON.stringify({ 
+        message: 'Vehicle created successfully', 
+        data 
+      }), { 
+        status: 201, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    // PUT request - Update a vehicle
+    if (method === 'PUT') {
+      if (!vehicleId) {
+        return new Response(JSON.stringify({ 
+          error: 'Vehicle ID is required for updates' 
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+      
+      const body = await req.json();
+      const { data, error } = await supabaseClient
+        .from('vehicles')
+        .update(body)
+        .eq('id', vehicleId)
+        .select()
+        .single();
+        
+      if (error) {
+        return new Response(JSON.stringify({ 
+          error: `Failed to update vehicle: ${error.message}` 
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+      
+      return new Response(JSON.stringify({ 
+        message: 'Vehicle updated successfully', 
+        data 
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    // DELETE request - Delete a vehicle
+    if (method === 'DELETE') {
+      if (!vehicleId) {
+        return new Response(JSON.stringify({ 
+          error: 'Vehicle ID is required for deletion' 
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+      
+      const { error } = await supabaseClient
+        .from('vehicles')
+        .delete()
+        .eq('id', vehicleId);
+        
+      if (error) {
+        return new Response(JSON.stringify({ 
+          error: `Failed to delete vehicle: ${error.message}` 
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        });
+      }
+      
+      return new Response(JSON.stringify({ 
+        message: 'Vehicle deleted successfully' 
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    return new Response(JSON.stringify({ 
+      error: 'Method not allowed' 
+    }), { 
+      status: 405, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  } catch (error) {
+    console.error('Error handling vehicle request:', error);
+    return new Response(JSON.stringify({ 
+      error: 'Internal server error', 
+      details: error.message 
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
+  }
 }
 
 // Handler for Customer API requests (stub - implement similarly to traffic fines)
