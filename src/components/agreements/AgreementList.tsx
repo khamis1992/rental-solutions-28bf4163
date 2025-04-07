@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -254,7 +255,11 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
 
   useEffect(() => {
     if (searchQuery) {
-      setSearchParams({ query: searchQuery, page: 1 }); // Reset to first page on new search
+      setSearchParams({ 
+        ...searchParams,
+        query: searchQuery, 
+        page: 1 
+      }); // Reset to first page on new search
     } else {
       setSearchParams(prev => ({ ...prev, query: '' }));
     }
@@ -360,7 +365,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
           <Button 
             variant="outline" 
             onClick={() => {
-              setSearchParams({ status: "all", page: 1 });
+              setSearchParams({ ...searchParams, status: "all", page: 1 });
             }}
           >
             <Filter className="h-4 w-4 mr-2" />
@@ -378,9 +383,9 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
       <div className="flex items-center py-4 space-x-4">
         <Select
           onValueChange={(value) => {
-            setSearchParams({ status: value, page: 1 }); // Reset to first page on status change
+            setSearchParams({ ...searchParams, status: value, page: 1 }); // Reset to first page on status change
           }}
-          defaultValue="all"
+          defaultValue={searchParams.status || "all"}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Select status" />
@@ -448,7 +453,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
             onValueChange={(value) => {
               const newSize = parseInt(value);
               setPageSize(newSize);
-              setSearchParams(prev => ({ ...prev, pageSize: newSize, page: 1 }));
+              setSearchParams({ ...searchParams, pageSize: newSize, page: 1 });
             }}
           >
             <SelectTrigger className="w-[80px]">

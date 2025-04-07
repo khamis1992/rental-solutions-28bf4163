@@ -80,7 +80,9 @@ const Agreements = () => {
   const handleImportComplete = () => {
     setSearchParams({ 
       query: '', 
-      status: 'all' 
+      status: 'all',
+      page: 1,
+      pageSize: 10
     });
   };
 

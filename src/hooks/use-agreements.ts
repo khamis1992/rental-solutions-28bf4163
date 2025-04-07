@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { v4 as uuidv4 } from 'uuid';
 import { handleApiError } from './use-api';
-import { useDebounce } from './use-debounce';
+import { useDebounce } from '@/hooks/use-debounce';
 import { checkAndCreateMissingPaymentSchedules } from '@/utils/agreement-utils';
 import { fixAgreementPayments } from '@/lib/supabase';
 
@@ -86,6 +86,16 @@ export type AgreementWithDetails = {
   notes?: string;
   created_at?: Date | string;
   updated_at?: Date | string;
+  payment_status?: string;
+  rent_due_day?: number;
+  daily_late_fee?: number;
+  late_fee_grace_period?: number;
+  security_deposit_amount?: number;
+  security_deposit_refunded?: boolean;
+  security_deposit_refund_date?: Date | string;
+  security_deposit_notes?: string;
+  payment_schedule_type?: 'monthly' | 'custom';
+  is_test_data?: boolean;
   customer?: {
     id: string;
     full_name?: string;
@@ -140,6 +150,9 @@ export interface AgreementImport {
   total_records: number;
   processed_records: number;
   error_message?: string;
+  file_name?: string;
+  row_count?: number;
+  error_count?: number;
 }
 
 // For backward compatibility
@@ -343,6 +356,10 @@ export const useAgreements = () => {
         throw new Error(`Failed to fetch agreement: ${error.message}`);
       }
       
+      if (!data) {
+        throw new Error(`Agreement not found with id: ${id}`);
+      }
+      
       // Transform the data to our expected format
       const transformedAgreement: AgreementWithDetails = {
         id: data.id,
@@ -391,7 +408,10 @@ export const useAgreements = () => {
   // Fetch a single agreement by ID
   const { data: agreement, isLoading: isAgreementLoading, error: agreementError } = useQuery({
     queryKey: ['agreements', 'single'],
-    queryFn: async (id: any) => {
+    queryFn: async ({ queryKey }: { queryKey: string[] }) => {
+      const id = queryKey[2]; // The third item should be the agreement ID
+      if (!id) throw new Error("No agreement ID provided");
+      
       try {
         const { data, error } = await supabase
           .from('leases')
@@ -445,6 +465,10 @@ export const useAgreements = () => {
         if (error) {
           console.error('Error fetching agreement:', error);
           throw new Error(`Failed to fetch agreement: ${error.message}`);
+        }
+        
+        if (!data) {
+          throw new Error(`Agreement not found with id: ${id}`);
         }
         
         // Enhanced data transformation

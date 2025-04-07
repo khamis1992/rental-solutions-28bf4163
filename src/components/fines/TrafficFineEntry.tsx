@@ -50,8 +50,9 @@ interface TrafficFineEntryProps {
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
   const { toast } = useToast();
-  const { createTrafficFine } = useTrafficFines();
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const { addTrafficFine } = useTrafficFines();
+  const { useList: useVehiclesList } = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = useVehiclesList();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Initialize form with default values
@@ -76,7 +77,7 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
       // Find vehicle ID based on license plate
       const vehicle = vehicles?.find(v => v.license_plate === data.licensePlate);
       
-      await createTrafficFine.mutateAsync({
+      await addTrafficFine.mutateAsync({
         violationNumber: data.violationNumber || undefined,
         licensePlate: data.licensePlate,
         violationDate: data.violationDate,
