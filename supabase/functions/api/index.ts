@@ -79,11 +79,18 @@ serve(async (req: Request) => {
       });
     }
     
-    // Extract API key, handling both "Bearer KEY" and just "KEY" formats
+    // Extract API key, handling multiple format variations (Bearer KEY, key=KEY, etc.)
     let apiKey = '';
-    if (authHeader.startsWith('Bearer ')) {
-      apiKey = authHeader.replace('Bearer ', '').trim();
+    if (authHeader.toLowerCase().startsWith('bearer ')) {
+      apiKey = authHeader.substring(7).trim();
+    } else if (authHeader.includes('=')) {
+      // Handle key=value format
+      const parts = authHeader.split('=');
+      if (parts.length >= 2) {
+        apiKey = parts[1].trim();
+      }
     } else {
+      // Just use the raw value as the key
       apiKey = authHeader.trim();
     }
     
@@ -112,7 +119,8 @@ serve(async (req: Request) => {
       const responseTime = Math.round(endTime - startTime);
       
       return new Response(JSON.stringify({ 
-        error: 'Invalid API key' 
+        error: 'Invalid API key', 
+        details: 'The provided API key was not found in our system.'
       }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

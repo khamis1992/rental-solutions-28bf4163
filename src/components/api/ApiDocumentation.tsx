@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { FileCode, Globe, Terminal, HelpCircle } from 'lucide-react';
+import { FileCode, Globe, Terminal, HelpCircle, Shield } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
@@ -47,8 +47,22 @@ const ApiDocumentation: React.FC = () => {
               </code>
               <p className="text-sm mt-2 text-muted-foreground">
                 Generate an API key from the API Keys tab to start making authenticated requests.
+                <br />
+                <span className="font-medium">Important:</span> Do not include quotes around your API key.
               </p>
             </div>
+            
+            <Alert>
+              <Shield className="h-4 w-4" />
+              <AlertTitle>Authentication Formats</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">Our API accepts these authentication header formats:</p>
+                <ul className="list-disc ml-6 space-y-1 text-sm">
+                  <li><code>Authorization: Bearer YOUR_API_KEY</code> (recommended)</li>
+                  <li><code>Authorization: YOUR_API_KEY</code> (also supported)</li>
+                </ul>
+              </AlertDescription>
+            </Alert>
             
             <Alert>
               <HelpCircle className="h-4 w-4" />
@@ -59,6 +73,7 @@ const ApiDocumentation: React.FC = () => {
                   Invoke-WebRequest -Uri "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" `<br />
                   -Headers @&#123;"Authorization" = "Bearer YOUR_API_KEY"&#125;
                 </code>
+                <p className="mt-2 text-sm">Note: Remove backticks and line breaks for a single-line command.</p>
               </AlertDescription>
             </Alert>
             
@@ -70,6 +85,24 @@ const ApiDocumentation: React.FC = () => {
                 <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
                   curl -X GET "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" \<br />
                   -H "Authorization: Bearer YOUR_API_KEY"
+                </code>
+              </AlertDescription>
+            </Alert>
+
+            <Alert>
+              <HelpCircle className="h-4 w-4" />
+              <AlertTitle>Fetch API Example (JavaScript)</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">Using the Fetch API in JavaScript:</p>
+                <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
+                  fetch("https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines", &#123;<br />
+                  &nbsp;&nbsp;method: "GET",<br />
+                  &nbsp;&nbsp;headers: &#123;<br />
+                  &nbsp;&nbsp;&nbsp;&nbsp;"Authorization": "Bearer YOUR_API_KEY"<br />
+                  &nbsp;&nbsp;&#125;<br />
+                  &#125;)<br />
+                  .then(response => response.json())<br />
+                  .then(data => console.log(data))
                 </code>
               </AlertDescription>
             </Alert>
