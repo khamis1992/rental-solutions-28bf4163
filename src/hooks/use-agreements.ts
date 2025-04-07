@@ -67,7 +67,7 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
           .select(`
             *,
             vehicles(*),
-            customers(*)
+            profiles(*)
           `)
           .order('created_at', { ascending: false });
           
@@ -86,7 +86,7 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
         
         if (searchParams.query) {
           query = query.or(`
-            customers.full_name.ilike.%${searchParams.query}%,
+            profiles.full_name.ilike.%${searchParams.query}%,
             vehicles.license_plate.ilike.%${searchParams.query}%,
             agreement_number.ilike.%${searchParams.query}%
           `);
@@ -95,7 +95,14 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
         const { data, error } = await query;
           
         if (error) throw error;
-        return data as SimpleAgreement[];
+        
+        // Map profiles to customers in the result
+        const mappedData = data.map((item: any) => ({
+          ...item,
+          customers: item.profiles
+        }));
+        
+        return mappedData as SimpleAgreement[];
       } catch (error) {
         console.error("Error fetching agreements:", error);
         throw error; // Re-throw to let React Query handle it
@@ -112,13 +119,20 @@ export function useAgreements(initialParams?: AgreementSearchParams) {
         .select(`
           *,
           vehicles(*),
-          customers(*)
+          profiles(*)
         `)
         .eq('id', id)
         .single();
         
       if (error) throw error;
-      return data;
+      
+      // Map profiles to customers
+      const mappedData = {
+        ...data,
+        customers: data.profiles
+      };
+      
+      return mappedData;
     } catch (error) {
       console.error('Error fetching agreement details:', error);
       return null;

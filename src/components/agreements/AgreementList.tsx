@@ -298,10 +298,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       ),
     },
     {
-      accessorKey: "customers.full_name",
+      accessorKey: "profiles.full_name",
       header: "Customer",
       cell: ({ row }) => {
-        const customer = row.original.customers;
+        const customer = row.original.customers || row.original.profiles;
         return (
           <div>
             {customer && customer.id ? (
