@@ -11,11 +11,12 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle } from 'lucide-react';
+import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle, FileCode } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getSystemServicesStatus } from '@/utils/service-availability';
+import { useNavigate } from 'react-router-dom';
 
 interface SystemSetting {
   id: string;
@@ -28,6 +29,7 @@ interface SystemSetting {
 const SystemSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('general');
   const [serviceStatus, setServiceStatus] = useState({
     agreementImport: true,
@@ -164,6 +166,10 @@ const SystemSettings = () => {
     saveSettingsMutation.mutate(formData);
   };
   
+  const navigateToApiManagement = () => {
+    navigate('/settings/api');
+  };
+  
   if (isLoading) {
     return (
       <PageContainer 
@@ -210,12 +216,13 @@ const SystemSettings = () => {
       
       <form onSubmit={handleSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-6 mb-8 w-full max-w-4xl">
+          <TabsList className="grid grid-cols-7 mb-8 w-full max-w-4xl">
             <TabsTrigger value="general">General</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="localization">Localization</TabsTrigger>
             <TabsTrigger value="tools">Tools</TabsTrigger>
+            <TabsTrigger value="api">API</TabsTrigger>
             <TabsTrigger value="integrations">Integrations</TabsTrigger>
           </TabsList>
           
@@ -469,6 +476,40 @@ const SystemSettings = () => {
                   )}
                   
                   <IdConverterTool />
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="api" className="mt-0 space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">API Management</h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Manage API keys and explore documentation for third-party integrations.
+                  </p>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg">API Access & Integrations</CardTitle>
+                        <FileCode className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <CardDescription>Manage API keys and explore integration options</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <p className="text-sm">
+                          API access enables third-party applications and services to securely interact with your rental system.
+                          Generate API keys, set permissions, and review documentation.
+                        </p>
+                        <Button 
+                          onClick={navigateToApiManagement}
+                          className="w-full sm:w-auto"
+                        >
+                          <FileCode className="mr-2 h-4 w-4" />
+                          Manage API Keys & Documentation
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </TabsContent>
               
