@@ -1,11 +1,9 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
 import { trackApiTiming } from '@/utils/performance-monitoring';
 
 type SimpleCustomer = {
@@ -275,7 +273,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Fixed: Replace type assertion with simpler type handling for profiles and vehicles
       const agreements: SimpleAgreement[] = data.map(item => {
         const mappedStatus = mapDBStatusToEnum(item.status);
 
