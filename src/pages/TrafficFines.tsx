@@ -4,7 +4,7 @@ import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, BarChart2, FileText } from "lucide-react";
-import TrafficFinesList from "@/components/fines/TrafficFinesList";
+import TrafficFinesTable from "@/components/fines/TrafficFinesTable";
 import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 
@@ -44,7 +44,7 @@ const TrafficFines = () => {
         </TabsList>
         
         <TabsContent value="list" className="space-y-6">
-          <TrafficFinesList onAddFine={handleAddFine} />
+          <TrafficFinesTable onAddFine={handleAddFine} />
         </TabsContent>
         
         <TabsContent value="add" className="space-y-6">

@@ -1,259 +1,364 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DatePicker } from "@/components/ui/date-picker";
-import { AlertTriangle, Check, Car, User, FileText } from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import React, { useState } from 'react';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { CalendarIcon, AlertTriangle, Car, CheckCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+
+// Define the form schema with Zod for validation
+const fineFormSchema = z.object({
+  violationNumber: z.string().min(3, { message: "Violation number must be at least 3 characters" }),
+  licensePlate: z.string().min(2, { message: "License plate is required" }),
+  violationDate: z.date({ required_error: "Violation date is required" }),
+  fineAmount: z.coerce.number().positive({ message: "Fine amount must be positive" }),
+  violationCharge: z.string().min(3, { message: "Violation charge is required" }),
+  paymentStatus: z.enum(['pending', 'paid', 'disputed']),
+  location: z.string().optional(),
+});
+
+type FineFormValues = z.infer<typeof fineFormSchema>;
 
 interface TrafficFineEntryProps {
   onFineSaved?: () => void;
 }
 
-const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const [loading, setLoading] = useState(false);
-  const [fineData, setFineData] = useState({
-    violationDate: new Date(),
-    licensePlate: "",
-    violationType: "",
-    fineAmount: "",
-    violationLocation: "",
-    serialNumber: "",
-    violationPoints: "",
-    paymentStatus: "pending",
+const TrafficFineEntry = ({ onFineSaved }: TrafficFineEntryProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [availableVehicles, setAvailableVehicles] = useState<{ license_plate: string; id: string }[]>([]);
+  const [licensePlateInput, setLicensePlateInput] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Initialize the form
+  const form = useForm<FineFormValues>({
+    resolver: zodResolver(fineFormSchema),
+    defaultValues: {
+      violationNumber: '',
+      licensePlate: '',
+      violationDate: new Date(),
+      fineAmount: undefined,
+      violationCharge: '',
+      paymentStatus: 'pending',
+      location: '',
+    },
   });
   
-  const violationTypes = [
-    { value: "speeding", label: "Speeding" },
-    { value: "parking", label: "Illegal Parking" },
-    { value: "red_light", label: "Red Light Violation" },
-    { value: "driving_behavior", label: "Unsafe Driving Behavior" },
-    { value: "documentation", label: "Missing Documentation" },
-    { value: "lane_violation", label: "Lane Violation" },
-    { value: "phone_usage", label: "Phone Usage While Driving" },
-    { value: "other", label: "Other" },
-  ];
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFineData({ ...fineData, [name]: value });
-  };
-  
-  const handleSelectChange = (field: string, value: string) => {
-    setFineData({ ...fineData, [field]: value });
-  };
-  
-  const handleDateChange = (date: Date | undefined) => {
-    if (date) {
-      setFineData({ ...fineData, violationDate: date });
+  // Handle license plate search
+  const handleLicensePlateChange = async (value: string) => {
+    setLicensePlateInput(value);
+    form.setValue('licensePlate', value);
+    
+    if (value.length >= 2) {
+      try {
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select('license_plate, id')
+          .ilike('license_plate', `%${value}%`)
+          .limit(5);
+          
+        if (error) throw error;
+        
+        setAvailableVehicles(data || []);
+        setShowSuggestions(data && data.length > 0);
+      } catch (error) {
+        console.error('Error fetching vehicles:', error);
+      }
+    } else {
+      setShowSuggestions(false);
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!fineData.licensePlate || !fineData.violationType || !fineData.fineAmount) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-    
-    setLoading(true);
+  // Handle form submission
+  const onSubmit = async (values: FineFormValues) => {
+    setIsSubmitting(true);
     
     try {
+      // Find vehicle ID based on license plate
       const { data: vehicleData, error: vehicleError } = await supabase
         .from('vehicles')
-        .select('id, license_plate')
-        .eq('license_plate', fineData.licensePlate)
+        .select('id')
+        .eq('license_plate', values.licensePlate)
         .single();
       
-      if (vehicleError) {
-        toast.error(`No vehicle found with license plate ${fineData.licensePlate}`);
-        setLoading(false);
-        return;
+      if (vehicleError && vehicleError.code !== 'PGRST116') {
+        throw new Error(`Error finding vehicle: ${vehicleError.message}`);
       }
       
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const vehicleId = vehicleData?.id;
       
-      toast.success("Traffic fine recorded successfully");
+      // Insert the traffic fine
+      const { data, error } = await supabase
+        .from('traffic_fines')
+        .insert([
+          {
+            violation_number: values.violationNumber,
+            license_plate: values.licensePlate,
+            violation_date: values.violationDate.toISOString(),
+            fine_amount: values.fineAmount,
+            violation_charge: values.violationCharge,
+            payment_status: values.paymentStatus,
+            fine_location: values.location || null,
+            vehicle_id: vehicleId || null,
+            entry_type: 'manual',
+          }
+        ])
+        .select()
+        .single();
+        
+      if (error) {
+        throw new Error(`Error saving traffic fine: ${error.message}`);
+      }
       
-      setFineData({
-        violationDate: new Date(),
-        licensePlate: "",
-        violationType: "",
-        fineAmount: "",
-        violationLocation: "",
-        serialNumber: "",
-        violationPoints: "",
-        paymentStatus: "pending",
+      toast.success('Traffic fine recorded successfully', {
+        description: `Violation #${values.violationNumber} has been added.`
       });
       
+      // Reset form
+      form.reset();
+      
+      // Call callback if provided
       if (onFineSaved) {
         onFineSaved();
       }
-    } catch (error: any) {
-      toast.error(`Failed to record traffic fine: ${error.message}`);
+    } catch (error) {
+      console.error('Error saving traffic fine:', error);
+      toast.error('Failed to save traffic fine', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Card>
+    <Card className="max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center">
-          <AlertTriangle className="mr-2 h-5 w-5 text-amber-500" />
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-yellow-500" />
           Record New Traffic Fine
         </CardTitle>
-        <CardDescription>Enter the details of the traffic violation</CardDescription>
+        <CardDescription>
+          Enter the details of the traffic violation to record it in the system
+        </CardDescription>
       </CardHeader>
-      
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="licensePlate" className="flex items-center">
-                <Car className="h-4 w-4 mr-1" />
-                License Plate <span className="text-red-500 ml-1">*</span>
-              </Label>
-              <Input
-                id="licensePlate"
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="violationNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Violation Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter violation number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="licensePlate"
-                value={fineData.licensePlate}
-                onChange={handleInputChange}
-                placeholder="Enter vehicle license plate"
-                required
+                render={({ field }) => (
+                  <FormItem className="relative">
+                    <FormLabel>License Plate</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Enter license plate" 
+                        value={licensePlateInput}
+                        onChange={(e) => handleLicensePlateChange(e.target.value)}
+                      />
+                    </FormControl>
+                    {showSuggestions && (
+                      <div className="absolute z-10 w-full bg-white dark:bg-gray-900 border rounded-md shadow-lg mt-1">
+                        {availableVehicles.map((vehicle) => (
+                          <div 
+                            key={vehicle.id} 
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer flex items-center"
+                            onClick={() => {
+                              setLicensePlateInput(vehicle.license_plate);
+                              form.setValue('licensePlate', vehicle.license_plate);
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <Car className="h-4 w-4 mr-2 text-muted-foreground" />
+                            {vehicle.license_plate}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="violationDate">
-                Violation Date <span className="text-red-500">*</span>
-              </Label>
-              <DatePicker
-                date={fineData.violationDate}
-                setDate={handleDateChange}
-                className="w-full"
+              
+              <FormField
+                control={form.control}
+                name="violationDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Violation Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                          }
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="violationType">
-                Violation Type <span className="text-red-500">*</span>
-              </Label>
-              <Select 
-                value={fineData.violationType || "select-type"} 
-                onValueChange={(value) => handleSelectChange("violationType", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select violation type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="select-type" disabled>Select violation type</SelectItem>
-                  {violationTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fineAmount">
-                Fine Amount (QAR) <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="fineAmount"
+              
+              <FormField
+                control={form.control}
                 name="fineAmount"
-                value={fineData.fineAmount}
-                onChange={handleInputChange}
-                placeholder="Enter fine amount"
-                type="number"
-                min="0"
-                step="0.01"
-                required
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fine Amount (QAR)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Enter fine amount" 
+                        {...field} 
+                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="violationCharge"
+                render={({ field }) => (
+                  <FormItem className="col-span-1 md:col-span-2">
+                    <FormLabel>Violation Charge</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter violation charge" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem className="col-span-1 md:col-span-2">
+                    <FormLabel>Location (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter location of violation" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="paymentStatus"
+                render={({ field }) => (
+                  <FormItem className="col-span-1 md:col-span-2">
+                    <FormLabel>Payment Status</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="flex flex-col space-y-1 sm:flex-row sm:space-y-0 sm:space-x-6"
+                      >
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="pending" />
+                          </FormControl>
+                          <FormLabel className="font-normal flex items-center">
+                            <X className="h-4 w-4 mr-1 text-red-500" /> Pending
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="paid" />
+                          </FormControl>
+                          <FormLabel className="font-normal flex items-center">
+                            <CheckCircle className="h-4 w-4 mr-1 text-green-500" /> Paid
+                          </FormLabel>
+                        </FormItem>
+                        <FormItem className="flex items-center space-x-3 space-y-0">
+                          <FormControl>
+                            <RadioGroupItem value="disputed" />
+                          </FormControl>
+                          <FormLabel className="font-normal flex items-center">
+                            <AlertTriangle className="h-4 w-4 mr-1 text-amber-500" /> Disputed
+                          </FormLabel>
+                        </FormItem>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="violationLocation">
-                Violation Location
-              </Label>
-              <Input
-                id="violationLocation"
-                name="violationLocation"
-                value={fineData.violationLocation}
-                onChange={handleInputChange}
-                placeholder="Enter location of violation"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="serialNumber">
-                Serial Number / Reference
-              </Label>
-              <Input
-                id="serialNumber"
-                name="serialNumber"
-                value={fineData.serialNumber}
-                onChange={handleInputChange}
-                placeholder="Enter fine reference number"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="violationPoints">
-                Violation Points
-              </Label>
-              <Input
-                id="violationPoints"
-                name="violationPoints"
-                value={fineData.violationPoints}
-                onChange={handleInputChange}
-                placeholder="Enter violation points"
-                type="number"
-                min="0"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="paymentStatus">
-                Payment Status
-              </Label>
-              <Select 
-                value={fineData.paymentStatus} 
-                onValueChange={(value) => handleSelectChange("paymentStatus", value)}
+            <CardFooter className="flex justify-end gap-2 px-0">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onFineSaved ? onFineSaved() : form.reset()}
+                disabled={isSubmitting}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select payment status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="disputed">Disputed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-        
-        <CardFooter className="flex justify-end pt-2">
-          <Button type="submit" disabled={loading}>
-            {loading ? (
-              "Saving..."
-            ) : (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Record Fine
-              </>
-            )}
-          </Button>
-        </CardFooter>
-      </form>
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Saving..." : "Save Traffic Fine"}
+              </Button>
+            </CardFooter>
+          </form>
+        </Form>
+      </CardContent>
     </Card>
   );
 };

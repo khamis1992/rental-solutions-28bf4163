@@ -202,22 +202,39 @@ async function fetchAllDashboardData(): Promise<{
     
     if (rentalData) {
       rentalData.forEach((lease) => {
-        // Fix: Extract first item from potential array for profiles and vehicles
-        const profilesData = lease.profiles as any;
-        const vehiclesData = lease.vehicles as any;
+        // Fix TypeScript issues: Handle profiles and vehicles data properly
+        const profilesData = lease.profiles;
+        const vehiclesData = lease.vehicles;
         
-        // Handle potential array or single object and extract relevant fields
-        const customerName = Array.isArray(profilesData) 
-          ? (profilesData[0]?.full_name || 'Customer') 
-          : (profilesData?.full_name || 'Customer');
-          
-        const vehicleInfo = Array.isArray(vehiclesData)
-          ? vehiclesData[0] || {}
-          : vehiclesData || {};
-          
-        const vehicleMake = vehicleInfo.make || '';
-        const vehicleModel = vehicleInfo.model || '';
-        const licensePlate = vehicleInfo.license_plate || '';
+        // Extract customer name safely
+        let customerName = 'Customer';
+        if (profilesData) {
+          // Handle both single object and array cases
+          if (Array.isArray(profilesData)) {
+            customerName = profilesData[0]?.full_name || 'Customer';
+          } else {
+            customerName = profilesData.full_name || 'Customer';
+          }
+        }
+        
+        // Extract vehicle info safely
+        let vehicleMake = '';
+        let vehicleModel = '';
+        let licensePlate = '';
+        
+        if (vehiclesData) {
+          // Handle both single object and array cases
+          if (Array.isArray(vehiclesData)) {
+            const vehicle = vehiclesData[0] || {};
+            vehicleMake = vehicle.make || '';
+            vehicleModel = vehicle.model || '';
+            licensePlate = vehicle.license_plate || '';
+          } else {
+            vehicleMake = vehiclesData.make || '';
+            vehicleModel = vehiclesData.model || '';
+            licensePlate = vehiclesData.license_plate || '';
+          }
+        }
         
         recentActivity.push({
           id: lease.id,
@@ -268,17 +285,27 @@ async function fetchAllDashboardData(): Promise<{
     
     if (maintenanceData) {
       maintenanceData.forEach((maintenance) => {
-        // Fix: Extract first item from potential array for vehicles
-        const vehiclesData = maintenance.vehicles as any;
+        // Fix TypeScript issues: Handle vehicles data properly
+        const vehiclesData = maintenance.vehicles;
         
-        // Handle potential array or single object
-        const vehicleInfo = Array.isArray(vehiclesData)
-          ? vehiclesData[0] || {}
-          : vehiclesData || {};
-          
-        const vehicleMake = vehicleInfo.make || '';
-        const vehicleModel = vehicleInfo.model || '';
-        const licensePlate = vehicleInfo.license_plate || '';
+        // Extract vehicle info safely
+        let vehicleMake = '';
+        let vehicleModel = '';
+        let licensePlate = '';
+        
+        if (vehiclesData) {
+          // Handle both single object and array cases
+          if (Array.isArray(vehiclesData)) {
+            const vehicle = vehiclesData[0] || {};
+            vehicleMake = vehicle.make || '';
+            vehicleModel = vehicle.model || '';
+            licensePlate = vehicle.license_plate || '';
+          } else {
+            vehicleMake = vehiclesData.make || '';
+            vehicleModel = vehiclesData.model || '';
+            licensePlate = vehiclesData.license_plate || '';
+          }
+        }
         
         recentActivity.push({
           id: maintenance.id,
