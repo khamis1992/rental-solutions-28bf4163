@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -76,10 +75,8 @@ const ApiKeyManagement: React.FC = () => {
   });
   const [copied, setCopied] = useState(false);
   
-  // Use our new hook for API key operations
   const { apiKeys, isLoading, error, fetchApiKeys, createApiKey, revokeApiKey } = useApiKeys();
 
-  // Available permissions for API keys
   const availablePermissions = [
     { value: 'vehicles', label: 'Vehicles' },
     { value: 'customers', label: 'Customers' },
@@ -87,7 +84,6 @@ const ApiKeyManagement: React.FC = () => {
     { value: 'traffic-fines', label: 'Traffic Fines' },
   ];
 
-  // Expiry options for API keys
   const expiryOptions = [
     { value: '0', label: 'Never expires' },
     { value: '30', label: '30 days' },

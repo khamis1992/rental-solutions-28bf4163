@@ -6,7 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { trackApiTiming } from '@/utils/performance-monitoring';
-import { FlattenType } from '@/utils/type-utils';
 
 type SimpleCustomer = {
   id: string;
@@ -315,15 +314,16 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
   
+  // Simplify mutation types to prevent excessive type instantiation
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: UpdateAgreementParams) => {
-      console.log("Update mutation called with:", params);
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
+      console.log("Update mutation called with:", { id, data });
       
       try {
         const { data: result, error } = await supabase
           .from('leases')
-          .update(params.data)
-          .eq('id', params.id)
+          .update(data)
+          .eq('id', id)
           .select();
         
         if (error) throw error;
