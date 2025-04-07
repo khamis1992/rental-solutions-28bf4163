@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -6,11 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import { jsPDF } from 'jspdf';
-import { addReportHeader, addReportFooter, downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
+import { downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
+import { generateTrafficFinesPDF } from '@/utils/traffic-fines-report-utils';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -44,213 +43,144 @@ const ReportDownloadOptions = ({
       // Generate report based on file format
       if (fileFormat === 'pdf') {
         try {
-          // Use the standardized report generator
-          const doc = await generateStandardReport(
-            title,
-            dateRange,
-            async (doc, startY) => {
-              // Add content based on report type
-              let yPos = startY;
-              
-              // Add summary section heading
-              doc.setFontSize(14);
-              doc.setFont('helvetica', 'bold');
-              doc.text('Report Summary:', 14, yPos);
-              yPos += 10;
-              
-              // Add content specific to each report type
-              doc.setFontSize(12);
-              doc.setFont('helvetica', 'normal');
-              
-              switch (reportType) {
-                case 'fleet':
-                  doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
-                  doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
-                  doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                  doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
-                  doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
-                  break;
-                case 'financial':
-                  // Financial report specific content
-                  if (reportData.length === 0) {
-                    doc.text('No financial data available for the selected period.', 20, yPos);
-                    yPos += 20;
-                  } else {
-                    // Add financial overview
-                    doc.text('• Financial Overview', 20, yPos); yPos += 10;
-                    
-                    // Calculate totals
-                    const totalAmount = reportData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0);
-                    const totalPaid = reportData.reduce((sum, item) => sum + (parseFloat(item.totalPaid) || 0), 0);
-                    const totalOutstanding = reportData.reduce((sum, item) => sum + (parseFloat(item.outstandingBalance) || 0), 0);
-                    const totalFines = reportData.reduce((sum, item) => sum + (parseFloat(item.totalFinesAmount) || 0), 0);
-                    
-                    doc.text(`   Total Agreements: ${reportData.length}`, 20, yPos); yPos += 8;
-                    doc.text(`   Total Amount: QAR ${totalAmount.toFixed(2)}`, 20, yPos); yPos += 8;
-                    doc.text(`   Total Paid: QAR ${totalPaid.toFixed(2)}`, 20, yPos); yPos += 8;
-                    doc.text(`   Outstanding Balance: QAR ${totalOutstanding.toFixed(2)}`, 20, yPos); yPos += 8;
-                    doc.text(`   Total Traffic Fines: QAR ${totalFines.toFixed(2)}`, 20, yPos); yPos += 20;
-                    
-                    // Add detailed table
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Agreement Details:', 14, yPos);
-                    yPos += 15;
-                    
-                    // Table headers
-                    const headers = ['Customer', 'Agreement #', 'Status', 'Amount Paid', 'Balance', 'Last Payment'];
-                    const columnWidths = [50, 30, 25, 30, 30, 30];
-                    let xPos = 14;
-                    
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'bold');
-                    
-                    headers.forEach((header, i) => {
-                      doc.text(header, xPos, yPos);
-                      xPos += columnWidths[i];
-                    });
-                    
-                    yPos += 8;
-                    doc.setLineWidth(0.3);
-                    doc.line(14, yPos - 4, 195, yPos - 4);
-                    
-                    // Table rows
-                    doc.setFont('helvetica', 'normal');
-                    
-                    for (const item of reportData) {
-                      // Check if we need a new page
-                      if (yPos > 270) {
-                        doc.addPage();
-                        yPos = 20;
-                      }
+          let doc;
+          
+          // Use specialized PDF generator for traffic fines
+          if (reportType === 'trafficFines') {
+            doc = await generateTrafficFinesPDF(reportData as any, dateRange);
+          } else {
+            // Use the standardized report generator for other reports
+            doc = await generateStandardReport(
+              title,
+              dateRange,
+              async (doc, startY) => {
+                // Add content based on report type
+                let yPos = startY;
+                
+                // Add summary section heading
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Report Summary:', 14, yPos);
+                yPos += 10;
+                
+                // Add content specific to each report type
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'normal');
+                
+                switch (reportType) {
+                  case 'fleet':
+                    doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
+                    doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
+                    doc.text('• Active Rentals', 20, yPos); yPos += 10;
+                    doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
+                    doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
+                    break;
+                  case 'financial':
+                    // Financial report specific content
+                    if (reportData.length === 0) {
+                      doc.text('No financial data available for the selected period.', 20, yPos);
+                      yPos += 20;
+                    } else {
+                      // Add financial overview
+                      doc.text('• Financial Overview', 20, yPos); yPos += 10;
                       
-                      xPos = 14;
+                      // Calculate totals
+                      const totalAmount = reportData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0);
+                      const totalPaid = reportData.reduce((sum, item) => sum + (parseFloat(item.totalPaid) || 0), 0);
+                      const totalOutstanding = reportData.reduce((sum, item) => sum + (parseFloat(item.outstandingBalance) || 0), 0);
+                      const totalFines = reportData.reduce((sum, item) => sum + (parseFloat(item.totalFinesAmount) || 0), 0);
                       
-                      const customerName = item.customers?.full_name || 'N/A';
-                      doc.text(customerName.length > 20 ? customerName.substring(0, 18) + '...' : customerName, xPos, yPos);
-                      xPos += columnWidths[0];
+                      doc.text(`   Total Agreements: ${reportData.length}`, 20, yPos); yPos += 8;
+                      doc.text(`   Total Amount: QAR ${totalAmount.toFixed(2)}`, 20, yPos); yPos += 8;
+                      doc.text(`   Total Paid: QAR ${totalPaid.toFixed(2)}`, 20, yPos); yPos += 8;
+                      doc.text(`   Outstanding Balance: QAR ${totalOutstanding.toFixed(2)}`, 20, yPos); yPos += 8;
+                      doc.text(`   Total Traffic Fines: QAR ${totalFines.toFixed(2)}`, 20, yPos); yPos += 20;
                       
-                      doc.text(item.agreement_number || 'N/A', xPos, yPos);
-                      xPos += columnWidths[1];
+                      // Add detailed table
+                      doc.setFontSize(14);
+                      doc.setFont('helvetica', 'bold');
+                      doc.text('Agreement Details:', 14, yPos);
+                      yPos += 15;
                       
-                      doc.text(item.paymentStatus || 'N/A', xPos, yPos);
-                      xPos += columnWidths[2];
+                      // Table headers
+                      const headers = ['Customer', 'Agreement #', 'Status', 'Amount Paid', 'Balance', 'Last Payment'];
+                      const columnWidths = [50, 30, 25, 30, 30, 30];
+                      let xPos = 14;
                       
-                      doc.text(`QAR ${(item.totalPaid || 0).toFixed(2)}`, xPos, yPos);
-                      xPos += columnWidths[3];
+                      doc.setFontSize(10);
+                      doc.setFont('helvetica', 'bold');
                       
-                      doc.text(`QAR ${(item.outstandingBalance || 0).toFixed(2)}`, xPos, yPos);
-                      xPos += columnWidths[4];
-                      
-                      const lastPaymentDate = item.lastPaymentDate ? 
-                        new Date(item.lastPaymentDate).toLocaleDateString() : 'None';
-                      doc.text(lastPaymentDate, xPos, yPos);
+                      headers.forEach((header, i) => {
+                        doc.text(header, xPos, yPos);
+                        xPos += columnWidths[i];
+                      });
                       
                       yPos += 8;
-                    }
-                  }
-                  break;
-                case 'customers':
-                  doc.text('• Customer Demographics', 20, yPos); yPos += 10;
-                  doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                  doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
-                  doc.text('• Top Customers', 20, yPos); yPos += 10;
-                  break;
-                case 'maintenance':
-                  doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
-                  doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                  doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
-                  doc.text('• Maintenance History', 20, yPos); yPos += 10;
-                  break;
-                case 'trafficFines':
-                  if (reportData.length === 0) {
-                    doc.text('No traffic fine data available for the selected period.', 20, yPos);
-                    yPos += 20;
-                  } else {
-                    // Add traffic fines overview
-                    doc.text('• Traffic Fines Overview', 20, yPos); yPos += 10;
-                    
-                    // Calculate totals
-                    const totalFines = reportData.length;
-                    const totalAmount = reportData.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-                    const paidFines = reportData.filter(item => item.status === 'paid').length;
-                    const paidAmount = reportData
-                      .filter(item => item.status === 'paid')
-                      .reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-                    const pendingAmount = totalAmount - paidAmount;
-                    
-                    doc.text(`   Total Fines: ${totalFines}`, 20, yPos); yPos += 8;
-                    doc.text(`   Total Amount: QAR ${totalAmount.toFixed(2)}`, 20, yPos); yPos += 8;
-                    doc.text(`   Paid Fines: ${paidFines}`, 20, yPos); yPos += 8;
-                    doc.text(`   Paid Amount: QAR ${paidAmount.toFixed(2)}`, 20, yPos); yPos += 8;
-                    doc.text(`   Pending Amount: QAR ${pendingAmount.toFixed(2)}`, 20, yPos); yPos += 20;
-                    
-                    // Add detailed table
-                    doc.setFontSize(14);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('Traffic Fine Details:', 14, yPos);
-                    yPos += 15;
-                    
-                    // Table headers
-                    const headers = ['Customer', 'Violation #', 'License Plate', 'Amount', 'Status', 'Date'];
-                    const columnWidths = [40, 30, 25, 25, 25, 30];
-                    let xPos = 14;
-                    
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'bold');
-                    
-                    headers.forEach((header, i) => {
-                      doc.text(header, xPos, yPos);
-                      xPos += columnWidths[i];
-                    });
-                    
-                    yPos += 8;
-                    doc.setLineWidth(0.3);
-                    doc.line(14, yPos - 4, 195, yPos - 4);
-                    
-                    // Table rows
-                    doc.setFont('helvetica', 'normal');
-                    
-                    for (const fine of reportData) {
-                      // Check if we need a new page
-                      if (yPos > 270) {
-                        doc.addPage();
-                        yPos = 20;
+                      doc.setLineWidth(0.3);
+                      doc.line(14, yPos - 4, 195, yPos - 4);
+                      
+                      // Table rows
+                      doc.setFont('helvetica', 'normal');
+                      
+                      for (const item of reportData) {
+                        // Check if we need a new page
+                        if (yPos > 270) {
+                          doc.addPage();
+                          yPos = 20;
+                        }
+                        
+                        xPos = 14;
+                        
+                        const customerName = item.customers?.full_name || 'N/A';
+                        doc.text(customerName.length > 20 ? customerName.substring(0, 18) + '...' : customerName, xPos, yPos);
+                        xPos += columnWidths[0];
+                        
+                        doc.text(item.agreement_number || 'N/A', xPos, yPos);
+                        xPos += columnWidths[1];
+                        
+                        doc.text(item.paymentStatus || 'N/A', xPos, yPos);
+                        xPos += columnWidths[2];
+                        
+                        doc.text(`QAR ${(item.totalPaid || 0).toFixed(2)}`, xPos, yPos);
+                        xPos += columnWidths[3];
+                        
+                        doc.text(`QAR ${(item.outstandingBalance || 0).toFixed(2)}`, xPos, yPos);
+                        xPos += columnWidths[4];
+                        
+                        const lastPaymentDate = item.lastPaymentDate ? 
+                          new Date(item.lastPaymentDate).toLocaleDateString() : 'None';
+                        doc.text(lastPaymentDate, xPos, yPos);
+                        
+                        yPos += 8;
                       }
-                      
-                      xPos = 14;
-                      
-                      const customerName = fine.customer_name || 'N/A';
-                      doc.text(customerName.length > 20 ? customerName.substring(0, 18) + '...' : customerName, xPos, yPos);
-                      xPos += columnWidths[0];
-                      
-                      doc.text(fine.violation_number || 'N/A', xPos, yPos);
-                      xPos += columnWidths[1];
-                      
-                      doc.text(fine.license_plate || 'N/A', xPos, yPos);
-                      xPos += columnWidths[2];
-                      
-                      doc.text(`QAR ${(parseFloat(fine.amount) || 0).toFixed(2)}`, xPos, yPos);
-                      xPos += columnWidths[3];
-                      
-                      doc.text(fine.status || 'N/A', xPos, yPos);
-                      xPos += columnWidths[4];
-                      
-                      const violationDate = fine.violation_date ? 
-                        new Date(fine.violation_date).toLocaleDateString() : 'N/A';
-                      doc.text(violationDate, xPos, yPos);
-                      
-                      yPos += 8;
                     }
-                  }
-                  break;
-                default:
-                  doc.text('No data available for this report type.', 20, yPos);
+                    break;
+                  case 'customers':
+                    doc.text('• Customer Demographics', 20, yPos); yPos += 10;
+                    doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
+                    doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
+                    doc.text('• Top Customers', 20, yPos); yPos += 10;
+                    break;
+                  case 'maintenance':
+                    doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
+                    doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
+                    doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
+                    doc.text('• Maintenance History', 20, yPos); yPos += 10;
+                    break;
+                  case 'legal':
+                    doc.text('• Legal Cases Overview', 20, yPos); yPos += 10;
+                    doc.text('• Cases by Status', 20, yPos); yPos += 10;
+                    doc.text('• Open Case Analysis', 20, yPos); yPos += 10;
+                    doc.text('• Closed Case Summary', 20, yPos); yPos += 10;
+                    break;
+                  default:
+                    doc.text('No data available for this report type.', 20, yPos);
+                }
+                
+                return yPos; // Return the final y position
               }
-              
-              return yPos; // Return the final y position
-            }
-          );
+            );
+          }
           
           // Save the PDF
           doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
