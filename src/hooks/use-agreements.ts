@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { FlattenType } from '@/utils/type-utils';
+import { trackApiTiming } from '@/utils/performance-monitoring';
 
 type SimpleCustomer = {
   id: string;
@@ -88,6 +89,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         toast.error("Invalid agreement ID");
         return null;
       }
+
+      const startTime = performance.now();
 
       const { data, error } = await supabase
         .from('leases')
@@ -175,6 +178,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         daily_late_fee: data.daily_late_fee || 0
       };
 
+      const endTime = performance.now();
+      trackApiTiming('getAgreement', endTime - startTime);
+
       console.log("Transformed agreement data:", agreement);
       return agreement;
     } catch (err) {
@@ -188,6 +194,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
+      const startTime = performance.now();
+      
       let query = supabase
         .from('leases')
         .select(`
@@ -267,6 +275,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
+      // Fixed: Replace type assertion with simpler type handling for profiles and vehicles
       const agreements: SimpleAgreement[] = data.map(item => {
         const mappedStatus = mapDBStatusToEnum(item.status);
 
@@ -283,13 +292,16 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           deposit_amount: item.deposit_amount || 0,
           agreement_number: item.agreement_number || '',
           notes: item.notes || '',
-          customers: item.profiles,
-          vehicles: item.vehicles,
+          customers: item.profiles || null,
+          vehicles: item.vehicles || null,
           signature_url: (item as any).signature_url,
           rent_amount: item.rent_amount || 0,
           daily_late_fee: item.daily_late_fee || 0
         };
       });
+
+      const endTime = performance.now();
+      trackApiTiming('fetchAgreements', endTime - startTime);
 
       return agreements;
     } catch (err) {
@@ -411,8 +423,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000,
-    gcTime: 900000,
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000,    // 15 minutes
   });
 
   return {
