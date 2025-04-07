@@ -132,7 +132,7 @@ const VehicleDetailPage = () => {
       />
       
       <div className="section-transition">
-        {vehicle && <VehicleDetail vehicle={vehicle} />}
+        <VehicleDetail vehicle={vehicle} />
       </div>
     </PageContainer>
   );

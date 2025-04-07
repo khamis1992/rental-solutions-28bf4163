@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -63,7 +62,6 @@ import ScheduledReports from "./pages/ScheduledReports";
 
 // System Settings pages
 import SystemSettings from "./pages/SystemSettings";
-import ApiManagement from "./pages/ApiManagement"; // Import the ApiManagement page
 
 import initializeApp from "./utils/app-initializer";
 
@@ -144,9 +142,6 @@ function App() {
                           
                           {/* System Settings Route */}
                           <Route path="/settings/system" element={<SystemSettings />} />
-                          
-                          {/* API Management Route */}
-                          <Route path="/settings/api" element={<ApiManagement />} />
                           
                           {/* User Management Routes */}
                           <Route path="/settings" element={<UserSettings />} />

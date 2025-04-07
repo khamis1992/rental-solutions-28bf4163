@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import DashboardStats from '@/components/dashboard/DashboardStats';
@@ -10,7 +10,7 @@ import { LayoutDashboard, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { toast } from '@/hooks/use-toast';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -27,49 +27,18 @@ if (typeof window !== 'undefined') {
   };
 }
 
-// Memoized dashboard components for better performance
-const MemoizedDashboardStats = React.memo(DashboardStats);
-const MemoizedRevenueChart = React.memo(RevenueChart);
-const MemoizedVehicleStatusChart = React.memo(VehicleStatusChart);
-const MemoizedRecentActivity = React.memo(RecentActivity);
-
 const Dashboard = () => {
-  const { 
-    stats, 
-    revenue, 
-    activity, 
-    isLoading, 
-    isError, 
-    error,
-    refetch 
-  } = useDashboardData();
-  
+  const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const isMobile = useIsMobile();
   
-  // Memoized refresh handler
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     setIsRefreshing(true);
-    refetch().finally(() => {
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 500);
-    });
-  }, [refetch]);
-
-  // Automatically refresh data when component mounts
-  useEffect(() => {
-    // Only fetch if data is stale (older than 5 minutes)
-    const lastFetchTime = localStorage.getItem('dashboardLastFetch');
-    const now = Date.now();
-    if (!lastFetchTime || now - parseInt(lastFetchTime) > 5 * 60 * 1000) {
-      refetch();
-      localStorage.setItem('dashboardLastFetch', now.toString());
-    }
-  }, [refetch]);
-  
-  // Memoize the revenue data to prevent unnecessary chart re-renders
-  const memoizedRevenueData = useMemo(() => revenue, [revenue]);
+    
+    // Use a timeout to prevent rapid refreshes
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
+  };
 
   return (
     <PageContainer>
@@ -117,22 +86,17 @@ const Dashboard = () => {
           </div>
         ) : (
           <>
-            {/* Use memoized components to prevent unnecessary re-renders */}
-            <MemoizedDashboardStats stats={stats} />
+            <DashboardStats stats={stats} />
             
             <div className="grid grid-cols-1 gap-6 section-transition">
-              <MemoizedVehicleStatusChart data={stats?.vehicleStats} />
+              <VehicleStatusChart data={stats?.vehicleStats} />
             </div>
             
             <div className="grid grid-cols-1 gap-6 section-transition">
-              <MemoizedRevenueChart 
-                data={memoizedRevenueData} 
-                fullWidth={true}
-                showTooltip={!isMobile} // Hide tooltip on mobile for better performance
-              />
+              <RevenueChart data={revenue} fullWidth={true} />
             </div>
             
-            <MemoizedRecentActivity activities={activity} />
+            <RecentActivity activities={activity} />
           </>
         )}
       </div>
@@ -140,5 +104,4 @@ const Dashboard = () => {
   );
 };
 
-// Export memoized component to prevent unnecessary re-renders
-export default React.memo(Dashboard);
+export default Dashboard;
