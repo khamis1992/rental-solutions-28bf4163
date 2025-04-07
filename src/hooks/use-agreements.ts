@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { trackApiTiming } from '@/utils/performance-monitoring';
+import { FlattenType } from '@/utils/type-utils';
 
 type SimpleCustomer = {
   id: string;
@@ -46,6 +47,12 @@ export type SimpleAgreement = {
   rent_amount?: number;
   daily_late_fee?: number;
 };
+
+// Use a simpler type for mutations to avoid deep instantiation issues
+interface UpdateAgreementParams {
+  id: string;
+  data: Record<string, any>;
+}
 
 interface SearchParams {
   query?: string;
@@ -307,15 +314,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       throw err;
     }
   };
-
-  // Use a simpler type for mutations to avoid deep type instantiation issues
-  interface MutationParams {
-    id: string; 
-    data: Record<string, any>;
-  }
   
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: MutationParams) => {
+    mutationFn: async (params: UpdateAgreementParams) => {
       console.log("Update mutation called with:", params);
       
       try {

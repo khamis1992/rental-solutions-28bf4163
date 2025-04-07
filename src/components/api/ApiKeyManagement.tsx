@@ -1,7 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,6 +56,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ApiKey } from '@/types/api-key';
+import { useApiKeys } from '@/hooks/use-api-keys';
 
 interface ApiKeyFormData {
   name: string;
@@ -75,11 +74,10 @@ const ApiKeyManagement: React.FC = () => {
     permissions: [],
     expiresIn: '0',
   });
-  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
   const [copied, setCopied] = useState(false);
-  const queryClient = useQueryClient();
+  
+  // Use our new hook for API key operations
+  const { apiKeys, isLoading, error, fetchApiKeys, createApiKey, revokeApiKey } = useApiKeys();
 
   // Available permissions for API keys
   const availablePermissions = [
@@ -97,91 +95,9 @@ const ApiKeyManagement: React.FC = () => {
     { value: '365', label: '1 year' },
   ];
 
-  // Fetch API keys
-  const fetchApiKeys = async () => {
-    try {
-      setIsLoading(true);
-      // Use a generic approach that doesn't rely on type inference
-      const { data, error } = await supabase
-        .from('api_keys')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      setApiKeys(data as ApiKey[]);
-    } catch (err) {
-      console.error('Error fetching API keys:', err);
-      setError(err instanceof Error ? err : new Error('Failed to fetch API keys'));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
     fetchApiKeys();
   }, []);
-
-  // Create API key function
-  const createApiKey = async () => {
-    try {
-      // Calculate expiry date if needed
-      let expiresAt = null;
-      const daysToExpire = parseInt(formData.expiresIn, 10);
-      
-      if (daysToExpire > 0) {
-        const expiry = new Date();
-        expiry.setDate(expiry.getDate() + daysToExpire);
-        expiresAt = expiry.toISOString();
-      }
-      
-      // Generate a unique key value
-      const keyValue = crypto.randomUUID().replace(/-/g, '');
-      
-      // Insert the new API key
-      const { data, error } = await supabase
-        .from('api_keys')
-        .insert({
-          name: formData.name,
-          description: formData.description || null,
-          permissions: formData.permissions,
-          expires_at: expiresAt,
-          created_by: (await supabase.auth.getUser()).data.user?.id,
-          key_value: keyValue,
-          is_active: true
-        })
-        .select('*')
-        .single();
-        
-      if (error) throw error;
-      
-      setNewKey(data as ApiKey);
-      fetchApiKeys(); // Refresh the list
-      return data;
-    } catch (err) {
-      console.error('Error creating API key:', err);
-      toast.error('Failed to create API key');
-      throw err;
-    }
-  };
-
-  // Revoke API key function
-  const revokeApiKey = async (keyId: string) => {
-    try {
-      const { error } = await supabase
-        .from('api_keys')
-        .update({ is_active: false })
-        .eq('id', keyId);
-        
-      if (error) throw error;
-      
-      toast.success('API key revoked successfully');
-      fetchApiKeys(); // Refresh the list
-    } catch (err) {
-      console.error('Error revoking API key:', err);
-      toast.error('Failed to revoke API key');
-    }
-  };
 
   const handleFormChange = (field: string, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -201,9 +117,10 @@ const ApiKeyManagement: React.FC = () => {
     }
     
     try {
-      await createApiKey();
+      const result = await createApiKey.mutateAsync(formData);
+      setNewKey(result);
     } catch (error) {
-      // Error is already handled in createApiKey
+      // Error is handled in the mutation
     }
   };
 
@@ -495,7 +412,7 @@ const ApiKeyManagement: React.FC = () => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => revokeApiKey(key.id)}
+                          onClick={() => revokeApiKey.mutate(key.id)}
                           disabled={!key.is_active}
                           className="h-8 px-2"
                         >
