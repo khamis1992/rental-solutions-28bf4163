@@ -29,6 +29,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
     const fetchTrafficFines = async () => {
@@ -36,8 +37,13 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         setLoading(true);
         
         if (!customerId) {
-          throw new Error("Invalid customer ID");
+          console.log('No customer ID provided');
+          setFines([]);
+          setLoading(false);
+          return;
         }
+        
+        console.log('Fetching traffic fines for customer:', customerId);
         
         // Step 1: First find all leases associated with this customer
         const { data: leases, error: leasesError } = await supabase
@@ -88,6 +94,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         }
         
         console.log(`Found ${trafficFines?.length || 0} traffic fines`);
+        console.log('Traffic fines data:', JSON.stringify(trafficFines, null, 2));
             
         // Transform the data to match the TrafficFine interface
         const formattedFines = (trafficFines || []).map(fine => {
@@ -95,35 +102,40 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           let vehicleModel: string | undefined = undefined;
           
           if (fine.vehicles) {
-            // Handle proper structure of vehicles data
-            let vehicleInfo: VehicleInfo;
-            
-            if (Array.isArray(fine.vehicles)) {
-              // It's an array, use the first element if it exists
-              if (fine.vehicles.length > 0) {
-                // Use type assertion to tell TypeScript this is a valid object
-                const firstVehicle = fine.vehicles[0] as any;
-                vehicleInfo = {
-                  make: firstVehicle.make,
-                  model: firstVehicle.model
-                };
+            try {
+              // Handle proper structure of vehicles data
+              let vehicleInfo: VehicleInfo = { make: '', model: '' };
+              
+              if (Array.isArray(fine.vehicles)) {
+                // It's an array, use the first element if it exists
+                if (fine.vehicles.length > 0) {
+                  const firstVehicle = fine.vehicles[0] as any;
+                  vehicleInfo = {
+                    make: firstVehicle.make || '',
+                    model: firstVehicle.model || ''
+                  };
+                } else {
+                  // Empty array, set default values
+                  vehicleInfo = {
+                    make: '',
+                    model: ''
+                  };
+                }
               } else {
-                // Empty array, set default values
+                // It's a direct object, use type assertion
+                const vehicleObj = fine.vehicles as any;
                 vehicleInfo = {
-                  make: '',
-                  model: ''
+                  make: vehicleObj.make || '',
+                  model: vehicleObj.model || ''
                 };
               }
-            } else {
-              // It's a direct object, use type assertion
-              const vehicleObj = fine.vehicles as any;
-              vehicleInfo = {
-                make: vehicleObj.make,
-                model: vehicleObj.model
-              };
+              
+              vehicleModel = `${vehicleInfo.make} ${vehicleInfo.model}`.trim();
+              if (vehicleModel === '') vehicleModel = undefined;
+            } catch (err) {
+              console.error('Error processing vehicle data for fine:', err);
+              // If there's an error, just leave vehicleModel as undefined
             }
-            
-            vehicleModel = `${vehicleInfo.make} ${vehicleInfo.model}`;
           }
 
           return {
@@ -131,10 +143,10 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
             licensePlate: fine.license_plate,
             vehicleModel,
-            violationDate: new Date(fine.violation_date),
-            fineAmount: fine.fine_amount,
+            violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+            fineAmount: fine.fine_amount || 0,
             violationCharge: fine.violation_charge,
-            paymentStatus: fine.payment_status as TrafficFineStatusType,
+            paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
             location: fine.fine_location || '',
             vehicleId: fine.vehicle_id,
             paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
@@ -172,7 +184,15 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
     }
   };
 
-  if (loading) {
+  const handleRefresh = async () => {
+    setShowLoader(true);
+    // Wait a moment for visual feedback
+    setTimeout(() => {
+      setShowLoader(false);
+    }, 1000);
+  };
+
+  if (loading || showLoader) {
     return (
       <Card>
         <div className="p-4">

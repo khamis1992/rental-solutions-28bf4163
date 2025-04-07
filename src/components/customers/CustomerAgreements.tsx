@@ -43,10 +43,14 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
 
   useEffect(() => {
     const fetchAgreements = async () => {
-      if (!customerId) return;
+      if (!customerId) {
+        setLoading(false);
+        return;
+      }
       
       try {
         setLoading(true);
+        console.log('Fetching agreements for customer:', customerId);
         
         const { data, error } = await supabase
           .from('leases')
@@ -70,35 +74,48 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
         if (error) {
           console.error('Error fetching customer agreements:', error);
           setError(t('agreements.fetchError'));
+          setLoading(false);
           return;
         }
         
+        if (!data || data.length === 0) {
+          console.log('No agreements found for customer:', customerId);
+          setAgreements([]);
+          setLoading(false);
+          return;
+        }
+        
+        console.log('Agreements data received:', JSON.stringify(data, null, 2));
+        
         const formattedAgreements = data.map(agreement => {
           // Check if vehicles exists and handle it properly
-          // The Supabase response structure may have vehicles as a property that needs to be accessed correctly
           let vehicleData: Vehicle | undefined = undefined;
           
           if (agreement.vehicles) {
-            // Handle vehicles data properly based on its actual structure
-            if (Array.isArray(agreement.vehicles)) {
-              // It's an array, take the first item if it exists
-              if (agreement.vehicles.length > 0) {
-                // Use type assertion to tell TypeScript this is a valid object with the expected properties
-                const firstVehicle = agreement.vehicles[0] as any;
+            try {
+              // Handle vehicles data properly based on its actual structure
+              if (Array.isArray(agreement.vehicles)) {
+                // It's an array, take the first item if it exists
+                if (agreement.vehicles.length > 0) {
+                  const firstVehicle = agreement.vehicles[0] as any;
+                  vehicleData = {
+                    make: firstVehicle.make || '',
+                    model: firstVehicle.model || '',
+                    license_plate: firstVehicle.license_plate || ''
+                  };
+                }
+              } else {
+                // It's a direct object, use type assertion
+                const vehicleObj = agreement.vehicles as any;
                 vehicleData = {
-                  make: firstVehicle.make,
-                  model: firstVehicle.model,
-                  license_plate: firstVehicle.license_plate
+                  make: vehicleObj.make || '',
+                  model: vehicleObj.model || '',
+                  license_plate: vehicleObj.license_plate || ''
                 };
               }
-            } else {
-              // It's a direct object, use type assertion
-              const vehicleObj = agreement.vehicles as any;
-              vehicleData = {
-                make: vehicleObj.make,
-                model: vehicleObj.model,
-                license_plate: vehicleObj.license_plate
-              };
+            } catch (err) {
+              console.error('Error processing vehicle data:', err);
+              // If there's an error, just leave vehicleData as undefined
             }
           }
           
@@ -189,7 +206,7 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
           <TableBody>
             {agreements.map((agreement) => (
               <TableRow key={agreement.id}>
-                <TableCell className="font-medium">{agreement.agreement_number}</TableCell>
+                <TableCell className="font-medium">{agreement.agreement_number || '-'}</TableCell>
                 <TableCell>
                   {agreement.vehicle ? (
                     <div className="flex flex-col">
@@ -209,19 +226,19 @@ export function CustomerAgreements({ customerId }: CustomerAgreementsProps) {
                     <div className="flex items-center">
                       <Calendar className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                       <span className="text-sm">
-                        {formatDate(new Date(agreement.start_date))}
+                        {agreement.start_date ? formatDate(new Date(agreement.start_date)) : '-'}
                       </span>
                     </div>
                     <div className="flex items-center mt-1">
                       <Clock className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
                       <span className="text-sm">
-                        {formatDate(new Date(agreement.end_date))}
+                        {agreement.end_date ? formatDate(new Date(agreement.end_date)) : '-'}
                       </span>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  {formatCurrency(agreement.rent_amount)}
+                  {formatCurrency(agreement.rent_amount || 0)}
                   <div className="text-xs text-muted-foreground">
                     {t('agreements.monthly')}
                   </div>
