@@ -8,9 +8,10 @@ import FinancialReport from '@/components/reports/FinancialReport';
 import CustomerReport from '@/components/reports/CustomerReport';
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import LegalReport from '@/components/reports/LegalReport';
+import TrafficFinesReport from '@/components/reports/TrafficFinesReport';
 import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 import { SectionHeader } from '@/components/ui/section-header';
-import { FileText, Download, Calendar, AlertCircle } from 'lucide-react';
+import { FileText, Download, Calendar, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
@@ -165,6 +166,19 @@ const Reports = () => {
           service_provider: record.service_provider || record.performed_by || 'N/A',
           notes: record.notes || 'N/A'
         }));
+      case 'trafficFines':
+        if (!trafficFines) return [];
+        const assignedFines = trafficFines.filter(fine => fine.customerId);
+        return assignedFines.map(fine => ({
+          customer_name: fine.customerName || 'Unknown',
+          violation_number: fine.violationNumber || 'N/A',
+          license_plate: fine.licensePlate || 'N/A',
+          violation_date: fine.violationDate,
+          amount: fine.fineAmount,
+          status: fine.paymentStatus,
+          violation_charge: fine.violationCharge || 'N/A',
+          location: fine.location || 'N/A'
+        }));
       case 'legal':
         return [];
       default:
@@ -206,11 +220,12 @@ const Reports = () => {
       <Card>
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-5 mb-8">
+            <TabsList className="grid grid-cols-6 mb-8">
               <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
               <TabsTrigger value="financial">Financial Report</TabsTrigger>
               <TabsTrigger value="customers">Customer Report</TabsTrigger>
               <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
+              <TabsTrigger value="trafficFines">Traffic Fines</TabsTrigger>
               <TabsTrigger value="legal">Legal Report</TabsTrigger>
             </TabsList>
             
@@ -235,6 +250,10 @@ const Reports = () => {
             
             <TabsContent value="maintenance" className="mt-0">
               <MaintenanceReport />
+            </TabsContent>
+            
+            <TabsContent value="trafficFines" className="mt-0">
+              <TrafficFinesReport />
             </TabsContent>
             
             <TabsContent value="legal" className="mt-0">

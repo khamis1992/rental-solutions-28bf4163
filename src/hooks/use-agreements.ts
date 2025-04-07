@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -7,7 +6,6 @@ import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { FlattenType } from '@/utils/type-utils';
 
-// Define simplified types to avoid excessive type instantiation
 type SimpleCustomer = {
   id: string;
   full_name?: string;
@@ -26,7 +24,6 @@ type SimpleVehicle = {
   vin?: string;
 };
 
-// Simplify the agreement type to avoid deep instantiation issues
 export type SimpleAgreement = {
   id: string;
   customer_id: string;
@@ -49,7 +46,6 @@ export type SimpleAgreement = {
   daily_late_fee?: number;
 };
 
-// Function to convert database status to AgreementStatus enum value
 export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
   switch(dbStatus) {
     case 'active':
@@ -156,7 +152,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      // Use the helper function to map status
       const mappedStatus = mapDBStatusToEnum(data.status);
 
       const agreement: SimpleAgreement = {
@@ -238,9 +233,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        // First try to get any agreements where the vehicle license plate matches the query
         if (searchQuery) {
-          // Use a join pattern that ensures we don't lose the related data
           const { data: vehicleIds, error: vehicleError } = await supabase
             .from('vehicles')
             .select('id')
@@ -249,12 +242,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           if (vehicleError) {
             console.error("Error searching vehicles:", vehicleError);
           } else if (vehicleIds && vehicleIds.length > 0) {
-            // If we found matching vehicles, filter leases by those vehicle IDs
             const ids = vehicleIds.map(v => v.id);
             query = query.in('vehicle_id', ids);
             console.log("Filtering by vehicle IDs:", ids);
           } else {
-            // If no vehicles match, try to match against customer names
             query = query.ilike('profiles.full_name', `%${searchQuery}%`);
           }
         }
@@ -275,9 +266,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Transform the data using simplified types
       const agreements: SimpleAgreement[] = data.map(item => {
-        // Use the helper function to map status
         const mappedStatus = mapDBStatusToEnum(item.status);
 
         return {
@@ -312,22 +301,20 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Using Record<string, any> instead of complex nested types
-  // This is where the "excessively deep" error was occurring
   type MutationParams = { 
     id: string; 
     data: Record<string, any> 
   };
   
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: MutationParams) => {
-      console.log("Update mutation called with:", { id, data });
+    mutationFn: async (params: { id: string; data: any }) => {
+      console.log("Update mutation called with:", params);
       
       try {
         const { data: result, error } = await supabase
           .from('leases')
-          .update(data)
-          .eq('id', id)
+          .update(params.data)
+          .eq('id', params.id)
           .select();
         
         if (error) throw error;
@@ -349,7 +336,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       console.log(`Starting deletion process for agreement ${id}`);
       
       try {
-        // Step 1: Delete related overdue_payments records first (foreign key constraint)
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
@@ -359,7 +345,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
         }
         
-        // Step 2: Delete related unified_payments records
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
@@ -369,7 +354,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
         }
         
-        // Step 3: Delete related import revert records
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
@@ -386,7 +370,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           }
         }
         
-        // Step 4: Check for any other potential related records
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
@@ -403,7 +386,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           }
         }
         
-        // Finally: Delete the agreement itself
         const { error } = await supabase
           .from('leases')
           .delete()
@@ -432,8 +414,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    staleTime: 600000,
+    gcTime: 900000,
   });
 
   return {
