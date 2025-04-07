@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { TrafficFine } from '@/types/models';
 
 // Create a simplified agreement type to avoid recursion issues
 export interface SimpleAgreement {
@@ -20,20 +19,79 @@ export interface SimpleAgreement {
   deposit_amount?: number;
   notes?: string;
   lease_number?: string;
+  agreement_number?: string;
+  rent_amount?: number;
+  daily_late_fee?: number;
+  
+  // References to related objects
+  vehicles?: {
+    id?: string;
+    make?: string;
+    model?: string;
+    license_plate?: string;
+    color?: string;
+    year?: number;
+  };
+  
+  customers?: {
+    id?: string;
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    driver_license?: string;
+  };
 }
 
-export function useAgreements() {
+export interface AgreementSearchParams {
+  query?: string;
+  status?: string;
+  customer_id?: string;
+  vehicle_id?: string;
+}
+
+export function useAgreements(initialParams?: AgreementSearchParams) {
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [searchParams, setSearchParams] = useState<AgreementSearchParams>(initialParams || {
+    query: '',
+    status: 'all'
+  });
 
   // Fetch all agreements
   const { data: agreements, isLoading, error } = useQuery({
-    queryKey: ['agreements'],
+    queryKey: ['agreements', searchParams],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leases')
-        .select('*')
+        .select(`
+          *,
+          vehicles(*),
+          customers(*)
+        `)
         .order('created_at', { ascending: false });
+        
+      // Apply filters based on search params
+      if (searchParams.status && searchParams.status !== 'all') {
+        query = query.eq('status', searchParams.status);
+      }
+      
+      if (searchParams.customer_id) {
+        query = query.eq('customer_id', searchParams.customer_id);
+      }
+      
+      if (searchParams.vehicle_id) {
+        query = query.eq('vehicle_id', searchParams.vehicle_id);
+      }
+      
+      if (searchParams.query) {
+        query = query.or(`
+          customers.full_name.ilike.%${searchParams.query}%,
+          vehicles.license_plate.ilike.%${searchParams.query}%,
+          agreement_number.ilike.%${searchParams.query}%
+        `);
+      }
+        
+      const { data, error } = await query;
         
       if (error) throw error;
       return data as SimpleAgreement[];
@@ -48,8 +106,8 @@ export function useAgreements() {
         .from('leases')
         .select(`
           *,
-          vehicles (*),
-          customers (*)
+          vehicles(*),
+          customers(*)
         `)
         .eq('id', id)
         .single();
@@ -62,6 +120,11 @@ export function useAgreements() {
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Get agreement by ID
+  const getAgreement = async (id: string) => {
+    return getAgreementDetails(id);
   };
 
   // Create new agreement
@@ -147,7 +210,10 @@ export function useAgreements() {
     agreements,
     isLoading: isLoading || loading,
     error,
+    searchParams,
+    setSearchParams,
     getAgreementDetails,
+    getAgreement,
     createAgreement,
     updateAgreement,
     deleteAgreement

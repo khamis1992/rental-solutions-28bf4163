@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -231,7 +230,8 @@ const Reports = () => {
             
             <div className="mb-6">
               <ReportDownloadOptions 
-                reportType={selectedTab} 
+                reportType={selectedTab}
+                fileNamePrefix={`${selectedTab}-report`}
                 getReportData={getReportData} 
               />
             </div>

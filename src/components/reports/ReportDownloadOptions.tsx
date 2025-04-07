@@ -10,12 +10,17 @@ import { DateRange } from 'react-day-picker';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
-  fileNamePrefix: string;
+  fileNamePrefix?: string;
   additionalParams?: Record<string, any>;
   getReportData?: () => Record<string, any>[];
 }
 
-export function ReportDownloadOptions({ reportType, fileNamePrefix, additionalParams, getReportData }: ReportDownloadOptionsProps) {
+export function ReportDownloadOptions({ 
+  reportType, 
+  fileNamePrefix = reportType, 
+  additionalParams, 
+  getReportData 
+}: ReportDownloadOptionsProps) {
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(),
     to: new Date(),

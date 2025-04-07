@@ -107,12 +107,15 @@ const CustomerReport = () => {
   }
   return <div className="space-y-8">
       <div className="flex items-center mb-6">
-        
         <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
       </div>
       
       <div className="mb-6">
-        <ReportDownloadOptions reportType="customers" getReportData={getReportData} />
+        <ReportDownloadOptions 
+          reportType="customers" 
+          fileNamePrefix="customer-report"
+          getReportData={getReportData} 
+        />
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -201,6 +204,7 @@ const CustomerReport = () => {
       </Card>
     </div>;
 };
+
 const CustomerStatusBadge = ({
   status
 }: {
@@ -216,4 +220,5 @@ const CustomerStatusBadge = ({
       {status.replace('_', ' ')}
     </Badge>;
 };
+
 export default CustomerReport;

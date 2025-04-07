@@ -103,11 +103,15 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements({ query: searchQuery, status: statusFilter });
+  } = useAgreements();
   
   useEffect(() => {
-    setSearchParams(prev => ({ ...prev, query: searchQuery }));
-  }, [searchQuery, setSearchParams]);
+    setSearchParams({
+      ...searchParams,
+      query: searchQuery,
+      status: statusFilter
+    });
+  }, [searchQuery, statusFilter, setSearchParams]);
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -502,7 +506,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    setSearchParams(prev => ({ ...prev, status: value }));
+    setSearchParams({
+      ...searchParams,
+      status: value
+    });
   };
 
   const selectedCount = Object.keys(rowSelection).length;

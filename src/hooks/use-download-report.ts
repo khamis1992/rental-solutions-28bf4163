@@ -2,16 +2,18 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+export interface DownloadReportParams {
+  reportType: string;
+  fileNamePrefix: string;
+  dateFrom: string;
+  dateTo: string;
+  [key: string]: any;
+}
+
 export function useDownloadReport() {
   const [isLoading, setIsLoading] = useState(false);
 
-  const downloadReport = async (params: {
-    reportType: string;
-    fileNamePrefix: string;
-    dateFrom: string;
-    dateTo: string;
-    [key: string]: any;
-  }) => {
+  const downloadReport = async (params: DownloadReportParams) => {
     setIsLoading(true);
     try {
       // Here you would implement the actual report download logic
