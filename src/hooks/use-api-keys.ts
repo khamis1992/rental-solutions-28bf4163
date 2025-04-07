@@ -37,15 +37,22 @@ export function useApiKeys() {
         return data as FlattenType<ApiKey[]>;
       } catch (err) {
         console.error('Exception while fetching API keys:', err);
-        throw err;
+        // Return empty array on error to avoid breaking UI
+        return [];
       }
     },
     enabled: !!user?.id, // Only run the query if user is logged in
+    retry: false, // Don't retry on error
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Create new API key
   const createApiKey = useMutation({
     mutationFn: async (keyData: CreateApiKeyRequest) => {
+      if (!user?.id) {
+        throw new Error('You must be logged in to create API keys');
+      }
+      
       setLoading(true);
       try {
         console.log('Creating API key with data:', keyData);
@@ -82,6 +89,10 @@ export function useApiKeys() {
   // Revoke API key
   const revokeApiKey = useMutation({
     mutationFn: async (keyId: string) => {
+      if (!user?.id) {
+        throw new Error('You must be logged in to revoke API keys');
+      }
+      
       setLoading(true);
       try {
         console.log('Revoking API key:', keyId);
@@ -104,7 +115,7 @@ export function useApiKeys() {
           .from('api_keys')
           .update({ is_active: false })
           .eq('id', keyId)
-          .eq('created_by', user?.id) // Make sure user can only update their own keys
+          .eq('created_by', user.id) // Make sure user can only update their own keys
           .select();
           
         if (updateError) {
@@ -128,6 +139,10 @@ export function useApiKeys() {
 
   // Get API key usage logs
   const getApiKeyUsage = useCallback(async (keyId: string) => {
+    if (!user?.id) {
+      throw new Error('You must be logged in to view API key usage');
+    }
+    
     try {
       console.log('Fetching usage logs for API key:', keyId);
       setLoading(true);
@@ -150,10 +165,10 @@ export function useApiKeys() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   return {
-    apiKeys,
+    apiKeys: apiKeys || [],
     isLoading: isLoading || loading,
     error,
     createApiKey,

@@ -40,7 +40,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ApiKeyManagement: React.FC = () => {
-  const { apiKeys, isLoading, createApiKey, revokeApiKey, refetch } = useApiKeys();
+  const { apiKeys, isLoading, error, createApiKey, revokeApiKey, refetch } = useApiKeys();
   const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [showNewKey, setShowNewKey] = useState(false);
@@ -176,6 +176,27 @@ const ApiKeyManagement: React.FC = () => {
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
           <p className="text-muted-foreground">Loading API keys...</p>
         </div>
+      );
+    }
+    
+    if (error) {
+      return (
+        <Alert variant="destructive" className="my-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Failed to load API keys. Please refresh and try again.
+            <Button 
+              variant="outline" 
+              className="ml-2" 
+              onClick={handleRefresh}
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
       );
     }
     
