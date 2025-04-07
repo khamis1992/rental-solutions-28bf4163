@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { 
   ColumnDef, 
   flexRender, 
@@ -286,10 +286,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           <Link 
             to={`/agreements/${row.original.id}`}
             className="font-medium text-primary hover:underline"
-            onClick={() => {
-              console.log("Navigating to agreement detail:", row.original.id);
-              navigate(`/agreements/${row.original.id}`);
-            }}
           >
             {row.getValue("agreement_number")}
           </Link>
