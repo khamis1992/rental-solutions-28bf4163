@@ -7,8 +7,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { FileCode, Globe, Terminal } from 'lucide-react';
+import { FileCode, Globe, Terminal, HelpCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const ApiDocumentation: React.FC = () => {
   return (
@@ -48,6 +49,30 @@ const ApiDocumentation: React.FC = () => {
                 Generate an API key from the API Keys tab to start making authenticated requests.
               </p>
             </div>
+            
+            <Alert>
+              <HelpCircle className="h-4 w-4" />
+              <AlertTitle>PowerShell Usage</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">When using PowerShell, make sure to format the request correctly:</p>
+                <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
+                  Invoke-WebRequest -Uri "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" `<br />
+                  -Headers @&#123;"Authorization" = "Bearer YOUR_API_KEY"&#125;
+                </code>
+              </AlertDescription>
+            </Alert>
+            
+            <Alert>
+              <HelpCircle className="h-4 w-4" />
+              <AlertTitle>cURL Example</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">Basic cURL example for retrieving traffic fines:</p>
+                <code className="block bg-slate-100 p-2 rounded text-xs mt-2">
+                  curl -X GET "https://vqdlsidkucrownbfuouq.supabase.co/functions/v1/api/traffic-fines" \<br />
+                  -H "Authorization: Bearer YOUR_API_KEY"
+                </code>
+              </AlertDescription>
+            </Alert>
           </div>
         </CardContent>
       </Card>

@@ -36,11 +36,12 @@ async function logApiRequest(apiKeyId: string, endpoint: string, method: string,
 }
 
 serve(async (req: Request) => {
-  console.log(`API request: ${req.method} ${req.url}`);
+  console.log(`API request received: ${req.method} ${req.url}`);
   const startTime = performance.now();
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log("Handling OPTIONS preflight request");
     return new Response(null, { headers: corsHeaders });
   }
   
@@ -48,8 +49,11 @@ serve(async (req: Request) => {
     const url = new URL(req.url);
     const pathParts = url.pathname.split('/').filter(Boolean);
     
+    console.log("Path parts:", pathParts);
+    
     // Validate API path
     if (pathParts.length < 2 || pathParts[0] !== 'api') {
+      console.error("Invalid API endpoint:", url.pathname);
       return new Response(JSON.stringify({ 
         error: 'Invalid API endpoint' 
       }), { 
@@ -63,26 +67,47 @@ serve(async (req: Request) => {
     
     // Authenticate request
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.log("Auth header:", authHeader ? "Present" : "Missing");
+    
+    if (!authHeader) {
+      console.error("No Authorization header found");
       return new Response(JSON.stringify({ 
-        error: 'Missing or invalid API key' 
+        error: 'Missing API key. Please provide an Authorization header with format: Bearer YOUR_API_KEY' 
       }), { 
         status: 401, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
     
-    const apiKey = authHeader.replace('Bearer ', '');
+    // Extract API key, handling both "Bearer KEY" and just "KEY" formats
+    let apiKey = '';
+    if (authHeader.startsWith('Bearer ')) {
+      apiKey = authHeader.replace('Bearer ', '').trim();
+    } else {
+      apiKey = authHeader.trim();
+    }
+    
+    if (!apiKey) {
+      console.error("Empty API key after processing");
+      return new Response(JSON.stringify({ 
+        error: 'Invalid API key format. Please provide: Bearer YOUR_API_KEY' 
+      }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    console.log(`Validating API key: ${apiKey.substring(0, 5)}...`);
     
     // Validate API key
     const { data: apiKeyData, error: apiKeyError } = await supabaseClient
       .from('api_keys')
-      .select('id, permissions')
+      .select('id, permissions, is_active')
       .eq('key_value', apiKey)
-      .eq('is_active', true)
       .single();
       
-    if (apiKeyError || !apiKeyData) {
+    if (apiKeyError) {
+      console.error("API key validation error:", apiKeyError);
       const endTime = performance.now();
       const responseTime = Math.round(endTime - startTime);
       
@@ -94,9 +119,25 @@ serve(async (req: Request) => {
       });
     }
     
+    if (!apiKeyData || !apiKeyData.is_active) {
+      console.error("API key inactive or not found");
+      const endTime = performance.now();
+      const responseTime = Math.round(endTime - startTime);
+      
+      return new Response(JSON.stringify({ 
+        error: apiKeyData ? 'API key has been revoked' : 'Invalid API key' 
+      }), { 
+        status: 401, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    console.log(`API key valid. Permissions:`, apiKeyData.permissions);
+    
     // Check resource permissions
     const permissions = apiKeyData.permissions as string[];
     if (!permissions.includes(resourceType) && !permissions.includes('*')) {
+      console.error(`Access denied to resource: ${resourceType}`);
       const endTime = performance.now();
       const responseTime = Math.round(endTime - startTime);
       
@@ -119,6 +160,8 @@ serve(async (req: Request) => {
       });
     }
     
+    console.log(`Access granted to resource: ${resourceType}`);
+    
     // Handle different resources
     let response: Response;
     switch(resourceType) {
@@ -135,6 +178,7 @@ serve(async (req: Request) => {
         response = await handleAgreementRequests(req, resourceId);
         break;
       default:
+        console.error(`Unsupported resource type: ${resourceType}`);
         response = new Response(JSON.stringify({ 
           error: 'Unsupported resource type' 
         }), { 
@@ -157,7 +201,18 @@ serve(async (req: Request) => {
       req.headers.get('user-agent') || undefined
     );
     
-    return response;
+    // Make sure response has CORS headers
+    const responseHeaders = new Headers(response.headers);
+    Object.entries(corsHeaders).forEach(([key, value]) => {
+      responseHeaders.set(key, value);
+    });
+    
+    // Return response with CORS headers
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders
+    });
   } catch (error) {
     console.error('API error:', error);
     return new Response(JSON.stringify({ 

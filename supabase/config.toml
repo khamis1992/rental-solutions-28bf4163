@@ -144,4 +144,4 @@ enabled = true
 port = 9000
 
 [functions.api]
-verify_jwt = true
+verify_jwt = false
