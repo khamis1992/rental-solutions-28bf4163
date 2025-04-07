@@ -4,6 +4,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ApiKey } from '@/types/api-key';
+import { FlattenType } from '@/utils/type-utils';
 
 /**
  * Custom hook for API key management operations

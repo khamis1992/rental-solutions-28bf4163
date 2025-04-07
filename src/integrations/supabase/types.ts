@@ -9841,11 +9841,7 @@ export type Database = {
     }
     Functions: {
       add_loyalty_points: {
-        Args: {
-          p_customer_id: string
-          p_points: number
-          p_reason: string
-        }
+        Args: { p_customer_id: string; p_points: number; p_reason: string }
         Returns: undefined
       }
       analyze_vehicle_maintenance: {
@@ -9853,10 +9849,7 @@ export type Database = {
         Returns: undefined
       }
       calculate_case_duration_stats: {
-        Args: {
-          p_case_type: string
-          p_time_period: string
-        }
+        Args: { p_case_type: string; p_time_period: string }
         Returns: undefined
       }
       calculate_credit_score: {
@@ -9879,12 +9872,7 @@ export type Database = {
         Returns: Json
       }
       calculate_distance: {
-        Args: {
-          lat1: number
-          lon1: number
-          lat2: number
-          lon2: number
-        }
+        Args: { lat1: number; lon1: number; lat2: number; lon2: number }
         Returns: number
       }
       calculate_late_fine: {
@@ -9900,34 +9888,23 @@ export type Database = {
         Returns: undefined
       }
       calculate_model_risk_metrics: {
-        Args: {
-          p_vehicle_model: string
-        }
+        Args: { p_vehicle_model: string }
         Returns: undefined
       }
       calculate_remaining_amount: {
-        Args: {
-          lease_id: string
-        }
+        Args: { lease_id: string }
         Returns: number
       }
       calculate_risk_score: {
-        Args: {
-          p_customer_id: string
-        }
+        Args: { p_customer_id: string }
         Returns: number
       }
       calculate_template_performance: {
-        Args: {
-          p_template_id: string
-          p_time_period: unknown
-        }
+        Args: { p_template_id: string; p_time_period: unknown }
         Returns: undefined
       }
       can_delete_customer: {
-        Args: {
-          customer_id: string
-        }
+        Args: { customer_id: string }
         Returns: boolean
       }
       check_car_installment_overdue_payments: {
@@ -9981,15 +9958,11 @@ export type Database = {
         Returns: undefined
       }
       create_transaction_import: {
-        Args: {
-          p_file_name: string
-        }
+        Args: { p_file_name: string }
         Returns: string
       }
       delete_agreements_by_import_id: {
-        Args: {
-          p_import_id: string
-        }
+        Args: { p_import_id: string }
         Returns: Json
       }
       delete_all_agreements: {
@@ -10005,15 +9978,11 @@ export type Database = {
         Returns: undefined
       }
       delete_historical_payments: {
-        Args: {
-          agreement_id: string
-        }
+        Args: { agreement_id: string }
         Returns: undefined
       }
       fuzzy_name_match: {
-        Args: {
-          search_name: string
-        }
+        Args: { search_name: string }
         Returns: {
           id: string
           full_name: string
@@ -10063,9 +10032,7 @@ export type Database = {
         Returns: undefined
       }
       generate_template_recommendations: {
-        Args: {
-          p_template_id: string
-        }
+        Args: { p_template_id: string }
         Returns: undefined
       }
       get_dashboard_stats: {
@@ -10087,44 +10054,27 @@ export type Database = {
         }[]
       }
       handle_portal_login: {
-        Args: {
-          p_agreement_number: string
-          p_phone_number: string
-        }
+        Args: { p_agreement_number: string; p_phone_number: string }
         Returns: Json
       }
       has_active_agreements: {
-        Args: {
-          customer_id: string
-        }
+        Args: { customer_id: string }
         Returns: boolean
       }
       is_point_in_polygon: {
-        Args: {
-          p_lat: number
-          p_lng: number
-          polygon_coords: Json
-        }
+        Args: { p_lat: number; p_lng: number; polygon_coords: Json }
         Returns: boolean
       }
       is_valid_date: {
-        Args: {
-          date_str: string
-        }
+        Args: { date_str: string }
         Returns: boolean
       }
       merge_customer_records: {
-        Args: {
-          primary_id: string
-          duplicate_ids: string[]
-        }
+        Args: { primary_id: string; duplicate_ids: string[] }
         Returns: undefined
       }
       merge_duplicate_profiles: {
-        Args: {
-          target_profile_id: string
-          source_profile_id: string
-        }
+        Args: { target_profile_id: string; source_profile_id: string }
         Returns: undefined
       }
       migrate_to_unified_import_tracking: {
@@ -10156,18 +10106,14 @@ export type Database = {
         Returns: undefined
       }
       process_single_agreement_template: {
-        Args: {
-          agreement_id: string
-        }
+        Args: { agreement_id: string }
         Returns: {
           success: boolean
           error_message: string
         }[]
       }
       process_tracked_import: {
-        Args: {
-          import_id: string
-        }
+        Args: { import_id: string }
         Returns: boolean
       }
       record_payment_with_late_fee: {
@@ -10199,21 +10145,15 @@ export type Database = {
         Returns: undefined
       }
       simulate_vehicle_sensor_data: {
-        Args: {
-          vehicle_id: string
-        }
+        Args: { vehicle_id: string }
         Returns: undefined
       }
       standardize_template_variables: {
-        Args: {
-          content: string
-        }
+        Args: { content: string }
         Returns: string
       }
       swap_day_month: {
-        Args: {
-          input_date: string
-        }
+        Args: { input_date: string }
         Returns: string
       }
       trigger_customer_status_updates: {
@@ -10229,16 +10169,11 @@ export type Database = {
         Returns: undefined
       }
       update_payment_schedule: {
-        Args: {
-          p_lease_id: string
-          p_delay_days?: number
-        }
+        Args: { p_lease_id: string; p_delay_days?: number }
         Returns: undefined
       }
       update_risk_assessment: {
-        Args: {
-          p_customer_id: string
-        }
+        Args: { p_customer_id: string }
         Returns: undefined
       }
     }
@@ -10419,27 +10354,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -10447,20 +10384,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -10468,20 +10407,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -10489,21 +10430,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -10512,6 +10455,182 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      agreement_template_type: ["lease_to_own", "short_term"],
+      agreement_type: ["lease_to_own", "short_term"],
+      alert_priority: ["high", "medium", "low"],
+      alert_type: ["vehicle", "payment", "maintenance"],
+      audit_action_type: [
+        "create",
+        "update",
+        "delete",
+        "view",
+        "login",
+        "logout",
+        "export",
+        "import",
+        "payment",
+        "status_change",
+        "document_upload",
+      ],
+      customer_role: ["customer", "staff", "admin"],
+      customer_status_type: [
+        "active",
+        "inactive",
+        "suspended",
+        "pending_review",
+        "blacklisted",
+        "pending_payment",
+      ],
+      damage_severity: ["none", "minor", "moderate", "severe"],
+      discount_type: ["percentage", "fixed_amount"],
+      document_category: ["registration", "insurance", "maintenance", "other"],
+      document_language: ["english", "spanish", "french", "arabic"],
+      document_version_status: ["draft", "published", "archived"],
+      driver_status: ["available", "busy", "off_duty", "on_leave"],
+      email_trigger_type: [
+        "welcome",
+        "contract_confirmation",
+        "payment_reminder",
+        "late_payment",
+        "legal_notice",
+        "insurance_renewal",
+      ],
+      geofence_type: ["circle", "polygon"],
+      import_progress_status: [
+        "pending",
+        "pending_processing",
+        "processing",
+        "completed",
+        "failed",
+      ],
+      import_source_type: ["csv", "manual", "api", "bulk_upload"],
+      import_status: ["pending", "processing", "completed", "failed"],
+      import_status_type: [
+        "pending",
+        "processing",
+        "validated",
+        "failed",
+        "completed",
+      ],
+      import_type: ["payments", "customers", "agreements"],
+      lead_status: [
+        "new",
+        "contacted",
+        "qualified",
+        "unqualified",
+        "converted",
+      ],
+      lease_status: [
+        "pending_payment",
+        "pending_deposit",
+        "active",
+        "closed",
+        "terminated",
+        "cancelled",
+        "archived",
+        "completed",
+      ],
+      legal_case_status: [
+        "pending_reminder",
+        "in_legal_process",
+        "resolved",
+        "escalated",
+      ],
+      loyalty_tier_type: ["bronze", "silver", "gold", "platinum"],
+      maintenance_status: [
+        "scheduled",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
+      notification_status: ["pending", "sent", "failed", "cancelled"],
+      notification_trigger_type: [
+        "welcome",
+        "contract_confirmation",
+        "payment_reminder",
+        "late_payment",
+        "insurance_renewal",
+        "legal_notice",
+      ],
+      overdue_payment_status: ["pending", "partially_paid", "resolved"],
+      payment_method_type: [
+        "Invoice",
+        "Cash",
+        "WireTransfer",
+        "Cheque",
+        "Deposit",
+        "On_hold",
+      ],
+      payment_status: ["pending", "completed", "failed", "refunded"],
+      payment_status_type: ["pending", "paid", "overdue", "cancelled"],
+      portal_user_status: ["active", "inactive", "locked"],
+      pre_registration_status: ["pending", "approved", "rejected", "waitlist"],
+      recurrence_type: ["once", "daily", "weekly"],
+      seeker_target_status: ["active", "inactive", "paused"],
+      tax_filing_status: [
+        "pending",
+        "in_progress",
+        "submitted",
+        "accepted",
+        "rejected",
+      ],
+      template_section_type: [
+        "header",
+        "customer_info",
+        "vehicle_info",
+        "terms",
+        "payment_terms",
+        "signatures",
+      ],
+      timing_type: ["before", "after", "on"],
+      transaction_amount_type: ["income", "expense", "refund"],
+      transaction_type: [
+        "LATE_PAYMENT_FEE",
+        "ADMINISTRATIVE_FEES",
+        "VEHICLE_DAMAGE_CHARGE",
+        "TRAFFIC_FINE",
+        "RENTAL_FEE",
+        "ADVANCE_PAYMENT",
+        "OTHER",
+        "INCOME",
+        "EXPENSE",
+      ],
+      user_location_status: ["active", "inactive", "error"],
+      user_role: ["admin", "staff", "customer", "manager"],
+      vehicle_size: [
+        "compact",
+        "mid_size",
+        "full_size",
+        "suv",
+        "van",
+        "luxury",
+      ],
+      vehicle_status: [
+        "available",
+        "rented",
+        "maintenance",
+        "retired",
+        "police_station",
+        "accident",
+        "reserve",
+        "stolen",
+      ],
+      vehicle_status_enum: [
+        "maintenance",
+        "available",
+        "rented",
+        "police_station",
+        "accident",
+        "reserve",
+        "stolen",
+      ],
+    },
+  },
+} as const
