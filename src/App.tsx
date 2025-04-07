@@ -52,6 +52,7 @@ import Legal from "./pages/Legal";
 
 // Traffic Fines pages
 import TrafficFines from "./pages/TrafficFines";
+import FinesValidation from "./pages/FinesValidation";
 
 // Financials pages
 import Financials from "./pages/Financials";
@@ -132,6 +133,7 @@ function App() {
                           
                           {/* Traffic Fines Management Route */}
                           <Route path="/fines" element={<TrafficFines />} />
+                          <Route path="/fines-validation" element={<FinesValidation />} />
                           
                           {/* Financials Management Route */}
                           <Route path="/financials" element={<Financials />} />
