@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
@@ -13,9 +13,9 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
   // Get current month name for dynamic title
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   
-  // Ensure we have data to display, showing at least the last 6 months
-  const ensureCompleteData = (inputData: { name: string; revenue: number }[]) => {
-    if (!inputData || inputData.length === 0) return [];
+  // Memoize data processing to avoid unnecessary recalculations
+  const completeData = useMemo(() => {
+    if (!data || data.length === 0) return [];
     
     // List of expected months (last 6 months)
     const months = [];
@@ -27,7 +27,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
     
     // Create a map of existing data
     const dataMap: Record<string, number> = {};
-    inputData.forEach(item => {
+    data.forEach(item => {
       dataMap[item.name] = item.revenue;
     });
     
@@ -36,9 +36,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
       name: month,
       revenue: dataMap[month] || 0
     }));
-  };
-  
-  const completeData = ensureCompleteData(data);
+  }, [data]);
 
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
