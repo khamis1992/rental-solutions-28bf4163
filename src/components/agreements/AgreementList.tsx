@@ -54,10 +54,51 @@ import {
 } from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
 import { Agreement, AgreementStatus, useAgreements } from '@/hooks/use-agreements';
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Create skeleton loader components for agreements table
+const AgreementListSkeleton = () => {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-5 w-32 mt-1" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-32" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+      </div>
+      
+      <Skeleton className="h-10 w-48 my-4" />
+      
+      <div className="rounded-md border">
+        <div className="h-10 px-4 border-b flex items-center">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-4 w-24 mx-4" />
+          ))}
+        </div>
+        {Array(5).fill(0).map((_, idx) => (
+          <div key={idx} className="h-16 px-4 border-b flex items-center">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-4 w-24 mx-4" />
+            ))}
+          </div>
+        ))}
+      </div>
+      
+      <div className="flex items-center justify-end space-x-2 py-4">
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-9 w-24" />
+      </div>
+    </div>
+  );
+};
 
 const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const navigate = useNavigate();
-  const { agreements, isLoading, error, setSearchParams, deleteAgreement } = useAgreements();
+  const { agreements, totalCount, isLoading, error, setSearchParams, deleteAgreement, searchParams } = useAgreements();
   const [agreementToDelete, setAgreementToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -65,6 +106,11 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
+  
+  // Pagination state
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [pageIndex, setPageIndex] = useState<number>(1);
+  const totalPages = Math.ceil((totalCount || 0) / pageSize);
 
   const columns: ColumnDef<Agreement>[] = [
     {
@@ -194,11 +240,27 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
 
   useEffect(() => {
     if (searchQuery) {
-      setSearchParams({ query: searchQuery });
+      setSearchParams({ query: searchQuery, page: 1 }); // Reset to first page on new search
     } else {
       setSearchParams(prev => ({ ...prev, query: '' }));
     }
   }, [searchQuery, setSearchParams]);
+
+  // Update the internal pagination state when searchParams change
+  useEffect(() => {
+    if (searchParams.page) {
+      setPageIndex(searchParams.page);
+    }
+    if (searchParams.pageSize) {
+      setPageSize(searchParams.pageSize);
+    }
+  }, [searchParams]);
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setPageIndex(newPage);
+    setSearchParams(prev => ({ ...prev, page: newPage }));
+  };
 
   const handleDeleteAgreement = async () => {
     if (!agreementToDelete) return;
@@ -241,21 +303,22 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
     getFilteredRowModel: getFilteredRowModel(),
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
+    manualPagination: true, // Tell the table we're doing manual pagination
+    pageCount: totalPages,
     state: {
       sorting,
       columnFilters,
       columnVisibility,
       rowSelection,
+      pagination: {
+        pageIndex: pageIndex - 1, // Convert from 1-based to 0-based
+        pageSize,
+      },
     },
   });
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Loading agreements...</span>
-      </div>
-    );
+    return <AgreementListSkeleton />;
   }
 
   if (error) {
@@ -278,14 +341,14 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
         <div>
           <h2 className="text-xl font-semibold">Agreements</h2>
           <p className="text-sm text-muted-foreground">
-            {agreements?.length || 0} agreements found
+            {totalCount} agreements found
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
             onClick={() => {
-              setSearchParams({ status: "all" });
+              setSearchParams({ status: "all", page: 1 });
             }}
           >
             <Filter className="h-4 w-4 mr-2" />
@@ -303,7 +366,7 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
       <div className="flex items-center py-4 space-x-4">
         <Select
           onValueChange={(value) => {
-            setSearchParams({ status: value });
+            setSearchParams({ status: value, page: 1 }); // Reset to first page on status change
           }}
           defaultValue="all"
         >
@@ -320,23 +383,77 @@ const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
       
       <DataTable table={table} />
       
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+      <div className="flex items-center justify-between space-x-2 py-4">
+        <div className="flex-1 text-sm text-muted-foreground">
+          Showing {(pageIndex - 1) * pageSize + 1} to {Math.min(pageIndex * pageSize, totalCount)} of {totalCount} entries
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(pageIndex - 1)}
+            disabled={pageIndex === 1}
+          >
+            Previous
+          </Button>
+          <div className="flex items-center">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              // Show pages around current page
+              let pageNum = pageIndex;
+              if (pageIndex <= 3) {
+                // Near the start
+                pageNum = i + 1;
+              } else if (pageIndex >= totalPages - 2) {
+                // Near the end
+                pageNum = totalPages - 4 + i;
+              } else {
+                // In the middle
+                pageNum = pageIndex - 2 + i;
+              }
+              
+              // Ensure page numbers are valid
+              if (pageNum > 0 && pageNum <= totalPages) {
+                return (
+                  <Button
+                    key={i}
+                    variant={pageNum === pageIndex ? "default" : "outline"}
+                    size="sm"
+                    className="mx-1 w-9"
+                    onClick={() => handlePageChange(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              }
+              return null;
+            })}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(pageIndex + 1)}
+            disabled={pageIndex >= totalPages}
+          >
+            Next
+          </Button>
+          <Select
+            value={pageSize.toString()}
+            onValueChange={(value) => {
+              const newSize = parseInt(value);
+              setPageSize(newSize);
+              setSearchParams(prev => ({ ...prev, pageSize: newSize, page: 1 }));
+            }}
+          >
+            <SelectTrigger className="w-[80px]">
+              <SelectValue placeholder={pageSize.toString()} />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 25, 50, 100].map(size => (
+                <SelectItem key={size} value={size.toString()}>{size}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       
       <AlertDialog open={!!agreementToDelete} onOpenChange={(open) => !open && setAgreementToDelete(null)}>
