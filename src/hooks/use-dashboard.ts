@@ -202,14 +202,28 @@ async function fetchAllDashboardData(): Promise<{
     
     if (rentalData) {
       rentalData.forEach((lease) => {
-        const profiles = lease.profiles as { full_name: string } | null;
-        const vehicles = lease.vehicles as { make: string; model: string; license_plate: string } | null;
+        // Fix: Extract first item from potential array for profiles and vehicles
+        const profilesData = lease.profiles as any;
+        const vehiclesData = lease.vehicles as any;
+        
+        // Handle potential array or single object and extract relevant fields
+        const customerName = Array.isArray(profilesData) 
+          ? (profilesData[0]?.full_name || 'Customer') 
+          : (profilesData?.full_name || 'Customer');
+          
+        const vehicleInfo = Array.isArray(vehiclesData)
+          ? vehiclesData[0] || {}
+          : vehiclesData || {};
+          
+        const vehicleMake = vehicleInfo.make || '';
+        const vehicleModel = vehicleInfo.model || '';
+        const licensePlate = vehicleInfo.license_plate || '';
         
         recentActivity.push({
           id: lease.id,
           type: 'rental',
           title: 'New Rental',
-          description: `${profiles?.full_name || 'Customer'} rented ${vehicles?.make || ''} ${vehicles?.model || ''} (${vehicles?.license_plate || ''})`,
+          description: `${customerName} rented ${vehicleMake} ${vehicleModel} (${licensePlate})`,
           time: formatTimeAgo(new Date(lease.created_at))
         });
       });
@@ -254,13 +268,23 @@ async function fetchAllDashboardData(): Promise<{
     
     if (maintenanceData) {
       maintenanceData.forEach((maintenance) => {
-        const vehicles = maintenance.vehicles as { make: string; model: string; license_plate: string } | null;
+        // Fix: Extract first item from potential array for vehicles
+        const vehiclesData = maintenance.vehicles as any;
+        
+        // Handle potential array or single object
+        const vehicleInfo = Array.isArray(vehiclesData)
+          ? vehiclesData[0] || {}
+          : vehiclesData || {};
+          
+        const vehicleMake = vehicleInfo.make || '';
+        const vehicleModel = vehicleInfo.model || '';
+        const licensePlate = vehicleInfo.license_plate || '';
         
         recentActivity.push({
           id: maintenance.id,
           type: 'maintenance',
           title: 'Maintenance Scheduled',
-          description: `${vehicles?.make || ''} ${vehicles?.model || ''} (${vehicles?.license_plate || ''}) scheduled for ${maintenance.maintenance_type}`,
+          description: `${vehicleMake} ${vehicleModel} (${licensePlate}) scheduled for ${maintenance.maintenance_type}`,
           time: formatTimeAgo(new Date(maintenance.created_at))
         });
       });
