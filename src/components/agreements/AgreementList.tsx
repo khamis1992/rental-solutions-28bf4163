@@ -286,8 +286,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           <Link 
             to={`/agreements/${row.original.id}`}
             className="font-medium text-primary hover:underline"
-            onClick={(e) => {
-              e.preventDefault();
+            onClick={() => {
               console.log("Navigating to agreement detail:", row.original.id);
               navigate(`/agreements/${row.original.id}`);
             }}
