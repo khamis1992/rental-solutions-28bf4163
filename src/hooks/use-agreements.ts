@@ -1,10 +1,42 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
+import { useQueryWithCache } from './use-query-with-cache';
+import { Simplify } from '@/utils/type-utils';
+
+// Define Agreement status enum
+export enum AgreementStatus {
+  ACTIVE = 'active',
+  PENDING = 'pending',
+  CANCELLED = 'cancelled',
+  EXPIRED = 'expired',
+  CLOSED = 'closed',
+  DRAFT = 'draft'
+}
+
+// Define Agreement type
+export interface Agreement {
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date?: string | null;
+  end_date?: string | null;
+  agreement_type?: string;
+  agreement_number?: string;
+  status?: string;
+  total_amount?: number;
+  monthly_payment?: number;
+  agreement_duration?: any;
+  created_at?: string;
+  updated_at?: string;
+  signature_url?: string;
+  deposit_amount?: number;
+  notes?: string;
+  customers?: any;
+  vehicles?: any;
+}
 
 // Simplified type to avoid excessive deep instantiation
 export type SimpleAgreement = {
@@ -34,7 +66,7 @@ export type SimpleAgreement = {
 };
 
 // Function to convert database status to AgreementStatus enum value
-export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
+export const mapDBStatusToEnum = (dbStatus: string): AgreementStatus => {
   switch(dbStatus) {
     case 'active':
       return AgreementStatus.ACTIVE;
@@ -60,10 +92,18 @@ interface SearchParams {
   status?: string;
   vehicle_id?: string;
   customer_id?: string;
+  page?: number;
+  pageSize?: number;
 }
 
+// Track pagination state in this hook
 export const useAgreements = (initialFilters: SearchParams = {}) => {
-  const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
+  const defaultPageSize = 10; // Default page size
+  const [searchParams, setSearchParams] = useState<SearchParams>({
+    page: 1,
+    pageSize: defaultPageSize,
+    ...initialFilters
+  });
   const queryClient = useQueryClient();
 
   const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
@@ -170,10 +210,65 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
+  const fetchAgreements = async (): Promise<{
+    agreements: Agreement[],
+    totalCount: number
+  }> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
+      // Create count query to get total records for pagination
+      const countQuery = supabase
+        .from('leases')
+        .select('id', { count: 'exact', head: true });
+        
+      // Apply filters to count query
+      let filteredCountQuery = countQuery;
+      
+      if (searchParams.status && searchParams.status !== 'all') {
+        switch(searchParams.status) {
+          case AgreementStatus.ACTIVE:
+            filteredCountQuery = filteredCountQuery.eq('status', 'active');
+            break;
+          case AgreementStatus.PENDING:
+            filteredCountQuery = filteredCountQuery.or('status.eq.pending_payment,status.eq.pending_deposit');
+            break;
+          case AgreementStatus.CANCELLED:
+            filteredCountQuery = filteredCountQuery.eq('status', 'cancelled');
+            break;
+          case AgreementStatus.CLOSED:
+            filteredCountQuery = filteredCountQuery.or('status.eq.completed,status.eq.terminated');
+            break;
+          case AgreementStatus.EXPIRED:
+            filteredCountQuery = filteredCountQuery.eq('status', 'archived');
+            break;
+          case AgreementStatus.DRAFT:
+            filteredCountQuery = filteredCountQuery.filter('status', 'eq', 'draft');
+            break;
+          default:
+            if (typeof searchParams.status === 'string') {
+              filteredCountQuery = filteredCountQuery.filter('status', 'eq', searchParams.status);
+            }
+        }
+      }
+      
+      if (searchParams.vehicle_id) {
+        filteredCountQuery = filteredCountQuery.eq('vehicle_id', searchParams.vehicle_id);
+      }
+
+      if (searchParams.customer_id) {
+        filteredCountQuery = filteredCountQuery.eq('customer_id', searchParams.customer_id);
+      }
+
+      // Get total count first
+      const { count: totalCount, error: countError } = await filteredCountQuery;
+      
+      if (countError) {
+        console.error("Error getting count of agreements:", countError);
+        throw new Error(`Failed to get count: ${countError.message}`);
+      }
+      
+      // Create data query with pagination
       let query = supabase
         .from('leases')
         .select(`
@@ -182,6 +277,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
         `);
 
+      // Apply the same filters to the data query
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
@@ -217,12 +313,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         query = query.eq('customer_id', searchParams.customer_id);
       }
 
+      // Add search functionality
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        // First try to get any agreements where the vehicle license plate matches the query
         if (searchQuery) {
-          // Use a join pattern that ensures we don't lose the related data
+          // Get vehicle IDs that match the search
           const { data: vehicleIds, error: vehicleError } = await supabase
             .from('vehicles')
             .select('id')
@@ -231,18 +327,26 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           if (vehicleError) {
             console.error("Error searching vehicles:", vehicleError);
           } else if (vehicleIds && vehicleIds.length > 0) {
-            // If we found matching vehicles, filter leases by those vehicle IDs
+            // Filter by matching vehicle IDs
             const ids = vehicleIds.map(v => v.id);
             query = query.in('vehicle_id', ids);
-            console.log("Filtering by vehicle IDs:", ids);
           } else {
-            // If no vehicles match, try to match against customer names
+            // Otherwise try matching against customer names
             query = query.ilike('profiles.full_name', `%${searchQuery}%`);
           }
         }
       }
 
-      console.log("Executing Supabase query...");
+      // Add pagination
+      const page = searchParams.page || 1;
+      const pageSize = searchParams.pageSize || defaultPageSize;
+      const startIndex = (page - 1) * pageSize;
+      
+      query = query
+        .order('created_at', { ascending: false }) // Order by creation date
+        .range(startIndex, startIndex + pageSize - 1); // Apply range for pagination
+
+      console.log("Executing Supabase query with pagination...");
       const { data, error } = await query;
 
       if (error) {
@@ -252,12 +356,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       if (!data || data.length === 0) {
         console.log("No agreements found with the given filters");
-        return [];
+        return { agreements: [], totalCount: totalCount || 0 };
       }
 
-      console.log(`Found ${data.length} agreements`, data);
+      console.log(`Found ${data.length} agreements (total: ${totalCount})`);
 
-      const agreements: SimpleAgreement[] = data.map(item => {
+      const agreements: Agreement[] = data.map(item => {
         // Use the helper function to map status
         const mappedStatus = mapDBStatusToEnum(item.status);
 
@@ -280,7 +384,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         };
       });
 
-      return agreements;
+      return { agreements, totalCount: totalCount || 0 };
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
       throw err;
@@ -291,7 +395,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the excessive type instantiation by using a simpler type for the mutation
+  // Create mutation for updating agreements
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -304,7 +408,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
-  const deleteAgreement = useMutation({
+  // Define the delete mutation with a simpler type to avoid excessive instantiation
+  const deleteAgreementMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log(`Starting deletion process for agreement ${id}`);
       
@@ -377,7 +482,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return id;
       } catch (error) {
         console.error('Error in deleteAgreement:', error);
-        throw error;
+        throw error instanceof Error ? error : new Error(String(error));
       }
     },
     onSuccess: () => {
@@ -389,15 +494,25 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  const { data: agreements, isLoading, error } = useQuery({
-    queryKey: ['agreements', searchParams],
-    queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes (increased from 5 minutes)
-    gcTime: 900000, // 15 minutes (increased from 10 minutes)
-  });
+  // Use our optimized query hook with caching
+  const { data, isLoading, error } = useQueryWithCache<{
+    agreements: Agreement[],
+    totalCount: number
+  }>(
+    ['agreements', searchParams],
+    fetchAgreements,
+    {
+      staleTime: 600000, // 10 minutes (increased from 5 minutes)
+      gcTime: 900000, // 15 minutes (replaced cacheTime)
+    }
+  );
+
+  const agreements = data?.agreements || [];
+  const totalCount = data?.totalCount || 0;
 
   return {
     agreements,
+    totalCount,
     isLoading,
     error,
     searchParams,
@@ -405,6 +520,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     getAgreement,
     createAgreement,
     updateAgreement,
-    deleteAgreement,
+    deleteAgreement: deleteAgreementMutation,
   };
 };
