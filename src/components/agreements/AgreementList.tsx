@@ -57,7 +57,7 @@ import { Agreement, AgreementStatus, useAgreements } from '@/hooks/use-agreement
 
 const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
   const navigate = useNavigate();
-  const { agreements, isLoading, error, setSearchParams } = useAgreements();
+  const { agreements, isLoading, error, setSearchParams, deleteAgreement } = useAgreements();
   const [agreementToDelete, setAgreementToDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();

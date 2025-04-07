@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { useQueryWithCache } from './use-query-with-cache';
+import { Simplify, MutationVariables } from '@/utils/type-utils';
 
 // Define Agreement status enum
 export enum AgreementStatus {
@@ -93,6 +94,9 @@ interface SearchParams {
   vehicle_id?: string;
   customer_id?: string;
 }
+
+// Type for delete agreement mutation variables
+type DeleteAgreementVariables = string;
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
@@ -323,7 +327,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the excessive type instantiation by using a simpler type for the mutation
+  // Create mutation for updating agreements
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -336,7 +340,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
-  const deleteAgreement = useMutation({
+  // Define the delete mutation properly
+  const deleteAgreementMutation = useMutation({
     mutationFn: async (id: string) => {
       console.log(`Starting deletion process for agreement ${id}`);
       
@@ -421,7 +426,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Use our new optimized query hook with caching
+  // Use our optimized query hook with caching
   const { data: agreements, isLoading, error } = useQueryWithCache<Agreement[]>(
     ['agreements', searchParams],
     fetchAgreements,
@@ -440,6 +445,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     getAgreement,
     createAgreement,
     updateAgreement,
-    deleteAgreement,
+    deleteAgreement: deleteAgreementMutation,
   };
 };
