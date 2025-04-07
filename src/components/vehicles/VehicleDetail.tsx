@@ -24,66 +24,39 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useVehicles } from '@/hooks/use-vehicles';
-import { Vehicle } from '@/lib/validation-schemas/vehicle';
+import { Vehicle } from '@/types/vehicle';
 import { toast } from 'sonner';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
 import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export function VehicleDetail() {
-  const { id: vehicleId } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { getVehicle, deleteVehicle } = useVehicles();
-  const { agreements, isLoading: isLoadingAgreements, setSearchParams } = useAgreements();
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+interface VehicleDetailProps {
+  vehicle: Vehicle;
+}
 
-  const fetchVehicle = useCallback(async () => {
-    if (!vehicleId || hasLoaded) return;
-    
-    setLoading(true);
-    setFetchError(null);
-    
-    try {
-      const data = await getVehicle(vehicleId);
-      if (data) {
-        setVehicle(data);
-        setHasLoaded(true);
-      } else {
-        setFetchError("Vehicle not found");
-      }
-    } catch (error) {
-      console.error("Error fetching vehicle:", error);
-      setFetchError("Failed to load vehicle details");
-      toast.error("Error loading vehicle details");
-    } finally {
-      setLoading(false);
-    }
-  }, [vehicleId, getVehicle, hasLoaded]);
+export function VehicleDetail({ vehicle }: VehicleDetailProps) {
+  const navigate = useNavigate();
+  const { agreements, isLoading: isLoadingAgreements, setSearchParams } = useAgreements();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { useDelete } = useVehicles();
+  const { mutateAsync: deleteVehicleMutation } = useDelete();
 
   useEffect(() => {
-    if (vehicleId) {
+    if (vehicle?.id) {
       setSearchParams({
-        vehicle_id: vehicleId,
+        vehicle_id: vehicle.id,
         status: 'all'
       });
     }
-  }, [vehicleId, setSearchParams]);
-
-  useEffect(() => {
-    fetchVehicle();
-  }, [fetchVehicle]);
+  }, [vehicle?.id, setSearchParams]);
 
   const handleDelete = async () => {
     if (!vehicle?.id || isDeleting) return;
     
     setIsDeleting(true);
     try {
-      await deleteVehicle.mutateAsync(vehicle.id, {
+      await deleteVehicleMutation(vehicle.id, {
         onSuccess: () => {
           toast.success("Vehicle deleted successfully");
           navigate('/vehicles');
@@ -101,17 +74,13 @@ export function VehicleDetail() {
     }
   };
 
-  if (loading && !hasLoaded) {
-    return <div className="flex justify-center items-center p-8">Loading vehicle details...</div>;
-  }
-
-  if (fetchError || !vehicle) {
+  if (!vehicle) {
     return (
       <Card className="mx-auto max-w-2xl">
         <CardHeader className="text-center">
           <CardTitle>Vehicle Not Found</CardTitle>
           <CardDescription>
-            {fetchError || "The vehicle you're looking for doesn't exist or has been removed."}
+            The vehicle you're looking for doesn't exist or has been removed.
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-center">

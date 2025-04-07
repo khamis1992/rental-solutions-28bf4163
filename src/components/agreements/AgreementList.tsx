@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement, AgreementSearchParams } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -74,7 +74,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface AgreementListProps {
@@ -111,7 +111,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       query: searchQuery,
       status: statusFilter
     });
-  }, [searchQuery, statusFilter, setSearchParams]);
+  }, [searchQuery, statusFilter, setSearchParams, searchParams]);
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -136,7 +136,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id as string
+      index => agreements[parseInt(index)].id
     );
     
     console.log("Selected IDs for deletion:", selectedIds);
@@ -146,7 +146,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
-        console.log(`Starting deletion process for agreement ${id}`);
         
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
@@ -256,10 +255,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     }
   };
 
+  
   const columns = [
     {
       id: "select",
-      header: ({ table }: any) => (
+      header: ({ table }) => (
         <Checkbox
           checked={
             table.getIsAllPageRowsSelected() ||
@@ -269,7 +269,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           aria-label="Select all"
         />
       ),
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -514,6 +514,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
 
   const selectedCount = Object.keys(rowSelection).length;
 
+  
+  
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
