@@ -22,7 +22,6 @@ import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const Reports = () => {
   const navigate = useNavigate();
