@@ -5,11 +5,9 @@ import { StatCard } from '@/components/ui/stat-card';
 import { useFinancials } from '@/hooks/use-financials';
 import { formatCurrency } from '@/lib/utils';
 import { TrendingDown, Clock, AlertTriangle } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 const FinancialExpensesBreakdown: React.FC = () => {
   const { financialSummary, isLoadingSummary } = useFinancials();
-  const { isRTL } = useTranslation();
 
   // Use memo to avoid recalculation on each render
   const financialData = useMemo(() => {

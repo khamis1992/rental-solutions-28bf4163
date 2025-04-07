@@ -2,126 +2,112 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { FileText, MoreHorizontal } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useTranslation } from 'react-i18next';
-import { useTranslation as useAppTranslation } from '@/contexts/TranslationContext';
-import { formatDate, ensureDate } from '@/lib/date-utils';
-
-interface ContractPayment {
-  id: string;
-  payment_number: number;
-  due_date: string;
-  amount: number;
-  status: 'paid' | 'pending' | 'overdue' | 'partial';
-  paid_amount?: number;
-  payment_date?: string;
-  reference?: string;
-}
+import { AlertCircle, CheckCircle, Clock, XCircle, DollarSign } from 'lucide-react';
+import { CarInstallmentPayment } from '@/types/car-installment';
+import { formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/date-utils';
 
 interface ContractPaymentsTableProps {
-  payments: ContractPayment[];
-  onPaymentClick?: (payment: ContractPayment) => void;
+  payments: CarInstallmentPayment[];
+  onRecordPayment: (payment: CarInstallmentPayment) => void;
 }
 
-export const ContractPaymentsTable: React.FC<ContractPaymentsTableProps> = ({
-  payments,
-  onPaymentClick
+export const ContractPaymentsTable: React.FC<ContractPaymentsTableProps> = ({ 
+  payments, 
+  onRecordPayment 
 }) => {
-  const { t } = useTranslation();
-  const { isRTL } = useAppTranslation();
-  
-  const getStatusBadge = (status: string) => {
+  // Get status icon based on payment status
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'paid':
-        return <Badge className="bg-green-500 hover:bg-green-600">{t('payments.status.paid')}</Badge>;
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'pending':
-        return <Badge variant="outline">{t('payments.status.pending')}</Badge>;
+        return <Clock className="h-4 w-4 text-amber-500" />;
       case 'overdue':
-        return <Badge variant="destructive">{t('payments.status.overdue')}</Badge>;
-      case 'partial':
-        return <Badge className="bg-blue-500 hover:bg-blue-600">{t('payments.status.partial')}</Badge>;
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'cancelled':
+        return <XCircle className="h-4 w-4 text-gray-500" />;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return null;
     }
   };
-  
+
+  // Get status text with appropriate color
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <span className="text-green-500 font-medium">Paid</span>;
+      case 'pending':
+        return <span className="text-amber-500 font-medium">Pending</span>;
+      case 'overdue':
+        return <span className="text-red-500 font-medium">Overdue</span>;
+      case 'cancelled':
+        return <span className="text-gray-500 font-medium">Cancelled</span>;
+      default:
+        return null;
+    }
+  };
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className={isRTL ? 'text-right' : 'text-left'}>
-            {t('payments.ref')}
-          </TableHead>
-          <TableHead className={isRTL ? 'text-right' : 'text-left'}>
-            {t('common.dueDate')}
-          </TableHead>
-          <TableHead className={isRTL ? 'text-right' : 'text-left'}>
-            {t('common.amount')}
-          </TableHead>
-          <TableHead className={isRTL ? 'text-right' : 'text-left'}>
-            {t('payments.paid')}
-          </TableHead>
-          <TableHead className={isRTL ? 'text-right' : 'text-left'}>
-            {t('payments.status.paid')}
-          </TableHead>
-          <TableHead></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {payments.length > 0 ? (
-          payments.map((payment) => (
-            <TableRow 
-              key={payment.id} 
-              onClick={() => onPaymentClick?.(payment)}
-              className="cursor-pointer hover:bg-muted/50"
-            >
-              <TableCell className="font-medium">
-                {t('payments.ref')}{payment.payment_number}
-              </TableCell>
-              <TableCell>
-                {ensureDate(payment.due_date) && formatDate(ensureDate(payment.due_date)!)}
-              </TableCell>
-              <TableCell>
-                QAR {payment.amount.toLocaleString()}
-              </TableCell>
-              <TableCell>
-                {payment.status === 'paid' || payment.status === 'partial' ? 
-                  `QAR ${(payment.paid_amount || 0).toLocaleString()}` : '-'}
-              </TableCell>
-              <TableCell>
-                {getStatusBadge(payment.status)}
-              </TableCell>
-              <TableCell>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                      <MoreHorizontal className="h-4 w-4" />
-                      <span className="sr-only">Open menu</span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align={isRTL ? 'end' : 'start'}>
-                    <DropdownMenuItem onClick={(e) => {
-                      e.stopPropagation();
-                      onPaymentClick?.(payment);
-                    }}>
-                      <FileText className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                      {t('common.details')}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
+    <div className="rounded-md border">
+      {payments.length === 0 ? (
+        <div className="p-8 text-center">
+          <p className="text-muted-foreground">No payments found</p>
+          <p className="text-sm text-muted-foreground mt-2">
+            Add a payment to get started
+          </p>
+        </div>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Payment Date</TableHead>
+              <TableHead>Cheque #</TableHead>
+              <TableHead>Bank</TableHead>
+              <TableHead>Total Amount</TableHead>
+              <TableHead>Paid Amount</TableHead>
+              <TableHead>Remaining</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
-          ))
-        ) : (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
-              {t('payments.noRecords')}
-            </TableCell>
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+          </TableHeader>
+          <TableBody>
+            {payments.map((payment) => (
+              <TableRow key={payment.id}>
+                <TableCell>{formatDate(payment.payment_date)}</TableCell>
+                <TableCell>{payment.cheque_number}</TableCell>
+                <TableCell>{payment.drawee_bank}</TableCell>
+                <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                <TableCell>{formatCurrency(payment.paid_amount || 0)}</TableCell>
+                <TableCell>{formatCurrency(payment.remaining_amount || 0)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    {getStatusIcon(payment.status)}
+                    {getStatusText(payment.status)}
+                    {payment.days_overdue && payment.days_overdue > 0 && (
+                      <span className="text-xs text-red-500 ml-1">
+                        ({payment.days_overdue} days)
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {payment.status !== 'paid' && payment.status !== 'cancelled' && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => onRecordPayment(payment)}
+                    >
+                      <DollarSign className="h-4 w-4 mr-1" />
+                      Record Payment
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
   );
 };

@@ -5,7 +5,6 @@ import { Layers, DollarSign, CreditCard, Clock } from 'lucide-react';
 import { ContractSummary } from '@/types/car-installment';
 import { formatCurrency } from '@/lib/utils';
 import { StatCard } from '@/components/ui/stat-card';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 interface ContractSummaryCardsProps {
   summary?: ContractSummary;
@@ -16,8 +15,6 @@ export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({
   summary, 
   isLoading 
 }) => {
-  const { isRTL } = useTranslation();
-  
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

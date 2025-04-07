@@ -10,8 +10,6 @@ import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/Vehic
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -30,8 +28,6 @@ const Vehicles = () => {
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
   const { useRealtimeUpdates } = useVehicles();
-  const { t } = useI18nTranslation();
-  const { isRTL } = useTranslation();
   
   // Setup real-time updates
   useRealtimeUpdates();
@@ -49,14 +45,14 @@ const Vehicles = () => {
         }));
         
         // Show a toast to indicate filtered view
-        toast.info(`${t('common.showing')} ${t(`vehicles.status.${statusFromUrl}`)}`);
+        toast.info(`Showing vehicles with status: ${statusFromUrl}`);
       } else {
         // If invalid status, show error toast and reset filters
-        toast.error(`${t('common.invalidFilter')}: ${statusFromUrl}`);
+        toast.error(`Invalid status filter: ${statusFromUrl}`);
         navigate('/vehicles');
       }
     }
-  }, [searchParams, navigate, t]);
+  }, [searchParams, navigate]);
 
   const handleSelectVehicle = (id: string) => {
     navigate(`/vehicles/${id}`);
@@ -93,13 +89,13 @@ const Vehicles = () => {
   return (
     <PageContainer>
       <SectionHeader
-        title={t('vehicles.management')}
-        description={t('vehicles.manageFleet')}
+        title="Vehicle Management"
+        description="Manage your fleet inventory"
         icon={Car}
         actions={
           <CustomButton size="sm" glossy onClick={handleAddVehicle}>
             <Plus className="h-4 w-4 mr-2" />
-            {t('vehicles.add')}
+            Add Vehicle
           </CustomButton>
         }
       />

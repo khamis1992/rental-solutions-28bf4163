@@ -2,7 +2,6 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 interface SectionHeaderProps {
   title: string;
@@ -19,13 +18,11 @@ const SectionHeader = ({
   actions,
   className,
 }: SectionHeaderProps) => {
-  const { isRTL } = useTranslation();
-  
   return (
     <div className={cn("mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4", className)}>
       <div className="flex items-center">
         {Icon && (
-          <div className={`p-2 rounded-md bg-primary/10 text-primary ${isRTL ? 'ml-3' : 'mr-3'}`}>
+          <div className="mr-3 p-2 rounded-md bg-primary/10 text-primary">
             <Icon className="h-5 w-5" />
           </div>
         )}

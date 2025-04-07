@@ -16,16 +16,14 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     status: simpleAgreement.status as typeof AgreementStatus[keyof typeof AgreementStatus],
     created_at: simpleAgreement.created_at ? new Date(simpleAgreement.created_at) : undefined,
     updated_at: simpleAgreement.updated_at ? new Date(simpleAgreement.updated_at) : undefined,
-    total_amount: simpleAgreement.total_amount || simpleAgreement.total_cost || 0,
+    total_amount: simpleAgreement.total_amount || 0,
     deposit_amount: simpleAgreement.deposit_amount || 0,
     agreement_number: simpleAgreement.agreement_number || '',
     notes: simpleAgreement.notes || '',
     terms_accepted: true,
     additional_drivers: [],
     rent_amount: simpleAgreement.rent_amount || 0,
-    daily_late_fee: simpleAgreement.daily_late_fee || 0,
-    customers: simpleAgreement.customers || simpleAgreement.customer,
-    vehicles: simpleAgreement.vehicles || simpleAgreement.vehicle
+    daily_late_fee: simpleAgreement.daily_late_fee || 0
   };
 };
 

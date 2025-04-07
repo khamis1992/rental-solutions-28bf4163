@@ -1,505 +1,350 @@
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { formatCurrency } from '@/lib/utils';
-import { formatDate } from '@/lib/date-utils';
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableRow,
-  TableHead,
-  TableCell,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
-import { CalendarIcon, CreditCard, PlusCircle, CheckCircle, XCircle, RotateCcw, Loader2 } from 'lucide-react';
-import { DateRange } from 'react-day-picker';
-import { useToast } from '@/hooks/use-toast';
-import { reconcilePayments } from '@/lib/payment-utils';
-import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { SimpleAgreement } from '@/hooks/use-agreements';
-import { supabase } from '@/lib/supabase';
+import { Badge } from '@/components/ui/badge';
+import { DollarSign, Edit, Trash2, CheckSquare, AlertCircle, Clock, RefreshCw, FileText, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Card } from '@/components/ui/card';
-import { Payment as PaymentType } from '@/hooks/use-payments';
+import { PaymentEditDialog } from './PaymentEditDialog';
+import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { supabase } from '@/lib/supabase';
+import { formatDate } from '@/lib/date-utils';
+import { toast } from 'sonner';
+import { isAfter, subMonths, isWithinInterval } from 'date-fns';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { ensureAllMonthlyPayments } from '@/lib/payment-utils';
 
-// Re-export the Payment type for other components to use
-export type Payment = PaymentType;
-
-interface PaymentHistoryProps {
-  agreementId: string;
-  payments: Payment[];
-  onPaymentsUpdated: (payments: Payment[]) => void;
+export interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string | null;
+  payment_method?: string;
+  reference_number?: string | null;
+  notes?: string;
+  type?: string;
+  status?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  lease_id?: string;
+  original_due_date?: string | null;
+  amount_paid?: number;
+  balance?: number;
 }
 
-const paymentFormSchema = z.object({
-  amount: z.number().min(1, { message: "Amount must be at least 1" }),
-  paymentDate: z.date({
-    required_error: "A date is required.",
-  }),
-  paymentMethod: z.string().min(1, { message: "Payment method is required" }),
-  description: z.string().optional(),
-});
+interface PaymentHistoryProps {
+  payments: Payment[];
+  isLoading: boolean;
+  rentAmount: number | null;
+  onPaymentDeleted: () => void;
+  leaseStartDate?: Date | string;
+  leaseEndDate?: Date | string;
+}
 
-type PaymentFormValues = z.infer<typeof paymentFormSchema>
-
-export function PaymentHistory({ agreementId, payments, onPaymentsUpdated }: PaymentHistoryProps) {
-  const { t } = useTranslation();
-  const { toast: uiToast } = useToast();
-  const [date, setDate] = useState<DateRange | undefined>(undefined);
-  const [isReconciling, setIsReconciling] = useState(false);
-  const [isCreatingPayment, setIsCreatingPayment] = useState(false);
-  const [showCreatePaymentDialog, setShowCreatePaymentDialog] = useState(false);
-  const [newPaymentAmount, setNewPaymentAmount] = useState('');
-  const [newPaymentMethod, setNewPaymentMethod] = useState('cash');
-  const [newPaymentDescription, setNewPaymentDescription] = useState('');
-  const [selectedPaymentDate, setSelectedPaymentDate] = useState<Date | undefined>(new Date());
-  const [agreement, setAgreement] = useState<SimpleAgreement | null>(null);
-  const [loadingAgreement, setLoadingAgreement] = useState(true);
-
+export function PaymentHistory({
+  payments,
+  isLoading,
+  rentAmount,
+  onPaymentDeleted,
+  leaseStartDate,
+  leaseEndDate
+}: PaymentHistoryProps) {
+  console.log('PaymentHistory received payments:', payments);
+  console.log('PaymentHistory isLoading:', isLoading);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeletingPayment, setIsDeletingPayment] = useState(false);
+  const [isFixingPayments, setIsFixingPayments] = useState(false);
+  const [lateFeeDetails, setLateFeeDetails] = useState<{
+    amount: number;
+    daysLate: number;
+  } | null>(null);
+  
   useEffect(() => {
-    const fetchAgreement = async () => {
-      setLoadingAgreement(true);
-      try {
-        const { data, error } = await supabase
-          .from('leases')
-          .select('*')
-          .eq('id', agreementId)
-          .single();
-
-        if (error) {
-          console.error('Error fetching agreement:', error);
-          uiToast({
-            title: 'Error',
-            description: `Failed to load agreement: ${error.message}`,
-            variant: 'destructive',
-          });
-        } else {
-          setAgreement(data as SimpleAgreement);
-        }
-      } finally {
-        setLoadingAgreement(false);
-      }
-    };
-
-    fetchAgreement();
-  }, [agreementId, uiToast]);
-
-  const reconcileForm = useForm<PaymentFormValues>({
-    resolver: zodResolver(paymentFormSchema),
-    defaultValues: {
-      amount: 0,
-      paymentDate: new Date(),
-      paymentMethod: 'cash',
-      description: ''
-    },
-    mode: "onChange"
-  });
-
-  const {
-    handleSubmit,
-    formState: { errors, isValid },
-    reset
-  } = reconcileForm;
-
-  const handleDateChange = (newDate: Date | undefined) => {
-    setSelectedPaymentDate(newDate);
-    reconcileForm.setValue("paymentDate", newDate || new Date());
-  };
-
-  const handleAmountChange = (value: string) => {
-    setNewPaymentAmount(value);
-    const parsedAmount = parseFloat(value);
-    reconcileForm.setValue("amount", isNaN(parsedAmount) ? 0 : parsedAmount);
-  };
-
-  const handleMethodChange = (method: string) => {
-    setNewPaymentMethod(method);
-    reconcileForm.setValue("paymentMethod", method);
-  };
-
-  const handleDescriptionChange = (description: string) => {
-    setNewPaymentDescription(description);
-    reconcileForm.setValue("description", description);
-  };
-
-  const handleOpenCreatePaymentDialog = () => {
-    setShowCreatePaymentDialog(true);
-  };
-
-  const handleCloseCreatePaymentDialog = () => {
-    setShowCreatePaymentDialog(false);
-    reset();
-    setNewPaymentAmount('');
-    setNewPaymentMethod('cash');
-    setNewPaymentDescription('');
-    setSelectedPaymentDate(new Date());
-  };
-
-  const handleReconcilePayments = async (data: PaymentFormValues) => {
-    if (!agreement) {
-      toast.error('Agreement details not loaded. Please try again.');
-      return;
+    const today = new Date();
+    if (today.getDate() > 1) {
+      const daysLate = today.getDate() - 1;
+      const lateFeeAmount = Math.min(daysLate * 120, 3000);
+      setLateFeeDetails({
+        amount: lateFeeAmount,
+        daysLate: daysLate
+      });
+    } else {
+      setLateFeeDetails(null);
     }
-
-    setIsReconciling(true);
+  }, []);
+  
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleRecordPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsPaymentDialogOpen(true);
+  };
+  
+  const handleRecordManualPayment = () => {
+    setSelectedPayment(null);
+    setIsPaymentDialogOpen(true);
+  };
+  
+  const handleDeletePayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setIsDeleteConfirmOpen(true);
+  };
+  
+  const confirmDeletePayment = async () => {
+    if (!selectedPayment) return;
     try {
-      const updatedPayments = await reconcilePayments(
-        agreement,
-        data.amount,
-        data.paymentDate,
-        data.paymentMethod,
-        data.description
-      );
-
-      onPaymentsUpdated(updatedPayments);
-      toast.success('Payment recorded successfully!');
-      handleCloseCreatePaymentDialog();
-    } catch (error) {
-      console.error('Error during payment reconciliation:', error);
-      toast.error('Failed to record payment. Please try again.');
-    } finally {
-      setIsReconciling(false);
-    }
-  };
-
-  const handleCreatePayment = async (
-    agreement: SimpleAgreement, 
-    amount: number, 
-    paymentDate: Date | null,
-    paymentMethod: string = 'cash',
-    description: string
-  ) => {
-    if (!agreement) {
-      toast.error('Agreement details not loaded. Please try again.');
-      return;
-    }
-
-    if (!amount || amount <= 0) {
-      toast.error('Please enter a valid payment amount.');
-      return;
-    }
-
-    if (!paymentDate) {
-      toast.error('Please select a payment date.');
-      return;
-    }
-
-    setIsCreatingPayment(true);
-    try {
-      const { data: newPayment, error } = await supabase
-        .from('unified_payments')
-        .insert([{
-          lease_id: agreement.id,
-          amount: amount,
-          amount_paid: amount,
-          payment_date: paymentDate.toISOString(),
-          payment_method: paymentMethod,
-          status: 'paid',
-          type: 'Income',
-          description: description || `Payment on ${formatDate(paymentDate)}`,
-          transaction_id: `TXN-${Date.now()}`
-        }])
-        .select('*')
-        .single();
-
+      setIsDeletingPayment(true);
+      const {
+        error
+      } = await supabase.from('unified_payments').delete().eq('id', selectedPayment.id);
       if (error) {
-        console.error('Error creating payment:', error);
-        toast.error(`Failed to create payment: ${error.message}`);
-        return;
+        toast.error(`Failed to delete payment: ${error.message}`);
+      } else {
+        toast.success('Payment deleted successfully');
+        onPaymentDeleted();
       }
-
-      const updatedPayments = [...payments, newPayment];
-      onPaymentsUpdated(updatedPayments);
-
-      toast.success('Payment created successfully!');
-      handleCloseCreatePaymentDialog();
-    } catch (error) {
-      console.error('Error creating payment:', error);
-      toast.error('Failed to create payment. Please try again.');
+    } catch (err) {
+      console.error('Error deleting payment:', err);
+      toast.error('Failed to delete payment');
     } finally {
-      setIsCreatingPayment(false);
+      setIsDeletingPayment(false);
+      setIsDeleteConfirmOpen(false);
     }
   };
-
-  const calculateBalance = (payment: Payment): number => {
-    return payment.amount - (payment.amount_paid || 0);
+  
+  const handleFixPayments = async () => {
+    if (!payments.length || !payments[0].lease_id) {
+      toast.error("Cannot fix payments: No lease ID available");
+      return;
+    }
+    
+    setIsFixingPayments(true);
+    toast.info("Checking and fixing payments...");
+    
+    try {
+      const leaseId = payments[0].lease_id;
+      const result = await ensureAllMonthlyPayments(leaseId);
+      
+      if (result.success) {
+        if (result.generatedCount === 0 && result.updatedCount === 0) {
+          toast.success("Payment records are up to date");
+        } else {
+          toast.success(result.message || "Payment records fixed successfully");
+          onPaymentDeleted(); // Refresh the payment list
+        }
+      } else {
+        toast.error(result.message || "Failed to fix payment records");
+      }
+    } catch (error) {
+      console.error("Error fixing payments:", error);
+      toast.error("An unexpected error occurred while fixing payments");
+    } finally {
+      setIsFixingPayments(false);
+    }
   };
-
-  const totalBalance = payments.reduce((sum, payment) => sum + calculateBalance(payment), 0);
-
-  if (loadingAgreement) {
-    return (
-      <Card>
-        <div className="p-4">
-          <Skeleton className="h-8 w-1/3 mb-4" />
-          <Skeleton className="h-10 w-full mb-2" />
-          <Skeleton className="h-10 w-full mb-2" />
-          <Skeleton className="h-10 w-full mb-2" />
+  
+  const getStatusBadge = (status?: string, daysOverdue?: number, balance?: number, amount?: number) => {
+    if (!status) return <Badge className="bg-gray-500">Unknown</Badge>;
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'paid':
+        return <Badge variant="success">Paid</Badge>;
+      case 'partially_paid':
+        return <Badge variant="partial">Partially Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-500">
+            Pending {daysOverdue && daysOverdue > 0 ? `(${daysOverdue} days overdue)` : ''}
+          </Badge>;
+      case 'overdue':
+        return <Badge variant="destructive">
+            Overdue {daysOverdue && daysOverdue > 0 ? `(${daysOverdue} days)` : ''}
+          </Badge>;
+      case 'cancelled':
+        return <Badge variant="outline">Cancelled</Badge>;
+      default:
+        return <Badge className="bg-gray-500">{status}</Badge>;
+    }
+  };
+  
+  const getStatusIcon = (status?: string) => {
+    if (!status) return <AlertCircle className="h-4 w-4 text-gray-500" />;
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'paid':
+        return <CheckSquare className="h-4 w-4 text-green-500" />;
+      case 'partially_paid':
+        return <CheckSquare className="h-4 w-4 text-blue-500" />;
+      case 'pending':
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case 'overdue':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'cancelled':
+        return <Trash2 className="h-4 w-4 text-gray-500" />;
+      default:
+        return <AlertCircle className="h-4 w-4 text-gray-500" />;
+    }
+  };
+  
+  const formatAmount = (payment: Payment) => {
+    const baseAmount = payment.amount || 0;
+    const amountPaid = payment.amount_paid || 0;
+    const balance = payment.balance || 0;
+    const displayAmount = baseAmount.toLocaleString();
+    if ((payment.status === 'pending' || payment.status === 'overdue') && payment.days_overdue && payment.days_overdue > 0 && payment.late_fine_amount && payment.late_fine_amount > 0) {
+      return <>
+          QAR {displayAmount}
+          <div className="text-xs text-red-500 mt-1">
+            +QAR {payment.late_fine_amount.toLocaleString()} late fee
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Total: QAR {(baseAmount + payment.late_fine_amount).toLocaleString()}
+          </div>
+        </>;
+    }
+    if (payment.status === 'partially_paid' && amountPaid > 0 && balance > 0) {
+      return <>
+          QAR {displayAmount}
+          <div className="text-xs text-blue-500 mt-1">
+            Paid: QAR {amountPaid.toLocaleString()}
+          </div>
+          <div className="text-xs text-amber-500 mt-1">
+            Remaining: QAR {balance.toLocaleString()}
+          </div>
+        </>;
+    }
+    return `QAR ${displayAmount}`;
+  };
+  
+  const startDate = leaseStartDate ? new Date(leaseStartDate) : null;
+  const endDate = leaseEndDate ? new Date(leaseEndDate) : null;
+  
+  return <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>Track all payments for this agreement</CardDescription>
         </div>
-      </Card>
-    );
-  }
-
-  return (
-    <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-medium">{t('payments.paymentHistory')}</h3>
         <div className="flex gap-2">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline">
-                <RotateCcw className="mr-2 h-4 w-4" /> {t('payments.reconcile')}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('payments.reconcilePayments')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('payments.reconcilePaymentsDesc')}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                <AlertDialogAction onClick={async () => {
-                  if (agreement) {
-                    setIsReconciling(true);
-                    try {
-                      const updatedPayments = await reconcilePayments(agreement);
-                      onPaymentsUpdated(updatedPayments);
-                      toast.success('Payments reconciled successfully!');
-                    } catch (error) {
-                      console.error('Error during payment reconciliation:', error);
-                      toast.error('Failed to reconcile payments. Please try again.');
-                    } finally {
-                      setIsReconciling(false);
-                    }
-                  }
-                }} disabled={isReconciling}>
-                  {isReconciling ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('common.reconciling')}...
-                    </>
-                  ) : (
-                    t('payments.reconcile')
-                  )}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" onClick={handleOpenCreatePaymentDialog}>
-                <PlusCircle className="mr-2 h-4 w-4" /> {t('payments.addPayment')}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('payments.addPayment')}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {t('payments.addPaymentDesc')}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <Form {...reconcileForm}>
-                <form onSubmit={handleSubmit(handleReconcilePayments)} className="space-y-4">
-                  <FormField
-                    control={reconcileForm.control}
-                    name="amount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('payments.amount')}</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            placeholder={t('payments.amount')}
-                            value={newPaymentAmount}
-                            onChange={(e) => handleAmountChange(e.target.value)}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={reconcileForm.control}
-                    name="paymentDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>{t("payments.paymentDate")}</FormLabel>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <FormControl>
-                              <Button
-                                variant={"outline"}
-                                className={cn(
-                                  "w-[240px] pl-3 text-left font-normal",
-                                  !selectedPaymentDate && "text-muted-foreground"
-                                )}
-                              >
-                                {selectedPaymentDate ? (
-                                  formatDate(selectedPaymentDate)
-                                ) : (
-                                  <span>{t("payments.pickDate")}</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </FormControl>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={selectedPaymentDate}
-                              onSelect={handleDateChange}
-                              disabled={false}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={reconcileForm.control}
-                    name="paymentMethod"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('payments.paymentMethod')}</FormLabel>
-                        <Select onValueChange={handleMethodChange} defaultValue={newPaymentMethod}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={t('payments.selectMethod')} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="cash">{t('payments.cash')}</SelectItem>
-                            <SelectItem value="card">{t('payments.card')}</SelectItem>
-                            <SelectItem value="bank_transfer">{t('payments.bankTransfer')}</SelectItem>
-                            <SelectItem value="cheque">{t('payments.cheque')}</SelectItem>
-                            <SelectItem value="other">{t('payments.other')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={reconcileForm.control}
-                    name="description"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{t('payments.description')}</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder={t('payments.description')}
-                            className="resize-none"
-                            value={newPaymentDescription}
-                            onChange={(e) => handleDescriptionChange(e.target.value)}
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {t('payments.descriptionHelp')}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <AlertDialogFooter>
-                    <AlertDialogCancel onClick={handleCloseCreatePaymentDialog}>{t('common.cancel')}</AlertDialogCancel>
-                    <AlertDialogAction type="submit" disabled={!isValid || isCreatingPayment}>
-                      {isCreatingPayment ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          {t('common.creating')}...
-                        </>
-                      ) : (
-                        t('payments.addPayment')
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </form>
-              </Form>
-            </AlertDialogContent>
-          </AlertDialog>
+          <Button variant="outline" size="sm" onClick={onPaymentDeleted} className="h-8">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleFixPayments}
+            disabled={isFixingPayments}
+            className="h-8"
+          >
+            <ShieldCheck className="mr-2 h-4 w-4" />
+            {isFixingPayments ? "Fixing..." : "Fix Payments"}
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleRecordManualPayment}
+            className="h-8"
+          >
+            <DollarSign className="mr-2 h-4 w-4" />
+            Record Payment
+          </Button>
         </div>
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{t('payments.date')}</TableHead>
-              <TableHead>{t('payments.amount')}</TableHead>
-              <TableHead>{t('payments.method')}</TableHead>
-              <TableHead>{t('payments.description')}</TableHead>
-              <TableHead>{t('payments.balance')}</TableHead>
-              <TableHead className="text-right">{t('common.status')}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {payments.map((payment) => (
-              <TableRow key={payment.id}>
-                <TableCell>{payment.payment_date ? formatDate(new Date(payment.payment_date)) : '-'}</TableCell>
-                <TableCell>{formatCurrency(payment.amount_paid || 0)}</TableCell>
-                <TableCell>{payment.payment_method}</TableCell>
-                <TableCell>{payment.notes || (payment.description as string || '')}</TableCell>
-                <TableCell>{formatCurrency(calculateBalance(payment))}</TableCell>
-                <TableCell className="text-right">
-                  {payment.status === 'paid' ? (
-                    <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
-                      <CheckCircle className="mr-1 h-3 w-3" /> {t('payments.status.paid')}
-                    </Badge>
-                  ) : (
-                    <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-300">
-                      <XCircle className="mr-1 h-3 w-3" /> {t('payments.status.unpaid')}
-                    </Badge>
-                  )}
-                </TableCell>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? <div className="space-y-2">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div> : payments?.length > 0 ? <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Payment Method</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {payments.map(payment => <TableRow key={payment.id}>
+                  <TableCell>
+                    {payment.payment_date ? formatDate(new Date(payment.payment_date), 'PPP') : payment.original_due_date ? <span className="text-yellow-600">Due: {formatDate(new Date(payment.original_due_date), 'PPP')}</span> : 'Pending'}
+                  </TableCell>
+                  <TableCell>
+                    {formatAmount(payment)}
+                  </TableCell>
+                  <TableCell>
+                    {payment.payment_method ? payment.payment_method : 'N/A'}
+                    {payment.reference_number && <div className="text-xs text-muted-foreground mt-1">
+                        Ref: {payment.reference_number}
+                      </div>}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      {getStatusIcon(payment.status)}
+                      <span>{getStatusBadge(payment.status, payment.days_overdue, payment.balance, payment.amount)}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="max-w-[200px] truncate" title={payment.notes || ''}>
+                      {payment.notes}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      {payment.status === 'partially_paid' || payment.status === 'pending' || payment.status === 'overdue' ? <Button variant="ghost" size="sm" onClick={() => handleRecordPayment(payment)} title="Record Payment">
+                          <DollarSign className="h-4 w-4" />
+                        </Button> : <Button variant="ghost" size="sm" onClick={() => handleEditPayment(payment)} title="Edit payment">
+                          <Edit className="h-4 w-4" />
+                        </Button>}
+                      <Button variant="ghost" size="sm" onClick={() => handleDeletePayment(payment)} title="Delete payment">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>)}
+            </TableBody>
+          </Table> : <Alert>
+            <AlertDescription className="text-center py-4">
+              No payments recorded for this agreement yet.
+            </AlertDescription>
+          </Alert>}
 
-      <div className="mt-4 flex justify-between">
-        <div className="text-sm font-medium">
-          {t('payments.totalBalance')}: {formatCurrency(totalBalance)}
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {t('common.showing')} {payments.length} {t('payments.payments')}
-        </div>
-      </div>
-    </div>
-  );
+        {selectedPayment && <PaymentEditDialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen} payment={selectedPayment} onSaved={onPaymentDeleted} />}
+
+        <PaymentEntryDialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen} onSubmit={(amount, paymentDate, notes, paymentMethod, referenceNumber, includeLatePaymentFee, isPartialPayment, targetPaymentId) => {
+        console.log("Recording payment with payment ID:", targetPaymentId);
+        setIsPaymentDialogOpen(false);
+        onPaymentDeleted();
+      }} defaultAmount={selectedPayment ? selectedPayment.balance || 0 : rentAmount || 0} title={selectedPayment ? "Record Payment" : "Record Manual Payment"} description={selectedPayment ? "Record payment for this item." : "Record a new manual payment for this agreement."} lateFeeDetails={lateFeeDetails} selectedPayment={selectedPayment} />
+
+        <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Payment Deletion</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete this payment? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={confirmDeletePayment} disabled={isDeletingPayment}>
+                {isDeletingPayment ? <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                  </> : 'Delete Payment'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>;
 }

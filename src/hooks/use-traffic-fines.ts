@@ -85,28 +85,6 @@ export const useTrafficFines = () => {
           }
         }
         
-        // Get vehicle information for fines
-        const finesWithVehicleIds = data.filter(fine => fine.vehicle_id);
-        let vehicleInfo: Record<string, { model?: string }> = {};
-        
-        if (finesWithVehicleIds.length > 0) {
-          const { data: vehicles, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('id, model, make')
-            .in('id', finesWithVehicleIds.map(fine => fine.vehicle_id));
-            
-          if (vehicleError) {
-            console.error('Error fetching vehicle information:', vehicleError);
-          } else if (vehicles) {
-            // Create a mapping of vehicle_id to vehicle information
-            vehicles.forEach(vehicle => {
-              vehicleInfo[vehicle.id] = {
-                model: vehicle.model ? `${vehicle.make} ${vehicle.model}` : undefined
-              };
-            });
-          }
-        }
-        
         // Transform the data to match our TrafficFine interface
         return data.map(fine => ({
           id: fine.id,
@@ -118,7 +96,6 @@ export const useTrafficFines = () => {
           paymentStatus: fine.payment_status as TrafficFineStatusType,
           location: fine.fine_location,
           vehicleId: fine.vehicle_id,
-          vehicleModel: fine.vehicle_id ? vehicleInfo[fine.vehicle_id]?.model : undefined,
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
           leaseId: fine.lease_id,
           // Add customer information if available
