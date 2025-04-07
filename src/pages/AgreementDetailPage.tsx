@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -67,6 +68,9 @@ const AgreementDetailPage = () => {
   if (!agreement) {
     return <div className="flex items-center justify-center h-screen">Agreement not found.</div>;
   }
+
+  // Ensure we have customer data, whether it comes from customers or profiles
+  const customerData = agreement.customers || agreement.profiles;
 
   return (
     <div className="container mx-auto py-10">
@@ -175,19 +179,19 @@ const AgreementDetailPage = () => {
           <CardDescription>Details about the customer renting the vehicle</CardDescription>
         </CardHeader>
         <CardContent>
-          {agreement.customers ? (
+          {customerData ? (
             <div className="grid gap-4">
               <div>
                 <h4 className="font-semibold">Full Name</h4>
-                <p>{agreement.customers.full_name}</p>
+                <p>{customerData.full_name}</p>
               </div>
               <div>
                 <h4 className="font-semibold">Email</h4>
-                <p>{agreement.customers.email}</p>
+                <p>{customerData.email}</p>
               </div>
               <div>
                 <h4 className="font-semibold">Phone</h4>
-                <p>{agreement.customers.phone}</p>
+                <p>{customerData.phone_number || customerData.phone}</p>
               </div>
             </div>
           ) : (

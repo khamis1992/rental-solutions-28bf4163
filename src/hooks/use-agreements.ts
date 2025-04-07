@@ -40,6 +40,15 @@ export interface SimpleAgreement {
     phone?: string;
     driver_license?: string;
   };
+
+  profiles?: {
+    id?: string;
+    full_name?: string;
+    email?: string;
+    phone_number?: string;
+    driver_license?: string;
+    address?: string;
+  };
 }
 
 export interface AgreementSearchParams {
