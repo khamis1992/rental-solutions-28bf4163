@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useApiKeys } from '@/hooks/use-api-keys';
 import { 
@@ -32,16 +33,19 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiKeyPermission } from '@/types/api-types';
 import { format } from 'date-fns';
-import { AlertCircle, Check, Copy, Key, Shield, ShieldAlert, Trash2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Check, Copy, Key, Shield, ShieldAlert, Trash2, RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ApiKeyManagement: React.FC = () => {
   const { apiKeys, isLoading, createApiKey, revokeApiKey, refetch } = useApiKeys();
+  const { user } = useAuth();
   const [isCreating, setIsCreating] = useState(false);
   const [showNewKey, setShowNewKey] = useState(false);
   const [newKeyValue, setNewKeyValue] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Form state
   const [name, setName] = useState('');
@@ -49,10 +53,13 @@ const ApiKeyManagement: React.FC = () => {
   const [permissions, setPermissions] = useState<ApiKeyPermission[]>([]);
   const [expiryDays, setExpiryDays] = useState<number | ''>('');
   
-  // Force refresh data when component mounts
+  // Force refresh data when component mounts and when user changes
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    console.log("Component mounted or user changed, refreshing API keys");
+    if (user?.id) {
+      handleRefresh();
+    }
+  }, [user?.id]);
   
   // Permission options
   const permissionOptions: { value: ApiKeyPermission; label: string }[] = [
@@ -82,6 +89,19 @@ const ApiKeyManagement: React.FC = () => {
       setPermissions(permissions.filter(p => p !== permission));
     } else {
       setPermissions([...permissions, permission]);
+    }
+  };
+  
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetch();
+      console.log("API keys refreshed");
+    } catch (error) {
+      console.error("Error refreshing API keys:", error);
+      toast.error("Failed to refresh API keys");
+    } finally {
+      setIsRefreshing(false);
     }
   };
   
@@ -124,6 +144,9 @@ const ApiKeyManagement: React.FC = () => {
       setPermissions([]);
       setExpiryDays('');
       setIsCreating(false);
+      
+      // Explicitly refresh after creating
+      await handleRefresh();
     } catch (error) {
       console.error('Failed to create API key:', error);
     }
@@ -131,7 +154,13 @@ const ApiKeyManagement: React.FC = () => {
   
   const handleRevokeKey = async (keyId: string, keyName: string) => {
     if (confirm(`Are you sure you want to revoke the API key "${keyName}"? This action cannot be undone.`)) {
-      await revokeApiKey.mutateAsync(keyId);
+      try {
+        await revokeApiKey.mutateAsync(keyId);
+        // Explicitly refresh after revoking
+        await handleRefresh();
+      } catch (error) {
+        console.error('Error revoking key:', error);
+      }
     }
   };
   
@@ -141,22 +170,43 @@ const ApiKeyManagement: React.FC = () => {
   };
   
   const renderApiKeyTable = () => {
-    if (isLoading) {
-      return <div className="flex justify-center py-8">Loading API keys...</div>;
+    if (isLoading || isRefreshing) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+          <p className="text-muted-foreground">Loading API keys...</p>
+        </div>
+      );
     }
     
     if (!apiKeys || apiKeys.length === 0) {
       return (
-        <div className="text-center py-8 text-muted-foreground">
-          No API keys found. Create your first API key to integrate with external applications.
-          <div className="flex justify-center mt-4">
+        <div className="text-center py-12 border rounded-md bg-muted/20">
+          <Key className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">No API keys found</h3>
+          <p className="text-muted-foreground mb-6">
+            Create your first API key to integrate with external applications.
+          </p>
+          <div className="flex justify-center">
             <Button 
               variant="outline" 
-              onClick={() => refetch()} 
+              onClick={handleRefresh} 
+              className="flex items-center gap-2 mr-2"
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Refresh
+            </Button>
+            <Button 
+              onClick={() => setIsCreating(true)}
               className="flex items-center gap-2"
             >
-              <RefreshCw className="h-4 w-4" />
-              Refresh
+              <Key className="h-4 w-4" />
+              Create API Key
             </Button>
           </div>
         </div>
@@ -250,8 +300,16 @@ const ApiKeyManagement: React.FC = () => {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => refetch()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={isLoading || isRefreshing}
+            >
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
               Refresh
             </Button>
             <Button onClick={() => setIsCreating(true)}>
@@ -340,8 +398,18 @@ const ApiKeyManagement: React.FC = () => {
             <Button variant="outline" onClick={() => setIsCreating(false)}>
               Cancel
             </Button>
-            <Button onClick={handleCreateApiKey}>
-              Create API Key
+            <Button 
+              onClick={handleCreateApiKey}
+              disabled={createApiKey.isPending}
+            >
+              {createApiKey.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                "Create API Key"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -393,6 +461,7 @@ const ApiKeyManagement: React.FC = () => {
               onClick={() => {
                 copyToClipboard(newKeyValue);
                 setShowNewKey(false);
+                handleRefresh(); // Refresh after closing the dialog
               }}
               className="w-full"
             >
