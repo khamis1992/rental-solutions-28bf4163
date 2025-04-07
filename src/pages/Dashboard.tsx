@@ -11,7 +11,6 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
-import { useQueryClient } from '@tanstack/react-query';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -31,27 +30,14 @@ if (typeof window !== 'undefined') {
 const Dashboard = () => {
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const queryClient = useQueryClient();
   
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setIsRefreshing(true);
     
-    try {
-      // Invalidate and refetch dashboard data
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast({
-        title: "Dashboard Refreshed",
-        description: "Data has been updated successfully"
-      });
-    } catch (error) {
-      toast({
-        title: "Refresh Failed",
-        description: "Could not update dashboard data",
-        variant: "destructive"
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
+    // Use a timeout to prevent rapid refreshes
+    setTimeout(() => {
+      window.location.reload();
+    }, 300);
   };
 
   return (
