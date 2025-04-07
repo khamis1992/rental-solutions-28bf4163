@@ -638,6 +638,14 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     );
   }
   
+  const clearSearch = () => {
+    setSearchParams({
+      ...searchParams,
+      query: ''
+    });
+    document.querySelector('input[type="text"]')?.focus();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -687,13 +695,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           {searchQuery && (
             <Badge variant="outline" className="gap-1 pl-2">
               Search: {searchQuery}
-              <button onClick={() => {
-                setSearchQuery('');
-                setSearchParams({
-                  ...searchParams,
-                  query: ''
-                });
-              }} className="ml-1 hover:bg-accent rounded-full p-0.5">
+              <button onClick={() => clearSearch()} className="ml-1 hover:bg-accent rounded-full p-0.5">
                 <X className="h-3 w-3" />
                 <span className="sr-only">Clear search filter</span>
               </button>
