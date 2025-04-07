@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { PostgrestError } from '@supabase/supabase-js';
 import { useMutation, useQuery, UseQueryOptions, UseMutationOptions, UseMutationResult, UseQueryResult } from '@tanstack/react-query';
+import { trackApiTiming } from '@/utils/performance-monitoring';
 
 /**
  * Standard error handler for API calls.
@@ -94,7 +95,13 @@ export function useApiQuery<TData>(
         const result = await queryFn();
         
         const endTime = performance.now();
-        console.debug(`API Query completed: ${queryKey[0]} in ${(endTime - startTime).toFixed(2)}ms`);
+        const duration = endTime - startTime;
+        console.debug(`API Query completed: ${queryKey[0]} in ${duration.toFixed(2)}ms`);
+        
+        // Track API timing for monitoring
+        if (typeof queryKey[0] === 'string') {
+          trackApiTiming(queryKey[0] as string, duration);
+        }
         
         return result;
       } catch (error) {
@@ -157,8 +164,6 @@ export function usePaginatedApiQuery<TData>(
     initialPage?: number;
     pageSize?: number;
     enabled?: boolean;
-    onSuccess?: (data: { data: TData[], totalCount: number }) => void;
-    onError?: (error: Error) => void;
   }
 ): {
   data: TData[] | undefined;
@@ -181,8 +186,6 @@ export function usePaginatedApiQuery<TData>(
     {
       placeholderData: (oldData) => oldData,
       enabled: options?.enabled !== false,
-      onSuccess: options?.onSuccess,
-      onError: options?.onError,
     }
   );
   

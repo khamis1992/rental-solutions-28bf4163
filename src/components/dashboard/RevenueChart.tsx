@@ -7,7 +7,7 @@ import { formatCurrency } from '@/lib/utils';
 interface RevenueChartProps {
   data: { name: string; revenue: number }[];
   fullWidth?: boolean;
-  showTooltip?: boolean; // Add missing prop
+  showTooltip?: boolean;
 }
 
 const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false, showTooltip = true }) => {

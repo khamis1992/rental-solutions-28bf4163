@@ -97,12 +97,19 @@ export function initPerformanceMonitoring(): void {
   
   // Report real user metrics if supported
   try {
-    // Dynamic import of web-vitals
+    // Dynamic import of web-vitals with proper function imports
     import('web-vitals')
-      .then(({ getCLS, getFID, getLCP }) => {
-        getCLS((metric) => console.log('CLS:', metric.value));
-        getFID((metric) => console.log('FID:', metric.value));
-        getLCP((metric) => console.log('LCP:', metric.value));
+      .then((webVitals) => {
+        // Use type assertion to handle the dynamically imported module
+        const { onCLS, onFID, onLCP } = webVitals as {
+          onCLS: (callback: (metric: any) => void) => void;
+          onFID: (callback: (metric: any) => void) => void;
+          onLCP: (callback: (metric: any) => void) => void;
+        };
+        
+        onCLS((metric) => console.log('CLS:', metric.value));
+        onFID((metric) => console.log('FID:', metric.value));
+        onLCP((metric) => console.log('LCP:', metric.value));
       })
       .catch(error => {
         console.warn('Failed to load web-vitals:', error);

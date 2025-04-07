@@ -1,11 +1,31 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { FlattenType } from '@/utils/type-utils';
+
+// Define a simpler customer type
+type SimpleCustomer = {
+  id: string;
+  full_name?: string;
+  email?: string;
+  phone_number?: string;
+};
+
+// Define a simpler vehicle type
+type SimpleVehicle = {
+  id: string;
+  make?: string;
+  model?: string;
+  license_plate?: string;
+  image_url?: string;
+  year?: number;
+  color?: string;
+  vin?: string;
+};
 
 // Simplify the type to avoid excessive type instantiation
 export type SimpleAgreement = {
@@ -19,19 +39,13 @@ export type SimpleAgreement = {
   status?: string;
   total_amount?: number;
   monthly_payment?: number;
-  agreement_duration?: any;
-  customer_name?: string;
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-  vehicle_year?: number;
   created_at?: string;
   updated_at?: string;
   signature_url?: string;
   deposit_amount?: number;
   notes?: string;
-  customers?: any;
-  vehicles?: any;
+  customers?: SimpleCustomer;
+  vehicles?: SimpleVehicle;
   rent_amount?: number;
   daily_late_fee?: number;
 };
@@ -262,7 +276,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Transform the data: Use explicit type casting to avoid deep instantiation
+      // Transform the data using simplified types
       const agreements: SimpleAgreement[] = data.map(item => {
         // Use the helper function to map status
         const mappedStatus = mapDBStatusToEnum(item.status);
@@ -414,8 +428,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes (increased from 5 minutes)
-    gcTime: 900000, // 15 minutes (increased from 10 minutes)
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000, // 15 minutes
   });
 
   return {
