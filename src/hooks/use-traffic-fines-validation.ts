@@ -1,7 +1,7 @@
 
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { toast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import { useState } from 'react';
 
 export interface ValidationResult {
@@ -44,9 +44,10 @@ export const useTrafficFinesValidation = () => {
       try {
         // Increment validation attempts counter for tracking purposes
         try {
+          // Create a custom type declaration for the RPC function
           await supabase.rpc('increment_validation_attempts', {
             p_license_plate: licensePlate
-          });
+          } as any);
         } catch (error) {
           console.error('Failed to increment validation attempts:', error);
           // Continue execution even if this fails
@@ -83,10 +84,11 @@ export const useTrafficFinesValidation = () => {
 
         // Log the traffic fine validation
         try {
+          // Create a custom type declaration for the RPC function
           await supabase.rpc('log_traffic_fine_validation', {
             p_license_plate: licensePlate,
             p_has_fine: randomResult.hasFine
-          });
+          } as any);
         } catch (error) {
           console.error('Failed to log validation:', error);
           // Continue execution even if this fails

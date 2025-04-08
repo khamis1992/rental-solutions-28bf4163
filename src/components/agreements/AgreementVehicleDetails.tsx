@@ -32,7 +32,7 @@ const AgreementVehicleDetails: React.FC<AgreementVehicleDetailsProps> = ({ vehic
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center">
-          {vehicle.type === 'truck' ? (
+          {vehicle?.type === 'truck' ? (
             <Truck className="mr-2 h-5 w-5" />
           ) : (
             <Car className="mr-2 h-5 w-5" />

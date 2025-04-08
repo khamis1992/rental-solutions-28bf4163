@@ -1,77 +1,69 @@
 
-import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { useAgreements } from "@/hooks/use-agreements";
-import AgreementForm from "@/components/agreements/AgreementForm";
-import { Agreement } from "@/types/agreement";
-import { useToast } from "@/components/ui/use-toast";
-import PageContainer from "@/components/layout/PageContainer";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle } from "lucide-react";
-import { updateAgreementWithCheck, adaptSimpleToFullAgreement } from "@/utils/agreement-utils";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState, useEffect } from 'react';
+import PageContainer from '@/components/layout/PageContainer';
+import { Button } from '@/components/ui/button';
+import { SectionHeader } from '@/components/ui/section-header';
+import { ClipboardEdit, ArrowLeft, Loader2 } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import AgreementForm from '@/components/agreements/AgreementForm';
+import { useAgreements } from '@/hooks/use-agreements';
+import { Agreement } from '@/types/agreement';
+import { updateAgreementWithCheck } from '@/utils/agreement-utils';
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { toast } from 'sonner';
+import { Card, CardDescription } from '@/components/ui/card';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
-  const { user } = useAuth();
-  
+  const navigate = useNavigate();
+  const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Fetch agreement details
-  const { agreement, isLoading, error, refetch } = useAgreements({ id });
-  const [fullAgreement, setFullAgreement] = useState<Agreement | null>(null);
-  
+  const { getAgreement } = useAgreements();
+
   useEffect(() => {
-    if (agreement) {
-      // Need to adapt for backward compatibility and handle security deposit fields
-      const adaptedAgreement = {
-        ...agreement,
-        security_deposit_amount: agreement.security_deposit_amount || 0,
-        deposit_amount: agreement.security_deposit_amount || 0,
-        terms_accepted: true, // Default value for existing agreements
-        additional_drivers: [] // Default value for existing agreements
-      };
-      setFullAgreement(adaptedAgreement);
-    }
-  }, [agreement]);
+    const loadAgreement = async () => {
+      if (!id) return;
+      
+      setIsLoading(true);
+      try {
+        const agreementData = await getAgreement(id);
+        if (agreementData) {
+          setAgreement({
+            ...adaptSimpleToFullAgreement(agreementData),
+            terms_accepted: true, 
+            additional_drivers: []
+          });
+        } else {
+          toast.error('Agreement not found');
+          navigate('/agreements');
+        }
+      } catch (error) {
+        console.error('Error loading agreement:', error);
+        toast.error('Error loading agreement');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadAgreement();
+  }, [id, navigate, getAgreement]);
 
   const handleSubmit = async (formData: Agreement) => {
     if (!id) return;
     
     setIsSubmitting(true);
-    
     try {
-      const result = await updateAgreementWithCheck(
-        { id, data: formData },
-        user?.id,
-        () => {
-          toast({
-            title: "Agreement Updated",
-            description: "The agreement has been updated successfully.",
-          });
-          refetch();
-        },
-        (error) => {
-          toast({
-            variant: "destructive",
-            title: "Update Failed",
-            description: error.message || "An error occurred while updating the agreement.",
-          });
-        }
-      );
-      
-      if (!result?.success) {
-        throw new Error("Failed to update agreement");
-      }
-    } catch (error) {
-      console.error("Error updating agreement:", error);
-      toast({
-        variant: "destructive",
-        title: "Update Failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
+      await updateAgreementWithCheck({ 
+        id, 
+        data: formData 
       });
+      
+      toast.success('Agreement updated successfully');
+      navigate(`/agreements/${id}`);
+    } catch (error) {
+      console.error('Error updating agreement:', error);
+      toast.error('Error updating agreement');
     } finally {
       setIsSubmitting(false);
     }
@@ -79,51 +71,55 @@ const EditAgreement = () => {
 
   if (isLoading) {
     return (
-      <PageContainer 
-        title="Edit Agreement" 
-        description="Loading agreement details..."
-        backLink="/agreements"
-      >
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-72 w-full" />
+      <PageContainer>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </PageContainer>
     );
   }
 
-  if (error || !agreement) {
+  if (!agreement) {
     return (
-      <PageContainer 
-        title="Edit Agreement" 
-        description="There was an error loading the agreement"
-        backLink="/agreements"
-      >
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {error?.message || "The agreement could not be loaded. Please try again later."}
-          </AlertDescription>
-        </Alert>
+      <PageContainer>
+        <Card className="p-6">
+          <CardDescription>
+            Agreement not found. It may have been deleted or you don't have permission to view it.
+          </CardDescription>
+          <Button asChild className="mt-4">
+            <Link to="/agreements">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Agreements
+            </Link>
+          </Button>
+        </Card>
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer 
-      title="Edit Agreement" 
-      description={`Agreement ${agreement.agreement_number || ''}`}
-      backLink="/agreements"
-    >
-      {fullAgreement && (
-        <AgreementForm 
-          initialValues={fullAgreement}
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-          mode="edit"
+    <PageContainer>
+      <div className="flex items-center justify-between mb-6">
+        <SectionHeader
+          title="Edit Agreement"
+          description="Update agreement details and information"
+          icon={ClipboardEdit}
         />
-      )}
+        
+        <Button variant="outline" asChild>
+          <Link to={`/agreements/${id}`}>
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Details
+          </Link>
+        </Button>
+      </div>
+      
+      <AgreementForm 
+        agreement={agreement} 
+        onSubmit={handleSubmit} 
+        isSubmitting={isSubmitting}
+        mode="edit" 
+      />
     </PageContainer>
   );
 };

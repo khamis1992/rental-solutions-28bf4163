@@ -1,41 +1,66 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { Button } from '@/components/ui/button';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Car, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useVehicles } from '@/hooks/use-vehicles';
-import { VehicleFilters, VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
+import { VehicleFilters } from '@/components/vehicles/VehicleFilters';
 import VehiclesList from '@/components/vehicles/VehiclesList';
+import { VehicleFilterParams } from '@/types/vehicle';
+
+// Define the VehicleFilterValues type
+export interface VehicleFilterValues {
+  status: string;
+  make: string;
+  category: string;
+  year: string;
+  location: string;
+  searchTerm?: string;
+}
 
 const Vehicles = () => {
   const {
-    vehicles, 
-    isLoading, 
-    error, 
-    filterOptions, 
-    setFilterOptions,
-    totalCount,
-    currentPage,
-    setCurrentPage
+    useList,
+    useVehicleStats
   } = useVehicles();
+  
+  const [searchParams, setSearchParams] = useState<VehicleFilterParams>({
+    status: '',
+    make: '',
+    type: '',
+    location: '',
+    year: undefined,
+    query: '',
+    page: 1,
+    limit: 10
+  });
   
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
+  const { data: vehicles = [], isLoading, error, refetch } = useList(searchParams);
+  const { data: stats } = useVehicleStats();
+  const totalCount = stats?.totalCount || 0;
+  
   const handleFilterChange = (newFilters: VehicleFilterValues) => {
-    setFilterOptions({
-      ...filterOptions,
+    setSearchParams({
+      ...searchParams,
       status: newFilters.status !== 'all' ? newFilters.status : '',
       make: newFilters.make !== 'all' ? newFilters.make : '',
       type: newFilters.category !== 'all' ? newFilters.category : '',
-      year: newFilters.year,
+      year: newFilters.year !== 'all' ? parseInt(newFilters.year) : undefined,
       location: newFilters.location,
       query: newFilters.searchTerm || '',
+      page: 1, // Reset to first page when filters change
     });
-    
-    // Reset to first page when filters change
-    setCurrentPage(1);
+  };
+  
+  const setCurrentPage = (page: number) => {
+    setSearchParams({
+      ...searchParams,
+      page
+    });
   };
   
   return (
@@ -68,10 +93,10 @@ const Vehicles = () => {
         error={error}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
-        currentPage={currentPage}
+        currentPage={searchParams.page || 1}
         totalCount={totalCount}
         onPageChange={setCurrentPage}
-        itemsPerPage={filterOptions.limit || 10}
+        itemsPerPage={searchParams.limit || 10}
       />
     </PageContainer>
   );
