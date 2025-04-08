@@ -298,7 +298,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   // Fix the TypeScript error by explicitly typing the return type
   const deleteAgreement = useMutation({
-    mutationFn: async (id: string): Promise<SimpleMutationResult<string>> => {
+    mutationFn: async (id: string): Promise<{ success: boolean; data?: string }> => {
       console.log(`Starting deletion process for agreement ${id}`);
       
       try {
