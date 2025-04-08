@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -29,8 +30,8 @@ export type SimpleAgreement = {
   signature_url?: string;
   deposit_amount?: number;
   notes?: string;
-  customers?: any;
-  vehicles?: any;
+  customers?: Record<string, any>;
+  vehicles?: Record<string, any>;
 };
 
 // Function to convert database status to AgreementStatus enum value

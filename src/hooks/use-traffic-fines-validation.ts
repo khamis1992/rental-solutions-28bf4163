@@ -36,15 +36,25 @@ export const useTrafficFinesValidation = () => {
         // Transform the data to match the ValidationResult interface
         return data.map(item => {
           // Parse the result JSON field which contains our validation data
-          const resultData = typeof item.result === 'object' ? item.result : JSON.parse(item.result || '{}');
+          let resultData = {};
+          try {
+            if (typeof item.result === 'string') {
+              resultData = JSON.parse(item.result);
+            } else if (typeof item.result === 'object') {
+              resultData = item.result;
+            }
+          } catch (parseError) {
+            console.error('Error parsing result data:', parseError);
+            resultData = {};
+          }
           
           return {
             validationId: item.id,
-            licensePlate: resultData.licensePlate || '',
+            licensePlate: resultData?.licensePlate || '',
             validationDate: new Date(item.validation_date),
-            validationSource: resultData.validationSource || 'MOI Traffic System',
-            hasFine: resultData.hasFine || false,
-            details: resultData.details || ''
+            validationSource: resultData?.validationSource || 'MOI Traffic System',
+            hasFine: resultData?.hasFine === true,
+            details: resultData?.details || ''
           };
         });
       } catch (error) {
@@ -55,14 +65,15 @@ export const useTrafficFinesValidation = () => {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
-  // Track validation attempts in a separate table
+  // Track validation attempts - but don't use the nonexistent table/function
+  // We'll use direct inserts/updates instead
   const incrementValidationAttempt = async (licensePlate: string) => {
     try {
-      // First check if record exists
-      const { data: existingRecord, error: queryError } = await supabase
+      // Check if we have previous validations for this license plate
+      const { data: existingValidations, error: queryError } = await supabase
         .from('traffic_fine_validations')
         .select('id')
-        .eq('result->licensePlate', licensePlate)
+        .eq('license_plate', licensePlate)
         .maybeSingle();
       
       if (queryError) {
@@ -70,21 +81,7 @@ export const useTrafficFinesValidation = () => {
         return null;
       }
       
-      // If record exists, update the attempt count
-      if (existingRecord) {
-        const { error: updateError } = await supabase
-          .rpc('increment_validation_attempts', { 
-            p_license_plate: licensePlate 
-          });
-          
-        if (updateError) {
-          console.error('Error incrementing validation attempts:', updateError);
-        }
-        
-        return existingRecord;
-      }
-      
-      return null;
+      return existingValidations;
     } catch (error) {
       console.error('Error in incrementValidationAttempt:', error);
       return null;
@@ -94,7 +91,7 @@ export const useTrafficFinesValidation = () => {
   // Validate traffic fine
   const validateTrafficFine = async (licensePlate: string): Promise<ValidationResult> => {
     try {
-      // Log validation attempt
+      // Log validation attempt - simplified to avoid using nonexistent RPC function
       await incrementValidationAttempt(licensePlate);
       
       // Call the edge function to validate the traffic fine
@@ -107,13 +104,16 @@ export const useTrafficFinesValidation = () => {
         throw new Error(`Validation failed: ${error.message}`);
       }
       
+      const validationData = data as ValidationResult;
+      
       // Store validation result in database
       const { error: logError } = await supabase
         .from('traffic_fine_validations')
         .insert({
+          license_plate: validationData.licensePlate,
+          validation_date: new Date().toISOString(),
           result: data,
-          status: 'completed',
-          validation_date: new Date().toISOString()
+          status: 'completed'
         });
       
       if (logError) {
@@ -123,7 +123,7 @@ export const useTrafficFinesValidation = () => {
       // Invalidate the query to refresh the validation history
       queryClient.invalidateQueries({ queryKey: ['trafficFineValidations'] });
       
-      return data as ValidationResult;
+      return validationData;
     } catch (error) {
       console.error('Error in validateTrafficFine:', error);
       throw error;
@@ -146,7 +146,7 @@ export const useTrafficFinesValidation = () => {
         
         const result = await validateTrafficFine(fine.license_plate);
         
-        return { fineId, validationResult: result as ValidationResult };
+        return { fineId, validationResult: result };
       } catch (error) {
         console.error('Error validating fine by ID:', error);
         throw error;
