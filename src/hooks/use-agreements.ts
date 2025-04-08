@@ -1,4 +1,8 @@
 
+// We only need to modify the part causing the error in use-agreements.ts
+// The issue is in the SimpleAgreement type and its usage
+
+// Update the beginning of the file
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -287,6 +291,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   };
 
   const updateAgreementMutation = useMutation({
+    // Use type any for the data parameter to avoid deep instantiation issues
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
       return {};

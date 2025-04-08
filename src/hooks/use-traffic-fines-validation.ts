@@ -36,12 +36,12 @@ export const useTrafficFinesValidation = () => {
         // Transform the data to match the ValidationResult interface
         return data.map(item => {
           // Parse the result JSON field which contains our validation data
-          let resultData = {};
+          let resultData: Record<string, any> = {};
           try {
             if (typeof item.result === 'string') {
               resultData = JSON.parse(item.result);
-            } else if (typeof item.result === 'object') {
-              resultData = item.result;
+            } else if (typeof item.result === 'object' && item.result !== null) {
+              resultData = item.result as Record<string, any>;
             }
           } catch (parseError) {
             console.error('Error parsing result data:', parseError);
@@ -50,11 +50,11 @@ export const useTrafficFinesValidation = () => {
           
           return {
             validationId: item.id,
-            licensePlate: resultData?.licensePlate || '',
+            licensePlate: resultData.licensePlate || '',
             validationDate: new Date(item.validation_date),
-            validationSource: resultData?.validationSource || 'MOI Traffic System',
-            hasFine: resultData?.hasFine === true,
-            details: resultData?.details || ''
+            validationSource: resultData.validationSource || 'MOI Traffic System',
+            hasFine: resultData.hasFine === true,
+            details: resultData.details || ''
           };
         });
       } catch (error) {
@@ -65,8 +65,7 @@ export const useTrafficFinesValidation = () => {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
-  // Track validation attempts - but don't use the nonexistent table/function
-  // We'll use direct inserts/updates instead
+  // Track validation attempts
   const incrementValidationAttempt = async (licensePlate: string) => {
     try {
       // Check if we have previous validations for this license plate
@@ -104,6 +103,7 @@ export const useTrafficFinesValidation = () => {
         throw new Error(`Validation failed: ${error.message}`);
       }
       
+      // Ensure we have valid data that matches our ValidationResult interface
       const validationData = data as ValidationResult;
       
       // Store validation result in database
