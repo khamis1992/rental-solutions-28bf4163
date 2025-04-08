@@ -1,108 +1,99 @@
 
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/utils";
-import { RecentAgreement, RecentPayment } from "@/hooks/use-dashboard";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Car, User, CreditCard, Wrench, AlertTriangle, Clock } from 'lucide-react';
+import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
+import { useNavigate } from 'react-router-dom';
 
 interface RecentActivityProps {
-  recentAgreements: RecentAgreement[] | undefined;
-  recentPayments: RecentPayment[] | undefined;
-  isLoadingAgreements: boolean;
-  isLoadingPayments: boolean;
+  activities: RecentActivityType[];
 }
 
-export function RecentActivity({
-  recentAgreements,
-  recentPayments,
-  isLoadingAgreements,
-  isLoadingPayments
-}: RecentActivityProps) {
+const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
+  const navigate = useNavigate();
+
+  const handleActivityClick = (activity: RecentActivityType) => {
+    // Navigate to the relevant page based on activity type
+    if (activity.type === 'rental' || activity.type === 'return') {
+      navigate(`/agreements/${activity.id}`);
+    } else if (activity.type === 'payment') {
+      navigate(`/financials`);
+    } else if (activity.type === 'maintenance') {
+      navigate(`/maintenance/${activity.id}`);
+    } else if (activity.type === 'fine') {
+      navigate(`/fines`);
+    }
+  };
+
   return (
-    <Card>
+    <Card className="col-span-4 card-transition">
       <CardHeader>
         <CardTitle>Recent Activity</CardTitle>
-        <CardDescription>
-          Recent agreements and payments in your system
-        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="agreements">
-          <TabsList className="mb-4">
-            <TabsTrigger value="agreements">Recent Agreements</TabsTrigger>
-            <TabsTrigger value="payments">Recent Payments</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="agreements">
-            {isLoadingAgreements ? (
-              <div className="space-y-2">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-            ) : recentAgreements && recentAgreements.length > 0 ? (
-              <div className="space-y-4">
-                {recentAgreements.map((agreement) => (
-                  <div key={agreement.id} className="flex items-center justify-between border-b pb-2">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{agreement.customer_name}</p>
-                        <Badge variant={agreement.status === 'active' ? 'default' : 'secondary'}>
-                          {agreement.status}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {agreement.vehicle_make} {agreement.vehicle_model} - {agreement.vehicle_license_plate}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(agreement.rent_amount)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(agreement.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
+        {activities.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">
+            No recent activity to display
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {activities.map((activity) => (
+              <div 
+                key={activity.id} 
+                className="flex items-start cursor-pointer hover:bg-slate-50 p-2 rounded-md transition-colors"
+                onClick={() => handleActivityClick(activity)}
+              >
+                <div className={`p-2 rounded-full ${getActivityColor(activity.type)} mr-4`}>
+                  {getActivityIcon(activity.type)}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">{activity.title}</h4>
+                    <span className="text-xs text-muted-foreground">{activity.time}</span>
                   </div>
-                ))}
+                  <p className="text-muted-foreground mt-1">{activity.description}</p>
+                </div>
               </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">No recent agreements found</p>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="payments">
-            {isLoadingPayments ? (
-              <div className="space-y-2">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
-            ) : recentPayments && recentPayments.length > 0 ? (
-              <div className="space-y-4">
-                {recentPayments.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between border-b pb-2">
-                    <div className="space-y-1">
-                      <p className="font-medium">{payment.customer_name}</p>
-                      <div className="text-sm text-muted-foreground">
-                        {payment.status === 'completed' ? 'Payment completed' : 'Payment recorded'}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium">{formatCurrency(payment.amount)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(payment.payment_date).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-4">No recent payments found</p>
-            )}
-          </TabsContent>
-        </Tabs>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
-}
+};
+
+const getActivityIcon = (type: string) => {
+  switch (type) {
+    case 'rental':
+      return <Car className="h-5 w-5" />;
+    case 'return':
+      return <Clock className="h-5 w-5" />;
+    case 'payment':
+      return <CreditCard className="h-5 w-5" />;
+    case 'maintenance':
+      return <Wrench className="h-5 w-5" />;
+    case 'fine':
+      return <AlertTriangle className="h-5 w-5" />;
+    default:
+      return <User className="h-5 w-5" />;
+  }
+};
+
+const getActivityColor = (type: string) => {
+  switch (type) {
+    case 'rental':
+      return 'bg-blue-100 text-blue-700';
+    case 'return':
+      return 'bg-green-100 text-green-700';
+    case 'payment':
+      return 'bg-violet-100 text-violet-700';
+    case 'maintenance':
+      return 'bg-amber-100 text-amber-700';
+    case 'fine':
+      return 'bg-red-100 text-red-700';
+    default:
+      return 'bg-gray-100 text-gray-700';
+  }
+};
+
+export default RecentActivity;

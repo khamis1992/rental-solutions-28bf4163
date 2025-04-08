@@ -1,196 +1,255 @@
-
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
-import { SectionHeader } from '@/components/ui/section-header';
-import { FileText } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAgreements } from '@/hooks/use-agreements';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast } from 'sonner';
+import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { useRentAmount } from '@/hooks/use-rent-amount';
+import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/date-utils';
-import { AlertCircle, Edit } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import AgreementPayments from '@/components/agreements/AgreementPayments';
-import AgreementDocuments from '@/components/agreements/AgreementDocuments';
-import AgreementVehicleDetails from '@/components/agreements/AgreementVehicleDetails';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
+import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
+import { supabase } from '@/lib/supabase';
+import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
+import { getDateObject } from '@/lib/date-utils';
+import { usePayments } from '@/hooks/use-payments';
+import { fixAgreementPayments } from '@/lib/supabase';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { getAgreement, isAgreementLoading } = useAgreements();
-  const [agreement, setAgreement] = React.useState<any>(null);
-  const [activeTab, setActiveTab] = React.useState("details");
-  const [error, setError] = React.useState<string | null>(null);
+  const navigate = useNavigate();
+  const { getAgreement, deleteAgreement } = useAgreements();
+  const [agreement, setAgreement] = useState<Agreement | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
+  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
 
-  React.useEffect(() => {
-    const fetchAgreement = async () => {
-      try {
-        if (id) {
-          const data = await getAgreement(id);
-          setAgreement(data);
+  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
+  
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', rentAmount);
+
+  const fetchAgreementData = async () => {
+    if (!id) return;
+
+    try {
+      setIsLoading(true);
+      const data = await getAgreement(id);
+      
+      if (data) {
+        const adaptedAgreement = adaptSimpleToFullAgreement(data);
+        
+        if (adaptedAgreement.start_date) {
+          const safeDate = getDateObject(adaptedAgreement.start_date);
+          adaptedAgreement.start_date = safeDate || new Date();
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch agreement details');
+        
+        if (adaptedAgreement.end_date) {
+          const safeDate = getDateObject(adaptedAgreement.end_date);
+          adaptedAgreement.end_date = safeDate || new Date();
+        }
+        
+        if (adaptedAgreement.created_at) {
+          const safeDate = getDateObject(adaptedAgreement.created_at);
+          adaptedAgreement.created_at = safeDate;
+        }
+        
+        if (adaptedAgreement.updated_at) {
+          const safeDate = getDateObject(adaptedAgreement.updated_at);
+          adaptedAgreement.updated_at = safeDate;
+        }
+        
+        setAgreement(adaptedAgreement);
+        fetchPayments();
+      } else {
+        toast.error("Agreement not found");
+        navigate("/agreements");
       }
-    };
-
-    fetchAgreement();
-  }, [id, getAgreement]);
-
-  const handlePaymentUpdate = () => {
-    if (id) {
-      getAgreement(id).then(data => setAgreement(data));
+    } catch (error) {
+      console.error('Error fetching agreement:', error);
+      toast.error('Failed to load agreement details');
+    } finally {
+      setIsLoading(false);
+      setHasAttemptedFetch(true);
     }
   };
 
-  if (isAgreementLoading) {
-    return (
-      <PageContainer>
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-1/3" />
-          <Card>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <Skeleton className="h-6 w-1/4" />
-                <Skeleton className="h-6 w-1/2" />
-                <Skeleton className="h-6 w-1/3" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </PageContainer>
-    );
-  }
+  useEffect(() => {
+    if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
+      fetchAgreementData();
+    }
+  }, [id, refreshTrigger]);
 
-  if (error) {
-    return (
-      <PageContainer>
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </PageContainer>
-    );
-  }
+  useEffect(() => {
+    if (id && !isLoading && agreement && payments && payments.length > 0) {
+      const paymentDates = payments
+        .filter(p => p.original_due_date)
+        .map(p => {
+          const date = new Date(p.original_due_date as string);
+          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        });
+      
+      const monthCounts = paymentDates.reduce((acc, date) => {
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const hasDuplicates = Object.values(monthCounts).some(count => count > 1);
+      
+      if (hasDuplicates) {
+        console.log("Detected duplicate payments - will fix automatically");
+        fixAgreementPayments(id).then(() => {
+          fetchPayments();
+        });
+      }
+    }
+  }, [id, isLoading, agreement, payments]);
 
-  if (!agreement) {
-    return (
-      <PageContainer>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Agreement Not Found</AlertTitle>
-          <AlertDescription>The requested agreement does not exist or has been removed.</AlertDescription>
-        </Alert>
-      </PageContainer>
-    );
-  }
+  const handleDelete = async (agreementId: string) => {
+    try {
+      await deleteAgreement.mutateAsync(agreementId);
+      toast.success("Agreement deleted successfully");
+      navigate("/agreements");
+    } catch (error) {
+      console.error("Error deleting agreement:", error);
+      toast.error("Failed to delete agreement");
+    }
+  };
+
+  const refreshAgreementData = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  const handleGenerateDocument = () => {
+    setIsDocumentDialogOpen(true);
+  };
+
+  const handleGeneratePayment = async () => {
+    if (!id || !agreement) return;
+    
+    setIsGeneratingPayment(true);
+    try {
+      const result = await forceGeneratePaymentForAgreement(supabase, id);
+      
+      if (result.success) {
+        toast.success("Payment schedule generated successfully");
+        refreshAgreementData();
+      } else {
+        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Error generating payment:", error);
+      toast.error("Failed to generate payment schedule");
+    } finally {
+      setIsGeneratingPayment(false);
+    }
+  };
+
+  const handleRunMaintenanceJob = async () => {
+    if (!id) return;
+    
+    setIsRunningMaintenance(true);
+    try {
+      toast.info("Running payment maintenance check...");
+      const result = await manuallyRunPaymentMaintenance();
+      
+      if (result.success) {
+        toast.success(result.message || "Payment schedule maintenance completed");
+        refreshAgreementData();
+        fetchPayments();
+      } else {
+        toast.error(result.message || "Payment maintenance failed");
+      }
+    } catch (error) {
+      console.error("Error running maintenance job:", error);
+      toast.error("Failed to run maintenance job");
+    } finally {
+      setIsRunningMaintenance(false);
+    }
+  };
 
   return (
-    <PageContainer>
-      <div className="flex items-center justify-between mb-6">
-        <SectionHeader
-          title={`Agreement ${agreement.agreement_number || ''}`}
-          description={`Created on ${formatDate(new Date(agreement.created_at))}`}
-          icon={FileText}
-        />
-        <Button asChild>
-          <Link to={`/agreements/${agreement.id}/edit`}>
-            <Edit className="mr-2 h-4 w-4" /> Edit Agreement
-          </Link>
-        </Button>
-      </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="vehicle">Vehicle</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="details">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agreement Information</CardTitle>
-              <CardDescription>Agreement details and status information</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2">Customer</h3>
-                <p>{agreement.customer?.full_name || 'Not assigned'}</p>
-                {agreement.customer?.email && <p className="text-sm text-muted-foreground">{agreement.customer.email}</p>}
-                {agreement.customer?.phone_number && <p className="text-sm text-muted-foreground">{agreement.customer.phone_number}</p>}
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">Vehicle</h3>
-                <p>{agreement.vehicle ? `${agreement.vehicle.make} ${agreement.vehicle.model} (${agreement.vehicle.year})` : 'Not assigned'}</p>
-                <p className="text-sm text-muted-foreground">{agreement.vehicle?.license_plate || ''}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">Period</h3>
-                <p>From {formatDate(new Date(agreement.start_date))} to {formatDate(new Date(agreement.end_date))}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">Status</h3>
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${
-                    agreement.status === 'active' ? 'bg-green-500' : 
-                    agreement.status === 'pending' || agreement.status === 'pending_payment' || agreement.status === 'pending_deposit' ? 'bg-yellow-500' : 
-                    'bg-gray-500'
-                  }`}></span>
-                  <span className="capitalize">{agreement.status?.replace('_', ' ') || 'Unknown'}</span>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-semibold mb-2">Payment Information</h3>
-                <p>Rent Amount: ${agreement.rent_amount?.toLocaleString()}</p>
-                <p>Total Amount: ${agreement.total_amount?.toLocaleString()}</p>
-                {agreement.security_deposit_amount && (
-                  <p>Security Deposit: ${agreement.security_deposit_amount.toLocaleString()}</p>
-                )}
-              </div>
-              
-              {agreement.notes && (
-                <div className="md:col-span-2">
-                  <h3 className="font-semibold mb-2">Notes</h3>
-                  <p className="text-sm">{agreement.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="payments">
-          <AgreementPayments 
-            agreementId={agreement.id} 
-            isLoading={false}
-            onPaymentUpdate={handlePaymentUpdate}
+    <PageContainer
+      title="Agreement Details"
+      description="View and manage rental agreement details"
+      backLink="/agreements"
+      actions={
+        <>
+          {agreement && agreement.status === AgreementStatus.ACTIVE && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGeneratePayment}
+              disabled={isGeneratingPayment}
+              className="gap-2 mr-2"
+            >
+              <Calendar className="h-4 w-4" />
+              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRunMaintenanceJob}
+            disabled={isRunningMaintenance}
+            className="gap-2"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
+          </Button>
+        </>
+      }
+    >
+      {isLoading ? (
+        <div className="space-y-6">
+          <Skeleton className="h-12 w-2/3" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-96 w-full md:col-span-2" />
+          </div>
+        </div>
+      ) : agreement ? (
+        <>
+          <AgreementDetail 
+            agreement={agreement}
+            onDelete={handleDelete}
+            rentAmount={rentAmount}
+            contractAmount={contractAmount}
+            onPaymentDeleted={refreshAgreementData}
+            onDataRefresh={refreshAgreementData}
+            onGenerateDocument={handleGenerateDocument}
           />
-        </TabsContent>
-
-        <TabsContent value="vehicle">
-          <AgreementVehicleDetails 
-            vehicle={agreement.vehicle}
-            isLoading={false}
-          />
-        </TabsContent>
-
-        <TabsContent value="documents">
-          <AgreementDocuments 
-            agreementId={agreement.id}
-            documents={agreement.documents}
-            isLoading={false}
-            onUpload={handlePaymentUpdate}
-          />
-        </TabsContent>
-      </Tabs>
+          
+          <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
+            <DialogContent className="max-w-4xl">
+              <InvoiceGenerator 
+                recordType="agreement" 
+                recordId={agreement.id} 
+                onClose={() => setIsDocumentDialogOpen(false)} 
+              />
+            </DialogContent>
+          </Dialog>
+        </>
+      ) : (
+        <div className="text-center py-12">
+          <div className="flex items-center justify-center mb-4">
+            <AlertTriangle className="h-12 w-12 text-amber-500" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
+          <p className="text-muted-foreground mb-4">
+            The agreement you're looking for doesn't exist or has been removed.
+          </p>
+          <Button variant="outline" onClick={() => navigate("/agreements")}>
+            Return to Agreements
+          </Button>
+        </div>
+      )}
     </PageContainer>
   );
 };

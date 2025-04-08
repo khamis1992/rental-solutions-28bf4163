@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -24,16 +24,7 @@ export interface TrafficFine {
 }
 
 export interface TrafficFinePayload {
-  id?: string;
-  violationNumber?: string;
-  licensePlate: string;
-  violationDate: Date;
-  fineAmount: number;
-  violationCharge: string;
-  location?: string;
-  paymentStatus?: 'pending' | 'paid' | 'disputed';
-  vehicleId?: string;
-  serialNumber?: string;
+  id: string;
 }
 
 export const useTrafficFines = () => {
@@ -120,7 +111,7 @@ export const useTrafficFines = () => {
   
   // Assign a traffic fine to a customer
   const assignToCustomer = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
+    mutationFn: async ({ id }: TrafficFinePayload) => {
       try {
         // First get the traffic fine details to find license plate
         const { data: fine, error: fineError } = await supabase
@@ -199,7 +190,7 @@ export const useTrafficFines = () => {
   
   // Pay a traffic fine
   const payTrafficFine = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
+    mutationFn: async ({ id }: TrafficFinePayload) => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ 
@@ -221,7 +212,7 @@ export const useTrafficFines = () => {
   
   // Dispute a traffic fine
   const disputeTrafficFine = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
+    mutationFn: async ({ id }: TrafficFinePayload) => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ payment_status: 'disputed' })
@@ -237,47 +228,11 @@ export const useTrafficFines = () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
     }
   });
-
-  // Add a traffic fine
-  const addTrafficFine = useMutation({
-    mutationFn: async (fine: TrafficFinePayload) => {
-      const { error } = await supabase
-        .from('traffic_fines')
-        .insert({
-          violation_number: fine.violationNumber,
-          license_plate: fine.licensePlate,
-          violation_date: fine.violationDate.toISOString(),
-          fine_amount: fine.fineAmount,
-          violation_charge: fine.violationCharge,
-          fine_location: fine.location,
-          payment_status: fine.paymentStatus || 'pending',
-          vehicle_id: fine.vehicleId,
-          serial_number: fine.serialNumber,
-          validation_status: 'pending'
-        });
-
-      if (error) {
-        throw new Error(`Failed to add traffic fine: ${error.message}`);
-      }
-      
-      return { success: true };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Traffic fine added successfully');
-    },
-    onError: (error) => {
-      toast.error('Failed to add traffic fine', {
-        description: error.message || 'An unexpected error occurred'
-      });
-    }
-  });
-
+  
   return {
     trafficFines,
     isLoading,
     error,
-    addTrafficFine,
     assignToCustomer,
     payTrafficFine,
     disputeTrafficFine
