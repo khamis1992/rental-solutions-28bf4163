@@ -10,6 +10,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { jsPDF } from 'jspdf';
 import { addReportHeader, addReportFooter, downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -29,7 +31,6 @@ const ReportDownloadOptions = ({
   });
   const [fileFormat, setFileFormat] = useState('pdf');
   const [isGenerating, setIsGenerating] = useState(false);
-  const { toast } = useToast();
 
   const handleDownload = async () => {
     try {
@@ -43,78 +44,174 @@ const ReportDownloadOptions = ({
       
       // Generate report based on file format
       if (fileFormat === 'pdf') {
-        // Use the standardized report generator instead of creating a PDF directly
-        const doc = generateStandardReport(
-          title,
-          dateRange,
-          (doc, startY) => {
-            // Add content based on report type
-            let yPos = startY;
-            
-            // Add summary section heading
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Report Summary:', 14, yPos);
-            yPos += 10;
-            
-            // Add content specific to each report type
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            
-            switch (reportType) {
-              case 'fleet':
-                doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
-                doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
-                doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
-                break;
-              case 'financial':
-                doc.text('• Revenue Summary', 20, yPos); yPos += 10;
-                doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                doc.text('• Profit Margin', 20, yPos); yPos += 10;
-                doc.text('• Financial Projections', 20, yPos); yPos += 10;
-                break;
-              case 'customers':
-                doc.text('• Customer Demographics', 20, yPos); yPos += 10;
-                doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
-                doc.text('• Top Customers', 20, yPos); yPos += 10;
-                break;
-              case 'maintenance':
-                doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
-                doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Maintenance History', 20, yPos); yPos += 10;
-                break;
-              default:
-                doc.text('No data available for this report type.', 20, yPos);
+        try {
+          // Use the standardized report generator
+          const doc = await generateStandardReport(
+            title,
+            dateRange,
+            async (doc, startY) => {
+              // Add content based on report type
+              let yPos = startY;
+              
+              // Add summary section heading
+              doc.setFontSize(14);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Report Summary:', 14, yPos);
+              yPos += 10;
+              
+              // Add content specific to each report type
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              
+              switch (reportType) {
+                case 'fleet':
+                  doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
+                  doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
+                  doc.text('• Active Rentals', 20, yPos); yPos += 10;
+                  doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
+                  doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
+                  break;
+                case 'financial':
+                  // Financial report specific content
+                  if (reportData.length === 0) {
+                    doc.text('No financial data available for the selected period.', 20, yPos);
+                    yPos += 20;
+                  } else {
+                    // Add financial overview
+                    doc.text('• Financial Overview', 20, yPos); yPos += 10;
+                    
+                    // Calculate totals
+                    const totalAmount = reportData.reduce((sum, item) => sum + (parseFloat(item.total_amount) || 0), 0);
+                    const totalPaid = reportData.reduce((sum, item) => sum + (parseFloat(item.totalPaid) || 0), 0);
+                    const totalOutstanding = reportData.reduce((sum, item) => sum + (parseFloat(item.outstandingBalance) || 0), 0);
+                    const totalFines = reportData.reduce((sum, item) => sum + (parseFloat(item.totalFinesAmount) || 0), 0);
+                    
+                    doc.text(`   Total Agreements: ${reportData.length}`, 20, yPos); yPos += 8;
+                    doc.text(`   Total Amount: QAR ${totalAmount.toFixed(2)}`, 20, yPos); yPos += 8;
+                    doc.text(`   Total Paid: QAR ${totalPaid.toFixed(2)}`, 20, yPos); yPos += 8;
+                    doc.text(`   Outstanding Balance: QAR ${totalOutstanding.toFixed(2)}`, 20, yPos); yPos += 8;
+                    doc.text(`   Total Traffic Fines: QAR ${totalFines.toFixed(2)}`, 20, yPos); yPos += 20;
+                    
+                    // Add detailed table
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Agreement Details:', 14, yPos);
+                    yPos += 15;
+                    
+                    // Table headers
+                    const headers = ['Customer', 'Agreement #', 'Status', 'Amount Paid', 'Balance', 'Last Payment'];
+                    const columnWidths = [50, 30, 25, 30, 30, 30];
+                    let xPos = 14;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    
+                    headers.forEach((header, i) => {
+                      doc.text(header, xPos, yPos);
+                      xPos += columnWidths[i];
+                    });
+                    
+                    yPos += 8;
+                    doc.setLineWidth(0.3);
+                    doc.line(14, yPos - 4, 195, yPos - 4);
+                    
+                    // Table rows
+                    doc.setFont('helvetica', 'normal');
+                    
+                    for (const item of reportData) {
+                      // Check if we need a new page
+                      if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                      }
+                      
+                      xPos = 14;
+                      
+                      const customerName = item.customers?.full_name || 'N/A';
+                      doc.text(customerName.length > 20 ? customerName.substring(0, 18) + '...' : customerName, xPos, yPos);
+                      xPos += columnWidths[0];
+                      
+                      doc.text(item.agreement_number || 'N/A', xPos, yPos);
+                      xPos += columnWidths[1];
+                      
+                      doc.text(item.paymentStatus || 'N/A', xPos, yPos);
+                      xPos += columnWidths[2];
+                      
+                      doc.text(`QAR ${(item.totalPaid || 0).toFixed(2)}`, xPos, yPos);
+                      xPos += columnWidths[3];
+                      
+                      doc.text(`QAR ${(item.outstandingBalance || 0).toFixed(2)}`, xPos, yPos);
+                      xPos += columnWidths[4];
+                      
+                      const lastPaymentDate = item.lastPaymentDate ? 
+                        new Date(item.lastPaymentDate).toLocaleDateString() : 'None';
+                      doc.text(lastPaymentDate, xPos, yPos);
+                      
+                      yPos += 8;
+                    }
+                  }
+                  break;
+                case 'customers':
+                  doc.text('• Customer Demographics', 20, yPos); yPos += 10;
+                  doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
+                  doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
+                  doc.text('• Top Customers', 20, yPos); yPos += 10;
+                  break;
+                case 'maintenance':
+                  doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
+                  doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
+                  doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
+                  doc.text('• Maintenance History', 20, yPos); yPos += 10;
+                  break;
+                default:
+                  doc.text('No data available for this report type.', 20, yPos);
+              }
+              
+              return yPos; // Return the final y position
             }
-            
-            return yPos; // Return the final y position
-          }
-        );
-        
-        // Save the PDF
-        doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+          );
+          
+          // Save the PDF
+          doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+          
+          toast.success("Report downloaded successfully!", {
+            description: `Your ${reportType} report has been downloaded.`
+          });
+        } catch (error) {
+          console.error('Error generating PDF:', error);
+          toast.error("Download failed", {
+            description: "There was a problem generating your PDF report. Please try again."
+          });
+        }
       } else if (fileFormat === 'excel') {
-        downloadExcel(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        try {
+          downloadExcel(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+          toast.success("Report downloaded successfully!", {
+            description: `Your ${reportType} report has been downloaded as Excel.`
+          });
+        } catch (error) {
+          console.error('Error generating Excel:', error);
+          toast.error("Download failed", {
+            description: "There was a problem generating your Excel report. Please try again."
+          });
+        }
       } else if (fileFormat === 'csv') {
-        downloadCSV(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+        try {
+          downloadCSV(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.csv`);
+          toast.success("Report downloaded successfully!", {
+            description: `Your ${reportType} report has been downloaded as CSV.`
+          });
+        } catch (error) {
+          console.error('Error generating CSV:', error);
+          toast.error("Download failed", {
+            description: "There was a problem generating your CSV report. Please try again."
+          });
+        }
       }
-      
-      // Show success toast notification
-      toast({
-        title: "Report downloaded successfully!",
-        description: `Your ${reportType} report has been downloaded.`,
-        variant: "default"
-      });
     } catch (error) {
       console.error('Error generating report:', error);
-      toast({
-        title: "Download failed",
-        description: "There was a problem generating your report. Please try again.",
-        variant: "destructive"
+      toast.error("Download failed", {
+        description: "There was a problem generating your report. Please try again."
       });
     } finally {
       setIsGenerating(false);

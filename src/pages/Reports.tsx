@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -16,9 +15,12 @@ import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import { useAgreements } from '@/hooks/use-agreements';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -27,6 +29,8 @@ const Reports = () => {
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
+  const { agreements } = useAgreements();
+  const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
   useEffect(() => {
@@ -59,7 +63,72 @@ const Reports = () => {
     }, 2000);
   };
   
-  const getReportData = () => {
+  const getFinancialReportData = () => {
+    if (!agreements) return [];
+    
+    try {
+      const reportData = agreements.map(agreement => {
+        const paymentsForAgreement = transactions ? transactions.filter(t => 
+          t.lease_id === agreement.id) : [];
+        
+        const finesForAgreement = trafficFines ? 
+          trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
+        
+        const totalPaid = paymentsForAgreement.reduce((sum, payment) => {
+          const isPaid = 
+            payment.status === 'completed' || 
+            payment.status === 'success' || 
+            payment.status.toLowerCase() === 'paid';
+          return isPaid ? sum + (payment.amount || 0) : sum;
+        }, 0);
+          
+        const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
+        
+        const totalFinesAmount = finesForAgreement.reduce((sum, fine) => 
+          sum + (fine.fineAmount || 0), 0);
+          
+        const paidFinesAmount = finesForAgreement.reduce((sum, fine) => 
+          fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
+          
+        const outstandingFines = totalFinesAmount - paidFinesAmount;
+        
+        let paymentStatus = 'Paid';
+        if (outstandingBalance > 0) {
+          paymentStatus = 'Partially Paid';
+        } 
+        if (totalPaid === 0) {
+          paymentStatus = 'Unpaid';
+        }
+        
+        const lastPayment = paymentsForAgreement.length > 0 ? 
+          paymentsForAgreement.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            return dateB - dateA;
+          })[0] : null;
+        
+        return {
+          ...agreement,
+          payments: paymentsForAgreement,
+          fines: finesForAgreement,
+          totalPaid,
+          outstandingBalance,
+          totalFinesAmount,
+          paidFinesAmount,
+          outstandingFines,
+          paymentStatus,
+          lastPaymentDate: lastPayment?.date || null
+        };
+      });
+      
+      return reportData;
+    } catch (error) {
+      console.error('Error preparing financial report data:', error);
+      return [];
+    }
+  };
+  
+  const getReportData = (): Record<string, any>[] => {
     switch (selectedTab) {
       case 'fleet':
         return vehicles.map(v => ({
@@ -71,7 +140,7 @@ const Reports = () => {
           daily_rate: v.dailyRate
         }));
       case 'financial':
-        return transactions;
+        return getFinancialReportData();
       case 'customers':
         return customers.map(customer => ({
           id: customer.id,
@@ -97,7 +166,6 @@ const Reports = () => {
           notes: record.notes || 'N/A'
         }));
       case 'legal':
-        // Legal reports data would be implemented here
         return [];
       default:
         return [];
