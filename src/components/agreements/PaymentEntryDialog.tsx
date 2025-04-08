@@ -94,11 +94,12 @@ export function PaymentEntryDialog({
   // Fetch pending payments for this agreement
   const fetchPendingPayments = async (agreementId: string) => {
     try {
+      // Modified query to include 'pending', 'partially_paid', and 'overdue' statuses
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
         .eq('lease_id', agreementId)
-        .in('status', ['pending', 'partially_paid'])
+        .in('status', ['pending', 'partially_paid', 'overdue'])
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -108,7 +109,9 @@ export function PaymentEntryDialog({
       
       if (data && data.length > 0) {
         setPendingPayments(data as ExtendedPayment[]);
+        console.log("Found payments for dialog:", data);
       } else {
+        console.log("No pending/overdue payments found");
         setPendingPayments([]);
       }
     } catch (err) {
@@ -192,6 +195,8 @@ export function PaymentEntryDialog({
       status = " (Partially Paid)";
     } else if (payment.status === 'pending') {
       status = " (Pending)";
+    } else if (payment.status === 'overdue') {
+      status = " (Overdue)";
     }
     
     return `${desc}${status} - ${payment.amount_paid ? 

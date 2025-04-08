@@ -77,3 +77,13 @@ export type SimpleMutationResult<T = unknown> = {
  * @template T The base type to simplify
  */
 export type SimpleReturnType<T> = T extends object ? Record<string, any> : T;
+
+/**
+ * A very basic mutation result type to completely avoid TypeScript deep instantiation issues
+ */
+export type BasicMutationResult = {
+  mutateAsync: (args: any) => Promise<any>;
+  isPending: boolean;
+  isError?: boolean;
+  error?: unknown;
+};
