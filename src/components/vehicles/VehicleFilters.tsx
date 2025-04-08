@@ -1,162 +1,206 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { cn } from '@/lib/utils';
-import { useVehicles } from '@/hooks/use-vehicles';
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, X } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
+import { vehicleStatusOptions, vehicleTypeOptions, vehicleMakeOptions } from './vehicleFilterOptions';
 
-export interface VehicleFilterValues {
-  status: string;
-  make: string;
-  location: string;
-  year: string;
-  category: string;
-}
+const filterSchema = z.object({
+  status: z.string().optional(),
+  make: z.string().optional(),
+  type: z.string().optional(),
+  searchTerm: z.string().optional(),
+});
+
+type FilterValues = z.infer<typeof filterSchema>;
 
 interface VehicleFiltersProps {
-  onFilterChange: (filters: VehicleFilterValues) => void;
-  initialValues?: VehicleFilterValues;
-  className?: string;
+  onFilterChange: (filters: FilterValues) => void;
+  clearFilters: () => void;
 }
 
-const VehicleFilters: React.FC<VehicleFiltersProps> = ({ 
-  onFilterChange, 
-  initialValues = {
-    status: 'all',
-    make: 'all',
-    location: 'all',
-    year: 'all',
-    category: 'all'
-  },
-  className 
-}) => {
-  const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
-  const { useVehicleTypes, useList } = useVehicles();
-  
-  const { data: vehicleTypes } = useVehicleTypes();
-  const { data: vehicles } = useList();
-  
-  useEffect(() => {
-    setFilters(initialValues);
-  }, [initialValues]);
-  
-  const uniqueMakes = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.make || 'unknown') || [])
-  ).sort();
-  
-  const uniqueLocations = Array.from(
-    new Set(vehicles?.filter(v => v.location).map(vehicle => vehicle.location || 'unknown') || [])
-  ).sort();
-  
-  const uniqueYears = Array.from(
-    new Set(vehicles?.map(vehicle => vehicle.year?.toString() || 'unknown') || [])
-  ).sort((a, b) => {
-    if (a === 'unknown') return 1;
-    if (b === 'unknown') return -1;
-    return parseInt(b) - parseInt(a);
+export function VehicleFilters({ onFilterChange, clearFilters }: VehicleFiltersProps) {
+  const [expanded, setExpanded] = useState(false);
+
+  const form = useForm<FilterValues>({
+    resolver: zodResolver(filterSchema),
+    defaultValues: {
+      status: '',
+      make: '',
+      type: '',
+      searchTerm: '',
+    },
   });
-  
-  const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+
+  const handleSubmit = (values: FilterValues) => {
+    onFilterChange(values);
   };
-  
+
+  const handleClearFilters = () => {
+    form.reset({
+      status: '',
+      make: '',
+      type: '',
+      searchTerm: '',
+    });
+    clearFilters();
+  };
+
   return (
-    <div className={cn("grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4", className)}>
-      <Select
-        value={filters.status}
-        onValueChange={(value) => handleFilterChange('status', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Statuses" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Statuses</SelectItem>
-          <SelectItem value="available">Available</SelectItem>
-          <SelectItem value="rented">Rented Out</SelectItem>
-          <SelectItem value="maintenance">In Maintenance</SelectItem>
-          <SelectItem value="reserved">Reserved</SelectItem>
-          <SelectItem value="police_station">At Police Station</SelectItem>
-          <SelectItem value="accident">In Accident</SelectItem>
-          <SelectItem value="stolen">Reported Stolen</SelectItem>
-        </SelectContent>
-      </Select>
-      
-      <Select
-        value={filters.make}
-        onValueChange={(value) => handleFilterChange('make', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Makes" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Makes</SelectItem>
-          {uniqueMakes.map(make => (
-            <SelectItem key={make} value={make}>{make}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Select
-        value={filters.location}
-        onValueChange={(value) => handleFilterChange('location', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Locations" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Locations</SelectItem>
-          {uniqueLocations.map(location => (
-            <SelectItem key={location} value={location}>{location}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Select
-        value={filters.year}
-        onValueChange={(value) => handleFilterChange('year', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Years" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Years</SelectItem>
-          {uniqueYears.map(year => (
-            <SelectItem key={year} value={year}>{year}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      
-      <Select
-        value={filters.category}
-        onValueChange={(value) => handleFilterChange('category', value)}
-      >
-        <SelectTrigger className="bg-white">
-          <SelectValue placeholder="All Categories" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Categories</SelectItem>
-          {vehicleTypes?.map(type => (
-            type.id ? (
-              <SelectItem key={type.id} value={type.id}>
-                {type.name}
-              </SelectItem>
-            ) : (
-              <SelectItem key="unknown-type" value="unknown-type">
-                Unknown Type
-              </SelectItem>
-            )
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <FormField
+            control={form.control}
+            name="searchTerm"
+            render={({ field }) => (
+              <FormItem className="flex-1">
+                <FormLabel>Search</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by license plate, make, model..."
+                      className="pl-8"
+                      {...field}
+                    />
+                  </div>
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          <Button
+            type="submit"
+            className="mt-auto"
+          >
+            Search
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="mt-auto"
+            onClick={handleClearFilters}
+          >
+            <X className="h-4 w-4 mr-2" /> Clear
+          </Button>
+        </div>
+
+        {/* Advanced filters */}
+        <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 ${expanded ? '' : 'hidden md:grid'}`}>
+          <FormField
+            control={form.control}
+            name="status"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Status</FormLabel>
+                <Select
+                  onValueChange={(value: string) => field.onChange(value)}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Statuses" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">All Statuses</SelectItem>
+                    {vehicleStatusOptions.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="make"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Make</FormLabel>
+                <Select
+                  onValueChange={(value: string) => field.onChange(value)}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Makes" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">All Makes</SelectItem>
+                    {vehicleMakeOptions.map((make) => (
+                      <SelectItem key={make.value} value={make.value}>
+                        {make.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select
+                  onValueChange={(value: string) => field.onChange(value)}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">All Types</SelectItem>
+                    {vehicleTypeOptions.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        {/* Expand/collapse button for mobile */}
+        <div className="md:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? "Hide Advanced Filters" : "Show Advanced Filters"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
-};
+}
 
 export default VehicleFilters;

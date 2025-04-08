@@ -1,239 +1,218 @@
-// Fix type errors related to property access
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 
-export const useDashboard = () => {
-  const today = new Date();
-  const firstDayOfMonth = startOfMonth(today);
-  const lastDayOfMonth = endOfMonth(today);
-  const thirtyDaysAgo = subMonths(today, 1);
+export interface RecentAgreement {
+  id: string;
+  agreement_number: string;
+  customer_id: string;
+  customer_name: string;
+  vehicle_id: string;
+  vehicle_make: string;
+  vehicle_model: string;
+  vehicle_license_plate: string;
+  rent_amount: number;
+  status: string;
+  created_at: string;
+}
 
-  const { data: customerCount, isLoading: isLoadingCustomers } = useQuery({
-    queryKey: ['dashboard', 'customer-count'],
+export interface RecentPayment {
+  id: string;
+  amount: number;
+  payment_date: string;
+  customer_name: string;
+  status: string;
+}
+
+export function useDashboard() {
+  const {
+    data: customerCount,
+    isLoading: isLoadingCustomers,
+    error: customerError,
+  } = useQuery({
+    queryKey: ["customerCount"],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "customer");
 
-      if (error) {
-        console.error('Error fetching customer count:', error);
-        throw error;
-      }
-
-      return count || 0;
-    }
+      if (error) throw error;
+      return count;
+    },
   });
 
-  const { data: vehicleCount, isLoading: isLoadingVehicles } = useQuery({
-    queryKey: ['dashboard', 'vehicle-count'],
+  const {
+    data: vehicleCount,
+    isLoading: isLoadingVehicles,
+    error: vehicleError,
+  } = useQuery({
+    queryKey: ["vehicleCount"],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from('vehicles')
-        .select('*', { count: 'exact', head: true });
+        .from("vehicles")
+        .select("*", { count: "exact", head: true });
 
-      if (error) {
-        console.error('Error fetching vehicle count:', error);
-        throw error;
-      }
-
-      return count || 0;
-    }
+      if (error) throw error;
+      return count;
+    },
   });
 
-  const { data: agreementCount, isLoading: isLoadingAgreementsCount } = useQuery({
-    queryKey: ['dashboard', 'agreement-count'],
+  const {
+    data: agreementCount,
+    isLoading: isLoadingAgreementsCount,
+    error: agreementError,
+  } = useQuery({
+    queryKey: ["agreementCount"],
     queryFn: async () => {
       const { count, error } = await supabase
-        .from('leases')
-        .select('*', { count: 'exact', head: true });
+        .from("leases")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "active");
 
-      if (error) {
-        console.error('Error fetching agreement count:', error);
-        throw error;
-      }
-
-      return count || 0;
-    }
+      if (error) throw error;
+      return count;
+    },
   });
 
-  const { data: monthlyRevenue, isLoading: isLoadingRevenue } = useQuery({
-    queryKey: ['dashboard', 'monthly-revenue'],
+  const {
+    data: monthlyRevenue,
+    isLoading: isLoadingRevenue,
+    error: revenueError,
+  } = useQuery({
+    queryKey: ["monthlyRevenue"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('payments')
-        .select('amount')
-        .gte('payment_date', format(firstDayOfMonth, 'yyyy-MM-dd'))
-        .lte('payment_date', format(lastDayOfMonth, 'yyyy-MM-dd'));
-
-      if (error) {
-        console.error('Error fetching monthly revenue:', error);
-        throw error;
-      }
-
-      const totalRevenue = data?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-      return totalRevenue;
-    }
-  });
-
-  const { data: lastMonthRevenue, isLoading: isLoadingLastMonthRevenue } = useQuery({
-    queryKey: ['dashboard', 'last-month-revenue'],
-    queryFn: async () => {
-      const lastMonthStart = subMonths(firstDayOfMonth, 1);
-      const lastMonthEnd = subMonths(lastDayOfMonth, 1);
+      // Get current month's start and end dates
+      const now = new Date();
+      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
       const { data, error } = await supabase
-        .from('payments')
-        .select('amount')
-        .gte('payment_date', format(lastMonthStart, 'yyyy-MM-dd'))
-        .lte('payment_date', format(lastMonthEnd, 'yyyy-MM-dd'));
+        .from("unified_payments")
+        .select("amount")
+        .gte("payment_date", firstDayOfMonth.toISOString())
+        .lte("payment_date", lastDayOfMonth.toISOString())
+        .eq("status", "completed");
 
-      if (error) {
-        console.error('Error fetching last month revenue:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      const totalRevenue = data?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
-      return totalRevenue;
-    }
+      // Sum up the amounts
+      const total = data.reduce((sum, payment) => sum + (payment.amount || 0), 0);
+      return total;
+    },
   });
 
-  const { data: overduePayments, isLoading: isLoadingOverduePayments } = useQuery({
-    queryKey: ['dashboard', 'overdue-payments'],
+  const {
+    data: overduePayments,
+    isLoading: isLoadingOverduePayments,
+    error: overdueError,
+  } = useQuery({
+    queryKey: ["overduePayments"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("unified_payments")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending")
+        .lt("due_date", new Date().toISOString());
+
+      if (error) throw error;
+      return count;
+    },
+  });
+
+  const {
+    data: recentAgreements,
+    isLoading: isLoadingAgreements,
+    error: recentAgreementsError,
+  } = useQuery({
+    queryKey: ["recentAgreements"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('leases_missing_payments')
-        .select('*')
-        .lte('due_date', format(today, 'yyyy-MM-dd'));
+        .from("leases")
+        .select(`
+          id,
+          agreement_number,
+          customer_id,
+          vehicle_id,
+          status,
+          rent_amount,
+          created_at,
+          profiles (
+            full_name
+          ),
+          vehicles (
+            make,
+            model,
+            license_plate
+          )
+        `)
+        .order("created_at", { ascending: false })
+        .limit(5);
 
-      if (error) {
-        console.error('Error fetching overdue payments:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      return data?.length || 0;
-    }
-  });
+      return data.map(agreement => {
+        // Handle potentially missing joined data
+        const customer = agreement.profiles || {};
+        const vehicle = agreement.vehicles || {};
 
-  const { data: recentAgreements, isLoading: isLoadingAgreements } = useQuery({
-    queryKey: ['dashboard', 'recent-agreements'],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('leases')
-          .select(`
-            *,
-            profiles:customer_id (
-              id,
-              full_name,
-              email,
-              phone_number
-            ),
-            vehicles:vehicle_id (
-              id,
-              make,
-              model,
-              license_plate,
-              year
-            )
-          `)
-          .order('created_at', { ascending: false })
-          .limit(8);
-        
-        if (error) {
-          console.error('Error fetching recent agreements:', error);
-          throw error;
-        }
-        
-        return data.map((agreement: any) => ({
+        return {
           id: agreement.id,
           agreement_number: agreement.agreement_number,
-          status: agreement.status,
-          start_date: new Date(agreement.start_date),
-          end_date: new Date(agreement.end_date),
+          customer_id: agreement.customer_id,
+          customer_name: customer.full_name || 'Unknown Customer',
+          vehicle_id: agreement.vehicle_id,
+          vehicle_make: vehicle.make || 'Unknown',
+          vehicle_model: vehicle.model || 'Vehicle',
+          vehicle_license_plate: vehicle.license_plate || 'No Plate',
           rent_amount: agreement.rent_amount,
-          customer: agreement.profiles ? {
-            id: agreement.profiles.id,
-            name: agreement.profiles.full_name,
-            email: agreement.profiles.email
-          } : {
-            id: "",
-            name: "Unknown Customer",
-            email: ""
-          },
-          vehicle: agreement.vehicles ? {
-            id: agreement.vehicles.id,
-            make: agreement.vehicles.make, 
-            model: agreement.vehicles.model,
-            license_plate: agreement.vehicles.license_plate
-          } : {
-            id: "",
-            make: "Unknown",
-            model: "Vehicle", 
-            license_plate: "N/A"
-          }
-        }));
-      } catch (error) {
-        console.error('Error in recent agreements data:', error);
-        return [];
-      }
-    }
+          status: agreement.status,
+          created_at: agreement.created_at
+        };
+      });
+    },
   });
 
-  const { data: recentPayments, isLoading: isLoadingPayments } = useQuery({
-    queryKey: ['dashboard', 'recent-payments'],
+  const {
+    data: recentPayments,
+    isLoading: isLoadingPayments,
+    error: recentPaymentsError,
+  } = useQuery({
+    queryKey: ["recentPayments"],
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from('payments')
-          .select(`
-            *,
-            leases (
-              agreement_number,
-              customer_id
-            ),
+      const { data, error } = await supabase
+        .from("unified_payments")
+        .select(`
+          id,
+          amount,
+          payment_date,
+          status,
+          lease_id,
+          leases (
             profiles (
               full_name
-            ),
-            vehicles (
-              make,
-              model,
-              license_plate
             )
-          `)
-          .order('payment_date', { ascending: false })
-          .limit(5);
+          )
+        `)
+        .order("payment_date", { ascending: false })
+        .limit(5);
 
-        if (error) {
-          console.error('Error fetching recent payments:', error);
-          throw error;
-        }
+      if (error) throw error;
 
-        return data.map((payment: any) => ({
+      return data.map(payment => {
+        // Handle potentially missing joined data
+        const customer = payment.leases?.profiles || {};
+
+        return {
           id: payment.id,
-          payment_date: new Date(payment.payment_date),
           amount: payment.amount,
-          agreement_number: payment.leases?.agreement_number,
-          customer_name: payment.profiles?.full_name,
-          vehicle: payment.vehicles ? {
-            id: payment.vehicles.id,
-            make: payment.vehicles.make,
-            model: payment.vehicles.model,
-            license_plate: payment.vehicles.license_plate
-          } : {
-            id: "",
-            make: "Unknown", 
-            model: "Vehicle", 
-            license_plate: "N/A"
-          }
-          
-        }));
-      } catch (error) {
-        console.error('Error in recent payments data:', error);
-        return [];
-      }
-    }
+          payment_date: payment.payment_date,
+          status: payment.status,
+          customer_name: customer.full_name || 'Unknown Customer'
+        };
+      });
+    },
   });
 
   return {
@@ -241,7 +220,6 @@ export const useDashboard = () => {
     vehicleCount,
     agreementCount,
     monthlyRevenue,
-    lastMonthRevenue,
     overduePayments,
     recentAgreements,
     recentPayments,
@@ -249,9 +227,11 @@ export const useDashboard = () => {
     isLoadingVehicles,
     isLoadingAgreementsCount,
     isLoadingRevenue,
-    isLoadingLastMonthRevenue,
     isLoadingOverduePayments,
     isLoadingAgreements,
-    isLoadingPayments
+    isLoadingPayments,
+    // Re-export components for direct import from Dashboard.tsx
+    DashboardStats: require('@/components/dashboard/DashboardStats').DashboardStats,
+    RecentActivity: require('@/components/dashboard/RecentActivity').RecentActivity,
   };
-};
+}

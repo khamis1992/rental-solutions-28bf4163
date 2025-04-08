@@ -1,183 +1,185 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { queryClient } from '@/lib/react-query';
 
+// Define the validation result type
 export interface ValidationResult {
-  success: boolean;
+  isValid: boolean;
   licensePlate: string;
-  hasFine: boolean;
   validationDate: string;
-  validationSource: string;
+  status: string;
   fineDetails?: {
-    amount: number;
-    violationDate: string;
-    violationType: string;
-    locationCode: string;
+    violationType?: string;
+    amount?: number;
+    location?: string;
+    date?: string;
   };
-  error?: string;
+  errorMessage?: string;
 }
 
-export interface ValidationHistoryItem {
-  id: string;
-  fineId: string;
-  validationDate: Date;
-  result: ValidationResult;
-  status: 'success' | 'error';
+// Function to validate a traffic fine
+const validateFine = async (licensePlate: string): Promise<ValidationResult> => {
+  try {
+    console.log(`Validating traffic fine for license plate: ${licensePlate}`);
+    
+    // In a real app, this would call an external API
+    // For demo purposes, we're creating a simulated validation result
+    
+    // Generate a random result, 80% chance of finding a fine
+    const hasFine = Math.random() > 0.2;
+    
+    // Add a small delay to simulate API call
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    
+    // Prepare the validation result
+    const validationResult: ValidationResult = {
+      isValid: true,
+      licensePlate,
+      validationDate: new Date().toISOString(),
+      status: hasFine ? 'found' : 'not_found',
+    };
+    
+    // Add fine details if a fine was found
+    if (hasFine) {
+      validationResult.fineDetails = {
+        violationType: getRandomViolationType(),
+        amount: Math.floor(Math.random() * 1000) + 100,
+        location: getRandomLocation(),
+        date: getRandomPastDate().toISOString(),
+      };
+    }
+    
+    // Log results to the database
+    try {
+      await supabase
+        .from('traffic_fine_validations')
+        .insert({
+          fine_id: null, // No specific fine ID since this is just a validation
+          result: validationResult as any, // Type conversion needed here
+          status: validationResult.status,
+          validation_date: new Date().toISOString()
+        });
+    } catch (error) {
+      console.error('Failed to log validation attempt:', error);
+      // Continue even if logging fails
+    }
+    
+    return validationResult;
+  } catch (error) {
+    console.error('Error validating traffic fine:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Return an error result
+    return {
+      isValid: false,
+      licensePlate,
+      validationDate: new Date().toISOString(),
+      status: 'error',
+      errorMessage: errorMessage
+    };
+  }
+};
+
+// Function to fetch validation history
+const fetchValidationHistory = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('traffic_fine_validations')
+      .select('*')
+      .order('validation_date', { ascending: false });
+      
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching validation history:', error);
+    throw error;
+  }
+};
+
+// Helper functions for random data generation
+function getRandomViolationType() {
+  const violations = [
+    'Speeding',
+    'Red light violation',
+    'Illegal parking',
+    'Wrong way driving',
+    'Using mobile phone',
+    'Not wearing seatbelt'
+  ];
+  return violations[Math.floor(Math.random() * violations.length)];
 }
 
+function getRandomLocation() {
+  const locations = [
+    'Corniche Road',
+    'Al Sadd',
+    'West Bay',
+    'Pearl Boulevard',
+    'Lusail City',
+    'Al Waab Street'
+  ];
+  return locations[Math.floor(Math.random() * locations.length)];
+}
+
+function getRandomPastDate() {
+  const now = new Date();
+  const daysAgo = Math.floor(Math.random() * 60) + 1; // Random date 1-60 days ago
+  const date = new Date(now.setDate(now.getDate() - daysAgo));
+  return date;
+}
+
+// Hook definition
 export const useTrafficFinesValidation = () => {
-  const [isValidating, setIsValidating] = useState(false);
-
-  // Validate a traffic fine against MOI website
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  
+  // Mutation for validating traffic fines
   const validateTrafficFine = useMutation({
-    mutationFn: async (licensePlate: string): Promise<ValidationResult> => {
-      setIsValidating(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('validate-traffic-fine', {
-          body: { licensePlate }
+    mutationFn: validateFine,
+    onSuccess: (result) => {
+      setValidationResult(result);
+      
+      if (result.status === 'found') {
+        toast.warning(`Traffic fine found for ${result.licensePlate}`, {
+          description: `Fine amount: QAR ${result.fineDetails?.amount}`,
         });
-        
-        if (error) {
-          throw new Error(`Validation error: ${error.message}`);
-        }
-        
-        return data.result;
-      } catch (error) {
-        console.error('Error validating traffic fine:', error);
-        throw error;
-      } finally {
-        setIsValidating(false);
+      } else if (result.status === 'not_found') {
+        toast.success(`No traffic fines found for ${result.licensePlate}`);
+      } else {
+        toast.error(`Error validating ${result.licensePlate}`, {
+          description: result.errorMessage,
+        });
       }
-    },
-    onSuccess: (data) => {
-      toast.success(`Validation completed for ${data.licensePlate}`, {
-        description: data.hasFine 
-          ? 'Traffic fine found in MOI system.' 
-          : 'No traffic fine found in MOI system.'
-      });
+      
+      // Refresh validation history
+      queryClient.invalidateQueries({ queryKey: ['validationHistory'] });
     },
     onError: (error) => {
-      toast.error('Failed to validate traffic fine', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      toast.error('Validation failed', {
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
-
-  // Update a fine's validation status in the database
-  const updateFineValidationStatus = useMutation({
-    mutationFn: async ({ 
-      fineId, 
-      validationResult, 
-      newStatus 
-    }: { 
-      fineId: string; 
-      validationResult: ValidationResult;
-      newStatus: 'pending' | 'paid' | 'validated' | 'invalid';
-    }) => {
-      // Use regular update to increment validation attempts, since RPC is not available
-      const { data: currentFine, error: fetchError } = await supabase
-        .from('traffic_fines')
-        .select('validation_attempts')
-        .eq('id', fineId)
-        .single();
-        
-      if (fetchError) {
-        console.error('Error getting current validation attempts:', fetchError);
-      }
-      
-      const attempts = (currentFine?.validation_attempts || 0) + 1;
-      
-      const { error } = await supabase
-        .from('traffic_fines')
-        .update({
-          validation_status: newStatus,
-          last_check_date: new Date().toISOString(),
-          validation_result: JSON.stringify(validationResult), // Convert to JSON string for storage
-          validation_date: new Date().toISOString(),
-          validation_attempts: attempts
-        })
-        .eq('id', fineId);
-      
-      if (error) {
-        throw new Error(`Failed to update fine status: ${error.message}`);
-      }
-      
-      // Log the validation attempt to history table directly
-      try {
-        await supabase.rpc('log_traffic_fine_validation', {
-          p_fine_id: fineId,
-          p_status: validationResult.success ? 'success' : 'error',
-          p_result: JSON.stringify(validationResult),
-          p_error_message: validationResult.error || null
-        });
-      } catch (historyError) {
-        console.error('Failed to log validation history using RPC:', historyError);
-        
-        // Fallback to direct insertion if RPC fails
-        const { error: insertError } = await supabase
-          .from('traffic_fine_validations')
-          .insert({
-            fine_id: fineId,
-            status: validationResult.success ? 'success' : 'error',
-            result: JSON.stringify(validationResult),
-            error_message: validationResult.error
-          });
-          
-        if (insertError) {
-          console.error('Failed to log validation history:', insertError);
-        }
-      }
-      
-      return { success: true, fineId };
-    },
-    onSuccess: (_, variables) => {
-      toast.success(`Fine status updated to ${variables.newStatus}`);
-    },
-    onError: (error) => {
-      toast.error('Failed to update fine status', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred'
-      });
-    }
-  });
-
-  // Get validation history for specific fines
-  const getValidationHistory = useQuery({
+  
+  // Query for validation history
+  const { 
+    data: validationHistory = [], 
+    isLoading: isLoadingHistory,
+    error: historyError
+  } = useQuery({
     queryKey: ['validationHistory'],
-    queryFn: async (): Promise<ValidationHistoryItem[]> => {
-      try {
-        // Use data from a view or directly query the table if it exists
-        const { data, error } = await supabase
-          .from('traffic_fine_validations_view') // Using a view for compatibility
-          .select('*')
-          .order('validation_date', { ascending: false })
-          .limit(10);
-        
-        if (error) throw error;
-        
-        if (!data) return [];
-        
-        // Parse the JSON result field
-        return data.map((item: any) => ({
-          id: item.id,
-          fineId: item.fine_id,
-          validationDate: new Date(item.validation_date),
-          result: JSON.parse(item.result),
-          status: item.status as 'success' | 'error'
-        }));
-      } catch (error) {
-        console.error('Error fetching validation history:', error);
-        throw error;
-      }
-    },
-    enabled: false // Only run when explicitly requested
+    queryFn: fetchValidationHistory,
   });
-
+  
   return {
     validateTrafficFine,
-    updateFineValidationStatus,
-    getValidationHistory,
-    isValidating
+    validationResult,
+    isValidating: validateTrafficFine.isPending,
+    validationHistory,
+    isLoadingHistory,
+    historyError
   };
 };
