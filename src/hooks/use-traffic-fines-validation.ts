@@ -41,7 +41,7 @@ export const useTrafficFinesValidation = () => {
             if (typeof item.result === 'string') {
               resultData = JSON.parse(item.result);
             } else if (typeof item.result === 'object' && item.result !== null) {
-              resultData = item.result as Record<string, any>;
+              resultData = item.result;
             }
           } catch (parseError) {
             console.error('Error parsing result data:', parseError);
@@ -130,6 +130,39 @@ export const useTrafficFinesValidation = () => {
     }
   };
   
+  // Batch validate multiple license plates - NEW PHASE 3 FEATURE
+  const batchValidateTrafficFines = async (licensePlates: string[]): Promise<ValidationResult[]> => {
+    const results: ValidationResult[] = [];
+    const failures: string[] = [];
+    
+    // Process each license plate sequentially to avoid overwhelming the system
+    for (const plate of licensePlates) {
+      try {
+        const result = await validateTrafficFine(plate);
+        results.push(result);
+        
+        // Add a small delay between requests to avoid rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`Failed to validate ${plate}:`, error);
+        failures.push(plate);
+      }
+    }
+    
+    // Show summary notification
+    if (results.length > 0) {
+      toast.success(`Validated ${results.length}/${licensePlates.length} license plates`, {
+        description: failures.length > 0 ? `Failed: ${failures.length} plates` : 'All validations completed successfully'
+      });
+    } else if (failures.length > 0) {
+      toast.error(`All validations failed (${failures.length} plates)`, {
+        description: 'Please check your inputs and try again'
+      });
+    }
+    
+    return results;
+  };
+  
   // Manually validate a specific fine by ID - use simpler type signatures
   const validateFineById = useMutation({
     mutationFn: async (fineId: string) => {
@@ -145,6 +178,19 @@ export const useTrafficFinesValidation = () => {
         }
         
         const result = await validateTrafficFine(fine.license_plate);
+        
+        // Update fine status based on validation results - NEW PHASE 3 FEATURE
+        if (!result.hasFine) {
+          // If no fine found in validation system, update status to paid
+          const { error: updateError } = await supabase
+            .from('traffic_fines')
+            .update({ payment_status: 'paid', payment_date: new Date().toISOString() })
+            .eq('id', fineId);
+            
+          if (updateError) {
+            console.error(`Failed to update fine status: ${updateError.message}`);
+          }
+        }
         
         return { fineId, validationResult: result };
       } catch (error) {
@@ -165,11 +211,85 @@ export const useTrafficFinesValidation = () => {
     }
   });
   
+  // Check and update status for all pending fines - NEW PHASE 3 FEATURE
+  const updateAllPendingFines = useMutation({
+    mutationFn: async () => {
+      try {
+        // Get all pending fines
+        const { data: pendingFines, error: fetchError } = await supabase
+          .from('traffic_fines')
+          .select('id, license_plate')
+          .eq('payment_status', 'pending');
+          
+        if (fetchError) {
+          throw new Error(`Failed to fetch pending fines: ${fetchError.message}`);
+        }
+        
+        if (!pendingFines || pendingFines.length === 0) {
+          return { processed: 0, updated: 0, message: 'No pending fines found' };
+        }
+        
+        let processed = 0;
+        let updated = 0;
+        
+        // Process fines in batches of 5
+        const batchSize = 5;
+        for (let i = 0; i < pendingFines.length; i += batchSize) {
+          const batch = pendingFines.slice(i, i + batchSize);
+          
+          // Process each fine in the batch
+          for (const fine of batch) {
+            try {
+              const validationResult = await validateTrafficFine(fine.license_plate);
+              processed++;
+              
+              // If no fine found in validation system, mark as paid
+              if (!validationResult.hasFine) {
+                const { error: updateError } = await supabase
+                  .from('traffic_fines')
+                  .update({ payment_status: 'paid', payment_date: new Date().toISOString() })
+                  .eq('id', fine.id);
+                  
+                if (!updateError) {
+                  updated++;
+                }
+              }
+              
+              // Add a delay between requests to avoid overwhelming the system
+              await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (error) {
+              console.error(`Error processing fine ${fine.id}:`, error);
+              continue;
+            }
+          }
+        }
+        
+        return { processed, updated, message: `Processed ${processed} fines, updated ${updated} statuses` };
+      } catch (error) {
+        console.error('Error in updateAllPendingFines:', error);
+        throw error;
+      }
+    },
+    onSuccess: (result) => {
+      toast.success('Batch update completed', {
+        description: result.message
+      });
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+    },
+    onError: (error) => {
+      toast.error('Batch update failed', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred'
+      });
+    }
+  });
+  
   return {
     validationHistory,
     isLoading,
     error,
     validateTrafficFine,
-    validateFineById
+    validateFineById,
+    batchValidateTrafficFines,
+    updateAllPendingFines
   };
 };

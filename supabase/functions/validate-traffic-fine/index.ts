@@ -77,30 +77,71 @@ serve(async (req) => {
     }
 
     // Parse request body
-    const { licensePlate } = await req.json();
+    const requestData = await req.json();
     
-    if (!licensePlate) {
-      return new Response(JSON.stringify({ error: 'License plate is required' }), {
+    // Check if this is a single validation or batch request
+    if (Array.isArray(requestData.licensePlates)) {
+      // Batch validation - limited to 10 plates maximum for performance
+      const licensePlates = requestData.licensePlates.slice(0, 10);
+      
+      if (licensePlates.length === 0) {
+        return new Response(JSON.stringify({ error: 'No valid license plates provided' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        });
+      }
+      
+      // Process each license plate
+      const results = [];
+      const errors = [];
+      
+      for (const plate of licensePlates) {
+        try {
+          // Validate this plate
+          const result = await scrapeTrafficFine(plate);
+          results.push(result);
+          
+          // Add a delay between requests
+          await delay(500);
+        } catch (error) {
+          console.error(`Error validating ${plate}:`, error);
+          errors.push({ licensePlate: plate, error: error.message });
+        }
+      }
+      
+      return new Response(JSON.stringify({
+        results,
+        errors,
+        summary: {
+          total: licensePlates.length,
+          succeeded: results.length,
+          failed: errors.length
+        }
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        status: 200
+      });
+      
+    } else {
+      // Single validation
+      const { licensePlate } = requestData;
+      
+      if (!licensePlate) {
+        return new Response(JSON.stringify({ error: 'License plate is required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400
+        });
+      }
+
+      const validationResult = await scrapeTrafficFine(licensePlate);
+      
+      console.log(`Validation completed for ${licensePlate}. Result: ${validationResult.hasFine ? 'Fine found' : 'No fine found'}`);
+      
+      return new Response(JSON.stringify(validationResult), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200
       });
     }
-
-    // In production, this would be replaced with actual web scraping
-    // The scrapeTrafficFine function would:
-    // 1. Access the MOI website
-    // 2. Fill out the form with the provided data
-    // 3. Handle CAPTCHA verification (likely requires manual intervention)
-    // 4. Parse the results
-    const validationResult = await scrapeTrafficFine(licensePlate);
-    
-    console.log(`Validation completed for ${licensePlate}. Result: ${validationResult.hasFine ? 'Fine found' : 'No fine found'}`);
-    
-    return new Response(JSON.stringify(validationResult), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200
-    });
-    
   } catch (error) {
     console.error('Error validating traffic fine:', error);
     

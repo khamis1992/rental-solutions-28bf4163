@@ -11,6 +11,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Loader2, 
   AlertTriangle, 
@@ -22,12 +27,13 @@ import {
   RotateCw,
   Car,
   Calendar,
-  Globe
+  Globe,
+  Upload,
+  Table as TableIcon,
+  ListChecks,
+  CircleCheck
 } from "lucide-react";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useTrafficFines } from "@/hooks/use-traffic-fines";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { useTrafficFinesValidation, ValidationResult } from "@/hooks/use-traffic-fines-validation";
@@ -178,11 +184,183 @@ const HistoryTable = ({ history, isLoading, onRetryValidation }) => (
   </Card>
 );
 
+// New component for batch validation
+const BatchValidation = () => {
+  const [licensePlates, setLicensePlates] = useState("");
+  const [isValidating, setIsValidating] = useState(false);
+  const { batchValidateTrafficFines } = useTrafficFinesValidation();
+
+  const handleBatchValidation = async () => {
+    const plates = licensePlates.split('\n')
+      .map(plate => plate.trim())
+      .filter(plate => plate.length > 0);
+      
+    if (plates.length === 0) {
+      toast.error("Please enter at least one license plate");
+      return;
+    }
+    
+    if (plates.length > 50) {
+      toast.warning("Maximum 50 plates allowed in one batch", {
+        description: "Please reduce the number of plates or run multiple batches"
+      });
+      return;
+    }
+    
+    try {
+      setIsValidating(true);
+      await batchValidateTrafficFines(plates);
+    } catch (error) {
+      console.error("Batch validation error:", error);
+      toast.error("Failed to complete batch validation");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <ListChecks className="mr-2 h-5 w-5 text-primary" />
+            Batch Validation
+          </CardTitle>
+          <CardDescription>
+            Validate multiple license plates at once
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="batchLicensePlates">License Plate Numbers (one per line)</Label>
+            <Textarea 
+              id="batchLicensePlates"
+              placeholder="Enter license plate numbers, one per line"
+              className="min-h-[150px]"
+              value={licensePlates}
+              onChange={(e) => setLicensePlates(e.target.value.toUpperCase())}
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Enter up to 50 license plates, with each plate on a new line
+            </p>
+          </div>
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleBatchValidation} 
+              disabled={isValidating || !licensePlates.trim()}
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <ListChecks className="mr-2 h-4 w-4" />
+                  Validate All
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// New component to bulk update fine status
+const BulkStatusUpdate = () => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const { updateAllPendingFines } = useTrafficFinesValidation();
+  const { trafficFines, isLoading: isLoadingFines } = useTrafficFines();
+  
+  const pendingFinesCount = trafficFines?.filter(fine => 
+    fine.paymentStatus === 'pending'
+  ).length || 0;
+  
+  const handleBulkUpdate = async () => {
+    try {
+      setIsUpdating(true);
+      await updateAllPendingFines.mutateAsync();
+    } catch (error) {
+      console.error("Bulk update error:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+  
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CircleCheck className="mr-2 h-5 w-5 text-primary" />
+            Bulk Status Update
+          </CardTitle>
+          <CardDescription>
+            Validate and automatically update the status of all pending fines
+          </CardDescription>
+        </CardHeader>
+        
+        <CardContent className="space-y-6">
+          {isLoadingFines ? (
+            <div className="flex justify-center items-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>
+                {pendingFinesCount} Pending Fine{pendingFinesCount !== 1 ? 's' : ''} Found
+              </AlertTitle>
+              <AlertDescription>
+                {pendingFinesCount > 0 ? (
+                  <p>
+                    This operation will validate all pending fines against the MOI system and
+                    automatically update their status. This may take several minutes.
+                  </p>
+                ) : (
+                  <p>
+                    There are no pending fines that require validation at this time.
+                  </p>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <div className="flex justify-end">
+            <Button 
+              onClick={handleBulkUpdate} 
+              disabled={isUpdating || isLoadingFines || pendingFinesCount === 0}
+              variant={pendingFinesCount > 0 ? "default" : "outline"}
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <CircleCheck className="mr-2 h-4 w-4" />
+                  Update All Pending Fines
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const TrafficFineValidation = () => {
   const [licensePlate, setLicensePlate] = useState("");
   const [validationResults, setValidationResults] = useState<ValidationResult | null>(null);
   const [isValidating, setIsValidating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("single");
   
   const { trafficFines, assignToCustomer, payTrafficFine } = useTrafficFines();
   const { validateTrafficFine, validationHistory, isLoading: isHistoryLoading } = useTrafficFinesValidation();
@@ -229,6 +407,7 @@ const TrafficFineValidation = () => {
 
   const handleRetryValidation = async (plateNumber: string) => {
     setLicensePlate(plateNumber);
+    setActiveTab("single");
     await handleValidation();
   };
 
@@ -240,61 +419,91 @@ const TrafficFineValidation = () => {
     <div className="space-y-6">
       <ValidationInstructions />
       
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <FileSearch className="mr-2 h-5 w-5 text-primary" />
-            Traffic Fine Validation
-          </CardTitle>
-          <CardDescription>
-            Check for traffic fines in the Qatar Ministry of Interior (MOI) system
-          </CardDescription>
-        </CardHeader>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="single" className="flex items-center gap-2">
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Single Validation</span>
+            <span className="sm:hidden">Single</span>
+          </TabsTrigger>
+          <TabsTrigger value="batch" className="flex items-center gap-2">
+            <ListChecks className="h-4 w-4" />
+            <span className="hidden sm:inline">Batch Validation</span>
+            <span className="sm:hidden">Batch</span>
+          </TabsTrigger>
+          <TabsTrigger value="update" className="flex items-center gap-2">
+            <CircleCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Status Updates</span>
+            <span className="sm:hidden">Updates</span>
+          </TabsTrigger>
+        </TabsList>
         
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="licensePlate">License Plate Number</Label>
-            <div className="flex gap-2">
-              <Input 
-                id="licensePlate"
-                placeholder="Enter license plate number" 
-                onChange={(e) => debouncedSearch(e.target.value)}
-                className="uppercase"
-                defaultValue={licensePlate}
-              />
-              <Button 
-                onClick={handleValidation} 
-                disabled={isValidating || !licensePlate.trim()}
-              >
-                {isValidating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Validating...
-                  </>
-                ) : (
-                  <>
-                    <FileSearch className="mr-2 h-4 w-4" />
-                    Validate
-                  </>
-                )}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Enter the full license plate number (e.g., 12345)
-            </p>
-          </div>
-          
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Validation Error</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
-          {validationResults && <ValidationResultCard result={validationResults} />}
-        </CardContent>
-      </Card>
+        <TabsContent value="single" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <FileSearch className="mr-2 h-5 w-5 text-primary" />
+                Traffic Fine Validation
+              </CardTitle>
+              <CardDescription>
+                Check for traffic fines in the Qatar Ministry of Interior (MOI) system
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="licensePlate">License Plate Number</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    id="licensePlate"
+                    placeholder="Enter license plate number" 
+                    onChange={(e) => debouncedSearch(e.target.value)}
+                    className="uppercase"
+                    defaultValue={licensePlate}
+                  />
+                  <Button 
+                    onClick={handleValidation} 
+                    disabled={isValidating || !licensePlate.trim()}
+                  >
+                    {isValidating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Validating...
+                      </>
+                    ) : (
+                      <>
+                        <FileSearch className="mr-2 h-4 w-4" />
+                        Validate
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Enter the full license plate number (e.g., 12345)
+                </p>
+              </div>
+              
+              {error && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Validation Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+              
+              {validationResults && <ValidationResultCard result={validationResults} />}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="batch" className="space-y-6">
+          <BatchValidation />
+        </TabsContent>
+        
+        <TabsContent value="update" className="space-y-6">
+          <BulkStatusUpdate />
+        </TabsContent>
+      </Tabs>
       
       <HistoryTable 
         history={validationHistory}
