@@ -20,6 +20,13 @@ async function scrapeTrafficFine(licensePlate: string) {
   await delay(2000);
   
   try {
+    // INTEGRATION POINT: Replace this with actual MOI website scraping logic
+    // This would involve:
+    // 1. Making an HTTP request to the MOI website
+    // 2. Parsing the HTML response
+    // 3. Extracting the fine information
+    // 4. Returning a structured response
+    
     // For development & testing: Deterministic result based on license plate
     // This will be replaced with actual web scraping logic
     const hasEvenDigits = licensePlate.split('').filter(char => !isNaN(parseInt(char)))
@@ -35,6 +42,7 @@ async function scrapeTrafficFine(licensePlate: string) {
     const html = await initialResponse.text();
     
     2. Extract any CSRF tokens or session IDs
+    const csrfToken = extractCSRFToken(html);
     
     3. Submit the form with the required fields:
        - Country: Qatar (قطر)
@@ -44,7 +52,27 @@ async function scrapeTrafficFine(licensePlate: string) {
        - Owner Number: 17 2015 86
        - CAPTCHA: <would need OCR or manual override>
     
+    const formData = new FormData();
+    formData.append('country', 'قطر');
+    formData.append('plateType', 'ليموزين');
+    formData.append('licensePlate', licensePlate);
+    formData.append('ownerType', 'قيد منشأة');
+    formData.append('ownerNumber', '17 2015 86');
+    formData.append('_csrf', csrfToken);
+    
+    const response = await fetch('https://fees2.moi.gov.qa/moipay/inquiry/violation/search', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'Cookie': cookies.join('; ')
+      }
+    });
+    
+    const responseHtml = await response.text();
+    
     4. Parse the response to determine if fine exists
+    const hasFine = responseHtml.includes('القيمة الاجمالية') || responseHtml.includes('Total Amount');
+    const details = extractFineDetails(responseHtml);
     */
     
     return {

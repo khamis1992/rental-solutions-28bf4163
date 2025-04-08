@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -52,6 +51,11 @@ const ValidationInstructions = () => (
         <li>Automatically update the status of any matching unpaid fines in our system</li>
         <li>Store the validation history for future reference</li>
       </ol>
+      {/* Added disclaimer about current implementation */}
+      <p className="text-xs bg-yellow-50 text-yellow-800 p-2 rounded mt-2 border border-yellow-200">
+        <strong>Note:</strong> The current implementation uses simulated data. To connect with the actual MOI system,
+        a web scraping integration needs to be developed in the edge function.
+      </p>
     </AlertDescription>
   </Alert>
 );
