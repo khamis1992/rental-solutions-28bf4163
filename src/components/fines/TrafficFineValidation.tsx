@@ -112,6 +112,7 @@ const TrafficFineValidation = () => {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const { validationHistory, validateTrafficFine, batchValidateTrafficFines, updateAllPendingFines } = useTrafficFinesValidation();
   
+  // This function properly prevents the default form submission
   const handleValidation = async (e: React.FormEvent) => {
     // Prevent the default form submission behavior
     e.preventDefault();
