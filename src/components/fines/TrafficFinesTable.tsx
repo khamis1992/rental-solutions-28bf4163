@@ -348,5 +348,3 @@ export function TrafficFinesTable() {
     </Card>
   );
 }
-
-export { TrafficFinesTable };

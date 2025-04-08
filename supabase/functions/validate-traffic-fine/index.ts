@@ -29,74 +29,51 @@ serve(async (req: Request) => {
     if (req.method !== 'POST') {
       return new Response(JSON.stringify({ error: 'Method not allowed' }), {
         status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const { licensePlate } = await req.json();
+    const requestData = await req.json();
+    const { licensePlate } = requestData;
 
     if (!licensePlate) {
       return new Response(JSON.stringify({ error: 'License plate is required' }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Return mock result for now since actual web automation requires more complex setup
-    // In production, this would be replaced with actual web scraping logic
-    console.log(`Validation requested for license plate: ${licensePlate}`);
-    
-    // Simulate validation delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Mock validation result - randomly return found/not found
-    const hasFine = Math.random() > 0.5;
-    const violationTypes = [
-      "Speed violation", 
-      "Illegal parking", 
-      "Red light violation", 
-      "Driving in emergency lane",
-      "Illegal turn"
-    ];
-    const locationCodes = ["D45", "A12", "B37", "C55", "E23"];
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        result: {
-          success: true,
-          licensePlate,
-          hasFine,
-          validationDate: new Date().toISOString(),
-          validationSource: "MOI Qatar",
-          // If fine found, add some mock details
-          ...(hasFine ? {
-            fineDetails: {
-              amount: Math.floor(Math.random() * 500) + 100,
-              violationDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-              violationType: violationTypes[Math.floor(Math.random() * violationTypes.length)],
-              locationCode: locationCodes[Math.floor(Math.random() * locationCodes.length)]
-            }
-          } : {})
-        }
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    // In a real implementation, this would connect to an external API
+    // For demo purposes, generate a random result
+    const hasFine = Math.random() > 0.6;
+    let result = {
+      licensePlate,
+      validationDate: new Date().toISOString(),
+      validationSource: 'MOI Qatar Database',
+      hasFine,
+      fineDetails: null
+    };
 
+    if (hasFine) {
+      result.fineDetails = {
+        violationType: ['Speeding', 'Red Light', 'Illegal Parking', 'No Parking Zone'][Math.floor(Math.random() * 4)],
+        amount: Math.floor(Math.random() * 1000) + 100,
+        location: ['Corniche Road', 'Al Waab Street', 'C Ring Road', 'Airport Road'][Math.floor(Math.random() * 4)],
+        date: new Date().toISOString(),
+        violationDate: new Date().toISOString(),
+        locationCode: ['A123', 'B456', 'C789', 'D012'][Math.floor(Math.random() * 4)]
+      };
+    }
+
+    return new Response(JSON.stringify(result), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     console.error('Error in validate-traffic-fine function:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: 'Internal server error', 
-        details: error.message 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    return new Response(JSON.stringify({ error: error.message || 'Unknown error' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });

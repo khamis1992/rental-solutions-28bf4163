@@ -41,23 +41,23 @@ export const TrafficFineValidationResult: React.FC<TrafficFineValidationResultPr
                   <div>
                     <h4 className="text-sm font-semibold mb-1">Amount</h4>
                     <p className="text-lg font-bold text-red-600">
-                      {formatCurrency(result.fineDetails.amount)}
+                      {formatCurrency(result.fineDetails.amount || 0)}
                     </p>
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold mb-1">Violation Date</h4>
-                    <p>{formatDate(new Date(result.fineDetails.violationDate))}</p>
+                    <p>{result.fineDetails.violationDate ? formatDate(new Date(result.fineDetails.violationDate)) : 'N/A'}</p>
                   </div>
                 </div>
 
                 <div>
                   <h4 className="text-sm font-semibold mb-1">Violation Type</h4>
-                  <p>{result.fineDetails.violationType}</p>
+                  <p>{result.fineDetails.violationType || 'Unknown'}</p>
                 </div>
 
                 <div>
-                  <h4 className="text-sm font-semibold mb-1">Location Code</h4>
-                  <p>{result.fineDetails.locationCode}</p>
+                  <h4 className="text-sm font-semibold mb-1">Location</h4>
+                  <p>{result.fineDetails.location || 'Unknown location'}</p>
                 </div>
               </div>
             )}

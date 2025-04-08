@@ -1,231 +1,154 @@
 
 import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Link } from 'react-router-dom';
+import { Edit, Phone, Mail, MapPin } from 'lucide-react';
+import { formatDate } from '@/lib/date-utils';
 import { useAgreements } from '@/hooks/use-agreements';
-import { usePayments } from '@/hooks/use-payments';
-import { supabase } from '@/lib/supabase';
+import { Badge } from '@/components/ui/badge';
 import CustomerAgreements from '@/components/customers/CustomerAgreements';
 import CustomerPayments from '@/components/customers/CustomerPayments';
 import CustomerDocuments from '@/components/customers/CustomerDocuments';
 import CustomerDrivingHistory from '@/components/customers/CustomerDrivingHistory';
 
 interface CustomerDetailProps {
-  customerId: string;
+  customer: any;
 }
 
-const CustomerDetail: React.FC<CustomerDetailProps> = ({ customerId }) => {
-  const [customer, setCustomer] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+const CustomerDetail: React.FC<CustomerDetailProps> = ({ customer }) => {
+  const [activeTab, setActiveTab] = useState('profile');
+  const { agreements, isLoading } = useAgreements();
+  const [customerAgreements, setCustomerAgreements] = useState([]);
 
-  const { 
-    agreements, 
-    isLoadingAgreements, 
-    refetch: refetchAgreements 
-  } = useAgreements({ customerId });
-
-  const {
-    payments,
-    isLoadingPayments,
-  } = usePayments(null, customerId);
-
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [isLoadingDocuments, setIsLoadingDocuments] = useState(true);
-
-  const [trafficFines, setTrafficFines] = useState<any[]>([]);
-  const [isLoadingTrafficFines, setIsLoadingTrafficFines] = useState(true);
-
-  // Fetch customer details
   useEffect(() => {
-    const fetchCustomer = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', customerId)
-          .single();
-          
-        if (error) {
-          throw error;
-        }
-        
-        setCustomer(data);
-      } catch (error) {
-        console.error('Error fetching customer:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (customerId) {
-      fetchCustomer();
+    if (agreements && customer) {
+      const filtered = agreements.filter(
+        (agreement) => agreement.customer_id === customer.id
+      );
+      setCustomerAgreements(filtered);
     }
-  }, [customerId]);
-
-  // Fetch documents
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        setIsLoadingDocuments(true);
-        // In a real app, replace with actual document fetching logic
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setDocuments([]);
-      } catch (error) {
-        console.error('Error fetching documents:', error);
-      } finally {
-        setIsLoadingDocuments(false);
-      }
-    };
-
-    if (customerId) {
-      fetchDocuments();
-    }
-  }, [customerId]);
-
-  // Fetch traffic fines
-  useEffect(() => {
-    const fetchTrafficFines = async () => {
-      try {
-        setIsLoadingTrafficFines(true);
-        // In a real app, replace with actual traffic fines fetching logic
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setTrafficFines([]);
-      } catch (error) {
-        console.error('Error fetching traffic fines:', error);
-      } finally {
-        setIsLoadingTrafficFines(false);
-      }
-    };
-
-    if (customerId && activeTab === 'drivingHistory') {
-      fetchTrafficFines();
-    }
-  }, [customerId, activeTab]);
-
-  if (isLoading) {
-    return <CustomerDetailSkeleton />;
-  }
+  }, [agreements, customer]);
 
   if (!customer) {
-    return (
-      <div className="py-10 text-center">
-        <h2 className="text-xl font-semibold">Customer Not Found</h2>
-        <p className="text-muted-foreground mt-2">
-          The requested customer could not be found.
-        </p>
-      </div>
-    );
+    return <div>No customer data available</div>;
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{customer.full_name}</CardTitle>
-          <CardDescription>Customer Details</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Email</p>
-              <p className="text-sm">{customer.email || 'N/A'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Phone</p>
-              <p className="text-sm">{customer.phone_number || 'N/A'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Address</p>
-              <p className="text-sm">{customer.address || 'N/A'}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Driver License</p>
-              <p className="text-sm">{customer.driver_license || 'N/A'}</p>
-            </div>
-            {customer.status && (
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Status</p>
-                <div>
-                  <Badge variant={customer.status === 'active' ? 'default' : 'secondary'}>
-                    {customer.status}
-                  </Badge>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">{customer.full_name}</h1>
+          <p className="text-muted-foreground">Customer since {customer.created_at ? formatDate(new Date(customer.created_at)) : 'N/A'}</p>
+        </div>
+        <Button asChild>
+          <Link to={`/customers/${customer.id}/edit`}>
+            <Edit className="mr-2 h-4 w-4" /> Edit Customer
+          </Link>
+        </Button>
+      </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="agreements">Agreements</TabsTrigger>
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="drivingHistory">Driving History</TabsTrigger>
+          <TabsTrigger value="driving-history">Driving History</TabsTrigger>
         </TabsList>
 
-        <div className="mt-6">
-          <TabsContent value="agreements" className="m-0">
-            <CustomerAgreements 
-              agreements={agreements} 
-              isLoading={isLoadingAgreements} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="payments" className="m-0">
-            <CustomerPayments 
-              payments={payments} 
-              isLoading={isLoadingPayments} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="documents" className="m-0">
-            <CustomerDocuments 
-              documents={documents} 
-              isLoading={isLoadingDocuments} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="drivingHistory" className="m-0">
-            <CustomerDrivingHistory 
-              trafficFines={trafficFines} 
-              isLoading={isLoadingTrafficFines} 
-            />
-          </TabsContent>
-        </div>
-      </Tabs>
-    </div>
-  );
-};
-
-const CustomerDetailSkeleton = () => {
-  return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <Skeleton className="h-8 w-64" />
-          <Skeleton className="h-4 w-32" />
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            {Array.from({length: 6}).map((_, index) => (
-              <div key={index} className="space-y-1">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-4 w-40" />
+        <TabsContent value="profile" className="space-y-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Personal Information</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Contact Information</h3>
+                <div className="space-y-2">
+                  {customer.phone_number && (
+                    <div className="flex items-center">
+                      <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{customer.phone_number}</span>
+                    </div>
+                  )}
+                  {customer.email && (
+                    <div className="flex items-center">
+                      <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
+                      <span>{customer.email}</span>
+                    </div>
+                  )}
+                  {customer.address && (
+                    <div className="flex items-start">
+                      <MapPin className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                      <span className="whitespace-pre-line">{customer.address}</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div>
-        <Skeleton className="h-10 w-full mb-6" />
-        <Skeleton className="h-64 w-full" />
-      </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-1">Documents</h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-sm text-muted-foreground">ID Document:</span>{" "}
+                    {customer.id_document_url ? (
+                      <Badge variant="outline">Uploaded</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-red-50 text-red-800 border-red-200">
+                        Missing
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-sm text-muted-foreground">Driver License:</span>{" "}
+                    {customer.license_document_url ? (
+                      <Badge variant="outline">Uploaded</Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-red-50 text-red-800 border-red-200">
+                        Missing
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional customer info can be added here */}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="agreements" className="mt-6">
+          <CustomerAgreements 
+            agreements={customerAgreements} 
+            isLoading={isLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-6">
+          <CustomerPayments 
+            payments={[]} 
+            isLoading={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="documents" className="mt-6">
+          <CustomerDocuments 
+            customerId={customer.id}
+            documents={[]}
+            isLoading={false}
+          />
+        </TabsContent>
+
+        <TabsContent value="driving-history" className="mt-6">
+          <CustomerDrivingHistory 
+            customerId={customer.id}
+            records={[]}
+            isLoading={false}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

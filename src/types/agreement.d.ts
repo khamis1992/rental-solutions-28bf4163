@@ -60,12 +60,13 @@ export interface Agreement {
 
 export interface AgreementImport {
   id: string;
-  filename: string;
+  file_name: string;
   status: string;
-  total_records: number;
-  processed_records: number;
+  row_count: number;
+  processed_count: number;
   created_at?: string;
   updated_at?: string;
   error_count?: number;
   errors?: any;
+  file_deleted?: boolean;
 }

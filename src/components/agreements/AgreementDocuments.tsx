@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { FileText, Download, Eye, Upload } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { AgreementDocument } from '@/hooks/use-agreements';
+import { AgreementDocument } from '@/types/agreement';
 
 interface AgreementDocumentsProps {
   agreementId: string;

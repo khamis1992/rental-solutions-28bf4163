@@ -1,345 +1,196 @@
 
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useAgreements, AgreementStatus, AgreementWithDetails } from '@/hooks/use-agreements';
-import { formatDate } from '@/lib/date-utils';
-import { formatCurrency } from '@/lib/utils';
-import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, FileText, PenSquare, Trash2, MoreVertical } from 'lucide-react';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { AgreementPayments } from '@/components/agreements/AgreementPayments';
-import { AgreementDocuments } from '@/components/agreements/AgreementDocuments';
-import { AgreementVehicleDetails } from '@/components/agreements/AgreementVehicleDetails';
+import React from 'react';
+import { useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { SectionHeader } from '@/components/ui/section-header';
+import { FileText } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAgreements } from '@/hooks/use-agreements';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { formatDate } from '@/lib/date-utils';
+import { AlertCircle, Edit } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import AgreementPayments from '@/components/agreements/AgreementPayments';
+import AgreementDocuments from '@/components/agreements/AgreementDocuments';
+import AgreementVehicleDetails from '@/components/agreements/AgreementVehicleDetails';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { getAgreement, updateAgreementStatus, deleteAgreement } = useAgreements();
-  const [agreement, setAgreement] = useState<AgreementWithDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
+  const { getAgreement, isAgreementLoading } = useAgreements();
+  const [agreement, setAgreement] = React.useState<any>(null);
+  const [activeTab, setActiveTab] = React.useState("details");
+  const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
-    // Guard against multiple fetches in rapid succession
-    if (hasAttemptedFetch) return;
-    
+  React.useEffect(() => {
     const fetchAgreement = async () => {
-      if (!id) return;
-      
       try {
-        setIsLoading(true);
-        const data = await getAgreement(id);
-        if (data) {
+        if (id) {
+          const data = await getAgreement(id);
           setAgreement(data);
-        } else {
-          toast.error("Agreement not found");
-          navigate("/agreements");
         }
-      } catch (error) {
-        console.error("Error fetching agreement:", error);
-        toast.error("Failed to load agreement details");
-      } finally {
-        setIsLoading(false);
-        setHasAttemptedFetch(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch agreement details');
       }
     };
 
     fetchAgreement();
-  }, [id, getAgreement, navigate, hasAttemptedFetch]);
+  }, [id, getAgreement]);
 
-  const handleStatusChange = async (newStatus: string) => {
-    if (!agreement) return;
-    
-    setIsUpdating(true);
-    try {
-      await updateAgreementStatus.mutateAsync({
-        id: agreement.id,
-        status: newStatus as any
-      });
-      
-      // Update local state
-      setAgreement(prev => prev ? { ...prev, status: newStatus } : null);
-    } catch (error) {
-      console.error("Error updating agreement status:", error);
-      toast.error("Failed to update agreement status");
-    } finally {
-      setIsUpdating(false);
+  const handlePaymentUpdate = () => {
+    if (id) {
+      getAgreement(id).then(data => setAgreement(data));
     }
   };
 
-  const handleDelete = async () => {
-    if (!agreement) return;
-    
-    setIsDeleting(true);
-    try {
-      await deleteAgreement.mutateAsync(agreement.id);
-      toast.success("Agreement deleted successfully");
-      navigate("/agreements");
-    } catch (error) {
-      console.error("Error deleting agreement:", error);
-      toast.error("Failed to delete agreement");
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  };
-
-  if (isLoading) {
+  if (isAgreementLoading) {
     return (
-      <PageContainer
-        title="Loading Agreement..."
-        description="Please wait while we fetch the agreement details"
-        backLink="/agreements"
-      >
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-2/3" />
-          <Skeleton className="h-96 w-full" />
+      <PageContainer>
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-1/3" />
+          <Card>
+            <CardContent className="p-6">
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-1/4" />
+                <Skeleton className="h-6 w-1/2" />
+                <Skeleton className="h-6 w-1/3" />
+              </div>
+            </CardContent>
+          </Card>
         </div>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </PageContainer>
     );
   }
 
   if (!agreement) {
     return (
-      <PageContainer
-        title="Agreement Not Found"
-        description="The agreement you're looking for doesn't exist"
-        backLink="/agreements"
-      >
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
+      <PageContainer>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
           <AlertTitle>Agreement Not Found</AlertTitle>
-          <AlertDescription>
-            The agreement you're looking for could not be found. It may have been deleted or the ID is incorrect.
-          </AlertDescription>
+          <AlertDescription>The requested agreement does not exist or has been removed.</AlertDescription>
         </Alert>
       </PageContainer>
     );
   }
 
-  const agreementDate = agreement.start_date 
-    ? new Date(agreement.start_date) 
-    : new Date();
-  
-  const endDate = agreement.end_date 
-    ? new Date(agreement.end_date) 
-    : new Date();
-
   return (
-    <PageContainer
-      title={`Agreement #${agreement.agreement_number || "N/A"}`}
-      description="View and manage rental agreement details"
-      backLink="/agreements"
-    >
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-2">
-          <Badge 
-            className={agreement.status === AgreementStatus.ACTIVE ? 'bg-green-100 text-green-800' : 
-                       agreement.status === AgreementStatus.PENDING ? 'bg-yellow-100 text-yellow-800' : 
-                       agreement.status === AgreementStatus.CANCELLED ? 'bg-red-100 text-red-800' : 
-                       agreement.status === AgreementStatus.EXPIRED ? 'bg-gray-100 text-gray-800' : 
-                       'bg-blue-100 text-blue-800'}
-          >
-            {agreement.status?.toUpperCase() || "UNKNOWN"}
-          </Badge>
-          <span className="text-sm text-muted-foreground">
-            Created on {formatDate(new Date(agreement.created_at || Date.now()))}
-          </span>
-        </div>
-
-        <div className="flex space-x-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate(`/agreements/${id}/edit`)}
-          >
-            <PenSquare className="mr-2 h-4 w-4" /> Edit
-          </Button>
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreVertical className="h-4 w-4" />
-                <span className="sr-only">More options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Agreement Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => handleStatusChange(AgreementStatus.ACTIVE)}
-                disabled={agreement.status === AgreementStatus.ACTIVE || isUpdating}
-              >
-                Mark as Active
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleStatusChange(AgreementStatus.PENDING)}
-                disabled={agreement.status === AgreementStatus.PENDING || isUpdating}
-              >
-                Mark as Pending
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleStatusChange(AgreementStatus.EXPIRED)}
-                disabled={agreement.status === AgreementStatus.EXPIRED || isUpdating}
-              >
-                Mark as Expired
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                onClick={() => handleStatusChange(AgreementStatus.CANCELLED)}
-                disabled={agreement.status === AgreementStatus.CANCELLED || isUpdating}
-              >
-                Mark as Cancelled
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={() => setShowDeleteDialog(true)} 
-                className="text-red-600 focus:text-red-600"
-              >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete Agreement
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+    <PageContainer>
+      <div className="flex items-center justify-between mb-6">
+        <SectionHeader
+          title={`Agreement ${agreement.agreement_number || ''}`}
+          description={`Created on ${formatDate(new Date(agreement.created_at))}`}
+          icon={FileText}
+        />
+        <Button asChild>
+          <Link to={`/agreements/${agreement.id}/edit`}>
+            <Edit className="mr-2 h-4 w-4" /> Edit Agreement
+          </Link>
+        </Button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Agreement Details</CardTitle>
-            <CardDescription>General information about this rental agreement</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div>
-                <h4 className="text-sm font-medium mb-1">Agreement Number</h4>
-                <p className="text-lg font-semibold">{agreement.agreement_number}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-1">Start Date</h4>
-                <p>{formatDate(agreementDate)}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-1">End Date</h4>
-                <p>{formatDate(endDate)}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-1">Monthly Rent</h4>
-                <p className="text-lg font-semibold">{formatCurrency(agreement.rent_amount || 0)}</p>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium mb-1">Total Amount</h4>
-                <p>{formatCurrency(agreement.total_amount || 0)}</p>
-              </div>
-            </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
+          <TabsTrigger value="vehicle">Vehicle</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
+        </TabsList>
 
-            {agreement.notes && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium mb-1">Notes</h4>
-                <p className="text-sm text-muted-foreground">{agreement.notes}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Customer Card */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle>Customer Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+        <TabsContent value="details">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agreement Information</CardTitle>
+              <CardDescription>Agreement details and status information</CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h4 className="text-sm font-semibold mb-1">Name</h4>
-                <p>{agreement.customer?.full_name || "Not assigned"}</p>
+                <h3 className="font-semibold mb-2">Customer</h3>
+                <p>{agreement.customer?.full_name || 'Not assigned'}</p>
+                {agreement.customer?.email && <p className="text-sm text-muted-foreground">{agreement.customer.email}</p>}
+                {agreement.customer?.phone_number && <p className="text-sm text-muted-foreground">{agreement.customer.phone_number}</p>}
               </div>
+              
               <div>
-                <h4 className="text-sm font-semibold mb-1">Email</h4>
-                <p className="text-sm">{agreement.customer?.email || "N/A"}</p>
+                <h3 className="font-semibold mb-2">Vehicle</h3>
+                <p>{agreement.vehicle ? `${agreement.vehicle.make} ${agreement.vehicle.model} (${agreement.vehicle.year})` : 'Not assigned'}</p>
+                <p className="text-sm text-muted-foreground">{agreement.vehicle?.license_plate || ''}</p>
               </div>
+              
               <div>
-                <h4 className="text-sm font-semibold mb-1">Phone</h4>
-                <p>{agreement.customer?.phone_number || "N/A"}</p>
+                <h3 className="font-semibold mb-2">Period</h3>
+                <p>From {formatDate(new Date(agreement.start_date))} to {formatDate(new Date(agreement.end_date))}</p>
               </div>
-              <div className="pt-2">
-                {agreement.customer?.id && (
-                  <Button asChild variant="link" className="p-0 h-auto font-normal">
-                    <Link to={`/customers/${agreement.customer.id}`}>
-                      View Customer Profile
-                    </Link>
-                  </Button>
+              
+              <div>
+                <h3 className="font-semibold mb-2">Status</h3>
+                <div className="flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${
+                    agreement.status === 'active' ? 'bg-green-500' : 
+                    agreement.status === 'pending' || agreement.status === 'pending_payment' || agreement.status === 'pending_deposit' ? 'bg-yellow-500' : 
+                    'bg-gray-500'
+                  }`}></span>
+                  <span className="capitalize">{agreement.status?.replace('_', ' ') || 'Unknown'}</span>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="font-semibold mb-2">Payment Information</h3>
+                <p>Rent Amount: ${agreement.rent_amount?.toLocaleString()}</p>
+                <p>Total Amount: ${agreement.total_amount?.toLocaleString()}</p>
+                {agreement.security_deposit_amount && (
+                  <p>Security Deposit: ${agreement.security_deposit_amount.toLocaleString()}</p>
                 )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              
+              {agreement.notes && (
+                <div className="md:col-span-2">
+                  <h3 className="font-semibold mb-2">Notes</h3>
+                  <p className="text-sm">{agreement.notes}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <div className="mt-8">
-        <Tabs defaultValue="vehicle">
-          <TabsList className="mb-6">
-            <TabsTrigger value="vehicle">Vehicle</TabsTrigger>
-            <TabsTrigger value="payments">Payments</TabsTrigger>
-            <TabsTrigger value="documents">Documents</TabsTrigger>
-          </TabsList>
+        <TabsContent value="payments">
+          <AgreementPayments 
+            agreementId={agreement.id} 
+            isLoading={false}
+            onPaymentUpdate={handlePaymentUpdate}
+          />
+        </TabsContent>
 
-          <TabsContent value="vehicle">
-            <AgreementVehicleDetails agreement={agreement} />
-          </TabsContent>
-          <TabsContent value="payments">
-            <AgreementPayments agreementId={agreement.id} />
-          </TabsContent>
-          <TabsContent value="documents">
-            <AgreementDocuments agreementId={agreement.id} />
-          </TabsContent>
-        </Tabs>
-      </div>
+        <TabsContent value="vehicle">
+          <AgreementVehicleDetails 
+            vehicle={agreement.vehicle}
+            isLoading={false}
+          />
+        </TabsContent>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Agreement</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this agreement? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDeleteDialog(false)} 
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete} 
-              disabled={isDeleting}
-            >
-              {isDeleting ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <TabsContent value="documents">
+          <AgreementDocuments 
+            agreementId={agreement.id}
+            documents={agreement.documents}
+            isLoading={false}
+            onUpload={handlePaymentUpdate}
+          />
+        </TabsContent>
+      </Tabs>
     </PageContainer>
   );
 };
