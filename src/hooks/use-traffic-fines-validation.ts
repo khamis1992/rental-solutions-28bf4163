@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -163,9 +162,9 @@ export const useTrafficFinesValidation = () => {
     return results;
   };
   
-  // Manually validate a specific fine by ID - use simpler type signatures
+  // Manually validate a specific fine by ID - fix type instantiation issue
   const validateFineById = useMutation({
-    mutationFn: async (fineId: string) => {
+    mutationFn: async (fineId: string): Promise<{ fineId: string; validationResult: ValidationResult }> => {
       try {
         const { data: fine, error: fineError } = await supabase
           .from('traffic_fines')
@@ -213,7 +212,7 @@ export const useTrafficFinesValidation = () => {
   
   // Check and update status for all pending fines - NEW PHASE 3 FEATURE
   const updateAllPendingFines = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<{ processed: number; updated: number; message: string }> => {
       try {
         // Get all pending fines
         const { data: pendingFines, error: fetchError } = await supabase

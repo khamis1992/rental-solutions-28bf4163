@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -283,6 +284,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
+  // Fix type instantiation issue by simplifying the types
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -295,8 +297,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
+  // Explicitly specify simpler return type for deleteAgreement to avoid deep instantiation
   const deleteAgreement = useMutation({
-    mutationFn: async (id: string) => {
+    mutationFn: async (id: string): Promise<string> => {
       console.log(`Starting deletion process for agreement ${id}`);
       
       try {
