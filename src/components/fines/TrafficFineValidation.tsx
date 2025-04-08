@@ -112,11 +112,7 @@ const TrafficFineValidation = () => {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const { validationHistory, validateTrafficFine, batchValidateTrafficFines, updateAllPendingFines } = useTrafficFinesValidation();
   
-  // This function properly prevents the default form submission
-  const handleValidation = async (e: React.FormEvent) => {
-    // Prevent the default form submission behavior
-    e.preventDefault();
-    
+  const handleValidation = async () => {
     if (!licensePlate.trim()) {
       toast.error("Please enter a license plate number");
       return;
@@ -166,7 +162,7 @@ const TrafficFineValidation = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form onSubmit={handleValidation} className="space-y-2">
+            <div className="space-y-2">
               <div>
                 <Label htmlFor="license-plate">License Plate</Label>
                 <div className="flex gap-3 mt-1">
@@ -177,12 +173,16 @@ const TrafficFineValidation = () => {
                     onChange={(e) => setLicensePlate(e.target.value)}
                     className="flex-1"
                   />
-                  <Button type="submit" disabled={isValidating}>
+                  <Button 
+                    type="button" 
+                    onClick={handleValidation} 
+                    disabled={isValidating}
+                  >
                     {isValidating ? "Validating..." : "Validate"}
                   </Button>
                 </div>
               </div>
-            </form>
+            </div>
             
             <ValidationStatus result={validationResult} />
             
