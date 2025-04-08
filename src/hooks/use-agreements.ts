@@ -61,10 +61,12 @@ interface SearchParams {
   customer_id?: string;
 }
 
-// Simplified mutation result type to avoid deep type instantiation
+// Simplified mutation result type to avoid deep type instantiation issues
 type SimplifiedMutationResult = {
   mutateAsync: (args: any) => Promise<any>;
   isPending: boolean;
+  isError?: boolean;
+  error?: unknown;
 };
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
@@ -300,7 +302,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  const updateAgreement = updateAgreementMutation;
+  const updateAgreement: SimplifiedMutationResult = {
+    mutateAsync: updateAgreementMutation.mutateAsync,
+    isPending: updateAgreementMutation.isPending,
+    isError: updateAgreementMutation.isError,
+    error: updateAgreementMutation.error
+  };
 
   const deleteAgreement = useMutation({
     mutationFn: async (id: string) => {
@@ -397,7 +404,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     setSearchParams,
     getAgreement,
     createAgreement,
-    updateAgreement: updateAgreementMutation as SimplifiedMutationResult,
+    updateAgreement,
     deleteAgreement,
   };
 };

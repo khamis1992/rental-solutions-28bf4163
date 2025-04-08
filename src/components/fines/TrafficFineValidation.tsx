@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { 
   Card, 
@@ -101,7 +102,10 @@ const TrafficFineValidation = () => {
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const { validationHistory, validateTrafficFine, batchValidateTrafficFines, updateAllPendingFines } = useTrafficFinesValidation();
   
-  const handleValidation = async () => {
+  const handleValidation = async (e: React.FormEvent) => {
+    // Prevent the default form submission behavior
+    e.preventDefault();
+    
     if (!licensePlate.trim()) {
       toast.error("Please enter a license plate number");
       return;
@@ -151,21 +155,23 @@ const TrafficFineValidation = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="license-plate">License Plate</Label>
-              <div className="flex gap-3">
-                <Input
-                  id="license-plate"
-                  placeholder="Enter license plate number"
-                  value={licensePlate}
-                  onChange={(e) => setLicensePlate(e.target.value)}
-                  className="flex-1"
-                />
-                <Button onClick={handleValidation} disabled={isValidating}>
-                  {isValidating ? "Validating..." : "Validate"}
-                </Button>
+            <form onSubmit={handleValidation} className="space-y-2">
+              <div>
+                <Label htmlFor="license-plate">License Plate</Label>
+                <div className="flex gap-3 mt-1">
+                  <Input
+                    id="license-plate"
+                    placeholder="Enter license plate number"
+                    value={licensePlate}
+                    onChange={(e) => setLicensePlate(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button type="submit" disabled={isValidating}>
+                    {isValidating ? "Validating..." : "Validate"}
+                  </Button>
+                </div>
               </div>
-            </div>
+            </form>
             
             <ValidationStatus result={validationResult} />
             
