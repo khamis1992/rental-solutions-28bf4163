@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Car, User, CreditCard, Wrench, AlertTriangle, Clock } from 'lucide-react';
 import { RecentActivity as RecentActivityType } from '@/hooks/use-dashboard';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 interface RecentActivityProps {
   activities: RecentActivityType[];
@@ -12,7 +11,6 @@ interface RecentActivityProps {
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   const navigate = useNavigate();
-  const { t } = useI18nTranslation();
 
   const handleActivityClick = (activity: RecentActivityType) => {
     // Navigate to the relevant page based on activity type
@@ -30,12 +28,12 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
   return (
     <Card className="col-span-4 card-transition">
       <CardHeader>
-        <CardTitle>{t('dashboard.recentActivity')}</CardTitle>
+        <CardTitle>Recent Activity</CardTitle>
       </CardHeader>
       <CardContent>
         {activities.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
-            {t('common.noResults')}
+            No recent activity to display
           </div>
         ) : (
           <div className="space-y-5">

@@ -5,7 +5,6 @@ import { StatCard } from '@/components/ui/stat-card';
 import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
 import { formatCurrency } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 interface DashboardStatsProps {
   stats?: DashboardStatsType;
@@ -13,16 +12,15 @@ interface DashboardStatsProps {
 
 const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
   const navigate = useNavigate();
-  const { t } = useI18nTranslation();
   
   if (!stats) return null;
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 section-transition">
       <StatCard
-        title={t('dashboard.totalVehicles')}
+        title="Total Vehicles"
         value={stats.vehicleStats.total.toString()}
-        description={`${t('common.available')}: ${stats.vehicleStats.available}`}
+        description={`Available: ${stats.vehicleStats.available}`}
         icon={Car}
         iconColor="text-blue-500"
         trend={stats.vehicleStats.available > 0 ? 
@@ -33,7 +31,7 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       />
       
       <StatCard
-        title={t('dashboard.totalRevenue')}
+        title="Revenue"
         value={formatCurrency(stats.financialStats.currentMonthRevenue)}
         description="This month"
         icon={DollarSign}
@@ -45,9 +43,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       />
       
       <StatCard
-        title={t('common.customers')}
+        title="Active Customers"
         value={stats.customerStats.active.toString()}
-        description={`${t('common.total')}: ${stats.customerStats.total}`}
+        description={`Total: ${stats.customerStats.total}`}
         icon={Users}
         iconColor="text-violet-500"
         trend={stats.customerStats.growth}
@@ -57,9 +55,9 @@ const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
       />
       
       <StatCard
-        title={t('common.agreements')}
+        title="Contracts"
         value={stats.agreementStats.active.toString()}
-        description={t('dashboard.activeRentals')}
+        description="Active agreements"
         icon={FileText}
         iconColor="text-amber-500"
         trend={stats.agreementStats.growth}

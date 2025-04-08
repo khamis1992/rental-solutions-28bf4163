@@ -154,8 +154,8 @@ export const forceGeneratePaymentForAgreement = async (
         payment_date: null,
         original_due_date: dueDate.toISOString(),
         days_overdue: daysOverdue,
-        late_fine_amount: lateFineAmount
-        // Removed daily_late_fee field from the insert operation
+        late_fine_amount: lateFineAmount,
+        daily_late_fee: dailyLateFee
       })
       .select()
       .single();

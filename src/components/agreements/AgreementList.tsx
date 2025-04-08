@@ -90,9 +90,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     pageIndex: 0,
     pageSize: 10,
   });
-  const [singleDeleteId, setSingleDeleteId] = useState<string | null>(null);
-  const [singleDeleteNumber, setSingleDeleteNumber] = useState<string | null>(null);
-  const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   
   const queryClient = useQueryClient();
   
@@ -236,20 +233,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setIsDeleting(false);
     
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
-  };
-
-  const handleSingleDelete = async () => {
-    if (!singleDeleteId) return;
-    
-    try {
-      await deleteAgreement.mutateAsync(singleDeleteId);
-      setSingleDeleteDialogOpen(false);
-      setSingleDeleteId(null);
-      setSingleDeleteNumber(null);
-    } catch (error) {
-      console.error("Error deleting agreement:", error);
-      toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
   };
 
   const columns: ColumnDef<any>[] = [
@@ -465,9 +448,9 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={() => {
-                  setSingleDeleteId(agreement.id);
-                  setSingleDeleteNumber(agreement.agreement_number);
-                  setSingleDeleteDialogOpen(true);
+                  if (window.confirm(`Are you sure you want to delete agreement ${agreement.agreement_number}?`)) {
+                    deleteAgreement.mutate(agreement.id as string);
+                  }
                 }}
               >
                 Delete agreement
@@ -711,32 +694,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               ) : (
                 'Delete Agreements'
               )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Agreement</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete agreement {singleDeleteNumber}?
-              This action cannot be undone and will permanently remove all associated data including payments and records.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setSingleDeleteId(null);
-              setSingleDeleteNumber(null);
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSingleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

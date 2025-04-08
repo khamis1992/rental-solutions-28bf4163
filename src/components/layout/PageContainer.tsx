@@ -5,8 +5,6 @@ import Header from './Header';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
 
 interface PageContainerProps {
   children: React.ReactNode;
@@ -27,11 +25,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
   actions,
   systemDate = new Date() // Default to current date instead of fixed date
 }) => {
-  const { t } = useI18nTranslation();
-  const { direction } = useTranslation();
-  
   return (
-    <div className="min-h-screen pl-64 w-full" dir={direction}>
+    <div className="min-h-screen pl-64 w-full">
       <Header />
       <main className={cn("p-6 animate-fade-in", className)}>
         {backLink && (
@@ -40,7 +35,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
             className="inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="mr-1 h-4 w-4" />
-            {t('common.back')}
+            Back
           </Link>
         )}
         

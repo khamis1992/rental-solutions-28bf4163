@@ -59,3 +59,21 @@ export type PaginatedResponse<T> = {
 export type FlattenType<T> = {
   [P in keyof T]: T[P];
 };
+
+/**
+ * Simplified mutation result type
+ * Used to avoid deep type instantiation issues in mutation return types
+ */
+export type SimpleMutationResult<T = unknown> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
+
+/**
+ * Simpler type for function return values that might be complex
+ * Useful for avoiding deep type instantiation errors
+ * 
+ * @template T The base type to simplify
+ */
+export type SimpleReturnType<T> = T extends object ? Record<string, any> : T;

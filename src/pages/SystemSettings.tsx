@@ -11,15 +11,11 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle } from 'lucide-react';
+import { Settings, Save, Building, Bell, Shield, CreditCard, Globe, Mail, Wrench, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { IdConverterTool } from '@/components/settings/IdConverterTool';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { getSystemServicesStatus } from '@/utils/service-availability';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { useTranslation } from '@/contexts/TranslationContext';
-import LanguageSelector from '@/components/settings/LanguageSelector';
-import { useDirectionalClasses } from '@/utils/rtl-utils';
 
 interface SystemSetting {
   id: string;
@@ -33,18 +29,12 @@ const SystemSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
-  const { t } = useI18nTranslation();
-  const { language, direction } = useTranslation();
   const [serviceStatus, setServiceStatus] = useState({
     agreementImport: true,
     customerImport: true,
     isChecking: true
   });
-  const [testTranslationInput, setTestTranslationInput] = useState('');
-  const [testTranslationResult, setTestTranslationResult] = useState('');
-  const [isTranslating, setIsTranslating] = useState(false);
-  const { translateText: translate } = useTranslation();
-
+  
   useEffect(() => {
     const checkServices = async () => {
       try {
@@ -68,7 +58,7 @@ const SystemSettings = () => {
     
     checkServices();
   }, []);
-
+  
   const { data: settings, isLoading } = useQuery({
     queryKey: ['system-settings'],
     queryFn: async () => {
@@ -88,7 +78,7 @@ const SystemSettings = () => {
       return settingsObj;
     }
   });
-
+  
   const [formData, setFormData] = useState({
     company_name: '',
     business_email: '',
@@ -100,12 +90,12 @@ const SystemSettings = () => {
     notification_emails: true,
     notification_system: true,
     notification_reports: true,
-    language: language,
+    language: 'english',
     currency: 'USD',
     date_format: 'MM/DD/YYYY',
     time_zone: 'UTC',
   });
-
+  
   React.useEffect(() => {
     if (settings) {
       setFormData(prevData => ({
@@ -114,7 +104,7 @@ const SystemSettings = () => {
       }));
     }
   }, [settings]);
-
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -122,21 +112,21 @@ const SystemSettings = () => {
       [name]: value
     }));
   };
-
+  
   const handleSwitchChange = (name: string, checked: boolean) => {
     setFormData(prev => ({
       ...prev,
       [name]: checked
     }));
   };
-
+  
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
   };
-
+  
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: Record<string, any>) => {
       const operations = Object.entries(newSettings).map(([key, value]) => {
@@ -168,36 +158,17 @@ const SystemSettings = () => {
       console.error("Error saving settings:", error);
     }
   });
-
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveSettingsMutation.mutate(formData);
   };
-
-  const handleTestTranslation = async () => {
-    if (!testTranslationInput.trim()) return;
-    
-    try {
-      setIsTranslating(true);
-      const translated = await translate(testTranslationInput, language === 'en' ? 'ar' : 'en');
-      setTestTranslationResult(translated);
-    } catch (error) {
-      console.error('Translation test error:', error);
-      toast({
-        title: "Translation Failed",
-        description: "An error occurred during translation.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsTranslating(false);
-    }
-  };
-
+  
   if (isLoading) {
     return (
       <PageContainer 
-        title={t('settings.title')} 
-        description={t('settings.description')}
+        title="System Settings" 
+        description="Configure your system settings"
       >
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="flex items-center justify-between">
@@ -208,21 +179,15 @@ const SystemSettings = () => {
     );
   }
 
-  const gridClasses = useDirectionalClasses(
-    "grid grid-cols-1 md:grid-cols-2 gap-6",
-    "",
-    "md:[direction:rtl]"
-  );
-
   return (
     <PageContainer 
-      title={t('settings.title')} 
-      description={t('settings.description')}
+      title="System Settings" 
+      description="Configure your system settings"
     >
       <div className="flex items-center mb-6">
         <SectionHeader 
-          title={t('settings.title')} 
-          description={t('settings.description')} 
+          title="System Settings" 
+          description="Configure your system-wide settings and preferences" 
           icon={Settings} 
         />
       </div>
@@ -246,77 +211,72 @@ const SystemSettings = () => {
       <form onSubmit={handleSubmit}>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid grid-cols-6 mb-8 w-full max-w-4xl">
-            <TabsTrigger value="general">{t('settings.general')}</TabsTrigger>
-            <TabsTrigger value="notifications">{t('settings.notifications')}</TabsTrigger>
-            <TabsTrigger value="security">{t('settings.security')}</TabsTrigger>
-            <TabsTrigger value="localization">{t('settings.localization')}</TabsTrigger>
-            <TabsTrigger value="tools">{t('settings.tools')}</TabsTrigger>
-            <TabsTrigger value="integrations">{t('settings.integrations')}</TabsTrigger>
+            <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
+            <TabsTrigger value="localization">Localization</TabsTrigger>
+            <TabsTrigger value="tools">Tools</TabsTrigger>
+            <TabsTrigger value="integrations">Integrations</TabsTrigger>
           </TabsList>
           
           <Card className="mb-6">
             <CardContent className="pt-6">
               <TabsContent value="general" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">{t('settings.companyInformation')}</h3>
-                  <div className={gridClasses}>
+                  <h3 className="text-lg font-medium mb-4">Company Information</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="company_name">{t('settings.companyName')}</Label>
+                      <Label htmlFor="company_name">Company Name</Label>
                       <Input 
                         id="company_name"
                         name="company_name"
                         value={formData.company_name}
                         onChange={handleInputChange}
-                        placeholder={t('settings.companyName')}
-                        dir={direction}
+                        placeholder="Enter company name"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="business_email">{t('settings.businessEmail')}</Label>
+                      <Label htmlFor="business_email">Business Email</Label>
                       <Input 
                         id="business_email"
                         name="business_email"
                         value={formData.business_email}
                         onChange={handleInputChange}
-                        placeholder={t('settings.businessEmail')}
-                        dir={direction}
+                        placeholder="Enter business email"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="phone">{t('settings.phoneNumber')}</Label>
+                      <Label htmlFor="phone">Phone Number</Label>
                       <Input 
                         id="phone"
                         name="phone"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder={t('settings.phoneNumber')}
-                        dir={direction}
+                        placeholder="Enter phone number"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="address">{t('settings.businessAddress')}</Label>
+                      <Label htmlFor="address">Business Address</Label>
                       <Input 
                         id="address"
                         name="address"
                         value={formData.address}
                         onChange={handleInputChange}
-                        placeholder={t('settings.businessAddress')}
-                        dir={direction}
+                        placeholder="Enter business address"
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="logo_url">{t('settings.logoUrl')}</Label>
+                      <Label htmlFor="logo_url">Logo URL</Label>
                       <Input 
                         id="logo_url"
                         name="logo_url"
                         value={formData.logo_url}
                         onChange={handleInputChange}
-                        placeholder={t('settings.logoUrl')}
-                        dir={direction}
+                        placeholder="Enter logo URL"
                       />
                     </div>
                   </div>
@@ -325,12 +285,12 @@ const SystemSettings = () => {
                 <Separator />
                 
                 <div>
-                  <h3 className="text-lg font-medium mb-4">{t('settings.systemPreferences')}</h3>
+                  <h3 className="text-lg font-medium mb-4">System Preferences</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="automatic_updates" className="font-medium">{t('settings.automaticUpdates')}</Label>
-                        <p className="text-sm text-muted-foreground">{t('settings.enableAutomaticUpdates')}</p>
+                        <Label htmlFor="automatic_updates" className="font-medium">Automatic Updates</Label>
+                        <p className="text-sm text-muted-foreground">Enable automatic updates for the system</p>
                       </div>
                       <Switch 
                         id="automatic_updates" 
@@ -341,8 +301,8 @@ const SystemSettings = () => {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="dark_mode" className="font-medium">{t('settings.darkMode')}</Label>
-                        <p className="text-sm text-muted-foreground">{t('settings.enableDarkMode')}</p>
+                        <Label htmlFor="dark_mode" className="font-medium">Dark Mode</Label>
+                        <p className="text-sm text-muted-foreground">Enable dark mode for the system</p>
                       </div>
                       <Switch 
                         id="dark_mode" 
@@ -356,12 +316,12 @@ const SystemSettings = () => {
               
               <TabsContent value="notifications" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">{t('settings.notificationsPreferences')}</h3>
+                  <h3 className="text-lg font-medium mb-4">Notification Preferences</h3>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="notification_emails" className="font-medium">{t('settings.emailNotifications')}</Label>
-                        <p className="text-sm text-muted-foreground">{t('settings.receiveEmailNotifications')}</p>
+                        <Label htmlFor="notification_emails" className="font-medium">Email Notifications</Label>
+                        <p className="text-sm text-muted-foreground">Receive important notifications via email</p>
                       </div>
                       <Switch 
                         id="notification_emails" 
@@ -372,8 +332,8 @@ const SystemSettings = () => {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="notification_system" className="font-medium">{t('settings.systemNotifications')}</Label>
-                        <p className="text-sm text-muted-foreground">{t('settings.receiveSystemNotifications')}</p>
+                        <Label htmlFor="notification_system" className="font-medium">System Notifications</Label>
+                        <p className="text-sm text-muted-foreground">Receive in-app notifications about system events</p>
                       </div>
                       <Switch 
                         id="notification_system" 
@@ -384,8 +344,8 @@ const SystemSettings = () => {
                     
                     <div className="flex items-center justify-between">
                       <div>
-                        <Label htmlFor="notification_reports" className="font-medium">{t('settings.reportNotifications')}</Label>
-                        <p className="text-sm text-muted-foreground">{t('settings.receiveReportNotifications')}</p>
+                        <Label htmlFor="notification_reports" className="font-medium">Report Notifications</Label>
+                        <p className="text-sm text-muted-foreground">Receive notifications when reports are generated</p>
                       </div>
                       <Switch 
                         id="notification_reports" 
@@ -399,7 +359,7 @@ const SystemSettings = () => {
               
               <TabsContent value="security" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">{t('settings.securitySettings')}</h3>
+                  <h3 className="text-lg font-medium mb-4">Security Settings</h3>
                   <p className="text-sm text-muted-foreground mb-4">
                     Security settings are managed through Supabase authentication. Visit the Supabase dashboard to configure advanced security settings.
                   </p>
@@ -413,43 +373,52 @@ const SystemSettings = () => {
               
               <TabsContent value="localization" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">{t('settings.localization')}</h3>
-                  <div className={gridClasses}>
+                  <h3 className="text-lg font-medium mb-4">Localization Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label htmlFor="language">{t('settings.language')}</Label>
-                      <LanguageSelector 
+                      <Label htmlFor="language">Language</Label>
+                      <Select 
+                        value={formData.language} 
                         onValueChange={(value) => handleSelectChange('language', value)}
-                      />
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select language" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="english">English</SelectItem>
+                          <SelectItem value="arabic">Arabic</SelectItem>
+                          <SelectItem value="french">French</SelectItem>
+                          <SelectItem value="spanish">Spanish</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="currency">{t('settings.currency')}</Label>
+                      <Label htmlFor="currency">Currency</Label>
                       <Select 
                         value={formData.currency} 
                         onValueChange={(value) => handleSelectChange('currency', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={t('settings.currency')} />
+                          <SelectValue placeholder="Select currency" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="USD">US Dollar ($)</SelectItem>
                           <SelectItem value="EUR">Euro (€)</SelectItem>
                           <SelectItem value="GBP">British Pound (£)</SelectItem>
                           <SelectItem value="AED">UAE Dirham (د.إ)</SelectItem>
-                          <SelectItem value="SAR">Saudi Riyal (ر.س)</SelectItem>
-                          <SelectItem value="QAR">Qatari Riyal (ر.ق)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="date_format">{t('settings.dateFormat')}</Label>
+                      <Label htmlFor="date_format">Date Format</Label>
                       <Select 
                         value={formData.date_format} 
                         onValueChange={(value) => handleSelectChange('date_format', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={t('settings.dateFormat')} />
+                          <SelectValue placeholder="Select date format" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
@@ -460,67 +429,24 @@ const SystemSettings = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="time_zone">{t('settings.timeZone')}</Label>
+                      <Label htmlFor="time_zone">Time Zone</Label>
                       <Select 
                         value={formData.time_zone} 
                         onValueChange={(value) => handleSelectChange('time_zone', value)}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={t('settings.timeZone')} />
+                          <SelectValue placeholder="Select time zone" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="UTC">UTC</SelectItem>
                           <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                          <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                          <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                          <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
                           <SelectItem value="Europe/London">London (GMT)</SelectItem>
                           <SelectItem value="Asia/Dubai">Dubai (GST)</SelectItem>
-                          <SelectItem value="Asia/Riyadh">Riyadh (AST)</SelectItem>
-                          <SelectItem value="Asia/Qatar">Qatar (AST)</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-
-                    <div className="col-span-2 border p-4 rounded-md bg-gray-50">
-                      <h4 className="font-semibold mb-4">Translation Test Tool</h4>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="test-translation">{t('settings.testTranslation')}</Label>
-                          <div className="flex gap-2">
-                            <Input
-                              id="test-translation"
-                              value={testTranslationInput}
-                              onChange={(e) => setTestTranslationInput(e.target.value)}
-                              placeholder="Enter text to translate"
-                              className="flex-1"
-                            />
-                            <Button 
-                              type="button" 
-                              variant="secondary" 
-                              onClick={handleTestTranslation}
-                              disabled={isTranslating || !testTranslationInput.trim()}
-                            >
-                              {isTranslating ? 'Translating...' : `Translate to ${language === 'en' ? 'Arabic' : 'English'}`}
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {testTranslationResult && (
-                          <div className="bg-white p-3 border rounded-md">
-                            <p className="text-sm font-medium">Translation Result:</p>
-                            <p className={language === 'ar' ? 'font-mono' : language === 'en' ? 'font-mono text-right' : ''}>
-                              {testTranslationResult}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 col-span-2 border p-4 rounded-md bg-gray-50">
-                      <h4 className="font-semibold">Translation Debug Info</h4>
-                      <div className="text-sm">
-                        <p>Current Language: <span className="font-mono">{language}</span></p>
-                        <p>Current Direction: <span className="font-mono">{direction}</span></p>
-                        <p>HTML dir attribute: <span className="font-mono">{document.documentElement.dir}</span></p>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -528,13 +454,13 @@ const SystemSettings = () => {
               
               <TabsContent value="tools" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">{t('settings.tools')}</h3>
+                  <h3 className="text-lg font-medium mb-4">System Tools</h3>
                   <p className="text-sm text-muted-foreground mb-6">
                     Specialized tools to help with system operations and data management.
                   </p>
                   
                   {(!serviceStatus.agreementImport || !serviceStatus.customerImport) && (
-                    <Alert variant="warning" className="mb-6">
+                    <Alert variant="warning" className="mb-4">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
                         Some tools may have limited functionality due to unavailable import services.
@@ -548,7 +474,7 @@ const SystemSettings = () => {
               
               <TabsContent value="integrations" className="mt-0 space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-4">{t('settings.integrations')}</h3>
+                  <h3 className="text-lg font-medium mb-4">Integrations</h3>
                   <p className="text-sm text-muted-foreground mb-6">
                     Configure third-party service integrations to extend the functionality of your system.
                   </p>
@@ -598,14 +524,14 @@ const SystemSettings = () => {
             </CardContent>
           </Card>
           
-          <div className={useDirectionalClasses("flex justify-end", "", "flex justify-start")}>
+          <div className="flex justify-end">
             <Button 
               type="submit" 
               className="flex items-center gap-2"
               disabled={saveSettingsMutation.isPending}
             >
               <Save className="h-4 w-4" />
-              {saveSettingsMutation.isPending ? t('settings.saving') : t('settings.saveSettings')}
+              {saveSettingsMutation.isPending ? 'Saving...' : 'Save Settings'}
             </Button>
           </div>
         </Tabs>

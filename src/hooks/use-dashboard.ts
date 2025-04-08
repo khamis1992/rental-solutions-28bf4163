@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { handleApiError } from '@/hooks/use-api';
@@ -77,19 +76,17 @@ export function useDashboardData() {
         // Fetch real payment data for current month
         const { data: currentMonthPayments, error: paymentsError } = await supabase
           .from('unified_payments')
-          .select('amount_paid, amount, type')
-          .gte('payment_date', firstDayCurrentMonth.toISOString())
-          .or(`type.eq.Income,type.eq.rent,type.ilike.%income%,type.ilike.%rent%`);
+          .select('amount_paid')
+          .gte('payment_date', firstDayCurrentMonth.toISOString());
           
         if (paymentsError) throw paymentsError;
         
         // Fetch real payment data for last month for growth calculation
         const { data: lastMonthPayments, error: lastMonthError } = await supabase
           .from('unified_payments')
-          .select('amount_paid, amount, type')
+          .select('amount_paid')
           .gte('payment_date', firstDayLastMonth.toISOString())
-          .lt('payment_date', firstDayCurrentMonth.toISOString())
-          .or(`type.eq.Income,type.eq.rent,type.ilike.%income%,type.ilike.%rent%`);
+          .lt('payment_date', firstDayCurrentMonth.toISOString());
           
         if (lastMonthError) throw lastMonthError;
         
@@ -139,21 +136,16 @@ export function useDashboardData() {
           critical: (statusCounts['accident'] || 0) + (statusCounts['stolen'] || 0)
         };
         
-        // Calculate financial stats from real payment data - Using the same approach as useFinancials hook
+        // Calculate financial stats from real payment data - IMPORTANT CHANGE:
+        // Only use amount_paid for revenue calculation, NOT amount
         const currentMonthTotal = currentMonthPayments.reduce((sum, payment) => {
-          // Use amount_paid when available, otherwise fallback to amount field
-          const value = (payment.amount_paid !== null && payment.amount_paid !== undefined) 
-            ? Number(payment.amount_paid) 
-            : Number(payment.amount) || 0;
-          return sum + value;
+          // Only consider amount_paid and treat null/undefined as 0
+          return sum + (payment.amount_paid || 0);
         }, 0);
         
         const lastMonthTotal = lastMonthPayments.reduce((sum, payment) => {
-          // Use amount_paid when available, otherwise fallback to amount field
-          const value = (payment.amount_paid !== null && payment.amount_paid !== undefined) 
-            ? Number(payment.amount_paid) 
-            : Number(payment.amount) || 0;
-          return sum + value;
+          // Only consider amount_paid and treat null/undefined as 0
+          return sum + (payment.amount_paid || 0);
         }, 0);
         
         // Calculate real growth percentage

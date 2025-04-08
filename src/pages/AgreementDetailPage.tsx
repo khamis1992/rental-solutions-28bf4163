@@ -10,16 +10,6 @@ import { useRentAmount } from '@/hooks/use-rent-amount';
 import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { supabase } from '@/lib/supabase';
@@ -39,7 +29,6 @@ const AgreementDetailPage = () => {
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
@@ -130,11 +119,6 @@ const AgreementDetailPage = () => {
       console.error("Error deleting agreement:", error);
       toast.error("Failed to delete agreement");
     }
-  };
-
-  const handleDeleteConfirmation = () => {
-    if (!id) return;
-    setDeleteDialogOpen(true);
   };
 
   const refreshAgreementData = () => {
@@ -234,7 +218,7 @@ const AgreementDetailPage = () => {
         <>
           <AgreementDetail 
             agreement={agreement}
-            onDelete={handleDeleteConfirmation}
+            onDelete={handleDelete}
             rentAmount={rentAmount}
             contractAmount={contractAmount}
             onPaymentDeleted={refreshAgreementData}
@@ -251,27 +235,6 @@ const AgreementDetailPage = () => {
               />
             </DialogContent>
           </Dialog>
-
-          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Agreement</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete agreement {agreement.agreement_number}?
-                  This action cannot be undone and will permanently remove all associated data including payments and records.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDelete(agreement.id)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </>
       ) : (
         <div className="text-center py-12">

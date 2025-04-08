@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
@@ -22,8 +21,6 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     notes: simpleAgreement.notes || '',
     terms_accepted: true,
     additional_drivers: [],
-    rent_amount: simpleAgreement.rent_amount || 0,
-    daily_late_fee: simpleAgreement.daily_late_fee || 0
   };
 };
 
@@ -57,31 +54,12 @@ export const updateAgreementWithCheck = async (
       }
     }
 
-    // Remove any non-database fields to prevent errors
-    const cleanData = { ...params.data };
-    
-    // Remove potential non-database fields that might cause issues
-    const fieldsToExclude = [
-      'customer_data', 
-      'vehicle_data', 
-      'vehicles', 
-      'customers', 
-      '__typename', 
-      'terms_accepted', 
-      'additional_drivers'
-    ];
-    fieldsToExclude.forEach(field => {
-      if (field in cleanData) delete cleanData[field];
-    });
-
     // Optimistic update
     toast.success("Agreement update initiated...");
 
-    console.log("Sending data to update:", cleanData);
-
     const { data, error } = await supabase
       .from('leases')
-      .update(cleanData)
+      .update(params.data)
       .eq('id', params.id)
       .select()
       .single();
