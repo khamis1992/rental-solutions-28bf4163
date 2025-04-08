@@ -34,14 +34,19 @@ export const useTrafficFinesValidation = () => {
         if (!data) return [];
         
         // Transform the data to match the ValidationResult interface
-        return data.map(item => ({
-          validationId: item.id,
-          licensePlate: item.license_plate,
-          validationDate: new Date(item.validation_date),
-          validationSource: item.validation_source,
-          hasFine: item.has_fine,
-          details: item.details
-        }));
+        return data.map(item => {
+          // Parse the result JSON field which contains our validation data
+          const resultData = typeof item.result === 'object' ? item.result : JSON.parse(item.result || '{}');
+          
+          return {
+            validationId: item.id,
+            licensePlate: resultData.licensePlate || '',
+            validationDate: new Date(item.validation_date),
+            validationSource: resultData.validationSource || 'MOI Traffic System',
+            hasFine: resultData.hasFine || false,
+            details: resultData.details || ''
+          };
+        });
       } catch (error) {
         console.error('Error fetching validation history:', error);
         throw error;
@@ -50,28 +55,39 @@ export const useTrafficFinesValidation = () => {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
-  // Increment validation attempts - using direct SQL for now to avoid RPC issues
+  // Track validation attempts in a separate table
   const incrementValidationAttempt = async (licensePlate: string) => {
     try {
-      const { data, error } = await supabase
-        .from('traffic_fine_validation_attempts')
-        .upsert({
-          license_plate: licensePlate,
-          attempt_count: 1,
-          last_attempt_date: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'license_plate',
-          count: 'exact'
-        });
+      // First check if record exists
+      const { data: existingRecord, error: queryError } = await supabase
+        .from('traffic_fine_validations')
+        .select('id')
+        .eq('result->licensePlate', licensePlate)
+        .maybeSingle();
       
-      if (error) {
-        console.error('Error incrementing validation attempts:', error);
+      if (queryError) {
+        console.error('Error checking validation attempts:', queryError);
+        return null;
       }
       
-      return data;
+      // If record exists, update the attempt count
+      if (existingRecord) {
+        const { error: updateError } = await supabase
+          .rpc('increment_validation_attempts', { 
+            p_license_plate: licensePlate 
+          });
+          
+        if (updateError) {
+          console.error('Error incrementing validation attempts:', updateError);
+        }
+        
+        return existingRecord;
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error in incrementValidationAttempt:', error);
+      return null;
     }
   };
   
@@ -91,17 +107,14 @@ export const useTrafficFinesValidation = () => {
         throw new Error(`Validation failed: ${error.message}`);
       }
       
-      // Log the validation result using direct insert instead of RPC
-      const { error: logError, data: logData } = await supabase
+      // Store validation result in database
+      const { error: logError } = await supabase
         .from('traffic_fine_validations')
         .insert({
-          license_plate: licensePlate,
-          has_fine: data.hasFine,
-          validation_source: data.validationSource,
-          details: data.details || null
-        })
-        .select()
-        .single();
+          result: data,
+          status: 'completed',
+          validation_date: new Date().toISOString()
+        });
       
       if (logError) {
         console.error('Error logging validation:', logError);

@@ -92,3 +92,4 @@ CREATE POLICY "Allow authenticated insert for traffic_fine_validation_attempts"
   ON public.traffic_fine_validation_attempts FOR INSERT
   TO authenticated
   WITH CHECK (true);
+
