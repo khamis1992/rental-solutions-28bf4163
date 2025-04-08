@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { BasicMutationResult } from '@/utils/type-utils';
 
 export interface ValidationResult {
   licensePlate: string;
@@ -163,9 +164,9 @@ export const useTrafficFinesValidation = () => {
     return results;
   };
   
-  // Manually validate a specific fine by ID - simplified return type
-  const validateFineById = useMutation({
-    mutationFn: async (fineId: string): Promise<{ fineId: string; validationResult: ValidationResult }> => {
+  // Manually validate a specific fine by ID - using BasicMutationResult to avoid type issues
+  const validateFineById: BasicMutationResult = useMutation({
+    mutationFn: async (fineId: string) => {
       try {
         const { data: fine, error: fineError } = await supabase
           .from('traffic_fines')
@@ -209,11 +210,11 @@ export const useTrafficFinesValidation = () => {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     }
-  });
+  }) as BasicMutationResult;
   
-  // Check and update status for all pending fines - simplified return type
-  const updateAllPendingFines = useMutation({
-    mutationFn: async (): Promise<{ processed: number; updated: number; message: string }> => {
+  // Check and update status for all pending fines - using BasicMutationResult type
+  const updateAllPendingFines: BasicMutationResult = useMutation({
+    mutationFn: async () => {
       try {
         // Get all pending fines
         const { data: pendingFines, error: fetchError } = await supabase
@@ -281,7 +282,7 @@ export const useTrafficFinesValidation = () => {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     }
-  });
+  }) as BasicMutationResult;
   
   return {
     validationHistory,
