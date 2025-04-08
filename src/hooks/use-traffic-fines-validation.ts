@@ -65,7 +65,7 @@ export const useTrafficFinesValidation = () => {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
-  // Track validation attempts - simplified to avoid deep type instantiation
+  // Track validation attempts - simplified return type to avoid deep type instantiation
   const incrementValidationAttempt = async (licensePlate: string): Promise<Record<string, any> | null> => {
     try {
       // Check if we have previous validations for this license plate
@@ -87,7 +87,7 @@ export const useTrafficFinesValidation = () => {
     }
   };
   
-  // Validate traffic fine - simplified function signature to avoid deep type instantiation
+  // Validate traffic fine - explicitly specify return type to avoid deep type instantiation
   const validateTrafficFine = async (licensePlate: string): Promise<ValidationResult> => {
     try {
       // Log validation attempt
@@ -163,7 +163,7 @@ export const useTrafficFinesValidation = () => {
     return results;
   };
   
-  // Manually validate a specific fine by ID - fix type instantiation issue
+  // Manually validate a specific fine by ID - simplified return type to avoid instantiation issue
   const validateFineById = useMutation({
     mutationFn: async (fineId: string): Promise<{ fineId: string; validationResult: ValidationResult }> => {
       try {

@@ -65,6 +65,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
 
+  // Updated with explicit return type to avoid deep type instantiation
   const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
@@ -168,6 +169,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
+  // Updated with explicit return type to avoid deep type instantiation
   const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
 
