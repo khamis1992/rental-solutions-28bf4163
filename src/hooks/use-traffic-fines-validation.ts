@@ -19,7 +19,7 @@ export const useTrafficFinesValidation = () => {
   // Fetch validation history
   const { data: validationHistory, isLoading, error } = useQuery({
     queryKey: ['trafficFineValidations'],
-    queryFn: async () => {
+    queryFn: async (): Promise<ValidationResult[]> => {
       try {
         const { data, error } = await supabase
           .from('traffic_fine_validations')
@@ -130,7 +130,7 @@ export const useTrafficFinesValidation = () => {
     }
   };
   
-  // Batch validate multiple license plates - NEW PHASE 3 FEATURE
+  // Batch validate multiple license plates
   const batchValidateTrafficFines = async (licensePlates: string[]): Promise<ValidationResult[]> => {
     const results: ValidationResult[] = [];
     const failures: string[] = [];
@@ -163,7 +163,7 @@ export const useTrafficFinesValidation = () => {
     return results;
   };
   
-  // Manually validate a specific fine by ID - simplified return type to avoid instantiation issue
+  // Manually validate a specific fine by ID - simplified return type
   const validateFineById = useMutation({
     mutationFn: async (fineId: string): Promise<{ fineId: string; validationResult: ValidationResult }> => {
       try {
@@ -179,7 +179,7 @@ export const useTrafficFinesValidation = () => {
         
         const result = await validateTrafficFine(fine.license_plate);
         
-        // Update fine status based on validation results - NEW PHASE 3 FEATURE
+        // Update fine status based on validation results
         if (!result.hasFine) {
           // If no fine found in validation system, update status to paid
           const { error: updateError } = await supabase
@@ -211,7 +211,7 @@ export const useTrafficFinesValidation = () => {
     }
   });
   
-  // Check and update status for all pending fines - NEW PHASE 3 FEATURE
+  // Check and update status for all pending fines - simplified return type
   const updateAllPendingFines = useMutation({
     mutationFn: async (): Promise<{ processed: number; updated: number; message: string }> => {
       try {

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -65,7 +64,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
 
-  // Updated with explicit return type to avoid deep type instantiation
   const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
     try {
       console.log(`Fetching agreement details for ID: ${id}`);
@@ -169,7 +167,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  // Updated with explicit return type to avoid deep type instantiation
   const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
 
@@ -282,13 +279,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const createAgreement = async (data: Partial<SimpleAgreement>) => {
+  const createAgreement = async (data: Partial<SimpleAgreement>): Promise<SimpleAgreement> => {
     return {} as SimpleAgreement;
   };
 
-  // Fix type instantiation issue by simplifying the types
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }): Promise<Record<string, any>> => {
       console.log("Update mutation called with:", { id, data });
       return {};
     },
@@ -299,7 +295,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
-  // Explicitly specify simpler return type for deleteAgreement to avoid deep instantiation
   const deleteAgreement = useMutation({
     mutationFn: async (id: string): Promise<string> => {
       console.log(`Starting deletion process for agreement ${id}`);
