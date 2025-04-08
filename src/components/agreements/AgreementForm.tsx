@@ -29,7 +29,6 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
-// Create a schema for agreement validation
 const agreementSchema = z.object({
   agreement_number: z.string().min(1, 'Agreement number is required'),
   customer_id: z.string().min(1, 'Customer is required'),
@@ -74,7 +73,6 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
   const { useList: useVehiclesList } = useVehicles();
   const { data: vehicles = [], isLoading: isLoadingVehicles } = useVehiclesList({ status: 'available' });
   
-  // Prepare default values from the agreement
   const defaultValues: Partial<AgreementFormSchema> = {
     agreement_number: agreement?.agreement_number || '',
     customer_id: agreement?.customer_id || '',
@@ -101,7 +99,6 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     mode: 'onChange'
   });
 
-  // Update form when agreement changes
   useEffect(() => {
     if (agreement) {
       form.reset({
@@ -126,14 +123,12 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     }
   }, [agreement, form]);
 
-  // Calculate total amount when rent amount changes
   useEffect(() => {
     const rentAmount = form.watch('rent_amount');
     const startDate = form.watch('start_date');
     const endDate = form.watch('end_date');
     
     if (rentAmount && startDate && endDate) {
-      // Calculate months between dates (simplified)
       const months = Math.ceil((endDate.getTime() - startDate.getTime()) / (30 * 24 * 60 * 60 * 1000));
       const totalAmount = rentAmount * Math.max(1, months);
       form.setValue('total_amount', totalAmount);
@@ -142,11 +137,10 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 
   const handleFormSubmit = async (data: AgreementFormSchema) => {
     try {
-      // Combine form data with existing agreement data
       const formData: Agreement = {
         ...agreement,
         ...data,
-        // Convert dates to ISO strings for API
+        status: data.status as LeaseStatus,
         start_date: data.start_date.toISOString(),
         end_date: data.end_date.toISOString(),
         security_deposit_refund_date: data.security_deposit_refund_date ? data.security_deposit_refund_date.toISOString() : undefined,

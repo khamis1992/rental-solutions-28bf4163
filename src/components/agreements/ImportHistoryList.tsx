@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,11 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { revertAgreementImport, fixImportedAgreementDates } from '@/lib/supabase';
 
 export function ImportHistoryList() {
   const [importLogs, setImportLogs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isReverting, setIsReverting] = useState(false);
+  const [fixingImport, setFixingImport] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchImportLogs() {
@@ -72,6 +74,47 @@ export function ImportHistoryList() {
   // Format date for display
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString();
+  };
+
+  const handleRevert = async (importId: string) => {
+    if (!confirm("Are you sure you want to revert this import? This will delete all agreements created by this import.")) {
+      return;
+    }
+    
+    setIsReverting(true);
+    try {
+      const result = await revertAgreementImport(importId);
+      if (result.success) {
+        toast.success(result.message);
+        refetchAgreementImports();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error("Error reverting import:", error);
+      toast.error("Failed to revert import");
+    } finally {
+      setIsReverting(false);
+    }
+  };
+
+  const handleFixImportDates = async (importItem: AgreementImport) => {
+    try {
+      setFixingImport(importItem.id);
+      const result = await fixImportedAgreementDates(importItem.id);
+      
+      if (result.success) {
+        toast.success(result.message);
+        refetchAgreementImports();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error("Error fixing import dates:", error);
+      toast.error("Failed to fix date formats");
+    } finally {
+      setFixingImport(null);
+    }
   };
 
   if (error) {

@@ -93,10 +93,15 @@ export const revertAgreementImport = async (importId: string): Promise<{ success
       return { success: false, message: `Error reverting import: ${error.message}` };
     }
     
+    // Safely extract the deleted_count from the response
+    const deletedCount = typeof data === 'object' && data ? 
+      (data as any).deleted_count || 0 : 
+      0;
+    
     return { 
       success: true, 
-      message: `Successfully reverted import. ${data.deleted_count} agreements were removed.`,
-      deletedCount: data.deleted_count
+      message: `Successfully reverted import. ${deletedCount} agreements were removed.`,
+      deletedCount: deletedCount
     };
   } catch (error) {
     console.error("Unexpected error reverting import:", error);

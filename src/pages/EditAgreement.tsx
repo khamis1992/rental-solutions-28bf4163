@@ -114,12 +114,14 @@ const EditAgreement = () => {
         </Button>
       </div>
       
-      <AgreementForm 
-        agreement={agreement} 
-        onSubmit={handleSubmit} 
-        isSubmitting={isSubmitting}
-        mode="edit" 
-      />
+      {agreement && (
+        <AgreementForm 
+          agreement={agreement} 
+          onSubmit={handleSubmit} 
+          isSubmitting={isSubmitting}
+          mode="edit" 
+        />
+      )}
     </PageContainer>
   );
 };

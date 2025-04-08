@@ -11,7 +11,8 @@ export type LeaseStatus =
   | "closed"
   | "completed"
   | "terminated"
-  | "archived";
+  | "archived"
+  | string;
 
 export type PaymentStatus = 
   | "pending"
@@ -19,7 +20,8 @@ export type PaymentStatus =
   | "overdue"
   | "cancelled"
   | "refunded"
-  | "completed";
+  | "completed"
+  | string;
 
 export interface AgreementDocument {
   id: string;

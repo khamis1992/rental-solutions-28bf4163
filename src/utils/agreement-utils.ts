@@ -1,4 +1,3 @@
-
 import { AgreementWithDetails } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -69,6 +68,13 @@ export const adaptSimpleToFullAgreement = (agreement: AgreementWithDetails) => {
   };
 };
 
+// Helper function to safely convert Date objects to ISO strings
+const safeIsoString = (date: Date | string | undefined): string | undefined => {
+  if (!date) return undefined;
+  if (date instanceof Date) return date.toISOString();
+  return date;
+};
+
 // Function to update agreement and handle necessary checks
 export const updateAgreementWithCheck = async (
   { id, data }: { id: string; data: any },
@@ -84,9 +90,9 @@ export const updateAgreementWithCheck = async (
         agreement_number: data.agreement_number,
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
-        status: data.status,
-        start_date: data.start_date,
-        end_date: data.end_date,
+        status: data.status as string, // Cast to string for the database
+        start_date: safeIsoString(data.start_date),
+        end_date: safeIsoString(data.end_date),
         rent_amount: data.rent_amount,
         total_amount: data.total_amount,
         notes: data.notes,

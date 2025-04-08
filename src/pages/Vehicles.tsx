@@ -8,7 +8,7 @@ import { Link } from 'react-router-dom';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { VehicleFilters } from '@/components/vehicles/VehicleFilters';
 import VehiclesList from '@/components/vehicles/VehiclesList';
-import { VehicleFilterParams } from '@/types/vehicle';
+import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 
 // Define the VehicleFilterValues type
 export interface VehicleFilterValues {
@@ -40,13 +40,13 @@ const Vehicles = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   const { data: vehicles = [], isLoading, error, refetch } = useList(searchParams);
-  const { data: stats } = useVehicleStats();
+  const { data: stats } = useVehicleStats ? useVehicleStats() : { data: { totalCount: 0 } };
   const totalCount = stats?.totalCount || 0;
   
   const handleFilterChange = (newFilters: VehicleFilterValues) => {
     setSearchParams({
       ...searchParams,
-      status: newFilters.status !== 'all' ? newFilters.status : '',
+      status: newFilters.status !== 'all' ? newFilters.status as VehicleStatus : '',
       make: newFilters.make !== 'all' ? newFilters.make : '',
       type: newFilters.category !== 'all' ? newFilters.category : '',
       year: newFilters.year !== 'all' ? parseInt(newFilters.year) : undefined,

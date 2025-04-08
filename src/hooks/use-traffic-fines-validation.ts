@@ -1,8 +1,8 @@
-
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import { callRpcFunction } from '@/utils/rpc-helpers';
 
 export interface ValidationResult {
   licensePlate: string;
@@ -26,6 +26,38 @@ export interface ValidationHistoryItem {
   result: ValidationResult;
 }
 
+const incrementValidationAttempts = async (fineId: string) => {
+  try {
+    return await callRpcFunction('increment_validation_attempts', { fine_id: fineId });
+  } catch (error) {
+    console.error('Error incrementing validation attempts:', error);
+  }
+};
+
+const logValidationResult = async (data: {
+  fine_id: string;
+  result: any;
+  source: string;
+  has_fine: boolean;
+}) => {
+  try {
+    return await callRpcFunction('log_traffic_fine_validation', data);
+  } catch (error) {
+    console.error('Error logging validation result:', error);
+  }
+};
+
+const parseValidationResult = (data: any): ValidationResult => {
+  return {
+    licensePlate: data?.license_plate || '',
+    validationDate: data?.validation_date || new Date().toISOString(),
+    validationSource: data?.source || 'unknown',
+    hasFine: data?.has_fine || false,
+    fineDetails: data?.fine_details || null,
+    error: data?.error || null
+  };
+};
+
 export const useTrafficFinesValidation = () => {
   const [validationResult, setValidationResult] = useState<ValidationResult>({
     licensePlate: '',
@@ -34,7 +66,6 @@ export const useTrafficFinesValidation = () => {
     hasFine: false
   });
 
-  // Mutation for validating traffic fines
   const validateTrafficFine = useMutation({
     mutationFn: async (licensePlate: string): Promise<ValidationResult> => {
       if (!licensePlate.trim()) {
@@ -42,19 +73,8 @@ export const useTrafficFinesValidation = () => {
       }
 
       try {
-        // Increment validation attempts counter for tracking purposes
-        try {
-          // Create a custom type declaration for the RPC function
-          await supabase.rpc('increment_validation_attempts', {
-            p_license_plate: licensePlate
-          } as any);
-        } catch (error) {
-          console.error('Failed to increment validation attempts:', error);
-          // Continue execution even if this fails
-        }
+        await incrementValidationAttempts(licensePlate);
 
-        // In a real implementation, this would call an external API
-        // For demo, we'll generate a random result
         const randomResult: ValidationResult = {
           licensePlate,
           validationDate: new Date().toISOString(),
@@ -63,7 +83,6 @@ export const useTrafficFinesValidation = () => {
           fineDetails: undefined
         };
 
-        // Simulate fine details if a fine was found
         if (randomResult.hasFine) {
           randomResult.fineDetails = {
             violationType: ['Speeding', 'Red Light', 'Illegal Parking', 'No Parking Zone'][Math.floor(Math.random() * 4)],
@@ -75,24 +94,18 @@ export const useTrafficFinesValidation = () => {
           };
         }
 
-        // Log the validation result to the database
         await supabase.from('traffic_fine_validations').insert({
-          fine_id: null, // We're validating without a specific fine ID
+          fine_id: null,
           result: randomResult as any,
           status: randomResult.hasFine ? 'fine_found' : 'no_fine',
         });
 
-        // Log the traffic fine validation
-        try {
-          // Create a custom type declaration for the RPC function
-          await supabase.rpc('log_traffic_fine_validation', {
-            p_license_plate: licensePlate,
-            p_has_fine: randomResult.hasFine
-          } as any);
-        } catch (error) {
-          console.error('Failed to log validation:', error);
-          // Continue execution even if this fails
-        }
+        await logValidationResult({
+          fine_id: null,
+          result: randomResult as any,
+          source: 'MOI Qatar Database',
+          has_fine: randomResult.hasFine
+        });
 
         setValidationResult(randomResult);
         return randomResult;
@@ -111,7 +124,6 @@ export const useTrafficFinesValidation = () => {
     },
   });
 
-  // Query for fetching validation history
   const { 
     data: validationHistory = [], 
     isLoading: isLoadingHistory, 
@@ -132,7 +144,7 @@ export const useTrafficFinesValidation = () => {
         return (data || []).map(item => ({
           id: item.id,
           validationDate: new Date(item.validation_date),
-          result: item.result as ValidationResult
+          result: parseValidationResult(item.result)
         }));
       } catch (error) {
         console.error('Error fetching validation history:', error);
