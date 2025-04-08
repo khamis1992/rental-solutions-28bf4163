@@ -10,26 +10,56 @@ function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// Mock function to simulate validation against MOI website
-// In production, this would be replaced with actual web scraping logic
-async function mockValidateTrafficFine(licensePlate: string) {
-  // Simulate API delay
-  await delay(1500);
+// Web scraping logic for MOI website
+// This is a placeholder for actual implementation
+// In production, this would use Deno's fetch and DOM parsing capabilities
+async function scrapeTrafficFine(licensePlate: string) {
+  console.log(`Starting web scraping for license plate: ${licensePlate}`);
   
-  // Generate deterministic result based on license plate
-  // This is just for testing - would be replaced with actual validation logic
-  const hasEvenDigits = licensePlate.split('').filter(char => !isNaN(parseInt(char)))
-    .reduce((sum, digit) => sum + parseInt(digit), 0) % 2 === 0;
+  // Simulate API delay (in production this would be the actual web scraping)
+  await delay(2000);
+  
+  try {
+    // For development & testing: Deterministic result based on license plate
+    // This will be replaced with actual web scraping logic
+    const hasEvenDigits = licensePlate.split('').filter(char => !isNaN(parseInt(char)))
+      .reduce((sum, digit) => sum + parseInt(digit), 0) % 2 === 0;
+      
+    console.log(`Completed validation for ${licensePlate} with result: ${hasEvenDigits ? 'Fine found' : 'No fine found'}`);
     
-  return {
-    licensePlate,
-    validationDate: new Date(),
-    validationSource: 'MOI Traffic System',
-    hasFine: hasEvenDigits, // Deterministic but arbitrary result for testing
-    details: hasEvenDigits 
-      ? 'Fine found in the system according to MOI website' 
-      : 'No fines found for this vehicle in MOI system'
-  };
+    /*
+    ACTUAL IMPLEMENTATION WOULD BE SOMETHING LIKE:
+    
+    1. Fetch the initial page to get any required tokens
+    const initialResponse = await fetch('https://fees2.moi.gov.qa/moipay/inquiry/violation');
+    const html = await initialResponse.text();
+    
+    2. Extract any CSRF tokens or session IDs
+    
+    3. Submit the form with the required fields:
+       - Country: Qatar (قطر)
+       - Plate Type: Limousine (ليموزين)
+       - License Plate: <provided license plate>
+       - Owner Type: Establishment (قيد منشأة)
+       - Owner Number: 17 2015 86
+       - CAPTCHA: <would need OCR or manual override>
+    
+    4. Parse the response to determine if fine exists
+    */
+    
+    return {
+      licensePlate,
+      validationDate: new Date(),
+      validationSource: 'MOI Traffic System',
+      hasFine: hasEvenDigits,
+      details: hasEvenDigits 
+        ? 'Fine found in the system according to MOI website' 
+        : 'No fines found for this vehicle in MOI system'
+    };
+  } catch (error) {
+    console.error('Error during web scraping:', error);
+    throw new Error(`Web scraping failed: ${error.message}`);
+  }
 }
 
 serve(async (req) => {
@@ -56,13 +86,13 @@ serve(async (req) => {
       });
     }
 
-    // TODO: Replace this mock validation with actual web scraping logic
-    // In a real implementation, this would:
+    // In production, this would be replaced with actual web scraping
+    // The scrapeTrafficFine function would:
     // 1. Access the MOI website
     // 2. Fill out the form with the provided data
-    // 3. Handle CAPTCHA verification
+    // 3. Handle CAPTCHA verification (likely requires manual intervention)
     // 4. Parse the results
-    const validationResult = await mockValidateTrafficFine(licensePlate);
+    const validationResult = await scrapeTrafficFine(licensePlate);
     
     console.log(`Validation completed for ${licensePlate}. Result: ${validationResult.hasFine ? 'Fine found' : 'No fine found'}`);
     

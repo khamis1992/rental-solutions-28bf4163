@@ -50,12 +50,20 @@ export const useTrafficFinesValidation = () => {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
-  // Increment validation attempts
+  // Increment validation attempts - using direct SQL for now to avoid RPC issues
   const incrementValidationAttempt = async (licensePlate: string) => {
     try {
-      const { data, error } = await supabase.rpc('increment_validation_attempts', {
-        p_license_plate: licensePlate
-      });
+      const { data, error } = await supabase
+        .from('traffic_fine_validation_attempts')
+        .upsert({
+          license_plate: licensePlate,
+          attempt_count: 1,
+          last_attempt_date: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'license_plate',
+          count: 'exact'
+        });
       
       if (error) {
         console.error('Error incrementing validation attempts:', error);
@@ -83,13 +91,17 @@ export const useTrafficFinesValidation = () => {
         throw new Error(`Validation failed: ${error.message}`);
       }
       
-      // Log the validation result
-      const { error: logError } = await supabase.rpc('log_traffic_fine_validation', {
-        p_license_plate: licensePlate,
-        p_has_fine: data.hasFine,
-        p_validation_source: data.validationSource,
-        p_details: data.details || null
-      });
+      // Log the validation result using direct insert instead of RPC
+      const { error: logError, data: logData } = await supabase
+        .from('traffic_fine_validations')
+        .insert({
+          license_plate: licensePlate,
+          has_fine: data.hasFine,
+          validation_source: data.validationSource,
+          details: data.details || null
+        })
+        .select()
+        .single();
       
       if (logError) {
         console.error('Error logging validation:', logError);

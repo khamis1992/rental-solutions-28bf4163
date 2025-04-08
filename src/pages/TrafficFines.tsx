@@ -24,7 +24,7 @@ const TrafficFines = () => {
     <PageContainer>
       <SectionHeader
         title="Traffic Fines Management"
-        description="Record, track, and manage traffic violations"
+        description="Record, track, validate, and manage traffic violations"
         icon={AlertTriangle}
       />
       
