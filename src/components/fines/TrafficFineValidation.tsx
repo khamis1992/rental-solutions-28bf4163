@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, CheckCircle, XCircle, Clock, AlertTriangle } from "lucide-react";
+import { Info, CheckCircle, XCircle, Clock, AlertTriangle, Shield, Car } from "lucide-react";
 import { useTrafficFinesValidation, ValidationResult } from "@/hooks/use-traffic-fines-validation";
 import { toast } from "sonner";
 
@@ -77,20 +77,30 @@ const ValidationHistoryItem = ({ validation }: { validation: ValidationResult })
   const date = new Date(validation.validationDate).toLocaleString();
   
   return (
-    <div className="flex items-center gap-2 p-2 border-b hover:bg-slate-50">
-      <div className={`p-1 rounded-full ${validation.hasFine ? 'bg-red-100' : 'bg-green-100'}`}>
+    <div className="flex items-start gap-2 p-3 border-b hover:bg-slate-50 transition-colors">
+      <div className={`p-1 rounded-full shrink-0 mt-1 ${validation.hasFine ? 'bg-red-100' : 'bg-green-100'}`}>
         {validation.hasFine ? (
           <XCircle className="h-4 w-4 text-red-600" />
         ) : (
           <CheckCircle className="h-4 w-4 text-green-600" />
         )}
       </div>
-      <div className="flex-1">
-        <div className="flex justify-between">
-          <p className="font-medium">{validation.licensePlate}</p>
+      <div className="flex-1 overflow-hidden">
+        <div className="flex justify-between items-center">
+          <p className="font-medium flex items-center gap-1">
+            <Car className="h-3 w-3" />
+            {validation.licensePlate}
+          </p>
           <p className="text-xs text-gray-500">{date}</p>
         </div>
-        <p className="text-xs truncate">{validation.details}</p>
+        <p className={`text-sm truncate ${validation.hasFine ? 'text-red-600' : 'text-green-600'}`}>
+          {validation.hasFine ? (
+            <span className="font-medium">Fine detected</span>
+          ) : (
+            <span>No fine found</span>
+          )}
+        </p>
+        <p className="text-xs text-gray-500 truncate">{validation.details}</p>
       </div>
     </div>
   );
@@ -209,7 +219,7 @@ const TrafficFineValidation = () => {
           </CardHeader>
           <CardContent>
             {validationHistory && validationHistory.length > 0 ? (
-              <div className="space-y-1 max-h-[400px] overflow-y-auto">
+              <div className="space-y-0 max-h-[400px] overflow-y-auto border rounded-md">
                 {validationHistory.map((validation, index) => (
                   <ValidationHistoryItem key={index} validation={validation} />
                 ))}
