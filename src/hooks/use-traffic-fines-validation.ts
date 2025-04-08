@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -65,7 +66,7 @@ export const useTrafficFinesValidation = () => {
   });
   
   // Track validation attempts - simplified to avoid deep type instantiation
-  const incrementValidationAttempt = async (licensePlate: string) => {
+  const incrementValidationAttempt = async (licensePlate: string): Promise<Record<string, any> | null> => {
     try {
       // Check if we have previous validations for this license plate
       const { data: existingValidations, error: queryError } = await supabase

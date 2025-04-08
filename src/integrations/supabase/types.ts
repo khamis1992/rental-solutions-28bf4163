@@ -7859,44 +7859,48 @@ export type Database = {
       }
       traffic_fine_validations: {
         Row: {
+          batch_id: string | null
           created_at: string | null
           created_by: string | null
           error_message: string | null
           fine_id: string | null
           id: string
-          result: Json | null
+          license_plate: string
+          result: Json
           status: string
+          updated_at: string | null
           validation_date: string | null
+          validation_source: string | null
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string | null
           created_by?: string | null
           error_message?: string | null
           fine_id?: string | null
           id?: string
-          result?: Json | null
-          status: string
+          license_plate: string
+          result: Json
+          status?: string
+          updated_at?: string | null
           validation_date?: string | null
+          validation_source?: string | null
         }
         Update: {
+          batch_id?: string | null
           created_at?: string | null
           created_by?: string | null
           error_message?: string | null
           fine_id?: string | null
           id?: string
-          result?: Json | null
+          license_plate?: string
+          result?: Json
           status?: string
+          updated_at?: string | null
           validation_date?: string | null
+          validation_source?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "traffic_fine_validations_fine_id_fkey"
-            columns: ["fine_id"]
-            isOneToOne: false
-            referencedRelation: "traffic_fines"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       traffic_fines: {
         Row: {
@@ -10229,6 +10233,16 @@ export type Database = {
       is_valid_date: {
         Args: { date_str: string }
         Returns: boolean
+      }
+      log_traffic_fine_validation: {
+        Args: {
+          p_license_plate: string
+          p_result: Json
+          p_status?: string
+          p_fine_id?: string
+          p_batch_id?: string
+        }
+        Returns: string
       }
       merge_customer_records: {
         Args: { primary_id: string; duplicate_ids: string[] }
