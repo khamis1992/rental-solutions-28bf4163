@@ -65,7 +65,7 @@ export const useTrafficFinesValidation = () => {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
-  // Track validation attempts
+  // Track validation attempts - simplified to avoid deep type instantiation
   const incrementValidationAttempt = async (licensePlate: string) => {
     try {
       // Check if we have previous validations for this license plate
@@ -87,10 +87,10 @@ export const useTrafficFinesValidation = () => {
     }
   };
   
-  // Validate traffic fine
+  // Validate traffic fine - simplified function signature to avoid deep type instantiation
   const validateTrafficFine = async (licensePlate: string): Promise<ValidationResult> => {
     try {
-      // Log validation attempt - simplified to avoid using nonexistent RPC function
+      // Log validation attempt
       await incrementValidationAttempt(licensePlate);
       
       // Call the edge function to validate the traffic fine
@@ -130,7 +130,7 @@ export const useTrafficFinesValidation = () => {
     }
   };
   
-  // Manually validate a specific fine by ID
+  // Manually validate a specific fine by ID - use simpler type signatures
   const validateFineById = useMutation({
     mutationFn: async (fineId: string) => {
       try {
@@ -152,9 +152,9 @@ export const useTrafficFinesValidation = () => {
         throw error;
       }
     },
-    onSuccess: ({ fineId, validationResult }) => {
+    onSuccess: (data) => {
       toast.success(`Fine validation completed`, {
-        description: `Result: ${validationResult.hasFine ? 'Fine found' : 'No fine found'}`
+        description: `Result: ${data.validationResult.hasFine ? 'Fine found' : 'No fine found'}`
       });
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
     },
