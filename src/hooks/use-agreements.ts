@@ -1,8 +1,3 @@
-
-// We only need to modify the part causing the error in use-agreements.ts
-// The issue is in the SimpleAgreement type and its usage
-
-// Update the beginning of the file
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -11,7 +6,6 @@ import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { FlattenType } from '@/utils/type-utils';
 
-// Simplified type to avoid excessive deep instantiation
 export type SimpleAgreement = {
   id: string;
   customer_id: string;
@@ -38,7 +32,6 @@ export type SimpleAgreement = {
   vehicles?: Record<string, any>;
 };
 
-// Function to convert database status to AgreementStatus enum value
 export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
   switch(dbStatus) {
     case 'active':
@@ -291,7 +284,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   };
 
   const updateAgreementMutation = useMutation({
-    // Use type any for the data parameter to avoid deep instantiation issues
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
       return {};
