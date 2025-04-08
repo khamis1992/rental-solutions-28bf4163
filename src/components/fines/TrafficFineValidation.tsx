@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Card, 
@@ -31,11 +30,10 @@ const ValidationInfoAlert = () => (
         <li>Store the validation history for future reference</li>
       </ol>
       
-      <div className="text-xs bg-yellow-50 text-yellow-800 p-2 rounded mt-2 border border-yellow-200">
-        <p><strong>Implementation Note:</strong></p>
-        <p>The system is currently operating in development mode using simulated responses based on license plate numbers. 
-        Even-sum license plates will report fines while odd-sum plates will report no fines.</p>
-        <p className="mt-1">For full production implementation with the actual MOI system, additional configuration is required.</p>
+      <div className="text-xs bg-blue-50 text-blue-800 p-2 rounded mt-2 border border-blue-200">
+        <p><strong>Note:</strong></p>
+        <p>The system connects to the official MOI traffic system. Validation may take a few moments to complete.</p>
+        <p className="mt-1">System requirements may be updated based on changes to the MOI website structure.</p>
       </div>
     </AlertDescription>
   </Alert>

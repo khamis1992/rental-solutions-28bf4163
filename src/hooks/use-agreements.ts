@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -296,9 +295,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   const updateAgreement = updateAgreementMutation;
 
-  // Fix the TypeScript error by explicitly typing the return type
   const deleteAgreement = useMutation({
-    mutationFn: async (id: string): Promise<{ success: boolean; data?: string }> => {
+    mutationFn: async (id: string) => {
       console.log(`Starting deletion process for agreement ${id}`);
       
       try {
