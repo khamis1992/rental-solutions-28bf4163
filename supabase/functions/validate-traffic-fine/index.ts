@@ -23,13 +23,12 @@ function extractTextBetween(html: string, startMarker: string, endMarker: string
   return html.substring(contentStartIndex, endIndex).trim();
 }
 
-// External CAPTCHA solving service integration
+// 2Captcha service integration
 async function solveCaptcha(imageUrl: string, apiKey: string): Promise<string> {
   try {
-    console.log(`Attempting to solve CAPTCHA from image URL: ${imageUrl}`);
+    console.log(`Attempting to solve CAPTCHA from image URL`);
     
-    // Implementation for a popular CAPTCHA solving service (2Captcha as an example)
-    // Note: This is a simplified version and would need to be completed with actual service details
+    // First submit the CAPTCHA to 2captcha service
     const response = await fetch('https://2captcha.com/in.php', {
       method: 'POST',
       headers: {
@@ -44,12 +43,14 @@ async function solveCaptcha(imageUrl: string, apiKey: string): Promise<string> {
     });
     
     const jsonResponse = await response.json();
-    if (!jsonResponse || !jsonResponse.request) {
-      throw new Error('Failed to submit CAPTCHA');
+    console.log('2captcha submit response:', jsonResponse);
+    
+    if (!jsonResponse || jsonResponse.status !== 1 || !jsonResponse.request) {
+      throw new Error(`Failed to submit CAPTCHA: ${JSON.stringify(jsonResponse)}`);
     }
     
     const requestId = jsonResponse.request;
-    console.log(`CAPTCHA submitted, request ID: ${requestId}`);
+    console.log(`CAPTCHA submitted successfully, request ID: ${requestId}`);
     
     // Wait for the CAPTCHA to be solved (polling)
     let attempts = 0;
@@ -58,20 +59,28 @@ async function solveCaptcha(imageUrl: string, apiKey: string): Promise<string> {
       await delay(5000); // Wait 5 seconds between each check
       attempts++;
       
+      console.log(`Checking CAPTCHA solution, attempt ${attempts}/${maxAttempts}`);
       const resultResponse = await fetch(`https://2captcha.com/res.php?key=${apiKey}&action=get&id=${requestId}&json=1`);
+      
+      if (!resultResponse.ok) {
+        console.error('Error response from 2captcha:', resultResponse.status, resultResponse.statusText);
+        continue;
+      }
+      
       const resultJson = await resultResponse.json();
+      console.log('2captcha result response:', resultJson);
       
       if (resultJson.status === 1) {
-        console.log('CAPTCHA solved successfully');
+        console.log('CAPTCHA solved successfully:', resultJson.request);
         return resultJson.request;
       } else if (resultJson.request !== 'CAPCHA_NOT_READY') {
         throw new Error(`CAPTCHA solving failed: ${resultJson.request}`);
       }
       
-      console.log(`Waiting for CAPTCHA solution, attempt ${attempts}/${maxAttempts}`);
+      console.log(`CAPTCHA not ready yet, waiting...`);
     }
     
-    throw new Error('CAPTCHA solving timeout');
+    throw new Error('CAPTCHA solving timeout: maximum attempts reached');
   } catch (error) {
     console.error('Error solving CAPTCHA:', error);
     throw error;
@@ -83,8 +92,8 @@ async function scrapeTrafficFine(licensePlate: string) {
   console.log(`Starting web scraping for license plate: ${licensePlate}`);
   
   try {
-    // Set isDev to false to use the real MOI system
-    const isDev = false; // Changed to false to use real implementation
+    // Using real implementation since isDev is false
+    const isDev = false;
     
     if (isDev) {
       // Simulate API delay
@@ -148,12 +157,14 @@ async function scrapeTrafficFine(licensePlate: string) {
       try {
         const captchaImage = extractTextBetween(html, 'captcha-image" src="', '"');
         if (captchaImage) {
-          console.log("CAPTCHA detected, attempting to solve");
+          console.log("CAPTCHA detected:", captchaImage);
           
           // Get the full CAPTCHA image URL if it's a relative path
           const captchaUrl = captchaImage.startsWith('http') 
             ? captchaImage 
             : `https://fees2.moi.gov.qa${captchaImage}`;
+          
+          console.log("Full CAPTCHA URL:", captchaUrl);
           
           // Retrieve the CAPTCHA image
           const captchaResponse = await fetch(captchaUrl, {
@@ -172,18 +183,19 @@ async function scrapeTrafficFine(licensePlate: string) {
           const captchaBase64 = btoa(String.fromCharCode(...new Uint8Array(captchaBuffer)));
           const captchaDataUrl = `data:image/jpeg;base64,${captchaBase64}`;
           
+          console.log("CAPTCHA image converted to base64, length:", captchaBase64.length);
+          
           // Use CAPTCHA solving service
-          // Note: You would need to set up the CAPTCHA API key in your Supabase secrets
-          // Get CAPTCHA API key from environment
-          const captchaApiKey = Deno.env.get("CAPTCHA_API_KEY") || "";
+          const captchaApiKey = Deno.env.get("CAPTCHA_API_KEY");
           if (!captchaApiKey) {
-            throw new Error("CAPTCHA API key not configured in environment");
+            throw new Error("CAPTCHA_API_KEY not configured in Supabase secrets");
           }
           
+          console.log("Sending CAPTCHA to 2Captcha service");
           const captchaSolution = await solveCaptcha(captchaDataUrl, captchaApiKey);
           formData.append('captcha', captchaSolution);
           
-          console.log("CAPTCHA solved, proceeding with form submission");
+          console.log("CAPTCHA solved successfully:", captchaSolution);
         }
       } catch (captchaError) {
         console.error("Error processing CAPTCHA:", captchaError);
@@ -191,7 +203,7 @@ async function scrapeTrafficFine(licensePlate: string) {
       }
       
       // 6. Submit form to search for violations
-      console.log("Submitting search request");
+      console.log("Submitting search request to MOI website");
       const response = await fetch('https://fees2.moi.gov.qa/moipay/inquiry/violation/search', {
         method: 'POST',
         body: formData,
@@ -223,10 +235,12 @@ async function scrapeTrafficFine(licensePlate: string) {
       if (hasFine) {
         try {
           // Extract fine amount
-          const amountText = extractTextBetween(responseHtml, 'القيمة الاجمالية', '</td>');
-          const violationDate = extractTextBetween(responseHtml, 'تاريخ المخالفة', '</td>');
+          const amountText = extractTextBetween(responseHtml, 'القيمة الاجمالية', '</td>').trim();
+          const violationDate = extractTextBetween(responseHtml, 'تاريخ المخالفة', '</td>').trim();
+          const violationNumber = extractTextBetween(responseHtml, 'رقم المخالفة', '</td>').trim();
           
-          details = `Fine found: Amount: ${amountText || 'Unknown'}, Date: ${violationDate || 'Unknown'}`;
+          details = `Fine found: Amount: ${amountText || 'Unknown'}, Date: ${violationDate || 'Unknown'}, Reference: ${violationNumber || 'Unknown'}`;
+          console.log("Fine details extracted:", details);
         } catch (detailsError) {
           console.error("Error extracting fine details:", detailsError);
           details = 'Fine found in the system, but details could not be extracted';
