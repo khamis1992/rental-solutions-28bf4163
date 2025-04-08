@@ -61,8 +61,8 @@ interface SearchParams {
   customer_id?: string;
 }
 
-// Simplified mutation result type to avoid deep type instantiation issues
-type SimplifiedMutationResult = {
+// Simplifying this type to avoid TypeScript deep instantiation errors
+type MutationResult = {
   mutateAsync: (args: any) => Promise<any>;
   isPending: boolean;
   isError?: boolean;
@@ -302,7 +302,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  const updateAgreement: SimplifiedMutationResult = {
+  // Fixed: Using the simplified MutationResult type to avoid deep type instantiation
+  const updateAgreement: MutationResult = {
     mutateAsync: updateAgreementMutation.mutateAsync,
     isPending: updateAgreementMutation.isPending,
     isError: updateAgreementMutation.isError,
