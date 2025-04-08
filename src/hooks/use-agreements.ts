@@ -60,6 +60,11 @@ interface SearchParams {
   customer_id?: string;
 }
 
+type SimplifiedMutationResult = {
+  mutateAsync: (args: any) => Promise<any>;
+  isPending: boolean;
+};
+
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
@@ -390,7 +395,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     setSearchParams,
     getAgreement,
     createAgreement,
-    updateAgreement,
+    updateAgreement: updateAgreementMutation as SimplifiedMutationResult,
     deleteAgreement,
   };
 };

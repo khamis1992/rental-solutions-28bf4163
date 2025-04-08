@@ -33,7 +33,6 @@ const ValidationInfoAlert = () => (
       <div className="text-xs bg-blue-50 text-blue-800 p-2 rounded mt-2 border border-blue-200">
         <p><strong>Note:</strong></p>
         <p>The system connects to the official MOI traffic system. Validation may take a few moments to complete.</p>
-        <p className="mt-1">System requirements may be updated based on changes to the MOI website structure.</p>
       </div>
     </AlertDescription>
   </Alert>
