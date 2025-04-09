@@ -243,8 +243,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   };
 
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      console.log("Update mutation called with:", { id, data });
+    mutationFn: async (params: { id: string; data: Record<string, any> }): Promise<unknown> => {
+      console.log("Update mutation called with:", params);
       return {};
     },
     onSuccess: () => {
