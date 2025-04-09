@@ -1,12 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2 } from 'lucide-react';
+import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, MapPin, Save, X } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
 import { VehicleDetail } from '@/components/vehicles/VehicleDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
+import { Input } from "@/components/ui/input";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,14 +20,26 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const { useVehicle, useDelete } = useVehicles();
+  const { useVehicle, useDelete, useUpdate } = useVehicles();
   const { data: vehicle, isLoading, error } = useVehicle(id || '');
   const { mutate: deleteVehicle, isPending: isDeleting } = useDelete();
+  const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
+
+  const [isEditingLocation, setIsEditingLocation] = useState(false);
+  const [locationValue, setLocationValue] = useState<string>(vehicle?.location || '');
+  
+  // Update location state when vehicle data is loaded
+  React.useEffect(() => {
+    if (vehicle?.location) {
+      setLocationValue(vehicle.location);
+    }
+  }, [vehicle?.location]);
   
   const handleDelete = () => {
     if (id) {
@@ -35,6 +48,37 @@ const VehicleDetailPage = () => {
           navigate('/vehicles');
         }
       });
+    }
+  };
+
+  const handleLocationEdit = () => {
+    setIsEditingLocation(true);
+  };
+
+  const handleLocationCancel = () => {
+    setLocationValue(vehicle?.location || '');
+    setIsEditingLocation(false);
+  };
+
+  const handleLocationSave = () => {
+    if (id) {
+      updateVehicle(
+        { 
+          id, 
+          data: { 
+            location: locationValue 
+          } 
+        },
+        {
+          onSuccess: () => {
+            toast.success('Vehicle location updated successfully');
+            setIsEditingLocation(false);
+          },
+          onError: (error) => {
+            toast.error(`Failed to update location: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+      );
     }
   };
   
@@ -130,6 +174,64 @@ const VehicleDetailPage = () => {
           </>
         }
       />
+
+      {/* Quick Location Edit Section */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <MapPin className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-lg font-medium">Location</h3>
+          </div>
+          
+          {!isEditingLocation ? (
+            <CustomButton 
+              size="sm" 
+              variant="ghost" 
+              onClick={handleLocationEdit}
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              Edit
+            </CustomButton>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <CustomButton 
+                size="sm" 
+                variant="ghost" 
+                onClick={handleLocationCancel}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </CustomButton>
+              <CustomButton 
+                size="sm" 
+                variant="default" 
+                onClick={handleLocationSave}
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-1" />
+                )}
+                Save
+              </CustomButton>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-2">
+          {isEditingLocation ? (
+            <Input
+              value={locationValue}
+              onChange={(e) => setLocationValue(e.target.value)}
+              placeholder="Enter vehicle location"
+              className="w-full"
+            />
+          ) : (
+            <p className="text-lg">{vehicle.location || 'No location specified'}</p>
+          )}
+        </div>
+      </div>
       
       <div className="section-transition">
         <VehicleDetail vehicle={vehicle} />
