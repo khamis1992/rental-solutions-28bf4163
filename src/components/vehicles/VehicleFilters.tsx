@@ -3,17 +3,24 @@ import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { VehicleStatus } from '@/types/vehicle';
 
 // Define the filter values interface
 export interface VehicleFilterValues {
   status: string;
+  make: string;
   location: string;
   year: string;
   category: string;
-  search?: string;
+  search?: string; // New search field
 }
 
 // Props interface
@@ -22,10 +29,12 @@ interface VehicleFiltersProps {
   initialValues?: VehicleFilterValues;
   className?: string;
 }
+
 const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   onFilterChange,
   initialValues = {
     status: 'all',
+    make: 'all',
     location: 'all',
     year: 'all',
     category: 'all',
@@ -35,53 +44,48 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
 }) => {
   // State for filters
   const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
-
+  
   // Apply filters when they change
   useEffect(() => {
     onFilterChange(filters);
   }, [filters, onFilterChange]);
-
+  
   // Handle input changes
   const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
-    setFilters(prev => ({
-      ...prev,
-      [key]: value
-    }));
+    setFilters(prev => ({ ...prev, [key]: value }));
   };
-
+  
   // Handle search input change with a small delay
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // Update the filters with the search value
-    setFilters(prev => ({
-      ...prev,
-      search: value
-    }));
+    setFilters(prev => ({ ...prev, search: value }));
   };
-  return <div className={cn("grid gap-4 p-4 border rounded-lg bg-card", className)}>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+  
+  return (
+    <div className={cn("grid gap-4 p-4 border rounded-lg bg-card", className)}>
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Search field */}
-        <div>
-          <Label htmlFor="search-filter" className="mb-1 block">Search VIN</Label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <Input 
-              id="search-filter"
-              type="search" 
-              placeholder="Search by VIN..." 
-              className="pl-10" 
-              value={filters.search || ''} 
-              onChange={handleSearchChange} 
-            />
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+            <Search className="h-4 w-4 text-muted-foreground" />
           </div>
+          <Input
+            type="search"
+            placeholder="Search by VIN..."
+            className="pl-10"
+            value={filters.search || ''}
+            onChange={handleSearchChange}
+          />
         </div>
         
         {/* Status filter */}
         <div>
           <Label htmlFor="status-filter" className="mb-1 block">Status</Label>
-          <Select value={filters.status} onValueChange={value => handleFilterChange('status', value)}>
+          <Select 
+            value={filters.status} 
+            onValueChange={(value) => handleFilterChange('status', value)}
+          >
             <SelectTrigger id="status-filter">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
@@ -99,10 +103,40 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           </Select>
         </div>
         
+        {/* Make filter */}
+        <div>
+          <Label htmlFor="make-filter" className="mb-1 block">Make</Label>
+          <Select 
+            value={filters.make} 
+            onValueChange={(value) => handleFilterChange('make', value)}
+          >
+            <SelectTrigger id="make-filter">
+              <SelectValue placeholder="All Makes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Makes</SelectItem>
+              <SelectItem value="Toyota">Toyota</SelectItem>
+              <SelectItem value="Honda">Honda</SelectItem>
+              <SelectItem value="Nissan">Nissan</SelectItem>
+              <SelectItem value="Ford">Ford</SelectItem>
+              <SelectItem value="Hyundai">Hyundai</SelectItem>
+              <SelectItem value="Kia">Kia</SelectItem>
+              <SelectItem value="Mazda">Mazda</SelectItem>
+              <SelectItem value="Mercedes">Mercedes</SelectItem>
+              <SelectItem value="BMW">BMW</SelectItem>
+              <SelectItem value="Audi">Audi</SelectItem>
+              <SelectItem value="Lexus">Lexus</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
         {/* Location filter */}
         <div>
           <Label htmlFor="location-filter" className="mb-1 block">Location</Label>
-          <Select value={filters.location} onValueChange={value => handleFilterChange('location', value)}>
+          <Select 
+            value={filters.location} 
+            onValueChange={(value) => handleFilterChange('location', value)}
+          >
             <SelectTrigger id="location-filter">
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
@@ -122,7 +156,10 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         {/* Year filter */}
         <div>
           <Label htmlFor="year-filter" className="mb-1 block">Year</Label>
-          <Select value={filters.year} onValueChange={value => handleFilterChange('year', value)}>
+          <Select 
+            value={filters.year} 
+            onValueChange={(value) => handleFilterChange('year', value)}
+          >
             <SelectTrigger id="year-filter">
               <SelectValue placeholder="All Years" />
             </SelectTrigger>
@@ -142,6 +179,8 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           </Select>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default VehicleFilters;

@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -242,7 +243,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  const updateAgreement = useMutation<Agreement, Error, { id: string; data: Partial<AgreementCreate> }>({
+  // Fix the excessive type depth issue by using a simpler type structure
+  const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
       return { success: true };
@@ -252,11 +254,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
+  // Use BasicMutationResult type to avoid excessive type instantiation
   const updateAgreement: BasicMutationResult = {
-    mutateAsync: updateAgreement.mutateAsync,
-    isPending: updateAgreement.isPending,
-    isError: updateAgreement.isError,
-    error: updateAgreement.error
+    mutateAsync: updateAgreementMutation.mutateAsync,
+    isPending: updateAgreementMutation.isPending,
+    isError: updateAgreementMutation.isError,
+    error: updateAgreementMutation.error
   };
 
   const deleteAgreement = useMutation({
