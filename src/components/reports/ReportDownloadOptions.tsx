@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -36,8 +35,15 @@ const ReportDownloadOptions = ({
       
       // Get data for the report
       const reportData = getReportData();
+      
+      // Log the data to help with debugging
+      console.log(`Generating ${reportType} report with ${reportData?.length || 0} records`, reportData);
+      
       if (!reportData || reportData.length === 0) {
         console.log("No data available for report");
+        toast.warning('No data available', { description: 'There is no data to include in this report.' });
+        setIsGenerating(false);
+        return;
       }
       
       // Format title based on report type
@@ -93,15 +99,26 @@ const ReportDownloadOptions = ({
                 case 'traffic':
                   // For traffic fine reports, include actual data
                   doc.text('• Traffic Fine Summary', 20, yPos); yPos += 10;
-                  doc.text(`• Total Fines: ${reportData.length}`, 20, yPos); yPos += 10;
                   
-                  const totalAmount = reportData.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+                  const totalFines = reportData.length;
+                  doc.text(`• Total Fines: ${totalFines}`, 20, yPos); yPos += 10;
+                  
+                  const totalAmount = reportData.reduce((sum, fine) => {
+                    // Ensure we're accessing the correct property and it's a number
+                    const amount = typeof fine.fineAmount === 'number' ? fine.fineAmount : 
+                                  typeof fine.fine_amount === 'number' ? fine.fine_amount : 0;
+                    return sum + amount;
+                  }, 0);
                   doc.text(`• Total Amount: QAR ${totalAmount.toFixed(2)}`, 20, yPos); yPos += 10;
                   
-                  const paidFines = reportData.filter(fine => fine.paymentStatus === 'paid').length;
+                  const paidFines = reportData.filter(fine => 
+                    fine.paymentStatus === 'paid' || fine.payment_status === 'paid'
+                  ).length;
                   doc.text(`• Paid Fines: ${paidFines}`, 20, yPos); yPos += 10;
                   
-                  const pendingFines = reportData.filter(fine => fine.paymentStatus === 'pending').length;
+                  const pendingFines = reportData.filter(fine => 
+                    fine.paymentStatus === 'pending' || fine.payment_status === 'pending'
+                  ).length;
                   doc.text(`• Pending Fines: ${pendingFines}`, 20, yPos); yPos += 15;
                   
                   // Add detailed listing if data exists
@@ -127,18 +144,27 @@ const ReportDownloadOptions = ({
                     
                     for (let i = 0; i < itemsForFirstPage; i++) {
                       const fine = reportData[i];
-                      const violationDate = fine.violationDate ? format(new Date(fine.violationDate), 'MMM dd, yyyy') : 'N/A';
                       
-                      doc.text(fine.licensePlate || 'N/A', 20, yPos);
-                      doc.text(violationDate, 80, yPos);
-                      doc.text(`QAR ${(fine.fineAmount || 0).toFixed(2)}`, 140, yPos);
-                      doc.text(fine.paymentStatus || 'pending', 180, yPos);
+                      // Handle different property names
+                      const licensePlate = fine.licensePlate || fine.license_plate || 'N/A';
+                      const violationDate = fine.violationDate || fine.violation_date;
+                      const formattedDate = violationDate ? 
+                        (violationDate instanceof Date ? 
+                          format(violationDate, 'MMM dd, yyyy') : 
+                          format(new Date(violationDate), 'MMM dd, yyyy')) 
+                        : 'N/A';
+                      const amount = fine.fineAmount || fine.fine_amount || 0;
+                      const status = fine.paymentStatus || fine.payment_status || 'pending';
+                      
+                      doc.text(licensePlate, 20, yPos);
+                      doc.text(formattedDate, 80, yPos);
+                      doc.text(`QAR ${amount.toFixed(2)}`, 140, yPos);
+                      doc.text(status, 180, yPos);
                       
                       yPos += 6;
                       
-                      // If we're approaching bottom of page, add footer and prepare new page
+                      // If we're approaching bottom of page, add a new page
                       if (yPos > 250 && i < reportData.length - 1) {
-                        // Start a new page if there are more items
                         doc.addPage();
                         yPos = 20; // Reset Y position for new page
                         
@@ -167,7 +193,7 @@ const ReportDownloadOptions = ({
                   doc.text('• Legal Expenses', 20, yPos); yPos += 10;
                   break;
                 default:
-                  doc.text('No data available for this report type.', 20, yPos);
+                  doc.text('No specific data available for this report type.', 20, yPos);
               }
               
               return yPos; // Return the final y position
@@ -193,7 +219,7 @@ const ReportDownloadOptions = ({
     } catch (error) {
       console.error('Error generating report:', error);
       toast.error('Download failed', {
-        description: 'There was a problem generating your report. Please try another format.'
+        description: error instanceof Error ? error.message : 'There was a problem generating your report. Please try another format.'
       });
     } finally {
       setIsGenerating(false);
@@ -255,4 +281,5 @@ const ReportDownloadOptions = ({
       </div>
     </div>;
 };
+
 export default ReportDownloadOptions;

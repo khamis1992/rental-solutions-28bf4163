@@ -54,6 +54,9 @@ const TrafficFineReport = () => {
     (fine.violationNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
+  // Add debug log for filtered fines
+  console.log("Filtered traffic fines:", filteredFines);
+
   // Calculate summary metrics
   const totalFines = filteredFines.length;
   const totalAmount = filteredFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
@@ -79,6 +82,15 @@ const TrafficFineReport = () => {
 
   // Sort customers by total fine amount
   const sortedCustomers = Object.values(finesByCustomer).sort((a, b) => b.totalAmount - a.totalAmount);
+
+  // Add debug log for report data
+  console.log("Prepared data for report:", {
+    totalFines,
+    totalAmount,
+    assignedFines,
+    unassignedFines,
+    sortedCustomers: sortedCustomers.length
+  });
 
   return (
     <div className="space-y-6">

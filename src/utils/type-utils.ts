@@ -1,4 +1,3 @@
-
 /**
  * Utility types to help with TypeScript complex type issues
  */
@@ -81,9 +80,9 @@ export type SimpleReturnType<T> = T extends object ? Record<string, any> : T;
 /**
  * A very basic mutation result type to completely avoid TypeScript deep instantiation issues
  */
-export type BasicMutationResult = {
-  mutateAsync: (args: any) => Promise<any>;
+export interface BasicMutationResult {
+  mutateAsync: (variables: any) => Promise<any>;
   isPending: boolean;
-  isError?: boolean;
-  error?: unknown;
-};
+  isError: boolean;
+  error: Error | null;
+}

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -63,6 +62,7 @@ const Reports = () => {
   };
   
   const getReportData = () => {
+    console.log("Getting report data for:", selectedTab);
     switch (selectedTab) {
       case 'fleet':
         return vehicles.map(v => ({
@@ -100,17 +100,19 @@ const Reports = () => {
           notes: record.notes || 'N/A'
         }));
       case 'traffic':
+        console.log("Traffic fines data for report:", trafficFines);
         return trafficFines ? trafficFines.map(fine => ({
-          violation_number: fine.violationNumber || 'N/A',
-          license_plate: fine.licensePlate || 'N/A',
-          violation_date: fine.violationDate,
+          id: fine.id,
+          violationNumber: fine.violationNumber || 'N/A',
+          licensePlate: fine.licensePlate || 'N/A',
+          violationDate: fine.violationDate instanceof Date ? fine.violationDate : new Date(fine.violationDate),
           location: fine.location || 'N/A',
-          fine_amount: fine.fineAmount || 0,
-          payment_status: fine.paymentStatus || 'pending',
-          customer_name: fine.customerName || 'Unassigned'
+          fineAmount: typeof fine.fineAmount === 'number' ? fine.fineAmount : 0,
+          paymentStatus: fine.paymentStatus || 'pending',
+          customerName: fine.customerName || 'Unassigned',
+          customerId: fine.customerId || null
         })) : [];
       case 'legal':
-        // Legal reports data would be implemented here
         return [];
       default:
         return [];
