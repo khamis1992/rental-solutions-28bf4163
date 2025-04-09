@@ -4,7 +4,7 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
+import { BasicMutationResult } from '@/utils/type-utils';
 
 export type SimpleAgreement = {
   id: string;
@@ -59,14 +59,6 @@ interface SearchParams {
   vehicle_id?: string;
   customer_id?: string;
 }
-
-// Using a much simpler type to completely avoid deep instantiation issues
-type BasicMutationResult = {
-  mutateAsync: (args: any) => Promise<any>;
-  isPending: boolean;
-  isError?: boolean;
-  error?: unknown;
-};
 
 export const useAgreements = (initialFilters: SearchParams = {}) => {
   const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
@@ -250,7 +242,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix TypeScript error by using the BasicMutationResult type
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -261,7 +252,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Using the simplified BasicMutationResult type
   const updateAgreement: BasicMutationResult = {
     mutateAsync: updateAgreementMutation.mutateAsync,
     isPending: updateAgreementMutation.isPending,
