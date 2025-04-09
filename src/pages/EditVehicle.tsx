@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft, AlertOctagon, Loader2 } from 'lucide-react';
@@ -11,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
+import { mapDatabaseStatus, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,11 +48,9 @@ const EditVehicle = () => {
     }
   }, [vehicle, id]);
   
-  // Check if bucket exists and create it if needed
   const ensureVehicleImagesBucket = async () => {
     try {
       console.log('Ensuring vehicle-images bucket exists');
-      // Check if bucket exists
       const { data: buckets, error: listError } = await supabase.storage.listBuckets();
       
       if (listError) {
@@ -65,7 +63,6 @@ const EditVehicle = () => {
       
       if (!bucketExists) {
         console.log('Creating vehicle-images bucket');
-        // Create the bucket
         const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
           public: true,
           fileSizeLimit: 10485760, // 10MB
@@ -91,22 +88,18 @@ const EditVehicle = () => {
     }
   };
   
-  // Helper function to check if the form data differs from the original vehicle data
   const hasChanges = (formData: any, originalVehicle: any) => {
     if (!originalVehicle) return true;
     
-    // Check if an image was added
     if (formData.image) return true;
     
-    // Compare primitive fields
     const fieldsToCompare = [
       'make', 'model', 'year', 'license_plate', 'vin', 'color', 
-      'status', 'mileage', 'location', 'description', 'insurance_company', 
+      'mileage', 'location', 'description', 'insurance_company', 
       'insurance_expiry', 'rent_amount'
     ];
     
     for (const field of fieldsToCompare) {
-      // Handle special case for license_plate which might be stored as licensePlate
       if (field === 'license_plate') {
         const originalValue = originalVehicle.license_plate || originalVehicle.licensePlate;
         if (String(formData[field] || '') !== String(originalValue || '')) {
@@ -114,7 +107,6 @@ const EditVehicle = () => {
           return true;
         }
       } 
-      // Special case for description/notes field
       else if (field === 'description') {
         const originalValue = originalVehicle.description || originalVehicle.notes;
         if (String(formData[field] || '') !== String(originalValue || '')) {
@@ -122,7 +114,6 @@ const EditVehicle = () => {
           return true;
         }
       }
-      // Special case for rent_amount/dailyRate field
       else if (field === 'rent_amount') {
         const originalValue = originalVehicle.rent_amount || originalVehicle.dailyRate;
         if (Number(formData[field] || 0) !== Number(originalValue || 0)) {
@@ -130,7 +121,6 @@ const EditVehicle = () => {
           return true;
         }
       }
-      // For all other fields
       else if (formData[field] !== undefined) {
         const formValue = typeof formData[field] === 'string' 
           ? formData[field].trim() 
@@ -145,7 +135,22 @@ const EditVehicle = () => {
       }
     }
     
-    // Check vehicle_type_id separately as it has special handling
+    if (formData.status !== undefined) {
+      const formStatus = formData.status;
+      const originalStatus = originalVehicle.status;
+      
+      console.log('Status comparison:', {
+        formStatus,
+        originalStatus,
+        equal: formStatus === originalStatus
+      });
+      
+      if (formStatus !== originalStatus) {
+        console.log(`Status changed: ${originalStatus} -> ${formStatus}`);
+        return true;
+      }
+    }
+    
     const formVehicleTypeId = formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id;
     if (String(formVehicleTypeId || '') !== String(originalVehicle.vehicle_type_id || '')) {
       console.log(`Field 'vehicle_type_id' changed: ${originalVehicle.vehicle_type_id} -> ${formVehicleTypeId}`);
@@ -167,7 +172,6 @@ const EditVehicle = () => {
     
     console.log('Form submitted with data:', formData);
     
-    // Validate required fields
     if (!formData.make || !formData.model || !formData.year || !formData.license_plate || !formData.vin) {
       console.error('Missing required fields in form data:', formData);
       toast.error('Missing required fields', {
@@ -176,7 +180,13 @@ const EditVehicle = () => {
       return;
     }
     
-    // Check if there are any changes to save
+    console.log('Status values before hasChanges check:', {
+      originalStatus: vehicle?.status,
+      formStatus: formData.status,
+      databaseOriginalStatus: mapToDBStatus(vehicle?.status),
+      databaseFormStatus: mapToDBStatus(formData.status),
+    });
+    
     if (!hasChanges(formData, vehicle)) {
       console.log('No changes detected, skipping update');
       toast.info('No changes to save', {
@@ -187,12 +197,9 @@ const EditVehicle = () => {
     }
     
     try {
-      // For B70 vehicles, if there's no specific image uploaded, we can use the model-specific one
       if (formData.model && formData.model.toLowerCase().includes('b70') && !formData.image && modelSpecificImage) {
-        // We don't need to upload an image, as we'll use the model-specific one
         console.log('Using model-specific B70 image');
       } 
-      // If there's an image, ensure the bucket exists first
       else if (formData.image) {
         console.log('Image provided, ensuring storage bucket exists');
         const bucketReady = await ensureVehicleImagesBucket();
@@ -203,13 +210,11 @@ const EditVehicle = () => {
         }
       }
       
-      // Process insurance_expiry to handle empty string (convert to null for the database)
       if (formData.insurance_expiry === '') {
         console.log('Converting empty insurance_expiry to null');
         formData.insurance_expiry = null;
       }
       
-      // Make a safe copy of formData that won't cause type issues
       const safeFormData = { ...formData };
       
       console.log('Submitting vehicle update with data:', safeFormData);
@@ -227,7 +232,6 @@ const EditVehicle = () => {
             toast.error('Failed to update vehicle', {
               description: error instanceof Error ? error.message : 'Unknown error occurred',
             });
-            // Try to refetch the vehicle data to ensure our UI is in sync
             refetch();
           }
         }
