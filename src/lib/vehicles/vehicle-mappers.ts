@@ -1,3 +1,4 @@
+
 import { DatabaseVehicleRecord, Vehicle } from '@/types/vehicle';
 
 /**
@@ -12,19 +13,27 @@ export const mapDatabaseRecordToVehicle = (record: DatabaseVehicleRecord): Vehic
     model: record.model,
     year: record.year,
     licensePlate: record.license_plate,
+    license_plate: record.license_plate,
     vin: record.vin,
     color: record.color || '',
-    status: record.status,
+    status: mapDBStatusToUI(record.status),
     mileage: record.mileage || 0,
     description: record.description || '',
     location: record.location || '',
     imageUrl: record.image_url || '',
+    image_url: record.image_url || '',
     insuranceCompany: record.insurance_company || '',
+    insurance_company: record.insurance_company || '',
     insuranceExpiry: record.insurance_expiry || '',
+    insurance_expiry: record.insurance_expiry || '',
     rentAmount: record.rent_amount || 0,
+    rent_amount: record.rent_amount || 0,
     vehicleTypeId: record.vehicle_type_id || '',
+    vehicle_type_id: record.vehicle_type_id || '',
     createdAt: record.created_at,
+    created_at: record.created_at,
     updatedAt: record.updated_at,
+    updated_at: record.updated_at,
     category: record.category || '',
     transmission: record.transmission || '',
     fuelType: record.fuel_type || '',
@@ -34,6 +43,7 @@ export const mapDatabaseRecordToVehicle = (record: DatabaseVehicleRecord): Vehic
     fuelLevel: record.fuel_level || 0,
     features: normalizeFeatures(record.features),
     notes: record.notes || '',
+    vehicle_types: record.vehicle_types || null,
     vehicleType: record.vehicle_types || null,
   };
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -7,12 +6,12 @@ import VehicleGrid from '@/components/vehicles/VehicleGrid';
 import { Car, Plus } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
-import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
+import { VehicleFilterParams, VehicleStatusLiteral } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 
 // Define valid statuses based on database enum
-const VALID_STATUSES: VehicleStatus[] = [
+const VALID_STATUSES: VehicleStatusLiteral[] = [
   'available',
   'rented',
   'reserved',
@@ -38,10 +37,10 @@ const Vehicles = () => {
     
     if (statusFromUrl && statusFromUrl !== 'all') {
       // Validate that the status is a valid enum value
-      if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
+      if (VALID_STATUSES.includes(statusFromUrl as VehicleStatusLiteral)) {
         setFilters(prevFilters => ({ 
           ...prevFilters,
-          status: statusFromUrl as VehicleStatus
+          status: statusFromUrl
         }));
         
         // Show a toast to indicate filtered view
@@ -67,7 +66,7 @@ const Vehicles = () => {
     const convertedFilters: VehicleFilterParams = {};
     
     if (newFilters.status && newFilters.status !== 'all') 
-      convertedFilters.status = newFilters.status as VehicleStatus;
+      convertedFilters.status = newFilters.status as VehicleStatusLiteral;
     
     if (newFilters.location && newFilters.location !== 'all') 
       convertedFilters.location = newFilters.location;
@@ -95,7 +94,7 @@ const Vehicles = () => {
         description="Manage your fleet inventory"
         icon={Car}
         actions={
-          <CustomButton size="sm" glossy onClick={handleAddVehicle}>
+          <CustomButton size="sm" glossy onClick={() => navigate('/vehicles/add')}>
             <Plus className="h-4 w-4 mr-2" />
             Add Vehicle
           </CustomButton>

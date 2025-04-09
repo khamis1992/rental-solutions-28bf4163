@@ -27,12 +27,22 @@ export interface Vehicle {
   notes?: string | null;
   category?: string | null;
   vehicle_types?: VehicleType | null;
+  
+  license_plate?: string;
+  image_url?: string;
+  insurance_company?: string;
+  insurance_expiry?: string;
+  rent_amount?: number;
+  vehicle_type_id?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  vehicleType?: VehicleType | null;
 }
 
 export interface VehicleType {
   id: string;
   name: string;
-  size: 'compact' | 'midsize' | 'fullsize' | 'truck' | 'van' | 'suv';
+  size: 'compact' | 'midsize' | 'fullsize' | 'truck' | 'van' | 'suv' | 'luxury';
   daily_rate: number;
   weekly_rate?: number;
   monthly_rate?: number;
@@ -141,7 +151,7 @@ export interface DatabaseVehicleRecord {
 export interface DatabaseVehicleType {
   id: string;
   name: string;
-  size: 'compact' | 'mid_size' | 'full_size' | 'truck' | 'van' | 'suv';
+  size: 'compact' | 'mid_size' | 'full_size' | 'truck' | 'van' | 'suv' | 'luxury';
   daily_rate: number;
   weekly_rate?: number;
   monthly_rate?: number;
@@ -156,8 +166,13 @@ export enum VehicleStatus {
   AVAILABLE = 'available',
   RENTED = 'rented',
   MAINTENANCE = 'maintenance',
-  RESERVED = 'reserved', // UI shows as 'reserved' but stored as 'reserve' in the DB
-  RETIRED = 'retired'
+  RESERVED = 'reserved',
+  RETIRED = 'retired',
+  POLICE_STATION = 'police_station',
+  ACCIDENT = 'accident',
+  STOLEN = 'stolen'
 }
 
-export type DatabaseVehicleStatus = 'available' | 'rented' | 'maintenance' | 'reserve' | 'retired';
+export type DatabaseVehicleStatus = 'available' | 'rented' | 'maintenance' | 'reserve' | 'retired' | 'police_station' | 'accident' | 'stolen';
+
+export type VehicleStatusLiteral = 'available' | 'rented' | 'maintenance' | 'reserved' | 'retired' | 'police_station' | 'accident' | 'stolen';

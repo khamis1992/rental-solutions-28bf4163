@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
-import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
+import { Vehicle, VehicleFilterParams, VehicleStatusLiteral } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
@@ -20,7 +19,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   const { data: vehicles, isLoading, error } = useList(filter);
   const navigate = useNavigate();
   
-  // Handle navigation to vehicle details
   const handleSelect = (id: string) => {
     if (onSelectVehicle) {
       onSelectVehicle(id);
@@ -29,7 +27,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
     }
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
@@ -55,7 +52,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
     );
   }
 
-  // Error state
   if (error) {
     return (
       <Card className="p-6 bg-red-50 border-red-200">
@@ -68,7 +64,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
     );
   }
 
-  // No vehicles found
   if (!vehicles || vehicles.length === 0) {
     return (
       <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
@@ -99,9 +94,9 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
           make={vehicle.make}
           model={vehicle.model}
           year={vehicle.year}
-          licensePlate={vehicle.license_plate}
-          status={vehicle.status || 'available'}
-          imageUrl={vehicle.image_url || ''}
+          licensePlate={vehicle.licensePlate || vehicle.license_plate || ''}
+          status={vehicle.status as VehicleStatusLiteral}
+          imageUrl={vehicle.imageUrl || vehicle.image_url || ''}
           location={vehicle.location || 'Not specified'}
           fuelLevel={undefined}
           mileage={vehicle.mileage || 0}

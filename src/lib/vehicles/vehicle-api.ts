@@ -31,7 +31,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
       if (filters.status === 'reserved') {
         query = query.eq('status', 'reserve');
       } else {
-        query = query.eq('status', filters.status);
+        query = query.eq('status', filters.status as DatabaseVehicleStatus);
       }
     }
     
@@ -59,7 +59,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
   }
   
   // Type assertion to tell TypeScript these are DatabaseVehicleRecord objects
-  const vehicleRecords = (data || []) as DatabaseVehicleRecord[];
+  const vehicleRecords = data as unknown as DatabaseVehicleRecord[];
   return vehicleRecords.map(record => mapDatabaseRecordToVehicle(record));
 }
 
@@ -75,7 +75,7 @@ export async function fetchVehicleById(id: string): Promise<Vehicle> {
     throw new Error(`Vehicle with ID ${id} not found: ${error.message}`);
   }
   
-  return mapDatabaseRecordToVehicle(data as DatabaseVehicleRecord);
+  return mapDatabaseRecordToVehicle(data as unknown as DatabaseVehicleRecord);
 }
 
 // Fetch all vehicle types
@@ -91,7 +91,7 @@ export async function fetchVehicleTypes(): Promise<VehicleType[]> {
   }
   
   // Map the database vehicle types to application vehicle types with proper size mapping
-  return (data || []).map((type: DatabaseVehicleType) => ({
+  return (data || []).map((type: any) => ({
     id: type.id,
     name: type.name,
     size: type.size === 'mid_size' ? 'midsize' : 
@@ -125,7 +125,7 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
     throw new Error(`Error creating vehicle: ${error.message}`);
   }
   
-  return data as DatabaseVehicleRecord;
+  return data as unknown as DatabaseVehicleRecord;
 }
 
 // Update a vehicle
@@ -146,7 +146,7 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
     throw new Error(`Error updating vehicle: ${error.message}`);
   }
   
-  return data as DatabaseVehicleRecord;
+  return data as unknown as DatabaseVehicleRecord;
 }
 
 // Delete a vehicle
@@ -173,5 +173,5 @@ export async function fetchVehicleWithTypes(id: string): Promise<DatabaseVehicle
     throw new Error(`Error fetching complete vehicle data: ${error.message}`);
   }
   
-  return data as DatabaseVehicleRecord;
+  return data as unknown as DatabaseVehicleRecord;
 }
