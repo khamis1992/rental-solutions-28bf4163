@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
+import { useMutation, useQueryClient } from 'react-query';
+import { DataTable } from '@/components/ui/data-table';
+import { AgreementColumnDef } from '@/components/agreements/AgreementTableColumns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,26 +12,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Copy, Edit, Trash, FileText, Download } from 'lucide-react';
+import { Button } from "@/components/ui/button"
 import { toast } from 'sonner';
+import { deleteAgreement, updateAgreement as updateAgreementAPI } from '@/lib/api/agreements';
+import { Agreement, AgreementCreate } from '@/types/agreement';
 import { useAgreements } from '@/hooks/use-agreements';
 import { useDownload } from '@/hooks/use-download';
+import { generateAgreementPDF } from '@/lib/agreement-pdf';
 import { cn } from '@/lib/utils';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface AgreementListProps {
   customerId?: string;
-  searchQuery?: string;
 }
 
-const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }) => {
+const AgreementList: React.FC<AgreementListProps> = ({ customerId }) => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { useList, deleteAgreement: deleteAgreementHook } = useAgreements();
+  const { useList } = useAgreements();
   const { data: agreements, isLoading, error } = useList({ customer_id: customerId });
   const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
   const { download, isDownloading } = useDownload();
 
-  const columns = [
+  const columns: AgreementColumnDef[] = [
     {
       accessorKey: 'agreement_number',
       header: 'Agreement #',
@@ -49,7 +52,7 @@ const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }
     },
     {
       id: 'actions',
-      cell: ({ row }: any) => {
+      cell: ({ row }) => {
         const agreement = row.original;
 
         const handleCopyAgreement = async () => {
@@ -67,7 +70,7 @@ const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }
 
         const handleDeleteAgreement = () => {
           setSelectedAgreementId(agreement.id);
-          deleteAgreementMutation.mutate(agreement.id);
+          deleteAgreementMutation.mutate({ id: agreement.id });
         };
 
         const handleViewAgreement = () => {
@@ -76,14 +79,8 @@ const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }
 
         const handleDownloadAgreement = async () => {
           setSelectedAgreementId(agreement.id);
-          try {
-            toast.info('Downloading agreement...');
-            setTimeout(() => {
-              toast.success('Agreement downloaded successfully');
-            }, 2000);
-          } catch (error) {
-            toast.error('Error downloading agreement');
-          }
+          const pdfBlob = await generateAgreementPDF(agreement);
+          download(pdfBlob, `agreement-${agreement.agreement_number}.pdf`);
         };
 
         return (
@@ -119,89 +116,45 @@ const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }
     },
   ];
 
-  const deleteAgreementMutation = useMutation({
-    mutationFn: (id: string) => {
-      return deleteAgreementHook.mutateAsync(id);
-    },
-    onSuccess: () => {
-      toast.success('Agreement deleted successfully!');
-      queryClient.invalidateQueries({ queryKey: ['agreements'] });
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to delete agreement: ${error.message || 'Unknown error'}`);
-    },
-    onSettled: () => {
-      setSelectedAgreementId(null);
-    },
-  });
+  const deleteAgreementMutation = useMutation(
+    (id: { id: string }) => deleteAgreement(id.id),
+    {
+      onSuccess: () => {
+        toast.success('Agreement deleted successfully!');
+        queryClient.invalidateQueries('agreements');
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to delete agreement: ${error.message || 'Unknown error'}`);
+      },
+      onSettled: () => {
+        setSelectedAgreementId(null);
+      },
+    }
+  );
+
+  const updateAgreementMutation = useMutation<Agreement, Error, { id: string; data: Partial<AgreementCreate> }>(
+    ({ id, data }) => updateAgreementAPI(id, data),
+    {
+      onSuccess: () => {
+        toast.success('Agreement updated successfully!');
+        queryClient.invalidateQueries('agreements');
+      },
+      onError: (error: any) => {
+        toast.error(`Failed to update agreement: ${error.message || 'Unknown error'}`);
+      },
+      onSettled: () => {
+        setSelectedAgreementId(null);
+      },
+    }
+  );
 
   return (
     <div className={cn("container mx-auto py-4", !customerId ? "page-transition" : "")}>
       {error && (
-        <div className="text-red-500">Error: {error instanceof Error ? error.message : 'An unknown error occurred'}</div>
+        <div className="text-red-500">Error: {error.message}</div>
       )}
-      
-      {isLoading ? (
-        <div className="flex justify-center items-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      ) : agreements && agreements.length > 0 ? (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Agreement #</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {agreements.map((agreement) => (
-                <TableRow key={agreement.id}>
-                  <TableCell>{agreement.agreement_number}</TableCell>
-                  <TableCell>{new Date(agreement.start_date || '').toLocaleDateString()}</TableCell>
-                  <TableCell>{new Date(agreement.end_date || '').toLocaleDateString()}</TableCell>
-                  <TableCell>{agreement.total_amount?.toFixed(2) || '0.00'}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => navigate(`/agreements/${agreement.id}`)}>
-                          <FileText className="mr-2 h-4 w-4" /> View
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => navigate(`/agreements/${agreement.id}/edit`)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          onClick={() => deleteAgreementMutation.mutate(agreement.id)}
-                          className="text-red-600 hover:text-red-800 focus:text-red-800"
-                        >
-                          <Trash className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <div className="text-center py-8 bg-muted/40 rounded-md">
-          <p className="text-muted-foreground">No agreements found</p>
-        </div>
-      )}
-
-      {deleteAgreementMutation.isPending && (
+      <DataTable columns={columns} data={agreements || []} isLoading={isLoading} />
+      {deleteAgreementMutation.isLoading && (
         <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-500 bg-opacity-50 z-50">
           <div className="bg-white p-4 rounded-md">
             Deleting Agreement...

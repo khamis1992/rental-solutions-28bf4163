@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -6,17 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
-export interface ReportDownloadOptionsProps {
-  fileName?: string;
+interface ReportDownloadOptionsProps {
   agreementsData?: any[];
   finesData?: any[];
 }
 
-const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({ 
-  fileName = 'report', 
-  agreementsData, 
-  finesData 
-}) => {
+const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({ agreementsData, finesData }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDownload = async (reportType: string) => {

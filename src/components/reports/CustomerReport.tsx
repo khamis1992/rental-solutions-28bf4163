@@ -61,7 +61,9 @@ const CustomerReport = () => {
     name: customer.full_name,
     status: customer.status || 'active',
     totalRentals: Math.floor(Math.random() * 15) + 1,
+    // Sample data as we don't have this info
     totalSpent: Math.floor(Math.random() * 10000) + 1000,
+    // Sample data
     lastRental: customer.updated_at ? new Date(customer.updated_at).toISOString().split('T')[0] : 'N/A',
     rating: (4 + Math.random()).toFixed(1)
   }));
@@ -103,15 +105,15 @@ const CustomerReport = () => {
   if (isLoading) {
     return <div className="flex justify-center items-center h-64">Loading customer data...</div>;
   }
-
-  return (
-    <div className="space-y-8">
+  return <div className="space-y-8">
       <div className="flex items-center mb-6">
+        
         <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
       </div>
       
       <div className="mb-6">
         <ReportDownloadOptions 
+          data={getReportData()} 
           fileName="customer-report" 
         />
       </div>
@@ -200,10 +202,8 @@ const CustomerReport = () => {
             </Table> : <div className="text-center py-4 text-gray-500">No customer data available</div>}
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 const CustomerStatusBadge = ({
   status
 }: {
@@ -219,5 +219,4 @@ const CustomerStatusBadge = ({
       {status.replace('_', ' ')}
     </Badge>;
 };
-
 export default CustomerReport;

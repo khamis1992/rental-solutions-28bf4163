@@ -1,9 +1,9 @@
-
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { BasicMutationResult } from '@/utils/type-utils';
 
 export type SimpleAgreement = {
@@ -31,8 +31,6 @@ export type SimpleAgreement = {
   customers?: Record<string, any> | null;
   vehicles?: Record<string, any> | null;
 };
-
-export type AgreementCreate = Partial<SimpleAgreement>;
 
 export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
   switch(dbStatus) {
@@ -244,23 +242,21 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the duplicate definition by using a different name for the mutation
-  const updateAgreementMutation = useMutation<Agreement, Error, { id: string; data: Partial<AgreementCreate> }>({
+  const updateAgreement = useMutation<Agreement, Error, { id: string; data: Partial<AgreementCreate> }>({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
-      return { success: true } as any;
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
   });
 
-  // Define as separate object to avoid recursive type reference
-  const updateAgreementInterface: BasicMutationResult = {
-    mutateAsync: updateAgreementMutation.mutateAsync,
-    isPending: updateAgreementMutation.isPending,
-    isError: updateAgreementMutation.isError,
-    error: updateAgreementMutation.error
+  const updateAgreement: BasicMutationResult = {
+    mutateAsync: updateAgreement.mutateAsync,
+    isPending: updateAgreement.isPending,
+    isError: updateAgreement.isError,
+    error: updateAgreement.error
   };
 
   const deleteAgreement = useMutation({
@@ -358,51 +354,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     setSearchParams,
     getAgreement,
     createAgreement,
-    updateAgreement: updateAgreementInterface,
+    updateAgreement,
     deleteAgreement,
-    useList: (params: any) => {
-      const queryKey = ['agreements', params];
-      const { data, isLoading, error } = useQuery({
-        queryKey,
-        queryFn: async () => {
-          try {
-            let query = supabase
-              .from('leases')
-              .select(`
-                *,
-                profiles:customer_id (id, full_name, email, phone_number),
-                vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
-              `);
-              
-            if (params.customer_id) {
-              query = query.eq('customer_id', params.customer_id);
-            }
-            
-            const { data, error } = await query;
-            
-            if (error) throw error;
-            
-            return data.map(item => ({
-              id: item.id,
-              customer_id: item.customer_id,
-              vehicle_id: item.vehicle_id,
-              start_date: item.start_date,
-              end_date: item.end_date,
-              status: mapDBStatusToEnum(item.status),
-              total_amount: item.total_amount || 0,
-              agreement_number: item.agreement_number || '',
-              customers: item.profiles,
-              vehicles: item.vehicles,
-            }));
-          } catch (err) {
-            console.error("Error fetching agreements:", err);
-            throw err;
-          }
-        },
-        staleTime: 600000,
-      });
-      
-      return { data, isLoading, error };
-    }
   };
 };

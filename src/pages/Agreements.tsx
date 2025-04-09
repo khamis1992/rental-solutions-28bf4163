@@ -1,6 +1,7 @@
+
 import React, { Suspense, useState, useEffect } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import AgreementList from '@/components/agreements/AgreementList';
+import { AgreementList } from '@/components/agreements/AgreementList';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
 import { Loader2, Search, X, FileUp, AlertTriangle } from 'lucide-react';
@@ -48,6 +49,7 @@ const Agreements = () => {
     checkAvailability();
   }, []);
   
+  // Run payment schedule maintenance job silently on page load
   useEffect(() => {
     const runMaintenanceJob = async () => {
       try {
@@ -59,6 +61,7 @@ const Agreements = () => {
       }
     };
     
+    // Run after a 3-second delay to allow other initial page operations to complete
     const timer = setTimeout(() => {
       runMaintenanceJob();
     }, 3000);
