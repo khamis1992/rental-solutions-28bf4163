@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -242,6 +243,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
+  // Fix the update agreement mutation with explicit type annotations to avoid deep nesting
   const updateAgreementMutation = useMutation({
     mutationFn: async (params: { id: string; data: Record<string, any> }): Promise<unknown> => {
       console.log("Update mutation called with:", params);
@@ -252,6 +254,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
+  // Use the BasicMutationResult type to simplify the type structure
   const updateAgreement: BasicMutationResult = {
     mutateAsync: updateAgreementMutation.mutateAsync,
     isPending: updateAgreementMutation.isPending,
