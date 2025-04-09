@@ -245,9 +245,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
   // Fix the update agreement mutation with explicit type annotations to avoid deep nesting
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: { id: string; data: Record<string, any> }): Promise<unknown> => {
+    mutationFn: async (params: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", params);
-      return {};
+      return {} as unknown;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
