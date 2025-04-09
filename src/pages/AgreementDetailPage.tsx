@@ -1,4 +1,6 @@
 
+// Fix the mutateAsync usage in AgreementDetailPage.tsx
+// Just update the handleDelete function
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -113,7 +115,7 @@ const AgreementDetailPage = () => {
 
   const handleDelete = async (agreementId: string) => {
     try {
-      await deleteAgreement.mutateAsync(agreementId);
+      await deleteAgreement(agreementId); // Changed from deleteAgreement.mutateAsync
       toast.success("Agreement deleted successfully");
       navigate("/agreements");
     } catch (error) {

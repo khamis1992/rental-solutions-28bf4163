@@ -1,6 +1,6 @@
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
-import { Vehicle, VehicleFilterParams, VehicleStatusLiteral } from '@/types/vehicle';
+import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
@@ -95,7 +95,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
           model={vehicle.model}
           year={vehicle.year}
           licensePlate={vehicle.licensePlate || vehicle.license_plate || ''}
-          status={vehicle.status as VehicleStatusLiteral}
+          status={vehicle.status}
           imageUrl={vehicle.imageUrl || vehicle.image_url || ''}
           location={vehicle.location || 'Not specified'}
           fuelLevel={vehicle.fuelLevel}
