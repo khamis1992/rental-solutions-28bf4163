@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -113,7 +112,10 @@ const CustomerReport = () => {
       </div>
       
       <div className="mb-6">
-        <ReportDownloadOptions reportType="customers" getReportData={getReportData} />
+        <ReportDownloadOptions 
+          data={getReportData()} 
+          fileName="customer-report" 
+        />
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

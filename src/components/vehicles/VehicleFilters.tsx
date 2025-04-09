@@ -61,11 +61,21 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   return <div className={cn("grid gap-4 p-4 border rounded-lg bg-card", className)}>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Search field */}
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-muted-foreground" />
+        <div>
+          <Label htmlFor="search-filter" className="mb-1 block">Search VIN</Label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Input 
+              id="search-filter"
+              type="search" 
+              placeholder="Search by VIN..." 
+              className="pl-10" 
+              value={filters.search || ''} 
+              onChange={handleSearchChange} 
+            />
           </div>
-          <Input type="search" placeholder="Search by VIN..." className="pl-10" value={filters.search || ''} onChange={handleSearchChange} />
         </div>
         
         {/* Status filter */}
