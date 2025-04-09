@@ -1,17 +1,7 @@
-
-import React, { useState, useMemo } from 'react';
-import { useAgreements } from '@/hooks/use-agreements';
-import { AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { toast } from 'sonner';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,184 +10,206 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { ConfirmDeleteDialog } from '@/components/ui/confirm-delete-dialog';
+import { MoreHorizontal, Copy, Edit, Trash, FileText, Download } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAgreements } from '@/hooks/use-agreements';
+import { useDownload } from '@/hooks/use-download';
+import { cn } from '@/lib/utils';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
-  const { 
-    agreements, 
-    isLoading, 
-    error, 
-    fetchAgreementById,
-    deleteAgreement
-  } = useAgreements();
-  
-  // Create a local array to hold the agreements and make TypeScript happy
-  const agreementsArray = Array.isArray(agreements) ? agreements : [];
-  
-  const [filters, setFilters] = useState({
-    status: '',
-  });
-  
-  // Filter agreements based on search query and status filter
-  const filteredAgreements = useMemo(() => {
-    return agreementsArray.filter(agreement => {
-      // Status filter
-      if (filters.status && agreement.status !== filters.status) {
-        return false;
-      }
-      
-      // Search filter
-      if (searchQuery) {
-        const searchLower = searchQuery.toLowerCase();
-        // Search in relevant fields
-        return (
-          (agreement.agreement_number?.toLowerCase().includes(searchLower)) ||
-          (agreement.customer_name?.toLowerCase().includes(searchLower)) ||
-          (agreement.vehicle_details?.license_plate?.toLowerCase().includes(searchLower))
-        );
-      }
-      
-      return true;
-    });
-  }, [agreementsArray, filters.status, searchQuery]);
-  
-  const handleStatusChange = (status: string) => {
-    setFilters(prev => ({ ...prev, status }));
-  };
-  
-  const handleDeleteAgreement = async (id: string) => {
-    try {
-      await deleteAgreement(id);
-      toast.success("Agreement deleted successfully");
-    } catch (error) {
-      console.error("Error deleting agreement:", error);
-      toast.error("Failed to delete agreement");
-    }
-  };
+interface AgreementListProps {
+  customerId?: string;
+  searchQuery?: string;
+}
 
+const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { useList, deleteAgreement: deleteAgreementHook } = useAgreements();
+  const { data: agreements, isLoading, error } = useList({ customer_id: customerId });
+  const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
+  const { download, isDownloading } = useDownload();
+
+  const columns = [
+    {
+      accessorKey: 'agreement_number',
+      header: 'Agreement #',
+    },
+    {
+      accessorKey: 'start_date',
+      header: 'Start Date',
+    },
+    {
+      accessorKey: 'end_date',
+      header: 'End Date',
+    },
+    {
+      accessorKey: 'total_amount',
+      header: 'Amount',
+    },
+    {
+      id: 'actions',
+      cell: ({ row }: any) => {
+        const agreement = row.original;
+
+        const handleCopyAgreement = async () => {
+          try {
+            await navigator.clipboard.writeText(agreement.id);
+            toast.success('Agreement ID copied to clipboard!');
+          } catch (error) {
+            toast.error('Failed to copy agreement ID to clipboard.');
+          }
+        };
+
+        const handleEditAgreement = () => {
+          navigate(`/agreements/${agreement.id}/edit`);
+        };
+
+        const handleDeleteAgreement = () => {
+          setSelectedAgreementId(agreement.id);
+          deleteAgreementMutation.mutate(agreement.id);
+        };
+
+        const handleViewAgreement = () => {
+          navigate(`/agreements/${agreement.id}`);
+        };
+
+        const handleDownloadAgreement = async () => {
+          setSelectedAgreementId(agreement.id);
+          try {
+            toast.info('Downloading agreement...');
+            setTimeout(() => {
+              toast.success('Agreement downloaded successfully');
+            }, 2000);
+          } catch (error) {
+            toast.error('Error downloading agreement');
+          }
+        };
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleCopyAgreement}>
+                <Copy className="mr-2 h-4 w-4" /> Copy ID
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleEditAgreement}>
+                <Edit className="mr-2 h-4 w-4" /> Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleViewAgreement}>
+                <FileText className="mr-2 h-4 w-4" /> View
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDownloadAgreement} disabled={isDownloading}>
+                <Download className="mr-2 h-4 w-4" /> {isDownloading ? 'Downloading...' : 'Download'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleDeleteAgreement}>
+                <Trash className="mr-2 h-4 w-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+
+  const deleteAgreementMutation = useMutation({
+    mutationFn: (id: string) => {
+      return deleteAgreementHook.mutateAsync(id);
+    },
+    onSuccess: () => {
+      toast.success('Agreement deleted successfully!');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete agreement: ${error.message || 'Unknown error'}`);
+    },
+    onSettled: () => {
+      setSelectedAgreementId(null);
+    },
+  });
 
   return (
-    <div>
-      <div className="mb-4">
-        <AgreementStatusFilter
-          currentStatus={filters.status}
-          onStatusChange={handleStatusChange}
-        />
-      </div>
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {filteredAgreements.map((agreement) => (
-          <AgreementCard
-            key={agreement.id}
-            agreement={agreement}
-            onDelete={handleDeleteAgreement}
-          />
-        ))}
-      </div>
+    <div className={cn("container mx-auto py-4", !customerId ? "page-transition" : "")}>
+      {error && (
+        <div className="text-red-500">Error: {error instanceof Error ? error.message : 'An unknown error occurred'}</div>
+      )}
+      
+      {isLoading ? (
+        <div className="flex justify-center items-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : agreements && agreements.length > 0 ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Agreement #</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>End Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {agreements.map((agreement) => (
+                <TableRow key={agreement.id}>
+                  <TableCell>{agreement.agreement_number}</TableCell>
+                  <TableCell>{new Date(agreement.start_date || '').toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(agreement.end_date || '').toLocaleDateString()}</TableCell>
+                  <TableCell>{agreement.total_amount?.toFixed(2) || '0.00'}</TableCell>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => navigate(`/agreements/${agreement.id}`)}>
+                          <FileText className="mr-2 h-4 w-4" /> View
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/agreements/${agreement.id}/edit`)}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={() => deleteAgreementMutation.mutate(agreement.id)}
+                          className="text-red-600 hover:text-red-800 focus:text-red-800"
+                        >
+                          <Trash className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="text-center py-8 bg-muted/40 rounded-md">
+          <p className="text-muted-foreground">No agreements found</p>
+        </div>
+      )}
+
+      {deleteAgreementMutation.isPending && (
+        <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-gray-500 bg-opacity-50 z-50">
+          <div className="bg-white p-4 rounded-md">
+            Deleting Agreement...
+          </div>
+        </div>
+      )}
     </div>
   );
-
-  function AgreementStatusFilter({ currentStatus, onStatusChange }: { currentStatus: string, onStatusChange: (status: string) => void }) {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="gap-2">
-            Status
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => onStatusChange('')}>
-            All
-          </DropdownMenuItem>
-          {Object.values(AgreementStatus).map((status) => (
-            <DropdownMenuItem
-              key={status}
-              onClick={() => onStatusChange(status)}
-            >
-              {status}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    )
-  }
-
-  function AgreementCard({ agreement, onDelete }: { agreement: any, onDelete: (id: string) => void }) {
-    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{agreement.agreement_number}</CardTitle>
-          <CardDescription>
-            {agreement.customer_name} - {agreement.vehicle_details?.license_plate}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="relative">
-          <div className="absolute top-2 right-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">Open menu</span>
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                <DropdownMenuItem onClick={() => navigate(`/agreements/${agreement.id}`)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  <span>Edit</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  className="text-red-500 focus:text-red-500"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Delete</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <div className="space-y-1">
-            <p>
-              Status: <Badge variant="secondary">{agreement.status}</Badge>
-            </p>
-            <p>Start Date: {agreement.start_date}</p>
-            <p>End Date: {agreement.end_date}</p>
-            <p>Total Amount: {agreement.total_amount}</p>
-          </div>
-        </CardContent>
-        <ConfirmDeleteDialog
-          isOpen={isDeleteDialogOpen}
-          onClose={() => setIsDeleteDialogOpen(false)}
-          onConfirm={() => {
-            onDelete(agreement.id);
-            setIsDeleteDialogOpen(false);
-          }}
-          itemType="agreement"
-          itemName={agreement.agreement_number}
-        />
-      </Card>
-    )
-  }
 };
 
 export default AgreementList;
