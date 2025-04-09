@@ -98,7 +98,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
           status={vehicle.status as VehicleStatusLiteral}
           imageUrl={vehicle.imageUrl || vehicle.image_url || ''}
           location={vehicle.location || 'Not specified'}
-          fuelLevel={undefined}
+          fuelLevel={vehicle.fuelLevel}
           mileage={vehicle.mileage || 0}
           onSelect={() => handleSelect(vehicle.id)}
         />

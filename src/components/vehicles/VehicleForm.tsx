@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Vehicle, VehicleStatus, VehicleFormData, VehicleType } from '@/types/vehicle';
+import { Vehicle, VehicleStatus, VehicleFormData, VehicleType, VehicleStatusLiteral } from '@/types/vehicle';
 import { 
   Form, 
   FormControl, 
@@ -69,15 +69,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     year: initialData?.year || new Date().getFullYear(),
     license_plate: initialData?.licensePlate || initialData?.license_plate || '',
     vin: initialData?.vin || '',
-    status: (initialData?.status as VehicleStatus) || 'available',
+    status: (initialData?.status as VehicleStatusLiteral) || 'available',
     color: initialData?.color || '',
     mileage: initialData?.mileage || 0,
     location: initialData?.location || '',
     description: initialData?.notes || initialData?.description || '',
-    insurance_company: initialData?.insurance_company || '',
-    insurance_expiry: initialData?.insurance_expiry || '',
+    insurance_company: initialData?.insuranceCompany || initialData?.insurance_company || '',
+    insurance_expiry: initialData?.insuranceExpiry || initialData?.insurance_expiry || '',
     rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
-    vehicle_type_id: initialData?.vehicle_type_id || ''
+    vehicle_type_id: initialData?.vehicleTypeId || initialData?.vehicle_type_id || ''
   };
 
   console.log('VehicleForm initialData:', initialData);
@@ -105,17 +105,20 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       if (initialData.license_plate || initialData.licensePlate) 
         values.license_plate = initialData.license_plate || initialData.licensePlate || '';
       if (initialData.vin) values.vin = initialData.vin;
-      if (initialData.status) values.status = initialData.status;
+      if (initialData.status) values.status = initialData.status as VehicleStatusLiteral;
       if (initialData.color) values.color = initialData.color;
       if (initialData.mileage !== undefined) values.mileage = initialData.mileage;
       if (initialData.location) values.location = initialData.location;
       if (initialData.description || initialData.notes) 
         values.description = initialData.description || initialData.notes || '';
-      if (initialData.insurance_company) values.insurance_company = initialData.insurance_company;
-      if (initialData.insurance_expiry) values.insurance_expiry = initialData.insurance_expiry;
-      if (initialData.rent_amount || initialData.dailyRate) 
-        values.rent_amount = initialData.rent_amount || initialData.dailyRate || 0;
-      if (initialData.vehicle_type_id) values.vehicle_type_id = initialData.vehicle_type_id;
+      if (initialData.insurance_company || initialData.insuranceCompany) 
+        values.insurance_company = initialData.insurance_company || initialData.insuranceCompany || '';
+      if (initialData.insurance_expiry || initialData.insuranceExpiry) 
+        values.insurance_expiry = initialData.insurance_expiry || initialData.insuranceExpiry || '';
+      if (initialData.rent_amount || initialData.rentAmount || initialData.dailyRate) 
+        values.rent_amount = initialData.rent_amount || initialData.rentAmount || initialData.dailyRate || 0;
+      if (initialData.vehicle_type_id || initialData.vehicleTypeId) 
+        values.vehicle_type_id = initialData.vehicle_type_id || initialData.vehicleTypeId || '';
       
       console.log('Resetting form with values:', values);
       form.reset(values);

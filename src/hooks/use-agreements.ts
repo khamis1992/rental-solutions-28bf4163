@@ -1,23 +1,24 @@
+
+import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 // Simplify agreement types to avoid excessive deep instantiation
-interface Agreement {
-  id: string;
-  status: string;
-  [key: string]: any;
-}
-
-interface SimpleAgreement {
+export interface SimpleAgreement {
   id: string;
   status: string;
   customer_id?: string;
   vehicle_id?: string;
   agreement_number?: string;
+  start_date?: string | Date;
+  end_date?: string | Date;
+  total_amount?: number;
+  created_at?: string | Date;
+  updated_at?: string | Date;
   [key: string]: any;
 }
 
-interface AgreementSearchParams {
+export interface AgreementSearchParams {
   status?: string;
   vehicle_id?: string;
   customer_id?: string;
@@ -52,7 +53,7 @@ const fetchAgreements = async (params?: AgreementSearchParams): Promise<SimpleAg
   return data as SimpleAgreement[];
 };
 
-const fetchAgreementById = async (id: string): Promise<Agreement> => {
+const fetchAgreementById = async (id: string): Promise<SimpleAgreement> => {
   const { data, error } = await supabase
     .from('leases')
     .select('*')
@@ -63,10 +64,10 @@ const fetchAgreementById = async (id: string): Promise<Agreement> => {
     throw new Error(`Agreement not found: ${error.message}`);
   }
   
-  return data as Agreement;
+  return data as SimpleAgreement;
 };
 
-const createAgreement = async (agreementData: Omit<Agreement, 'id'>): Promise<Agreement> => {
+const createAgreement = async (agreementData: any): Promise<SimpleAgreement> => {
   const { data, error } = await supabase
     .from('leases')
     .insert([agreementData])
@@ -77,10 +78,10 @@ const createAgreement = async (agreementData: Omit<Agreement, 'id'>): Promise<Ag
     throw new Error(`Error creating agreement: ${error.message}`);
   }
 
-  return data as Agreement;
+  return data as SimpleAgreement;
 };
 
-const updateAgreement = async (id: string, agreementData: Partial<Agreement>): Promise<Agreement> => {
+const updateAgreement = async (id: string, agreementData: any): Promise<SimpleAgreement> => {
   const { data, error } = await supabase
     .from('leases')
     .update(agreementData)
@@ -92,7 +93,7 @@ const updateAgreement = async (id: string, agreementData: Partial<Agreement>): P
     throw new Error(`Error updating agreement: ${error.message}`);
   }
 
-  return data as Agreement;
+  return data as SimpleAgreement;
 };
 
 const deleteAgreement = async (id: string): Promise<void> => {
@@ -108,49 +109,53 @@ const deleteAgreement = async (id: string): Promise<void> => {
 
 export const useAgreements = (initialSearchParams: AgreementSearchParams = {}) => {
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = React.useState<AgreementSearchParams>(initialSearchParams);
+  const [searchParams, setSearchParams] = useState<AgreementSearchParams>(initialSearchParams);
 
   const {
     data: agreements,
     isLoading,
     error,
-  } = useQuery<SimpleAgreement[], Error>(
-    ['agreements', searchParams],
-    () => fetchAgreements(searchParams)
-  );
+  } = useQuery({
+    queryKey: ['agreements', searchParams],
+    queryFn: () => fetchAgreements(searchParams)
+  });
 
-  const createAgreementMutation = useMutation(createAgreement, {
+  const createAgreementMutation = useMutation({
+    mutationFn: createAgreement,
     onSuccess: () => {
-      queryClient.invalidateQueries(['agreements']);
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
   });
 
-  const updateAgreementMutation = useMutation(
-    (variables: { id: string; data: Partial<Agreement> }) =>
-      updateAgreement(variables.id, variables.data),
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries(['agreements']);
-      },
-    }
-  );
-
-  const deleteAgreementMutation = useMutation(deleteAgreement, {
+  const updateAgreementMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
+      updateAgreement(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['agreements']);
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
     },
   });
 
+  const deleteAgreementMutation = useMutation({
+    mutationFn: deleteAgreement,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+  });
+
+  // Return both new and old method names for backward compatibility
   return {
-    // Return simplified objects
     agreements,
     isLoading,
     error,
     searchParams,
     setSearchParams,
+    // New methods
     fetchAgreementById,
     createAgreement: createAgreementMutation.mutateAsync,
     updateAgreement: updateAgreementMutation.mutateAsync,
-    deleteAgreement: deleteAgreementMutation.mutateAsync
+    deleteAgreement: deleteAgreementMutation.mutateAsync,
+    // Legacy methods
+    getAgreement: fetchAgreementById,
+    useList: () => ({ data: agreements, isLoading, error }),
   };
 };

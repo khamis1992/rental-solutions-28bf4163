@@ -7,7 +7,8 @@ import { DatabaseVehicleRecord, Vehicle } from '@/types/vehicle';
  * @returns A Vehicle object.
  */
 export const mapDatabaseRecordToVehicle = (record: DatabaseVehicleRecord): Vehicle => {
-  return {
+  // Map database fields to vehicle object
+  const vehicle: Vehicle = {
     id: record.id,
     make: record.make,
     model: record.model,
@@ -43,9 +44,33 @@ export const mapDatabaseRecordToVehicle = (record: DatabaseVehicleRecord): Vehic
     fuelLevel: record.fuel_level || 0,
     features: normalizeFeatures(record.features),
     notes: record.notes || '',
-    vehicle_types: record.vehicle_types || null,
-    vehicleType: record.vehicle_types || null,
   };
+  
+  // Handle vehicle types with proper mapping for size
+  if (record.vehicle_types) {
+    // Create a properly mapped vehicle type
+    const vehicleType = {
+      ...record.vehicle_types,
+      // Map size values
+      size: mapDBSizeToUI(record.vehicle_types.size)
+    };
+    
+    vehicle.vehicleType = vehicleType;
+    vehicle.vehicle_types = vehicleType;
+  }
+  
+  return vehicle;
+};
+
+/**
+ * Maps database size values to UI size values
+ */
+export const mapDBSizeToUI = (dbSize: string): string => {
+  switch (dbSize) {
+    case 'mid_size': return 'midsize';
+    case 'full_size': return 'fullsize';
+    default: return dbSize;
+  }
 };
 
 /**

@@ -75,9 +75,9 @@ const Agreements = () => {
   };
   
   const handleImportComplete = () => {
-    setSearchParams({ 
-      query: '', 
-      status: 'all' 
+    setSearchParams({
+      status: undefined,
+      search: ''
     });
   };
 

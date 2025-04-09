@@ -1,3 +1,4 @@
+
 export interface Vehicle {
   id: string;
   make: string;
@@ -28,6 +29,7 @@ export interface Vehicle {
   category?: string | null;
   vehicle_types?: VehicleType | null;
   
+  // Adding snake_case duplicates for compatibility
   license_plate?: string;
   image_url?: string;
   insurance_company?: string;
