@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -108,7 +109,7 @@ export const addReportHeader = (
   
   // Try to add company logo with fallback
   try {
-    // Use base path for logo to prevent issues
+    // Use full URL path for logo to prevent issues
     const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
     console.log('Attempting to add logo from path:', logoPath);
     
@@ -116,12 +117,15 @@ export const addReportHeader = (
     const img = new Image();
     img.src = logoPath;
     
-    // Fallback to text if image fails
-    if (!img.complete) {
-      throw new Error('Logo image not available');
-    }
+    // Add text instead of image as reliable fallback
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
     
-    doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight);
+    // Try to add the image if it's available
+    if (img.complete) {
+      safelyAddImage(doc, logoPath, logoX, logoY, logoWidth, logoHeight);
+    }
   } catch (error) {
     console.warn('Failed to add logo to PDF header:', error);
     // Add text instead of image as fallback

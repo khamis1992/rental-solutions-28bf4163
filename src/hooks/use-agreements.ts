@@ -243,7 +243,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the excessive type depth issue by using BasicMutationResult type
+  // Fix the excessive type depth issue by creating a simpler mutation
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -254,7 +254,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Use a simplified type to avoid excessive type instantiation
+  // Use BasicMutationResult type to avoid excessive type instantiation
   const updateAgreement: BasicMutationResult = {
     mutateAsync: updateAgreementMutation.mutateAsync,
     isPending: updateAgreementMutation.isPending,

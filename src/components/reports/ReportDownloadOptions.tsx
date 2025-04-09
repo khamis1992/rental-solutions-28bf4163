@@ -36,11 +36,11 @@ const ReportDownloadOptions = ({
       // Get data for the report
       const reportData = getReportData();
       
-      // Log the data to help with debugging
+      // Debug log for data inspection
       console.log(`Generating ${reportType} report with ${reportData?.length || 0} records`, reportData);
       
       if (!reportData || reportData.length === 0) {
-        console.log("No data available for report");
+        console.log(`No data available for ${reportType} report`);
         toast.warning('No data available', { description: 'There is no data to include in this report.' });
         setIsGenerating(false);
         return;
@@ -226,11 +226,10 @@ const ReportDownloadOptions = ({
     }
   };
 
-  return <div className="space-y-4">
+  return (
+    <div className="space-y-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          
-          
         </div>
         
         <div className="border-t pt-1 mb-2">
@@ -276,10 +275,9 @@ const ReportDownloadOptions = ({
       </div>
       
       <div className="mt-6 pt-4 border-t flex flex-col items-center">
-        
-        
       </div>
-    </div>;
+    </div>
+  );
 };
 
 export default ReportDownloadOptions;

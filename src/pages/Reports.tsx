@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -31,6 +32,7 @@ const Reports = () => {
   const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
+  // Load maintenance data
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
@@ -43,6 +45,13 @@ const Reports = () => {
     
     fetchMaintenance();
   }, []);
+  
+  // Debug log to check traffic fines data
+  useEffect(() => {
+    if (trafficFines) {
+      console.log("Traffic fines data loaded in Reports:", trafficFines.length);
+    }
+  }, [trafficFines]);
   
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -61,6 +70,7 @@ const Reports = () => {
     }, 2000);
   };
   
+  // Function to get report data based on selected tab
   const getReportData = () => {
     console.log("Getting report data for:", selectedTab);
     switch (selectedTab) {
@@ -101,17 +111,20 @@ const Reports = () => {
         }));
       case 'traffic':
         console.log("Traffic fines data for report:", trafficFines);
-        return trafficFines ? trafficFines.map(fine => ({
-          id: fine.id,
-          violationNumber: fine.violationNumber || 'N/A',
-          licensePlate: fine.licensePlate || 'N/A',
-          violationDate: fine.violationDate instanceof Date ? fine.violationDate : new Date(fine.violationDate),
-          location: fine.location || 'N/A',
-          fineAmount: typeof fine.fineAmount === 'number' ? fine.fineAmount : 0,
-          paymentStatus: fine.paymentStatus || 'pending',
-          customerName: fine.customerName || 'Unassigned',
-          customerId: fine.customerId || null
-        })) : [];
+        if (Array.isArray(trafficFines)) {
+          return trafficFines.map(fine => ({
+            id: fine.id,
+            violationNumber: fine.violationNumber || 'N/A',
+            licensePlate: fine.licensePlate || 'N/A',
+            violationDate: fine.violationDate instanceof Date ? fine.violationDate : new Date(fine.violationDate),
+            location: fine.location || 'N/A',
+            fineAmount: typeof fine.fineAmount === 'number' ? fine.fineAmount : 0,
+            paymentStatus: fine.paymentStatus || 'pending',
+            customerName: fine.customerName || 'Unassigned',
+            customerId: fine.customerId || null
+          }));
+        }
+        return [];
       case 'legal':
         return [];
       default:
