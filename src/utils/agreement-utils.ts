@@ -21,6 +21,8 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     notes: simpleAgreement.notes || '',
     terms_accepted: true,
     additional_drivers: [],
+    customers: simpleAgreement.customers || null,
+    vehicles: simpleAgreement.vehicles || null,
   };
 };
 

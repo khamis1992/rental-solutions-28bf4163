@@ -443,6 +443,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           deposit_amount: data.deposit_amount || 0,
           agreement_number: data.agreement_number || '',
           notes: data.notes || '',
+          customers: data.customers,
+          vehicles: data.vehicles,
         };
 
         return agreement;

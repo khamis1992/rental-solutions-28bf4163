@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
-import { useAgreements } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
