@@ -1,0 +1,197 @@
+
+import React, { useState } from 'react';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AlertTriangle, DollarSign, User, UserCheck } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import { formatDate } from '@/lib/date-utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+
+const TrafficFineReport = () => {
+  const { trafficFines, isLoading } = useTrafficFines();
+  const [searchTerm, setSearchTerm] = useState('');
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-6">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Process traffic fines data
+  const filteredFines = trafficFines?.filter(fine => 
+    fine.licensePlate?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    fine.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    fine.violationNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+  ) || [];
+
+  // Calculate summary metrics
+  const totalFines = filteredFines.length;
+  const totalAmount = filteredFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+  const assignedFines = filteredFines.filter(fine => fine.customerId).length;
+  const unassignedFines = filteredFines.filter(fine => !fine.customerId).length;
+
+  // Group fines by customer
+  const finesByCustomer = filteredFines.reduce((acc, fine) => {
+    if (fine.customerId && fine.customerName) {
+      if (!acc[fine.customerId]) {
+        acc[fine.customerId] = {
+          customerId: fine.customerId,
+          customerName: fine.customerName,
+          totalAmount: 0,
+          fines: []
+        };
+      }
+      acc[fine.customerId].totalAmount += fine.fineAmount || 0;
+      acc[fine.customerId].fines.push(fine);
+    }
+    return acc;
+  }, {} as Record<string, { customerId: string; customerName: string; totalAmount: number; fines: typeof filteredFines }> );
+
+  // Sort customers by total fine amount
+  const sortedCustomers = Object.values(finesByCustomer).sort((a, b) => b.totalAmount - a.totalAmount);
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Fines</p>
+                <h3 className="text-2xl font-bold mt-1">{totalFines}</h3>
+              </div>
+              <AlertTriangle className="h-8 w-8 text-yellow-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Amount</p>
+                <h3 className="text-2xl font-bold mt-1">{formatCurrency(totalAmount)}</h3>
+              </div>
+              <DollarSign className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Assigned Fines</p>
+                <h3 className="text-2xl font-bold mt-1">{assignedFines}</h3>
+              </div>
+              <UserCheck className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Unassigned Fines</p>
+                <h3 className="text-2xl font-bold mt-1">{unassignedFines}</h3>
+              </div>
+              <User className="h-8 w-8 text-gray-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search Input */}
+      <div className="flex items-center space-x-2">
+        <input
+          type="text"
+          placeholder="Search by license plate, customer name or violation number..."
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {/* Customers with Traffic Fines */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Customers with Traffic Fines</CardTitle>
+          <CardDescription>
+            {sortedCustomers.length === 0 ? "No customers with assigned traffic fines found" : 
+            `Showing ${sortedCustomers.length} customer${sortedCustomers.length !== 1 ? 's' : ''} with traffic fines`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {sortedCustomers.length > 0 ? (
+            <div className="space-y-6">
+              {sortedCustomers.map((customer) => (
+                <Card key={customer.customerId} className="mb-4">
+                  <CardHeader className="bg-muted/50 py-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <CardTitle className="text-lg">{customer.customerName}</CardTitle>
+                        <CardDescription>
+                          Total: {formatCurrency(customer.totalAmount)} • {customer.fines.length} fine{customer.fines.length !== 1 ? 's' : ''}
+                        </CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Violation #</TableHead>
+                          <TableHead>License Plate</TableHead>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Location</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {customer.fines.map((fine) => (
+                          <TableRow key={fine.id}>
+                            <TableCell>{fine.violationNumber}</TableCell>
+                            <TableCell>{fine.licensePlate}</TableCell>
+                            <TableCell>{fine.violationDate ? formatDate(fine.violationDate) : 'N/A'}</TableCell>
+                            <TableCell>{fine.location || 'N/A'}</TableCell>
+                            <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
+                            <TableCell>
+                              <Badge className={
+                                fine.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
+                                fine.paymentStatus === 'disputed' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 
+                                'bg-red-100 text-red-800 hover:bg-red-200'
+                              }>
+                                {fine.paymentStatus === 'paid' ? 'Paid' : 
+                                 fine.paymentStatus === 'disputed' ? 'Disputed' : 'Pending'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="py-6 text-center text-muted-foreground">
+              No customer traffic fines found matching your search criteria
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default TrafficFineReport;

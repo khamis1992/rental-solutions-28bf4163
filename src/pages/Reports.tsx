@@ -9,13 +9,15 @@ import FinancialReport from '@/components/reports/FinancialReport';
 import CustomerReport from '@/components/reports/CustomerReport';
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import LegalReport from '@/components/reports/LegalReport';
+import TrafficFineReport from '@/components/reports/TrafficFineReport';
 import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 import { SectionHeader } from '@/components/ui/section-header';
-import { FileText, Download, Calendar, AlertCircle } from 'lucide-react';
+import { FileText, Download, Calendar, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -27,6 +29,7 @@ const Reports = () => {
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
+  const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
   useEffect(() => {
@@ -96,6 +99,16 @@ const Reports = () => {
           service_provider: record.service_provider || record.performed_by || 'N/A',
           notes: record.notes || 'N/A'
         }));
+      case 'traffic':
+        return trafficFines ? trafficFines.map(fine => ({
+          violation_number: fine.violationNumber || 'N/A',
+          license_plate: fine.licensePlate || 'N/A',
+          violation_date: fine.violationDate,
+          location: fine.location || 'N/A',
+          fine_amount: fine.fineAmount || 0,
+          payment_status: fine.paymentStatus || 'pending',
+          customer_name: fine.customerName || 'Unassigned'
+        })) : [];
       case 'legal':
         // Legal reports data would be implemented here
         return [];
@@ -138,11 +151,12 @@ const Reports = () => {
       <Card>
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-5 mb-8">
+            <TabsList className="grid grid-cols-6 mb-8">
               <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
               <TabsTrigger value="financial">Financial Report</TabsTrigger>
               <TabsTrigger value="customers">Customer Report</TabsTrigger>
               <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
+              <TabsTrigger value="traffic">Traffic Fines</TabsTrigger>
               <TabsTrigger value="legal">Legal Report</TabsTrigger>
             </TabsList>
             
@@ -167,6 +181,10 @@ const Reports = () => {
             
             <TabsContent value="maintenance" className="mt-0">
               <MaintenanceReport />
+            </TabsContent>
+            
+            <TabsContent value="traffic" className="mt-0">
+              <TrafficFineReport />
             </TabsContent>
             
             <TabsContent value="legal" className="mt-0">
