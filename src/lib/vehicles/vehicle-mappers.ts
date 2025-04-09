@@ -48,17 +48,13 @@ export const mapDatabaseRecordToVehicle = (record: DatabaseVehicleRecord): Vehic
   
   // Handle vehicle types with proper mapping for size
   if (record.vehicle_types) {
-    // Create a properly mapped vehicle type
-    const vehicleTypeSize = mapDBSizeToUI(record.vehicle_types.size || '');
-    
-    const vehicleType = {
+    // Create a properly mapped vehicle type with converted size value
+    vehicle.vehicleType = {
       ...record.vehicle_types,
-      // Map size values
-      size: vehicleTypeSize as "compact" | "midsize" | "fullsize" | "truck" | "van" | "suv" | "luxury"
+      // Map DB size values to UI size values
+      size: mapDBSizeToUI(record.vehicle_types.size || '') as "compact" | "midsize" | "fullsize" | "truck" | "van" | "suv" | "luxury"
     };
-    
-    vehicle.vehicleType = vehicleType;
-    vehicle.vehicle_types = vehicleType;
+    vehicle.vehicle_types = vehicle.vehicleType;
   }
   
   return vehicle;
@@ -68,6 +64,7 @@ export const mapDatabaseRecordToVehicle = (record: DatabaseVehicleRecord): Vehic
  * Maps database size values to UI size values
  */
 export const mapDBSizeToUI = (dbSize: string): string => {
+  // Convert database size values to UI size values
   switch (dbSize) {
     case 'mid_size': return 'midsize';
     case 'full_size': return 'fullsize';

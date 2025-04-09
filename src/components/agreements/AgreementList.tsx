@@ -1,191 +1,202 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useAgreements } from '@/hooks/use-agreements';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { cn } from '@/lib/utils';
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ConfirmDeleteDialog } from '@/components/ui/confirm-delete-dialog';
 
-const AgreementList = () => {
-  const { useList, deleteAgreement } = useAgreements();
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<AgreementStatus | ''>('');
-  const [date, setDate] = useState<Date | undefined>(undefined);
-  const [onAgreementDeleted, setOnAgreementDeleted] = useState<() => void | undefined>(undefined);
-  const { data: agreements, isLoading } = useList();
-
-  useEffect(() => {
-    if (date) {
-      const formattedDate = format(date, 'yyyy-MM-dd');
-      setSearch(formattedDate);
-    } else {
-      setSearch('');
-    }
-  }, [date]);
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+const AgreementList = ({ searchQuery }: { searchQuery: string }) => {
+  const { 
+    agreements, 
+    isLoading, 
+    error, 
+    fetchAgreementById,
+    deleteAgreement
+  } = useAgreements();
+  
+  // Create a local array to hold the agreements and make TypeScript happy
+  const agreementsArray = Array.isArray(agreements) ? agreements : [];
+  
+  const [filters, setFilters] = useState({
+    status: '',
+  });
+  
+  // Filter agreements based on search query and status filter
+  const filteredAgreements = useMemo(() => {
+    return agreementsArray.filter(agreement => {
+      // Status filter
+      if (filters.status && agreement.status !== filters.status) {
+        return false;
+      }
+      
+      // Search filter
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        // Search in relevant fields
+        return (
+          (agreement.agreement_number?.toLowerCase().includes(searchLower)) ||
+          (agreement.customer_name?.toLowerCase().includes(searchLower)) ||
+          (agreement.vehicle_details?.license_plate?.toLowerCase().includes(searchLower))
+        );
+      }
+      
+      return true;
+    });
+  }, [agreementsArray, filters.status, searchQuery]);
+  
+  const handleStatusChange = (status: string) => {
+    setFilters(prev => ({ ...prev, status }));
   };
-
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setStatusFilter(e.target.value as AgreementStatus | '');
-  };
-
-  const handleDelete = async (id: string) => {
+  
+  const handleDeleteAgreement = async (id: string) => {
     try {
-      await deleteAgreement(id); // Changed from deleteAgreement.mutateAsync
+      await deleteAgreement(id);
       toast.success("Agreement deleted successfully");
-      setOnAgreementDeleted?.();
     } catch (error) {
       console.error("Error deleting agreement:", error);
-      toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : "Unknown error"}`);
+      toast.error("Failed to delete agreement");
     }
   };
 
-  const filteredAgreements = agreements?.filter(agreement => {
-    const searchTerm = search.toLowerCase();
-    const agreementNumber = agreement.agreement_number?.toLowerCase() || '';
-    const customerName = agreement.customers?.full_name?.toLowerCase() || '';
-    const vehiclePlate = agreement.vehicles?.license_plate?.toLowerCase() || '';
-
-    const matchesSearch =
-      agreementNumber.includes(searchTerm) ||
-      customerName.includes(searchTerm) ||
-      vehiclePlate.includes(searchTerm);
-
-    const matchesStatus = statusFilter ? agreement.status === statusFilter : true;
-
-    return matchesSearch && matchesStatus;
-  });
+  const navigate = useNavigate();
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-2xl font-bold">Agreements</h2>
-        <Link to="/agreements/add">
-          <Button>Add Agreement</Button>
-        </Link>
-      </div>
-
-      <div className="flex space-x-4 mb-4">
-        <Input
-          type="text"
-          placeholder="Search agreements..."
-          value={search}
-          onChange={handleSearchChange}
+      <div className="mb-4">
+        <AgreementStatusFilter
+          currentStatus={filters.status}
+          onStatusChange={handleStatusChange}
         />
-
-        <select
-          className="border rounded px-2 py-1"
-          value={statusFilter}
-          onChange={handleStatusFilterChange}
-        >
-          <option value="">All Statuses</option>
-          <option value="draft">Draft</option>
-          <option value="active">Active</option>
-          <option value="pending">Pending</option>
-          <option value="expired">Expired</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="closed">Closed</option>
-        </select>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant={"outline"}
-              className={cn(
-                "w-[200px] justify-start text-left font-normal",
-                !date && "text-muted-foreground"
-              )}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : <span>Pick a date</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
       </div>
-
-      <Table>
-        <TableCaption>A list of your agreements.</TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">Agreement #</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Vehicle</TableHead>
-            <TableHead>Start Date</TableHead>
-            <TableHead>End Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {isLoading ? (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center">Loading agreements...</TableCell>
-            </TableRow>
-          ) : filteredAgreements && filteredAgreements.length > 0 ? (
-            filteredAgreements.map(agreement => (
-              <TableRow key={agreement.id}>
-                <TableCell className="font-medium"><Link to={`/agreements/${agreement.id}`}>{agreement.agreement_number}</Link></TableCell>
-                <TableCell>{agreement.customers?.full_name}</TableCell>
-                <TableCell>{agreement.vehicles?.license_plate}</TableCell>
-                <TableCell>{agreement.start_date ? format(new Date(agreement.start_date), 'yyyy-MM-dd') : 'N/A'}</TableCell>
-                <TableCell>{agreement.end_date ? format(new Date(agreement.end_date), 'yyyy-MM-dd') : 'N/A'}</TableCell>
-                <TableCell>{agreement.status}</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDelete(agreement.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center">No agreements found.</TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-        <TableFooter>
-          <TableRow>
-            <TableCell colSpan={7} className="text-center">
-              Total agreements: {filteredAgreements ? filteredAgreements.length : 0}
-            </TableCell>
-          </TableRow>
-        </TableFooter>
-      </Table>
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {filteredAgreements.map((agreement) => (
+          <AgreementCard
+            key={agreement.id}
+            agreement={agreement}
+            onDelete={handleDeleteAgreement}
+          />
+        ))}
+      </div>
     </div>
   );
+
+  function AgreementStatusFilter({ currentStatus, onStatusChange }: { currentStatus: string, onStatusChange: (status: string) => void }) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="gap-2">
+            Status
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-4 w-4"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Filter by status</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => onStatusChange('')}>
+            All
+          </DropdownMenuItem>
+          {Object.values(AgreementStatus).map((status) => (
+            <DropdownMenuItem
+              key={status}
+              onClick={() => onStatusChange(status)}
+            >
+              {status}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
+
+  function AgreementCard({ agreement, onDelete }: { agreement: any, onDelete: (id: string) => void }) {
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{agreement.agreement_number}</CardTitle>
+          <CardDescription>
+            {agreement.customer_name} - {agreement.vehicle_details?.license_plate}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="relative">
+          <div className="absolute top-2 right-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 p-0">
+                  <span className="sr-only">Open menu</span>
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate(`/agreements/${agreement.id}`)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  <span>Edit</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                  className="text-red-500 focus:text-red-500"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Delete</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="space-y-1">
+            <p>
+              Status: <Badge variant="secondary">{agreement.status}</Badge>
+            </p>
+            <p>Start Date: {agreement.start_date}</p>
+            <p>End Date: {agreement.end_date}</p>
+            <p>Total Amount: {agreement.total_amount}</p>
+          </div>
+        </CardContent>
+        <ConfirmDeleteDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={() => {
+            onDelete(agreement.id);
+            setIsDeleteDialogOpen(false);
+          }}
+          itemType="agreement"
+          itemName={agreement.agreement_number}
+        />
+      </Card>
+    )
+  }
 };
 
 export default AgreementList;

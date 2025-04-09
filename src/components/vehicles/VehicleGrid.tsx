@@ -87,22 +87,28 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
-      {vehicles.map(vehicle => (
-        <VehicleCard
-          key={vehicle.id}
-          id={vehicle.id}
-          make={vehicle.make}
-          model={vehicle.model}
-          year={vehicle.year}
-          licensePlate={vehicle.licensePlate || vehicle.license_plate || ''}
-          status={vehicle.status}
-          imageUrl={vehicle.imageUrl || vehicle.image_url || ''}
-          location={vehicle.location || 'Not specified'}
-          fuelLevel={vehicle.fuelLevel}
-          mileage={vehicle.mileage || 0}
-          onSelect={() => handleSelect(vehicle.id)}
-        />
-      ))}
+      {vehicles.map(vehicle => {
+        const licensePlate = vehicle.licensePlate || vehicle.license_plate || '';
+        const imageUrl = vehicle.imageUrl || vehicle.image_url || '';
+        const status = String(vehicle.status);
+        
+        return (
+          <VehicleCard
+            key={vehicle.id}
+            id={vehicle.id}
+            make={vehicle.make}
+            model={vehicle.model}
+            year={vehicle.year}
+            licensePlate={licensePlate}
+            status={status}
+            imageUrl={imageUrl}
+            location={vehicle.location || 'Not specified'}
+            fuelLevel={vehicle.fuelLevel}
+            mileage={vehicle.mileage || 0}
+            onSelect={() => handleSelect(vehicle.id)}
+          />
+        );
+      })}
     </div>
   );
 };

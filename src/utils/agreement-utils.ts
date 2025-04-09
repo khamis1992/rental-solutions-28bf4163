@@ -36,7 +36,6 @@ export const updateAgreementWithCheck = async (
   }
 };
 
-// Add the missing function that's being imported in supabase.ts
 export const checkAndCreateMissingPaymentSchedules = async (): Promise<{ 
   success: boolean; 
   generatedCount: number; 
@@ -86,7 +85,9 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
         // Mark the agreement as having a payment schedule
         const { error: updateError } = await supabase
           .from('leases')
-          .update({ payment_schedule_generated: new Date().toISOString() })
+          .update({ 
+            payment_schedule_generated: new Date().toISOString() 
+          })
           .eq('id', agreement.id);
         
         if (updateError) {
