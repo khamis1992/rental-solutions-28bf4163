@@ -212,7 +212,6 @@ const TrafficFineReport = () => {
                               <TableHead>Date</TableHead>
                               <TableHead>Location</TableHead>
                               <TableHead>Amount</TableHead>
-                              <TableHead>Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -223,16 +222,6 @@ const TrafficFineReport = () => {
                                 <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
                                 <TableCell>{fine.location || 'N/A'}</TableCell>
                                 <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
-                                <TableCell>
-                                  <Badge className={
-                                    fine.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
-                                    fine.paymentStatus === 'disputed' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 
-                                    'bg-red-100 text-red-800 hover:bg-red-200'
-                                  }>
-                                    {fine.paymentStatus === 'paid' ? 'Paid' : 
-                                     fine.paymentStatus === 'disputed' ? 'Disputed' : 'Pending'}
-                                  </Badge>
-                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -257,7 +246,6 @@ const TrafficFineReport = () => {
                             <TableHead>Date</TableHead>
                             <TableHead>Location</TableHead>
                             <TableHead>Amount</TableHead>
-                            <TableHead>Status</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -268,16 +256,6 @@ const TrafficFineReport = () => {
                               <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
                               <TableCell>{fine.location || 'N/A'}</TableCell>
                               <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
-                              <TableCell>
-                                <Badge className={
-                                  fine.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
-                                  fine.paymentStatus === 'disputed' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 
-                                  'bg-red-100 text-red-800 hover:bg-red-200'
-                                }>
-                                  {fine.paymentStatus === 'paid' ? 'Paid' : 
-                                   fine.paymentStatus === 'disputed' ? 'Disputed' : 'Pending'}
-                                </Badge>
-                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -127,100 +126,217 @@ const ReportDownloadOptions = ({
                   ).length;
                   doc.text(`• Pending Fines: ${pendingFines}`, 20, yPos); yPos += 15;
                   
+                  // Group fines by customer for PDF
+                  const finesByCustomer = {};
+                  reportData.forEach(fine => {
+                    if (fine.customerId && fine.customerName) {
+                      if (!finesByCustomer[fine.customerId]) {
+                        finesByCustomer[fine.customerId] = {
+                          customerName: fine.customerName,
+                          fines: []
+                        };
+                      }
+                      finesByCustomer[fine.customerId].fines.push(fine);
+                    }
+                  });
+                  
                   // Add detailed listing if data exists
-                  if (reportData.length > 0) {
+                  if (Object.keys(finesByCustomer).length > 0) {
                     doc.setFontSize(14);
                     doc.setFont('helvetica', 'bold');
-                    doc.text('Detailed Fine Listing:', 14, yPos);
-                    yPos += 10;
+                    doc.text('Fines by Customer:', 14, yPos);
+                    yPos += 15;
                     
-                    doc.setFontSize(10);
-                    doc.setFont('helvetica', 'bold');
-                    doc.text('License Plate', 20, yPos);
-                    doc.text('Violation Date', 80, yPos);
-                    doc.text('Amount', 140, yPos);
-                    doc.text('Status', 180, yPos);
-                    yPos += 6;
-                    
-                    doc.setFont('helvetica', 'normal');
-                    
-                    // Process all items with pagination
-                    const maxItemsPerPage = 25; // Increased from 15 to show more items per page
-                    const itemsForFirstPage = Math.min(reportData.length, maxItemsPerPage);
-                    
-                    console.log(`Adding ${itemsForFirstPage} fines to first page of PDF`);
-                    
+                    // Create a dedicated section for each customer
                     let currentPage = 1;
-                    let itemsProcessed = 0;
-                    
-                    // Process all items with proper pagination
-                    for (let i = 0; i < reportData.length; i++) {
-                      const fine = reportData[i];
+                    Object.entries(finesByCustomer).forEach(([customerId, data]) => {
+                      const customerData = data as { customerName: string, fines: any[] };
                       
-                      // If we need to start a new page
-                      if (yPos > 250 && i < reportData.length - 1) {
-                        // Add footer to current page
+                      // Check if we need a new page
+                      if (yPos > 240) {
                         doc.addPage();
                         currentPage++;
-                        // Reset Y position for new page and add headers
                         yPos = 20;
                         
-                        // Add title to new page
+                        // Add header to new page
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                        yPos += 15;
+                      }
+                      
+                      // Add customer header
+                      doc.setFontSize(12);
+                      doc.setFont('helvetica', 'bold');
+                      doc.text(customerData.customerName, 14, yPos);
+                      yPos += 6;
+                      
+                      // Add customer fines table header
+                      doc.setFontSize(10);
+                      doc.text('Violation #', 20, yPos);
+                      doc.text('License Plate', 70, yPos);
+                      doc.text('Date', 120, yPos);
+                      doc.text('Amount', 170, yPos);
+                      yPos += 6;
+                      
+                      // Add customer fines
+                      doc.setFont('helvetica', 'normal');
+                      customerData.fines.forEach(fine => {
+                        // Check if we need a new page
+                        if (yPos > 250) {
+                          doc.addPage();
+                          currentPage++;
+                          yPos = 20;
+                          
+                          // Add header to new page
+                          doc.setFontSize(12);
+                          doc.setFont('helvetica', 'bold');
+                          doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                          yPos += 10;
+                          
+                          // Continue with customer
+                          doc.text(customerData.customerName + " (continued)", 14, yPos);
+                          yPos += 6;
+                          
+                          // Add table header again
+                          doc.setFontSize(10);
+                          doc.text('Violation #', 20, yPos);
+                          doc.text('License Plate', 70, yPos);
+                          doc.text('Date', 120, yPos);
+                          doc.text('Amount', 170, yPos);
+                          yPos += 6;
+                          
+                          doc.setFont('helvetica', 'normal');
+                        }
+                        
+                        const violationNum = fine.violationNumber || 'N/A';
+                        const licensePlate = fine.licensePlate || fine.license_plate || 'N/A';
+                        
+                        // Handle date formatting
+                        let formattedDate = 'N/A';
+                        try {
+                          const violationDate = fine.violationDate || fine.violation_date;
+                          if (violationDate) {
+                            const dateObj = violationDate instanceof Date ? 
+                              violationDate : new Date(violationDate);
+                            if (!isNaN(dateObj.getTime())) {
+                              formattedDate = format(dateObj, 'MMM dd, yyyy');
+                            }
+                          }
+                        } catch (err) {
+                          console.error("Error formatting date:", err);
+                        }
+                        
+                        const amount = fine.fineAmount || fine.fine_amount || 0;
+                        
+                        doc.text(violationNum.toString().substring(0, 15), 20, yPos);
+                        doc.text(licensePlate.toString().substring(0, 15), 70, yPos);
+                        doc.text(formattedDate, 120, yPos);
+                        doc.text(`QAR ${amount.toFixed(2)}`, 170, yPos);
+                        
+                        yPos += 6;
+                      });
+                      
+                      // Add some space after each customer
+                      yPos += 10;
+                    });
+                  }
+                  
+                  // Add unassigned fines section if there are any
+                  const unassignedFines = reportData.filter(fine => !fine.customerId);
+                  if (unassignedFines.length > 0) {
+                    // Check if we need a new page
+                    if (yPos > 220) {
+                      doc.addPage();
+                      currentPage++;
+                      yPos = 20;
+                      
+                      // Add title to new page
+                      doc.setFontSize(12);
+                      doc.setFont('helvetica', 'bold');
+                      doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                      yPos += 10;
+                    }
+                    
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Unassigned Fines:', 14, yPos);
+                    yPos += 10;
+                    
+                    // Add table header
+                    doc.setFontSize(10);
+                    doc.text('Violation #', 20, yPos);
+                    doc.text('License Plate', 70, yPos);
+                    doc.text('Date', 120, yPos);
+                    doc.text('Amount', 170, yPos);
+                    yPos += 6;
+                    
+                    // Add unassigned fines
+                    doc.setFont('helvetica', 'normal');
+                    unassignedFines.forEach(fine => {
+                      // Check if we need a new page
+                      if (yPos > 250) {
+                        doc.addPage();
+                        currentPage++;
+                        yPos = 20;
+                        
+                        // Add header to new page
                         doc.setFontSize(12);
                         doc.setFont('helvetica', 'bold');
                         doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
                         yPos += 10;
                         
-                        // Add headers on the new page
-                        doc.setFontSize(10);
-                        doc.setFont('helvetica', 'bold');
-                        doc.text('License Plate', 20, yPos);
-                        doc.text('Violation Date', 80, yPos);
-                        doc.text('Amount', 140, yPos);
-                        doc.text('Status', 180, yPos);
+                        doc.text('Unassigned Fines (continued):', 14, yPos);
                         yPos += 6;
+                        
+                        // Add table header again
+                        doc.setFontSize(10);
+                        doc.text('Violation #', 20, yPos);
+                        doc.text('License Plate', 70, yPos);
+                        doc.text('Date', 120, yPos);
+                        doc.text('Amount', 170, yPos);
+                        yPos += 6;
+                        
                         doc.setFont('helvetica', 'normal');
                       }
                       
-                      // Handle different property names
+                      const violationNum = fine.violationNumber || 'N/A';
                       const licensePlate = fine.licensePlate || fine.license_plate || 'N/A';
-                      const violationDate = fine.violationDate || fine.violation_date;
-                      let formattedDate = 'N/A';
                       
+                      // Handle date formatting
+                      let formattedDate = 'N/A';
                       try {
+                        const violationDate = fine.violationDate || fine.violation_date;
                         if (violationDate) {
                           const dateObj = violationDate instanceof Date ? 
-                            violationDate : 
-                            new Date(violationDate);
-                          
+                            violationDate : new Date(violationDate);
                           if (!isNaN(dateObj.getTime())) {
                             formattedDate = format(dateObj, 'MMM dd, yyyy');
                           }
                         }
                       } catch (err) {
                         console.error("Error formatting date:", err);
-                        formattedDate = 'Invalid Date';
                       }
                       
                       const amount = fine.fineAmount || fine.fine_amount || 0;
-                      const status = fine.paymentStatus || fine.payment_status || 'pending';
                       
-                      doc.text(licensePlate, 20, yPos);
-                      doc.text(formattedDate, 80, yPos);
-                      doc.text(`QAR ${amount.toFixed(2)}`, 140, yPos);
-                      doc.text(status, 180, yPos);
+                      doc.text(violationNum.toString().substring(0, 15), 20, yPos);
+                      doc.text(licensePlate.toString().substring(0, 15), 70, yPos);
+                      doc.text(formattedDate, 120, yPos);
+                      doc.text(`QAR ${amount.toFixed(2)}`, 170, yPos);
                       
                       yPos += 6;
-                      itemsProcessed++;
-                    }
-                    
-                    console.log(`Added ${itemsProcessed} items across ${currentPage} pages`);
-                  } else {
+                    });
+                  }
+                  
+                  // If there's no data at all
+                  if (reportData.length === 0) {
                     doc.setFontSize(12);
                     doc.setFont('helvetica', 'italic');
                     doc.text('No traffic fine data available for the selected period.', 20, yPos);
                     yPos += 10;
                   }
+                  
                   break;
                 case 'legal':
                   doc.text('• Legal Case Summary', 20, yPos); yPos += 10;
