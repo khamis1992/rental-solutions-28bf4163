@@ -83,6 +83,11 @@ const Vehicles = () => {
       convertedFilters.vehicle_type_id = newFilters.category;
     }
     
+    // Handle search parameter - specifically for VIN
+    if (newFilters.search && newFilters.search.trim() !== '') {
+      convertedFilters.search = newFilters.search.trim();
+    }
+    
     setFilters(convertedFilters);
   };
   
@@ -107,7 +112,8 @@ const Vehicles = () => {
           make: filters.make || 'all',
           location: filters.location || 'all',
           year: filters.year?.toString() || 'all',
-          category: filters.vehicle_type_id || 'all'
+          category: filters.vehicle_type_id || 'all',
+          search: filters.search || ''
         }}
         className="mb-6"
       />

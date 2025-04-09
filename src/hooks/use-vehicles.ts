@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -54,9 +53,9 @@ export const useVehicles = () => {
                 query = query.eq('year', filters.year);
               }
               
-              // Add search functionality across multiple fields
+              // Add search functionality for VIN
               if (filters.search) {
-                query = query.or(`make.ilike.%${filters.search}%,model.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
+                query = query.ilike('vin', `%${filters.search}%`);
               }
             }
             

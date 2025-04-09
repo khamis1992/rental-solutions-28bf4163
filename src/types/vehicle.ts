@@ -111,6 +111,7 @@ export interface VehicleFilterParams {
   vehicle_type_id?: string; 
   location?: string;
   year?: number;
+  search?: string; // New search parameter for VIN searches
   [key: string]: string | number | undefined;
 }
 
