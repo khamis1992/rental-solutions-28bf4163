@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, MapPin, Save, X } from 'lucide-react';
+import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, MapPin, Save, X, CheckCircle } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
 import { VehicleDetail } from '@/components/vehicles/VehicleDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -19,6 +19,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 
@@ -33,13 +40,16 @@ const VehicleDetailPage = () => {
 
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [locationValue, setLocationValue] = useState<string>(vehicle?.location || '');
+  const [isEditingStatus, setIsEditingStatus] = useState(false);
+  const [statusValue, setStatusValue] = useState<string>(vehicle?.status || 'available');
   
-  // Update location state when vehicle data is loaded
+  // Update location and status state when vehicle data is loaded
   React.useEffect(() => {
-    if (vehicle?.location) {
-      setLocationValue(vehicle.location);
+    if (vehicle) {
+      setLocationValue(vehicle.location || '');
+      setStatusValue(vehicle.status || 'available');
     }
-  }, [vehicle?.location]);
+  }, [vehicle]);
   
   const handleDelete = () => {
     if (id) {
@@ -76,6 +86,39 @@ const VehicleDetailPage = () => {
           },
           onError: (error) => {
             toast.error(`Failed to update location: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+        }
+      );
+    }
+  };
+
+  const handleStatusEdit = () => {
+    setIsEditingStatus(true);
+  };
+
+  const handleStatusCancel = () => {
+    setStatusValue(vehicle?.status || 'available');
+    setIsEditingStatus(false);
+  };
+
+  const handleStatusSave = () => {
+    if (id) {
+      console.log('Updating vehicle status to:', statusValue);
+      updateVehicle(
+        { 
+          id, 
+          data: { 
+            status: statusValue 
+          } 
+        },
+        {
+          onSuccess: () => {
+            toast.success('Vehicle status updated successfully');
+            setIsEditingStatus(false);
+          },
+          onError: (error) => {
+            toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error('Status update error:', error);
           }
         }
       );
@@ -174,6 +217,74 @@ const VehicleDetailPage = () => {
           </>
         }
       />
+
+      {/* Vehicle Status Edit Section */}
+      <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <CheckCircle className="h-5 w-5 text-muted-foreground" />
+            <h3 className="text-lg font-medium">Status</h3>
+          </div>
+          
+          {!isEditingStatus ? (
+            <CustomButton 
+              size="sm" 
+              variant="ghost" 
+              onClick={handleStatusEdit}
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              Edit
+            </CustomButton>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <CustomButton 
+                size="sm" 
+                variant="ghost" 
+                onClick={handleStatusCancel}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Cancel
+              </CustomButton>
+              <CustomButton 
+                size="sm" 
+                variant="default" 
+                onClick={handleStatusSave}
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4 mr-1" />
+                )}
+                Save
+              </CustomButton>
+            </div>
+          )}
+        </div>
+        
+        <div className="mt-2">
+          {isEditingStatus ? (
+            <Select value={statusValue} onValueChange={setStatusValue}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="rented">Rented</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+                <SelectItem value="reserved">Reserved</SelectItem>
+                <SelectItem value="retired">Retired</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="flex items-center">
+              <span className="inline-block px-2 py-1 text-sm rounded-md capitalize bg-blue-100 text-blue-800">
+                {vehicle.status || 'Available'}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Quick Location Edit Section */}
       <div className="mb-6 p-4 bg-white rounded-lg shadow-sm">
