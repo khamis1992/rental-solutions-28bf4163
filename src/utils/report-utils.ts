@@ -1,6 +1,8 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
+import { toast } from 'sonner';
 
 /**
  * Generates a CSV string from an array of objects
@@ -66,6 +68,26 @@ export const downloadExcel = (data: Record<string, any>[], filename: string): vo
 };
 
 /**
+ * Safely adds an image to the PDF, with error handling
+ * @param doc PDF document
+ * @param imgPath Image path
+ * @param x X position
+ * @param y Y position
+ * @param w Width
+ * @param h Height
+ * @returns boolean indicating success
+ */
+const safelyAddImage = (doc: jsPDF, imgPath: string, x: number, y: number, w: number, h: number): boolean => {
+  try {
+    doc.addImage(imgPath, 'PNG', x, y, w, h);
+    return true;
+  } catch (error) {
+    console.warn(`Failed to add image ${imgPath} to PDF:`, error);
+    return false;
+  }
+};
+
+/**
  * Generates a PDF report header with company logo
  * @param doc jsPDF document instance
  * @param title Report title
@@ -79,8 +101,16 @@ export const addReportHeader = (
 ): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add company logo
-  doc.addImage('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'PNG', 14, 10, 40, 15);
+  // Try to add company logo with fallback
+  try {
+    doc.addImage('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'PNG', 14, 10, 40, 15);
+  } catch (error) {
+    console.warn('Failed to add logo to PDF header:', error);
+    // Add text instead of image as fallback
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ALARAF CAR RENTAL', 14, 20);
+  }
   
   // Add a separator line
   doc.setDrawColor(200, 200, 200);
@@ -120,9 +150,10 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFont('helvetica', 'normal');
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
   
-  // Add footer logo - removed as per image example
-  // Only show the Arabic text image at the right side
-  doc.addImage('/lovable-uploads/d6cc5f20-2b4e-4882-a50c-2377f75ff46d.png', 'PNG', pageWidth - 80, pageHeight - 30, 70, 15);
+  // Skip adding the Arabic text image that was causing errors
+  // Instead, add a simple line
+  doc.setDrawColor(200, 200, 200);
+  doc.line(pageWidth - 80, pageHeight - 20, pageWidth - 14, pageHeight - 20);
   
   // Add page bottom elements with correct spacing/positioning
   doc.setFontSize(8);
@@ -161,18 +192,24 @@ export const generateStandardReport = (
   // Initialize the PDF document
   const doc = new jsPDF();
   
-  // Add header and get the Y position to start content
-  const startY = addReportHeader(doc, title, dateRange);
-  
-  // Add content using the provided generator function
-  contentGenerator(doc, startY);
-  
-  // Apply footer to all pages
-  const totalPages = doc.getNumberOfPages();
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    addReportFooter(doc);
+  try {
+    // Add header and get the Y position to start content
+    const startY = addReportHeader(doc, title, dateRange);
+    
+    // Add content using the provided generator function
+    contentGenerator(doc, startY);
+    
+    // Apply footer to all pages
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      addReportFooter(doc);
+    }
+    
+    return doc;
+  } catch (error) {
+    console.error("Error generating standard report:", error);
+    throw new Error("Failed to generate report: " + (error instanceof Error ? error.message : "Unknown error"));
   }
-  
-  return doc;
 };
+
