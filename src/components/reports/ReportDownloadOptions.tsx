@@ -7,9 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
 import { jsPDF } from 'jspdf';
-import { addReportHeader, addReportFooter, downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
+import { downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
 import { toast } from 'sonner';
 
 interface ReportDownloadOptionsProps {
@@ -25,7 +24,7 @@ const ReportDownloadOptions = ({
     from: Date | undefined;
     to: Date | undefined;
   }>({
-    from: new Date(),
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
     to: new Date()
   });
   const [fileFormat, setFileFormat] = useState('pdf');
@@ -37,6 +36,9 @@ const ReportDownloadOptions = ({
       
       // Get data for the report
       const reportData = getReportData();
+      if (!reportData || reportData.length === 0) {
+        console.log("No data available for report");
+      }
       
       // Format title based on report type
       const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
@@ -44,7 +46,7 @@ const ReportDownloadOptions = ({
       // Generate report based on file format
       if (fileFormat === 'pdf') {
         try {
-          // Use the standardized report generator instead of creating a PDF directly
+          // Use the standardized report generator
           const doc = generateStandardReport(
             title,
             dateRange,
@@ -89,10 +91,80 @@ const ReportDownloadOptions = ({
                   doc.text('• Maintenance History', 20, yPos); yPos += 10;
                   break;
                 case 'traffic':
+                  // For traffic fine reports, include actual data
                   doc.text('• Traffic Fine Summary', 20, yPos); yPos += 10;
-                  doc.text('• Fines by Customer', 20, yPos); yPos += 10;
-                  doc.text('• Payment Status Analysis', 20, yPos); yPos += 10;
-                  doc.text('• License Plate Violations', 20, yPos); yPos += 10;
+                  doc.text(`• Total Fines: ${reportData.length}`, 20, yPos); yPos += 10;
+                  
+                  const totalAmount = reportData.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+                  doc.text(`• Total Amount: QAR ${totalAmount.toFixed(2)}`, 20, yPos); yPos += 10;
+                  
+                  const paidFines = reportData.filter(fine => fine.paymentStatus === 'paid').length;
+                  doc.text(`• Paid Fines: ${paidFines}`, 20, yPos); yPos += 10;
+                  
+                  const pendingFines = reportData.filter(fine => fine.paymentStatus === 'pending').length;
+                  doc.text(`• Pending Fines: ${pendingFines}`, 20, yPos); yPos += 15;
+                  
+                  // Add detailed listing if data exists
+                  if (reportData.length > 0) {
+                    doc.setFontSize(14);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('Detailed Fine Listing:', 14, yPos);
+                    yPos += 10;
+                    
+                    doc.setFontSize(10);
+                    doc.setFont('helvetica', 'bold');
+                    doc.text('License Plate', 20, yPos);
+                    doc.text('Violation Date', 80, yPos);
+                    doc.text('Amount', 140, yPos);
+                    doc.text('Status', 180, yPos);
+                    yPos += 6;
+                    
+                    doc.setFont('helvetica', 'normal');
+                    
+                    // Limit to 15 items per page to avoid overflow
+                    const maxItemsPerPage = 15;
+                    const itemsForFirstPage = Math.min(reportData.length, maxItemsPerPage);
+                    
+                    for (let i = 0; i < itemsForFirstPage; i++) {
+                      const fine = reportData[i];
+                      const violationDate = fine.violationDate ? format(new Date(fine.violationDate), 'MMM dd, yyyy') : 'N/A';
+                      
+                      doc.text(fine.licensePlate || 'N/A', 20, yPos);
+                      doc.text(violationDate, 80, yPos);
+                      doc.text(`QAR ${(fine.fineAmount || 0).toFixed(2)}`, 140, yPos);
+                      doc.text(fine.paymentStatus || 'pending', 180, yPos);
+                      
+                      yPos += 6;
+                      
+                      // If we're approaching bottom of page, add footer and prepare new page
+                      if (yPos > 250 && i < reportData.length - 1) {
+                        // Start a new page if there are more items
+                        doc.addPage();
+                        yPos = 20; // Reset Y position for new page
+                        
+                        // Add headers on the new page
+                        doc.setFontSize(10);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text('License Plate', 20, yPos);
+                        doc.text('Violation Date', 80, yPos);
+                        doc.text('Amount', 140, yPos);
+                        doc.text('Status', 180, yPos);
+                        yPos += 6;
+                        doc.setFont('helvetica', 'normal');
+                      }
+                    }
+                  } else {
+                    doc.setFontSize(12);
+                    doc.setFont('helvetica', 'italic');
+                    doc.text('No traffic fine data available for the selected period.', 20, yPos);
+                    yPos += 10;
+                  }
+                  break;
+                case 'legal':
+                  doc.text('• Legal Case Summary', 20, yPos); yPos += 10;
+                  doc.text('• Active Legal Cases', 20, yPos); yPos += 10;
+                  doc.text('• Case Resolution Rate', 20, yPos); yPos += 10;
+                  doc.text('• Legal Expenses', 20, yPos); yPos += 10;
                   break;
                 default:
                   doc.text('No data available for this report type.', 20, yPos);

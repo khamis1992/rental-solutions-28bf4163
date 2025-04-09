@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, DollarSign, User, UserCheck } from 'lucide-react';
@@ -18,6 +18,18 @@ import { Badge } from '@/components/ui/badge';
 const TrafficFineReport = () => {
   const { trafficFines, isLoading } = useTrafficFines();
   const [searchTerm, setSearchTerm] = useState('');
+  const [finesData, setFinesData] = useState<any[]>([]);
+
+  // Ensure we have data to process even when trafficFines is undefined
+  useEffect(() => {
+    if (trafficFines) {
+      console.log("Traffic fines data loaded:", trafficFines.length);
+      setFinesData(trafficFines);
+    } else {
+      console.log("No traffic fines data available");
+      setFinesData([]);
+    }
+  }, [trafficFines]);
 
   if (isLoading) {
     return (
@@ -28,11 +40,11 @@ const TrafficFineReport = () => {
   }
 
   // Process traffic fines data
-  const filteredFines = trafficFines?.filter(fine => 
-    fine.licensePlate?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    fine.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    fine.violationNumber?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredFines = finesData.filter(fine => 
+    (fine.licensePlate?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    (fine.customerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (fine.violationNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+  );
 
   // Calculate summary metrics
   const totalFines = filteredFines.length;
@@ -55,13 +67,18 @@ const TrafficFineReport = () => {
       acc[fine.customerId].fines.push(fine);
     }
     return acc;
-  }, {} as Record<string, { customerId: string; customerName: string; totalAmount: number; fines: typeof filteredFines }> );
+  }, {} as Record<string, { customerId: string; customerName: string; totalAmount: number; fines: any[] }> );
 
   // Sort customers by total fine amount
   const sortedCustomers = Object.values(finesByCustomer).sort((a, b) => b.totalAmount - a.totalAmount);
 
   return (
     <div className="space-y-6">
+      {/* Debug info */}
+      <div className="text-sm text-muted-foreground">
+        Data summary: {totalFines} fines, {sortedCustomers.length} customers with fines
+      </div>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -160,9 +177,9 @@ const TrafficFineReport = () => {
                       <TableBody>
                         {customer.fines.map((fine) => (
                           <TableRow key={fine.id}>
-                            <TableCell>{fine.violationNumber}</TableCell>
-                            <TableCell>{fine.licensePlate}</TableCell>
-                            <TableCell>{fine.violationDate ? formatDate(fine.violationDate) : 'N/A'}</TableCell>
+                            <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
+                            <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
+                            <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
                             <TableCell>{fine.location || 'N/A'}</TableCell>
                             <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
                             <TableCell>
@@ -183,9 +200,49 @@ const TrafficFineReport = () => {
                 </Card>
               ))}
             </div>
+          ) : filteredFines.length > 0 ? (
+            <div className="space-y-6">
+              <Card>
+                <CardHeader className="py-3">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg">Unassigned Fines</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Violation #</TableHead>
+                        <TableHead>License Plate</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Location</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredFines.map((fine) => (
+                        <TableRow key={fine.id}>
+                          <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
+                          <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
+                          <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
+                          <TableCell>{fine.location || 'N/A'}</TableCell>
+                          <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
+                          <TableCell>
+                            <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
+                              {fine.paymentStatus || 'Pending'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <div className="py-6 text-center text-muted-foreground">
-              No customer traffic fines found matching your search criteria
+              No traffic fines found matching your search criteria
             </div>
           )}
         </CardContent>

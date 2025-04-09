@@ -101,15 +101,23 @@ export const addReportHeader = (
 ): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
+  // Set logo coordinates and dimensions
+  const logoX = 14;
+  const logoY = 10;
+  const logoWidth = 40;
+  const logoHeight = 15;
+  
   // Try to add company logo with fallback
   try {
-    doc.addImage('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'PNG', 14, 10, 40, 15);
+    // Use absolute path for logo to prevent issues with relative paths
+    const logoPath = '/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png';
+    doc.addImage(logoPath, 'PNG', logoX, logoY, logoWidth, logoHeight);
   } catch (error) {
     console.warn('Failed to add logo to PDF header:', error);
     // Add text instead of image as fallback
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('ALARAF CAR RENTAL', 14, 20);
+    doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
   }
   
   // Add a separator line
@@ -150,10 +158,9 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFont('helvetica', 'normal');
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
   
-  // Skip adding the Arabic text image that was causing errors
-  // Instead, add a simple line
+  // Add horizontal line instead of the Arabic text image
   doc.setDrawColor(200, 200, 200);
-  doc.line(pageWidth - 80, pageHeight - 20, pageWidth - 14, pageHeight - 20);
+  doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
   
   // Add page bottom elements with correct spacing/positioning
   doc.setFontSize(8);
@@ -189,15 +196,19 @@ export const generateStandardReport = (
   dateRange: { from: Date | undefined; to: Date | undefined },
   contentGenerator: (doc: jsPDF, startY: number) => number
 ): jsPDF => {
-  // Initialize the PDF document
-  const doc = new jsPDF();
+  // Initialize the PDF document with better error handling
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4'
+  });
   
   try {
     // Add header and get the Y position to start content
     const startY = addReportHeader(doc, title, dateRange);
     
     // Add content using the provided generator function
-    contentGenerator(doc, startY);
+    const finalY = contentGenerator(doc, startY);
     
     // Apply footer to all pages
     const totalPages = doc.getNumberOfPages();
@@ -209,7 +220,16 @@ export const generateStandardReport = (
     return doc;
   } catch (error) {
     console.error("Error generating standard report:", error);
-    throw new Error("Failed to generate report: " + (error instanceof Error ? error.message : "Unknown error"));
+    // Create a simple error document
+    doc.deletePage(1);
+    doc.addPage();
+    doc.setFontSize(16);
+    doc.setTextColor(255, 0, 0);
+    doc.text("Error Generating Report", 20, 20);
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("An error occurred while generating this report.", 20, 30);
+    doc.text("Please try again or contact support.", 20, 40);
+    return doc;
   }
 };
-
