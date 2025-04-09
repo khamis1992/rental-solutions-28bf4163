@@ -15,6 +15,14 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
+// Define types for fine grouping
+interface CustomerFineGroup {
+  customerId: string;
+  customerName: string;
+  totalAmount: number;
+  fines: any[];
+}
+
 const TrafficFineReport = () => {
   const { trafficFines, isLoading } = useTrafficFines();
   const [searchTerm, setSearchTerm] = useState('');
@@ -53,7 +61,7 @@ const TrafficFineReport = () => {
   const unassignedFines = filteredFines.filter(fine => !fine.customerId).length;
 
   // Group fines by customer
-  const finesByCustomer = filteredFines.reduce((acc, fine) => {
+  const finesByCustomer = filteredFines.reduce<Record<string, CustomerFineGroup>>((acc, fine) => {
     if (fine.customerId && fine.customerName) {
       if (!acc[fine.customerId]) {
         acc[fine.customerId] = {
@@ -67,7 +75,7 @@ const TrafficFineReport = () => {
       acc[fine.customerId].fines.push(fine);
     }
     return acc;
-  }, {} as Record<string, { customerId: string; customerName: string; totalAmount: number; fines: any[] }> );
+  }, {});
 
   // Sort customers by total fine amount
   const sortedCustomers = Object.values(finesByCustomer).sort((a, b) => b.totalAmount - a.totalAmount);
