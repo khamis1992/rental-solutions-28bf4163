@@ -69,9 +69,6 @@ const Vehicles = () => {
     if (newFilters.status && newFilters.status !== 'all') 
       convertedFilters.status = newFilters.status as VehicleStatus;
     
-    if (newFilters.make && newFilters.make !== 'all') 
-      convertedFilters.make = newFilters.make;
-    
     if (newFilters.location && newFilters.location !== 'all') 
       convertedFilters.location = newFilters.location;
     
@@ -109,7 +106,6 @@ const Vehicles = () => {
         onFilterChange={handleFilterChange} 
         initialValues={{
           status: filters.status || 'all',
-          make: filters.make || 'all',
           location: filters.location || 'all',
           year: filters.year?.toString() || 'all',
           category: filters.vehicle_type_id || 'all',

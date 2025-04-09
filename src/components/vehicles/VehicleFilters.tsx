@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
@@ -9,11 +10,10 @@ import { VehicleStatus } from '@/types/vehicle';
 // Define the filter values interface
 export interface VehicleFilterValues {
   status: string;
-  make: string;
   location: string;
   year: string;
   category: string;
-  search?: string; // New search field
+  search?: string;
 }
 
 // Props interface
@@ -26,7 +26,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   onFilterChange,
   initialValues = {
     status: 'all',
-    make: 'all',
     location: 'all',
     year: 'all',
     category: 'all',
@@ -60,7 +59,7 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     }));
   };
   return <div className={cn("grid gap-4 p-4 border rounded-lg bg-card", className)}>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {/* Search field */}
         <div className="relative">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -86,30 +85,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
               <SelectItem value="accident">Accident</SelectItem>
               <SelectItem value="stolen">Stolen</SelectItem>
               <SelectItem value="retired">Retired</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* Make filter */}
-        <div>
-          
-          <Select value={filters.make} onValueChange={value => handleFilterChange('make', value)}>
-            <SelectTrigger id="make-filter">
-              <SelectValue placeholder="All Makes" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Makes</SelectItem>
-              <SelectItem value="Toyota">Toyota</SelectItem>
-              <SelectItem value="Honda">Honda</SelectItem>
-              <SelectItem value="Nissan">Nissan</SelectItem>
-              <SelectItem value="Ford">Ford</SelectItem>
-              <SelectItem value="Hyundai">Hyundai</SelectItem>
-              <SelectItem value="Kia">Kia</SelectItem>
-              <SelectItem value="Mazda">Mazda</SelectItem>
-              <SelectItem value="Mercedes">Mercedes</SelectItem>
-              <SelectItem value="BMW">BMW</SelectItem>
-              <SelectItem value="Audi">Audi</SelectItem>
-              <SelectItem value="Lexus">Lexus</SelectItem>
             </SelectContent>
           </Select>
         </div>
