@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -37,7 +38,12 @@ const ReportDownloadOptions = ({
       const reportData = getReportData();
       
       // Debug log for data inspection
-      console.log(`Generating ${reportType} report with ${reportData?.length || 0} records`, reportData);
+      console.log(`Generating ${reportType} report with ${reportData?.length || 0} records`, {
+        recordCount: reportData?.length || 0,
+        firstFewRecords: reportData?.slice(0, 3) || [],
+        reportType,
+        fileFormat
+      });
       
       if (!reportData || reportData.length === 0) {
         console.log(`No data available for ${reportType} report`);
@@ -138,35 +144,32 @@ const ReportDownloadOptions = ({
                     
                     doc.setFont('helvetica', 'normal');
                     
-                    // Limit to 15 items per page to avoid overflow
-                    const maxItemsPerPage = 15;
+                    // Process all items with pagination
+                    const maxItemsPerPage = 25; // Increased from 15 to show more items per page
                     const itemsForFirstPage = Math.min(reportData.length, maxItemsPerPage);
                     
-                    for (let i = 0; i < itemsForFirstPage; i++) {
+                    console.log(`Adding ${itemsForFirstPage} fines to first page of PDF`);
+                    
+                    let currentPage = 1;
+                    let itemsProcessed = 0;
+                    
+                    // Process all items with proper pagination
+                    for (let i = 0; i < reportData.length; i++) {
                       const fine = reportData[i];
                       
-                      // Handle different property names
-                      const licensePlate = fine.licensePlate || fine.license_plate || 'N/A';
-                      const violationDate = fine.violationDate || fine.violation_date;
-                      const formattedDate = violationDate ? 
-                        (violationDate instanceof Date ? 
-                          format(violationDate, 'MMM dd, yyyy') : 
-                          format(new Date(violationDate), 'MMM dd, yyyy')) 
-                        : 'N/A';
-                      const amount = fine.fineAmount || fine.fine_amount || 0;
-                      const status = fine.paymentStatus || fine.payment_status || 'pending';
-                      
-                      doc.text(licensePlate, 20, yPos);
-                      doc.text(formattedDate, 80, yPos);
-                      doc.text(`QAR ${amount.toFixed(2)}`, 140, yPos);
-                      doc.text(status, 180, yPos);
-                      
-                      yPos += 6;
-                      
-                      // If we're approaching bottom of page, add a new page
+                      // If we need to start a new page
                       if (yPos > 250 && i < reportData.length - 1) {
+                        // Add footer to current page
                         doc.addPage();
-                        yPos = 20; // Reset Y position for new page
+                        currentPage++;
+                        // Reset Y position for new page and add headers
+                        yPos = 20;
+                        
+                        // Add title to new page
+                        doc.setFontSize(12);
+                        doc.setFont('helvetica', 'bold');
+                        doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                        yPos += 10;
                         
                         // Add headers on the new page
                         doc.setFontSize(10);
@@ -178,7 +181,40 @@ const ReportDownloadOptions = ({
                         yPos += 6;
                         doc.setFont('helvetica', 'normal');
                       }
+                      
+                      // Handle different property names
+                      const licensePlate = fine.licensePlate || fine.license_plate || 'N/A';
+                      const violationDate = fine.violationDate || fine.violation_date;
+                      let formattedDate = 'N/A';
+                      
+                      try {
+                        if (violationDate) {
+                          const dateObj = violationDate instanceof Date ? 
+                            violationDate : 
+                            new Date(violationDate);
+                          
+                          if (!isNaN(dateObj.getTime())) {
+                            formattedDate = format(dateObj, 'MMM dd, yyyy');
+                          }
+                        }
+                      } catch (err) {
+                        console.error("Error formatting date:", err);
+                        formattedDate = 'Invalid Date';
+                      }
+                      
+                      const amount = fine.fineAmount || fine.fine_amount || 0;
+                      const status = fine.paymentStatus || fine.payment_status || 'pending';
+                      
+                      doc.text(licensePlate, 20, yPos);
+                      doc.text(formattedDate, 80, yPos);
+                      doc.text(`QAR ${amount.toFixed(2)}`, 140, yPos);
+                      doc.text(status, 180, yPos);
+                      
+                      yPos += 6;
+                      itemsProcessed++;
                     }
+                    
+                    console.log(`Added ${itemsProcessed} items across ${currentPage} pages`);
                   } else {
                     doc.setFontSize(12);
                     doc.setFont('helvetica', 'italic');
@@ -201,7 +237,9 @@ const ReportDownloadOptions = ({
           );
           
           // Save the PDF
-          doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+          const filename = `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`;
+          doc.save(filename);
+          console.log(`PDF report saved: ${filename}`);
         } catch (error) {
           console.error('Error generating PDF:', error);
           throw new Error('PDF generation failed. Please try a different format.');

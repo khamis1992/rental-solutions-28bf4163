@@ -110,19 +110,42 @@ const Reports = () => {
           notes: record.notes || 'N/A'
         }));
       case 'traffic':
-        console.log("Traffic fines data for report:", trafficFines);
+        console.log("Getting traffic fines data for report:", {
+          available: Array.isArray(trafficFines),
+          count: trafficFines?.length || 0,
+          sample: trafficFines?.slice(0, 3) || []
+        });
+        
         if (Array.isArray(trafficFines)) {
-          return trafficFines.map(fine => ({
-            id: fine.id,
-            violationNumber: fine.violationNumber || 'N/A',
-            licensePlate: fine.licensePlate || 'N/A',
-            violationDate: fine.violationDate instanceof Date ? fine.violationDate : new Date(fine.violationDate),
-            location: fine.location || 'N/A',
-            fineAmount: typeof fine.fineAmount === 'number' ? fine.fineAmount : 0,
-            paymentStatus: fine.paymentStatus || 'pending',
-            customerName: fine.customerName || 'Unassigned',
-            customerId: fine.customerId || null
-          }));
+          return trafficFines.map(fine => {
+            // Ensure proper date format
+            let violationDate;
+            try {
+              violationDate = fine.violationDate instanceof Date 
+                ? fine.violationDate 
+                : new Date(fine.violationDate);
+              
+              // Check if date is valid
+              if (isNaN(violationDate.getTime())) {
+                violationDate = null;
+              }
+            } catch (err) {
+              console.error("Invalid date format:", fine.violationDate);
+              violationDate = null;
+            }
+            
+            return {
+              id: fine.id,
+              violationNumber: fine.violationNumber || 'N/A',
+              licensePlate: fine.licensePlate || 'N/A',
+              violationDate: violationDate,
+              location: fine.location || 'N/A',
+              fineAmount: typeof fine.fineAmount === 'number' ? fine.fineAmount : 0,
+              paymentStatus: fine.paymentStatus || 'pending',
+              customerName: fine.customerName || 'Unassigned',
+              customerId: fine.customerId || null
+            };
+          });
         }
         return [];
       case 'legal':

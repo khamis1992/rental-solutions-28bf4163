@@ -23,7 +23,14 @@ export const generateCSV = (data: Record<string, any>[]): string => {
     const row = headers.map(header => {
       // Handle values that might contain commas or quotes
       const value = item[header] === null || item[header] === undefined ? '' : item[header];
-      const valueStr = String(value);
+      
+      // Handle date objects
+      let valueStr: string;
+      if (value instanceof Date && !isNaN(value.getTime())) {
+        valueStr = format(value, 'yyyy-MM-dd');
+      } else {
+        valueStr = String(value);
+      }
       
       // Escape quotes and wrap in quotes if contains comma or quote
       if (valueStr.includes(',') || valueStr.includes('"')) {
@@ -44,16 +51,24 @@ export const generateCSV = (data: Record<string, any>[]): string => {
  * @param filename Name for the downloaded file
  */
 export const downloadCSV = (data: Record<string, any>[], filename: string): void => {
-  const csv = generateCSV(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  
-  const link = document.createElement('a');
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  try {
+    const csv = generateCSV(data);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Cleanup
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error downloading CSV:", error);
+    toast.error("Failed to download CSV file");
+  }
 };
 
 /**
@@ -146,9 +161,28 @@ export const addReportHeader = (
   // Add date range with updated format
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  const fromDate = dateRange.from ? formatDate(dateRange.from) : '';
-  const toDate = dateRange.to ? formatDate(dateRange.to) : '';
-  doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 50, { align: 'center' });
+  
+  // Safely format dates with error handling
+  let fromDateStr = 'N/A';
+  let toDateStr = 'N/A';
+  
+  try {
+    if (dateRange.from && dateRange.from instanceof Date && !isNaN(dateRange.from.getTime())) {
+      fromDateStr = formatDate(dateRange.from);
+    }
+  } catch (err) {
+    console.error("Error formatting from date:", err);
+  }
+  
+  try {
+    if (dateRange.to && dateRange.to instanceof Date && !isNaN(dateRange.to.getTime())) {
+      toDateStr = formatDate(dateRange.to);
+    }
+  } catch (err) {
+    console.error("Error formatting to date:", err);
+  }
+  
+  doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 50, { align: 'center' });
   
   // Add date of generation with updated format
   doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 55, { align: 'center' });
@@ -228,6 +262,8 @@ export const generateStandardReport = (
     
     // Apply footer to all pages
     const totalPages = doc.getNumberOfPages();
+    console.log(`Report generated with ${totalPages} pages`);
+    
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       addReportFooter(doc);

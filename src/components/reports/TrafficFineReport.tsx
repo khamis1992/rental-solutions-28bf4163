@@ -27,14 +27,15 @@ const TrafficFineReport = () => {
   const { trafficFines, isLoading } = useTrafficFines();
   const [searchTerm, setSearchTerm] = useState('');
   const [finesData, setFinesData] = useState<any[]>([]);
+  const [showUnassigned, setShowUnassigned] = useState(true);
 
   // Ensure we have data to process even when trafficFines is undefined
   useEffect(() => {
     if (trafficFines) {
-      console.log("Traffic fines data loaded:", trafficFines.length);
+      console.log("Traffic fines data loaded in report component:", trafficFines.length);
       setFinesData(trafficFines);
     } else {
-      console.log("No traffic fines data available");
+      console.log("No traffic fines data available in report component");
       setFinesData([]);
     }
   }, [trafficFines]);
@@ -55,7 +56,10 @@ const TrafficFineReport = () => {
   );
 
   // Add debug log for filtered fines
-  console.log("Filtered traffic fines:", filteredFines);
+  console.log("Filtered traffic fines for report:", {
+    count: filteredFines.length,
+    first5: filteredFines.slice(0, 5)
+  });
 
   // Calculate summary metrics
   const totalFines = filteredFines.length;
@@ -83,22 +87,21 @@ const TrafficFineReport = () => {
   // Sort customers by total fine amount
   const sortedCustomers = Object.values(finesByCustomer).sort((a, b) => b.totalAmount - a.totalAmount);
 
+  // Collect all unassigned fines
+  const unassignedFinesList = filteredFines.filter(fine => !fine.customerId);
+
   // Add debug log for report data
   console.log("Prepared data for report:", {
     totalFines,
     totalAmount,
     assignedFines,
     unassignedFines,
-    sortedCustomers: sortedCustomers.length
+    sortedCustomers: sortedCustomers.length,
+    unassignedFinesList: unassignedFinesList.length
   });
 
   return (
     <div className="space-y-6">
-      {/* Debug info */}
-      <div className="text-sm text-muted-foreground">
-        Data summary: {totalFines} fines, {sortedCustomers.length} customers with fines
-      </div>
-
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -158,111 +161,142 @@ const TrafficFineReport = () => {
         />
       </div>
 
-      {/* Customers with Traffic Fines */}
+      {/* Display Controls */}
+      <div className="flex items-center space-x-2">
+        <label className="flex items-center space-x-2">
+          <input 
+            type="checkbox"
+            className="h-4 w-4" 
+            checked={showUnassigned}
+            onChange={(e) => setShowUnassigned(e.target.checked)}
+          />
+          <span className="text-sm">Show unassigned fines</span>
+        </label>
+      </div>
+
+      {/* Traffic Fines Report */}
       <Card>
         <CardHeader>
-          <CardTitle>Customers with Traffic Fines</CardTitle>
+          <CardTitle>Traffic Fines Report</CardTitle>
           <CardDescription>
-            {sortedCustomers.length === 0 ? "No customers with assigned traffic fines found" : 
-            `Showing ${sortedCustomers.length} customer${sortedCustomers.length !== 1 ? 's' : ''} with traffic fines`}
+            {totalFines === 0 ? "No traffic fines found" : 
+            `Showing ${totalFines} traffic fine${totalFines !== 1 ? 's' : ''}`}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {sortedCustomers.length > 0 ? (
+          {totalFines > 0 ? (
             <div className="space-y-6">
-              {sortedCustomers.map((customer) => (
-                <Card key={customer.customerId} className="mb-4">
-                  <CardHeader className="bg-muted/50 py-3">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <CardTitle className="text-lg">{customer.customerName}</CardTitle>
-                        <CardDescription>
-                          Total: {formatCurrency(customer.totalAmount)} • {customer.fines.length} fine{customer.fines.length !== 1 ? 's' : ''}
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Violation #</TableHead>
-                          <TableHead>License Plate</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {customer.fines.map((fine) => (
-                          <TableRow key={fine.id}>
-                            <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
-                            <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
-                            <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
-                            <TableCell>{fine.location || 'N/A'}</TableCell>
-                            <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
-                            <TableCell>
-                              <Badge className={
-                                fine.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
-                                fine.paymentStatus === 'disputed' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 
-                                'bg-red-100 text-red-800 hover:bg-red-200'
-                              }>
-                                {fine.paymentStatus === 'paid' ? 'Paid' : 
-                                 fine.paymentStatus === 'disputed' ? 'Disputed' : 'Pending'}
-                              </Badge>
-                            </TableCell>
+              {/* Assigned Fines */}
+              {sortedCustomers.length > 0 && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Fines by Customer</h3>
+                  
+                  {sortedCustomers.map((customer) => (
+                    <Card key={customer.customerId} className="mb-4">
+                      <CardHeader className="bg-muted/50 py-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <CardTitle className="text-lg">{customer.customerName}</CardTitle>
+                            <CardDescription>
+                              Total: {formatCurrency(customer.totalAmount)} • {customer.fines.length} fine{customer.fines.length !== 1 ? 's' : ''}
+                            </CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Violation #</TableHead>
+                              <TableHead>License Plate</TableHead>
+                              <TableHead>Date</TableHead>
+                              <TableHead>Location</TableHead>
+                              <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {customer.fines.map((fine) => (
+                              <TableRow key={fine.id}>
+                                <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
+                                <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
+                                <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
+                                <TableCell>{fine.location || 'N/A'}</TableCell>
+                                <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
+                                <TableCell>
+                                  <Badge className={
+                                    fine.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
+                                    fine.paymentStatus === 'disputed' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 
+                                    'bg-red-100 text-red-800 hover:bg-red-200'
+                                  }>
+                                    {fine.paymentStatus === 'paid' ? 'Paid' : 
+                                     fine.paymentStatus === 'disputed' ? 'Disputed' : 'Pending'}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              {/* Unassigned Fines */}
+              {showUnassigned && unassignedFinesList.length > 0 && (
+                <div className="space-y-6">
+                  <h3 className="text-lg font-semibold">Unassigned Fines</h3>
+                  <Card>
+                    <CardContent className="p-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Violation #</TableHead>
+                            <TableHead>License Plate</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead>Location</TableHead>
+                            <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : filteredFines.length > 0 ? (
-            <div className="space-y-6">
-              <Card>
-                <CardHeader className="py-3">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-lg">Unassigned Fines</CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Violation #</TableHead>
-                        <TableHead>License Plate</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredFines.map((fine) => (
-                        <TableRow key={fine.id}>
-                          <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
-                          <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
-                          <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
-                          <TableCell>{fine.location || 'N/A'}</TableCell>
-                          <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
-                          <TableCell>
-                            <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
-                              {fine.paymentStatus || 'Pending'}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+                        </TableHeader>
+                        <TableBody>
+                          {unassignedFinesList.map((fine) => (
+                            <TableRow key={fine.id}>
+                              <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
+                              <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
+                              <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
+                              <TableCell>{fine.location || 'N/A'}</TableCell>
+                              <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
+                              <TableCell>
+                                <Badge className={
+                                  fine.paymentStatus === 'paid' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 
+                                  fine.paymentStatus === 'disputed' ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' : 
+                                  'bg-red-100 text-red-800 hover:bg-red-200'
+                                }>
+                                  {fine.paymentStatus === 'paid' ? 'Paid' : 
+                                   fine.paymentStatus === 'disputed' ? 'Disputed' : 'Pending'}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* No Results */}
+              {sortedCustomers.length === 0 && (!showUnassigned || unassignedFinesList.length === 0) && (
+                <div className="py-6 text-center text-muted-foreground">
+                  No traffic fines found matching your search criteria
+                </div>
+              )}
             </div>
           ) : (
             <div className="py-6 text-center text-muted-foreground">
-              No traffic fines found matching your search criteria
+              No traffic fines found in the system
             </div>
           )}
         </CardContent>
