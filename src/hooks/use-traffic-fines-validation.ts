@@ -165,7 +165,7 @@ export const useTrafficFinesValidation = () => {
   };
   
   // Manually validate a specific fine by ID - using BasicMutationResult to avoid type issues
-  const validateFineById: BasicMutationResult = useMutation({
+  const validateFineById = useMutation({
     mutationFn: async (fineId: string) => {
       try {
         const { data: fine, error: fineError } = await supabase
@@ -210,11 +210,12 @@ export const useTrafficFinesValidation = () => {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     }
-  }) as BasicMutationResult;
+  });
   
   // Check and update status for all pending fines - using BasicMutationResult type
-  const updateAllPendingFines: BasicMutationResult = useMutation({
-    mutationFn: async () => {
+  const updateAllPendingFines = useMutation({
+    // Fix TypeScript error by accepting an empty object parameter
+    mutationFn: async (_: any = {}) => {
       try {
         // Get all pending fines
         const { data: pendingFines, error: fetchError } = await supabase
@@ -282,7 +283,7 @@ export const useTrafficFinesValidation = () => {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
       });
     }
-  }) as BasicMutationResult;
+  });
   
   return {
     validationHistory,

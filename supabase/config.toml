@@ -9,4 +9,3 @@ verify_jwt = true
 
 [functions.process-agreement-imports]
 verify_jwt = true
-

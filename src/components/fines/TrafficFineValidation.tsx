@@ -137,7 +137,8 @@ const TrafficFineValidation = () => {
   
   const handleBatchUpdate = async () => {
     try {
-      const result = await updateAllPendingFines.mutateAsync();
+      // Pass an empty object to fix the TypeScript error
+      const result = await updateAllPendingFines.mutateAsync({});
       toast.success("Batch update completed", {
         description: result.message
       });
