@@ -91,6 +91,71 @@ const EditVehicle = () => {
     }
   };
   
+  // Helper function to check if the form data differs from the original vehicle data
+  const hasChanges = (formData: any, originalVehicle: any) => {
+    if (!originalVehicle) return true;
+    
+    // Check if an image was added
+    if (formData.image) return true;
+    
+    // Compare primitive fields
+    const fieldsToCompare = [
+      'make', 'model', 'year', 'license_plate', 'vin', 'color', 
+      'status', 'mileage', 'location', 'description', 'insurance_company', 
+      'insurance_expiry', 'rent_amount'
+    ];
+    
+    for (const field of fieldsToCompare) {
+      // Handle special case for license_plate which might be stored as licensePlate
+      if (field === 'license_plate') {
+        const originalValue = originalVehicle.license_plate || originalVehicle.licensePlate;
+        if (String(formData[field] || '') !== String(originalValue || '')) {
+          console.log(`Field '${field}' changed: ${originalValue} -> ${formData[field]}`);
+          return true;
+        }
+      } 
+      // Special case for description/notes field
+      else if (field === 'description') {
+        const originalValue = originalVehicle.description || originalVehicle.notes;
+        if (String(formData[field] || '') !== String(originalValue || '')) {
+          console.log(`Field '${field}' changed: ${originalValue} -> ${formData[field]}`);
+          return true;
+        }
+      }
+      // Special case for rent_amount/dailyRate field
+      else if (field === 'rent_amount') {
+        const originalValue = originalVehicle.rent_amount || originalVehicle.dailyRate;
+        if (Number(formData[field] || 0) !== Number(originalValue || 0)) {
+          console.log(`Field '${field}' changed: ${originalValue} -> ${formData[field]}`);
+          return true;
+        }
+      }
+      // For all other fields
+      else if (formData[field] !== undefined) {
+        const formValue = typeof formData[field] === 'string' 
+          ? formData[field].trim() 
+          : formData[field];
+          
+        const originalValue = originalVehicle[field];
+        
+        if (String(formValue || '') !== String(originalValue || '')) {
+          console.log(`Field '${field}' changed: ${originalValue} -> ${formValue}`);
+          return true;
+        }
+      }
+    }
+    
+    // Check vehicle_type_id separately as it has special handling
+    const formVehicleTypeId = formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id;
+    if (String(formVehicleTypeId || '') !== String(originalVehicle.vehicle_type_id || '')) {
+      console.log(`Field 'vehicle_type_id' changed: ${originalVehicle.vehicle_type_id} -> ${formVehicleTypeId}`);
+      return true;
+    }
+    
+    console.log('No changes detected in form data');
+    return false;
+  };
+  
   const handleSubmit = async (formData: any) => {
     if (!id) {
       console.error('No vehicle ID provided for update');
@@ -108,6 +173,16 @@ const EditVehicle = () => {
       toast.error('Missing required fields', {
         description: 'Please fill in all required fields'
       });
+      return;
+    }
+    
+    // Check if there are any changes to save
+    if (!hasChanges(formData, vehicle)) {
+      console.log('No changes detected, skipping update');
+      toast.info('No changes to save', {
+        description: 'The vehicle data remains unchanged'
+      });
+      navigate(`/vehicles/${id}`);
       return;
     }
     
