@@ -1,6 +1,4 @@
-
 import { toast } from 'sonner';
-import { useMutation } from '@tanstack/react-query';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
@@ -79,14 +77,14 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
     for (const agreement of activeAgreements) {
       try {
         // Logic to generate payment schedule for this agreement
-        // You might want to implement this based on your app's requirements
         console.log(`Generating payment schedule for agreement: ${agreement.agreement_number}`);
         
         // Mark the agreement as having a payment schedule
         const { error: updateError } = await supabase
           .from('leases')
           .update({ 
-            payment_schedule_generated: new Date().toISOString() 
+            updated_at: new Date().toISOString(),
+            notes: `Payment schedule generated on ${new Date().toISOString()}` 
           })
           .eq('id', agreement.id);
         
@@ -117,7 +115,6 @@ export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
   }
 };
 
-// Add the missing functions that were referenced in the build errors
 export const checkVehicleAvailability = async (vehicleId: string): Promise<{
   isAvailable: boolean;
   existingAgreement?: any;

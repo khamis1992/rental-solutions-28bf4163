@@ -90,7 +90,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
       {vehicles.map(vehicle => {
         const licensePlate = vehicle.licensePlate || vehicle.license_plate || '';
         const imageUrl = vehicle.imageUrl || vehicle.image_url || '';
-        const status = String(vehicle.status);
+        const status = vehicle.status ? String(vehicle.status) : 'unknown';
         
         return (
           <VehicleCard
