@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
 import { BasicMutationResult } from '@/utils/type-utils';
 
 export type SimpleAgreement = {
@@ -244,6 +244,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
+  // Fix the duplicate definition by using a different name for the mutation
   const updateAgreementMutation = useMutation<Agreement, Error, { id: string; data: Partial<AgreementCreate> }>({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
       console.log("Update mutation called with:", { id, data });
@@ -254,7 +255,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  const updateAgreement: BasicMutationResult = {
+  // Define as separate object to avoid recursive type reference
+  const updateAgreementInterface: BasicMutationResult = {
     mutateAsync: updateAgreementMutation.mutateAsync,
     isPending: updateAgreementMutation.isPending,
     isError: updateAgreementMutation.isError,
@@ -356,7 +358,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     setSearchParams,
     getAgreement,
     createAgreement,
-    updateAgreement,
+    updateAgreement: updateAgreementInterface,
     deleteAgreement,
     useList: (params: any) => {
       const queryKey = ['agreements', params];

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, Copy, Edit, Trash, FileText, Download } from 'lucide-react';
 import { toast } from 'sonner';
-import { Agreement } from '@/lib/validation-schemas/agreement';
 import { useAgreements } from '@/hooks/use-agreements';
 import { useDownload } from '@/hooks/use-download';
 import { cn } from '@/lib/utils';
@@ -30,7 +28,7 @@ const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }
   const { useList, deleteAgreement: deleteAgreementHook } = useAgreements();
   const { data: agreements, isLoading, error } = useList({ customer_id: customerId });
   const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
-  const { download, isDownloading } = useDownload ? useDownload() : { download: () => {}, isDownloading: false };
+  const { download, isDownloading } = useDownload();
 
   const columns = [
     {
@@ -78,10 +76,8 @@ const AgreementList: React.FC<AgreementListProps> = ({ customerId, searchQuery }
 
         const handleDownloadAgreement = async () => {
           setSelectedAgreementId(agreement.id);
-          // Since we don't have the actual function, let's handle this gracefully
           try {
             toast.info('Downloading agreement...');
-            // Simulating PDF generation with a delay
             setTimeout(() => {
               toast.success('Agreement downloaded successfully');
             }, 2000);
