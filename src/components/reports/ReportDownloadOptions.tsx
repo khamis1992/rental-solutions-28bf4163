@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -148,20 +149,20 @@ const ReportDownloadOptions = ({
                     yPos += 15;
                     
                     // Create a dedicated section for each customer
-                    let currentPage = 1;
+                    let pageCounter = 1;
                     Object.entries(finesByCustomer).forEach(([customerId, data]) => {
                       const customerData = data as { customerName: string, fines: any[] };
                       
                       // Check if we need a new page
                       if (yPos > 240) {
                         doc.addPage();
-                        currentPage++;
+                        pageCounter++;
                         yPos = 20;
                         
                         // Add header to new page
                         doc.setFontSize(12);
                         doc.setFont('helvetica', 'bold');
-                        doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                        doc.text(`Traffic Fine Report (Page ${pageCounter})`, 14, yPos);
                         yPos += 15;
                       }
                       
@@ -185,13 +186,13 @@ const ReportDownloadOptions = ({
                         // Check if we need a new page
                         if (yPos > 250) {
                           doc.addPage();
-                          currentPage++;
+                          pageCounter++;
                           yPos = 20;
                           
                           // Add header to new page
                           doc.setFontSize(12);
                           doc.setFont('helvetica', 'bold');
-                          doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                          doc.text(`Traffic Fine Report (Page ${pageCounter})`, 14, yPos);
                           yPos += 10;
                           
                           // Continue with customer
@@ -248,13 +249,13 @@ const ReportDownloadOptions = ({
                     // Check if we need a new page
                     if (yPos > 220) {
                       doc.addPage();
-                      currentPage++;
+                      pageCounter++;
                       yPos = 20;
                       
                       // Add title to new page
                       doc.setFontSize(12);
                       doc.setFont('helvetica', 'bold');
-                      doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                      doc.text(`Traffic Fine Report (Page ${pageCounter})`, 14, yPos);
                       yPos += 10;
                     }
                     
@@ -277,13 +278,13 @@ const ReportDownloadOptions = ({
                       // Check if we need a new page
                       if (yPos > 250) {
                         doc.addPage();
-                        currentPage++;
+                        pageCounter++;
                         yPos = 20;
                         
                         // Add header to new page
                         doc.setFontSize(12);
                         doc.setFont('helvetica', 'bold');
-                        doc.text(`Traffic Fine Report (Page ${currentPage})`, 14, yPos);
+                        doc.text(`Traffic Fine Report (Page ${pageCounter})`, 14, yPos);
                         yPos += 10;
                         
                         doc.text('Unassigned Fines (continued):', 14, yPos);
