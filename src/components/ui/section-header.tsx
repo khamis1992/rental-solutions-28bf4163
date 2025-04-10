@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { LucideIcon } from 'lucide-react';
@@ -18,8 +19,8 @@ const SectionHeader = ({
   className,
 }: SectionHeaderProps) => {
   return (
-    <div className={cn("mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", className)}>
-      <div className="flex items-center space-x-4 w-full sm:w-auto">
+    <div className={cn("mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4", className)}>
+      <div className="flex items-center">
         {Icon && (
           <div className="mr-3 p-2 rounded-md bg-primary/10 text-primary">
             <Icon className="h-5 w-5" />
@@ -28,11 +29,11 @@ const SectionHeader = ({
         <div>
           <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
           {description && (
-            <p className="text-muted-foreground mt-1 text-sm sm:text-base">{description}</p>
+            <p className="text-muted-foreground mt-1">{description}</p>
           )}
         </div>
       </div>
-
+      
       {actions && (
         <div className="flex items-center space-x-2">
           {actions}

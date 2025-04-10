@@ -1,16 +1,4 @@
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
-
-const TableWrapper = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div className="w-full overflow-auto" ref={ref} {...props} />
-));
-TableWrapper.displayName = "TableWrapper";
-
-
 import * as React from "react"
 
 import { cn } from "@/lib/utils"

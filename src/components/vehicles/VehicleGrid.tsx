@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { VehicleCard } from '@/components/ui/vehicle-card';
 import { Vehicle, VehicleFilterParams } from '@/types/vehicle';
@@ -18,7 +19,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   const { useList } = useVehicles();
   const { data: vehicles, isLoading, error } = useList(filter);
   const navigate = useNavigate();
-
+  
   // Handle navigation to vehicle details
   const handleSelect = (id: string) => {
     if (onSelectVehicle) {
@@ -90,7 +91,7 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 section-transition">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
       {vehicles.map(vehicle => (
         <VehicleCard
           key={vehicle.id}
