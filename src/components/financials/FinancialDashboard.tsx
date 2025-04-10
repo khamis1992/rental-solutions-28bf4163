@@ -39,11 +39,11 @@ const FinancialDashboard = memo(() => {
   };
 
   // Simulated trend data - could be enhanced later with real trend calculation 
-  const trendData = {
+  const trendData = useMemo(() => ({
     revenueChange: financialSummary ? getPercentageChange(financialSummary.totalIncome, financialSummary.totalIncome * 0.95) : 0,
     expenseChange: financialSummary ? getPercentageChange(financialSummary.totalExpenses, financialSummary.totalExpenses * 1.02) : 0,
     profitChange: financialSummary ? getPercentageChange(financialSummary.netRevenue, financialSummary.netRevenue * 0.93) : 0
-  };
+  }), [financialSummary]);
 
   const prepareRevenueChartData = useMemo(() => {
     if (!revenueData || revenueData.length === 0) {

@@ -67,7 +67,14 @@ export const useVehicles = () => {
             
             let query = supabase
               .from('vehicles')
-              .select('*, vehicle_types(*)');
+              .select('*, vehicle_types(*)')
+              .order('created_at', { ascending: false })
+              .limit(20); // Implement pagination
+              
+            // Add cursor-based pagination
+            if (filters?.cursor) {
+              query = query.lt('created_at', filters.cursor);
+            }
             
             if (filters) {
               if (filters.status) {

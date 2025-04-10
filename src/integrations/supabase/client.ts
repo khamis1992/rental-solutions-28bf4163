@@ -95,7 +95,11 @@ export const checkSupabaseHealth = async (): Promise<{
   error?: string; 
   latency?: number;
   timestamp: number;
+  connectionCount?: number;
 }> => {
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000;
+  let retryCount = 0;
   try {
     // Use cached result if recent
     const now = Date.now();

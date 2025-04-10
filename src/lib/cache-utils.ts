@@ -7,6 +7,15 @@ type CacheEntry<T> = {
 export class CacheManager {
   private static cache = new Map<string, CacheEntry<any>>();
   private static TTL = 5 * 60 * 1000; // 5 minutes
+  private static MAX_CACHE_SIZE = 100; // Maximum number of entries
+  private static accessOrder: string[] = [];
+
+  private static evictLRU() {
+    while (this.cache.size > this.MAX_CACHE_SIZE && this.accessOrder.length > 0) {
+      const oldest = this.accessOrder.shift();
+      if (oldest) this.cache.delete(oldest);
+    }
+  }
 
   static set<T>(key: string, data: T): void {
     this.cache.set(key, {
