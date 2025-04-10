@@ -17,6 +17,10 @@ import EditCustomer from './pages/EditCustomer';
 import CreateCustomer from './pages/CreateCustomer';
 import AgreementImportPage from './pages/AgreementImportPage';
 import VehicleStatusUpdatePage from "./pages/VehicleStatusUpdatePage";
+import { useIsMobile } from "./hooks/use-mobile";
+import { MobileDashboard } from "./components/mobile/MobileDashboard";
+import { VehicleInspection } from "./components/mobile/VehicleInspection";
+
 
 const router = createBrowserRouter([
   {
@@ -25,7 +29,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <Dashboard />,
+        element: useIsMobile() ? <MobileDashboard /> : <Dashboard />,
       },
       {
         path: '/agreements',
@@ -49,7 +53,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/vehicles',
-        element: <Vehicles />,
+        element: useIsMobile() ? <VehicleInspection /> : <Vehicles />,
       },
       {
         path: '/vehicles/:id',
