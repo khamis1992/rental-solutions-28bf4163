@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Car, ArrowLeft, AlertOctagon, Loader2 } from 'lucide-react';
+import { Car, ArrowLeft, AlertOctagon, Loader2, WifiOff } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleForm from '@/components/vehicles/VehicleForm';
 import PageContainer from '@/components/layout/PageContainer';
@@ -8,7 +9,7 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, checkSupabaseHealth } from '@/integrations/supabase/client';
 import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { mapDatabaseStatus, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 
@@ -17,10 +18,39 @@ const EditVehicle = () => {
   const navigate = useNavigate();
   const [bucketError, setBucketError] = useState<string | null>(null);
   const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(true);
   
-  const { useVehicle, useUpdate } = useVehicles();
+  const { useVehicle, useUpdate, useConnectionStatus } = useVehicles();
   const { data: vehicle, isLoading, error, refetch } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
+  const { data: connectionStatus } = useConnectionStatus();
+  
+  // Check connection status periodically
+  useEffect(() => {
+    const checkConnection = async () => {
+      const health = await checkSupabaseHealth();
+      setIsConnected(health.isHealthy);
+      
+      if (!health.isHealthy) {
+        toast.error('Database connection lost', {
+          description: 'Please check your internet connection and try again.',
+        });
+      }
+    };
+    
+    checkConnection();
+    const interval = setInterval(checkConnection, 10000); // Check every 10 seconds
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  useEffect(() => {
+    if (connectionStatus === false) {
+      toast.error('Database connection error', {
+        description: 'Unable to connect to the database. Please check your internet connection.',
+      });
+    }
+  }, [connectionStatus]);
   
   useEffect(() => {
     if (!id) {
@@ -88,6 +118,7 @@ const EditVehicle = () => {
     }
   };
   
+  // Improved hasChanges function to correctly compare status values
   const hasChanges = (formData: any, originalVehicle: any) => {
     if (!originalVehicle) return true;
     
@@ -135,18 +166,24 @@ const EditVehicle = () => {
       }
     }
     
+    // Special handling for status field - compare normalized values
     if (formData.status !== undefined) {
-      const formStatus = formData.status;
-      const originalStatus = originalVehicle.status;
+      // Convert both values to database format for comparison
+      const formDbStatus = mapToDBStatus(formData.status);
+      const originalDbStatus = typeof originalVehicle.status === 'string' 
+        ? originalVehicle.status 
+        : mapToDBStatus(originalVehicle.status);
       
       console.log('Status comparison:', {
-        formStatus,
-        originalStatus,
-        equal: formStatus === originalStatus
+        formStatus: formData.status,
+        formDbStatus,
+        originalStatus: originalVehicle.status,
+        originalDbStatus,
+        equal: formDbStatus === originalDbStatus,
       });
       
-      if (formStatus !== originalStatus) {
-        console.log(`Status changed: ${originalStatus} -> ${formStatus}`);
+      if (formDbStatus !== originalDbStatus) {
+        console.log(`Status changed: ${originalDbStatus} -> ${formDbStatus}`);
         return true;
       }
     }
@@ -176,6 +213,15 @@ const EditVehicle = () => {
       console.error('Missing required fields in form data:', formData);
       toast.error('Missing required fields', {
         description: 'Please fill in all required fields'
+      });
+      return;
+    }
+    
+    // Check connection before proceeding
+    const isConnected = await checkSupabaseHealth();
+    if (!isConnected.isHealthy) {
+      toast.error('Database connection error', {
+        description: 'Please check your internet connection and try again.'
       });
       return;
     }
@@ -217,6 +263,14 @@ const EditVehicle = () => {
       
       const safeFormData = { ...formData };
       
+      // Log status explicitly for debugging
+      if (safeFormData.status) {
+        const dbStatus = mapToDBStatus(safeFormData.status);
+        console.log(`Status mapping for submission: "${safeFormData.status}" -> "${dbStatus}"`);
+        // Ensure status is correctly set
+        safeFormData.status = safeFormData.status.trim();
+      }
+      
       console.log('Submitting vehicle update with data:', safeFormData);
       
       updateVehicle(
@@ -243,6 +297,27 @@ const EditVehicle = () => {
       });
     }
   };
+  
+  if (!isConnected) {
+    return (
+      <PageContainer>
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 p-6 rounded-lg">
+          <div className="flex items-center mb-4">
+            <WifiOff className="h-6 w-6 mr-2" />
+            <h2 className="text-xl font-semibold">Connection Error</h2>
+          </div>
+          <p>Cannot connect to the database. Please check your internet connection.</p>
+          <CustomButton 
+            className="mt-4" 
+            variant="outline" 
+            onClick={() => window.location.reload()}
+          >
+            Retry Connection
+          </CustomButton>
+        </div>
+      </PageContainer>
+    );
+  }
   
   if (isLoading) {
     return (

@@ -1,29 +1,80 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
-import { supabase } from '@/lib/supabase';
+import { supabase, checkSupabaseHealth } from '@/lib/supabase';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
 
+const checkConnectionWithRetry = async (retries = 3, delay = 1000): Promise<boolean> => {
+  let attempts = 0;
+  
+  while (attempts < retries) {
+    const { isHealthy } = await checkSupabaseHealth();
+    if (isHealthy) return true;
+    
+    attempts++;
+    if (attempts < retries) {
+      console.log(`Connection attempt ${attempts} failed, retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  console.error(`Failed to connect to database after ${retries} attempts`);
+  return false;
+};
+
 export const useVehicles = () => {
   const queryClient = useQueryClient();
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
+  
+  useEffect(() => {
+    const checkConnection = async () => {
+      const isConnected = await checkConnectionWithRetry();
+      setConnectionStatus(isConnected ? 'connected' : 'disconnected');
+      
+      if (!isConnected) {
+        toast.error('Database connection error', {
+          description: 'Failed to connect to the database. Check your internet connection.',
+          duration: 5000,
+        });
+      }
+    };
+    
+    checkConnection();
+  }, []);
   
   return {
+    connectionStatus,
+    
+    useConnectionStatus: () => {
+      return useQuery({
+        queryKey: ['databaseConnection'],
+        queryFn: async () => {
+          const result = await checkSupabaseHealth();
+          return result.isHealthy;
+        },
+        refetchInterval: 30000,
+      });
+    },
+    
     useList: (filters?: VehicleFilterParams) => {
       return useQuery({
         queryKey: ['vehicles', filters],
         queryFn: async () => {
           try {
-            // Start with the base query
+            const { isHealthy, error: connectionError } = await checkSupabaseHealth();
+            
+            if (!isHealthy) {
+              throw new Error(`Database connection error: ${connectionError || 'Failed to connect'}`);
+            }
+            
             let query = supabase
               .from('vehicles')
               .select('*, vehicle_types(*)');
             
-            // Apply filters if provided
             if (filters) {
-              // Apply status filter, handling the reserved->reserve mapping
               if (filters.status) {
                 if (filters.status === 'reserved') {
                   query = query.eq('status', 'reserve');
@@ -32,7 +83,6 @@ export const useVehicles = () => {
                 }
               }
               
-              // Apply other filters
               if (filters.make) {
                 query = query.eq('make', filters.make);
               }
@@ -53,27 +103,53 @@ export const useVehicles = () => {
                 query = query.eq('year', filters.year);
               }
               
-              // Add search functionality for VIN
               if (filters.search) {
                 query = query.ilike('vin', `%${filters.search}%`);
               }
             }
             
-            // Execute the query and sort by creation date
-            const { data, error } = await query.order('created_at', { ascending: false });
+            let attempts = 0;
+            const maxAttempts = 2;
+            let lastError = null;
             
-            if (error) {
-              throw error;
+            while (attempts < maxAttempts) {
+              try {
+                const { data, error } = await query.order('created_at', { ascending: false });
+                
+                if (error) {
+                  lastError = error;
+                  attempts++;
+                  if (attempts < maxAttempts) {
+                    console.log(`Query attempt ${attempts} failed, retrying...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    continue;
+                  }
+                  throw error;
+                }
+                
+                return data.map(record => mapDatabaseRecordToVehicle(record));
+              } catch (err) {
+                lastError = err;
+                attempts++;
+                if (attempts < maxAttempts) {
+                  console.log(`Query attempt ${attempts} failed with error:`, err);
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                } else {
+                  break;
+                }
+              }
             }
             
-            // Map the database records to our application model
-            return data.map(record => mapDatabaseRecordToVehicle(record));
+            throw lastError;
           } catch (error) {
+            console.error('Failed to fetch vehicles:', error);
             handleApiError(error, 'Failed to fetch vehicles');
             throw error;
           }
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5,
+        retry: 2,
+        retryDelay: 1000,
       });
     },
     
@@ -87,11 +163,17 @@ export const useVehicles = () => {
             }
             
             console.log(`Fetching vehicle with ID: ${id}`);
+            
+            const { isHealthy } = await checkSupabaseHealth();
+            if (!isHealthy) {
+              throw new Error('Database connection error');
+            }
+            
             const { data, error } = await supabase
               .from('vehicles')
               .select('*, vehicle_types(*)')
               .eq('id', id)
-              .maybeSingle(); // Changed from single() to maybeSingle()
+              .maybeSingle();
             
             if (error) {
               console.error(`Error fetching vehicle ${id}:`, error);
@@ -112,6 +194,8 @@ export const useVehicles = () => {
           }
         },
         enabled: Boolean(id),
+        retry: 2,
+        retryDelay: 1000,
       });
     },
     
@@ -136,6 +220,8 @@ export const useVehicles = () => {
             throw error;
           }
         },
+        retry: 2,
+        retryDelay: 1000,
       });
     },
     
@@ -157,7 +243,6 @@ export const useVehicles = () => {
               }
             }
             
-            // Build vehicle data object for insertion
             const vehicleData: VehicleInsertData = {
               make: formData.make,
               model: formData.model,
@@ -176,7 +261,6 @@ export const useVehicles = () => {
               status: formData.status ? mapToDBStatus(formData.status) : 'available',
             };
             
-            // Insert new vehicle
             const { data, error } = await supabase
               .from('vehicles')
               .insert(vehicleData)
@@ -191,7 +275,6 @@ export const useVehicles = () => {
               try {
                 const newImageUrl = await uploadVehicleImage(formData.image, data.id);
                 
-                // Update with the final image URL using the actual vehicle ID
                 const { error: updateError } = await supabase
                   .from('vehicles')
                   .update({ image_url: newImageUrl })
@@ -231,10 +314,9 @@ export const useVehicles = () => {
               throw new Error('Vehicle ID is required for update');
             }
             
-            // Verify the vehicle exists before attempting to update
             const { data: existingVehicle, error: checkError } = await supabase
               .from('vehicles')
-              .select('id')
+              .select('id, status')
               .eq('id', id)
               .maybeSingle();
               
@@ -247,6 +329,8 @@ export const useVehicles = () => {
               console.error('Vehicle not found with ID:', id);
               throw new Error(`Vehicle with ID ${id} not found`);
             }
+            
+            console.log('Current vehicle status in database:', existingVehicle.status);
             
             let imageUrl = null;
             if (data.image) {
@@ -263,25 +347,27 @@ export const useVehicles = () => {
               }
             }
             
-            // Build an update object for Supabase
             const vehicleData: VehicleUpdateData = {};
             
-            // Required fields
             if (data.make !== undefined) vehicleData.make = data.make;
             if (data.model !== undefined) vehicleData.model = data.model;
             if (data.year !== undefined) vehicleData.year = data.year;
             if (data.license_plate !== undefined) vehicleData.license_plate = data.license_plate;
             if (data.vin !== undefined) vehicleData.vin = data.vin;
             
-            // Optional fields
             if (data.color !== undefined) vehicleData.color = data.color;
-            if (data.status !== undefined) vehicleData.status = mapToDBStatus(data.status);
+            
+            if (data.status !== undefined) {
+              const newStatus = mapToDBStatus(data.status);
+              vehicleData.status = newStatus;
+              console.log('Status being updated to:', newStatus, 'from form value:', data.status);
+            }
+            
             if (data.mileage !== undefined) vehicleData.mileage = data.mileage;
             if (data.description !== undefined) vehicleData.description = data.description;
             if (data.location !== undefined) vehicleData.location = data.location;
             if (data.insurance_company !== undefined) vehicleData.insurance_company = data.insurance_company;
             
-            // Handle insurance_expiry specifically to avoid empty string issues
             if ('insurance_expiry' in data) {
               vehicleData.insurance_expiry = data.insurance_expiry || null;
             }
@@ -296,7 +382,6 @@ export const useVehicles = () => {
             
             console.log('Updating vehicle with data:', vehicleData);
             
-            // Update the vehicle and get the updated record
             const { data: updatedVehicle, error } = await supabase
               .from('vehicles')
               .update(vehicleData)
@@ -309,8 +394,6 @@ export const useVehicles = () => {
               throw error;
             }
             
-            // Fix for the "Vehicle update succeeded but no data returned" error
-            // If the update succeeded but no data was returned, fetch the vehicle data separately
             if (!updatedVehicle) {
               console.log('Update succeeded but no data returned, fetching vehicle data separately');
               const { data: fetchedVehicle, error: fetchError } = await supabase
@@ -352,7 +435,6 @@ export const useVehicles = () => {
       return useMutation({
         mutationFn: async (id: string): Promise<string> => {
           try {
-            // First check if vehicle is in use
             const { data: leases, error: leasesError } = await supabase
               .from('leases')
               .select('id')
@@ -364,22 +446,20 @@ export const useVehicles = () => {
               throw leasesError;
             }
             
-            if (leases.length > 0) {
+            if (leases && leases.length > 0) {
               throw new Error('Cannot delete a vehicle that is currently in use');
             }
             
-            // Check for vehicle image to delete
             const { data: vehicle, error: vehicleError } = await supabase
               .from('vehicles')
               .select('image_url')
               .eq('id', id)
-              .single();
+              .maybeSingle();
               
             if (vehicleError) {
               throw vehicleError;
             }
             
-            // Delete the vehicle
             const { error } = await supabase
               .from('vehicles')
               .delete()
@@ -389,7 +469,6 @@ export const useVehicles = () => {
               throw error;
             }
             
-            // Delete the image if it exists
             if (vehicle && vehicle.image_url) {
               try {
                 const urlParts = vehicle.image_url.split('/');
