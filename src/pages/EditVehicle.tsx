@@ -47,6 +47,12 @@ const EditVehicle = () => {
     }
   };
   
+  // Handle status update completion
+  const handleStatusUpdated = () => {
+    console.log('Status updated, refreshing vehicle data');
+    refetch();
+  };
+  
   if (isLoading) {
     return (
       <PageContainer>
@@ -114,17 +120,18 @@ const EditVehicle = () => {
         />
       </div>
 
+      {/* Status Update Dialog */}
       <StatusUpdateDialog
         isOpen={showStatusDialog}
         onClose={() => setShowStatusDialog(false)}
-        currentStatus={vehicle.status}
+        currentStatus={vehicle.status || 'available'}
         vehicleId={vehicle.id}
         vehicleDetails={{
           make: vehicle.make,
           model: vehicle.model,
-          licensePlate: vehicle.licensePlate
+          licensePlate: vehicle.licensePlate || vehicle.license_plate
         }}
-        onStatusUpdated={refetch}
+        onStatusUpdated={handleStatusUpdated}
       />
     </PageContainer>
   );
