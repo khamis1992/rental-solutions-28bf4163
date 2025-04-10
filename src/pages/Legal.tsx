@@ -1,3 +1,4 @@
+
 import React from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -9,16 +10,23 @@ import LegalDocuments from '@/components/legal/LegalDocuments';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+
 const Legal = () => {
   const navigate = useNavigate();
+  
   const handleTabChange = (value: string) => {
     // This ensures we don't refresh the page when changing tabs
     console.log(`Tab changed to: ${value}`);
   };
+  
   const handleExportReport = () => {
     toast.success("Legal compliance report is being generated");
   };
-  return <PageContainer title="Legal Management" description="Manage legal documents, compliance requirements, and legal cases" actions={<div className="flex items-center space-x-2">
+  
+  return <PageContainer 
+    title="Legal Management" 
+    description="Manage legal documents, compliance requirements, and legal cases" 
+    actions={<div className="flex items-center space-x-2">
           <Button variant="outline" onClick={handleExportReport} className="flex items-center space-x-2">
             <ClipboardList className="h-4 w-4" />
             <span>Export Report</span>
@@ -27,7 +35,8 @@ const Legal = () => {
             <AlertTriangle className="h-4 w-4" />
             <span>New Case</span>
           </Button>
-        </div>}>
+        </div>}
+  >
       <SectionHeader title="Legal Management" description="Track and manage all legal aspects of your fleet operations" icon={Gavel} />
       
       <Tabs defaultValue="dashboard" className="space-y-4" onValueChange={handleTabChange}>
@@ -40,6 +49,11 @@ const Legal = () => {
           <TabsTrigger value="obligations">
             <Gavel className="h-4 w-4 mr-2" />
             Customer Obligations
+          </TabsTrigger>
+          
+          <TabsTrigger value="documents">
+            <FileText className="h-4 w-4 mr-2" />
+            Legal Documents
           </TabsTrigger>
         </TabsList>
         
@@ -57,4 +71,5 @@ const Legal = () => {
       </Tabs>
     </PageContainer>;
 };
+
 export default Legal;
