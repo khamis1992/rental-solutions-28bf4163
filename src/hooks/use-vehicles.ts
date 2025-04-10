@@ -47,6 +47,9 @@ export const useVehicles = () => {
       return useQuery({
         queryKey: ['vehicles', filters],
         queryFn: async () => {
+          const cacheKey = `vehicles-${JSON.stringify(filters)}`;
+          const cachedData = CacheManager.get(cacheKey);
+          if (cachedData) return cachedData;
           try {
             const { isHealthy, error: connectionError } = await checkSupabaseHealth();
             
