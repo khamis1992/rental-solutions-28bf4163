@@ -396,28 +396,13 @@ export const useVehicles = () => {
               .update(vehicleData)
               .eq('id', id)
               .select('*, vehicle_types(*)')
-              .single();
+              .maybeSingle();
               
             if (error) {
               console.error('Supabase update error:', error);
               throw new Error(`Failed to update vehicle: ${error.message}`);
             }
 
-            if (!updatedVehicle) {
-              throw new Error('Vehicle update failed - no data returned');
-            }
-
-            // Verify the update was successful by comparing key fields
-            const verifyUpdate = await supabase
-              .from('vehicles')
-              .select('*')
-              .eq('id', id)
-              .single();
-
-            if (verifyUpdate.error || !verifyUpdate.data) {
-              throw new Error('Failed to verify vehicle update');
-            }
-            
             if (!updatedVehicle) {
               console.log('Update succeeded but no data returned, fetching vehicle data separately');
               const { data: fetchedVehicle, error: fetchError } = await supabase
