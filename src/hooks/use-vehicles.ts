@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Vehicle, VehicleFilterParams, VehicleFormData, VehicleInsertData, VehicleUpdateData } from '@/types/vehicle';
 import { supabase } from '@/lib/supabase';
+import { CacheManager } from '@/lib/cache-utils';
 import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
@@ -47,9 +48,16 @@ export const useVehicles = () => {
       return useQuery({
         queryKey: ['vehicles', filters],
         queryFn: async () => {
-          const cacheKey = `vehicles-${JSON.stringify(filters)}`;
-          const cachedData = CacheManager.get(cacheKey);
-          if (cachedData) return cachedData;
+          const cacheKey = `vehicles-${JSON.stringify(filters || {})}`;
+          try {
+            const cachedData = CacheManager.get(cacheKey);
+            if (cachedData) {
+              console.log('Using cached vehicle data');
+              return cachedData;
+            }
+          } catch (error) {
+            console.warn('Cache retrieval failed:', error);
+          }
           try {
             const { isHealthy, error: connectionError } = await checkSupabaseHealth();
             
