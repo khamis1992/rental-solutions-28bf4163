@@ -1,0 +1,94 @@
+import React from 'react';
+import { createBrowserRouter } from 'react-router-dom';
+import App from './App';
+import Dashboard from './pages/Dashboard';
+import Agreements from './pages/Agreements';
+import Vehicles from './pages/Vehicles';
+import Customers from './pages/Customers';
+import Settings from './pages/Settings';
+import AgreementDetail from './pages/AgreementDetail';
+import EditAgreement from './pages/EditAgreement';
+import CreateAgreement from './pages/CreateAgreement';
+import VehicleDetailPage from './pages/VehicleDetailPage';
+import EditVehicle from './pages/EditVehicle';
+import CreateVehicle from './pages/CreateVehicle';
+import CustomerDetailPage from './pages/CustomerDetailPage';
+import EditCustomer from './pages/EditCustomer';
+import CreateCustomer from './pages/CreateCustomer';
+import AgreementImportPage from './pages/AgreementImportPage';
+import VehicleStatusUpdatePage from "./pages/VehicleStatusUpdatePage";
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <App />,
+    children: [
+      {
+        path: '/',
+        element: <Dashboard />,
+      },
+      {
+        path: '/agreements',
+        element: <Agreements />,
+      },
+      {
+        path: '/agreements/:id',
+        element: <AgreementDetail />,
+      },
+      {
+        path: '/agreements/edit/:id',
+        element: <EditAgreement />,
+      },
+      {
+        path: '/agreements/add',
+        element: <CreateAgreement />,
+      },
+      {
+        path: '/agreements/import',
+        element: <AgreementImportPage />,
+      },
+      {
+        path: '/vehicles',
+        element: <Vehicles />,
+      },
+      {
+        path: '/vehicles/:id',
+        element: <VehicleDetailPage />,
+      },
+      {
+        path: '/vehicles/edit/:id',
+        element: <EditVehicle />,
+      },
+      {
+        path: '/vehicles/add',
+        element: <CreateVehicle />,
+      },
+      {
+        path: "status-update",
+        element: <VehicleStatusUpdatePage />,
+      },
+      {
+        path: '/customers',
+        element: <Customers />,
+      },
+      {
+        path: '/customers/:id',
+        element: <CustomerDetailPage />,
+      },
+      {
+        path: '/customers/edit/:id',
+        element: <EditCustomer />,
+      },
+      {
+        path: '/customers/add',
+        element: <CreateCustomer />,
+      },
+      {
+        path: '/settings',
+        element: <Settings />,
+      },
+    ],
+  },
+]);
+
+export default router;
