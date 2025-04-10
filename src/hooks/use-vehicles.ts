@@ -268,10 +268,14 @@ export const useVehicles = () => {
               .from('vehicles')
               .insert(vehicleData)
               .select('*, vehicle_types(*)')
-              .single();
+              .maybeSingle();
               
             if (error) {
               throw error;
+            }
+            
+            if (!data) {
+              throw new Error('Vehicle was created but no data was returned');
             }
             
             if (imageUrl && formData.image) {
@@ -317,7 +321,6 @@ export const useVehicles = () => {
               throw new Error('Vehicle ID is required for update');
             }
 
-            // Verify database connection first
             const { isHealthy, error: healthError } = await checkSupabaseHealth();
             if (!isHealthy) {
               throw new Error(`Database connection error: ${healthError || 'Connection failed'}`);
@@ -396,28 +399,13 @@ export const useVehicles = () => {
               .update(vehicleData)
               .eq('id', id)
               .select('*, vehicle_types(*)')
-              .single();
+              .maybeSingle();
               
             if (error) {
               console.error('Supabase update error:', error);
               throw new Error(`Failed to update vehicle: ${error.message}`);
             }
 
-            if (!updatedVehicle) {
-              throw new Error('Vehicle update failed - no data returned');
-            }
-
-            // Verify the update was successful by comparing key fields
-            const verifyUpdate = await supabase
-              .from('vehicles')
-              .select('*')
-              .eq('id', id)
-              .single();
-
-            if (verifyUpdate.error || !verifyUpdate.data) {
-              throw new Error('Failed to verify vehicle update');
-            }
-            
             if (!updatedVehicle) {
               console.log('Update succeeded but no data returned, fetching vehicle data separately');
               const { data: fetchedVehicle, error: fetchError } = await supabase
