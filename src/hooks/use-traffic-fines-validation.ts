@@ -67,13 +67,23 @@ export const useTrafficFinesValidation = () => {
   });
   
   // Track validation attempts - simplified return type to avoid deep type instantiation
-  const incrementValidationAttempt = async (licensePlate: string): Promise<Record<string, any> | null> => {
+  interface ValidationAttempt {
+    id: string;
+    license_plate: string;
+    validation_date: string;
+    status: string;
+  }
+
+  const incrementValidationAttempt = async (licensePlate: string): Promise<ValidationAttempt | null> => {
+    if (typeof licensePlate !== 'string' || !licensePlate.trim()) {
+      throw new Error('Invalid license plate format');
+    }
+
     try {
-      // Check if we have previous validations for this license plate
       const { data: existingValidations, error: queryError } = await supabase
         .from('traffic_fine_validations')
-        .select('id')
-        .eq('license_plate', licensePlate)
+        .select('id, license_plate, validation_date, status')
+        .eq('license_plate', licensePlate.trim())
         .maybeSingle();
       
       if (queryError) {
