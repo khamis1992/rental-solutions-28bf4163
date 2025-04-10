@@ -6,6 +6,25 @@
 @tailwind utilities;
 
 @layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  
+  @media (max-width: 640px) {
+    .container {
+      @apply px-4;
+    }
+  }
+
   :root {
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
