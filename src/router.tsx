@@ -32,6 +32,10 @@ const router = createBrowserRouter([
         element: useIsMobile() ? <MobileDashboard /> : <Dashboard />,
       },
       {
+        path: '/mobile',
+        element: <MobileDashboard />,
+      },
+      {
         path: '/agreements',
         element: <Agreements />,
       },
