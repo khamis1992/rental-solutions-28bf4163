@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
-import { updateVehicleStatus, findVehicleByLicensePlate, updateVehicleInfo } from '@/utils/vehicle-update';
+import { updateVehicleStatus, findVehicleByLicensePlate } from '@/utils/vehicle-update';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VehicleStatus } from '@/types/vehicle';
 import { toast } from 'sonner';
-import { Loader2, Check, AlertCircle } from 'lucide-react';
+import { Loader2, Check, AlertCircle, Car, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const VehicleStatusUpdate = () => {
@@ -15,12 +15,13 @@ const VehicleStatusUpdate = () => {
   const [licensePlate, setLicensePlate] = useState<string>('');
   const [status, setStatus] = useState<VehicleStatus>('available');
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [currentVehicle, setCurrentVehicle] = useState<any>(null);
   const [result, setResult] = useState<{ success: boolean; message: string } | null>(null);
   const [lookupMode, setLookupMode] = useState<boolean>(true);
 
   const handleVehicleLookup = async () => {
-    if (!licensePlate.trim()) {
-      toast.error('Please enter a license plate number');
+    if (!licensePlate.trim() && !vehicleId.trim()) {
+      toast.error('Please enter a license plate or vehicle ID');
       return;
     }
     
@@ -28,13 +29,28 @@ const VehicleStatusUpdate = () => {
     setResult(null);
     
     try {
+      if (vehicleId.trim()) {
+        // Skip license plate lookup if ID is provided directly
+        setLookupMode(false);
+        toast.success('Vehicle ID provided directly');
+        return;
+      }
+      
       const response = await findVehicleByLicensePlate(licensePlate);
       
       if (response.success && response.id) {
         setVehicleId(response.id);
+        setCurrentVehicle(response.vehicle);
         setLookupMode(false);
+        
+        // Set the initial status to the vehicle's current status
+        if (response.vehicle && response.vehicle.status) {
+          const appStatus = response.vehicle.status === 'reserve' ? 'reserved' : response.vehicle.status;
+          setStatus(appStatus as VehicleStatus);
+        }
+        
         toast.success('Vehicle found', {
-          description: `Vehicle ID: ${response.id}`,
+          description: response.message,
         });
       } else {
         setResult({
@@ -46,6 +62,7 @@ const VehicleStatusUpdate = () => {
         });
       }
     } catch (error) {
+      console.error('Vehicle lookup error:', error);
       setResult({
         success: false,
         message: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -66,6 +83,7 @@ const VehicleStatusUpdate = () => {
     setResult(null);
     
     try {
+      console.log(`Sending status update request: vehicleId=${vehicleId}, status=${status}`);
       const response = await updateVehicleStatus(vehicleId, status);
       
       setResult({
@@ -74,8 +92,9 @@ const VehicleStatusUpdate = () => {
       });
       
       if (response.success) {
+        setCurrentVehicle(response.data);
         toast.success('Vehicle status updated', {
-          description: `Status updated to: ${status}`,
+          description: response.message,
         });
       } else {
         toast.error('Status update failed', {
@@ -83,6 +102,7 @@ const VehicleStatusUpdate = () => {
         });
       }
     } catch (error) {
+      console.error('Status update error:', error);
       setResult({
         success: false,
         message: error instanceof Error ? error.message : 'An unknown error occurred'
@@ -97,6 +117,7 @@ const VehicleStatusUpdate = () => {
     setVehicleId('');
     setLicensePlate('');
     setStatus('available');
+    setCurrentVehicle(null);
     setResult(null);
     setLookupMode(true);
   };
@@ -148,6 +169,22 @@ const VehicleStatusUpdate = () => {
           </>
         ) : (
           <>
+            {currentVehicle && (
+              <div className="mb-4 p-4 bg-muted rounded-md">
+                <div className="flex items-center mb-2">
+                  <Car className="h-5 w-5 mr-2 text-primary" />
+                  <h3 className="font-medium">Selected Vehicle</h3>
+                </div>
+                <p className="text-sm">
+                  <span className="font-semibold">{currentVehicle.make} {currentVehicle.model}</span>
+                  <br />
+                  License Plate: <span className="font-semibold">{currentVehicle.license_plate}</span>
+                  <br />
+                  Current Status: <span className="font-semibold">{currentVehicle.status === 'reserve' ? 'reserved' : currentVehicle.status}</span>
+                </p>
+              </div>
+            )}
+          
             <div className="space-y-2">
               <label htmlFor="vehicle-id-display" className="text-sm font-medium">
                 Vehicle ID
@@ -162,7 +199,7 @@ const VehicleStatusUpdate = () => {
             
             <div className="space-y-2">
               <label htmlFor="status" className="text-sm font-medium">
-                Select Status
+                Select New Status
               </label>
               <Select
                 value={status}
@@ -176,7 +213,6 @@ const VehicleStatusUpdate = () => {
                   <SelectItem value="rented">Rented</SelectItem>
                   <SelectItem value="reserved">Reserved</SelectItem>
                   <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="police_station">Police Station</SelectItem>
                   <SelectItem value="accident">Accident</SelectItem>
                   <SelectItem value="stolen">Stolen</SelectItem>
                   <SelectItem value="retired">Retired</SelectItem>
@@ -224,7 +260,11 @@ const VehicleStatusUpdate = () => {
             onClick={handleStatusUpdate}
             disabled={isLoading}
           >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
             Update Status
           </Button>
         )}

@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
@@ -28,6 +27,23 @@ export const updateVehicleStatus = async (
       };
     }
     
+    // Validate input parameters
+    if (!id || typeof id !== 'string' || id.trim() === '') {
+      console.error('Invalid vehicle ID provided:', id);
+      return { 
+        success: false,
+        message: 'Invalid vehicle ID provided' 
+      };
+    }
+
+    if (!status || typeof status !== 'string' || status.trim() === '') {
+      console.error('Invalid status provided:', status);
+      return { 
+        success: false,
+        message: 'Invalid status value provided' 
+      };
+    }
+    
     // Map the status to the database format
     const dbStatus = mapToDBStatus(status);
     console.log(`Status mapped for database: ${status} -> ${dbStatus}`);
@@ -35,7 +51,7 @@ export const updateVehicleStatus = async (
     // Verify vehicle exists before updating
     const { data: vehicle, error: checkError } = await supabase
       .from('vehicles')
-      .select('id, status')
+      .select('id, status, make, model')
       .eq('id', id)
       .single();
       
@@ -78,21 +94,104 @@ export const updateVehicleStatus = async (
     
     if (error) {
       console.error('Error updating vehicle status:', error);
-      return { 
-        success: false, 
-        message: `Failed to update status: ${error.message}` 
-      };
+      if (error.code === '406') {
+        return {
+          success: false,
+          message: 'Permission denied: You do not have permission to update this vehicle status'
+        };
+      } else if (error.code === '23514') {
+        return {
+          success: false,
+          message: 'Invalid status value: Status does not match allowed values in database'
+        };
+      } else {
+        return { 
+          success: false, 
+          message: `Failed to update status: ${error.message}` 
+        };
+      }
     }
     
     console.log(`Successfully updated vehicle status:`, updatedVehicle);
     return { 
       success: true, 
-      message: `Vehicle status updated to ${status}`,
+      message: `Vehicle ${vehicle.make} ${vehicle.model} status updated to ${status}`,
       data: updatedVehicle
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     console.error('Unexpected error updating vehicle status:', err);
+    return { 
+      success: false, 
+      message: `Unexpected error: ${errorMessage}` 
+    };
+  }
+};
+
+/**
+ * Find a vehicle by license plate number
+ * @param licensePlate The license plate to search for
+ * @returns A promise with the vehicle ID if found
+ */
+export const findVehicleByLicensePlate = async (
+  licensePlate: string
+): Promise<{ success: boolean; message: string; id?: string; vehicle?: any }> => {
+  try {
+    console.log(`Looking up vehicle with license plate: ${licensePlate}`);
+    
+    if (!licensePlate || typeof licensePlate !== 'string' || licensePlate.trim() === '') {
+      return {
+        success: false,
+        message: 'Please provide a valid license plate'
+      };
+    }
+    
+    // Clean license plate (remove spaces and convert to uppercase)
+    const cleanLicensePlate = licensePlate.trim().toUpperCase();
+    
+    // First check database connection
+    const connectionStatus = await checkSupabaseHealth();
+    if (!connectionStatus.isHealthy) {
+      console.error('Database connection error:', connectionStatus.error);
+      return { 
+        success: false, 
+        message: `Database connection error: ${connectionStatus.error || 'Cannot connect to database'}` 
+      };
+    }
+    
+    // Look up the vehicle
+    const { data: vehicle, error } = await supabase
+      .from('vehicles')
+      .select('id, make, model, license_plate, status')
+      .ilike('license_plate', cleanLicensePlate)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log(`No vehicle found with license plate: ${cleanLicensePlate}`);
+        return { 
+          success: false, 
+          message: `No vehicle found with license plate: ${licensePlate}` 
+        };
+      }
+      
+      console.error('Error finding vehicle by license plate:', error);
+      return { 
+        success: false, 
+        message: `Error looking up vehicle: ${error.message}` 
+      };
+    }
+    
+    console.log(`Found vehicle with ID: ${vehicle.id}`);
+    return { 
+      success: true, 
+      message: `Found ${vehicle.make} ${vehicle.model} with license plate: ${vehicle.license_plate}`,
+      id: vehicle.id,
+      vehicle: vehicle
+    };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Unexpected error finding vehicle:', err);
     return { 
       success: false, 
       message: `Unexpected error: ${errorMessage}` 
@@ -197,69 +296,6 @@ export const updateVehicleInfo = async (
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     console.error('Unexpected error updating vehicle:', err);
-    return { 
-      success: false, 
-      message: `Unexpected error: ${errorMessage}` 
-    };
-  }
-};
-
-/**
- * Find a vehicle by license plate number
- * @param licensePlate The license plate to search for
- * @returns A promise with the vehicle ID if found
- */
-export const findVehicleByLicensePlate = async (
-  licensePlate: string
-): Promise<{ success: boolean; message: string; id?: string }> => {
-  try {
-    console.log(`Looking up vehicle with license plate: ${licensePlate}`);
-    
-    // Clean license plate (remove spaces and convert to uppercase)
-    const cleanLicensePlate = licensePlate.trim().toUpperCase();
-    
-    // First check database connection
-    const connectionStatus = await checkSupabaseHealth();
-    if (!connectionStatus.isHealthy) {
-      console.error('Database connection error:', connectionStatus.error);
-      return { 
-        success: false, 
-        message: `Database connection error: ${connectionStatus.error || 'Cannot connect to database'}` 
-      };
-    }
-    
-    // Look up the vehicle
-    const { data: vehicle, error } = await supabase
-      .from('vehicles')
-      .select('id')
-      .ilike('license_plate', cleanLicensePlate)
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
-        console.log(`No vehicle found with license plate: ${cleanLicensePlate}`);
-        return { 
-          success: false, 
-          message: `No vehicle found with license plate: ${licensePlate}` 
-        };
-      }
-      
-      console.error('Error finding vehicle by license plate:', error);
-      return { 
-        success: false, 
-        message: `Error looking up vehicle: ${error.message}` 
-      };
-    }
-    
-    console.log(`Found vehicle with ID: ${vehicle.id}`);
-    return { 
-      success: true, 
-      message: `Found vehicle with license plate: ${licensePlate}`,
-      id: vehicle.id
-    };
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    console.error('Unexpected error finding vehicle:', err);
     return { 
       success: false, 
       message: `Unexpected error: ${errorMessage}` 
