@@ -1,6 +1,7 @@
 
 import { toast } from 'sonner';
-import { supabase, checkSupabaseHealth } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
+import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { mapDatabaseStatus, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { VehicleStatus } from '@/types/vehicle';
 

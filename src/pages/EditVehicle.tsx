@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft, AlertOctagon, Loader2, WifiOff } from 'lucide-react';
@@ -9,6 +10,7 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { checkSupabaseHealth, monitorDatabaseConnection } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { mapDatabaseStatus, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 
