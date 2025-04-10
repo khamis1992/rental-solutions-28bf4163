@@ -7,6 +7,7 @@ import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnectio
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
+import { safelyGetRecordFromResponse, safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
@@ -110,7 +111,8 @@ export const useVehicles = () => {
                   throw error;
                 }
                 
-                return data.map(record => mapDatabaseRecordToVehicle(record));
+                const safeData = safelyGetRecordsFromResponse(data ? { data, error: null } : null);
+                return safeData.map(record => mapDatabaseRecordToVehicle(record));
               } catch (err) {
                 lastError = err;
                 attempts++;
