@@ -9,10 +9,31 @@ export function MobileDashboard() {
   const navigate = useNavigate();
 
   const quickActions = [
-    { name: 'Vehicle Inspection', icon: Car, route: '/inspection' },
-    { name: 'Report Issue', icon: AlertTriangle, route: '/maintenance/new' },
-    { name: 'View Assignments', icon: FileText, route: '/agreements' },
-    { name: 'Maintenance Tasks', icon: Wrench, route: '/maintenance' }
+    { 
+      name: 'Start Vehicle Inspection', 
+      icon: Car, 
+      route: '/inspection',
+      primary: true,
+      description: 'Perform digital vehicle inspection with photos'
+    },
+    { 
+      name: 'Report Issue', 
+      icon: AlertTriangle, 
+      route: '/maintenance/new',
+      description: 'Report vehicle problems or maintenance needs'
+    },
+    { 
+      name: 'View Assignments', 
+      icon: FileText, 
+      route: '/agreements',
+      description: 'Check vehicle assignments and agreements'
+    },
+    { 
+      name: 'Maintenance Tasks', 
+      icon: Wrench, 
+      route: '/maintenance',
+      description: 'View and update maintenance schedule'
+    }
   ];
 
   return (
