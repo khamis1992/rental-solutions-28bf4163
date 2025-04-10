@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { safelyGetRecordsFromResponse } from '@/types/supabase-helpers';
 
 export type LegalDocument = {
   id: string;
@@ -20,6 +21,23 @@ export type ComplianceItem = {
   status: string;
   priority: string;
   description: string;
+};
+
+export type LegalCase = {
+  id: string;
+  customer_id: string;
+  customer_name?: string;
+  case_number: string;
+  title: string;
+  description: string;
+  status: 'pending' | 'active' | 'closed' | 'settled';
+  created_at: string;
+  updated_at: string;
+  amount_owed: number;
+  hearing_date: string | null;
+  assigned_to?: string;
+  case_type: string;
+  priority?: string;
 };
 
 export const useLegalDocuments = () => {
@@ -172,4 +190,84 @@ export const useComplianceItems = () => {
   }, []);
 
   return { items, loading, error };
+};
+
+export const useLegalCases = () => {
+  const [cases, setCases] = useState<LegalCase[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchLegalCases = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Fetch legal cases from Supabase
+        const { data: casesData, error: casesError } = await supabase
+          .from('legal_cases')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (casesError) {
+          throw casesError;
+        }
+
+        // Safely get records using our helper function
+        const safeData = safelyGetRecordsFromResponse(casesData ? { data: casesData, error: null } : null);
+        
+        // For each case, get the customer's name if possible
+        const processedCases = await Promise.all(
+          safeData.map(async (item) => {
+            let customerName = 'Unknown Customer';
+            
+            try {
+              if (item.customer_id) {
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select('full_name')
+                  .eq('id', item.customer_id)
+                  .single();
+                
+                if (profileData && profileData.full_name) {
+                  customerName = profileData.full_name;
+                }
+              }
+            } catch (err) {
+              console.error('Error fetching customer name:', err);
+            }
+            
+            return {
+              id: item.id,
+              case_number: `CASE-${item.id.substring(0, 8)}`,
+              title: item.description ? `Case regarding ${item.description.substring(0, 30)}...` : `Case regarding ${item.case_type || 'dispute'}`,
+              description: item.description || '',
+              customer_id: item.customer_id,
+              customer_name: customerName,
+              status: item.status || 'pending',
+              hearing_date: item.escalation_date,
+              assigned_to: item.assigned_to,
+              case_type: item.case_type || 'other',
+              amount_owed: item.amount_owed || 0,
+              created_at: item.created_at,
+              updated_at: item.updated_at,
+              priority: item.priority || 'medium'
+            };
+          })
+        );
+        
+        setCases(processedCases);
+      } catch (err) {
+        console.error('Error fetching legal cases:', err);
+        setError('Failed to load legal cases');
+        toast.error('Failed to load legal cases');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchLegalCases();
+  }, []);
+
+  return { cases, loading, error };
 };
