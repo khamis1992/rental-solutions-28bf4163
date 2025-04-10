@@ -1,27 +1,26 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
- * Check the health of the Supabase connection
+ * Check the health of the Supabase connection using the client's built-in health check
  * @returns Promise with health status and optional error message
  */
 export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error?: string }> => {
   try {
     console.log('Checking database connection health');
+    const result = await checkSupabaseHealth();
     
-    // Attempt to make a lightweight query to test the connection
-    const { error } = await supabase
-      .from('vehicles')
-      .select('count', { count: 'exact', head: true });
-    
-    if (error) {
-      console.error('Database health check failed:', error);
-      return { isHealthy: false, error: error.message };
+    if (!result.isHealthy) {
+      console.error('Database health check failed:', result.error);
+    } else {
+      console.log(`Database connection is healthy (latency: ${result.latency}ms)`);
     }
     
-    console.log('Database connection is healthy');
-    return { isHealthy: true };
+    return { 
+      isHealthy: result.isHealthy,
+      error: result.error 
+    };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown database error';
     console.error('Database connection error:', errorMessage);
@@ -29,32 +28,8 @@ export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error
   }
 };
 
-/**
- * Check database health with retry logic
- * @param retries Number of retries to attempt
- * @param delay Milliseconds to wait between retries
- * @returns Promise resolving to boolean indicating connection status
- */
-export const checkConnectionWithRetry = async (
-  retries = 3, 
-  delay = 1000
-): Promise<boolean> => {
-  let attempts = 0;
-  
-  while (attempts < retries) {
-    const { isHealthy } = await checkDatabaseHealth();
-    if (isHealthy) return true;
-    
-    attempts++;
-    if (attempts < retries) {
-      console.log(`Connection attempt ${attempts} failed, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  console.error(`Failed to connect to database after ${retries} attempts`);
-  return false;
-};
+// Re-export connection retry functionality from the client
+export { checkConnectionWithRetry } from '@/integrations/supabase/client';
 
 /**
  * Monitor database connectivity and show UI feedback
@@ -62,44 +37,7 @@ export const checkConnectionWithRetry = async (
  * @param pollingIntervalMs How often to check connection (default: 30 seconds)
  * @returns Function to stop the monitoring
  */
-export const monitorDatabaseConnection = (
-  onConnectionChange?: (isConnected: boolean) => void,
-  pollingIntervalMs = 30000
-): () => void => {
-  let previousStatus = true;
-  
-  const checkConnection = async () => {
-    const { isHealthy, error } = await checkDatabaseHealth();
-    
-    // Only notify if the status has changed
-    if (isHealthy !== previousStatus) {
-      previousStatus = isHealthy;
-      
-      if (!isHealthy) {
-        toast.error('Database connection lost', {
-          description: `Cannot connect to database: ${error || 'Check your internet connection'}`,
-        });
-      } else {
-        toast.success('Database connection restored', {
-          description: 'Your connection to the database has been re-established',
-        });
-      }
-      
-      if (onConnectionChange) {
-        onConnectionChange(isHealthy);
-      }
-    }
-  };
-  
-  // Do an initial check
-  checkConnection();
-  
-  // Set up regular polling
-  const interval = setInterval(checkConnection, pollingIntervalMs);
-  
-  // Return function to clear the interval
-  return () => clearInterval(interval);
-};
+export { monitorDatabaseConnection } from '@/integrations/supabase/client';
 
 /**
  * Show database connection status in UI
@@ -111,4 +49,37 @@ export const getConnectionErrorMessage = (isConnected: boolean): string | null =
     return 'Database connection error. Please check your internet connection and try again.';
   }
   return null;
+};
+
+/**
+ * Run diagnostic check of database connection for troubleshooting
+ * @returns Promise with detailed diagnostic information
+ */
+export const runDatabaseDiagnostics = async (): Promise<{
+  isConnected: boolean;
+  latency?: number;
+  error?: string;
+  apiEndpoint: string;
+  clientVersion: string;
+}> => {
+  try {
+    const startTime = performance.now();
+    const health = await checkSupabaseHealth();
+    const endTime = performance.now();
+    
+    return {
+      isConnected: health.isHealthy,
+      latency: health.latency || Math.round(endTime - startTime),
+      error: health.error,
+      apiEndpoint: supabase.supabaseUrl,
+      clientVersion: '2.38.4' // Version of @supabase/supabase-js
+    };
+  } catch (err) {
+    return {
+      isConnected: false,
+      error: err instanceof Error ? err.message : 'Unknown error during diagnostics',
+      apiEndpoint: supabase.supabaseUrl,
+      clientVersion: '2.38.4'
+    };
+  }
 };

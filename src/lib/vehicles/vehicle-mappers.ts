@@ -10,27 +10,48 @@ import {
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is VehicleStatus {
-  return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status);
+  return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status.toLowerCase());
 }
 
-// Map database status to application status
+// Map database status to application status with improved normalization
 export function mapDatabaseStatus(status: DatabaseVehicleStatus | null | undefined): VehicleStatus | undefined {
   if (!status) return undefined;
   
-  // Handle the "reserve" to "reserved" mapping
-  if (status === 'reserve') return 'reserved';
+  // Normalize status string (lowercase and trim)
+  const normalizedStatus = status.toLowerCase().trim();
   
-  return isValidStatus(status) ? status : 'available';
+  // Handle the "reserve" to "reserved" mapping
+  if (normalizedStatus === 'reserve') return 'reserved';
+  
+  // Validate and return the status
+  return isValidStatus(normalizedStatus) ? normalizedStatus as VehicleStatus : 'available';
 }
 
-// Convert application status to database status
-export function mapToDBStatus(status: VehicleStatus | null | undefined): DatabaseVehicleStatus | null {
+// Convert application status to database status with improved normalization
+export function mapToDBStatus(status: VehicleStatus | string | null | undefined): DatabaseVehicleStatus | null {
   if (!status) return null;
   
-  // Handle the "reserved" to "reserve" mapping
-  if (status === 'reserved') return 'reserve';
+  // Normalize status string (lowercase and trim)
+  const normalizedStatus = status.toLowerCase().trim();
   
-  return status as DatabaseVehicleStatus;
+  // Handle the "reserved" to "reserve" mapping
+  if (normalizedStatus === 'reserved') return 'reserve';
+  
+  // Extended mapping for common typos and variations
+  const statusMapping: Record<string, DatabaseVehicleStatus> = {
+    'available': 'available',
+    'rented': 'rented',
+    'reserve': 'reserve',
+    'reserved': 'reserve', // Map both to ensure consistency
+    'maintenance': 'maintenance',
+    'police_station': 'police_station',
+    'police station': 'police_station',
+    'accident': 'accident',
+    'stolen': 'stolen',
+    'retired': 'retired'
+  };
+  
+  return statusMapping[normalizedStatus] || normalizedStatus as DatabaseVehicleStatus;
 }
 
 // Map database size to application size

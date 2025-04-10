@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft, AlertOctagon, Loader2, WifiOff } from 'lucide-react';
@@ -9,7 +8,7 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { supabase, checkSupabaseHealth } from '@/integrations/supabase/client';
+import { checkSupabaseHealth, monitorDatabaseConnection } from '@/integrations/supabase/client';
 import { getModelSpecificImage } from '@/lib/vehicles/vehicle-storage';
 import { mapDatabaseStatus, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 
@@ -19,35 +18,31 @@ const EditVehicle = () => {
   const [bucketError, setBucketError] = useState<string | null>(null);
   const [modelSpecificImage, setModelSpecificImage] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
   
   const { useVehicle, useUpdate, useConnectionStatus } = useVehicles();
   const { data: vehicle, isLoading, error, refetch } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
   const { data: connectionStatus } = useConnectionStatus();
   
-  // Check connection status periodically
   useEffect(() => {
-    const checkConnection = async () => {
-      const health = await checkSupabaseHealth();
-      setIsConnected(health.isHealthy);
+    const stopMonitoring = monitorDatabaseConnection(({ isConnected, error }) => {
+      setIsConnected(isConnected);
+      setConnectionError(error);
       
-      if (!health.isHealthy) {
-        toast.error('Database connection lost', {
-          description: 'Please check your internet connection and try again.',
-        });
+      if (isConnected && id) {
+        refetch();
       }
-    };
+    }, 15000);
     
-    checkConnection();
-    const interval = setInterval(checkConnection, 10000); // Check every 10 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
+    return () => stopMonitoring();
+  }, [id, refetch]);
   
   useEffect(() => {
     if (connectionStatus === false) {
       toast.error('Database connection error', {
         description: 'Unable to connect to the database. Please check your internet connection.',
+        id: 'db-connection-error'
       });
     }
   }, [connectionStatus]);
@@ -95,7 +90,7 @@ const EditVehicle = () => {
         console.log('Creating vehicle-images bucket');
         const { error: createError } = await supabase.storage.createBucket('vehicle-images', {
           public: true,
-          fileSizeLimit: 10485760, // 10MB
+          fileSizeLimit: 10485760,
         });
         
         if (createError) {
@@ -118,17 +113,43 @@ const EditVehicle = () => {
     }
   };
   
-  // Improved hasChanges function to correctly compare status values
   const hasChanges = (formData: any, originalVehicle: any) => {
-    if (!originalVehicle) return true;
+    if (!originalVehicle) {
+      console.log('No original vehicle data, assuming changes exist');
+      return true;
+    }
     
-    if (formData.image) return true;
+    if (formData.image) {
+      console.log('New image provided, changes detected');
+      return true;
+    }
     
     const fieldsToCompare = [
       'make', 'model', 'year', 'license_plate', 'vin', 'color', 
       'mileage', 'location', 'description', 'insurance_company', 
       'insurance_expiry', 'rent_amount'
     ];
+    
+    console.log('Status comparison:', {
+      formStatus: formData.status,
+      formDbStatus: mapToDBStatus(formData.status),
+      originalStatus: originalVehicle.status,
+      originalDbStatus: typeof originalVehicle.status === 'string' 
+        ? originalVehicle.status 
+        : mapToDBStatus(originalVehicle.status),
+    });
+    
+    if (formData.status !== undefined) {
+      const formDbStatus = mapToDBStatus(formData.status);
+      const originalDbStatus = typeof originalVehicle.status === 'string' 
+        ? originalVehicle.status 
+        : mapToDBStatus(originalVehicle.status);
+      
+      if (String(formDbStatus).toLowerCase() !== String(originalDbStatus).toLowerCase()) {
+        console.log(`Status changed: ${originalDbStatus} -> ${formDbStatus}`);
+        return true;
+      }
+    }
     
     for (const field of fieldsToCompare) {
       if (field === 'license_plate') {
@@ -166,28 +187,6 @@ const EditVehicle = () => {
       }
     }
     
-    // Special handling for status field - compare normalized values
-    if (formData.status !== undefined) {
-      // Convert both values to database format for comparison
-      const formDbStatus = mapToDBStatus(formData.status);
-      const originalDbStatus = typeof originalVehicle.status === 'string' 
-        ? originalVehicle.status 
-        : mapToDBStatus(originalVehicle.status);
-      
-      console.log('Status comparison:', {
-        formStatus: formData.status,
-        formDbStatus,
-        originalStatus: originalVehicle.status,
-        originalDbStatus,
-        equal: formDbStatus === originalDbStatus,
-      });
-      
-      if (formDbStatus !== originalDbStatus) {
-        console.log(`Status changed: ${originalDbStatus} -> ${formDbStatus}`);
-        return true;
-      }
-    }
-    
     const formVehicleTypeId = formData.vehicle_type_id === 'none' ? null : formData.vehicle_type_id;
     if (String(formVehicleTypeId || '') !== String(originalVehicle.vehicle_type_id || '')) {
       console.log(`Field 'vehicle_type_id' changed: ${originalVehicle.vehicle_type_id} -> ${formVehicleTypeId}`);
@@ -217,13 +216,21 @@ const EditVehicle = () => {
       return;
     }
     
-    // Check connection before proceeding
-    const isConnected = await checkSupabaseHealth();
-    if (!isConnected.isHealthy) {
+    const connectionStatus = await checkSupabaseHealth();
+    if (!connectionStatus.isHealthy) {
       toast.error('Database connection error', {
-        description: 'Please check your internet connection and try again.'
+        description: 'Please check your internet connection and try again.',
+        id: 'db-connection-error'
       });
       return;
+    }
+    
+    if (formData.status) {
+      formData.status = formData.status.trim();
+      console.log(`Status before mapping: "${formData.status}"`);
+      
+      const dbStatus = mapToDBStatus(formData.status);
+      console.log(`Status mapped for submission: "${formData.status}" -> "${dbStatus}"`);
     }
     
     console.log('Status values before hasChanges check:', {
@@ -263,12 +270,10 @@ const EditVehicle = () => {
       
       const safeFormData = { ...formData };
       
-      // Log status explicitly for debugging
       if (safeFormData.status) {
         const dbStatus = mapToDBStatus(safeFormData.status);
-        console.log(`Status mapping for submission: "${safeFormData.status}" -> "${dbStatus}"`);
-        // Ensure status is correctly set
-        safeFormData.status = safeFormData.status.trim();
+        console.log(`Final status for submission: "${safeFormData.status}" -> "${dbStatus}"`);
+        safeFormData.status = dbStatus;
       }
       
       console.log('Submitting vehicle update with data:', safeFormData);
@@ -306,11 +311,22 @@ const EditVehicle = () => {
             <WifiOff className="h-6 w-6 mr-2" />
             <h2 className="text-xl font-semibold">Connection Error</h2>
           </div>
-          <p>Cannot connect to the database. Please check your internet connection.</p>
+          <p>{connectionError || 'Cannot connect to the database. Please check your internet connection.'}</p>
           <CustomButton 
             className="mt-4" 
             variant="outline" 
-            onClick={() => window.location.reload()}
+            onClick={async () => {
+              const health = await checkSupabaseHealth();
+              if (health.isHealthy) {
+                setIsConnected(true);
+                setConnectionError(null);
+                refetch();
+              } else {
+                toast.error('Still unable to connect', {
+                  description: health.error || 'Please check your internet connection and try again.'
+                });
+              }
+            }}
           >
             Retry Connection
           </CustomButton>
