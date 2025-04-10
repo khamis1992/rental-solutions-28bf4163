@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -8,24 +7,6 @@ import { checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnectio
 import { mapDatabaseRecordToVehicle, mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { handleApiError } from '@/hooks/use-api';
 import { uploadVehicleImage } from '@/lib/vehicles/vehicle-storage';
-
-const checkConnectionWithRetry = async (retries = 3, delay = 1000): Promise<boolean> => {
-  let attempts = 0;
-  
-  while (attempts < retries) {
-    const { isHealthy } = await checkSupabaseHealth();
-    if (isHealthy) return true;
-    
-    attempts++;
-    if (attempts < retries) {
-      console.log(`Connection attempt ${attempts} failed, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  
-  console.error(`Failed to connect to database after ${retries} attempts`);
-  return false;
-};
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();
