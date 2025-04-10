@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -10,15 +10,40 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { Vehicle } from '@/types/vehicle';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  
+  // Local loading states
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<Error | null>(null);
   
   const { useVehicle, useUpdate } = useVehicles();
-  const { data: vehicle, isLoading, error, refetch } = useVehicle(id || '');
+  const { data: fetchedVehicle, isLoading: isFetching, error: fetchError, refetch } = useVehicle(id || '');
   const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
+  
+  // Sync fetched data with local state
+  useEffect(() => {
+    if (fetchedVehicle) {
+      setVehicle(fetchedVehicle);
+      setIsLoading(false);
+      setLoadError(null);
+    }
+    
+    if (isFetching) {
+      setIsLoading(true);
+    }
+    
+    if (fetchError) {
+      setIsLoading(false);
+      setLoadError(fetchError instanceof Error ? fetchError : new Error('Failed to fetch vehicle'));
+      console.error('Vehicle fetch error:', fetchError);
+    }
+  }, [fetchedVehicle, isFetching, fetchError]);
   
   const handleSubmit = async (formData: any) => {
     if (!vehicle || !id) return;
@@ -65,12 +90,13 @@ const EditVehicle = () => {
     );
   }
   
-  if (error || !vehicle) {
+  if (loadError || !vehicle) {
     return (
       <PageContainer>
         <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg">
           <h2 className="text-xl font-semibold mb-2">Vehicle Not Found</h2>
           <p>The vehicle you're trying to edit doesn't exist or has been removed.</p>
+          <p className="text-sm mt-1 text-red-600">Error: {loadError?.message || 'Vehicle data unavailable'}</p>
           <CustomButton 
             className="mt-4" 
             variant="outline" 
@@ -88,7 +114,7 @@ const EditVehicle = () => {
     <PageContainer>
       <SectionHeader
         title={`Edit Vehicle: ${vehicle.make} ${vehicle.model}`}
-        description={`${vehicle.year} • ${vehicle.licensePlate}`}
+        description={`${vehicle.year} • ${vehicle.licensePlate || vehicle.license_plate}`}
         icon={Car}
         actions={
           <>
@@ -129,7 +155,7 @@ const EditVehicle = () => {
         vehicleDetails={{
           make: vehicle.make,
           model: vehicle.model,
-          licensePlate: vehicle.licensePlate || vehicle.license_plate
+          licensePlate: vehicle.licensePlate || vehicle.license_plate || ''
         }}
         onStatusUpdated={handleStatusUpdated}
       />

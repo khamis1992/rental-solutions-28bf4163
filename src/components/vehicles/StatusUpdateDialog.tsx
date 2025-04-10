@@ -52,7 +52,25 @@ const StatusUpdateDialog = ({
     }
   }, [isOpen, currentStatus]);
 
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'stolen':
+        return 'destructive';
+      case 'maintenance':
+        return 'warning';
+      case 'retired':
+        return 'outline';
+      default:
+        return 'outline';
+    }
+  };
+
   const handleStatusChange = async () => {
+    if (status === currentStatus) {
+      toast.info("No changes to save");
+      return;
+    }
+
     try {
       setIsUpdating(true);
       console.log(`Attempting to update vehicle ${vehicleId} status from ${currentStatus} to ${status}`);
@@ -93,7 +111,7 @@ const StatusUpdateDialog = ({
         <div className="space-y-4 py-4">
           <div>
             <p className="text-sm font-medium mb-2">Current Status:</p>
-            <Badge variant={currentStatus === 'stolen' ? 'destructive' : 'outline'}>
+            <Badge variant={getStatusBadgeVariant(currentStatus)}>
               {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
             </Badge>
           </div>

@@ -51,7 +51,7 @@ let lastHealthCheck = {
   isHealthy: true,
   error: null as string | null
 };
-const HEALTH_CACHE_TTL = 10000; // 10 seconds
+const HEALTH_CACHE_TTL = 5000; // Reduced to 5 seconds from 10 seconds
 
 // Add a function to test connection with better caching and reliability
 export const testConnection = async (): Promise<boolean> => {
@@ -98,7 +98,6 @@ export const checkSupabaseHealth = async (): Promise<{
   connectionCount?: number;
 }> => {
   const MAX_RETRIES = 3;
-  const RETRY_DELAY = 1000;
   let retryCount = 0;
   try {
     // Use cached result if recent
@@ -111,27 +110,56 @@ export const checkSupabaseHealth = async (): Promise<{
       };
     }
     
-    const startTime = performance.now();
+    // Gradually more thorough checks based on retry count
+    let error = null;
+    let isHealthy = false;
+    let startTime = performance.now();
     
-    // Perform lightweight health check
-    const { error } = await supabase.from('vehicles').select('count', { count: 'exact', head: true });
+    while (retryCount < MAX_RETRIES && !isHealthy) {
+      try {
+        // Try a different lightweight query each retry
+        if (retryCount === 0) {
+          const response = await supabase.from('vehicles').select('count', { count: 'exact', head: true });
+          error = response.error;
+        } else if (retryCount === 1) {
+          const response = await supabase.from('vehicle_types').select('count', { count: 'exact', head: true });
+          error = response.error;
+        } else {
+          const response = await supabase.rpc('get_server_time');
+          error = response.error;
+        }
+        
+        isHealthy = !error;
+        if (isHealthy) break;
+        
+        console.log(`Health check attempt ${retryCount + 1} failed: ${error?.message}`);
+        retryCount++;
+        await new Promise(r => setTimeout(r, 500 * retryCount)); // Exponential backoff
+      } catch (err) {
+        error = err;
+        retryCount++;
+        if (retryCount < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 500 * retryCount));
+        }
+      }
+    }
     
     const endTime = performance.now();
     const latency = Math.round(endTime - startTime);
     
-    if (error) {
-      console.error('Supabase health check failed:', error);
+    if (!isHealthy) {
+      console.error('All Supabase health check attempts failed:', error);
       
       // Update cache
       lastHealthCheck = {
         timestamp: now,
         isHealthy: false,
-        error: error.message
+        error: error ? (error instanceof Error ? error.message : String(error)) : 'Unknown database error'
       };
       
       return { 
         isHealthy: false, 
-        error: error.message,
+        error: error ? (error instanceof Error ? error.message : String(error)) : 'Unknown database error',
         latency,
         timestamp: now
       };

@@ -5,6 +5,9 @@ import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
 import { VehicleStatus } from '@/types/vehicle';
 
+/**
+ * Updates vehicle information in the database with improved error handling
+ */
 export const updateVehicleInfo = async (
   id: string, 
   data: Partial<{
@@ -84,52 +87,83 @@ export const updateVehicleInfo = async (
     updateData.updated_at = new Date().toISOString();
     
     console.log('Final update data to be sent to database:', updateData);
+
+    let retryCount = 0;
+    const maxRetries = 2;
+    let lastError = null;
     
-    // Update the vehicle
-    const { data: updatedVehicle, error } = await supabase
-      .from('vehicles')
-      .update(updateData)
-      .eq('id', id)
-      .select()
-      .maybeSingle(); // Use maybeSingle instead of single to avoid error when no rows returned
-    
-    if (error) {
-      console.error('Error updating vehicle:', error);
-      return { 
-        success: false, 
-        message: `Failed to update vehicle: ${error.message}` 
-      };
-    }
-    
-    if (!updatedVehicle) {
-      console.log('Update succeeded but no data returned, fetching vehicle data separately');
-      const { data: fetchedVehicle, error: fetchError } = await supabase
-        .from('vehicles')
-        .select('*, vehicle_types(*)')
-        .eq('id', id)
-        .maybeSingle();
+    // Retry loop for database update
+    while (retryCount <= maxRetries) {
+      try {
+        // Update the vehicle
+        const { data: updatedVehicle, error } = await supabase
+          .from('vehicles')
+          .update(updateData)
+          .eq('id', id)
+          .select()
+          .maybeSingle(); // Using maybeSingle to prevent errors
         
-      if (fetchError) {
-        console.error('Error fetching updated vehicle:', fetchError);
-        return {
-          success: true,
-          message: 'Vehicle updated but failed to fetch updated data',
+        if (error) {
+          console.error(`Attempt ${retryCount + 1}: Error updating vehicle:`, error);
+          lastError = error;
+          retryCount++;
+          
+          if (retryCount <= maxRetries) {
+            console.log(`Retrying update... (${retryCount}/${maxRetries})`);
+            await new Promise(r => setTimeout(r, 1000 * retryCount)); // Exponential backoff
+            continue;
+          }
+          break;
+        }
+        
+        if (!updatedVehicle) {
+          console.log('Update may have succeeded but no data returned, fetching vehicle data separately');
+          const { data: fetchedVehicle, error: fetchError } = await supabase
+            .from('vehicles')
+            .select('*, vehicle_types(*)')
+            .eq('id', id)
+            .maybeSingle();
+            
+          if (fetchError) {
+            console.error('Error fetching updated vehicle:', fetchError);
+            return {
+              success: true,
+              message: 'Vehicle updated but failed to fetch updated data',
+            };
+          }
+          
+          console.log(`Successfully updated vehicle:`, fetchedVehicle);
+          return { 
+            success: true, 
+            message: `Vehicle updated successfully`,
+            data: fetchedVehicle
+          };
+        }
+        
+        console.log(`Successfully updated vehicle:`, updatedVehicle);
+        return { 
+          success: true, 
+          message: `Vehicle updated successfully`,
+          data: updatedVehicle
         };
+      } catch (updateError) {
+        console.error(`Attempt ${retryCount + 1}: Unexpected error updating vehicle:`, updateError);
+        lastError = updateError;
+        retryCount++;
+        
+        if (retryCount <= maxRetries) {
+          await new Promise(r => setTimeout(r, 1000 * retryCount));
+          continue;
+        }
       }
-      
-      console.log(`Successfully updated vehicle:`, fetchedVehicle);
-      return { 
-        success: true, 
-        message: `Vehicle updated successfully`,
-        data: fetchedVehicle
-      };
     }
     
-    console.log(`Successfully updated vehicle:`, updatedVehicle);
+    // If we get here, all retries failed
+    const errorMessage = lastError instanceof Error ? lastError.message : 'Unknown error';
+    console.error(`All update attempts failed:`, lastError);
     return { 
-      success: true, 
-      message: `Vehicle updated successfully`,
-      data: updatedVehicle
+      success: false, 
+      message: `Failed to update after multiple attempts: ${errorMessage}` 
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -141,7 +175,9 @@ export const updateVehicleInfo = async (
   }
 };
 
-// Add a utility function to find a vehicle by license plate
+/**
+ * Find a vehicle by license plate number
+ */
 export const findVehicleByLicensePlate = async (licensePlate: string): Promise<{ success: boolean; message: string; data?: any }> => {
   try {
     if (!licensePlate || licensePlate.trim() === '') {
@@ -152,6 +188,15 @@ export const findVehicleByLicensePlate = async (licensePlate: string): Promise<{
     }
 
     console.log(`Searching for vehicle with license plate: ${licensePlate}`);
+    
+    // Check database connection first
+    const connectionStatus = await checkSupabaseHealth();
+    if (!connectionStatus.isHealthy) {
+      return { 
+        success: false, 
+        message: `Database connection error: ${connectionStatus.error || 'Cannot connect to database'}`
+      };
+    }
     
     const { data: vehicle, error } = await supabase
       .from('vehicles')
@@ -190,7 +235,9 @@ export const findVehicleByLicensePlate = async (licensePlate: string): Promise<{
   }
 };
 
-// Add a dedicated function to update just the vehicle status
+/**
+ * Update just the vehicle status with proper error handling
+ */
 export const updateVehicleStatus = async (
   id: string,
   status: VehicleStatus
