@@ -27,7 +27,19 @@ export function handleApiError(error: unknown, context?: string): void {
       errorMessage = 'This record cannot be modified because it is referenced by other data.';
     } else if (error.code === '42P01') {
       errorMessage = 'Database table not found. Please contact support.';
+    } else if (error.code === '42703') {
+      errorMessage = 'Database column not found. Please contact support.';
+    } else if (error.code === '28000') {
+      errorMessage = 'Authentication failed. Please try signing in again.';
+    } else if (error.code === '40001') {
+      errorMessage = 'Database is temporarily unavailable. Please try again.';
+    } else if (error.code === '57014') {
+      errorMessage = 'Query timed out. Please try again with a simpler request.';
     }
+  } else if (error && typeof error === 'object' && 'error' in error && 'data' in error) {
+    // Handle Supabase specific errors
+    const supabaseError = error as { error: { message?: string; details?: string }; data: any | null };
+    errorMessage = supabaseError.error.message || supabaseError.error.details || 'Database operation failed';
   }
   
   // Add context to the error message if provided
@@ -87,15 +99,39 @@ export function useApiQuery<TData>(
     queryKey,
     queryFn: async () => {
       try {
-        return await queryFn();
+        const response = await queryFn();
+        
+        // Safely handle null or undefined responses
+        if (response === null || response === undefined) {
+          throw new Error('No data received from the server');
+        }
+        
+        // If response is a Supabase response, check for errors
+        if (typeof response === 'object' && 'error' in response) {
+          const supabaseResponse = response as { error: any; data: TData };
+          if (supabaseResponse.error) {
+            throw supabaseResponse.error;
+          }
+          return supabaseResponse.data;
+        }
+        
+        return response;
       } catch (error) {
         handleApiError(error, `Error fetching ${queryKey[0]}`);
         throw error;
       }
     },
-    // Add reasonable default staleTime to prevent excessive refreshing
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    // Only refetch on window focus if data is stale
+    retry: (failureCount, error) => {
+      // Don't retry on specific error types
+      if (error && typeof error === 'object' && 'code' in error) {
+        const code = (error as { code: string }).code;
+        if (['23505', '23503', '42P01', '42703'].includes(code)) {
+          return false;
+        }
+      }
+      return failureCount < 3;
+    },
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     ...options
   });
