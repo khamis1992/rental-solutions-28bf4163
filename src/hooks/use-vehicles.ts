@@ -298,6 +298,12 @@ export const useVehicles = () => {
             if (!id) {
               throw new Error('Vehicle ID is required for update');
             }
+
+            // Verify database connection first
+            const { isHealthy, error: healthError } = await checkSupabaseHealth();
+            if (!isHealthy) {
+              throw new Error(`Database connection error: ${healthError || 'Connection failed'}`);
+            }
             
             const { data: existingVehicle, error: checkError } = await supabase
               .from('vehicles')
@@ -372,11 +378,26 @@ export const useVehicles = () => {
               .update(vehicleData)
               .eq('id', id)
               .select('*, vehicle_types(*)')
-              .maybeSingle();
+              .single();
               
             if (error) {
               console.error('Supabase update error:', error);
-              throw error;
+              throw new Error(`Failed to update vehicle: ${error.message}`);
+            }
+
+            if (!updatedVehicle) {
+              throw new Error('Vehicle update failed - no data returned');
+            }
+
+            // Verify the update was successful by comparing key fields
+            const verifyUpdate = await supabase
+              .from('vehicles')
+              .select('*')
+              .eq('id', id)
+              .single();
+
+            if (verifyUpdate.error || !verifyUpdate.data) {
+              throw new Error('Failed to verify vehicle update');
             }
             
             if (!updatedVehicle) {
