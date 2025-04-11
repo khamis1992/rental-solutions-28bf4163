@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Settings, Search, User, Menu, X } from 'lucide-react';
+import { Bell, Settings, Search, User, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -12,7 +12,7 @@ interface HeaderProps {
   isSidebarOpen?: boolean;
 }
 
-const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
+const Header = ({ onToggleSidebar, isSidebarOpen = false }: HeaderProps) => {
   const isMobile = useIsMobile();
 
   return (
@@ -25,12 +25,9 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
             size="icon" 
             className="md:hidden" 
             onClick={onToggleSidebar}
+            aria-label="Toggle menu"
           >
-            {isSidebarOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+            <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle Menu</span>
           </Button>
         )}
