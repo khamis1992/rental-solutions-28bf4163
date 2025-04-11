@@ -12,7 +12,7 @@ interface HeaderProps {
   isSidebarOpen?: boolean;
 }
 
-const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
+const Header = ({ onToggleSidebar, isSidebarOpen = false }: HeaderProps) => {
   const isMobile = useIsMobile();
 
   return (
@@ -25,6 +25,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
             size="icon" 
             className="md:hidden" 
             onClick={onToggleSidebar}
+            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
           >
             {isSidebarOpen ? (
               <X className="h-5 w-5" />
@@ -57,7 +58,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
         />
       </div>
       
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2">
         {/* Mobile search trigger */}
         {isMobile && (
           <Sheet>

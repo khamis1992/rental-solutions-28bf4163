@@ -26,7 +26,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date() // Default to current date instead of fixed date
+  systemDate = new Date()
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -35,15 +35,17 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {isMobile ? (
+      {/* Mobile sidebar as Sheet */}
+      {isMobile && (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px]">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </SheetContent>
         </Sheet>
-      ) : (
-        <Sidebar />
       )}
+      
+      {/* Desktop sidebar always visible */}
+      {!isMobile && <Sidebar />}
       
       <div className={cn(
         "flex-1 transition-all duration-300 ease-in-out",
@@ -55,7 +57,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
         />
         
         <main className={cn(
-          "p-4 md:p-6 animate-fade-in",
+          "p-4 sm:p-6 animate-fade-in",
           className
         )}>
           {backLink && (
