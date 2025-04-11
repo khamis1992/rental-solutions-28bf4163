@@ -48,6 +48,7 @@ const StatusUpdateDialog = ({
   // Reset status when dialog opens
   React.useEffect(() => {
     if (isOpen) {
+      console.log(`StatusUpdateDialog: Setting initial status to ${currentStatus}`);
       setStatus(currentStatus);
     }
   }, [isOpen, currentStatus]);
@@ -90,7 +91,7 @@ const StatusUpdateDialog = ({
       if (result.success) {
         toast.success("Vehicle status updated successfully");
         console.log("Status update result:", result);
-        onStatusUpdated();
+        await onStatusUpdated();  // Make sure to await this to complete the refresh
         onClose();
       } else {
         console.error("Status update failed:", result.message);
@@ -130,7 +131,10 @@ const StatusUpdateDialog = ({
             <p className="text-sm font-medium">New Status:</p>
             <Select
               value={status}
-              onValueChange={(value) => setStatus(value as VehicleStatus)}
+              onValueChange={(value) => {
+                console.log(`StatusUpdateDialog: Changing status from ${status} to ${value}`);
+                setStatus(value as VehicleStatus);
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select status" />

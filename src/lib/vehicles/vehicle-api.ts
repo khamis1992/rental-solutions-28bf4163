@@ -4,8 +4,8 @@ import {
   Vehicle, 
   VehicleFormData, 
   VehicleInsertData, 
+  VehicleUpdateData, 
   VehicleType, 
-  VehicleUpdateData,
   DatabaseVehicleRecord,
   DatabaseVehicleType,
   VehicleStatus,
@@ -112,7 +112,11 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
   // Make a copy of the data to avoid modifying the original
   const dbData = { ...vehicleData } as any;
   
-  // No need to convert status here since mapToDBStatus already handles it
+  // Map the status properly for database storage
+  if (dbData.status) {
+    dbData.status = mapToDBStatus(dbData.status);
+    console.log(`API insertVehicle: Mapped status to DB format: ${dbData.status}`);
+  }
   
   const { data, error } = await supabase
     .from('vehicles')
@@ -131,6 +135,12 @@ export async function insertVehicle(vehicleData: VehicleInsertData): Promise<Dat
 export async function updateVehicle(id: string, vehicleData: VehicleUpdateData): Promise<DatabaseVehicleRecord> {
   // Make a copy of the data to avoid modifying the original
   const dbData = { ...vehicleData } as any;
+  
+  // Ensure proper status mapping for database storage
+  if (dbData.status !== undefined) {
+    dbData.status = mapToDBStatus(dbData.status);
+    console.log(`API updateVehicle: Mapped status to DB format: ${dbData.status}`);
+  }
   
   // Ensure we have an updated_at timestamp
   dbData.updated_at = new Date().toISOString();

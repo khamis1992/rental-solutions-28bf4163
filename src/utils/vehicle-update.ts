@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
@@ -99,7 +100,7 @@ export const updateVehicleInfo = async (
           .from('vehicles')
           .update(updateData)
           .eq('id', id)
-          .select()
+          .select('*, vehicle_types(*)')
           .maybeSingle(); // Using maybeSingle to prevent errors
         
         if (error) {

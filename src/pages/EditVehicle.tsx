@@ -17,6 +17,7 @@ const EditVehicle = () => {
   const navigate = useNavigate();
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
+  const [updateCompleted, setUpdateCompleted] = useState(false);
   
   // Local loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -55,13 +56,31 @@ const EditVehicle = () => {
       console.error('Vehicle fetch error:', fetchError);
     }
   }, [fetchedVehicle, isFetching, fetchError]);
+
+  // Handle navigation after update is completed
+  useEffect(() => {
+    if (updateCompleted && !isSubmitting && !isUpdating) {
+      // Use a timeout to ensure we don't navigate too quickly before state updates are processed
+      const timer = setTimeout(() => {
+        navigate(`/vehicles/${id}`);
+      }, 500);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [updateCompleted, isSubmitting, isUpdating, navigate, id]);
   
   const handleSubmit = async (formData: any) => {
     if (!vehicle || !id) return;
+    setUpdateCompleted(false);
     
     try {
       setIsSubmitting(true);
       console.log("Submitting form data:", formData);
+      
+      // Make sure status is properly handled
+      if (formData.status) {
+        console.log(`EditVehicle: Status being submitted: ${formData.status}`);
+      }
       
       await new Promise<void>((resolve, reject) => {
         updateVehicle(
@@ -72,12 +91,9 @@ const EditVehicle = () => {
               try {
                 // Force data refresh from server before navigating
                 await refetch();
-                
                 toast.success('Vehicle updated successfully');
+                setUpdateCompleted(true);
                 resolve();
-                
-                // Only navigate after successful refetch
-                navigate(`/vehicles/${id}`);
               } catch (refreshError) {
                 console.error('Error refreshing data:', refreshError);
                 reject(refreshError);
@@ -158,6 +174,8 @@ const EditVehicle = () => {
         ? vehicleStatus as VehicleStatus 
         : 'available';
   
+  console.log(`Rendering vehicle with status: ${validatedStatus}`);
+  
   return (
     <PageContainer>
       <SectionHeader
@@ -187,6 +205,7 @@ const EditVehicle = () => {
       
       <div className="section-transition">
         <VehicleForm 
+          key={`vehicle-form-${vehicle.id}-${vehicle.updated_at}`}
           initialData={vehicle}
           onSubmit={handleSubmit} 
           isLoading={isUpdating || isSubmitting}

@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -230,7 +231,9 @@ export const useVehicles = () => {
             }
             
             console.log(`Successfully fetched vehicle data:`, data);
-            return mapDatabaseRecordToVehicle(data);
+            const mappedVehicle = mapDatabaseRecordToVehicle(data);
+            console.log(`Mapped vehicle with status: ${mappedVehicle.status}`);
+            return mappedVehicle;
           } catch (error) {
             console.error(`Failed to fetch vehicle ${id}:`, error);
             handleApiError(error, `Failed to fetch vehicle ${id}`);
@@ -457,9 +460,11 @@ export const useVehicles = () => {
                   
                   console.log('Successfully fetched vehicle after update:', fetchedVehicle);
                   updatedVehicle = mapDatabaseRecordToVehicle(fetchedVehicle);
+                  console.log('Mapped updated vehicle:', updatedVehicle);
                 } else {
                   console.log('Vehicle updated successfully with data returned:', result);
                   updatedVehicle = mapDatabaseRecordToVehicle(result);
+                  console.log('Mapped updated vehicle from result:', updatedVehicle);
                 }
               } catch (e) {
                 console.error(`Update attempt ${attempt + 1} failed with exception:`, e);
@@ -485,10 +490,16 @@ export const useVehicles = () => {
             throw error;
           }
         },
-        onSuccess: (_, variables) => {
+        onSuccess: (updatedVehicle, variables) => {
+          // Completely invalidate the cache for this vehicle
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.invalidateQueries({ queryKey: ['vehicles', variables.id] });
-          console.log('Cache invalidated for vehicle ID:', variables.id);
+
+          // Update the cache directly with the new data to avoid flickering
+          queryClient.setQueryData(['vehicles', variables.id], updatedVehicle);
+          
+          console.log(`Cache invalidated and updated for vehicle ID: ${variables.id}`);
+          console.log('Updated vehicle data in cache:', updatedVehicle);
         },
       });
     },

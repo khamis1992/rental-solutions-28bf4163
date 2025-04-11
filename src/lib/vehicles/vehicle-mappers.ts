@@ -1,4 +1,3 @@
-
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
@@ -8,7 +7,7 @@ import {
   VehicleStatus,
   UUID 
 } from '@/types/vehicle';
-import { hasProperty } from '@/types/supabase-helpers'; // Changed import source from response-mapper to supabase-helpers
+import { hasProperty } from '@/types/supabase-helpers';
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is VehicleStatus {
@@ -27,7 +26,12 @@ export function mapDatabaseStatus(status: DatabaseVehicleStatus | null | undefin
   const normalizedStatus = status.toLowerCase().trim();
   
   // Handle the "reserve" to "reserved" mapping
-  if (normalizedStatus === 'reserve') return 'reserved';
+  if (normalizedStatus === 'reserve') {
+    console.log('Mapping DB status "reserve" to app status "reserved"');
+    return 'reserved';
+  }
+  
+  console.log(`Mapping DB status "${normalizedStatus}" to app status`);
   
   // Validate and return the status
   return isValidStatus(normalizedStatus) ? normalizedStatus as VehicleStatus : 'available';
@@ -41,7 +45,12 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
   const normalizedStatus = status.toLowerCase().trim();
   
   // Handle the "reserved" to "reserve" mapping
-  if (normalizedStatus === 'reserved') return 'reserve';
+  if (normalizedStatus === 'reserved') {
+    console.log('Mapping app status "reserved" to DB status "reserve"');
+    return 'reserve';
+  }
+  
+  console.log(`Mapping app status "${normalizedStatus}" to DB status`);
   
   // Extended mapping for common typos and variations
   const statusMapping: Record<string, DatabaseVehicleStatus> = {
@@ -57,7 +66,9 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
     'retired': 'retired'
   };
   
-  return statusMapping[normalizedStatus] || normalizedStatus as DatabaseVehicleStatus;
+  const result = statusMapping[normalizedStatus] || normalizedStatus as DatabaseVehicleStatus;
+  console.log(`Status mapping result: "${result}"`);
+  return result;
 }
 
 // Map database size to application size
@@ -122,6 +133,10 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
   try {
     const vehicleType = record.vehicle_types ? mapDatabaseVehicleType(record.vehicle_types) : undefined;
     
+    // Explicitly map the status with proper logging
+    const mappedStatus = mapDatabaseStatus(record.status);
+    console.log(`Status mapping: DB "${record.status}" -> App "${mappedStatus}"`);
+    
     // Map DB record to Vehicle type with improved property handling
     const vehicle: Vehicle = {
       id: record.id,
@@ -132,7 +147,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
       licensePlate: record.license_plate, // For UI compatibility
       vin: record.vin,
       color: record.color || undefined,
-      status: mapDatabaseStatus(record.status),
+      status: mappedStatus,
       mileage: record.mileage || undefined,
       image_url: record.image_url || undefined,
       imageUrl: record.image_url || undefined, // For UI compatibility
