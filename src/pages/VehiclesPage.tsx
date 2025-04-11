@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -92,12 +93,15 @@ const Vehicles = () => {
   
   return (
     <PageContainer>
-      <SectionHeader
-        title="Vehicle Management"
-        description="Manage your fleet inventory"
-        icon={Car}
-        actions={
-          <>
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <SectionHeader
+            title="Vehicle Management"
+            description="Manage your fleet inventory"
+            icon={Car}
+            className="md:mb-0"
+          />
+          <div className="flex flex-wrap gap-2">
             <CustomButton 
               size="sm"
               variant="outline"
@@ -110,27 +114,30 @@ const Vehicles = () => {
               <Plus className="h-4 w-4 mr-2" />
               Add Vehicle
             </CustomButton>
-          </>
-        }
-      />
-      
-      <VehicleFilters 
-        onFilterChange={handleFilterChange} 
-        initialValues={{
-          status: filters.status || 'all',
-          make: filters.make || 'all',
-          location: filters.location || 'all',
-          year: filters.year?.toString() || 'all',
-          category: filters.vehicle_type_id || 'all',
-          search: filters.search || ''
-        }}
-        className="mb-6"
-      />
-      
-      <VehicleGrid 
-        onSelectVehicle={handleSelectVehicle} 
-        filter={filters}
-      />
+          </div>
+        </div>
+        
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-1">
+            <VehicleFilters 
+              onFilterChange={handleFilterChange} 
+              initialValues={{
+                status: filters.status || 'all',
+                make: filters.make || 'all',
+                location: filters.location || 'all',
+                year: filters.year?.toString() || 'all',
+                category: filters.vehicle_type_id || 'all',
+                search: filters.search || ''
+              }}
+            />
+          </div>
+        </div>
+        
+        <VehicleGrid 
+          onSelectVehicle={handleSelectVehicle} 
+          filter={filters}
+        />
+      </div>
     </PageContainer>
   );
 };

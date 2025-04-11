@@ -20,7 +20,7 @@ export interface VehicleFilterValues {
   location: string;
   year: string;
   category: string;
-  search?: string; // New search field
+  search?: string;
 }
 
 // Props interface
@@ -55,18 +55,17 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  // Handle search input change with a small delay
+  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Update the filters with the search value
     setFilters(prev => ({ ...prev, search: value }));
   };
   
   return (
-    <div className={cn("grid gap-4 p-4 border rounded-lg bg-card", className)}>
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+    <div className={cn("rounded-lg", className)}>
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Search field */}
-        <div className="relative">
+        <div className="relative md:col-span-2">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search className="h-4 w-4 text-muted-foreground" />
           </div>
@@ -81,7 +80,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         
         {/* Status filter */}
         <div>
-          <Label htmlFor="status-filter" className="mb-1 block">Status</Label>
           <Select 
             value={filters.status} 
             onValueChange={(value) => handleFilterChange('status', value)}
@@ -105,7 +103,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         
         {/* Make filter */}
         <div>
-          <Label htmlFor="make-filter" className="mb-1 block">Make</Label>
           <Select 
             value={filters.make} 
             onValueChange={(value) => handleFilterChange('make', value)}
@@ -132,7 +129,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         
         {/* Location filter */}
         <div>
-          <Label htmlFor="location-filter" className="mb-1 block">Location</Label>
           <Select 
             value={filters.location} 
             onValueChange={(value) => handleFilterChange('location', value)}
@@ -155,7 +151,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         
         {/* Year filter */}
         <div>
-          <Label htmlFor="year-filter" className="mb-1 block">Year</Label>
           <Select 
             value={filters.year} 
             onValueChange={(value) => handleFilterChange('year', value)}
