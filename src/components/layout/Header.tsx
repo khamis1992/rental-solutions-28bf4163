@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
-  onToggleSidebar?: () => void;
+  onToggleSidebar: () => void;
   isSidebarOpen?: boolean;
 }
 
@@ -58,7 +58,7 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }: HeaderProps) => {
         />
       </div>
       
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-2">
         {/* Mobile search trigger */}
         {isMobile && (
           <Sheet>

@@ -115,23 +115,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     setExpanded(!expanded);
   };
 
-  // Close sidebar when route changes on mobile
-  useEffect(() => {
-    if (isMobile && onClose) {
-      const handleRouteChange = () => {
-        onClose();
-      };
-
-      // Add event listener for route changes
-      window.addEventListener('routechange', handleRouteChange);
-      
-      return () => {
-        window.removeEventListener('routechange', handleRouteChange);
-      };
-    }
-  }, [isMobile, onClose]);
-
-  // Handle click for mobile navigation
+  // Handle navigation click - primarily for mobile
   const handleNavClick = () => {
     if (isMobile && onClose) {
       onClose();
@@ -141,23 +125,24 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#111827] border-r border-gray-800 transition-all duration-300 ease-in-out",
-        expanded ? "w-64" : "w-0 md:w-20",
-        expanded ? "" : "md:px-2 md:py-4"
+        "flex flex-col bg-[#111827] border-r border-gray-800 h-full",
+        isMobile ? "w-full" : (expanded ? "w-64" : "w-20"),
       )}
     >
-      <Button
-        variant="ghost"
-        size="icon"
-        className="hidden md:flex absolute -right-12 top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white"
-        onClick={toggleSidebar}
-      >
-        {expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-      </Button>
+      {!isMobile && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="absolute right-0 top-4 translate-x-1/2 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white z-10 hidden md:flex"
+          onClick={toggleSidebar}
+        >
+          {expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </Button>
+      )}
 
       <div className={cn(
         "flex h-16 items-center border-b border-gray-800 px-4",
-        expanded ? "" : "md:justify-center"
+        expanded ? "" : "justify-center"
       )}>
         {expanded ? (
           <h2 className="text-lg font-semibold text-white">Rental Solutions</h2>
@@ -168,10 +153,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         )}
       </div>
 
-      <div className={cn(
-        "flex-1 overflow-auto py-4 px-4",
-        expanded ? "" : "md:px-2"
-      )}>
+      <div className="flex-1 overflow-auto py-4 px-4">
         <nav className="flex flex-col gap-1">
           {(expanded || !expanded && window.innerWidth >= 768) && (
             <>
@@ -314,7 +296,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
       <div className={cn(
         "mt-auto border-t border-gray-800 py-4 px-4",
-        expanded ? "" : "md:px-2 md:flex md:justify-center"
+        expanded ? "" : "flex justify-center"
       )}>
         {expanded ? (
           <div className="flex items-center gap-3">

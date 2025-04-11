@@ -14,15 +14,16 @@ export const BREAKPOINTS = {
  * @returns boolean indicating if the current viewport is mobile width
  */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
+  const [isMobile, setIsMobile] = React.useState<boolean>(() => 
+    typeof window !== 'undefined' ? window.innerWidth < BREAKPOINTS.TABLET : false
+  );
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const checkIfMobile = () => {
       setIsMobile(window.innerWidth < BREAKPOINTS.TABLET);
     };
-    
-    // Set initial value
-    checkIfMobile();
     
     // Add event listener for window resize
     window.addEventListener("resize", checkIfMobile);
@@ -31,7 +32,7 @@ export function useIsMobile() {
     return () => window.removeEventListener("resize", checkIfMobile);
   }, []);
 
-  return isMobile === undefined ? false : isMobile;
+  return isMobile;
 }
 
 /**
@@ -39,9 +40,15 @@ export function useIsMobile() {
  * @returns boolean indicating if the current viewport is tablet width
  */
 export function useIsTablet() {
-  const [isTablet, setIsTablet] = React.useState<boolean | undefined>(undefined);
+  const [isTablet, setIsTablet] = React.useState<boolean>(() => 
+    typeof window !== 'undefined' 
+      ? window.innerWidth >= BREAKPOINTS.TABLET && window.innerWidth < BREAKPOINTS.LAPTOP
+      : false
+  );
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const checkIfTablet = () => {
       setIsTablet(
         window.innerWidth >= BREAKPOINTS.TABLET && 
@@ -49,16 +56,13 @@ export function useIsTablet() {
       );
     };
     
-    // Set initial value
-    checkIfTablet();
-    
     // Add event listener
     window.addEventListener("resize", checkIfTablet);
     
     return () => window.removeEventListener("resize", checkIfTablet);
   }, []);
 
-  return isTablet === undefined ? false : isTablet;
+  return isTablet;
 }
 
 /**
@@ -66,9 +70,19 @@ export function useIsTablet() {
  * @returns string representing the current breakpoint (mobile, tablet, laptop, desktop)
  */
 export function useBreakpoint() {
-  const [breakpoint, setBreakpoint] = React.useState<string>("desktop");
+  const [breakpoint, setBreakpoint] = React.useState<string>(() => {
+    if (typeof window === 'undefined') return "desktop";
+    
+    const width = window.innerWidth;
+    if (width < BREAKPOINTS.MOBILE) return "mobile";
+    if (width < BREAKPOINTS.TABLET) return "tablet";
+    if (width < BREAKPOINTS.LAPTOP) return "laptop";
+    return "desktop";
+  });
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const handleResize = () => {
       const width = window.innerWidth;
       
@@ -82,9 +96,6 @@ export function useBreakpoint() {
         setBreakpoint("desktop");
       }
     };
-    
-    // Set initial value
-    handleResize();
     
     // Add event listener
     window.addEventListener("resize", handleResize);

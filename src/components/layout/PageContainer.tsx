@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -32,13 +32,20 @@ const PageContainer: React.FC<PageContainerProps> = ({
   const isMobile = useIsMobile();
   
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [isMobile]);
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Mobile sidebar as Sheet */}
       {isMobile && (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px]">
+          <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px] border-r border-gray-800">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </SheetContent>
         </Sheet>
@@ -70,7 +77,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
             </Link>
           )}
           
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               {title && <h1 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h1>}
               {description && <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>}
