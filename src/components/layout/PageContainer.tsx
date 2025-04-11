@@ -1,10 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
+import Sidebar from './Sidebar';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface PageContainerProps {
   children: React.ReactNode;
@@ -25,33 +28,62 @@ const PageContainer: React.FC<PageContainerProps> = ({
   actions,
   systemDate = new Date() // Default to current date instead of fixed date
 }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
+  
+  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  
   return (
-    <div className="min-h-screen pl-64 w-full">
-      <Header />
-      <main className={cn("p-6 animate-fade-in", className)}>
-        {backLink && (
-          <Link 
-            to={backLink} 
-            className="inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="mr-1 h-4 w-4" />
-            Back
-          </Link>
-        )}
+    <div className="min-h-screen flex flex-col bg-background">
+      {isMobile ? (
+        <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px]">
+            <Sidebar onClose={() => setSidebarOpen(false)} />
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Sidebar />
+      )}
+      
+      <div className={cn(
+        "flex-1 transition-all duration-300 ease-in-out",
+        isMobile ? "w-full" : "md:pl-64"
+      )}>
+        <Header 
+          onToggleSidebar={toggleSidebar} 
+          isSidebarOpen={sidebarOpen} 
+        />
         
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
-            {description && <p className="text-muted-foreground mt-1">{description}</p>}
-            <p className="text-xs text-muted-foreground mt-1">System Date: {formatDate(systemDate)}</p>
-          </div>
-          {actions && (
-            <div className="mt-4 sm:mt-0">{actions}</div>
+        <main className={cn(
+          "p-4 md:p-6 animate-fade-in",
+          className
+        )}>
+          {backLink && (
+            <Link 
+              to={backLink} 
+              className="inline-flex items-center mb-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="mr-1 h-4 w-4" />
+              Back
+            </Link>
           )}
-        </div>
-        
-        {children}
-      </main>
+          
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+            <div>
+              {title && <h1 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h1>}
+              {description && <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>}
+              <p className="text-xs text-muted-foreground mt-1">System Date: {formatDate(systemDate)}</p>
+            </div>
+            {actions && (
+              <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
+                {actions}
+              </div>
+            )}
+          </div>
+          
+          {children}
+        </main>
+      </div>
     </div>
   );
 };

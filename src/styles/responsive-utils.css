@@ -1,0 +1,107 @@
+
+@layer utilities {
+  /* Hide elements on specific screen sizes */
+  .hidden-xs {
+    @apply hidden xs:block;
+  }
+  
+  .hidden-sm {
+    @apply hidden sm:block;
+  }
+  
+  .hidden-md {
+    @apply hidden md:block;
+  }
+  
+  .hidden-lg {
+    @apply hidden lg:block;
+  }
+  
+  .hidden-xl {
+    @apply hidden xl:block;
+  }
+  
+  /* Show elements only on specific screen sizes */
+  .xs-only {
+    @apply block sm:hidden;
+  }
+  
+  .sm-only {
+    @apply hidden sm:block md:hidden;
+  }
+  
+  .md-only {
+    @apply hidden md:block lg:hidden;
+  }
+  
+  .lg-only {
+    @apply hidden lg:block xl:hidden;
+  }
+  
+  .xl-only {
+    @apply hidden xl:block;
+  }
+  
+  /* Text sizing */
+  .text-responsive {
+    @apply text-sm md:text-base;
+  }
+  
+  .heading-responsive {
+    @apply text-lg md:text-xl lg:text-2xl;
+  }
+  
+  .subheading-responsive {
+    @apply text-base md:text-lg;
+  }
+  
+  /* Padding responsive */
+  .p-responsive {
+    @apply p-4 md:p-6 lg:p-8;
+  }
+  
+  .px-responsive {
+    @apply px-4 md:px-6 lg:px-8;
+  }
+  
+  .py-responsive {
+    @apply py-4 md:py-6 lg:py-8;
+  }
+  
+  /* Margin responsive */
+  .m-responsive {
+    @apply m-4 md:m-6 lg:m-8;
+  }
+  
+  .mx-responsive {
+    @apply mx-4 md:mx-6 lg:mx-8;
+  }
+  
+  .my-responsive {
+    @apply my-4 md:my-6 lg:my-8;
+  }
+  
+  /* Gap responsive */
+  .gap-responsive {
+    @apply gap-3 md:gap-4 lg:gap-6;
+  }
+  
+  /* Width responsive */
+  .w-responsive-icon {
+    @apply w-5 md:w-6;
+  }
+  
+  .h-responsive-icon {
+    @apply h-5 md:h-6;
+  }
+  
+  /* Flex column on mobile, row on larger screens */
+  .flex-responsive {
+    @apply flex flex-col md:flex-row;
+  }
+  
+  /* Padding for input elements */
+  .input-padding-responsive {
+    @apply py-2 px-3 md:py-3 md:px-4;
+  }
+}
