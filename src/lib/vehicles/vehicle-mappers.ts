@@ -1,12 +1,13 @@
-
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
-  DatabaseVehicleType, 
-  Vehicle, 
-  VehicleSize, 
-  VehicleStatus 
+  DatabaseVehicleType,
+  Vehicle,
+  VehicleSize,
+  VehicleStatus,
+  UUID 
 } from '@/types/vehicle';
+import { hasProperty } from '@/utils/response-mapper';
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is VehicleStatus {
@@ -150,4 +151,19 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehic
   }
   
   return vehicle;
+}
+
+/**
+ * Type guard for database records
+ */
+export function isValidDatabaseRecord(record: unknown): record is DatabaseVehicleRecord {
+  if (!record || typeof record !== 'object') return false;
+  return hasProperty(record, 'id') && hasProperty(record, 'make') && hasProperty(record, 'model');
+}
+
+/**
+ * Safely cast string to UUID for database operations
+ */
+export function toUUID(id: string): UUID {
+  return id as UUID;
 }

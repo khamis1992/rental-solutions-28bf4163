@@ -179,3 +179,27 @@ export interface VehicleUpdateData {
   vehicle_type_id?: string | null;
   registration_number?: string | null;
 }
+
+export interface VehicleResponse {
+  id: string;
+  status?: VehicleStatus;
+}
+
+export interface DatabaseVehicleResponse {
+  id: string;
+  status?: DatabaseVehicleStatus;
+}
+
+// Helper type for Supabase query parameters
+export interface QueryParams {
+  id?: string;
+  status?: VehicleStatus | string;
+  customer_id?: string;
+  vehicle_id?: string;
+  lease_id?: string;
+  agreement_id?: string;
+}
+
+// Add these new types for stronger typing
+export type UUID = string & { _brand: 'UUID' };
+export type Status = 'active' | 'pending' | 'completed' | 'cancelled' | 'expired';
