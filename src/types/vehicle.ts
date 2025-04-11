@@ -1,5 +1,4 @@
-
-// Vehicle status enum from Supabase
+// Vehicle status enum from Supabase - making it more specific with exact allowed values
 export type VehicleStatus = 'available' | 'rented' | 'reserved' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
 // Database-specific vehicle status type (allowing for variations in naming)

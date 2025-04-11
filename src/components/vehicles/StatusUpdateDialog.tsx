@@ -75,6 +75,16 @@ const StatusUpdateDialog = ({
       setIsUpdating(true);
       console.log(`Attempting to update vehicle ${vehicleId} status from ${currentStatus} to ${status}`);
       
+      // Ensure status is one of the allowed VehicleStatus values before calling API
+      const validStatuses: VehicleStatus[] = [
+        'available', 'rented', 'reserved', 'maintenance', 
+        'police_station', 'accident', 'stolen', 'retired'
+      ];
+      
+      if (!validStatuses.includes(status)) {
+        throw new Error(`Invalid status: ${status}`);
+      }
+      
       const result = await updateVehicleStatus(vehicleId, status);
 
       if (result.success) {
@@ -132,6 +142,8 @@ const StatusUpdateDialog = ({
                 <SelectItem value="maintenance">Maintenance</SelectItem>
                 <SelectItem value="stolen">Stolen</SelectItem>
                 <SelectItem value="retired">Retired</SelectItem>
+                <SelectItem value="police_station">Police Station</SelectItem>
+                <SelectItem value="accident">Accident</SelectItem>
               </SelectContent>
             </Select>
           </div>

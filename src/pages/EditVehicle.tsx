@@ -10,7 +10,7 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { CustomButton } from '@/components/ui/custom-button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Vehicle } from '@/types/vehicle';
+import { Vehicle, VehicleStatus } from '@/types/vehicle';
 
 const EditVehicle = () => {
   const { id } = useParams<{ id: string }>();
@@ -109,6 +109,15 @@ const EditVehicle = () => {
       </PageContainer>
     );
   }
+
+  // Ensure status is a valid VehicleStatus or provide a default
+  const vehicleStatus = vehicle.status || 'available';
+  // Ensure the status is one of the allowed values
+  const validatedStatus: VehicleStatus = 
+    ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired']
+      .includes(vehicleStatus as string) 
+        ? vehicleStatus as VehicleStatus 
+        : 'available';
   
   return (
     <PageContainer>
@@ -150,7 +159,7 @@ const EditVehicle = () => {
       <StatusUpdateDialog
         isOpen={showStatusDialog}
         onClose={() => setShowStatusDialog(false)}
-        currentStatus={vehicle.status || 'available'}
+        currentStatus={validatedStatus}
         vehicleId={vehicle.id}
         vehicleDetails={{
           make: vehicle.make,

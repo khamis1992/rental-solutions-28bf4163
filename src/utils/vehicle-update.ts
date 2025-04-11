@@ -1,9 +1,8 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
-import { VehicleStatus } from '@/types/vehicle';
+import { VehicleStatus, DatabaseVehicleStatus } from '@/types/vehicle';
 
 /**
  * Updates vehicle information in the database with improved error handling
@@ -76,7 +75,7 @@ export const updateVehicleInfo = async (
     // Prepare update data
     const updateData: any = { ...data };
     
-    // Map status if provided
+    // Map status if provided - ensure proper type handling
     if (updateData.status) {
       const dbStatus = mapToDBStatus(updateData.status);
       updateData.status = dbStatus;
@@ -243,6 +242,19 @@ export const updateVehicleStatus = async (
   status: VehicleStatus
 ): Promise<{ success: boolean; message: string; data?: any }> => {
   console.log(`Updating vehicle ${id} status to ${status}`);
+  
+  // Validate the status to ensure it's a valid VehicleStatus value
+  const validStatuses: VehicleStatus[] = [
+    'available', 'rented', 'reserved', 'maintenance', 
+    'police_station', 'accident', 'stolen', 'retired'
+  ];
+  
+  if (!validStatuses.includes(status)) {
+    return {
+      success: false,
+      message: `Invalid status value: ${status}. Must be one of: ${validStatuses.join(', ')}`
+    };
+  }
   
   // Use the main update function but only send the status
   return updateVehicleInfo(id, { status });

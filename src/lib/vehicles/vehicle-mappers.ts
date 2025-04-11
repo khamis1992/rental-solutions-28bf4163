@@ -10,7 +10,11 @@ import {
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is VehicleStatus {
-  return ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'].includes(status.toLowerCase());
+  const validStatuses: VehicleStatus[] = [
+    'available', 'rented', 'reserved', 'maintenance', 
+    'police_station', 'accident', 'stolen', 'retired'
+  ];
+  return validStatuses.includes(status.toLowerCase());
 }
 
 // Map database status to application status with improved normalization
