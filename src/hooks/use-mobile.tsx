@@ -25,6 +25,9 @@ export function useIsMobile() {
       setIsMobile(window.innerWidth < BREAKPOINTS.TABLET);
     };
     
+    // Initial check
+    checkIfMobile();
+    
     // Add event listener for window resize
     window.addEventListener("resize", checkIfMobile);
     
@@ -55,6 +58,9 @@ export function useIsTablet() {
         window.innerWidth < BREAKPOINTS.LAPTOP
       );
     };
+    
+    // Initial check
+    checkIfTablet();
     
     // Add event listener
     window.addEventListener("resize", checkIfTablet);
@@ -96,6 +102,9 @@ export function useBreakpoint() {
         setBreakpoint("desktop");
       }
     };
+    
+    // Initial check
+    handleResize();
     
     // Add event listener
     window.addEventListener("resize", handleResize);

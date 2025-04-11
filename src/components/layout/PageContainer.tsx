@@ -33,10 +33,14 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
-  // Close sidebar when route changes on mobile
+  // Close sidebar when route changes or on initial load for mobile
   useEffect(() => {
+    // Always ensure sidebar is closed on mobile
     if (isMobile) {
       setSidebarOpen(false);
+    } else {
+      // On desktop, sidebar should be open by default
+      setSidebarOpen(true);
     }
   }, [isMobile]);
   

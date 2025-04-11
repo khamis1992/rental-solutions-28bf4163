@@ -115,7 +115,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     setExpanded(!expanded);
   };
 
-  // Handle navigation click - primarily for mobile
+  // Close sidebar when navigating on mobile
   const handleNavClick = () => {
     if (isMobile && onClose) {
       onClose();
