@@ -6,10 +6,8 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Card } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { AlertCircle, Plus } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface VehicleGridProps {
   onSelectVehicle?: (id: string) => void;
@@ -21,7 +19,6 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   const { useList } = useVehicles();
   const { data: vehicles, isLoading, error } = useList(filter);
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   
   // Handle navigation to vehicle details
   const handleSelect = (id: string) => {
@@ -32,10 +29,10 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
     }
   };
 
-  // Loading state with responsive grid
+  // Loading state
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
         {Array.from({ length: 6 }).map((_, index) => (
           <div key={index} className="overflow-hidden border border-border/60 rounded-lg">
             <Skeleton className="h-48 w-full" />
@@ -74,26 +71,28 @@ const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, show
   // No vehicles found
   if (!vehicles || vehicles.length === 0) {
     return (
-      <div className="bg-muted/50 border border-border text-muted-foreground p-6 sm:p-8 rounded-md text-center">
+      <div className="bg-muted/50 border border-border text-muted-foreground p-8 rounded-md text-center">
         <h3 className="text-lg font-semibold mb-2">No Vehicles Found</h3>
         <p className="mb-4">No vehicles match your current criteria.</p>
         {showAdd && (
-          <Button 
+          <button 
             onClick={() => navigate('/vehicles/add')}
-            variant="default"
-            className="w-full sm:w-auto"
+            className={cn(
+              "inline-flex items-center justify-center rounded-md text-sm font-medium",
+              "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+              "h-9 px-4 py-2"
+            )}
           >
-            <Plus className="h-4 w-4 mr-2" />
             Add New Vehicle
-          </Button>
+          </button>
         )}
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-      {Array.isArray(vehicles) && vehicles.map(vehicle => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 section-transition">
+      {vehicles.map(vehicle => (
         <VehicleCard
           key={vehicle.id}
           id={vehicle.id}

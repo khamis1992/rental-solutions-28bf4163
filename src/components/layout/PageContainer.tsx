@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -26,37 +26,24 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date()
+  systemDate = new Date() // Default to current date instead of fixed date
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
   
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-
-  // Close sidebar when route changes or on initial load for mobile
-  useEffect(() => {
-    // Always ensure sidebar is closed on mobile initially
-    if (isMobile) {
-      setSidebarOpen(false);
-    } else {
-      // On desktop, sidebar should be open by default
-      setSidebarOpen(true);
-    }
-  }, [isMobile]);
   
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Mobile sidebar as Sheet */}
-      {isMobile && (
+      {isMobile ? (
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-          <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px] border-r border-gray-800">
+          <SheetContent side="left" className="p-0 w-[80vw] max-w-[280px]">
             <Sidebar onClose={() => setSidebarOpen(false)} />
           </SheetContent>
         </Sheet>
+      ) : (
+        <Sidebar />
       )}
-      
-      {/* Desktop sidebar - only render when not on mobile */}
-      {!isMobile && <Sidebar />}
       
       <div className={cn(
         "flex-1 transition-all duration-300 ease-in-out",
@@ -68,7 +55,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
         />
         
         <main className={cn(
-          "p-4 sm:p-6 animate-fade-in",
+          "p-4 md:p-6 animate-fade-in",
           className
         )}>
           {backLink && (
@@ -81,7 +68,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
             </Link>
           )}
           
-          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <div>
               {title && <h1 className="text-xl md:text-2xl font-bold tracking-tight">{title}</h1>}
               {description && <p className="text-muted-foreground mt-1 text-sm md:text-base">{description}</p>}

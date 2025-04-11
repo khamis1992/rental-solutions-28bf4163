@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Settings, Search, User, Menu } from 'lucide-react';
+import { Bell, Settings, Search, User, Menu, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -8,15 +8,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
 interface HeaderProps {
-  onToggleSidebar: () => void;
+  onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
 }
 
-const Header = ({ onToggleSidebar, isSidebarOpen = false }: HeaderProps) => {
+const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
   const isMobile = useIsMobile();
 
   return (
-    <header className="w-full h-16 px-4 md:px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-40">
+    <header className="w-full h-16 px-4 md:px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
       <div className="flex items-center gap-2">
         {/* Mobile menu button */}
         {isMobile && (
@@ -25,9 +25,12 @@ const Header = ({ onToggleSidebar, isSidebarOpen = false }: HeaderProps) => {
             size="icon" 
             className="md:hidden" 
             onClick={onToggleSidebar}
-            aria-label="Toggle sidebar menu"
           >
-            <Menu className="h-5 w-5" />
+            {isSidebarOpen ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
             <span className="sr-only">Toggle Menu</span>
           </Button>
         )}

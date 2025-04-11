@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
+import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -10,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { VehicleStatus } from '@/types/vehicle';
 
 // Define the filter values interface
 export interface VehicleFilterValues {
@@ -43,7 +44,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
 }) => {
   // State for filters
   const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
-  const isMobile = useIsMobile();
   
   // Apply filters when they change
   useEffect(() => {
@@ -60,31 +60,31 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
     const value = e.target.value;
     setFilters(prev => ({ ...prev, search: value }));
   };
-
+  
   return (
     <div className={cn("rounded-lg", className)}>
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-        {/* Search field - now takes more space on both mobile and desktop */}
-        <div className="relative md:col-span-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        {/* Search field */}
+        <div className="relative md:col-span-2">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search className="h-4 w-4 text-muted-foreground" />
           </div>
           <Input
             type="search"
             placeholder="Search by VIN..."
-            className="pl-10 w-full"
+            className="pl-10"
             value={filters.search || ''}
             onChange={handleSearchChange}
           />
         </div>
         
         {/* Status filter */}
-        <div className="md:col-span-2">
+        <div>
           <Select 
             value={filters.status} 
             onValueChange={(value) => handleFilterChange('status', value)}
           >
-            <SelectTrigger id="status-filter" className="w-full">
+            <SelectTrigger id="status-filter">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
@@ -102,12 +102,12 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </div>
         
         {/* Make filter */}
-        <div className="md:col-span-2">
+        <div>
           <Select 
             value={filters.make} 
             onValueChange={(value) => handleFilterChange('make', value)}
           >
-            <SelectTrigger id="make-filter" className="w-full">
+            <SelectTrigger id="make-filter">
               <SelectValue placeholder="All Makes" />
             </SelectTrigger>
             <SelectContent>
@@ -128,12 +128,12 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </div>
         
         {/* Location filter */}
-        <div className="md:col-span-2">
+        <div>
           <Select 
             value={filters.location} 
             onValueChange={(value) => handleFilterChange('location', value)}
           >
-            <SelectTrigger id="location-filter" className="w-full">
+            <SelectTrigger id="location-filter">
               <SelectValue placeholder="All Locations" />
             </SelectTrigger>
             <SelectContent>
@@ -150,12 +150,12 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
         </div>
         
         {/* Year filter */}
-        <div className="md:col-span-2">
+        <div>
           <Select 
             value={filters.year} 
             onValueChange={(value) => handleFilterChange('year', value)}
           >
-            <SelectTrigger id="year-filter" className="w-full">
+            <SelectTrigger id="year-filter">
               <SelectValue placeholder="All Years" />
             </SelectTrigger>
             <SelectContent>

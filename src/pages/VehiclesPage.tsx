@@ -10,7 +10,6 @@ import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/Vehic
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
-import { ResponsiveContainer, ResponsiveStack } from '@/components/ui/responsive-container';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -63,10 +62,6 @@ const Vehicles = () => {
     navigate('/vehicles/add');
   };
 
-  const handleStatusUpdate = () => {
-    navigate('/vehicles/status-update');
-  };
-
   const handleFilterChange = (newFilters: VehicleFilterValues) => {
     // Convert from VehicleFilterValues to VehicleFilterParams
     const convertedFilters: VehicleFilterParams = {};
@@ -98,57 +93,51 @@ const Vehicles = () => {
   
   return (
     <PageContainer>
-      <ResponsiveStack className="space-y-6" spacing="lg">
-        <ResponsiveStack direction="column" spacing="sm">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <SectionHeader
-              title="Vehicle Management"
-              description="Manage your fleet inventory"
-              icon={Car}
-              className="md:mb-0"
-            />
-            <div className="flex flex-wrap gap-2">
-              <CustomButton 
-                size="sm"
-                variant="outline"
-                onClick={handleStatusUpdate}
-                className="w-full sm:w-auto justify-center"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Status Update
-              </CustomButton>
-              <CustomButton 
-                size="sm" 
-                glossy 
-                onClick={handleAddVehicle}
-                className="w-full sm:w-auto justify-center"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Vehicle
-              </CustomButton>
-            </div>
-          </div>
-        </ResponsiveStack>
-        
-        <div className="w-full">
-          <VehicleFilters 
-            onFilterChange={handleFilterChange} 
-            initialValues={{
-              status: filters.status || 'all',
-              make: filters.make || 'all',
-              location: filters.location || 'all',
-              year: filters.year?.toString() || 'all',
-              category: filters.vehicle_type_id || 'all',
-              search: filters.search || ''
-            }}
+      <div className="space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <SectionHeader
+            title="Vehicle Management"
+            description="Manage your fleet inventory"
+            icon={Car}
+            className="md:mb-0"
           />
+          <div className="flex flex-wrap gap-2">
+            <CustomButton 
+              size="sm"
+              variant="outline"
+              onClick={() => navigate('/vehicles/status-update')}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Status Update
+            </CustomButton>
+            <CustomButton size="sm" glossy onClick={handleAddVehicle}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Vehicle
+            </CustomButton>
+          </div>
+        </div>
+        
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-1">
+            <VehicleFilters 
+              onFilterChange={handleFilterChange} 
+              initialValues={{
+                status: filters.status || 'all',
+                make: filters.make || 'all',
+                location: filters.location || 'all',
+                year: filters.year?.toString() || 'all',
+                category: filters.vehicle_type_id || 'all',
+                search: filters.search || ''
+              }}
+            />
+          </div>
         </div>
         
         <VehicleGrid 
           onSelectVehicle={handleSelectVehicle} 
           filter={filters}
         />
-      </ResponsiveStack>
+      </div>
     </PageContainer>
   );
 };
