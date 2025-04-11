@@ -15,8 +15,11 @@ import {
   AlertTriangle,
   DollarSign,
   Scale,
+  Menu,
+  X,
   ChevronDown,
   ChevronRight,
+  ChevronLeft,
   UserCog,
   Sliders,
   Car
@@ -91,10 +94,9 @@ const NavGroup: React.FC<NavGroupProps> = ({ label, icon, children, defaultOpen 
 
 interface SidebarProps {
   onClose?: () => void;
-  className?: string;
 }
 
-const Sidebar = ({ onClose, className }: SidebarProps) => {
+const Sidebar = ({ onClose }: SidebarProps) => {
   const [expanded, setExpanded] = useState(true);
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -109,6 +111,10 @@ const Sidebar = ({ onClose, className }: SidebarProps) => {
     return paths.some(path => isActive(path));
   };
 
+  const toggleSidebar = () => {
+    setExpanded(!expanded);
+  };
+
   // Close sidebar when route changes on mobile
   useEffect(() => {
     if (isMobile && onClose) {
@@ -116,20 +122,14 @@ const Sidebar = ({ onClose, className }: SidebarProps) => {
         onClose();
       };
 
-      // Simulate route change detection
-      const handleLocationChange = () => {
-        if (window.location.pathname !== location.pathname) {
-          handleRouteChange();
-        }
-      };
-      
-      window.addEventListener('popstate', handleLocationChange);
+      // Add event listener for route changes
+      window.addEventListener('routechange', handleRouteChange);
       
       return () => {
-        window.removeEventListener('popstate', handleLocationChange);
+        window.removeEventListener('routechange', handleRouteChange);
       };
     }
-  }, [isMobile, onClose, location.pathname]);
+  }, [isMobile, onClose]);
 
   // Handle click for mobile navigation
   const handleNavClick = () => {
@@ -141,12 +141,24 @@ const Sidebar = ({ onClose, className }: SidebarProps) => {
   return (
     <div
       className={cn(
-        "flex flex-col bg-[#111827] border-r border-gray-800 transition-all duration-300 ease-in-out h-full",
-        expanded ? "w-64" : "w-20",
-        className
+        "fixed inset-y-0 left-0 z-40 flex flex-col bg-[#111827] border-r border-gray-800 transition-all duration-300 ease-in-out",
+        expanded ? "w-64" : "w-0 md:w-20",
+        expanded ? "" : "md:px-2 md:py-4"
       )}
     >
-      <div className="flex h-16 items-center border-b border-gray-800 px-4">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden md:flex absolute -right-12 top-4 rounded-full bg-[#1e293b] hover:bg-[#1e293b]/90 text-white"
+        onClick={toggleSidebar}
+      >
+        {expanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      </Button>
+
+      <div className={cn(
+        "flex h-16 items-center border-b border-gray-800 px-4",
+        expanded ? "" : "md:justify-center"
+      )}>
         {expanded ? (
           <h2 className="text-lg font-semibold text-white">Rental Solutions</h2>
         ) : (
@@ -156,144 +168,154 @@ const Sidebar = ({ onClose, className }: SidebarProps) => {
         )}
       </div>
 
-      <div className="flex-1 overflow-auto py-4 px-4">
+      <div className={cn(
+        "flex-1 overflow-auto py-4 px-4",
+        expanded ? "" : "md:px-2"
+      )}>
         <nav className="flex flex-col gap-1">
-          <NavLink
-            to="/dashboard"
-            icon={<LayoutDashboard className="h-5 w-5 flex-shrink-0" />}
-            label="Dashboard"
-            isActive={isActive('/dashboard')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/customers"
-            icon={<Users className="h-5 w-5 flex-shrink-0" />}
-            label="Customers"
-            isActive={isActive('/customers')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/agreements"
-            icon={<FileText className="h-5 w-5 flex-shrink-0" />}
-            label="Agreements"
-            isActive={isActive('/agreements')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/vehicles"
-            icon={<Car className="h-5 w-5 flex-shrink-0" />}
-            label="Vehicles"
-            isActive={isActive('/vehicles')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/maintenance"
-            icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
-            label="Maintenance"
-            isActive={isActive('/maintenance')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/fines"
-            icon={<AlertTriangle className="h-5 w-5 flex-shrink-0" />}
-            label="Traffic Fines"
-            isActive={isActive('/fines')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/financials"
-            icon={<DollarSign className="h-5 w-5 flex-shrink-0" />}
-            label="Financials"
-            isActive={isActive('/financials')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/legal"
-            icon={<Scale className="h-5 w-5 flex-shrink-0" />}
-            label="Legal"
-            isActive={isActive('/legal')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/reports"
-            icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
-            label="Reports"
-            isActive={isActive('/reports')}
-            onClick={handleNavClick}
-          />
-
-          <NavLink
-            to="/user-management"
-            icon={<Users className="h-5 w-5 flex-shrink-0" />}
-            label="User Management"
-            isActive={isActive('/user-management')}
-            onClick={handleNavClick}
-          />
-
-          {!expanded && (
+          {(expanded || !expanded && window.innerWidth >= 768) && (
             <>
               <NavLink
-                to="/settings"
-                icon={<UserCog className="h-5 w-5 flex-shrink-0" />}
-                label="User Settings"
-                isActive={isActive('/settings') && !isActive('/settings/system')}
+                to="/dashboard"
+                icon={<LayoutDashboard className="h-5 w-5 flex-shrink-0" />}
+                label="Dashboard"
+                isActive={isActive('/dashboard')}
                 onClick={handleNavClick}
               />
-              
+
               <NavLink
-                to="/settings/system"
-                icon={<Sliders className="h-5 w-5 flex-shrink-0" />}
-                label="System Settings"
-                isActive={isActive('/settings/system')}
+                to="/customers"
+                icon={<Users className="h-5 w-5 flex-shrink-0" />}
+                label="Customers"
+                isActive={isActive('/customers')}
                 onClick={handleNavClick}
               />
-            </>
-          )}
-          
-          {expanded && (
-            <NavGroup 
-              label="Settings" 
-              icon={<Settings className="h-5 w-5 flex-shrink-0" />}
-              defaultOpen={hasActiveChild(['/settings', '/settings/system'])}
-              onSelect={isMobile ? handleNavClick : undefined}
-            >
-              <Link
-                to="/settings"
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                  isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
-                )}
+
+              <NavLink
+                to="/agreements"
+                icon={<FileText className="h-5 w-5 flex-shrink-0" />}
+                label="Agreements"
+                isActive={isActive('/agreements')}
                 onClick={handleNavClick}
-              >
-                <UserCog className="h-4 w-4 flex-shrink-0" />
-                <span>User Settings</span>
-              </Link>
+              />
+
+              <NavLink
+                to="/vehicles"
+                icon={<Car className="h-5 w-5 flex-shrink-0" />}
+                label="Vehicles"
+                isActive={isActive('/vehicles')}
+                onClick={handleNavClick}
+              />
+
+              <NavLink
+                to="/maintenance"
+                icon={<Wrench className="h-5 w-5 flex-shrink-0" />}
+                label="Maintenance"
+                isActive={isActive('/maintenance')}
+                onClick={handleNavClick}
+              />
+
+              <NavLink
+                to="/fines"
+                icon={<AlertTriangle className="h-5 w-5 flex-shrink-0" />}
+                label="Traffic Fines"
+                isActive={isActive('/fines')}
+                onClick={handleNavClick}
+              />
+
+              <NavLink
+                to="/financials"
+                icon={<DollarSign className="h-5 w-5 flex-shrink-0" />}
+                label="Financials"
+                isActive={isActive('/financials')}
+                onClick={handleNavClick}
+              />
+
+              <NavLink
+                to="/legal"
+                icon={<Scale className="h-5 w-5 flex-shrink-0" />}
+                label="Legal"
+                isActive={isActive('/legal')}
+                onClick={handleNavClick}
+              />
+
+              <NavLink
+                to="/reports"
+                icon={<BarChart2 className="h-5 w-5 flex-shrink-0" />}
+                label="Reports"
+                isActive={isActive('/reports')}
+                onClick={handleNavClick}
+              />
+
+              <NavLink
+                to="/user-management"
+                icon={<Users className="h-5 w-5 flex-shrink-0" />}
+                label="User Management"
+                isActive={isActive('/user-management')}
+                onClick={handleNavClick}
+              />
+
+              {!expanded && (
+                <>
+                  <NavLink
+                    to="/settings"
+                    icon={<UserCog className="h-5 w-5 flex-shrink-0" />}
+                    label="User Settings"
+                    isActive={isActive('/settings') && !isActive('/settings/system')}
+                    onClick={handleNavClick}
+                  />
+                  
+                  <NavLink
+                    to="/settings/system"
+                    icon={<Sliders className="h-5 w-5 flex-shrink-0" />}
+                    label="System Settings"
+                    isActive={isActive('/settings/system')}
+                    onClick={handleNavClick}
+                  />
+                </>
+              )}
               
-              <Link
-                to="/settings/system"
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                  isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
-                )}
-                onClick={handleNavClick}
-              >
-                <Sliders className="h-4 w-4 flex-shrink-0" />
-                <span>System Settings</span>
-              </Link>
-            </NavGroup>
+              {expanded && (
+                <NavGroup 
+                  label="Settings" 
+                  icon={<Settings className="h-5 w-5 flex-shrink-0" />}
+                  defaultOpen={hasActiveChild(['/settings', '/settings/system'])}
+                  onSelect={isMobile ? handleNavClick : undefined}
+                >
+                  <Link
+                    to="/settings"
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
+                      isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
+                    )}
+                    onClick={handleNavClick}
+                  >
+                    <UserCog className="h-4 w-4 flex-shrink-0" />
+                    <span>User Settings</span>
+                  </Link>
+                  
+                  <Link
+                    to="/settings/system"
+                    className={cn(
+                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
+                      isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
+                    )}
+                    onClick={handleNavClick}
+                  >
+                    <Sliders className="h-4 w-4 flex-shrink-0" />
+                    <span>System Settings</span>
+                  </Link>
+                </NavGroup>
+              )}
+            </>
           )}
         </nav>
       </div>
 
-      <div className="mt-auto border-t border-gray-800 py-4 px-4">
+      <div className={cn(
+        "mt-auto border-t border-gray-800 py-4 px-4",
+        expanded ? "" : "md:px-2 md:flex md:justify-center"
+      )}>
         {expanded ? (
           <div className="flex items-center gap-3">
             <Avatar className="h-9 w-9 border border-gray-700">

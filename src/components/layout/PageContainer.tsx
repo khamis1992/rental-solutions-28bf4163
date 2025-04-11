@@ -26,7 +26,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date()
+  systemDate = new Date() // Default to current date instead of fixed date
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -42,7 +42,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
           </SheetContent>
         </Sheet>
       ) : (
-        <Sidebar className="fixed inset-y-0 left-0 z-40" />
+        <Sidebar />
       )}
       
       <div className={cn(
