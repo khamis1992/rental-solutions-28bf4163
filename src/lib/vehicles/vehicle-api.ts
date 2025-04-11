@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
@@ -133,20 +132,54 @@ export async function updateVehicle(id: string, vehicleData: VehicleUpdateData):
   // Make a copy of the data to avoid modifying the original
   const dbData = { ...vehicleData } as any;
   
-  // No need to convert status here
+  // Ensure we have an updated_at timestamp
+  dbData.updated_at = new Date().toISOString();
   
-  const { data, error } = await supabase
-    .from('vehicles')
-    .update(dbData)
-    .eq('id', id)
-    .select('*, vehicle_types(*)')
-    .single();
+  console.log(`API: Updating vehicle ${id} with data:`, dbData);
   
-  if (error) {
-    throw new Error(`Error updating vehicle: ${error.message}`);
+  let attempts = 0;
+  const maxAttempts = 3;
+  let lastError = null;
+  
+  while (attempts < maxAttempts) {
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .update(dbData)
+        .eq('id', id)
+        .select('*, vehicle_types(*)')
+        .single();
+      
+      if (error) {
+        lastError = error;
+        console.error(`Update attempt ${attempts + 1} failed:`, error);
+        attempts++;
+        
+        if (attempts < maxAttempts) {
+          // Wait before retrying
+          await new Promise(r => setTimeout(r, 500 * attempts));
+          continue;
+        }
+        throw error;
+      }
+      
+      console.log(`API: Vehicle ${id} updated successfully:`, data);
+      return data as DatabaseVehicleRecord;
+    } catch (err) {
+      lastError = err;
+      console.error(`Update attempt ${attempts + 1} failed with exception:`, err);
+      attempts++;
+      
+      if (attempts < maxAttempts) {
+        // Wait before retrying
+        await new Promise(r => setTimeout(r, 500 * attempts));
+      } else {
+        break;
+      }
+    }
   }
   
-  return data as DatabaseVehicleRecord;
+  throw lastError || new Error('Failed to update vehicle after multiple attempts');
 }
 
 // Delete a vehicle

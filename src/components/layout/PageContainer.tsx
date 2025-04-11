@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -33,6 +33,16 @@ const PageContainer: React.FC<PageContainerProps> = ({
   
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   
+  // Force new component mount when key properties change
+  const [contentKey, setContentKey] = useState<string>(
+    `${title || ''}-${description || ''}-${Date.now()}`
+  );
+  
+  // Update the content key when critical props change
+  useEffect(() => {
+    setContentKey(`${title || ''}-${description || ''}-${Date.now()}`);
+  }, [title, description]);
+  
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {isMobile ? (
@@ -54,10 +64,13 @@ const PageContainer: React.FC<PageContainerProps> = ({
           isSidebarOpen={sidebarOpen} 
         />
         
-        <main className={cn(
-          "p-4 md:p-6 animate-fade-in",
-          className
-        )}>
+        <main 
+          key={contentKey}
+          className={cn(
+            "p-4 md:p-6 animate-fade-in",
+            className
+          )}
+        >
           {backLink && (
             <Link 
               to={backLink} 

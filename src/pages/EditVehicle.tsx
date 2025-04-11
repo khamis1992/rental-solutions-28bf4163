@@ -21,6 +21,7 @@ const EditVehicle = () => {
   // Local loading states
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<Error | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { useVehicle, useUpdate } = useVehicles();
   const { 
@@ -33,7 +34,6 @@ const EditVehicle = () => {
   const { 
     mutate: updateVehicle, 
     isPending: isUpdating,
-    isSuccess: isUpdateSuccess
   } = useUpdate();
   
   // Sync fetched data with local state
@@ -55,42 +55,49 @@ const EditVehicle = () => {
       console.error('Vehicle fetch error:', fetchError);
     }
   }, [fetchedVehicle, isFetching, fetchError]);
-
-  // When update is successful, refresh the data
-  useEffect(() => {
-    if (isUpdateSuccess) {
-      console.log("Update successful, refreshing data");
-      // Short timeout to allow the server to process the update
-      setTimeout(() => {
-        refetch();
-      }, 300);
-    }
-  }, [isUpdateSuccess, refetch]);
   
   const handleSubmit = async (formData: any) => {
     if (!vehicle || !id) return;
     
     try {
+      setIsSubmitting(true);
       console.log("Submitting form data:", formData);
-      updateVehicle(
-        { id, data: formData },
-        {
-          onSuccess: () => {
-            toast.success('Vehicle updated successfully');
-            // Navigate after a short delay to ensure the update is processed
-            setTimeout(() => {
-              navigate(`/vehicles/${id}`);
-            }, 500);
-          },
-          onError: (error) => {
-            console.error('Update vehicle error:', error);
-            toast.error('Failed to update vehicle', {
-              description: error instanceof Error ? error.message : 'Unknown error occurred',
-            });
+      
+      await new Promise<void>((resolve, reject) => {
+        updateVehicle(
+          { id, data: formData },
+          {
+            onSuccess: async () => {
+              console.log("Update successful, refreshing data");
+              try {
+                // Force data refresh from server before navigating
+                await refetch();
+                
+                toast.success('Vehicle updated successfully');
+                resolve();
+                
+                // Only navigate after successful refetch
+                navigate(`/vehicles/${id}`);
+              } catch (refreshError) {
+                console.error('Error refreshing data:', refreshError);
+                reject(refreshError);
+              }
+            },
+            onError: (error) => {
+              console.error('Update vehicle error:', error);
+              toast.error('Failed to update vehicle', {
+                description: error instanceof Error ? error.message : 'Unknown error occurred',
+              });
+              reject(error);
+            },
+            onSettled: () => {
+              setIsSubmitting(false);
+            }
           }
-        }
-      );
+        );
+      });
     } catch (error) {
+      setIsSubmitting(false);
       console.error('Edit vehicle submission error:', error);
       toast.error('Error submitting form', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred'
@@ -99,9 +106,15 @@ const EditVehicle = () => {
   };
   
   // Handle status update completion
-  const handleStatusUpdated = () => {
+  const handleStatusUpdated = async () => {
     console.log('Status updated, refreshing vehicle data');
-    refetch();
+    try {
+      await refetch();
+      toast.success('Status updated successfully');
+    } catch (error) {
+      console.error('Error refreshing data after status update:', error);
+      toast.error('Failed to refresh data after status update');
+    }
   };
   
   if (isLoading) {
@@ -176,7 +189,7 @@ const EditVehicle = () => {
         <VehicleForm 
           initialData={vehicle}
           onSubmit={handleSubmit} 
-          isLoading={isUpdating}
+          isLoading={isUpdating || isSubmitting}
           isEditMode={true}
         />
       </div>

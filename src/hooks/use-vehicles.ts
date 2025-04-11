@@ -408,44 +408,77 @@ export const useVehicles = () => {
             
             if (imageUrl) vehicleData.image_url = imageUrl;
             
+            vehicleData.updated_at = new Date().toISOString();
+            
             console.log('Updating vehicle with data:', vehicleData);
             
-            const { data: updatedVehicle, error } = await supabase
-              .from('vehicles')
-              .update(vehicleData)
-              .eq('id', id)
-              .select('*, vehicle_types(*)')
-              .maybeSingle();
-              
-            if (error) {
-              console.error('Supabase update error:', error);
-              throw new Error(`Failed to update vehicle: ${error.message}`);
-            }
-
-            if (!updatedVehicle) {
-              console.log('Update succeeded but no data returned, fetching vehicle data separately');
-              const { data: fetchedVehicle, error: fetchError } = await supabase
-                .from('vehicles')
-                .select('*, vehicle_types(*)')
-                .eq('id', id)
-                .maybeSingle();
+            let attempt = 0;
+            const maxAttempts = 3;
+            let lastError = null;
+            let updatedVehicle = null;
+            
+            while (attempt < maxAttempts && !updatedVehicle) {
+              try {
+                const { data: result, error } = await supabase
+                  .from('vehicles')
+                  .update(vehicleData)
+                  .eq('id', id)
+                  .select('*, vehicle_types(*)')
+                  .maybeSingle();
+                  
+                if (error) {
+                  console.error(`Update attempt ${attempt + 1} failed:`, error);
+                  lastError = error;
+                  attempt++;
+                  if (attempt < maxAttempts) {
+                    await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+                    continue;
+                  }
+                  throw error;
+                }
+    
+                if (!result) {
+                  console.log('Update succeeded but no data returned, fetching vehicle data separately');
+                  const { data: fetchedVehicle, error: fetchError } = await supabase
+                    .from('vehicles')
+                    .select('*, vehicle_types(*)')
+                    .eq('id', id)
+                    .maybeSingle();
+                    
+                  if (fetchError) {
+                    console.error('Error fetching updated vehicle:', fetchError);
+                    throw new Error(`Vehicle updated but failed to fetch updated data: ${fetchError.message}`);
+                  }
+                  
+                  if (!fetchedVehicle) {
+                    console.error('Vehicle not found after update:', id);
+                    throw new Error('Vehicle was updated but could not be found afterwards');
+                  }
+                  
+                  console.log('Successfully fetched vehicle after update:', fetchedVehicle);
+                  updatedVehicle = mapDatabaseRecordToVehicle(fetchedVehicle);
+                } else {
+                  console.log('Vehicle updated successfully with data returned:', result);
+                  updatedVehicle = mapDatabaseRecordToVehicle(result);
+                }
+              } catch (e) {
+                console.error(`Update attempt ${attempt + 1} failed with exception:`, e);
+                lastError = e;
+                attempt++;
                 
-              if (fetchError) {
-                console.error('Error fetching updated vehicle:', fetchError);
-                throw new Error(`Vehicle updated but failed to fetch updated data: ${fetchError.message}`);
+                if (attempt < maxAttempts) {
+                  await new Promise(r => setTimeout(r, 500 * Math.pow(2, attempt)));
+                } else {
+                  throw e;
+                }
               }
-              
-              if (!fetchedVehicle) {
-                console.error('Vehicle not found after update:', id);
-                throw new Error('Vehicle was updated but could not be found afterwards');
-              }
-              
-              console.log('Successfully fetched vehicle after update:', fetchedVehicle);
-              return mapDatabaseRecordToVehicle(fetchedVehicle);
             }
             
-            console.log('Vehicle updated successfully:', updatedVehicle);
-            return mapDatabaseRecordToVehicle(updatedVehicle);
+            if (!updatedVehicle) {
+              throw lastError || new Error('Failed to update vehicle after multiple attempts');
+            }
+            
+            return updatedVehicle;
           } catch (error) {
             console.error('Update vehicle error details:', error);
             handleApiError(error, 'Failed to update vehicle');
@@ -455,7 +488,7 @@ export const useVehicles = () => {
         onSuccess: (_, variables) => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.invalidateQueries({ queryKey: ['vehicles', variables.id] });
-          toast.success('Vehicle updated successfully');
+          console.log('Cache invalidated for vehicle ID:', variables.id);
         },
       });
     },

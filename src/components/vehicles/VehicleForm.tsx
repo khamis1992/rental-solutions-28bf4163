@@ -26,7 +26,6 @@ import { format, isValid } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 
-// Create a more robust schema with better validations
 const vehicleSchema = z.object({
   make: z.string().min(1, 'Make is required'),
   model: z.string().min(1, 'Model is required'),
@@ -61,10 +60,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isLoading = false,
   isEditMode = false,
 }) => {
-  // Key for form reset when initialData changes
-  const [formKey, setFormKey] = useState(Date.now());
+  const [formKey, setFormKey] = useState(() => Date.now());
   
-  // Fixed default values to prevent undefined issues
   const getDefaultValues = () => ({
     make: initialData?.make || '',
     model: initialData?.model || '',
@@ -96,13 +93,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-  // Re-initialize the form when initial data changes with key reset for full form refresh
   useEffect(() => {
     if (initialData) {
       console.log('Re-initializing form with new data:', initialData);
       const values = getDefaultValues();
+      
       form.reset(values);
-      setFormKey(Date.now()); // This forces a complete re-render of the form
+      setFormKey(Date.now());
     }
   }, [initialData, form]);
 
@@ -135,7 +132,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
-  // Create a unique key for the form to force re-render when initialData changes
   return (
     <Card key={formKey}>
       <CardHeader>
