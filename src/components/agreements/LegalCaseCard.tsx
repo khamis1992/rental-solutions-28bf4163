@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { CalendarClock, Scale, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { castDbId } from '@/types/supabase-helpers';
+import { castDbId } from '@/types/supabase-helpers'; // Using castDbId from supabase-helpers
 import { getResponseData, hasData } from '@/utils/supabase-type-helpers';
 
 interface LegalCaseCardProps {

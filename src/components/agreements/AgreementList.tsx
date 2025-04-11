@@ -77,7 +77,6 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { castDbId } from '@/types/supabase-helpers';
-import { getResponseData, hasData } from '@/utils/supabase-type-helpers';
 
 interface AgreementListProps {
   searchQuery?: string;

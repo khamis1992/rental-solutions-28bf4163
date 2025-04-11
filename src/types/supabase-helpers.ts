@@ -2,7 +2,8 @@
 import { Database } from './database.types';
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { castToUUID } from '@/utils/supabase-type-helpers';
-import { exists, hasProperty } from '@/utils/response-mapper';
+import { exists } from '@/utils/response-mapper';
+// Removed the hasProperty import to avoid duplication
 
 export type GenericSchema = Database[keyof Database];
 export type TablesInsertResponse<T extends keyof Database['public']['Tables']> = PostgrestResponse<Database['public']['Tables'][T]>;

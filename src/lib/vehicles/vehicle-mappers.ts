@@ -8,7 +8,7 @@ import {
   VehicleStatus,
   UUID 
 } from '@/types/vehicle';
-import { hasProperty } from '@/utils/response-mapper';
+import { hasProperty } from '@/types/supabase-helpers'; // Changed import source from response-mapper to supabase-helpers
 
 // Helper function to validate status
 export function isValidStatus(status: string): status is VehicleStatus {
