@@ -10,7 +10,7 @@ import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/Vehic
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
-import { ResponsiveContainer } from '@/components/ui/responsive-container';
+import { ResponsiveContainer, ResponsiveStack } from '@/components/ui/responsive-container';
 
 // Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
@@ -98,35 +98,37 @@ const Vehicles = () => {
   
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <SectionHeader
-            title="Vehicle Management"
-            description="Manage your fleet inventory"
-            icon={Car}
-            className="md:mb-0"
-          />
-          <div className="flex flex-wrap gap-2">
-            <CustomButton 
-              size="sm"
-              variant="outline"
-              onClick={handleStatusUpdate}
-              className="w-full sm:w-auto justify-center"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Status Update
-            </CustomButton>
-            <CustomButton 
-              size="sm" 
-              glossy 
-              onClick={handleAddVehicle}
-              className="w-full sm:w-auto justify-center"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Vehicle
-            </CustomButton>
+      <ResponsiveStack className="space-y-6" spacing="lg">
+        <ResponsiveStack direction="column" spacing="sm">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <SectionHeader
+              title="Vehicle Management"
+              description="Manage your fleet inventory"
+              icon={Car}
+              className="md:mb-0"
+            />
+            <div className="flex flex-wrap gap-2">
+              <CustomButton 
+                size="sm"
+                variant="outline"
+                onClick={handleStatusUpdate}
+                className="w-full sm:w-auto justify-center"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Status Update
+              </CustomButton>
+              <CustomButton 
+                size="sm" 
+                glossy 
+                onClick={handleAddVehicle}
+                className="w-full sm:w-auto justify-center"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Vehicle
+              </CustomButton>
+            </div>
           </div>
-        </div>
+        </ResponsiveStack>
         
         <div className="w-full">
           <VehicleFilters 
@@ -146,7 +148,7 @@ const Vehicles = () => {
           onSelectVehicle={handleSelectVehicle} 
           filter={filters}
         />
-      </div>
+      </ResponsiveStack>
     </PageContainer>
   );
 };

@@ -114,3 +114,41 @@ export function useBreakpoint() {
 
   return breakpoint;
 }
+
+// New hook for determining screen orientation
+export function useOrientation() {
+  const [orientation, setOrientation] = React.useState<'portrait' | 'landscape'>(
+    typeof window !== 'undefined' 
+      ? window.innerHeight > window.innerWidth ? 'portrait' : 'landscape' 
+      : 'portrait'
+  );
+
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const updateOrientation = () => {
+      setOrientation(
+        window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'
+      );
+    };
+    
+    // Initial check
+    updateOrientation();
+    
+    // Add event listeners
+    window.addEventListener('resize', updateOrientation);
+    
+    if (window.screen?.orientation) {
+      window.screen.orientation.addEventListener('change', updateOrientation);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', updateOrientation);
+      if (window.screen?.orientation) {
+        window.screen.orientation.removeEventListener('change', updateOrientation);
+      }
+    };
+  }, []);
+
+  return orientation;
+}

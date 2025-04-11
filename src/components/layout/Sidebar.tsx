@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from "@/lib/utils";
@@ -15,8 +15,6 @@ import {
   AlertTriangle,
   DollarSign,
   Scale,
-  Menu,
-  X,
   ChevronDown,
   ChevronRight,
   ChevronLeft,

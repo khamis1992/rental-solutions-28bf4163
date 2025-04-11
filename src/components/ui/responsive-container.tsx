@@ -1,95 +1,104 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { useIsMobile, useIsTablet } from '@/hooks/use-mobile';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;
   className?: string;
-  as?: React.ElementType;
-  maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full' | 'screen';
-  padding?: boolean;
+  fullWidthOnMobile?: boolean;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+  paddingX?: boolean;
 }
-
-const maxWidthClasses = {
-  'xs': 'max-w-xs',
-  'sm': 'max-w-sm',
-  'md': 'max-w-md',
-  'lg': 'max-w-lg',
-  'xl': 'max-w-xl',
-  '2xl': 'max-w-2xl',
-  'full': 'max-w-full',
-  'screen': 'max-w-screen-xl',
-};
 
 /**
  * A responsive container component that adapts its width based on screen size
  */
-export const ResponsiveContainer = ({
+export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   children,
   className,
-  as: Component = 'div',
-  maxWidth = 'screen',
-  padding = true,
-}: ResponsiveContainerProps) => {
+  fullWidthOnMobile = true,
+  maxWidth = 'lg',
+  paddingX = true,
+}) => {
+  const isMobile = useIsMobile();
+  const isTablet = useIsTablet();
+  
   return (
-    <Component 
+    <div
       className={cn(
-        'w-full mx-auto',
-        maxWidthClasses[maxWidth],
-        padding && 'px-4 sm:px-6 md:px-8',
+        'mx-auto w-full',
+        paddingX && 'px-4 sm:px-6 md:px-8',
+        maxWidth === 'sm' && 'max-w-screen-sm',
+        maxWidth === 'md' && 'max-w-screen-md',
+        maxWidth === 'lg' && 'max-w-screen-lg',
+        maxWidth === 'xl' && 'max-w-screen-xl',
+        maxWidth === '2xl' && 'max-w-screen-2xl',
+        fullWidthOnMobile && isMobile ? 'max-w-none' : '',
         className
       )}
     >
       {children}
-    </Component>
+    </div>
   );
 };
 
 interface ResponsiveGridProps {
   children: React.ReactNode;
   className?: string;
-  columns?: {
+  cols?: {
+    xs?: number;
     sm?: number;
     md?: number;
     lg?: number;
     xl?: number;
   };
-  gap?: 'none' | 'xs' | 'sm' | 'md' | 'lg';
+  gap?: 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 }
 
-const gapClasses = {
-  'none': 'gap-0',
-  'xs': 'gap-1',
-  'sm': 'gap-2',
-  'md': 'gap-4',
-  'lg': 'gap-6',
-};
-
 /**
- * A responsive grid component that adjusts columns based on screen size
+ * A responsive grid component that adapts columns based on screen size
  */
-export const ResponsiveGrid = ({
+export const ResponsiveGrid: React.FC<ResponsiveGridProps> = ({
   children,
   className,
-  columns = {
-    sm: 1,
-    md: 2,
-    lg: 3,
-    xl: 4,
-  },
+  cols = { xs: 1, sm: 2, md: 3, lg: 4, xl: 4 },
   gap = 'md',
-}: ResponsiveGridProps) => {
-  const { sm = 1, md = 2, lg = 3, xl = 4 } = columns;
-  
+}) => {
   return (
     <div
       className={cn(
         'grid w-full',
-        `grid-cols-${sm}`,
-        md && `md:grid-cols-${md}`,
-        lg && `lg:grid-cols-${lg}`,
-        xl && `xl:grid-cols-${xl}`,
-        gapClasses[gap],
+        gap === 'none' && 'gap-0',
+        gap === 'xs' && 'gap-2',
+        gap === 'sm' && 'gap-4',
+        gap === 'md' && 'gap-6',
+        gap === 'lg' && 'gap-8',
+        gap === 'xl' && 'gap-10',
+        cols.xs === 1 && 'grid-cols-1',
+        cols.xs === 2 && 'grid-cols-2',
+        cols.xs === 3 && 'grid-cols-3',
+        cols.xs === 4 && 'grid-cols-4',
+        cols.sm === 1 && 'sm:grid-cols-1',
+        cols.sm === 2 && 'sm:grid-cols-2',
+        cols.sm === 3 && 'sm:grid-cols-3',
+        cols.sm === 4 && 'sm:grid-cols-4',
+        cols.md === 1 && 'md:grid-cols-1',
+        cols.md === 2 && 'md:grid-cols-2',
+        cols.md === 3 && 'md:grid-cols-3',
+        cols.md === 4 && 'md:grid-cols-4',
+        cols.lg === 1 && 'lg:grid-cols-1',
+        cols.lg === 2 && 'lg:grid-cols-2',
+        cols.lg === 3 && 'lg:grid-cols-3',
+        cols.lg === 4 && 'lg:grid-cols-4',
+        cols.lg === 5 && 'lg:grid-cols-5',
+        cols.lg === 6 && 'lg:grid-cols-6',
+        cols.xl === 1 && 'xl:grid-cols-1',
+        cols.xl === 2 && 'xl:grid-cols-2',
+        cols.xl === 3 && 'xl:grid-cols-3',
+        cols.xl === 4 && 'xl:grid-cols-4',
+        cols.xl === 5 && 'xl:grid-cols-5',
+        cols.xl === 6 && 'xl:grid-cols-6',
         className
       )}
     >
@@ -99,47 +108,46 @@ export const ResponsiveGrid = ({
 };
 
 /**
- * A flex container that switches between row and column based on screen size
+ * A stack component that adds consistent spacing between elements
  */
-export const ResponsiveFlex = ({
-  children,
-  className,
-  direction = 'col',
-  gap = 'md',
-  items = 'start',
-  justify = 'start',
-}: {
+export const ResponsiveStack: React.FC<{
   children: React.ReactNode;
   className?: string;
-  direction?: 'row' | 'col';
-  gap?: 'none' | 'xs' | 'sm' | 'md' | 'lg';
-  items?: 'start' | 'center' | 'end' | 'stretch';
+  direction?: 'row' | 'column';
+  spacing?: 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  align?: 'start' | 'center' | 'end' | 'stretch';
   justify?: 'start' | 'center' | 'end' | 'between' | 'around';
+  wrap?: boolean;
+}> = ({
+  children,
+  className,
+  direction = 'column',
+  spacing = 'md',
+  align = 'stretch',
+  justify = 'start',
+  wrap = false,
 }) => {
-  // Create a mapping for alignment and justification
-  const itemsClasses = {
-    'start': 'items-start',
-    'center': 'items-center',
-    'end': 'items-end',
-    'stretch': 'items-stretch',
-  };
-  
-  const justifyClasses = {
-    'start': 'justify-start',
-    'center': 'justify-center',
-    'end': 'justify-end',
-    'between': 'justify-between',
-    'around': 'justify-around',
-  };
-  
   return (
     <div
       className={cn(
         'flex',
-        direction === 'col' ? 'flex-col md:flex-row' : 'flex-row md:flex-col',
-        gapClasses[gap],
-        itemsClasses[items],
-        justifyClasses[justify],
+        direction === 'row' ? 'flex-row' : 'flex-col',
+        wrap && 'flex-wrap',
+        spacing === 'none' && 'gap-0',
+        spacing === 'xs' && 'gap-2',
+        spacing === 'sm' && 'gap-4',
+        spacing === 'md' && 'gap-6',
+        spacing === 'lg' && 'gap-8',
+        spacing === 'xl' && 'gap-10',
+        align === 'start' && 'items-start',
+        align === 'center' && 'items-center',
+        align === 'end' && 'items-end',
+        align === 'stretch' && 'items-stretch',
+        justify === 'start' && 'justify-start',
+        justify === 'center' && 'justify-center',
+        justify === 'end' && 'justify-end',
+        justify === 'between' && 'justify-between',
+        justify === 'around' && 'justify-around',
         className
       )}
     >

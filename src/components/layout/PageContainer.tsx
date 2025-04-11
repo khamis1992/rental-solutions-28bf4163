@@ -35,7 +35,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
 
   // Close sidebar when route changes or on initial load for mobile
   useEffect(() => {
-    // Always ensure sidebar is closed on mobile
+    // Always ensure sidebar is closed on mobile initially
     if (isMobile) {
       setSidebarOpen(false);
     } else {
@@ -55,7 +55,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
         </Sheet>
       )}
       
-      {/* Desktop sidebar always visible */}
+      {/* Desktop sidebar - only render when not on mobile */}
       {!isMobile && <Sidebar />}
       
       <div className={cn(
