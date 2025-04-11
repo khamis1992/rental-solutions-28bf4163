@@ -26,7 +26,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description,
   backLink,
   actions,
-  systemDate = new Date() // Default to current date instead of fixed date
+  systemDate = new Date() 
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();

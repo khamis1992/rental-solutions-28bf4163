@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -62,8 +61,11 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   isLoading = false,
   isEditMode = false,
 }) => {
+  // Key for form reset when initialData changes
+  const [formKey, setFormKey] = useState(Date.now());
+  
   // Fixed default values to prevent undefined issues
-  const defaultValues = {
+  const getDefaultValues = () => ({
     make: initialData?.make || '',
     model: initialData?.model || '',
     year: initialData?.year || new Date().getFullYear(),
@@ -78,15 +80,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     insurance_expiry: initialData?.insurance_expiry || '',
     rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
     vehicle_type_id: initialData?.vehicle_type_id || ''
-  };
+  });
 
   console.log('VehicleForm initialData:', initialData);
-  console.log('VehicleForm defaultValues:', defaultValues);
+  console.log('VehicleForm defaultValues:', getDefaultValues());
 
   const form = useForm<VehicleFormSchema>({
     resolver: zodResolver(vehicleSchema),
-    defaultValues,
-    mode: 'onBlur' // Validate on blur for better UX
+    defaultValues: getDefaultValues(),
+    mode: 'onBlur' 
   });
 
   const { useVehicleTypes } = useVehicles();
@@ -94,31 +96,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-  // Re-initialize the form when initial data changes
+  // Re-initialize the form when initial data changes with key reset for full form refresh
   useEffect(() => {
     if (initialData) {
-      const values: any = { ...defaultValues };
-      // Update with latest initialData
-      if (initialData.make) values.make = initialData.make;
-      if (initialData.model) values.model = initialData.model;
-      if (initialData.year) values.year = initialData.year;
-      if (initialData.license_plate || initialData.licensePlate) 
-        values.license_plate = initialData.license_plate || initialData.licensePlate || '';
-      if (initialData.vin) values.vin = initialData.vin;
-      if (initialData.status) values.status = initialData.status;
-      if (initialData.color) values.color = initialData.color;
-      if (initialData.mileage !== undefined) values.mileage = initialData.mileage;
-      if (initialData.location) values.location = initialData.location;
-      if (initialData.description || initialData.notes) 
-        values.description = initialData.description || initialData.notes || '';
-      if (initialData.insurance_company) values.insurance_company = initialData.insurance_company;
-      if (initialData.insurance_expiry) values.insurance_expiry = initialData.insurance_expiry;
-      if (initialData.rent_amount || initialData.dailyRate) 
-        values.rent_amount = initialData.rent_amount || initialData.dailyRate || 0;
-      if (initialData.vehicle_type_id) values.vehicle_type_id = initialData.vehicle_type_id;
-      
-      console.log('Resetting form with values:', values);
+      console.log('Re-initializing form with new data:', initialData);
+      const values = getDefaultValues();
       form.reset(values);
+      setFormKey(Date.now()); // This forces a complete re-render of the form
     }
   }, [initialData, form]);
 
@@ -151,8 +135,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
+  // Create a unique key for the form to force re-render when initialData changes
   return (
-    <Card>
+    <Card key={formKey}>
       <CardHeader>
         <CardTitle>{isEditMode ? 'Edit Vehicle' : 'Add New Vehicle'}</CardTitle>
       </CardHeader>

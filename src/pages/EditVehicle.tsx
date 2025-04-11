@@ -23,12 +23,23 @@ const EditVehicle = () => {
   const [loadError, setLoadError] = useState<Error | null>(null);
   
   const { useVehicle, useUpdate } = useVehicles();
-  const { data: fetchedVehicle, isLoading: isFetching, error: fetchError, refetch } = useVehicle(id || '');
-  const { mutate: updateVehicle, isPending: isUpdating } = useUpdate();
+  const { 
+    data: fetchedVehicle, 
+    isLoading: isFetching, 
+    error: fetchError, 
+    refetch 
+  } = useVehicle(id || '');
+  
+  const { 
+    mutate: updateVehicle, 
+    isPending: isUpdating,
+    isSuccess: isUpdateSuccess
+  } = useUpdate();
   
   // Sync fetched data with local state
   useEffect(() => {
     if (fetchedVehicle) {
+      console.log("Vehicle data received from API:", fetchedVehicle);
       setVehicle(fetchedVehicle);
       setIsLoading(false);
       setLoadError(null);
@@ -44,17 +55,32 @@ const EditVehicle = () => {
       console.error('Vehicle fetch error:', fetchError);
     }
   }, [fetchedVehicle, isFetching, fetchError]);
+
+  // When update is successful, refresh the data
+  useEffect(() => {
+    if (isUpdateSuccess) {
+      console.log("Update successful, refreshing data");
+      // Short timeout to allow the server to process the update
+      setTimeout(() => {
+        refetch();
+      }, 300);
+    }
+  }, [isUpdateSuccess, refetch]);
   
   const handleSubmit = async (formData: any) => {
     if (!vehicle || !id) return;
     
     try {
+      console.log("Submitting form data:", formData);
       updateVehicle(
         { id, data: formData },
         {
           onSuccess: () => {
             toast.success('Vehicle updated successfully');
-            navigate(`/vehicles/${id}`);
+            // Navigate after a short delay to ensure the update is processed
+            setTimeout(() => {
+              navigate(`/vehicles/${id}`);
+            }, 500);
           },
           onError: (error) => {
             console.error('Update vehicle error:', error);

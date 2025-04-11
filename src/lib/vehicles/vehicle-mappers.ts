@@ -111,47 +111,62 @@ function mapDatabaseVehicleType(dbType: DatabaseVehicleType | null | undefined) 
 
 // Convert a database vehicle record to the application Vehicle type
 export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord): Vehicle {
-  const vehicleType = record.vehicle_types ? mapDatabaseVehicleType(record.vehicle_types) : undefined;
-  
-  // Map DB record to Vehicle type
-  const vehicle: Vehicle = {
-    id: record.id,
-    make: record.make,
-    model: record.model,
-    year: record.year,
-    license_plate: record.license_plate,
-    licensePlate: record.license_plate, // For UI compatibility
-    vin: record.vin,
-    color: record.color || undefined,
-    status: mapDatabaseStatus(record.status),
-    mileage: record.mileage || undefined,
-    image_url: record.image_url || undefined,
-    imageUrl: record.image_url || undefined, // For UI compatibility
-    description: record.description || undefined,
-    is_test_data: record.is_test_data || undefined,
-    location: record.location || undefined,
-    insurance_company: record.insurance_company || undefined,
-    insurance_expiry: record.insurance_expiry || undefined,
-    device_type: record.device_type || undefined,
-    rent_amount: record.rent_amount || undefined,
-    vehicle_type_id: record.vehicle_type_id || undefined,
-    registration_number: record.registration_number || undefined,
-    created_at: record.created_at,
-    updated_at: record.updated_at,
-    
-    // UI compatibility computed fields
-    notes: record.description || undefined,
-    vehicleType: vehicleType,
-    dailyRate: record.rent_amount || (vehicleType?.daily_rate || 0),
-    category: vehicleType?.size || 'midsize'
-  };
-  
-  // Add features if vehicleType exists
-  if (vehicleType && vehicleType.features) {
-    vehicle.features = vehicleType.features;
+  if (!record) {
+    console.error('Cannot map null or undefined record to Vehicle');
+    throw new Error('Invalid database record provided for mapping');
   }
   
-  return vehicle;
+  // Log the raw record for debugging
+  console.log('Mapping DB record to Vehicle:', record);
+  
+  try {
+    const vehicleType = record.vehicle_types ? mapDatabaseVehicleType(record.vehicle_types) : undefined;
+    
+    // Map DB record to Vehicle type with improved property handling
+    const vehicle: Vehicle = {
+      id: record.id,
+      make: record.make,
+      model: record.model,
+      year: record.year,
+      license_plate: record.license_plate,
+      licensePlate: record.license_plate, // For UI compatibility
+      vin: record.vin,
+      color: record.color || undefined,
+      status: mapDatabaseStatus(record.status),
+      mileage: record.mileage || undefined,
+      image_url: record.image_url || undefined,
+      imageUrl: record.image_url || undefined, // For UI compatibility
+      description: record.description || undefined,
+      is_test_data: record.is_test_data || undefined,
+      location: record.location || undefined,
+      insurance_company: record.insurance_company || undefined,
+      insurance_expiry: record.insurance_expiry || undefined,
+      device_type: record.device_type || undefined,
+      rent_amount: record.rent_amount || undefined,
+      vehicle_type_id: record.vehicle_type_id || undefined,
+      registration_number: record.registration_number || undefined,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+      
+      // UI compatibility computed fields
+      notes: record.description || undefined,
+      vehicleType: vehicleType,
+      dailyRate: record.rent_amount || (vehicleType?.daily_rate || 0),
+      category: vehicleType?.size || 'midsize'
+    };
+    
+    // Add features if vehicleType exists
+    if (vehicleType && vehicleType.features) {
+      vehicle.features = vehicleType.features;
+    }
+    
+    console.log('Mapped Vehicle object:', vehicle);
+    return vehicle;
+  } catch (error) {
+    console.error('Error mapping database record to vehicle:', error);
+    console.error('Problematic record:', record);
+    throw new Error(`Failed to map database record to vehicle: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**

@@ -240,6 +240,7 @@ export const useVehicles = () => {
         enabled: Boolean(id),
         retry: 2,
         retryDelay: 1000,
+        staleTime: 1000 * 30,
       });
     },
     
@@ -454,6 +455,7 @@ export const useVehicles = () => {
         onSuccess: (_, variables) => {
           queryClient.invalidateQueries({ queryKey: ['vehicles'] });
           queryClient.invalidateQueries({ queryKey: ['vehicles', variables.id] });
+          toast.success('Vehicle updated successfully');
         },
       });
     },
