@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { CalendarClock, Scale, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { castDbId } from '@/types/supabase-helpers';
+import { getResponseData, hasData } from '@/utils/supabase-type-helpers';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -25,72 +26,74 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
       try {
         setIsLoading(true);
         // Find customer_id first
-        const { data: leaseData, error: leaseError } = await supabase
+        const leaseResponse = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', agreementId)
+          .eq('id', castDbId(agreementId))
           .single();
 
-        if (leaseError) {
-          console.error('Error fetching lease data:', leaseError);
+        if (!hasData(leaseResponse)) {
+          console.error('Error fetching lease data:', leaseResponse.error);
+          setIsLoading(false);
           return;
         }
 
-        if (!leaseData?.customer_id) {
+        const customerId = leaseResponse.data.customer_id;
+        if (!customerId) {
           console.log('No customer ID found for this agreement');
+          setIsLoading(false);
           return;
         }
 
         // Fetch legal cases for the customer
-        const { data, error } = await supabase
+        const casesResponse = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', leaseData.customer_id);
+          .eq('customer_id', castDbId(customerId));
 
-        if (error) {
-          console.error('Error fetching legal cases:', error);
+        if (!hasData(casesResponse)) {
+          console.error('Error fetching legal cases:', casesResponse.error);
+          setIsLoading(false);
           return;
         }
 
-        // Log the data to see what we're getting
+        const data = casesResponse.data;
         console.log('Legal cases data:', data);
 
         // Transform the data to match the LegalCase type
-        if (data) {
-          const transformedData: LegalCase[] = data.map(item => {
-            // Safely check if notes exists and ensure it's a string
-            let notesValue = '';
-            if ('notes' in item && item.notes !== null && item.notes !== undefined) {
-              notesValue = String(item.notes); // Convert to string to ensure type compatibility
-            }
-            
-            return {
-              id: item.id,
-              case_number: `CASE-${item.id.substring(0, 8)}`,
-              title: item.description ? `Case regarding ${item.description.substring(0, 30)}...` : `Case regarding ${item.case_type || 'dispute'}`,
-              description: item.description || '',
-              customer_id: item.customer_id,
-              customer_name: 'Customer', // Default value
-              status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
-              hearing_date: item.escalation_date || null,
-              court_location: '',
-              assigned_attorney: item.assigned_to || '',
-              opposing_party: '',
-              case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
-              documents: [],
-              amount_claimed: item.amount_owed || 0,
-              amount_settled: null,
-              created_at: item.created_at,
-              updated_at: item.updated_at,
-              notes: notesValue
-            };
-          });
+        const transformedData: LegalCase[] = data.map(item => {
+          // Safely check if notes exists and ensure it's a string
+          let notesValue = '';
+          if ('notes' in item && item.notes !== null && item.notes !== undefined) {
+            notesValue = String(item.notes); // Convert to string to ensure type compatibility
+          }
+          
+          return {
+            id: item.id,
+            case_number: `CASE-${item.id.substring(0, 8)}`,
+            title: item.description ? `Case regarding ${item.description.substring(0, 30)}...` : `Case regarding ${item.case_type || 'dispute'}`,
+            description: item.description || '',
+            customer_id: item.customer_id,
+            customer_name: 'Customer', // Default value
+            status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
+            hearing_date: item.escalation_date || null,
+            court_location: '',
+            assigned_attorney: item.assigned_to || '',
+            opposing_party: '',
+            case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
+            documents: [],
+            amount_claimed: item.amount_owed || 0,
+            amount_settled: null,
+            created_at: item.created_at,
+            updated_at: item.updated_at,
+            notes: notesValue
+          };
+        });
 
-          setLegalCases(transformedData);
-        }
+        setLegalCases(transformedData);
+        setIsLoading(false);
       } catch (err) {
         console.error('Unexpected error fetching legal cases:', err);
-      } finally {
         setIsLoading(false);
       }
     };

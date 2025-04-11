@@ -76,6 +76,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { castDbId } from '@/types/supabase-helpers';
+import { getResponseData, hasData } from '@/utils/supabase-type-helpers';
 
 interface AgreementListProps {
   searchQuery?: string;
@@ -144,7 +146,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', id);
+          .eq('agreement_id', castDbId(id));
           
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -155,7 +157,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', id);
+          .eq('lease_id', castDbId(id));
           
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -166,13 +168,13 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
-          .eq('import_id', id);
+          .eq('import_id', castDbId(id));
           
         if (relatedReverts && relatedReverts.length > 0) {
           const { error: revertDeleteError } = await supabase
             .from('agreement_import_reverts')
             .delete()
-            .eq('import_id', id);
+            .eq('import_id', castDbId(id));
             
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
@@ -184,7 +186,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
-          .eq('agreement_id', id);
+          .eq('agreement_id', castDbId(id));
           
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
@@ -192,7 +194,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           const { error: finesDeleteError } = await supabase
             .from('traffic_fines')
             .delete()
-            .eq('agreement_id', id);
+            .eq('agreement_id', castDbId(id));
             
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
@@ -204,7 +206,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         const { error } = await supabase
           .from('leases')
           .delete()
-          .eq('id', id);
+          .eq('id', castDbId(id));
           
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);

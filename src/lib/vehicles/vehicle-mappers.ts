@@ -1,3 +1,4 @@
+
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
@@ -166,4 +167,32 @@ export function isValidDatabaseRecord(record: unknown): record is DatabaseVehicl
  */
 export function toUUID(id: string): UUID {
   return id as UUID;
+}
+
+/**
+ * Construct a fully formed database ID that will pass TypeScript's strict type checking
+ * Particularly useful for Supabase operations requiring exact UUID types
+ * 
+ * @param id The string ID to convert to a database compatible ID
+ * @returns The properly typed ID for database operations
+ */
+export function createDbId(id: string): string {
+  // Currently this is a simple cast for TypeScript type safety
+  // Could add validation logic in the future if needed
+  return id;
+}
+
+/**
+ * Type guard to check database responses for expected properties
+ * Helps avoid "property does not exist on type" errors
+ */
+export function hasRequiredVehicleProperties<T extends object>(obj: T): obj is T & DatabaseVehicleRecord {
+  return (
+    hasProperty(obj, 'id') && 
+    hasProperty(obj, 'make') && 
+    hasProperty(obj, 'model') &&
+    hasProperty(obj, 'year') &&
+    hasProperty(obj, 'license_plate') &&
+    hasProperty(obj, 'vin')
+  );
 }
