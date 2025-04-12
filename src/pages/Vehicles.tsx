@@ -11,7 +11,7 @@ import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 
-// Define valid statuses based on database enum
+// Define valid statuses based on app enum
 const VALID_STATUSES: VehicleStatus[] = [
   'available',
   'rented',
@@ -39,6 +39,7 @@ const Vehicles = () => {
     if (statusFromUrl && statusFromUrl !== 'all') {
       // Validate that the status is a valid enum value
       if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
+        // Use the app status value in our filter
         setFilters(prevFilters => ({ 
           ...prevFilters,
           status: statusFromUrl as VehicleStatus
@@ -66,8 +67,11 @@ const Vehicles = () => {
     // Convert from VehicleFilterValues to VehicleFilterParams
     const convertedFilters: VehicleFilterParams = {};
     
-    if (newFilters.status && newFilters.status !== 'all') 
+    if (newFilters.status && newFilters.status !== 'all') {
+      // Ensure we're using the application VehicleStatus type
       convertedFilters.status = newFilters.status as VehicleStatus;
+      console.log(`Setting status filter: ${newFilters.status}`);
+    }
     
     if (newFilters.make && newFilters.make !== 'all') 
       convertedFilters.make = newFilters.make;

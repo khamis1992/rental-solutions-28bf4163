@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
@@ -29,11 +30,10 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
   if (filters) {
     // Use a simple for loop with explicit string keys to avoid deep type instantiation
     if (filters.status) {
-      if (filters.status === 'reserved') {
-        query = query.eq('status', 'reserve');
-      } else {
-        query = query.eq('status', filters.status);
-      }
+      // Convert application status to database status
+      const dbStatus = mapToDBStatus(filters.status);
+      query = query.eq('status', dbStatus);
+      console.log(`API fetchVehicles: Filtering by status ${filters.status} (mapped to DB status: ${dbStatus})`);
     }
     
     if (filters.make) {

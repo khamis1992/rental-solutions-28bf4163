@@ -1,4 +1,5 @@
 
+// These are the values used throughout the application
 export type VehicleStatus = 
   | 'available' 
   | 'rented' 
@@ -46,6 +47,7 @@ export interface VehicleFilterParams {
   location?: string;
   search?: string;
   vehicle_type_id?: string;
+  cursor?: string;
 }
 
 export interface VehicleFormData {
@@ -65,6 +67,7 @@ export interface VehicleFormData {
   insurance_expiry?: string;
   rent_amount?: number;
   notes?: string;
+  image?: File;
 }
 
 export interface VehicleType {
@@ -82,7 +85,7 @@ export interface VehicleType {
 export type VehicleInsertData = Omit<Vehicle, 'id' | 'created_at' | 'updated_at'>;
 export type VehicleUpdateData = Partial<VehicleInsertData>;
 
-// Supabase database types
+// Supabase database types - these are the values stored in the database
 export type DatabaseVehicleStatus = 'available' | 'rented' | 'maintenance' | 'reserve' | 'police_station' | 'accident' | 'stolen' | 'retired';
 
 export interface DatabaseVehicleRecord {
