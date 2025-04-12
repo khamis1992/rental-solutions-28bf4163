@@ -78,8 +78,14 @@ const EditAgreement = () => {
         toast.info("Agreement is being finalized and closed");
       }
       
+      // Pass the existing agreement ID to ensure we're updating not creating
+      const updateData = {
+        ...updatedAgreement,
+        id: id // Explicitly include ID to ensure update
+      };
+      
       await updateAgreementWithCheck(
-        { id, data: updatedAgreement },
+        { id, data: updateData },
         user?.id, // Pass the user ID for audit tracking
         () => navigate(`/agreements/${id}`), // Success callback
         (error: any) => console.error("Error updating agreement:", error) // Error callback

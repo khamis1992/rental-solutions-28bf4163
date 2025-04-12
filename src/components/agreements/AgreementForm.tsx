@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -32,7 +31,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { data: vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
 
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
@@ -56,6 +55,12 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     },
   });
 
+  useEffect(() => {
+    if (initialData?.id) {
+      form.setValue('id', initialData.id);
+    }
+  }, [initialData, form]);
+
   const handleSubmit = async (data: Agreement) => {
     try {
       if (!termsAccepted) {
@@ -63,10 +68,13 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
         return;
       }
       
-      await onSubmit({
+      const finalData = {
         ...data,
         terms_accepted: termsAccepted,
-      });
+        id: initialData?.id
+      };
+      
+      await onSubmit(finalData);
     } catch (error) {
       console.error("Error in handleSubmit:", error);
       toast.error("Failed to save agreement");
@@ -87,7 +95,6 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-10">
-        {/* Agreement details section */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-xl font-semibold mb-4">Agreement Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -211,7 +218,6 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
           </div>
         </div>
 
-        {/* Terms and dates section */}
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h2 className="text-xl font-semibold mb-4">Contract Terms & Dates</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
