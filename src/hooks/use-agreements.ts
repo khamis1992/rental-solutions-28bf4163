@@ -44,6 +44,7 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
       return AgreementStatus.CANCELLED;
     case 'completed':
     case 'terminated':
+    case 'closed':  // Add explicit mapping for closed status
       return AgreementStatus.CLOSED;
     case 'archived':
       return AgreementStatus.EXPIRED;

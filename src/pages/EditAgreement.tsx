@@ -75,6 +75,7 @@ const EditAgreement = () => {
 
       if (isChangingToClosed) {
         console.log("Status is being changed to closed, agreement will be finalized");
+        toast.info("Agreement is being finalized and closed");
       }
       
       await updateAgreementWithCheck(

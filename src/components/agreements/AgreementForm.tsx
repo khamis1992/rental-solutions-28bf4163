@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -31,7 +32,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = useVehicles();
 
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
@@ -337,9 +338,9 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 
         <div className="flex justify-end space-x-2">
           <Button variant="outline" type="button" onClick={() => window.history.back()}>Cancel</Button>
-          <CustomButton type="submit" loading={isSubmitting}>
-            Save Agreement
-          </CustomButton>
+          <Button type="submit" className="bg-primary" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Agreement"}
+          </Button>
         </div>
       </form>
     </Form>

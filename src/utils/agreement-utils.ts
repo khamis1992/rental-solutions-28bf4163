@@ -38,12 +38,13 @@ export const updateAgreementWithCheck = async (
       console.warn("User ID is not available. Proceeding without user-specific checks.");
     }
 
-    // Check if status is being changed to active
+    // Check if status is being changed to active or closed
     const isChangingToActive = params.data.status === 'active';
+    const isChangingToClosed = params.data.status === 'closed';
     
-    // If changing to active, first check the current status
+    // If changing to active or closed, first check the current status
     let currentStatus: string | null = null;
-    if (isChangingToActive) {
+    if (isChangingToActive || isChangingToClosed) {
       const { data: currentAgreement, error: fetchError } = await supabase
         .from('leases')
         .select('status')
@@ -90,6 +91,13 @@ export const updateAgreementWithCheck = async (
           console.error("Error generating payment schedule:", paymentError);
           toast.warning("Agreement updated, but payment schedule could not be generated");
         }
+      }
+      
+      // If the status was changed to closed
+      if (isChangingToClosed && currentStatus !== 'closed' && currentStatus !== 'completed' && currentStatus !== 'terminated') {
+        console.log(`Agreement ${params.id} status changed to closed. Finalizing agreement...`);
+        // Here you might want to perform any additional cleanup or finalization logic
+        toast.success("Agreement has been successfully closed");
       }
       
       onSuccess();
