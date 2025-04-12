@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -31,7 +32,8 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { vehicles, isLoading: isLoadingVehicles } = useVehicles();
+  const { useList, isLoading: isLoadingVehiclesList } = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = useList();
 
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
@@ -55,9 +57,22 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     },
   });
 
+  // Make sure to set the ID from initialData
   useEffect(() => {
     if (initialData?.id) {
       form.setValue('id', initialData.id);
+    }
+
+    // Ensure rent_amount is correctly set
+    if (initialData?.rent_amount) {
+      console.log("Setting rent_amount from initialData:", initialData.rent_amount);
+      form.setValue('rent_amount', initialData.rent_amount);
+    }
+
+    // Set vehicle_id if it exists
+    if (initialData?.vehicle_id) {
+      console.log("Setting vehicle_id from initialData:", initialData.vehicle_id);
+      form.setValue('vehicle_id', initialData.vehicle_id);
     }
   }, [initialData, form]);
 

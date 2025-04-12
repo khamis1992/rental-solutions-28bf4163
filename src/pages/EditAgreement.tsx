@@ -10,6 +10,7 @@ import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRentAmount } from '@/hooks/use-rent-amount'; 
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +21,7 @@ const EditAgreement = () => {
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  const { rentAmount } = useRentAmount(agreement, id);
 
   useEffect(() => {
     // Guard against multiple fetches in rapid succession
@@ -39,7 +41,9 @@ const EditAgreement = () => {
         console.log("Fetched agreement data:", data);
         if (data) {
           // Convert SimpleAgreement to Agreement type
-          setAgreement(adaptSimpleToFullAgreement(data));
+          const fullAgreement = adaptSimpleToFullAgreement(data);
+          console.log("Converted to full agreement:", fullAgreement);
+          setAgreement(fullAgreement);
         } else {
           toast.error("Agreement not found");
           navigate("/agreements");
@@ -56,6 +60,14 @@ const EditAgreement = () => {
 
     fetchAgreement();
   }, [id, getAgreement, navigate, hasAttemptedFetch]);
+
+  // Use effect to synchronize rent amount from hook data if needed
+  useEffect(() => {
+    if (rentAmount && agreement && !agreement.rent_amount) {
+      console.log("Setting rent amount from hook:", rentAmount);
+      setAgreement(prev => prev ? { ...prev, rent_amount: rentAmount } : null);
+    }
+  }, [rentAmount, agreement]);
 
   const handleSubmit = async (updatedAgreement: Agreement) => {
     if (!id) return;

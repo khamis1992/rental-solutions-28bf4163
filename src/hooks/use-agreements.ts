@@ -28,6 +28,8 @@ export type SimpleAgreement = {
   updated_at?: string;
   signature_url?: string;
   deposit_amount?: number;
+  rent_amount?: number; // Added rent_amount field
+  daily_late_fee?: number; // Added daily_late_fee field
   notes?: string;
   customers?: Record<string, any> | null;
   vehicles?: Record<string, any> | null;
@@ -112,6 +114,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         updated_at: data.updated_at,
         total_amount: data.total_amount || 0,
         deposit_amount: data.deposit_amount || 0, 
+        rent_amount: data.rent_amount || 0, // Make sure rent_amount is included
+        daily_late_fee: data.daily_late_fee || 120.0, // Make sure daily_late_fee is included
         agreement_number: data.agreement_number || '',
         notes: data.notes || '',
         customers: data.profiles,
