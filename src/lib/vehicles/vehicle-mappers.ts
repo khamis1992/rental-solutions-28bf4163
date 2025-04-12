@@ -1,3 +1,4 @@
+
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
@@ -25,6 +26,8 @@ export function mapDatabaseStatus(status: DatabaseVehicleStatus | null | undefin
   // Normalize status string (lowercase and trim)
   const normalizedStatus = status.toLowerCase().trim();
   
+  console.log(`mapDatabaseStatus: Raw input="${status}", normalized="${normalizedStatus}"`);
+  
   // Handle the "reserve" to "reserved" mapping
   if (normalizedStatus === 'reserve') {
     console.log('Mapping DB status "reserve" to app status "reserved"');
@@ -34,7 +37,9 @@ export function mapDatabaseStatus(status: DatabaseVehicleStatus | null | undefin
   console.log(`Mapping DB status "${normalizedStatus}" to app status`);
   
   // Validate and return the status
-  return isValidStatus(normalizedStatus) ? normalizedStatus as VehicleStatus : 'available';
+  const result = isValidStatus(normalizedStatus) ? normalizedStatus as VehicleStatus : 'available';
+  console.log(`mapDatabaseStatus result: "${result}"`);
+  return result;
 }
 
 // Convert application status to database status with improved normalization
@@ -43,6 +48,7 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
   
   // Normalize status string (lowercase and trim)
   const normalizedStatus = status.toLowerCase().trim();
+  console.log(`mapToDBStatus: Raw input="${status}", normalized="${normalizedStatus}"`);
   
   // Handle the "reserved" to "reserve" mapping - CRITICAL for proper database storage
   if (normalizedStatus === 'reserved') {
@@ -67,7 +73,7 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
   };
   
   const result = statusMapping[normalizedStatus] || normalizedStatus as DatabaseVehicleStatus;
-  console.log(`Status mapping result: "${result}"`);
+  console.log(`mapToDBStatus result: "${result}"`);
   return result;
 }
 

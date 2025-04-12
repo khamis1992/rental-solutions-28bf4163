@@ -83,11 +83,16 @@ const StatusUpdateDialog = ({
       ];
       
       if (!validStatuses.includes(status)) {
+        console.error(`Invalid status: ${status}`);
         throw new Error(`Invalid status: ${status}`);
       }
 
+      // Log before API call
+      console.log(`About to call updateVehicleStatus with id=${vehicleId} and status=${status}`);
+
       // Perform the status update with verification
       const result = await updateVehicleStatus(vehicleId, status);
+      console.log(`Status update API response:`, result);
 
       if (result.success) {
         toast.success("Vehicle status updated successfully");
@@ -95,7 +100,9 @@ const StatusUpdateDialog = ({
         
         try {
           // Wait for the status update callback to complete
+          console.log("Calling onStatusUpdated callback");
           const refreshResult = await onStatusUpdated();
+          console.log("onStatusUpdated result:", refreshResult);
           
           if (refreshResult) {
             console.log("Status update callback completed successfully");

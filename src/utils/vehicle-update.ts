@@ -80,6 +80,7 @@ export const updateVehicleInfo = async (
     if (updateData.status !== undefined) {
       // Convert any status to proper database format
       try {
+        console.log(`Pre-mapping status value: ${updateData.status}`);
         const dbStatus = mapToDBStatus(updateData.status);
         updateData.status = dbStatus;
         console.log(`Mapped status ${data.status} to database status ${dbStatus}`);
@@ -268,11 +269,42 @@ export const updateVehicleStatus = async (
     };
   }
   
-  // Log the exact status being sent to the database
-  console.log(`Status value before mapping: ${status}`);
-  const dbStatus = mapToDBStatus(status);
-  console.log(`Status value after mapping to DB format: ${dbStatus}`);
-  
-  // Use the main update function but only send the status
-  return updateVehicleInfo(id, { status });
+  // Direct database update for debugging purposes (bypassing additional helpers)
+  try {
+    console.log(`Status value before mapping: ${status}`);
+    const dbStatus = mapToDBStatus(status);
+    console.log(`Status value after mapping to DB format: ${dbStatus}`);
+    
+    // Perform a direct update to the database for debugging
+    console.log(`Performing direct database update for vehicle ${id} to status "${dbStatus}"`);
+    const { data: directUpdate, error: directError } = await supabase
+      .from('vehicles')
+      .update({ 
+        status: dbStatus,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', id)
+      .select();
+      
+    if (directError) {
+      console.error('Direct update failed:', directError);
+      return {
+        success: false,
+        message: `Direct update failed: ${directError.message}`
+      };
+    }
+    
+    console.log('Direct update succeeded:', directUpdate);
+    
+    // Now use the main update function but only send the status
+    return {
+      success: true,
+      message: `Vehicle status updated to ${status}`,
+      data: directUpdate
+    };
+  } catch (err) {
+    console.error('Error in direct status update:', err);
+    // Use the main update function but only send the status as fallback
+    return updateVehicleInfo(id, { status });
+  }
 };
