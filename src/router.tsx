@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Agreements from './pages/Agreements';
 import Vehicles from './pages/Vehicles';
 import Customers from './pages/Customers';
-import Settings from './pages/Settings';
+import SystemSettings from './pages/SystemSettings';
 import AgreementDetail from './pages/AgreementDetail';
 import EditAgreement from './pages/EditAgreement';
 import CreateAgreement from './pages/CreateAgreement';
@@ -87,7 +87,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/settings',
-        element: <Settings />,
+        element: <SystemSettings />,
       },
     ],
   },
