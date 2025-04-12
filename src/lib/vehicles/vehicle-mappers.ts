@@ -207,8 +207,6 @@ export function toUUID(id: string): UUID {
  * @returns The properly typed ID for database operations
  */
 export function createDbId(id: string): string {
-  // Currently this is a simple cast for TypeScript type safety
-  // Could add validation logic in the future if needed
   return id;
 }
 
