@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
