@@ -32,8 +32,8 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const { useList, isLoading: isLoadingVehiclesList } = useVehicles();
-  const { data: vehicles, isLoading: isLoadingVehicles } = useList();
+  const vehiclesHook = useVehicles();
+  const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
 
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
@@ -213,7 +213,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                         <SelectItem value="loading" disabled>
                           <Skeleton className="h-5 w-full" />
                         </SelectItem>
-                      ) : vehicles?.length ? (
+                      ) : vehicles && vehicles.length > 0 ? (
                         vehicles.map((vehicle) => (
                           <SelectItem key={vehicle.id} value={vehicle.id}>
                             {vehicle.make} {vehicle.model} ({vehicle.license_plate})
