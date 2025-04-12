@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -28,7 +27,7 @@ export type SimpleAgreement = {
   updated_at?: string;
   signature_url?: string;
   deposit_amount?: number;
-  rent_amount?: number; // Ensure this is properly typed
+  rent_amount?: number;
   daily_late_fee?: number; 
   notes?: string;
   customers?: Record<string, any> | null;
@@ -46,7 +45,7 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
       return AgreementStatus.CANCELLED;
     case 'completed':
     case 'terminated':
-    case 'closed':  // Add explicit mapping for closed status
+    case 'closed':
       return AgreementStatus.CLOSED;
     case 'archived':
       return AgreementStatus.EXPIRED;
@@ -99,31 +98,30 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         return null;
       }
 
-      console.log("Raw lease data from Supabase:", data);
+      const typedData = data as any;
 
-      const mappedStatus = mapDBStatusToEnum(data.status);
+      const mappedStatus = mapDBStatusToEnum(typedData.status);
 
       const agreement: SimpleAgreement = {
-        id: data.id,
-        customer_id: data.customer_id,
-        vehicle_id: data.vehicle_id,
-        start_date: data.start_date,
-        end_date: data.end_date,
+        id: typedData.id,
+        customer_id: typedData.customer_id,
+        vehicle_id: typedData.vehicle_id,
+        start_date: typedData.start_date,
+        end_date: typedData.end_date,
         status: mappedStatus,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        total_amount: data.total_amount || 0,
-        deposit_amount: data.deposit_amount || 0, 
-        rent_amount: data.rent_amount || 0, // Make sure rent_amount is included
-        daily_late_fee: data.daily_late_fee || 120.0,
-        agreement_number: data.agreement_number || '',
-        notes: data.notes || '',
-        customers: data.profiles,
-        vehicles: data.vehicles,
-        signature_url: data.signature_url
+        created_at: typedData.created_at,
+        updated_at: typedData.updated_at,
+        total_amount: typedData.total_amount || 0,
+        deposit_amount: typedData.deposit_amount || 0,
+        rent_amount: typedData.rent_amount || 0,
+        daily_late_fee: typedData.daily_late_fee || 120.0,
+        agreement_number: typedData.agreement_number || '',
+        notes: typedData.notes || '',
+        customers: typedData.profiles,
+        vehicles: typedData.vehicles,
+        signature_url: typedData.signature_url
       };
 
-      console.log("Transformed agreement data:", agreement);
       return agreement;
     } catch (err) {
       console.error("Unexpected error in getAgreement:", err);
@@ -248,17 +246,15 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the excessive type depth issue by using a simpler type structure
   const updateAgreementMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      console.log("Update mutation called with:", { id, data });
-      
       try {
-        // Make sure we're updating the existing record and not creating a new one
+        const stringId = String(id);
+        
         const { data: updatedData, error } = await supabase
           .from('leases')
           .update(data)
-          .eq('id', id)
+          .eq('id', stringId)
           .select();
           
         if (error) {
@@ -277,7 +273,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     },
   });
 
-  // Use BasicMutationResult type to avoid excessive type instantiation
   const updateAgreement: BasicMutationResult = {
     mutateAsync: updateAgreementMutation.mutateAsync,
     isPending: updateAgreementMutation.isPending,
