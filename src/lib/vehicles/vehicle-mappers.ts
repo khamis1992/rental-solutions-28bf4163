@@ -16,7 +16,7 @@ export function isValidStatus(status: string): status is VehicleStatus {
     'available', 'rented', 'reserved', 'maintenance', 
     'police_station', 'accident', 'stolen', 'retired'
   ];
-  return validStatuses.includes(status.toLowerCase());
+  return validStatuses.includes(status.toLowerCase().trim());
 }
 
 // Map database status to application status with improved normalization
