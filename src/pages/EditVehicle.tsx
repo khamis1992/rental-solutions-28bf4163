@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft } from 'lucide-react';
@@ -187,7 +186,7 @@ const EditVehicle = () => {
   }
 
   // Ensure status is a valid VehicleStatus or provide a default
-  const vehicleStatus = vehicle.status || 'available';
+  const vehicleStatus = vehicle?.status || 'available';
   // Ensure the status is one of the allowed values
   const validatedStatus: VehicleStatus = 
     ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired']

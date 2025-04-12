@@ -78,10 +78,18 @@ export const updateVehicleInfo = async (
     
     // Map status if provided - ensure proper type handling
     if (updateData.status !== undefined) {
-      // Always convert to database status format using mapper function
-      const dbStatus = mapToDBStatus(updateData.status);
-      updateData.status = dbStatus;
-      console.log(`Mapped status ${data.status} to database status ${dbStatus}`);
+      // Convert any status to proper database format
+      try {
+        const dbStatus = mapToDBStatus(updateData.status);
+        updateData.status = dbStatus;
+        console.log(`Mapped status ${data.status} to database status ${dbStatus}`);
+      } catch (err) {
+        console.error('Error mapping status:', err);
+        return {
+          success: false,
+          message: `Invalid status value: ${updateData.status}`
+        };
+      }
     }
     
     // Add updated timestamp

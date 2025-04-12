@@ -117,7 +117,7 @@ const StatusUpdateDialog = ({
       } else {
         console.error("Status update failed:", result.message);
         toast.error("Failed to update status", {
-          description: result.message
+          description: result.message || "Unknown error occurred"
         });
       }
     } catch (error) {
