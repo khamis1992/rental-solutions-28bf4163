@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
@@ -5,8 +6,8 @@ import Dashboard from './pages/Dashboard';
 import Agreements from './pages/Agreements';
 import Vehicles from './pages/Vehicles';
 import Customers from './pages/Customers';
-import Settings from './pages/Settings';
-import AgreementDetail from './pages/AgreementDetail';
+import SystemSettings from './pages/SystemSettings';
+import AgreementDetailPage from './pages/AgreementDetailPage';
 import EditAgreement from './pages/EditAgreement';
 import CreateAgreement from './pages/CreateAgreement';
 import VehicleDetailPage from './pages/VehicleDetailPage';
@@ -17,10 +18,10 @@ import EditCustomer from './pages/EditCustomer';
 import CreateCustomer from './pages/CreateCustomer';
 import AgreementImportPage from './pages/AgreementImportPage';
 import VehicleStatusUpdatePage from "./pages/VehicleStatusUpdatePage";
-import { useIsMobile } from "./hooks/use-mobile";
 import { MobileDashboard } from "./components/mobile/MobileDashboard";
 import { VehicleInspection } from "./components/mobile/VehicleInspection";
 
+// Create a route configuration that doesn't use hooks at the top level
 const router = createBrowserRouter([
   {
     path: '/',
@@ -28,74 +29,79 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: useIsMobile() ? <MobileDashboard /> : <Dashboard />,
+        element: <Dashboard />
       },
       {
         path: '/mobile',
-        element: <MobileDashboard />,
+        element: <MobileDashboard />
       },
       {
         path: '/agreements',
-        element: <Agreements />,
+        element: <Agreements />
       },
       {
         path: '/agreements/:id',
-        element: <AgreementDetail />,
+        element: <AgreementDetailPage />
       },
       {
         path: '/agreements/edit/:id',
-        element: <EditAgreement />,
+        element: <EditAgreement />
       },
       {
         path: '/agreements/add',
-        element: <CreateAgreement />,
+        element: <CreateAgreement />
       },
       {
         path: '/agreements/import',
-        element: <AgreementImportPage />,
+        element: <AgreementImportPage />
       },
       {
         path: '/vehicles',
-        element: useIsMobile() ? <VehicleInspection /> : <Vehicles />,
+        element: <Vehicles />
+      },
+      {
+        // Route for mobile vehicle inspection
+        path: '/vehicles/inspection',
+        element: <VehicleInspection />
       },
       {
         path: '/vehicles/:id',
-        element: <VehicleDetailPage />,
+        element: <VehicleDetailPage />
       },
       {
         path: '/vehicles/edit/:id',
-        element: <EditVehicleNew />,
+        element: <EditVehicleNew />
       },
       {
         path: '/vehicles/add',
-        element: <CreateVehicle />,
+        element: <CreateVehicle />
       },
       {
-        path: "status-update",
-        element: <VehicleStatusUpdatePage />,
+        path: "/status-update",
+        element: <VehicleStatusUpdatePage />
       },
       {
         path: '/customers',
-        element: <Customers />,
+        element: <Customers />
       },
       {
         path: '/customers/:id',
-        element: <CustomerDetailPage />,
+        element: <CustomerDetailPage />
       },
       {
         path: '/customers/edit/:id',
-        element: <EditCustomer />,
+        element: <EditCustomer />
       },
       {
         path: '/customers/add',
-        element: <CreateCustomer />,
+        element: <CreateCustomer />
       },
       {
         path: '/settings',
-        element: <Settings />,
-      },
-    ],
-  },
+        element: <SystemSettings />
+      }
+    ]
+  }
 ]);
 
 export default router;

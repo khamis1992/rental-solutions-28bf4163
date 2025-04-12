@@ -11,6 +11,8 @@ import { CustomButton } from '@/components/ui/custom-button';
 import { useDashboardData } from '@/hooks/use-dashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from '@/hooks/use-toast';
+import { useIsMobile } from '../hooks/use-mobile';
+import { MobileDashboard } from '../components/mobile/MobileDashboard';
 
 // Suppress Supabase schema cache errors more comprehensively
 if (typeof window !== 'undefined') {
@@ -28,6 +30,7 @@ if (typeof window !== 'undefined') {
 }
 
 const Dashboard = () => {
+  const isMobile = useIsMobile();
   const { stats, revenue, activity, isLoading, isError, error } = useDashboardData();
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -40,6 +43,12 @@ const Dashboard = () => {
     }, 300);
   };
 
+  // If mobile, render mobile dashboard
+  if (isMobile) {
+    return <MobileDashboard />;
+  }
+
+  // Desktop dashboard
   return (
     <PageContainer>
       <SectionHeader
