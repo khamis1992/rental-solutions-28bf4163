@@ -253,6 +253,7 @@ export const updateVehicleStatus = async (
   ];
   
   if (!validStatuses.includes(status)) {
+    console.error(`Invalid status value provided: ${status}`);
     return {
       success: false,
       message: `Invalid status value: ${status}. Must be one of: ${validStatuses.join(', ')}`
@@ -264,6 +265,6 @@ export const updateVehicleStatus = async (
   const dbStatus = mapToDBStatus(status);
   console.log(`Status value after mapping to DB format: ${dbStatus}`);
   
-  // Use the main update function but only send the status and explicitly send the mapped status
+  // Use the main update function but only send the status
   return updateVehicleInfo(id, { status });
 };

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft } from 'lucide-react';
@@ -122,7 +123,7 @@ const EditVehicle = () => {
   };
   
   // Handle status update completion with forced refresh
-  const handleStatusUpdated = async () => {
+  const handleStatusUpdated = async (): Promise<boolean> => {
     console.log('Status updated, refreshing vehicle data');
     setStatusUpdateInProgress(true);
     
@@ -140,12 +141,9 @@ const EditVehicle = () => {
         // Update local state to ensure UI reflects the latest status
         setVehicle(refreshResult.data);
         console.log('Local vehicle state updated with new data:', refreshResult.data);
-        
-        // Manually invalidate React Query cache to ensure all components see the updated data
-        // This is handled by the useUpdate mutation's onSuccess callback
       }
       
-      // Indicate success for the caller
+      // Return success to the caller
       return true;
     } catch (error) {
       console.error('Error refreshing data after status update:', error);

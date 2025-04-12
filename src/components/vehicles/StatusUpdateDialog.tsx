@@ -31,7 +31,7 @@ interface StatusUpdateDialogProps {
     model: string;
     licensePlate: string;
   };
-  onStatusUpdated: () => void;
+  onStatusUpdated: () => Promise<boolean>;
 }
 
 const StatusUpdateDialog = ({
@@ -45,7 +45,7 @@ const StatusUpdateDialog = ({
   const [status, setStatus] = React.useState<VehicleStatus>(currentStatus);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
-  // Reset status when dialog opens
+  // Reset status when dialog opens to prevent stale state
   React.useEffect(() => {
     if (isOpen) {
       console.log(`StatusUpdateDialog: Setting initial status to ${currentStatus}`);
@@ -93,18 +93,27 @@ const StatusUpdateDialog = ({
         toast.success("Vehicle status updated successfully");
         console.log("Status update result:", result);
         
-        // Wait for the status update callback to complete before closing
-        await Promise.resolve(onStatusUpdated())
-          .then(() => {
+        try {
+          // Wait for the status update callback to complete
+          const refreshResult = await onStatusUpdated();
+          
+          if (refreshResult) {
             console.log("Status update callback completed successfully");
             // Only close the dialog after we've confirmed the data refresh completed
             onClose();
-          })
-          .catch((refreshError) => {
-            console.error("Error during data refresh:", refreshError);
-            toast.error("Status updated but error refreshing data");
-            throw refreshError;
+          } else {
+            console.warn("Status updated but refresh may not have completed properly");
+            // Still close the dialog as the update was successful
+            onClose();
+          }
+        } catch (refreshError) {
+          console.error("Error during data refresh:", refreshError);
+          toast.error("Status updated but error refreshing UI data", {
+            description: "The status was saved but there was a problem refreshing the data. Please refresh the page."
           });
+          // Still close the dialog since the update was successful
+          onClose();
+        }
       } else {
         console.error("Status update failed:", result.message);
         toast.error("Failed to update status", {
