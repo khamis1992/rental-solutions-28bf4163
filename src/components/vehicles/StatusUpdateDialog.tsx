@@ -93,14 +93,18 @@ const StatusUpdateDialog = ({
         toast.success("Vehicle status updated successfully");
         console.log("Status update result:", result);
         
-        // Complete the callback and ensure it finishes before continuing
-        try {
-          await onStatusUpdated();
-          onClose();
-        } catch (refreshError) {
-          console.error("Error during data refresh:", refreshError);
-          toast.error("Status updated but error refreshing data");
-        }
+        // Wait for the status update callback to complete before closing
+        await Promise.resolve(onStatusUpdated())
+          .then(() => {
+            console.log("Status update callback completed successfully");
+            // Only close the dialog after we've confirmed the data refresh completed
+            onClose();
+          })
+          .catch((refreshError) => {
+            console.error("Error during data refresh:", refreshError);
+            toast.error("Status updated but error refreshing data");
+            throw refreshError;
+          });
       } else {
         console.error("Status update failed:", result.message);
         toast.error("Failed to update status", {

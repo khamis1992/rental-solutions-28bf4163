@@ -128,11 +128,10 @@ const EditVehicle = () => {
     setStatusUpdateInProgress(true);
     
     try {
-      // Force cache invalidation by setting a timestamp
-      const timestamp = new Date().getTime();
+      // Force cache invalidation and get fresh data
       const refreshResult = await refetch();
       
-      console.log(`Data refresh completed at ${timestamp}:`, refreshResult);
+      console.log(`Data refresh completed:`, refreshResult);
       
       if (refreshResult.error) {
         throw refreshResult.error;
@@ -142,8 +141,12 @@ const EditVehicle = () => {
         // Update local state to ensure UI reflects the latest status
         setVehicle(refreshResult.data);
         console.log('Local vehicle state updated with new data:', refreshResult.data);
+        
+        // Manually invalidate React Query cache to ensure all components see the updated data
+        // This is handled by the useUpdate mutation's onSuccess callback
       }
       
+      // Indicate success for the caller
       return true;
     } catch (error) {
       console.error('Error refreshing data after status update:', error);
