@@ -140,16 +140,12 @@ export const useFleetReport = () => {
   // Get status counts
   const statusCounts = getStatusCounts(vehicles);
   
-  // Prepare data for reports
+  // Prepare data for reports - MODIFIED to remove specified fields
   const reportData = vehicles.map(vehicle => ({
-    make: vehicle.make,
-    model: vehicle.model,
-    year: vehicle.year,
     license_plate: vehicle.license_plate,
     status: vehicle.status,
-    daily_rate: formatCurrency(vehicle.dailyRate || 0),
     customer_name: vehicle.currentCustomer || 'Not Assigned',
-    customer_contact: vehicle.customerPhone || (vehicle.customerEmail ? vehicle.customerEmail : 'N/A')
+    // Fields removed: make, model, year, daily_rate, customer_contact
   }));
   
   // Calculate fleet statistics
