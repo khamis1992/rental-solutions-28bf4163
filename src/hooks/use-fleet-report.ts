@@ -2,6 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchVehicles } from '@/lib/vehicles/vehicle-api';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
+import { supabase } from '@/integrations/supabase/client';
+import { getResponseData } from '@/utils/supabase-type-helpers';
 
 // Helper function to calculate utilization rate (based on status)
 const calculateUtilizationRate = (vehicles: Vehicle[]) => {
@@ -69,10 +71,56 @@ const getStatusCounts = (vehicles: Vehicle[]) => {
   return statusMap;
 };
 
+// Fetch customer information for rented vehicles
+const attachCustomerInfo = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
+  // Get rented vehicles IDs
+  const rentedVehicleIds = vehicles
+    .filter(v => v.status === 'rented')
+    .map(v => v.id);
+  
+  if (rentedVehicleIds.length === 0) {
+    return vehicles;
+  }
+
+  // Fetch active leases for these vehicles
+  const { data: leases, error } = await supabase
+    .from('leases')
+    .select('vehicle_id, customer_id, profiles:customer_id(full_name)')
+    .in('vehicle_id', rentedVehicleIds)
+    .eq('status', 'active');
+
+  if (error || !leases) {
+    console.error('Error fetching customer information:', error);
+    return vehicles;
+  }
+
+  // Map customer data to vehicles
+  return vehicles.map(vehicle => {
+    if (vehicle.status === 'rented') {
+      const lease = leases.find(l => l.vehicle_id === vehicle.id);
+      if (lease && lease.profiles) {
+        return {
+          ...vehicle,
+          currentCustomer: lease.profiles.full_name
+        };
+      }
+    }
+    return vehicle;
+  });
+};
+
 export const useFleetReport = () => {
-  const { data: vehicles = [], isLoading, error } = useQuery({
+  const { data: fetchedVehicles = [], isLoading, error } = useQuery({
     queryKey: ['vehicles'],
     queryFn: () => fetchVehicles(),
+  });
+
+  // Fetch customer information and attach to vehicles
+  const { data: vehicles = [] } = useQuery({
+    queryKey: ['vehicles-with-customers', fetchedVehicles],
+    queryFn: () => attachCustomerInfo(fetchedVehicles),
+    enabled: fetchedVehicles.length > 0,
+    initialData: fetchedVehicles,
   });
 
   // Calculate utilization rate
