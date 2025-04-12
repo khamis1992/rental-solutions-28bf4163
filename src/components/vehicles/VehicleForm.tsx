@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -244,7 +245,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 )}
               />
               
-              {/* Status Field - With enhanced debuggings */}
+              {/* Status Field - With enhanced debugging */}
               <FormField
                 control={form.control}
                 name="status"

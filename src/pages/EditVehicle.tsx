@@ -78,6 +78,12 @@ const EditVehicle = () => {
       setIsSubmitting(true);
       console.log("Submitting form data:", formData);
       
+      // Make sure to preserve the current status if not changed in the form
+      if (!formData.status && vehicle.status) {
+        console.log(`Preserving current status: ${vehicle.status}`);
+        formData.status = vehicle.status;
+      }
+      
       // Make sure status is properly handled
       if (formData.status) {
         console.log(`EditVehicle: Status being submitted: ${formData.status}`);
