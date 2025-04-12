@@ -66,8 +66,8 @@ export interface Agreement {
   vehicles?: any;
   terms_accepted: boolean;
   additional_drivers: string[];
-  rent_amount?: number; // Added this property to fix the error
-  daily_late_fee?: number; // Added for consistency
+  rent_amount?: number;
+  daily_late_fee?: number;
 }
 
 // Function to force generate payment for a specific agreement

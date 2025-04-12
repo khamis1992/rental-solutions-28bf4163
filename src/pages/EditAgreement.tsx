@@ -6,7 +6,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -63,12 +63,18 @@ const EditAgreement = () => {
     try {
       setIsSubmitting(true);
       
-      // Check if status is being changed to active
+      // Check if status is being changed to active or closed
       const isChangingToActive = updatedAgreement.status === 'active' && 
                               agreement?.status !== 'active';
+      const isChangingToClosed = updatedAgreement.status === 'closed' && 
+                              agreement?.status !== 'closed';
                               
       if (isChangingToActive) {
         console.log("Status is being changed to active, payment schedule will be generated");
+      }
+
+      if (isChangingToClosed) {
+        console.log("Status is being changed to closed, agreement will be finalized");
       }
       
       await updateAgreementWithCheck(
