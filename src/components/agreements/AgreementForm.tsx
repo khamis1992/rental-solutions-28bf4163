@@ -104,6 +104,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
       // to avoid sending it to the database
       const finalData = {
         ...data,
+        terms_accepted: termsAccepted,
         id: initialData?.id
       };
       
@@ -193,7 +194,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                         <SelectItem value="loading" disabled>
                           <Skeleton className="h-5 w-full" />
                         </SelectItem>
-                      ) : customers && customers.length > 0 ? (
+                      ) : customers && Array.isArray(customers) && customers.length > 0 ? (
                         customers.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
                             {customer.full_name}
@@ -234,7 +235,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                         <SelectItem value="loading" disabled>
                           <Skeleton className="h-5 w-full" />
                         </SelectItem>
-                      ) : vehicles && vehicles.length > 0 ? (
+                      ) : vehicles && Array.isArray(vehicles) && vehicles.length > 0 ? (
                         vehicles.map((vehicle) => (
                           <SelectItem key={vehicle.id} value={vehicle.id}>
                             {vehicle.make} {vehicle.model} ({vehicle.license_plate})

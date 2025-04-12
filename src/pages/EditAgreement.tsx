@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AgreementForm from '@/components/agreements/AgreementForm';
@@ -26,7 +25,6 @@ const EditAgreement = () => {
   const [vehicleData, setVehicleData] = useState<any>(null);
 
   useEffect(() => {
-    // Guard against multiple fetches in rapid succession
     if (hasAttemptedFetch) return;
     
     const fetchAgreement = async () => {
@@ -42,12 +40,10 @@ const EditAgreement = () => {
         const data = await getAgreement(id);
         console.log("Fetched agreement data:", data);
         if (data) {
-          // Convert SimpleAgreement to Agreement type
           const fullAgreement = adaptSimpleToFullAgreement(data);
           console.log("Converted to full agreement:", fullAgreement);
           setAgreement(fullAgreement);
           
-          // If we have a vehicle_id but no vehicle data in the agreement, fetch it separately
           if (data.vehicle_id && (!data.vehicles || !Object.keys(data.vehicles).length)) {
             fetchVehicleDetails(data.vehicle_id);
           } else if (data.vehicles) {
@@ -71,7 +67,6 @@ const EditAgreement = () => {
     fetchAgreement();
   }, [id, getAgreement, navigate, hasAttemptedFetch]);
 
-  // Fetch vehicle details if not included in the agreement data
   const fetchVehicleDetails = async (vehicleId: string) => {
     try {
       console.log("Fetching vehicle details for ID:", vehicleId);
@@ -90,7 +85,6 @@ const EditAgreement = () => {
         console.log("Fetched vehicle data:", data);
         setVehicleData(data);
         
-        // Update the agreement with vehicle data
         setAgreement(prev => {
           if (!prev) return null;
           return {
@@ -107,7 +101,6 @@ const EditAgreement = () => {
     }
   };
 
-  // Use effect to synchronize rent amount from hook data if needed
   useEffect(() => {
     if (rentAmount && agreement && !agreement.rent_amount) {
       console.log("Setting rent amount from hook:", rentAmount);
@@ -121,7 +114,6 @@ const EditAgreement = () => {
     try {
       setIsSubmitting(true);
       
-      // Check if status is being changed to active or closed
       const isChangingToActive = updatedAgreement.status === 'active' && 
                               agreement?.status !== 'active';
       const isChangingToClosed = updatedAgreement.status === 'closed' && 
@@ -136,21 +128,18 @@ const EditAgreement = () => {
         toast.info("Agreement is being finalized and closed");
       }
       
-      // Remove the terms_accepted field before sending to the database
-      // since it doesn't exist in the leases table schema
-      const { terms_accepted, ...agreementData } = updatedAgreement;
+      const { terms_accepted, additional_drivers, ...agreementData } = updatedAgreement;
       
-      // Pass the existing agreement ID to ensure we're updating not creating
       const updateData = {
         ...agreementData,
-        id: id // Explicitly include ID to ensure update
+        id: id
       };
       
       await updateAgreementWithCheck(
         { id, data: updateData },
-        user?.id, // Pass the user ID for audit tracking
-        () => navigate(`/agreements/${id}`), // Success callback
-        (error: any) => console.error("Error updating agreement:", error) // Error callback
+        user?.id,
+        () => navigate(`/agreements/${id}`),
+        (error: any) => console.error("Error updating agreement:", error)
       );
     } catch (error) {
       console.error("Error updating agreement:", error);
