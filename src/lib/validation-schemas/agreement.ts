@@ -65,8 +65,8 @@ export interface Agreement {
   notes?: string;
   customers?: any;
   vehicles?: any;
-  terms_accepted: boolean;
-  additional_drivers: string[];
+  terms_accepted?: boolean;
+  additional_drivers?: string[];
   rent_amount?: number;
   daily_late_fee?: number;
 }
