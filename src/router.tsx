@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
@@ -6,17 +5,19 @@ import Dashboard from './pages/Dashboard';
 import Agreements from './pages/Agreements';
 import Vehicles from './pages/Vehicles';
 import Customers from './pages/Customers';
-import SystemSettings from './pages/SystemSettings';
-import AgreementDetailPage from './pages/AgreementDetailPage';
+import Settings from './pages/Settings';
+import AgreementDetail from './pages/AgreementDetail';
 import EditAgreement from './pages/EditAgreement';
 import CreateAgreement from './pages/CreateAgreement';
 import VehicleDetailPage from './pages/VehicleDetailPage';
+import EditVehicleNew from './pages/EditVehicleNew';
 import CreateVehicle from './pages/CreateVehicle';
 import CustomerDetailPage from './pages/CustomerDetailPage';
 import EditCustomer from './pages/EditCustomer';
 import CreateCustomer from './pages/CreateCustomer';
 import AgreementImportPage from './pages/AgreementImportPage';
 import VehicleStatusUpdatePage from "./pages/VehicleStatusUpdatePage";
+import { useIsMobile } from "./hooks/use-mobile";
 import { MobileDashboard } from "./components/mobile/MobileDashboard";
 import { VehicleInspection } from "./components/mobile/VehicleInspection";
 
@@ -27,7 +28,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <Dashboard />,
+        element: useIsMobile() ? <MobileDashboard /> : <Dashboard />,
       },
       {
         path: '/mobile',
@@ -39,7 +40,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/agreements/:id',
-        element: <AgreementDetailPage />,
+        element: <AgreementDetail />,
       },
       {
         path: '/agreements/edit/:id',
@@ -55,11 +56,15 @@ const router = createBrowserRouter([
       },
       {
         path: '/vehicles',
-        element: <Vehicles />,
+        element: useIsMobile() ? <VehicleInspection /> : <Vehicles />,
       },
       {
         path: '/vehicles/:id',
         element: <VehicleDetailPage />,
+      },
+      {
+        path: '/vehicles/edit/:id',
+        element: <EditVehicleNew />,
       },
       {
         path: '/vehicles/add',
@@ -87,7 +92,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/settings',
-        element: <SystemSettings />,
+        element: <Settings />,
       },
     ],
   },

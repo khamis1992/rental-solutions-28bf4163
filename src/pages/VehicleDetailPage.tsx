@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Car, ArrowLeft, Trash2, AlertOctagon, Loader2 } from 'lucide-react';
+import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2 } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
 import { VehicleDetail } from '@/components/vehicles/VehicleDetail';
 import PageContainer from '@/components/layout/PageContainer';
@@ -87,6 +87,14 @@ const VehicleDetailPage = () => {
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Vehicles
+            </CustomButton>
+            <CustomButton 
+              size="sm" 
+              variant="outline" 
+              onClick={() => navigate(`/vehicles/edit/${vehicle.id}`)}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Vehicle
             </CustomButton>
             <AlertDialog>
               <AlertDialogTrigger asChild>
