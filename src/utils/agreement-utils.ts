@@ -22,7 +22,7 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     daily_late_fee: simpleAgreement.daily_late_fee || 120.0,
     agreement_number: simpleAgreement.agreement_number || '',
     notes: simpleAgreement.notes || '',
-    terms_accepted: true,
+    terms_accepted: true, // This is a UI-only field, not stored in DB
     additional_drivers: [],
     customers: simpleAgreement.customers || null,
     vehicles: simpleAgreement.vehicles || null,

@@ -136,9 +136,13 @@ const EditAgreement = () => {
         toast.info("Agreement is being finalized and closed");
       }
       
+      // Remove the terms_accepted field before sending to the database
+      // since it doesn't exist in the leases table schema
+      const { terms_accepted, ...agreementData } = updatedAgreement;
+      
       // Pass the existing agreement ID to ensure we're updating not creating
       const updateData = {
-        ...updatedAgreement,
+        ...agreementData,
         id: id // Explicitly include ID to ensure update
       };
       

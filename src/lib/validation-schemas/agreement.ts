@@ -27,7 +27,8 @@ export const agreementSchema = z.object({
   daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
   agreement_duration: z.string().optional(),
   notes: z.string().optional(),
-  terms_accepted: z.boolean().default(false),
+  // Mark as optional with a default value so it's available in the UI but not sent to DB
+  terms_accepted: z.boolean().default(false).optional(),
 });
 
 // Enum for payment status

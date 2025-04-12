@@ -53,10 +53,8 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
         rent_amount: 0,
         daily_late_fee: 120,
         notes: '',
-        terms_accepted: false,
         additional_drivers: [],
-      },
-      terms_accepted: termsAccepted,
+      }
     },
   });
 
@@ -102,9 +100,10 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
         return;
       }
       
+      // We'll handle the terms separately from the form data
+      // to avoid sending it to the database
       const finalData = {
         ...data,
-        terms_accepted: termsAccepted,
         id: initialData?.id
       };
       
