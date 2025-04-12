@@ -9,7 +9,7 @@ import Customers from './pages/Customers';
 import SystemSettings from './pages/SystemSettings';
 import AgreementDetailPage from './pages/AgreementDetailPage';
 import EditAgreement from './pages/EditAgreement';
-import CreateAgreement from './pages/CreateAgreement';
+import AddAgreement from './pages/AddAgreement'; // Changed from CreateAgreement to AddAgreement
 import VehicleDetailPage from './pages/VehicleDetailPage';
 import EditVehicleNew from './pages/EditVehicleNew';
 import CreateVehicle from './pages/CreateVehicle';
@@ -49,7 +49,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/agreements/add',
-        element: <CreateAgreement />
+        element: <AddAgreement /> // Changed from CreateAgreement to AddAgreement
       },
       {
         path: '/agreements/import',
