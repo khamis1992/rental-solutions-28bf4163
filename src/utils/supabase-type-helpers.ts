@@ -40,6 +40,12 @@ export interface DbRecord {
 export const castDbId = (id: string): SafeId => id as SafeId;
 
 /**
+ * Safely cast database ID value for Supabase UUID operations
+ * This is needed to ensure IDs are properly handled in Supabase queries
+ */
+export const castToUUID = (id: string): string => id;
+
+/**
  * Safely access nested properties from potentially null/undefined objects
  */
 export function getSafeProperty<T, K extends keyof T>(
