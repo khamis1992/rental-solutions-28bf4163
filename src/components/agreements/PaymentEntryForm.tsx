@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -207,6 +206,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
           notes: data.notes || null,
           days_overdue: lateFeeDetails?.daysLate || 0,
           original_due_date: new Date(data.paymentDate.getFullYear(), data.paymentDate.getMonth(), 1).toISOString(),
+          late_fine_amount: lateFeeDetails?.amount || 0,
         });
 
         if (paymentError) {
