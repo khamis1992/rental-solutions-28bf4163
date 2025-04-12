@@ -45,7 +45,7 @@ const StatusUpdateDialog = ({
   const [status, setStatus] = React.useState<VehicleStatus>(currentStatus);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
-  // Reset status when dialog opens to prevent stale state
+  // Force reset status on every dialog open to prevent stale state
   React.useEffect(() => {
     if (isOpen) {
       console.log(`StatusUpdateDialog: Setting initial status to ${currentStatus}`);
@@ -87,7 +87,7 @@ const StatusUpdateDialog = ({
         throw new Error(`Invalid status: ${status}`);
       }
 
-      // Additional debugging logs
+      // Log everything for debugging
       console.log(`About to call updateVehicleStatus with id=${vehicleId} and status=${status}`);
 
       // Perform the status update with verification
@@ -95,7 +95,7 @@ const StatusUpdateDialog = ({
       console.log(`Status update API response:`, result);
 
       if (result.success) {
-        toast.success("Vehicle status updated successfully");
+        toast.success(`Vehicle status updated successfully to ${status}`);
         console.log("Status update result:", result);
         
         try {

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -104,14 +103,20 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-  // Reset form when initialData changes
+  // Reset form when initialData changes with forced reset
   useEffect(() => {
     if (initialData) {
       console.log('Re-initializing form with new data:', initialData);
       console.log('Current status in initialData:', initialData.status);
       const values = getDefaultValues();
       
-      form.reset(values);
+      // Force reset with recreated values object to ensure state updates
+      form.reset({...values});
+      
+      // Explicitly update the status field
+      if (initialData.status) {
+        form.setValue('status', initialData.status as VehicleStatus);
+      }
     }
   }, [initialData, form]);
 
@@ -239,7 +244,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 )}
               />
               
-              {/* Status Field - Special handling for status */}
+              {/* Status Field - With enhanced debuggings */}
               <FormField
                 control={form.control}
                 name="status"
@@ -254,6 +259,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                           field.onChange(value);
                         }}
                         value={field.value}
+                        defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>

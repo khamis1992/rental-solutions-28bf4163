@@ -1,9 +1,8 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { checkSupabaseHealth } from '@/integrations/supabase/client';
 import { mapToDBStatus } from '@/lib/vehicles/vehicle-mappers';
-import { VehicleStatus, DatabaseVehicleStatus } from '@/types/vehicle';
+import { VehicleStatus } from '@/types/vehicle';
 
 /**
  * Updates vehicle information in the database with improved error handling
@@ -269,7 +268,7 @@ export const updateVehicleStatus = async (
     };
   }
   
-  // Direct database update for debugging purposes (bypassing additional helpers)
+  // Direct database update with verification steps
   try {
     console.log(`Status value before mapping: ${status}`);
     const dbStatus = mapToDBStatus(status);
@@ -309,7 +308,7 @@ export const updateVehicleStatus = async (
         updated_at: new Date().toISOString() 
       })
       .eq('id', id)
-      .select();
+      .select('*');
       
     if (directError) {
       console.error('Direct update failed:', directError);
@@ -341,7 +340,9 @@ export const updateVehicleStatus = async (
     };
   } catch (err) {
     console.error('Error in direct status update:', err);
-    // Use the main update function but only send the status as fallback
-    return updateVehicleInfo(id, { status });
+    return {
+      success: false,
+      message: `Error in status update: ${err instanceof Error ? err.message : 'Unknown error occurred'}`
+    };
   }
 };

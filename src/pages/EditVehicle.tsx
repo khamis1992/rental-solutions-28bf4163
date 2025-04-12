@@ -38,7 +38,7 @@ const EditVehicle = () => {
     isPending: isUpdating,
   } = useUpdate();
   
-  // Sync fetched data with local state
+  // Sync fetched data with local state, forcing an update when status changes
   useEffect(() => {
     if (fetchedVehicle) {
       console.log("Vehicle data received from API:", fetchedVehicle);
@@ -238,7 +238,7 @@ const EditVehicle = () => {
         />
       </div>
 
-      {/* Status Update Dialog */}
+      {/* Status Update Dialog - With proper sync of current status */}
       <StatusUpdateDialog
         isOpen={showStatusDialog}
         onClose={() => {

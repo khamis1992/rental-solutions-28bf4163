@@ -1,4 +1,3 @@
-
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
@@ -36,10 +35,21 @@ export function mapDatabaseStatus(status: DatabaseVehicleStatus | null | undefin
   
   console.log(`Mapping DB status "${normalizedStatus}" to app status`);
   
-  // Validate and return the status
-  const result = isValidStatus(normalizedStatus) ? normalizedStatus as VehicleStatus : 'available';
-  console.log(`mapDatabaseStatus result: "${result}"`);
-  return result;
+  // Explicitly check against each valid status value
+  const validStatuses: VehicleStatus[] = [
+    'available', 'rented', 'reserved', 'maintenance', 
+    'police_station', 'accident', 'stolen', 'retired'
+  ];
+  
+  // Direct mapping for known values
+  if (validStatuses.includes(normalizedStatus as VehicleStatus)) {
+    console.log(`Direct status match found: "${normalizedStatus}"`);
+    return normalizedStatus as VehicleStatus;
+  }
+  
+  // For any unrecognized status, default to 'available'
+  console.log(`No direct status match found for "${normalizedStatus}", defaulting to "available"`);
+  return 'available';
 }
 
 // Convert application status to database status with improved normalization
@@ -72,6 +82,7 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
     'retired': 'retired'
   };
   
+  // Use the mapping if available, otherwise pass through (with a fallback to ensure type safety)
   const result = statusMapping[normalizedStatus] || normalizedStatus as DatabaseVehicleStatus;
   console.log(`mapToDBStatus result: "${result}"`);
   return result;
