@@ -19,13 +19,13 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     total_amount: simpleAgreement.total_amount || 0,
     deposit_amount: simpleAgreement.deposit_amount || 0,
     rent_amount: simpleAgreement.rent_amount || 0, // Ensure rent_amount is preserved
+    daily_late_fee: simpleAgreement.daily_late_fee || 120.0,
     agreement_number: simpleAgreement.agreement_number || '',
     notes: simpleAgreement.notes || '',
     terms_accepted: true,
     additional_drivers: [],
     customers: simpleAgreement.customers || null,
     vehicles: simpleAgreement.vehicles || null,
-    daily_late_fee: simpleAgreement.daily_late_fee || 120.0,
   };
 };
 
