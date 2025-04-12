@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
@@ -11,13 +12,15 @@ export const updateAgreementWithCheck = async (
   { id, data }: { id: string; data: Partial<Agreement> },
   userId?: string | null,
   onSuccess?: () => void,
-  onError?: (error: any) => void
+  onError?: (error: any) => void,
+  onStatusUpdate?: (status: string) => void
 ) => {
   // Track if there's a status change that needs special handling
   const isChangingToActive = data.status === 'active';
   const isChangingToClosed = data.status === 'closed';
   
   try {
+    if (onStatusUpdate) onStatusUpdate("Updating agreement details...");
     console.log(`Updating agreement ${id} with data:`, data);
 
     // First, perform the basic agreement update
@@ -35,31 +38,91 @@ export const updateAgreementWithCheck = async (
 
     // Handle status-specific operations asynchronously
     if (isChangingToActive) {
-      // Don't wait for payment generation to complete before showing success
-      toast.info("Updating agreement status and generating payment schedule...");
+      if (onStatusUpdate) onStatusUpdate("Agreement updated. Processing payment schedule...");
       
       // Run payment schedule generation in the background
-      generatePaymentScheduleAsync(id).then(result => {
+      processingPaymentSchedule(id, onStatusUpdate).then(result => {
         if (result.success) {
+          if (onStatusUpdate) onStatusUpdate("Payment schedule generated successfully");
           toast.success("Payment schedule generated successfully");
         } else {
-          toast.error(`Failed to generate payment schedule: ${result.message}`);
+          toast.error(`Payment schedule issue: ${result.message}`);
+          // This doesn't block the main flow, just informs the user
         }
+      }).catch(error => {
+        console.error("Background payment schedule error:", error);
+        toast.error("There was an issue with the payment schedule");
       });
     } 
     else if (isChangingToClosed) {
-      // Handle agreement closing operations if needed
-      toast.info("Finalizing agreement closure...");
+      // Handle agreement closing operations
+      if (onStatusUpdate) onStatusUpdate("Finalizing agreement closure...");
       
-      // You could add specific closing operations here if needed
+      // Add specific closing operations here if needed
+      setTimeout(() => {
+        if (onStatusUpdate) onStatusUpdate("Agreement closed successfully");
+      }, 1000);
     }
 
-    toast.success("Agreement updated successfully");
+    // Allow the main flow to complete regardless of background tasks
     if (onSuccess) onSuccess();
   } catch (error) {
     console.error("Error in updateAgreementWithCheck:", error);
     toast.error(`An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`);
     if (onError) onError(error);
+  }
+};
+
+/**
+ * Handles the payment schedule processing with proper status updates and error handling
+ */
+const processingPaymentSchedule = async (
+  agreementId: string, 
+  onStatusUpdate?: (status: string) => void
+): Promise<{ success: boolean; message?: string }> => {
+  try {
+    if (onStatusUpdate) onStatusUpdate("Checking agreement details...");
+    
+    // First, get the agreement details
+    const { data: agreement, error: agreementError } = await supabase
+      .from('leases')
+      .select('*')
+      .eq('id', castDbId(agreementId))
+      .single();
+
+    if (agreementError || !agreement) {
+      console.error("Error fetching agreement for payment schedule:", agreementError);
+      return { success: false, message: agreementError?.message || "Agreement not found" };
+    }
+
+    if (onStatusUpdate) onStatusUpdate("Generating payment schedule...");
+    
+    // Set a timeout to prevent infinite processing
+    const timeoutPromise = new Promise<{ success: false; message: string }>((_, reject) => {
+      setTimeout(() => reject({ success: false, message: "Payment schedule generation timed out" }), 10000);
+    });
+    
+    try {
+      // Race between the generation and timeout
+      const result = await Promise.race([
+        generatePaymentSchedule(agreement, onStatusUpdate),
+        timeoutPromise
+      ]);
+      
+      return result;
+    } catch (error) {
+      console.error("Error in payment schedule generation:", error);
+      return { 
+        success: false, 
+        message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
+  } catch (error) {
+    console.error("Error in processingPaymentSchedule:", error);
+    return { 
+      success: false, 
+      message: `Failed to process payment schedule: ${error instanceof Error ? error.message : String(error)}` 
+    };
   }
 };
 
@@ -99,15 +162,23 @@ export const forceGeneratePaymentForAgreement = async (agreement: any): Promise<
   try {
     // Set a timeout to prevent infinite processing
     const timeoutPromise = new Promise<{ success: false; message: string }>((_, reject) => {
-      setTimeout(() => reject({ success: false, message: "Operation timed out" }), 30000);
+      setTimeout(() => reject({ success: false, message: "Operation timed out" }), 8000);
     });
 
     // Run the payment generation with a timeout
-    const generationPromise = generatePaymentSchedule(agreement);
-    
-    // Race between the operation and the timeout
-    const result = await Promise.race([generationPromise, timeoutPromise]);
-    return result;
+    try {
+      const result = await Promise.race([
+        generatePaymentSchedule(agreement),
+        timeoutPromise
+      ]);
+      return result;
+    } catch (error) {
+      console.error("Payment generation timed out or failed:", error);
+      return { 
+        success: false, 
+        message: `Payment generation issue: ${error instanceof Error ? error.message : String(error)}` 
+      };
+    }
   } catch (error) {
     console.error("Error in forceGeneratePaymentForAgreement:", error);
     return { 
@@ -118,24 +189,40 @@ export const forceGeneratePaymentForAgreement = async (agreement: any): Promise<
 };
 
 /**
- * Core payment schedule generation logic with improved performance
+ * Core payment schedule generation logic with improved performance and error handling
  */
-const generatePaymentSchedule = async (agreement: any): Promise<{ success: boolean; message?: string }> => {
+const generatePaymentSchedule = async (
+  agreement: any,
+  onStatusUpdate?: (status: string) => void
+): Promise<{ success: boolean; message?: string }> => {
   try {
+    if (onStatusUpdate) onStatusUpdate("Analyzing agreement details...");
     console.log("Generating payment schedule for agreement:", agreement.id);
+
+    // Safety checks
+    if (!agreement || !agreement.id) {
+      return { success: false, message: "Invalid agreement data" };
+    }
 
     // Skip if no rent amount is defined
     if (!agreement.rent_amount || agreement.rent_amount <= 0) {
       return { success: false, message: "Cannot generate payment schedule: no rent amount specified" };
     }
+    
+    if (onStatusUpdate) onStatusUpdate("Setting up payment due dates...");
 
     // Determine rent due day (default to 1 if not specified)
     const rentDueDay = agreement.rent_due_day || 1;
     
-    // Get agreement start date
-    const startDate = new Date(agreement.start_date);
-    if (isNaN(startDate.getTime())) {
-      return { success: false, message: "Invalid start date" };
+    // Get agreement start date with validation
+    let startDate: Date;
+    try {
+      startDate = new Date(agreement.start_date);
+      if (isNaN(startDate.getTime())) {
+        return { success: false, message: "Invalid start date" };
+      }
+    } catch (error) {
+      return { success: false, message: "Could not parse agreement start date" };
     }
     
     // Create first payment due date
@@ -146,20 +233,34 @@ const generatePaymentSchedule = async (agreement: any): Promise<{ success: boole
     if (startDate.getDate() > rentDueDay) {
       firstDueDate.setMonth(firstDueDate.getMonth() + 1);
     }
+    
+    if (onStatusUpdate) onStatusUpdate("Checking for existing payments...");
 
-    // Check if a payment already exists for this month
-    const { data: existingPayments } = await supabase
-      .from('unified_payments')
-      .select('id')
-      .eq('lease_id', agreement.id)
-      .gte('due_date', formatDate(startDate))
-      .lt('due_date', formatDate(new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate())));
+    // Check if a payment already exists for this month with better error handling
+    try {
+      const { data: existingPayments, error } = await supabase
+        .from('unified_payments')
+        .select('id')
+        .eq('lease_id', agreement.id)
+        .gte('due_date', formatDate(startDate))
+        .lt('due_date', formatDate(new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate())));
 
-    // If payments already exist, don't recreate them
-    if (existingPayments && existingPayments.length > 0) {
-      console.log("Payments already exist for this agreement:", existingPayments.length);
-      return { success: true, message: "Payments already exist for this agreement" };
+      if (error) {
+        console.error("Error checking existing payments:", error);
+        return { success: false, message: `Payment check failed: ${error.message}` };
+      }
+
+      // If payments already exist, don't recreate them
+      if (existingPayments && existingPayments.length > 0) {
+        console.log("Payments already exist for this agreement:", existingPayments.length);
+        return { success: true, message: "Payments already exist for this agreement" };
+      }
+    } catch (error) {
+      console.error("Error checking existing payments:", error);
+      return { success: false, message: "Failed to check existing payments" };
     }
+    
+    if (onStatusUpdate) onStatusUpdate("Creating payment record...");
 
     // Prepare the first payment record
     const paymentData = {
@@ -172,19 +273,25 @@ const generatePaymentSchedule = async (agreement: any): Promise<{ success: boole
       is_recurring: false
     };
 
-    // Insert the payment record
-    const { error: insertError } = await supabase
-      .from('unified_payments')
-      .insert(paymentData);
+    try {
+      // Insert the payment record
+      const { error: insertError } = await supabase
+        .from('unified_payments')
+        .insert(paymentData);
 
-    if (insertError) {
-      console.error("Error creating payment schedule:", insertError);
-      return { success: false, message: `Failed to create payment: ${insertError.message}` };
+      if (insertError) {
+        console.error("Error creating payment schedule:", insertError);
+        return { success: false, message: `Failed to create payment: ${insertError.message}` };
+      }
+      
+      if (onStatusUpdate) onStatusUpdate("Payment schedule created successfully");
+      return { success: true, message: "Payment schedule generated successfully" };
+    } catch (error) {
+      console.error("Error inserting payment record:", error);
+      return { success: false, message: "Failed to insert payment record" };
     }
-
-    return { success: true, message: "Payment schedule generated successfully" };
   } catch (error) {
-    console.error("Error generating payment schedule:", error);
+    console.error("Unexpected error generating payment schedule:", error);
     return { 
       success: false, 
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 

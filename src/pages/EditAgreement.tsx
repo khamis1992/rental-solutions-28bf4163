@@ -21,6 +21,7 @@ const EditAgreement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState<string | null>(null);
   const { user } = useAuth();
   const { rentAmount } = useRentAmount(agreement, id);
   const [vehicleData, setVehicleData] = useState<any>(null);
@@ -114,20 +115,23 @@ const EditAgreement = () => {
     
     try {
       setIsSubmitting(true);
+      setUpdateProgress(null);
       
+      // Check if the status is being changed to active or closed
       const isChangingToActive = updatedAgreement.status === 'active' && 
                               agreement?.status !== 'active';
       const isChangingToClosed = updatedAgreement.status === 'closed' && 
                               agreement?.status !== 'closed';
-                              
+      
+      // Set initial processing message
       if (isChangingToActive) {
-        console.log("Status is being changed to active, payment schedule will be generated");
-        toast.info("Activating agreement and preparing payment schedule...");
-      }
-
-      if (isChangingToClosed) {
-        console.log("Status is being changed to closed, agreement will be finalized");
-        toast.info("Agreement is being finalized and closed");
+        setUpdateProgress("Preparing to activate agreement...");
+        toast.info("Activating agreement...");
+      } else if (isChangingToClosed) {
+        setUpdateProgress("Preparing to close agreement...");
+        toast.info("Closing agreement...");
+      } else {
+        setUpdateProgress("Updating agreement...");
       }
       
       const { terms_accepted, additional_drivers, ...agreementData } = updatedAgreement;
@@ -137,19 +141,48 @@ const EditAgreement = () => {
         id: id
       };
       
-      await updateAgreementWithCheck(
-        { id, data: updateData },
-        user?.id,
-        () => navigate(`/agreements/${id}`),
-        (error: any) => {
-          console.error("Error updating agreement:", error);
-          setIsSubmitting(false);
-        }
-      );
+      // Use a timeout to handle potential hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Operation timed out")), 30000);
+      });
+      
+      // Set up status update event handlers to track progress
+      const statusUpdateCallback = (status: string) => {
+        setUpdateProgress(status);
+      };
+      
+      try {
+        // Execute the operation with a timeout
+        await Promise.race([
+          updateAgreementWithCheck(
+            { id, data: updateData },
+            user?.id,
+            () => {
+              setUpdateProgress("Agreement updated successfully!");
+              toast.success("Agreement updated successfully");
+              navigate(`/agreements/${id}`);
+            },
+            (error: any) => {
+              console.error("Error updating agreement:", error);
+              setUpdateProgress(null);
+              toast.error(`Failed to update: ${error.message || "Unknown error"}`);
+              setIsSubmitting(false);
+            },
+            statusUpdateCallback // Pass the callback to track status updates
+          ),
+          timeoutPromise
+        ]);
+      } catch (timeoutError) {
+        console.error("Operation timed out:", timeoutError);
+        toast.error("Operation timed out. The system might still be processing your request.");
+        setIsSubmitting(false);
+        setUpdateProgress(null);
+      }
     } catch (error) {
-      console.error("Error updating agreement:", error);
+      console.error("Error in handleSubmit:", error);
       toast.error("Failed to update agreement");
       setIsSubmitting(false);
+      setUpdateProgress(null);
     }
   };
 
@@ -165,14 +198,24 @@ const EditAgreement = () => {
           <Skeleton className="h-96 w-full" />
         </div>
       ) : agreement ? (
-        <AgreementForm 
-          initialData={{
-            ...agreement,
-            vehicles: vehicleData || agreement.vehicles
-          }} 
-          onSubmit={handleSubmit}
-          isSubmitting={isSubmitting}
-        />
+        <>
+          {updateProgress && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded mb-4">
+              <p className="flex items-center">
+                <span className="animate-pulse mr-2">⏳</span>
+                <span>{updateProgress}</span>
+              </p>
+            </div>
+          )}
+          <AgreementForm 
+            initialData={{
+              ...agreement,
+              vehicles: vehicleData || agreement.vehicles
+            }} 
+            onSubmit={handleSubmit}
+            isSubmitting={isSubmitting}
+          />
+        </>
       ) : (
         <div className="text-center py-12">
           <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
