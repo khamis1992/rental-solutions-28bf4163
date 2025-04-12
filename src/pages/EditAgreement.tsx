@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AgreementForm from '@/components/agreements/AgreementForm';
@@ -121,6 +122,7 @@ const EditAgreement = () => {
                               
       if (isChangingToActive) {
         console.log("Status is being changed to active, payment schedule will be generated");
+        toast.info("Activating agreement and preparing payment schedule...");
       }
 
       if (isChangingToClosed) {
@@ -139,12 +141,14 @@ const EditAgreement = () => {
         { id, data: updateData },
         user?.id,
         () => navigate(`/agreements/${id}`),
-        (error: any) => console.error("Error updating agreement:", error)
+        (error: any) => {
+          console.error("Error updating agreement:", error);
+          setIsSubmitting(false);
+        }
       );
     } catch (error) {
       console.error("Error updating agreement:", error);
       toast.error("Failed to update agreement");
-    } finally {
       setIsSubmitting(false);
     }
   };

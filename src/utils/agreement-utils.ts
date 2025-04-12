@@ -1,382 +1,275 @@
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { Agreement, AgreementStatus, forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
-import { SimpleAgreement } from '@/hooks/use-agreements';
+import { formatDate } from '@/lib/date-utils';
+import { castDbId } from '@/utils/supabase-type-helpers';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 
-// Helper function to adapt SimpleAgreement to Agreement type for detail pages
-export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Agreement => {
-  console.log("Adapting simple agreement to full agreement:", simpleAgreement);
-  
-  return {
-    id: simpleAgreement.id,
-    customer_id: simpleAgreement.customer_id || '',
-    vehicle_id: simpleAgreement.vehicle_id || '',
-    status: simpleAgreement.status || 'draft',
-    start_date: simpleAgreement.start_date ? new Date(simpleAgreement.start_date) : new Date(),
-    end_date: simpleAgreement.end_date ? new Date(simpleAgreement.end_date) : new Date(),
-    created_at: simpleAgreement.created_at ? new Date(simpleAgreement.created_at) : undefined,
-    updated_at: simpleAgreement.updated_at ? new Date(simpleAgreement.updated_at) : undefined,
-    total_amount: simpleAgreement.total_amount || 0,
-    deposit_amount: simpleAgreement.deposit_amount || 0,
-    rent_amount: simpleAgreement.rent_amount || 0, // Ensure rent_amount is preserved
-    daily_late_fee: simpleAgreement.daily_late_fee || 120.0,
-    agreement_number: simpleAgreement.agreement_number || '',
-    notes: simpleAgreement.notes || '',
-    terms_accepted: true, // This is a UI-only field, not stored in DB
-    additional_drivers: [],
-    customers: simpleAgreement.customers || null,
-    vehicles: simpleAgreement.vehicles || null,
-  };
-};
-
+/**
+ * Updates an agreement with proper validation and status transitions
+ */
 export const updateAgreementWithCheck = async (
-  params: { id: string; data: any },
-  userId: string | undefined, 
-  onSuccess: () => void,
-  onError: (error: any) => void
+  { id, data }: { id: string; data: Partial<Agreement> },
+  userId?: string | null,
+  onSuccess?: () => void,
+  onError?: (error: any) => void
 ) => {
+  // Track if there's a status change that needs special handling
+  const isChangingToActive = data.status === 'active';
+  const isChangingToClosed = data.status === 'closed';
+  
   try {
-    if (!userId) {
-      console.warn("User ID is not available. Proceeding without user-specific checks.");
-    }
+    console.log(`Updating agreement ${id} with data:`, data);
 
-    // Check if status is being changed to active or closed
-    const isChangingToActive = params.data.status === 'active';
-    const isChangingToClosed = params.data.status === 'closed';
-    
-    // If changing to active or closed, first check the current status
-    let currentStatus: string | null = null;
-    if (isChangingToActive || isChangingToClosed) {
-      const { data: currentAgreement, error: fetchError } = await supabase
-        .from('leases')
-        .select('status')
-        .eq('id', params.id)
-        .single();
-        
-      if (fetchError) {
-        console.warn("Could not fetch current agreement status:", fetchError);
-      } else if (currentAgreement) {
-        currentStatus = currentAgreement.status;
-      }
-    }
-
-    // Optimistic update
-    toast.success("Agreement update initiated...");
-
-    const { data, error } = await supabase
+    // First, perform the basic agreement update
+    const { error: updateError } = await supabase
       .from('leases')
-      .update(params.data)
-      .eq('id', params.id)
-      .select()
-      .single();
+      .update(data)
+      .eq('id', castDbId(id));
 
-    if (error) {
-      console.error("Update failed:", error);
-      toast.error(`Update failed: ${error.message}`);
-      onError(error);
-    } else {
-      console.log("Agreement updated successfully:", data);
-      toast.success("Agreement updated successfully!");
-      
-      // If the status was changed to active and it wasn't active before, generate payment schedule
-      if (isChangingToActive && currentStatus !== 'active') {
-        console.log(`Agreement ${params.id} status changed to active. Generating payment schedule...`);
-        try {
-          const result = await forceGeneratePaymentForAgreement(supabase, params.id);
-          if (result.success) {
-            toast.success("Payment schedule generated automatically");
-          } else {
-            console.warn("Could not generate payment schedule:", result.message);
-            toast.warning(`Agreement updated, but payment schedule generation had an issue: ${result.message}`);
-          }
-        } catch (paymentError) {
-          console.error("Error generating payment schedule:", paymentError);
-          toast.warning("Agreement updated, but payment schedule could not be generated");
-        }
-      }
-      
-      // If the status was changed to closed
-      if (isChangingToClosed && currentStatus !== 'closed' && currentStatus !== 'completed' && currentStatus !== 'terminated') {
-        console.log(`Agreement ${params.id} status changed to closed. Finalizing agreement...`);
-        // Here you might want to perform any additional cleanup or finalization logic
-        toast.success("Agreement has been successfully closed");
-      }
-      
-      onSuccess();
-    }
-  } catch (error) {
-    console.error("Unexpected error during update:", error);
-    toast.error("An unexpected error occurred during the update.");
-    onError(error);
-  }
-};
-
-// Check if a vehicle is available or assigned to another active agreement
-export const checkVehicleAvailability = async (vehicleId: string): Promise<{ 
-  isAvailable: boolean; 
-  existingAgreement?: any 
-}> => {
-  try {
-    // Check if vehicle is assigned to any active agreement
-    const { data, error } = await supabase
-      .from('leases')
-      .select('*')
-      .eq('vehicle_id', vehicleId)
-      .eq('status', 'active')
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No active agreements found for this vehicle - it's available
-        return { isAvailable: true };
-      }
-      // Other errors
-      console.error("Error checking vehicle availability:", error);
-      throw error;
+    if (updateError) {
+      console.error("Error updating agreement:", updateError);
+      toast.error(`Failed to update agreement: ${updateError.message}`);
+      if (onError) onError(updateError);
+      return;
     }
 
-    // If we got data, the vehicle is assigned to an active agreement
-    return { 
-      isAvailable: false,
-      existingAgreement: data
-    };
-  } catch (error) {
-    console.error("Error in checkVehicleAvailability:", error);
-    // Default to available in case of unexpected errors to prevent blocking the flow
-    return { isAvailable: true };
-  }
-};
-
-// Function to activate an agreement and handle existing agreements for the same vehicle
-export const activateAgreement = async (agreementId: string, vehicleId: string): Promise<boolean> => {
-  try {
-    console.log(`Activating agreement ${agreementId} for vehicle ${vehicleId}`);
-    
-    // Check if vehicle is assigned to any active agreements
-    const { data: existingAgreements, error: checkError } = await supabase
-      .from('leases')
-      .select('id, agreement_number')
-      .eq('vehicle_id', vehicleId)
-      .eq('status', 'active');
+    // Handle status-specific operations asynchronously
+    if (isChangingToActive) {
+      // Don't wait for payment generation to complete before showing success
+      toast.info("Updating agreement status and generating payment schedule...");
       
-    if (checkError) {
-      console.error("Error checking existing agreements:", checkError);
-      toast.error("Failed to check existing agreements");
-      return false;
-    }
-    
-    // Close any existing active agreements for this vehicle
-    if (existingAgreements && existingAgreements.length > 0) {
-      console.log(`Found ${existingAgreements.length} active agreements to close`);
-      
-      for (const agreement of existingAgreements) {
-        // Skip if this is the same agreement we're trying to activate
-        if (agreement.id === agreementId) continue;
-        
-        console.log(`Closing agreement ${agreement.agreement_number} (${agreement.id})`);
-        const { error: closeError } = await supabase
-          .from('leases')
-          .update({ status: 'closed' })
-          .eq('id', agreement.id);
-          
-        if (closeError) {
-          console.error(`Failed to close agreement ${agreement.id}:`, closeError);
-          toast.error(`Failed to close existing agreement ${agreement.agreement_number}`);
-          return false;
-        }
-        
-        toast.success(`Closed existing agreement ${agreement.agreement_number}`);
-      }
-    }
-    
-    // Update vehicle status
-    const { error: vehicleUpdateError } = await supabase
-      .from('vehicles')
-      .update({ status: 'rented' })
-      .eq('id', vehicleId);
-      
-    if (vehicleUpdateError) {
-      console.error("Failed to update vehicle status:", vehicleUpdateError);
-      toast.error("Failed to update vehicle status");
-      return false;
-    }
-    
-    // Generate payment record for the agreement
-    try {
-      // First get the agreement details to have the rent amount
-      const { data: agreement, error: agreementError } = await supabase
-        .from('leases')
-        .select('rent_amount, agreement_number')
-        .eq('id', agreementId)
-        .single();
-      
-      if (agreementError) {
-        console.error("Error fetching agreement details for payment generation:", agreementError);
-        toast.warning("Agreement activated, but could not generate payment schedule");
-      } else if (agreement) {
-        console.log(`Generating payment schedule for agreement ${agreement.agreement_number}`);
-        const result = await forceGeneratePaymentForAgreement(supabase, agreementId);
-        
+      // Run payment schedule generation in the background
+      generatePaymentScheduleAsync(id).then(result => {
         if (result.success) {
           toast.success("Payment schedule generated successfully");
         } else {
-          console.warn("Could not generate payment schedule:", result.message);
-          toast.warning(`Agreement activated, but payment schedule generation had an issue: ${result.message}`);
+          toast.error(`Failed to generate payment schedule: ${result.message}`);
         }
-      }
-    } catch (paymentError) {
-      console.error("Error generating payment schedule:", paymentError);
-      toast.warning("Agreement activated, but payment schedule could not be generated");
+      });
+    } 
+    else if (isChangingToClosed) {
+      // Handle agreement closing operations if needed
+      toast.info("Finalizing agreement closure...");
+      
+      // You could add specific closing operations here if needed
     }
-    
-    console.log(`Successfully activated agreement ${agreementId}`);
-    return true;
+
+    toast.success("Agreement updated successfully");
+    if (onSuccess) onSuccess();
   } catch (error) {
-    console.error("Error in activateAgreement:", error);
-    toast.error("An unexpected error occurred during agreement activation");
-    return false;
+    console.error("Error in updateAgreementWithCheck:", error);
+    toast.error(`An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`);
+    if (onError) onError(error);
   }
 };
 
-// Function to check for active agreements without payment schedules and create them
-export const checkAndCreateMissingPaymentSchedules = async (): Promise<{
-  success: boolean;
+/**
+ * Asynchronously generates a payment schedule for an agreement
+ */
+const generatePaymentScheduleAsync = async (agreementId: string): Promise<{ success: boolean; message?: string }> => {
+  try {
+    // First, get the agreement details
+    const { data: agreement, error: agreementError } = await supabase
+      .from('leases')
+      .select('*')
+      .eq('id', castDbId(agreementId))
+      .single();
+
+    if (agreementError || !agreement) {
+      console.error("Error fetching agreement for payment schedule:", agreementError);
+      return { success: false, message: agreementError?.message || "Agreement not found" };
+    }
+
+    // Call the payment schedule generation with the agreement data
+    const result = await forceGeneratePaymentForAgreement(agreement);
+    return result;
+  } catch (error) {
+    console.error("Error generating payment schedule:", error);
+    return { 
+      success: false, 
+      message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
+};
+
+/**
+ * Generates payment schedules for an agreement with improved error handling
+ */
+export const forceGeneratePaymentForAgreement = async (agreement: any): Promise<{ success: boolean; message?: string }> => {
+  try {
+    // Set a timeout to prevent infinite processing
+    const timeoutPromise = new Promise<{ success: false; message: string }>((_, reject) => {
+      setTimeout(() => reject({ success: false, message: "Operation timed out" }), 30000);
+    });
+
+    // Run the payment generation with a timeout
+    const generationPromise = generatePaymentSchedule(agreement);
+    
+    // Race between the operation and the timeout
+    const result = await Promise.race([generationPromise, timeoutPromise]);
+    return result;
+  } catch (error) {
+    console.error("Error in forceGeneratePaymentForAgreement:", error);
+    return { 
+      success: false, 
+      message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
+};
+
+/**
+ * Core payment schedule generation logic with improved performance
+ */
+const generatePaymentSchedule = async (agreement: any): Promise<{ success: boolean; message?: string }> => {
+  try {
+    console.log("Generating payment schedule for agreement:", agreement.id);
+
+    // Skip if no rent amount is defined
+    if (!agreement.rent_amount || agreement.rent_amount <= 0) {
+      return { success: false, message: "Cannot generate payment schedule: no rent amount specified" };
+    }
+
+    // Determine rent due day (default to 1 if not specified)
+    const rentDueDay = agreement.rent_due_day || 1;
+    
+    // Get agreement start date
+    const startDate = new Date(agreement.start_date);
+    if (isNaN(startDate.getTime())) {
+      return { success: false, message: "Invalid start date" };
+    }
+    
+    // Create first payment due date
+    let firstDueDate = new Date(startDate);
+    firstDueDate.setDate(rentDueDay);
+    
+    // If start date is after the rent due day, move to next month
+    if (startDate.getDate() > rentDueDay) {
+      firstDueDate.setMonth(firstDueDate.getMonth() + 1);
+    }
+
+    // Check if a payment already exists for this month
+    const { data: existingPayments } = await supabase
+      .from('unified_payments')
+      .select('id')
+      .eq('lease_id', agreement.id)
+      .gte('due_date', formatDate(startDate))
+      .lt('due_date', formatDate(new Date(startDate.getFullYear(), startDate.getMonth() + 1, startDate.getDate())));
+
+    // If payments already exist, don't recreate them
+    if (existingPayments && existingPayments.length > 0) {
+      console.log("Payments already exist for this agreement:", existingPayments.length);
+      return { success: true, message: "Payments already exist for this agreement" };
+    }
+
+    // Prepare the first payment record
+    const paymentData = {
+      lease_id: agreement.id,
+      amount: agreement.rent_amount,
+      description: `Rent Payment - ${formatDate(firstDueDate, 'MMMM yyyy')}`,
+      type: 'Income',
+      status: 'pending',
+      due_date: formatDate(firstDueDate),
+      is_recurring: false
+    };
+
+    // Insert the payment record
+    const { error: insertError } = await supabase
+      .from('unified_payments')
+      .insert(paymentData);
+
+    if (insertError) {
+      console.error("Error creating payment schedule:", insertError);
+      return { success: false, message: `Failed to create payment: ${insertError.message}` };
+    }
+
+    return { success: true, message: "Payment schedule generated successfully" };
+  } catch (error) {
+    console.error("Error generating payment schedule:", error);
+    return { 
+      success: false, 
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
+    };
+  }
+};
+
+// Helper function to check and create payment schedules for active agreements
+export const checkAndCreateMissingPaymentSchedules = async (): Promise<{ 
+  success: boolean; 
   generatedCount: number;
-  message: string;
-  error?: any;
+  message?: string;
+  error?: any 
 }> => {
   try {
-    console.log("Checking for active agreements without payment schedules");
+    console.log('Checking for missing payment schedules');
     
-    // Get current month and year
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
-    // Find active agreements
+    // Find active agreements without payment records
     const { data: activeAgreements, error: agreementsError } = await supabase
       .from('leases')
-      .select('id, rent_amount, agreement_number, start_date, daily_late_fee')
-      .eq('status', 'active');
-      
+      .select('id, rent_amount, start_date, rent_due_day')
+      .eq('status', 'active')
+      .is('payment_status', null);
+    
     if (agreementsError) {
-      console.error("Error fetching active agreements:", agreementsError);
+      console.error('Error fetching active agreements:', agreementsError);
       return { 
         success: false, 
         generatedCount: 0,
-        message: `Error fetching agreements: ${agreementsError.message}`,
-        error: agreementsError
+        message: 'Error fetching agreements', 
+        error: agreementsError 
       };
     }
     
     if (!activeAgreements || activeAgreements.length === 0) {
-      console.log("No active agreements found");
-      return { 
-        success: true, 
-        generatedCount: 0,
-        message: "No active agreements found"
-      };
+      console.log('No agreements require payment schedule generation');
+      return { success: true, generatedCount: 0, message: 'No payments needed to be generated' };
     }
     
-    console.log(`Found ${activeAgreements.length} active agreements, checking for missing payment schedules`);
+    console.log(`Found ${activeAgreements.length} agreements that might need payment schedules`);
     
     let generatedCount = 0;
-    let skippedCount = 0;
-    let errorCount = 0;
+    let failedCount = 0;
     
-    // For each active agreement, check if there's a payment for each month from start date to current month
+    // Process each agreement with a small delay between them to avoid overwhelming the database
     for (const agreement of activeAgreements) {
-      if (!agreement.start_date) {
-        console.warn(`Agreement ${agreement.agreement_number} has no start date, skipping`);
-        skippedCount++;
-        continue;
-      }
-      
-      const startDate = new Date(agreement.start_date);
-      
-      // Only consider agreements that started before or in the current month
-      if (startDate <= new Date(currentYear, currentMonth + 1, 0)) {
-        // Calculate all months from start date to current month
-        const startMonth = startDate.getMonth();
-        const startYear = startDate.getFullYear();
-        
-        // Calculate total number of months to check
-        const totalMonths = (currentYear - startYear) * 12 + (currentMonth - startMonth) + 1;
-        
-        // Get all existing payments for this agreement
-        const { data: existingPayments, error: paymentsError } = await supabase
-          .from('unified_payments')
-          .select('id, payment_date, original_due_date')
-          .eq('lease_id', agreement.id)
-          .eq('type', 'rent');
-          
-        if (paymentsError) {
-          console.error(`Error checking payments for agreement ${agreement.id}:`, paymentsError);
-          errorCount++;
-          continue;
+      try {
+        // Generate payment schedule
+        const result = await generatePaymentSchedule(agreement);
+        if (result.success) {
+          generatedCount++;
+        } else {
+          failedCount++;
+          console.error(`Failed to generate payment schedule for agreement ${agreement.id}: ${result.message}`);
         }
         
-        // Create a set of months that already have payments
-        const paidMonths = new Set<string>();
-        if (existingPayments) {
-          existingPayments.forEach(payment => {
-            // Use original_due_date if available, otherwise use payment_date
-            const dateToUse = payment.original_due_date || payment.payment_date;
-            if (dateToUse) {
-              const paymentDate = new Date(dateToUse);
-              paidMonths.add(`${paymentDate.getMonth()}-${paymentDate.getFullYear()}`);
-            }
-          });
-        }
-        
-        // Check each month from start date to current month
-        for (let i = 0; i < totalMonths; i++) {
-          // Calculate the month we're checking
-          const monthToCheck = new Date(startYear, startMonth + i, 1);
-          const monthKey = `${monthToCheck.getMonth()}-${monthToCheck.getFullYear()}`;
-          
-          // If there's no payment for this month, generate one
-          if (!paidMonths.has(monthKey)) {
-            console.log(`Generating payment for agreement ${agreement.agreement_number} for ${monthToCheck.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
-            
-            try {
-              const result = await forceGeneratePaymentForAgreement(supabase, agreement.id, monthToCheck);
-              
-              if (result.success) {
-                console.log(`Successfully generated payment for agreement ${agreement.agreement_number} for ${monthToCheck.toLocaleString('default', { month: 'long', year: 'numeric' })}`);
-                generatedCount++;
-              } else {
-                console.warn(`Failed to generate payment for agreement ${agreement.agreement_number}:`, result.message);
-                errorCount++;
-              }
-            } catch (error) {
-              console.error(`Error generating payment for agreement ${agreement.id}:`, error);
-              errorCount++;
-            }
-          } else {
-            skippedCount++;
-          }
-        }
-      } else {
-        console.log(`Agreement ${agreement.agreement_number} starts in the future, skipping`);
-        skippedCount++;
+        // Add a small delay between operations
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (err) {
+        failedCount++;
+        console.error(`Error processing agreement ${agreement.id}:`, err);
       }
     }
     
-    console.log(`Completed checking ${activeAgreements.length} agreements. Generated ${generatedCount} payment schedules. Skipped ${skippedCount} months with existing payments. Encountered ${errorCount} errors.`);
-    
-    return {
-      success: true,
+    return { 
+      success: true, 
       generatedCount,
-      message: `Generated ${generatedCount} payment schedules. Skipped ${skippedCount} months with existing payments. Encountered ${errorCount} errors.`
+      message: `Generated ${generatedCount} payment schedules${failedCount > 0 ? `, ${failedCount} failed` : ''}` 
     };
-  } catch (error) {
-    console.error("Unexpected error in checkAndCreateMissingPaymentSchedules:", error);
-    return {
-      success: false,
+  } catch (err) {
+    console.error('Unexpected error in checkAndCreateMissingPaymentSchedules:', err);
+    return { 
+      success: false, 
       generatedCount: 0,
-      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-      error
+      message: `Failed to generate payments: ${err instanceof Error ? err.message : String(err)}`,
+      error: err 
     };
   }
 };
+
+// Helper to convert from simple to full agreement
+export function adaptSimpleToFullAgreement(simpleAgreement: any): Agreement {
+  return {
+    ...simpleAgreement,
+    additional_drivers: simpleAgreement.additional_drivers || [],
+    terms_accepted: !!simpleAgreement.terms_accepted,
+  };
+}
