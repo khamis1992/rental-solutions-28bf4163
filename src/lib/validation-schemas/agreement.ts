@@ -141,6 +141,7 @@ export const forceGeneratePaymentForAgreement = async (
     const lateFineAmount = isOverdue ? Math.min(daysOverdue * dailyLateFee, 3000) : 0; // Cap at 3000 QAR
     
     // Create the payment record
+    // IMPORTANT: Using late_fine_amount instead of daily_late_fee to match database schema
     const { data: newPayment, error: createError } = await supabase
       .from('unified_payments')
       .insert({
@@ -154,8 +155,7 @@ export const forceGeneratePaymentForAgreement = async (
         payment_date: null,
         original_due_date: dueDate.toISOString(),
         days_overdue: daysOverdue,
-        late_fine_amount: lateFineAmount,
-        daily_late_fee: dailyLateFee
+        late_fine_amount: lateFineAmount // Using late_fine_amount instead of daily_late_fee
       })
       .select()
       .single();

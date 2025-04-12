@@ -216,7 +216,7 @@ export function PaymentEntryForm({ agreementId, onPaymentComplete, defaultAmount
 
       // If late fee is applicable and user opted to include it
       if (lateFeeDetails && data.includeLatePaymentFee) {
-        // Record late fee payment
+        // Record late fee payment - IMPORTANT: Using late_fine_amount instead of daily_late_fee
         const { error: lateFeeError } = await supabase.from("unified_payments").insert({
           lease_id: agreementId,
           amount: lateFeeDetails.amount,

@@ -141,7 +141,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           balance = Math.max(0, rentAmount - amount);
         }
         
-        // Form the payment record
+        // Form the payment record - IMPORTANT: Using late_fine_amount instead of daily_late_fee
         const paymentRecord = {
           lease_id: agreementId,
           // Safe access to rent_amount with a fallback
@@ -155,6 +155,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
           status: paymentStatus,
           type: 'rent',
           days_overdue: daysLate,
+          late_fine_amount: lateFeeAmount, // Using late_fine_amount instead of daily_late_fee
           original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
         };
         
@@ -186,7 +187,7 @@ export const usePaymentGeneration = (agreement: Agreement | null, agreementId: s
             description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
             status: 'completed',
             type: 'LATE_PAYMENT_FEE',
-            late_fine_amount: lateFeeAmount,
+            late_fine_amount: lateFeeAmount, // Using late_fine_amount directly
             days_overdue: daysLate,
             original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
           };
