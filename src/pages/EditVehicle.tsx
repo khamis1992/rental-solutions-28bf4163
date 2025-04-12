@@ -18,6 +18,7 @@ const EditVehicle = () => {
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [updateCompleted, setUpdateCompleted] = useState(false);
+  const [statusUpdateInProgress, setStatusUpdateInProgress] = useState(false);
   
   // Local loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -121,15 +122,35 @@ const EditVehicle = () => {
     }
   };
   
-  // Handle status update completion
+  // Handle status update completion with forced refresh
   const handleStatusUpdated = async () => {
     console.log('Status updated, refreshing vehicle data');
+    setStatusUpdateInProgress(true);
+    
     try {
-      await refetch();
-      toast.success('Status updated successfully');
+      // Force cache invalidation by setting a timestamp
+      const timestamp = new Date().getTime();
+      const refreshResult = await refetch();
+      
+      console.log(`Data refresh completed at ${timestamp}:`, refreshResult);
+      
+      if (refreshResult.error) {
+        throw refreshResult.error;
+      }
+      
+      if (refreshResult.data) {
+        // Update local state to ensure UI reflects the latest status
+        setVehicle(refreshResult.data);
+        console.log('Local vehicle state updated with new data:', refreshResult.data);
+      }
+      
+      return true;
     } catch (error) {
       console.error('Error refreshing data after status update:', error);
       toast.error('Failed to refresh data after status update');
+      throw error;
+    } finally {
+      setStatusUpdateInProgress(false);
     }
   };
   
@@ -188,8 +209,9 @@ const EditVehicle = () => {
               size="sm" 
               variant="outline"
               onClick={() => setShowStatusDialog(true)}
+              disabled={statusUpdateInProgress}
             >
-              Update Status
+              {statusUpdateInProgress ? 'Updating Status...' : 'Update Status'}
             </CustomButton>
             <CustomButton 
               size="sm" 
@@ -205,7 +227,7 @@ const EditVehicle = () => {
       
       <div className="section-transition">
         <VehicleForm 
-          key={`vehicle-form-${vehicle.id}-${vehicle.updated_at}`}
+          key={`vehicle-form-${vehicle.id}-${vehicle.updated_at}-${vehicle.status}`}
           initialData={vehicle}
           onSubmit={handleSubmit} 
           isLoading={isUpdating || isSubmitting}

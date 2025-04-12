@@ -1,3 +1,4 @@
+
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
@@ -44,7 +45,7 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
   // Normalize status string (lowercase and trim)
   const normalizedStatus = status.toLowerCase().trim();
   
-  // Handle the "reserved" to "reserve" mapping
+  // Handle the "reserved" to "reserve" mapping - CRITICAL for proper database storage
   if (normalizedStatus === 'reserved') {
     console.log('Mapping app status "reserved" to DB status "reserve"');
     return 'reserve';

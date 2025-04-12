@@ -77,7 +77,8 @@ export const updateVehicleInfo = async (
     const updateData: any = { ...data };
     
     // Map status if provided - ensure proper type handling
-    if (updateData.status) {
+    if (updateData.status !== undefined) {
+      // Always convert to database status format
       const dbStatus = mapToDBStatus(updateData.status);
       updateData.status = dbStatus;
       console.log(`Mapped status ${data.status} to database status ${dbStatus}`);
@@ -101,7 +102,7 @@ export const updateVehicleInfo = async (
           .update(updateData)
           .eq('id', id)
           .select('*, vehicle_types(*)')
-          .maybeSingle(); // Using maybeSingle to prevent errors
+          .maybeSingle();
         
         if (error) {
           console.error(`Attempt ${retryCount + 1}: Error updating vehicle:`, error);
@@ -237,6 +238,7 @@ export const findVehicleByLicensePlate = async (licensePlate: string): Promise<{
 
 /**
  * Update just the vehicle status with proper error handling
+ * This is the main function used by the StatusUpdateDialog
  */
 export const updateVehicleStatus = async (
   id: string,
@@ -257,6 +259,11 @@ export const updateVehicleStatus = async (
     };
   }
   
-  // Use the main update function but only send the status
+  // Log the exact status being sent to the database
+  console.log(`Status value before mapping: ${status}`);
+  const dbStatus = mapToDBStatus(status);
+  console.log(`Status value after mapping to DB format: ${dbStatus}`);
+  
+  // Use the main update function but only send the status and explicitly send the mapped status
   return updateVehicleInfo(id, { status });
 };

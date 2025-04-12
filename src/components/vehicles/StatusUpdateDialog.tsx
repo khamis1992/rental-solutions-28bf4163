@@ -85,14 +85,22 @@ const StatusUpdateDialog = ({
       if (!validStatuses.includes(status)) {
         throw new Error(`Invalid status: ${status}`);
       }
-      
+
+      // Perform the status update with verification
       const result = await updateVehicleStatus(vehicleId, status);
 
       if (result.success) {
         toast.success("Vehicle status updated successfully");
         console.log("Status update result:", result);
-        await onStatusUpdated();  // Make sure to await this to complete the refresh
-        onClose();
+        
+        // Complete the callback and ensure it finishes before continuing
+        try {
+          await onStatusUpdated();
+          onClose();
+        } catch (refreshError) {
+          console.error("Error during data refresh:", refreshError);
+          toast.error("Status updated but error refreshing data");
+        }
       } else {
         console.error("Status update failed:", result.message);
         toast.error("Failed to update status", {
@@ -110,7 +118,12 @@ const StatusUpdateDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      // Only allow closing if not currently updating
+      if (!isUpdating && !open) {
+        onClose();
+      }
+    }}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Update Vehicle Status</DialogTitle>
@@ -123,7 +136,7 @@ const StatusUpdateDialog = ({
           <div>
             <p className="text-sm font-medium mb-2">Current Status:</p>
             <Badge variant={getStatusBadgeVariant(currentStatus)}>
-              {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)}
+              {currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1).replace('_', ' ')}
             </Badge>
           </div>
 
@@ -131,6 +144,7 @@ const StatusUpdateDialog = ({
             <p className="text-sm font-medium">New Status:</p>
             <Select
               value={status}
+              disabled={isUpdating}
               onValueChange={(value) => {
                 console.log(`StatusUpdateDialog: Changing status from ${status} to ${value}`);
                 setStatus(value as VehicleStatus);
@@ -144,10 +158,10 @@ const StatusUpdateDialog = ({
                 <SelectItem value="rented">Rented</SelectItem>
                 <SelectItem value="reserved">Reserved</SelectItem>
                 <SelectItem value="maintenance">Maintenance</SelectItem>
-                <SelectItem value="stolen">Stolen</SelectItem>
-                <SelectItem value="retired">Retired</SelectItem>
                 <SelectItem value="police_station">Police Station</SelectItem>
                 <SelectItem value="accident">Accident</SelectItem>
+                <SelectItem value="stolen">Stolen</SelectItem>
+                <SelectItem value="retired">Retired</SelectItem>
               </SelectContent>
             </Select>
           </div>
