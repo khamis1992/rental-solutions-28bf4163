@@ -354,12 +354,12 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       },
     },
     {
-      accessorKey: "total_amount",
-      header: "Amount",
+      accessorKey: "rent_amount",
+      header: "Monthly Rent",
       cell: ({ row }) => {
         return (
           <div className="font-medium">
-            {formatCurrency(row.original.total_amount)}
+            {formatCurrency(row.original.rent_amount || 0)}
           </div>
         );
       },
