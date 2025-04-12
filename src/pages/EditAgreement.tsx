@@ -11,6 +11,7 @@ import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRentAmount } from '@/hooks/use-rent-amount'; 
+import { supabase } from '@/integrations/supabase/client';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +23,7 @@ const EditAgreement = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
   const { rentAmount } = useRentAmount(agreement, id);
+  const [vehicleData, setVehicleData] = useState<any>(null);
 
   useEffect(() => {
     // Guard against multiple fetches in rapid succession
@@ -44,6 +46,14 @@ const EditAgreement = () => {
           const fullAgreement = adaptSimpleToFullAgreement(data);
           console.log("Converted to full agreement:", fullAgreement);
           setAgreement(fullAgreement);
+          
+          // If we have a vehicle_id but no vehicle data in the agreement, fetch it separately
+          if (data.vehicle_id && (!data.vehicles || !Object.keys(data.vehicles).length)) {
+            fetchVehicleDetails(data.vehicle_id);
+          } else if (data.vehicles) {
+            console.log("Vehicle data already included:", data.vehicles);
+            setVehicleData(data.vehicles);
+          }
         } else {
           toast.error("Agreement not found");
           navigate("/agreements");
@@ -60,6 +70,42 @@ const EditAgreement = () => {
 
     fetchAgreement();
   }, [id, getAgreement, navigate, hasAttemptedFetch]);
+
+  // Fetch vehicle details if not included in the agreement data
+  const fetchVehicleDetails = async (vehicleId: string) => {
+    try {
+      console.log("Fetching vehicle details for ID:", vehicleId);
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', vehicleId)
+        .single();
+        
+      if (error) {
+        console.error("Error fetching vehicle details:", error);
+        return;
+      }
+      
+      if (data) {
+        console.log("Fetched vehicle data:", data);
+        setVehicleData(data);
+        
+        // Update the agreement with vehicle data
+        setAgreement(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            vehicles: data,
+            vehicle_make: data.make,
+            vehicle_model: data.model,
+            license_plate: data.license_plate
+          };
+        });
+      }
+    } catch (error) {
+      console.error("Error in fetchVehicleDetails:", error);
+    }
+  };
 
   // Use effect to synchronize rent amount from hook data if needed
   useEffect(() => {
@@ -123,7 +169,10 @@ const EditAgreement = () => {
         </div>
       ) : agreement ? (
         <AgreementForm 
-          initialData={agreement} 
+          initialData={{
+            ...agreement,
+            vehicles: vehicleData || agreement.vehicles
+          }} 
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
         />

@@ -18,6 +18,7 @@ import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface AgreementFormProps {
   initialData?: Agreement;
@@ -34,7 +35,9 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const vehiclesHook = useVehicles();
   const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
+  // Initialize form with default values
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
@@ -73,8 +76,24 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     if (initialData?.vehicle_id) {
       console.log("Setting vehicle_id from initialData:", initialData.vehicle_id);
       form.setValue('vehicle_id', initialData.vehicle_id);
+      
+      // If we have vehicle information, set the selected vehicle
+      if (initialData.vehicles) {
+        console.log("Setting selected vehicle from initialData:", initialData.vehicles);
+        setSelectedVehicle(initialData.vehicles);
+      }
     }
   }, [initialData, form]);
+
+  // When vehicle is selected, update selected vehicle state
+  const handleVehicleChange = (vehicleId: string) => {
+    if (vehicles && Array.isArray(vehicles)) {
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (vehicle) {
+        setSelectedVehicle(vehicle);
+      }
+    }
+  };
 
   const handleSubmit = async (data: Agreement) => {
     try {
@@ -175,7 +194,7 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                         <SelectItem value="loading" disabled>
                           <Skeleton className="h-5 w-full" />
                         </SelectItem>
-                      ) : customers?.length ? (
+                      ) : customers && customers.length > 0 ? (
                         customers.map((customer) => (
                           <SelectItem key={customer.id} value={customer.id}>
                             {customer.full_name}
@@ -200,7 +219,10 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                 <FormItem>
                   <FormLabel>Vehicle</FormLabel>
                   <Select
-                    onValueChange={field.onChange}
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      handleVehicleChange(value);
+                    }}
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -231,6 +253,45 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
               )}
             />
           </div>
+
+          {/* Display selected vehicle details */}
+          {selectedVehicle && (
+            <Card className="mt-4 bg-slate-50">
+              <CardContent className="pt-4">
+                <h3 className="font-medium mb-2">Selected Vehicle Information</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex">
+                    <span className="font-semibold w-24">Make:</span>
+                    <span>{selectedVehicle.make}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-24">Model:</span>
+                    <span>{selectedVehicle.model}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-24">Plate:</span>
+                    <span>{selectedVehicle.license_plate}</span>
+                  </div>
+                  <div className="flex">
+                    <span className="font-semibold w-24">Year:</span>
+                    <span>{selectedVehicle.year}</span>
+                  </div>
+                  {selectedVehicle.color && (
+                    <div className="flex">
+                      <span className="font-semibold w-24">Color:</span>
+                      <span>{selectedVehicle.color}</span>
+                    </div>
+                  )}
+                  {selectedVehicle.vin && (
+                    <div className="flex">
+                      <span className="font-semibold w-24">VIN:</span>
+                      <span>{selectedVehicle.vin}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
