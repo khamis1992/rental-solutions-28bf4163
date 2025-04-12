@@ -14,7 +14,7 @@ export const BREAKPOINTS = {
  * @returns boolean indicating if the current viewport is mobile width
  */
 export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean>(false);
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
     const mql = window.matchMedia(`(max-width: ${BREAKPOINTS.TABLET - 1}px)`)
@@ -32,7 +32,7 @@ export function useIsMobile() {
     return () => mql.removeEventListener("change", handleResize)
   }, [])
 
-  return isMobile;
+  return isMobile === undefined ? false : isMobile
 }
 
 /**
@@ -40,7 +40,7 @@ export function useIsMobile() {
  * @returns boolean indicating if the current viewport is tablet width
  */
 export function useIsTablet() {
-  const [isTablet, setIsTablet] = React.useState<boolean>(false);
+  const [isTablet, setIsTablet] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
     const mql = window.matchMedia(
@@ -63,7 +63,7 @@ export function useIsTablet() {
     return () => mql.removeEventListener("change", handleResize)
   }, [])
 
-  return isTablet;
+  return isTablet === undefined ? false : isTablet
 }
 
 /**
@@ -71,31 +71,31 @@ export function useIsTablet() {
  * @returns string representing the current breakpoint (mobile, tablet, laptop, desktop)
  */
 export function useBreakpoint() {
-  const [breakpoint, setBreakpoint] = React.useState<string>("desktop");
+  const [breakpoint, setBreakpoint] = React.useState<string>("desktop")
 
   React.useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
+      const width = window.innerWidth
       
       if (width < BREAKPOINTS.MOBILE) {
-        setBreakpoint("mobile");
+        setBreakpoint("mobile")
       } else if (width < BREAKPOINTS.TABLET) {
-        setBreakpoint("tablet");
+        setBreakpoint("tablet")
       } else if (width < BREAKPOINTS.LAPTOP) {
-        setBreakpoint("laptop");
+        setBreakpoint("laptop")
       } else {
-        setBreakpoint("desktop");
+        setBreakpoint("desktop")
       }
     }
     
     // Set initial value
-    handleResize();
+    handleResize()
     
     // Add event listener
-    window.addEventListener("resize", handleResize);
+    window.addEventListener("resize", handleResize)
     
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
-  return breakpoint;
+  return breakpoint
 }

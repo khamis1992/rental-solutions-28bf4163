@@ -15,10 +15,7 @@ export function isValidStatus(status: string): status is VehicleStatus {
     'available', 'rented', 'reserved', 'maintenance', 
     'police_station', 'accident', 'stolen', 'retired'
   ];
-  
-  // Normalize status string (lowercase and trim)
-  const normalizedStatus = status.toLowerCase().trim();
-  return validStatuses.includes(normalizedStatus);
+  return validStatuses.includes(status.toLowerCase());
 }
 
 // Map database status to application status with improved normalization
@@ -258,3 +255,4 @@ export function hasRequiredVehicleProperties<T extends object>(obj: T): obj is T
     hasProperty(obj, 'vin')
   );
 }
+

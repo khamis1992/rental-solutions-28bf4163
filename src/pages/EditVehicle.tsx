@@ -78,14 +78,16 @@ const EditVehicle = () => {
       setIsSubmitting(true);
       console.log("Submitting form data:", formData);
       
-      // CRITICAL FIX: Always include the current status in the form data if not explicitly changed
+      // Make sure to preserve the current status if not changed in the form
       if (!formData.status && vehicle.status) {
         console.log(`Preserving current status: ${vehicle.status}`);
         formData.status = vehicle.status;
       }
       
-      // Ensure status is included in logs for debugging
-      console.log(`EditVehicle: Status being submitted: ${formData.status}`);
+      // Make sure status is properly handled
+      if (formData.status) {
+        console.log(`EditVehicle: Status being submitted: ${formData.status}`);
+      }
       
       await new Promise<void>((resolve, reject) => {
         updateVehicle(

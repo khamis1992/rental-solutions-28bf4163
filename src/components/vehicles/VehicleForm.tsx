@@ -117,7 +117,6 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       // Explicitly update the status field
       if (initialData.status) {
         form.setValue('status', initialData.status as VehicleStatus);
-        console.log(`Explicitly set status field to: ${initialData.status}`);
       }
     }
   }, [initialData, form]);

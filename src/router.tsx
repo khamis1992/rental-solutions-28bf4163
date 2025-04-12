@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
@@ -6,22 +5,23 @@ import Dashboard from './pages/Dashboard';
 import Agreements from './pages/Agreements';
 import Vehicles from './pages/Vehicles';
 import Customers from './pages/Customers';
-import SystemSettings from './pages/SystemSettings';
-import AgreementDetailPage from './pages/AgreementDetailPage';
+import Settings from './pages/Settings';
+import AgreementDetail from './pages/AgreementDetail';
 import EditAgreement from './pages/EditAgreement';
-import AddAgreement from './pages/AddAgreement'; // Changed from CreateAgreement to AddAgreement
+import CreateAgreement from './pages/CreateAgreement';
 import VehicleDetailPage from './pages/VehicleDetailPage';
-import EditVehicleNew from './pages/EditVehicleNew';
-import AddVehicle from './pages/AddVehicle'; // Changed from CreateVehicle to AddVehicle
+import EditVehicle from './pages/EditVehicle';
+import CreateVehicle from './pages/CreateVehicle';
 import CustomerDetailPage from './pages/CustomerDetailPage';
 import EditCustomer from './pages/EditCustomer';
 import CreateCustomer from './pages/CreateCustomer';
 import AgreementImportPage from './pages/AgreementImportPage';
 import VehicleStatusUpdatePage from "./pages/VehicleStatusUpdatePage";
+import { useIsMobile } from "./hooks/use-mobile";
 import { MobileDashboard } from "./components/mobile/MobileDashboard";
 import { VehicleInspection } from "./components/mobile/VehicleInspection";
 
-// Create a route configuration that doesn't use hooks at the top level
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -29,79 +29,74 @@ const router = createBrowserRouter([
     children: [
       {
         path: '/',
-        element: <Dashboard />
+        element: useIsMobile() ? <MobileDashboard /> : <Dashboard />,
       },
       {
         path: '/mobile',
-        element: <MobileDashboard />
+        element: <MobileDashboard />,
       },
       {
         path: '/agreements',
-        element: <Agreements />
+        element: <Agreements />,
       },
       {
         path: '/agreements/:id',
-        element: <AgreementDetailPage />
+        element: <AgreementDetail />,
       },
       {
         path: '/agreements/edit/:id',
-        element: <EditAgreement />
+        element: <EditAgreement />,
       },
       {
         path: '/agreements/add',
-        element: <AddAgreement /> // Changed from CreateAgreement to AddAgreement
+        element: <CreateAgreement />,
       },
       {
         path: '/agreements/import',
-        element: <AgreementImportPage />
+        element: <AgreementImportPage />,
       },
       {
         path: '/vehicles',
-        element: <Vehicles />
-      },
-      {
-        // Route for mobile vehicle inspection
-        path: '/vehicles/inspection',
-        element: <VehicleInspection />
+        element: useIsMobile() ? <VehicleInspection /> : <Vehicles />,
       },
       {
         path: '/vehicles/:id',
-        element: <VehicleDetailPage />
+        element: <VehicleDetailPage />,
       },
       {
         path: '/vehicles/edit/:id',
-        element: <EditVehicleNew />
+        element: <EditVehicle />,
       },
       {
         path: '/vehicles/add',
-        element: <AddVehicle /> // Changed from CreateVehicle to AddVehicle
+        element: <CreateVehicle />,
       },
       {
-        path: "/status-update",
-        element: <VehicleStatusUpdatePage />
+        path: "status-update",
+        element: <VehicleStatusUpdatePage />,
       },
       {
         path: '/customers',
-        element: <Customers />
+        element: <Customers />,
       },
       {
         path: '/customers/:id',
-        element: <CustomerDetailPage />
+        element: <CustomerDetailPage />,
       },
       {
         path: '/customers/edit/:id',
-        element: <EditCustomer />
+        element: <EditCustomer />,
       },
       {
         path: '/customers/add',
-        element: <CreateCustomer />
+        element: <CreateCustomer />,
       },
       {
         path: '/settings',
-        element: <SystemSettings />
-      }
-    ]
-  }
+        element: <Settings />,
+      },
+    ],
+  },
 ]);
 
 export default router;

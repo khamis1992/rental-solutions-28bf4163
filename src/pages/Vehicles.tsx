@@ -4,15 +4,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
-import { Car, Plus, RefreshCw } from 'lucide-react';
+import { Car, Plus } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
-import { useIsMobile } from '../hooks/use-mobile';
-import { VehicleInspection } from "../components/mobile/VehicleInspection";
 
+// Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
   'available',
   'rented',
@@ -24,27 +23,31 @@ const VALID_STATUSES: VehicleStatus[] = [
   'retired'
 ];
 
-const Vehicles: React.FC = () => {
+const Vehicles = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [filters, setFilters] = useState<VehicleFilterParams>({});
   const { useRealtimeUpdates } = useVehicles();
-  const isMobile = useIsMobile();
   
+  // Setup real-time updates
   useRealtimeUpdates();
 
+  // Get status from URL search params
   useEffect(() => {
     const statusFromUrl = searchParams.get('status');
     
     if (statusFromUrl && statusFromUrl !== 'all') {
+      // Validate that the status is a valid enum value
       if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
         setFilters(prevFilters => ({ 
           ...prevFilters,
           status: statusFromUrl as VehicleStatus
         }));
         
+        // Show a toast to indicate filtered view
         toast.info(`Showing vehicles with status: ${statusFromUrl}`);
       } else {
+        // If invalid status, show error toast and reset filters
         toast.error(`Invalid status filter: ${statusFromUrl}`);
         navigate('/vehicles');
       }
@@ -60,6 +63,7 @@ const Vehicles: React.FC = () => {
   };
 
   const handleFilterChange = (newFilters: VehicleFilterValues) => {
+    // Convert from VehicleFilterValues to VehicleFilterParams
     const convertedFilters: VehicleFilterParams = {};
     
     if (newFilters.status && newFilters.status !== 'all') 
@@ -74,20 +78,18 @@ const Vehicles: React.FC = () => {
     if (newFilters.year && newFilters.year !== 'all') 
       convertedFilters.year = parseInt(newFilters.year);
     
+    // Handle the category to vehicle_type_id mapping
     if (newFilters.category && newFilters.category !== 'all') {
       convertedFilters.vehicle_type_id = newFilters.category;
     }
     
+    // Handle search parameter - specifically for VIN
     if (newFilters.search && newFilters.search.trim() !== '') {
       convertedFilters.search = newFilters.search.trim();
     }
     
     setFilters(convertedFilters);
   };
-  
-  if (isMobile) {
-    return <VehicleInspection />;
-  }
   
   return (
     <PageContainer>
