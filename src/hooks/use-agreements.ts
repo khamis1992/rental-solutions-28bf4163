@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -57,7 +58,6 @@ export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyo
 };
 
 interface SearchParams {
-  query?: string;
   status?: string;
   vehicle_id?: string;
   customer_id?: string;
@@ -175,27 +175,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       if (searchParams.customer_id) {
         query = query.eq('customer_id', searchParams.customer_id);
-      }
-
-      if (searchParams.query && searchParams.query.trim() !== '') {
-        const searchQuery = searchParams.query.trim().toLowerCase();
-        
-        if (searchQuery) {
-          const { data: vehicleIds, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('id')
-            .ilike('license_plate', `%${searchQuery}%`);
-          
-          if (vehicleError) {
-            console.error("Error searching vehicles:", vehicleError);
-          } else if (vehicleIds && vehicleIds.length > 0) {
-            const ids = vehicleIds.map(v => v.id);
-            query = query.in('vehicle_id', ids);
-            console.log("Filtering by vehicle IDs:", ids);
-          } else {
-            query = query.ilike('profiles.full_name', `%${searchQuery}%`);
-          }
-        }
       }
 
       console.log("Executing Supabase query...");

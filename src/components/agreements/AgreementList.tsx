@@ -25,7 +25,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Info,
-  X,
   ArrowUpDown,
   Trash2
 } from 'lucide-react';
@@ -78,11 +77,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { castDbId } from '@/types/supabase-helpers';
 
-interface AgreementListProps {
-  searchQuery?: string;
-}
-
-export function AgreementList({ searchQuery = '' }: AgreementListProps) {
+export function AgreementList() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -101,11 +96,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements({ query: searchQuery, status: statusFilter });
-  
-  useEffect(() => {
-    setSearchParams(prev => ({ ...prev, query: searchQuery }));
-  }, [searchQuery, setSearchParams]);
+  } = useAgreements({ status: statusFilter });
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -122,7 +113,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       pageIndex: 0,
       pageSize: 10,
     });
-  }, [agreements, statusFilter, searchQuery]);
+  }, [agreements, statusFilter]);
 
   const handleBulkDelete = async () => {
     if (!agreements) return;
@@ -541,25 +532,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         </Alert>
       )}
       
-      {(searchQuery || statusFilter !== 'all') && (
-        <div className="flex items-center text-sm text-muted-foreground mb-1">
-          <span>Filtering by:</span>
-          {searchQuery && (
-            <Badge variant="outline" className="ml-2 gap-1">
-              Search: {searchQuery}
-            </Badge>
-          )}
-          {statusFilter !== 'all' && (
-            <Badge variant="outline" className="ml-2 gap-1">
-              Status: {statusFilter}
-              <button onClick={() => handleStatusFilterChange('all')}>
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-        </div>
-      )}
-      
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -608,7 +580,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
                     <p>
-                      {searchParams.status && searchParams.status !== 'all' ? 
+                      {statusFilter !== 'all' ? 
                         'No agreements found with the selected status.' : 
                         'Add your first agreement using the button above.'}
                     </p>
