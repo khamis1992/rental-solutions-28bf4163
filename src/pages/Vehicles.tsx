@@ -1,16 +1,17 @@
-import React from 'react';
-import { useIsMobile } from "../hooks/use-mobile";
-import { VehicleInspection } from "../components/mobile/VehicleInspection";
+
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
-import { Car, Plus } from 'lucide-react';
+import { Car, Plus, RefreshCw } from 'lucide-react';
 import { CustomButton } from '@/components/ui/custom-button';
 import VehicleFilters, { VehicleFilterValues } from '@/components/vehicles/VehicleFilters';
 import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
+import { useIsMobile } from '../hooks/use-mobile';
+import { VehicleInspection } from "../components/mobile/VehicleInspection";
 
 const VALID_STATUSES: VehicleStatus[] = [
   'available',

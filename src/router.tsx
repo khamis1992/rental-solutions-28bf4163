@@ -12,7 +12,7 @@ import EditAgreement from './pages/EditAgreement';
 import AddAgreement from './pages/AddAgreement'; // Changed from CreateAgreement to AddAgreement
 import VehicleDetailPage from './pages/VehicleDetailPage';
 import EditVehicleNew from './pages/EditVehicleNew';
-import CreateVehicle from './pages/CreateVehicle';
+import AddVehicle from './pages/AddVehicle'; // Changed from CreateVehicle to AddVehicle
 import CustomerDetailPage from './pages/CustomerDetailPage';
 import EditCustomer from './pages/EditCustomer';
 import CreateCustomer from './pages/CreateCustomer';
@@ -74,7 +74,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/vehicles/add',
-        element: <CreateVehicle />
+        element: <AddVehicle /> // Changed from CreateVehicle to AddVehicle
       },
       {
         path: "/status-update",
