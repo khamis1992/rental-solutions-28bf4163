@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
@@ -10,7 +11,6 @@ import AgreementDetail from './pages/AgreementDetail';
 import EditAgreement from './pages/EditAgreement';
 import CreateAgreement from './pages/CreateAgreement';
 import VehicleDetailPage from './pages/VehicleDetailPage';
-import EditVehicleNew from './pages/EditVehicleNew';
 import CreateVehicle from './pages/CreateVehicle';
 import CustomerDetailPage from './pages/CustomerDetailPage';
 import EditCustomer from './pages/EditCustomer';
@@ -61,10 +61,6 @@ const router = createBrowserRouter([
       {
         path: '/vehicles/:id',
         element: <VehicleDetailPage />,
-      },
-      {
-        path: '/vehicles/edit/:id',
-        element: <EditVehicleNew />,
       },
       {
         path: '/vehicles/add',
