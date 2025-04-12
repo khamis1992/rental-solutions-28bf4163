@@ -1,4 +1,3 @@
-
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
@@ -16,7 +15,10 @@ export function isValidStatus(status: string): status is VehicleStatus {
     'available', 'rented', 'reserved', 'maintenance', 
     'police_station', 'accident', 'stolen', 'retired'
   ];
-  return validStatuses.includes(status.toLowerCase().trim());
+  
+  // Normalize status string (lowercase and trim)
+  const normalizedStatus = status.toLowerCase().trim();
+  return validStatuses.includes(normalizedStatus);
 }
 
 // Map database status to application status with improved normalization

@@ -97,82 +97,51 @@ export const updateVehicleInfo = async (
     
     console.log('Final update data to be sent to database:', updateData);
 
-    let retryCount = 0;
-    const maxRetries = 2;
-    let lastError = null;
+    // Update the vehicle
+    const { data: updatedVehicle, error } = await supabase
+      .from('vehicles')
+      .update(updateData)
+      .eq('id', id)
+      .select('*, vehicle_types(*)')
+      .maybeSingle();
     
-    // Retry loop for database update
-    while (retryCount <= maxRetries) {
-      try {
-        // Update the vehicle
-        const { data: updatedVehicle, error } = await supabase
-          .from('vehicles')
-          .update(updateData)
-          .eq('id', id)
-          .select('*, vehicle_types(*)')
-          .maybeSingle();
-        
-        if (error) {
-          console.error(`Attempt ${retryCount + 1}: Error updating vehicle:`, error);
-          lastError = error;
-          retryCount++;
-          
-          if (retryCount <= maxRetries) {
-            console.log(`Retrying update... (${retryCount}/${maxRetries})`);
-            await new Promise(r => setTimeout(r, 1000 * retryCount)); // Exponential backoff
-            continue;
-          }
-          break;
-        }
-        
-        if (!updatedVehicle) {
-          console.log('Update may have succeeded but no data returned, fetching vehicle data separately');
-          const { data: fetchedVehicle, error: fetchError } = await supabase
-            .from('vehicles')
-            .select('*, vehicle_types(*)')
-            .eq('id', id)
-            .maybeSingle();
-            
-          if (fetchError) {
-            console.error('Error fetching updated vehicle:', fetchError);
-            return {
-              success: true,
-              message: 'Vehicle updated but failed to fetch updated data',
-            };
-          }
-          
-          console.log(`Successfully updated vehicle:`, fetchedVehicle);
-          return { 
-            success: true, 
-            message: `Vehicle updated successfully`,
-            data: fetchedVehicle
-          };
-        }
-        
-        console.log(`Successfully updated vehicle:`, updatedVehicle);
-        return { 
-          success: true, 
-          message: `Vehicle updated successfully`,
-          data: updatedVehicle
-        };
-      } catch (updateError) {
-        console.error(`Attempt ${retryCount + 1}: Unexpected error updating vehicle:`, updateError);
-        lastError = updateError;
-        retryCount++;
-        
-        if (retryCount <= maxRetries) {
-          await new Promise(r => setTimeout(r, 1000 * retryCount));
-          continue;
-        }
-      }
+    if (error) {
+      console.error(`Error updating vehicle:`, error);
+      return { 
+        success: false, 
+        message: `Failed to update vehicle: ${error.message}` 
+      };
     }
     
-    // If we get here, all retries failed
-    const errorMessage = lastError instanceof Error ? lastError.message : 'Unknown error';
-    console.error(`All update attempts failed:`, lastError);
+    if (!updatedVehicle) {
+      console.log('Update may have succeeded but no data returned, fetching vehicle data separately');
+      const { data: fetchedVehicle, error: fetchError } = await supabase
+        .from('vehicles')
+        .select('*, vehicle_types(*)')
+        .eq('id', id)
+        .maybeSingle();
+        
+      if (fetchError) {
+        console.error('Error fetching updated vehicle:', fetchError);
+        return {
+          success: true,
+          message: 'Vehicle updated but failed to fetch updated data',
+        };
+      }
+      
+      console.log(`Successfully updated vehicle:`, fetchedVehicle);
+      return { 
+        success: true, 
+        message: `Vehicle updated successfully`,
+        data: fetchedVehicle
+      };
+    }
+    
+    console.log(`Successfully updated vehicle:`, updatedVehicle);
     return { 
-      success: false, 
-      message: `Failed to update after multiple attempts: ${errorMessage}` 
+      success: true, 
+      message: `Vehicle updated successfully`,
+      data: updatedVehicle
     };
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';

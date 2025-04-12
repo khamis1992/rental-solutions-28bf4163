@@ -10,7 +10,7 @@ import AgreementDetail from './pages/AgreementDetail';
 import EditAgreement from './pages/EditAgreement';
 import CreateAgreement from './pages/CreateAgreement';
 import VehicleDetailPage from './pages/VehicleDetailPage';
-import EditVehicle from './pages/EditVehicle';
+import EditVehicleNew from './pages/EditVehicleNew';
 import CreateVehicle from './pages/CreateVehicle';
 import CustomerDetailPage from './pages/CustomerDetailPage';
 import EditCustomer from './pages/EditCustomer';
@@ -20,7 +20,6 @@ import VehicleStatusUpdatePage from "./pages/VehicleStatusUpdatePage";
 import { useIsMobile } from "./hooks/use-mobile";
 import { MobileDashboard } from "./components/mobile/MobileDashboard";
 import { VehicleInspection } from "./components/mobile/VehicleInspection";
-
 
 const router = createBrowserRouter([
   {
@@ -65,7 +64,7 @@ const router = createBrowserRouter([
       },
       {
         path: '/vehicles/edit/:id',
-        element: <EditVehicle />,
+        element: <EditVehicleNew />,
       },
       {
         path: '/vehicles/add',
