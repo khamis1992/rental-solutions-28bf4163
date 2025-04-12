@@ -12,11 +12,13 @@ import {
   DatabaseVehicleStatus
 } from '@/types/vehicle';
 import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
+import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
 
 // Helper function to convert database status to app status
-const mapDBStatusToAppStatus = (dbStatus: string | null): string | null => {
+const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null => {
+  if (!dbStatus) return null;
   if (dbStatus === 'reserve') return 'reserved';
-  return dbStatus;
+  return dbStatus as VehicleStatus;
 };
 
 // Fetch vehicles with optional filtering
@@ -38,28 +40,70 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
       query = query.eq('make', filters.make);
     }
     
-    if (filters.vehicle_type_id) {
-      query = query.eq('vehicle_type_id', filters.vehicle_type_id);
-    }
-    
-    if (filters.location) {
-      query = query.eq('location', filters.location);
+    if (filters.model) {
+      query = query.eq('model', filters.model);
     }
     
     if (filters.year) {
       query = query.eq('year', filters.year);
     }
+    
+    if (filters.location) {
+      query = query.eq('location', filters.location);
+    }
+
+    if (filters.vehicle_type_id) {
+      query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+    }
+    
+    if (filters.search) {
+      query = query.or(`vin.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
+    }
   }
   
-  const { data, error } = await query.order('created_at', { ascending: false });
+  const { data, error } = await query;
   
   if (error) {
-    throw new Error(`Error fetching vehicles: ${error.message}`);
+    console.error('Error fetching vehicles:', error);
+    throw new Error('Failed to fetch vehicles');
   }
   
-  // Type assertion to tell TypeScript these are DatabaseVehicleRecord objects
-  const vehicleRecords = (data || []) as DatabaseVehicleRecord[];
-  return vehicleRecords.map(record => mapDatabaseRecordToVehicle(record));
+  return (data || []).map((record: any) => {
+    const vehicle: Vehicle = {
+      id: record.id,
+      license_plate: record.license_plate,
+      make: record.make,
+      model: record.model,
+      year: record.year,
+      color: record.color,
+      vin: record.vin,
+      mileage: record.mileage,
+      status: mapDBStatusToAppStatus(record.status),
+      description: record.description,
+      image_url: record.image_url,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+      rent_amount: record.rent_amount,
+      insurance_company: record.insurance_company,
+      insurance_expiry: record.insurance_expiry,
+      location: record.location,
+    };
+    
+    if (record.vehicle_types) {
+      vehicle.vehicleType = {
+        id: record.vehicle_types.id,
+        name: record.vehicle_types.name,
+        daily_rate: record.vehicle_types.daily_rate,
+      };
+      
+      // If the vehicle doesn't have a daily rate set directly, use the one from the vehicle type
+      if (!vehicle.dailyRate && record.vehicle_types) {
+        vehicle.dailyRate = record.vehicle_types.daily_rate;
+      }
+    }
+    
+    return vehicle;
+  });
 }
 
 // Fetch a single vehicle by ID
