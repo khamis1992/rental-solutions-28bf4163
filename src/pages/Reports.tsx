@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -25,7 +24,7 @@ import { toast } from 'sonner';
 const Reports = () => {
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState('fleet');
-  const { vehicles } = useFleetReport();
+  const { vehicles, reportData } = useFleetReport();
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
@@ -75,14 +74,7 @@ const Reports = () => {
     console.log("Getting report data for:", selectedTab);
     switch (selectedTab) {
       case 'fleet':
-        return vehicles.map(v => ({
-          make: v.make,
-          model: v.model,
-          year: v.year,
-          license_plate: v.license_plate,
-          status: v.status,
-          daily_rate: v.dailyRate
-        }));
+        return reportData || [];
       case 'financial':
         return transactions;
       case 'customers':
@@ -118,14 +110,12 @@ const Reports = () => {
         
         if (Array.isArray(trafficFines)) {
           return trafficFines.map(fine => {
-            // Ensure proper date format
             let violationDate;
             try {
               violationDate = fine.violationDate instanceof Date 
                 ? fine.violationDate 
                 : new Date(fine.violationDate);
               
-              // Check if date is valid
               if (isNaN(violationDate.getTime())) {
                 violationDate = null;
               }

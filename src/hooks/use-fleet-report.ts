@@ -82,31 +82,39 @@ const attachCustomerInfo = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
     return vehicles;
   }
 
-  // Fetch active leases for these vehicles
-  const { data: leases, error } = await supabase
-    .from('leases')
-    .select('vehicle_id, customer_id, profiles:customer_id(full_name)')
-    .in('vehicle_id', rentedVehicleIds)
-    .eq('status', 'active');
+  try {
+    // Fetch active leases for these vehicles
+    const { data: leases, error } = await supabase
+      .from('leases')
+      .select('vehicle_id, customer_id, profiles:customer_id(full_name, email, phone_number)')
+      .in('vehicle_id', rentedVehicleIds)
+      .eq('status', 'active');
 
-  if (error || !leases) {
-    console.error('Error fetching customer information:', error);
+    if (error || !leases) {
+      console.error('Error fetching customer information:', error);
+      return vehicles;
+    }
+
+    // Map customer data to vehicles
+    return vehicles.map(vehicle => {
+      if (vehicle.status === 'rented') {
+        const lease = leases.find(l => l.vehicle_id === vehicle.id);
+        if (lease && lease.profiles && lease.profiles.full_name) {
+          return {
+            ...vehicle,
+            currentCustomer: lease.profiles.full_name,
+            customerEmail: lease.profiles.email,
+            customerPhone: lease.profiles.phone_number,
+            customerId: lease.customer_id
+          };
+        }
+      }
+      return vehicle;
+    });
+  } catch (error) {
+    console.error('Error in attachCustomerInfo:', error);
     return vehicles;
   }
-
-  // Map customer data to vehicles
-  return vehicles.map(vehicle => {
-    if (vehicle.status === 'rented') {
-      const lease = leases.find(l => l.vehicle_id === vehicle.id);
-      if (lease && lease.profiles) {
-        return {
-          ...vehicle,
-          currentCustomer: lease.profiles.full_name
-        };
-      }
-    }
-    return vehicle;
-  });
 };
 
 export const useFleetReport = () => {
@@ -132,6 +140,18 @@ export const useFleetReport = () => {
   // Get status counts
   const statusCounts = getStatusCounts(vehicles);
   
+  // Prepare data for reports
+  const reportData = vehicles.map(vehicle => ({
+    make: vehicle.make,
+    model: vehicle.model,
+    year: vehicle.year,
+    license_plate: vehicle.license_plate,
+    status: vehicle.status,
+    daily_rate: formatCurrency(vehicle.dailyRate || 0),
+    customer_name: vehicle.currentCustomer || 'Not Assigned',
+    customer_contact: vehicle.customerPhone || (vehicle.customerEmail ? vehicle.customerEmail : 'N/A')
+  }));
+  
   // Calculate fleet statistics
   const fleetStats = {
     totalVehicles: vehicles.length,
@@ -141,12 +161,23 @@ export const useFleetReport = () => {
     maintenanceRequired: vehicles.filter(v => v.status === 'maintenance').length
   };
 
+  // Helper function to format currency
+  function formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'QAR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  }
+
   return {
     vehicles,
     fleetStats,
     fleetUtilizationRate,
     vehiclesByType,
     statusCounts,
+    reportData,
     isLoading,
     error
   };

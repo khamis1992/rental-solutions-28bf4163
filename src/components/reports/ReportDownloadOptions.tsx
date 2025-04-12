@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -36,13 +35,14 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       const headers = Object.keys(data[0]);
       const rows = data.map(item => Object.values(item));
       
-      // Calculate column widths based on content
+      // Calculate column widths based on content and header names
       const columnWidths = headers.map((header, i) => {
-        const maxLength = Math.max(
-          header.length,
-          ...rows.map(row => String(row[i] || '').length)
-        );
-        return Math.min(40, Math.max(10, maxLength * 3));
+        const headerLength = header.length;
+        const maxContentLength = Math.max(...rows.map(row => String(row[i] || '').length));
+        const maxLength = Math.max(headerLength, maxContentLength);
+        // Adjust width factor based on column content type
+        const widthFactor = header.includes('customer') ? 3.5 : 3; // Give more space to customer name columns
+        return Math.min(40, Math.max(10, maxLength * widthFactor));
       });
       
       // Draw table
@@ -52,8 +52,14 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       let x = 20;
       pdf.setFont('helvetica', 'bold');
       headers.forEach((header, i) => {
+        // Format header for display (convert snake_case to Title Case)
+        const displayHeader = header
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+          
         const width = columnWidths[i];
-        pdf.text(header, x, y);
+        pdf.text(displayHeader, x, y);
         x += width;
         if (x > 190) {
           x = 20;
@@ -69,7 +75,20 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         x = 20;
         row.forEach((cell, i) => {
           const width = columnWidths[i];
-          pdf.text(String(cell || ''), x, y);
+          // Format cell value for display
+          let displayValue = String(cell || '');
+          
+          // Format boolean values
+          if (typeof cell === 'boolean') {
+            displayValue = cell ? 'Yes' : 'No';
+          }
+          
+          // Handle long text with ellipsis if needed
+          if (displayValue.length > 30 && !headers[i].includes('customer')) {
+            displayValue = displayValue.substring(0, 27) + '...';
+          }
+          
+          pdf.text(displayValue, x, y);
           x += width;
           if (x > 190) {
             x = 20;
