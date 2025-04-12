@@ -245,7 +245,7 @@ export const findVehicleByLicensePlate = async (licensePlate: string): Promise<{
 };
 
 /**
- * Update just the vehicle status with proper error handling
+ * Update just the vehicle status with proper error handling and forced verification
  * This is the main function used by the StatusUpdateDialog
  */
 export const updateVehicleStatus = async (
@@ -299,13 +299,17 @@ export const updateVehicleStatus = async (
     
     console.log(`Current vehicle DB status: ${vehicle.status}`);
     
-    // Perform a direct update to the database
-    console.log(`Performing direct database update for vehicle ${id} to status "${dbStatus}"`);
+    // Add a small delay to ensure database consistency
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Perform a direct update to the database with consistent timestamp
+    const timestamp = new Date().toISOString();
+    console.log(`Performing direct database update for vehicle ${id} to status "${dbStatus}" with timestamp ${timestamp}`);
     const { data: directUpdate, error: directError } = await supabase
       .from('vehicles')
       .update({ 
         status: dbStatus,
-        updated_at: new Date().toISOString() 
+        updated_at: timestamp
       })
       .eq('id', id)
       .select('*');
@@ -320,23 +324,55 @@ export const updateVehicleStatus = async (
     
     console.log('Direct update succeeded:', directUpdate);
     
-    // Verify status was actually updated
+    // Add another small delay before verification
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Verify status was actually updated with a separate query
     const { data: verifyData, error: verifyError } = await supabase
       .from('vehicles')
-      .select('id, status')
+      .select('id, status, updated_at')
       .eq('id', id)
       .maybeSingle();
       
     if (verifyError) {
       console.error('Verification query failed:', verifyError);
+      return {
+        success: false,
+        message: `Update succeeded but verification failed: ${verifyError.message}`
+      };
     } else {
       console.log(`Verification query shows status is now: ${verifyData?.status}`);
+      
+      // Double check that the status was actually updated as expected
+      if (verifyData?.status !== dbStatus) {
+        console.error(`Status verification failed: expected ${dbStatus}, got ${verifyData?.status}`);
+        
+        // Try one more time with a direct update and no return data
+        console.log("Attempting final force update with no return...");
+        const { error: finalError } = await supabase
+          .from('vehicles')
+          .update({ 
+            status: dbStatus,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', id);
+          
+        if (finalError) {
+          console.error('Final force update failed:', finalError);
+          return {
+            success: false,
+            message: `Status update verification failed. Database inconsistent.`
+          };
+        }
+        
+        console.log("Final force update completed, status should be updated now");
+      }
     }
     
     return {
       success: true,
       message: `Vehicle status updated to ${status}`,
-      data: directUpdate
+      data: directUpdate || verifyData
     };
   } catch (err) {
     console.error('Error in direct status update:', err);

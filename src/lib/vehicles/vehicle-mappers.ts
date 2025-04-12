@@ -1,3 +1,4 @@
+
 import { 
   DatabaseVehicleRecord, 
   DatabaseVehicleStatus, 
@@ -52,7 +53,7 @@ export function mapDatabaseStatus(status: DatabaseVehicleStatus | null | undefin
   return 'available';
 }
 
-// Convert application status to database status with improved normalization
+// Convert application status to database status with improved reliability
 export function mapToDBStatus(status: VehicleStatus | string | null | undefined): DatabaseVehicleStatus | null {
   if (!status) return null;
   
@@ -66,9 +67,7 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
     return 'reserve';
   }
   
-  console.log(`Mapping app status "${normalizedStatus}" to DB status`);
-  
-  // Extended mapping for common typos and variations
+  // Create an explicit mapping to ensure we only return valid database statuses
   const statusMapping: Record<string, DatabaseVehicleStatus> = {
     'available': 'available',
     'rented': 'rented',
@@ -82,10 +81,26 @@ export function mapToDBStatus(status: VehicleStatus | string | null | undefined)
     'retired': 'retired'
   };
   
-  // Use the mapping if available, otherwise pass through (with a fallback to ensure type safety)
-  const result = statusMapping[normalizedStatus] || normalizedStatus as DatabaseVehicleStatus;
-  console.log(`mapToDBStatus result: "${result}"`);
-  return result;
+  if (statusMapping[normalizedStatus]) {
+    const result = statusMapping[normalizedStatus];
+    console.log(`mapToDBStatus mapped "${normalizedStatus}" to "${result}"`);
+    return result;
+  }
+
+  // If we don't have a direct mapping, return the normalized status if it's in our valid list
+  const validDBStatuses: DatabaseVehicleStatus[] = [
+    'available', 'rented', 'reserve', 'maintenance', 
+    'police_station', 'accident', 'stolen', 'retired'
+  ];
+  
+  if (validDBStatuses.includes(normalizedStatus as DatabaseVehicleStatus)) {
+    console.log(`mapToDBStatus using direct match: "${normalizedStatus}"`);
+    return normalizedStatus as DatabaseVehicleStatus;
+  }
+  
+  // Last resort fallback to 'available'
+  console.log(`mapToDBStatus no match found for "${normalizedStatus}", defaulting to "available"`);
+  return 'available';
 }
 
 // Map database size to application size

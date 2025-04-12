@@ -42,16 +42,17 @@ const StatusUpdateDialog = ({
   vehicleDetails,
   onStatusUpdated
 }: StatusUpdateDialogProps) => {
+  // Use state keyed by vehicleId to ensure it maintains the current selected status
   const [status, setStatus] = React.useState<VehicleStatus>(currentStatus);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
-  // Force reset status on every dialog open to prevent stale state
+  // Reset status whenever currentStatus changes or dialog opens
   React.useEffect(() => {
     if (isOpen) {
       console.log(`StatusUpdateDialog: Setting initial status to ${currentStatus}`);
       setStatus(currentStatus);
     }
-  }, [isOpen, currentStatus]);
+  }, [isOpen, currentStatus, vehicleId]);
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -99,6 +100,9 @@ const StatusUpdateDialog = ({
         console.log("Status update result:", result);
         
         try {
+          // Force a wait before closing to ensure database write completes
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           // Wait for the status update callback to complete
           console.log("Calling onStatusUpdated callback");
           const refreshResult = await onStatusUpdated();

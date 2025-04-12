@@ -143,6 +143,9 @@ const EditVehicle = () => {
         console.log('Local vehicle state updated with new data:', refreshResult.data);
       }
       
+      // Add a small delay to ensure database consistency
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       // Return success to the caller
       return true;
     } catch (error) {
