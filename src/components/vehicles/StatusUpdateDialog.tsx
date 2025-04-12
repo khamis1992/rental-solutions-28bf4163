@@ -87,7 +87,7 @@ const StatusUpdateDialog = ({
         throw new Error(`Invalid status: ${status}`);
       }
 
-      // Log before API call
+      // Additional debugging logs
       console.log(`About to call updateVehicleStatus with id=${vehicleId} and status=${status}`);
 
       // Perform the status update with verification

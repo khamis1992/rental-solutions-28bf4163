@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft } from 'lucide-react';
@@ -207,7 +208,10 @@ const EditVehicle = () => {
             <CustomButton 
               size="sm" 
               variant="outline"
-              onClick={() => setShowStatusDialog(true)}
+              onClick={() => {
+                console.log("Opening status update dialog with status:", validatedStatus);
+                setShowStatusDialog(true);
+              }}
               disabled={statusUpdateInProgress}
             >
               {statusUpdateInProgress ? 'Updating Status...' : 'Update Status'}
@@ -237,7 +241,10 @@ const EditVehicle = () => {
       {/* Status Update Dialog */}
       <StatusUpdateDialog
         isOpen={showStatusDialog}
-        onClose={() => setShowStatusDialog(false)}
+        onClose={() => {
+          console.log("Closing status update dialog");
+          setShowStatusDialog(false);
+        }}
         currentStatus={validatedStatus}
         vehicleId={vehicle.id}
         vehicleDetails={{

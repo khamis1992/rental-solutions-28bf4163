@@ -253,7 +253,7 @@ export const updateVehicleStatus = async (
   id: string,
   status: VehicleStatus
 ): Promise<{ success: boolean; message: string; data?: any }> => {
-  console.log(`Updating vehicle ${id} status to ${status}`);
+  console.log(`updateVehicleStatus: Updating vehicle ${id} status to ${status}`);
   
   // Validate the status to ensure it's a valid VehicleStatus value
   const validStatuses: VehicleStatus[] = [
@@ -275,7 +275,32 @@ export const updateVehicleStatus = async (
     const dbStatus = mapToDBStatus(status);
     console.log(`Status value after mapping to DB format: ${dbStatus}`);
     
-    // Perform a direct update to the database for debugging
+    // First verify the vehicle exists
+    const { data: vehicle, error: checkError } = await supabase
+      .from('vehicles')
+      .select('id, status')
+      .eq('id', id)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error('Error checking vehicle existence:', checkError);
+      return {
+        success: false,
+        message: `Failed to verify vehicle: ${checkError.message}`
+      };
+    }
+    
+    if (!vehicle) {
+      console.error(`Vehicle with ID ${id} not found`);
+      return {
+        success: false,
+        message: `Vehicle with ID ${id} not found`
+      };
+    }
+    
+    console.log(`Current vehicle DB status: ${vehicle.status}`);
+    
+    // Perform a direct update to the database
     console.log(`Performing direct database update for vehicle ${id} to status "${dbStatus}"`);
     const { data: directUpdate, error: directError } = await supabase
       .from('vehicles')
@@ -296,7 +321,19 @@ export const updateVehicleStatus = async (
     
     console.log('Direct update succeeded:', directUpdate);
     
-    // Now use the main update function but only send the status
+    // Verify status was actually updated
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('vehicles')
+      .select('id, status')
+      .eq('id', id)
+      .maybeSingle();
+      
+    if (verifyError) {
+      console.error('Verification query failed:', verifyError);
+    } else {
+      console.log(`Verification query shows status is now: ${verifyData?.status}`);
+    }
+    
     return {
       success: true,
       message: `Vehicle status updated to ${status}`,
