@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useAgreements } from '@/hooks/use-agreements';
+import { castDbId } from '@/lib/supabase-types';
 import { 
   ColumnDef, 
   flexRender, 
@@ -47,7 +48,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -75,9 +75,8 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { castDbId } from '@/types/supabase-helpers';
 
-export function AgreementList() {
+export const AgreementList = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -121,7 +120,7 @@ export function AgreementList() {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id as string
+      index => castDbId(agreements[parseInt(index)].id)
     );
     
     console.log("Selected IDs for deletion:", selectedIds);
@@ -206,8 +205,8 @@ export function AgreementList() {
           console.log(`Successfully deleted agreement ${id}`);
           successCount++;
         }
-      } catch (error) {
-        console.error(`Failed to delete agreement ${id}:`, error);
+      } catch (err) {
+        console.error('Error deleting:', err);
         errorCount++;
       }
     }
