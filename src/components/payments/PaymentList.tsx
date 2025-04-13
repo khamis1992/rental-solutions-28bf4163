@@ -1,330 +1,220 @@
 
-import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, Edit, Trash2, AlertTriangle } from 'lucide-react';
-import { usePayments, Payment } from '@/hooks/use-payments';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/date-utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { format } from 'date-fns';
+import { AlertCircle, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { differenceInDays } from 'date-fns';
-import { castDbId } from '@/lib/supabase-types';
-import { asTableId } from '@/lib/uuid-helpers';
-import { ensureArray } from '@/lib/type-helpers';
-import { handleSupabaseResponse, hasData } from '@/utils/supabase-type-helpers';
+import { Payment } from '@/hooks/use-payments';
+import { supabase } from '@/lib/supabase';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 interface PaymentListProps {
   agreementId: string;
-  onPaymentDeleted: () => void;
+  onAddPayment?: () => void;
+  onDeletePayment?: (paymentId: string) => void;
 }
 
-export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const { payments, isLoading, fetchPayments } = usePayments(agreementId);
-  const [missingPayments, setMissingPayments] = useState<any[]>([]);
+interface AgreementDetails {
+  start_date: string;
+  rent_amount: number;
+}
 
-  // Make sure we properly handle the payments with the new type utilities
-  const safePayments = ensureArray(payments);
-
-  useEffect(() => {
-    if (agreementId) {
-      fetchPayments();
-    }
-  }, [agreementId, fetchPayments]);
+export function PaymentList({ agreementId, onAddPayment, onDeletePayment }: PaymentListProps) {
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [agreementDetails, setAgreementDetails] = useState<AgreementDetails | null>(null);
 
   useEffect(() => {
-    const calculateMissingPayments = async () => {
+    const fetchPayments = async () => {
       try {
-        const leaseResponse = await supabase
+        setIsLoading(true);
+        
+        // Get agreement details first
+        const agreementResponse = await supabase
           .from('leases')
           .select('start_date, rent_amount')
           .eq('id', agreementId)
           .single();
           
-        if (!hasData(leaseResponse)) {
-          console.error("Error fetching lease details:", leaseResponse.error);
-          return;
-        }
-        
-        const lease = leaseResponse.data;
-        
-        const today = new Date();
-        const startDate = new Date(lease.start_date);
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-        
-        const paymentResponse = await supabase
-          .from('unified_payments')
-          .select('id')
-          .eq('lease_id', agreementId)
-          .gte('payment_date', new Date(currentYear, currentMonth, 1).toISOString())
-          .lt('payment_date', new Date(currentYear, currentMonth + 1, 0).toISOString());
-          
-        if (hasData(paymentResponse) && paymentResponse.data && paymentResponse.data.length > 0) {
-          setMissingPayments([]);
-          return;
-        }
-        
-        const dueDate = new Date(currentYear, currentMonth, 1);
-        const daysOverdue = differenceInDays(today, dueDate);
-        const dailyLateFee = 120;
-        const lateFee = Math.min(daysOverdue * dailyLateFee, 3000);
-        
-        if (daysOverdue > 0) {
-          setMissingPayments([{
-            month: today.toLocaleString('default', { month: 'long', year: 'numeric' }),
-            amount: lease.rent_amount || 0,
-            daysOverdue: daysOverdue,
-            lateFee: lateFee,
-            totalDue: (lease.rent_amount || 0) + lateFee
-          }]);
+        if (hasData(agreementResponse)) {
+          setAgreementDetails(agreementResponse.data as AgreementDetails);
         } else {
-          setMissingPayments([]);
+          console.error("Error fetching agreement details:", agreementResponse.error);
         }
-      } catch (err) {
-        console.error("Error calculating missing payments:", err);
+
+        // Then get the payment data
+        const paymentsResponse = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('lease_id', agreementId)
+          .order('payment_date', { ascending: false });
+
+        if (hasData(paymentsResponse)) {
+          setPayments(paymentsResponse.data as Payment[]);
+        } else {
+          console.error("Error fetching payments:", paymentsResponse.error);
+          setPayments([]);
+        }
+      } catch (error) {
+        console.error("Error in fetchPayments:", error);
+      } finally {
+        setIsLoading(false);
       }
     };
-    
+
     if (agreementId) {
-      calculateMissingPayments();
+      fetchPayments();
     }
-  }, [agreementId, payments]);
+  }, [agreementId]);
 
-  const confirmDeletePayment = (id: string) => {
-    setPaymentToDelete(id);
-    setIsDeleteDialogOpen(true);
+  // Generate rent due dates starting from agreement start date
+  const generatePendingPayments = () => {
+    if (!agreementDetails?.start_date) return [];
+    
+    const startDate = new Date(agreementDetails.start_date);
+    const today = new Date();
+    const rentAmount = agreementDetails.rent_amount || 0;
+    
+    let pendingPayments = [];
+    let currentDate = new Date(startDate);
+    
+    // Assuming monthly payments
+    while (currentDate <= today) {
+      const paymentForMonth = payments.find(p => {
+        const paymentDate = p.payment_date ? new Date(p.payment_date) : null;
+        return paymentDate && 
+               paymentDate.getMonth() === currentDate.getMonth() && 
+               paymentDate.getFullYear() === currentDate.getFullYear();
+      });
+      
+      if (!paymentForMonth) {
+        pendingPayments.push({
+          due_date: new Date(currentDate),
+          amount: rentAmount
+        });
+      }
+      
+      // Move to next month
+      currentDate.setMonth(currentDate.getMonth() + 1);
+    }
+    
+    return pendingPayments;
   };
-
-  const handleDeletePayment = async () => {
-    if (!paymentToDelete) return;
-
+  
+  const handleDeletePayment = async (id: string) => {
     try {
+      const confirmed = window.confirm("Are you sure you want to delete this payment?");
+      if (!confirmed) return;
+      
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', asTableId('unified_payments', paymentToDelete));
-
+        .eq('id', id);
+        
       if (error) {
         console.error("Error deleting payment:", error);
-        toast.error("Failed to delete payment");
-        return;
+      } else {
+        setPayments(payments.filter(payment => payment.id !== id));
+        if (onDeletePayment) onDeletePayment(id);
       }
-
-      toast.success("Payment deleted successfully");
-      setIsDeleteDialogOpen(false);
-      onPaymentDeleted();
     } catch (error) {
-      console.error("Error in payment deletion:", error);
-      toast.error("An unexpected error occurred");
+      console.error("Error in handleDeletePayment:", error);
     }
   };
 
-  const renderPaymentMethodBadge = (method: string) => {
-    switch(method?.toLowerCase()) {
-      case 'cash':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Cash</Badge>;
-      case 'credit_card':
-        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Credit Card</Badge>;
-      case 'bank_transfer':
-        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Bank Transfer</Badge>;
-      case 'debit_card':
-        return <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">Debit Card</Badge>;
-      case 'check':
-        return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Check</Badge>;
-      case 'mobile_payment':
-        return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Mobile Payment</Badge>;
-      default:
-        return <Badge variant="outline">{method || 'Unknown'}</Badge>;
-    }
-  };
+  const pendingPayments = generatePendingPayments();
 
-  const renderStatusBadge = (status: string) => {
-    switch(status?.toLowerCase()) {
-      case 'completed':
-      case 'paid':
-        return <Badge className="bg-green-500 text-white">Paid</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
-      case 'cancelled':
-        return <Badge className="bg-red-500 text-white">Cancelled</Badge>;
-      default:
-        return <Badge>{status || 'Unknown'}</Badge>;
-    }
-  };
+  if (isLoading) {
+    return <div className="flex items-center justify-center p-4">Loading payments...</div>;
+  }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Payment History</CardTitle>
-          <CardDescription>View and manage payment records</CardDescription>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-lg font-semibold">Payment History</h3>
+        {onAddPayment && (
+          <Button onClick={onAddPayment} size="sm">
+            <Plus className="h-4 w-4 mr-1" />
+            Add Payment
+          </Button>
+        )}
+      </div>
+
+      {payments.length === 0 && pendingPayments.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-8 text-center border rounded-lg">
+          <AlertCircle className="h-12 w-12 text-muted-foreground mb-3" />
+          <h3 className="text-lg font-semibold">No Payments</h3>
+          <p className="text-muted-foreground">No payment records found for this agreement.</p>
         </div>
-        {missingPayments.length > 0 && (
-          <div className="bg-red-50 text-red-700 px-4 py-2 rounded-md flex items-center">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            <span className="text-sm font-medium">Missing {missingPayments.length} payment{missingPayments.length > 1 ? 's' : ''}</span>
-          </div>
-        )}
-      </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-          </div>
-        ) : (
-          <>
-            {missingPayments.length > 0 && (
-              <div className="mb-6 border border-red-200 rounded-md p-4 bg-red-50">
-                <h3 className="text-sm font-medium text-red-800 mb-2 flex items-center">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Missing Payments
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                  {missingPayments.map((item, index) => (
-                    <div key={index} className="bg-white text-red-700 border border-red-200 px-3 py-2 rounded text-sm">
-                      <div className="font-medium">{item.month}</div>
-                      <div className="font-semibold">{formatCurrency(item.amount)}</div>
-                      {item.daysOverdue > 0 && (
-                        <div className="mt-1 text-xs">
-                          <div className="text-amber-700">
-                            {item.daysOverdue} {item.daysOverdue === 1 ? 'day' : 'days'} overdue
-                          </div>
-                          <div className="text-red-600 font-medium">
-                            + {formatCurrency(item.lateFee)} fine
-                          </div>
-                          <div className="mt-1 font-bold text-red-700">
-                            Total: {formatCurrency(item.totalDue)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {safePayments.length > 0 ? (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Amount</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Method</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Notes</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {safePayments.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell>{formatDate(payment.payment_date)}</TableCell>
-                        <TableCell className="font-medium">
-                          {formatCurrency(payment.amount)}
-                          {payment.late_fine_amount && payment.late_fine_amount > 0 && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Badge variant="destructive" className="ml-2">+Fine</Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Includes late fine: {formatCurrency(payment.late_fine_amount)}</p>
-                                  {payment.days_overdue && (
-                                    <p>{payment.days_overdue} days overdue</p>
-                                  )}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {payment.type === "rent" ? "Monthly Rent" : 
-                          payment.type === "deposit" ? "Security Deposit" : 
-                          payment.type === "fee" ? "Fee" : 
-                          payment.type || "Other"}
-                        </TableCell>
-                        <TableCell>{renderPaymentMethodBadge(payment.payment_method || '')}</TableCell>
-                        <TableCell>{renderStatusBadge(payment.status || '')}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger className="w-full text-left">
-                                <span className="block truncate">{payment.notes || "-"}</span>
-                              </TooltipTrigger>
-                              {payment.notes && (
-                                <TooltipContent className="max-w-[300px]">
-                                  <p className="whitespace-normal">{payment.notes}</p>
-                                </TooltipContent>
-                              )}
-                            </Tooltip>
-                          </TooltipProvider>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end space-x-1">
-                            <Button variant="ghost" size="icon">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            {(!payment.status || 
-                              (payment.status.toLowerCase() !== 'paid' && 
-                               payment.status.toLowerCase() !== 'completed')) && (
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => confirmDeletePayment(payment.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                <AlertCircle className="mb-2 h-10 w-10" />
-                <h3 className="text-lg font-medium">No payments found</h3>
-                <p className="mt-1">No payment records exist for this agreement.</p>
-              </div>
-            )}
-          </>
-        )}
-      </CardContent>
-
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Payment</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this payment? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeletePayment}
-              className="bg-red-500 hover:bg-red-600"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Method</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {payments.map((payment) => (
+              <TableRow key={payment.id}>
+                <TableCell>{payment.payment_date ? format(new Date(payment.payment_date), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                <TableCell>{formatCurrency(payment.amount)}</TableCell>
+                <TableCell>
+                  <Badge 
+                    variant={payment.status === 'completed' ? 'success' : payment.status === 'pending' ? 'outline' : 'secondary'}
+                  >
+                    {payment.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>{payment.payment_method || 'N/A'}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{payment.description || 'Payment'}</TableCell>
+                <TableCell className="text-right">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => handleDeletePayment(payment.id)}
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Delete
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            
+            {/* Show pending payments */}
+            {pendingPayments.map((pending, index) => (
+              <TableRow key={`pending-${index}`} className="bg-muted/30">
+                <TableCell>{format(pending.due_date, 'dd/MM/yyyy')}</TableCell>
+                <TableCell>{formatCurrency(pending.amount)}</TableCell>
+                <TableCell>
+                  <Badge variant="destructive">Unpaid</Badge>
+                </TableCell>
+                <TableCell>-</TableCell>
+                <TableCell>Pending Monthly Payment</TableCell>
+                <TableCell className="text-right">
+                  {onAddPayment && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={onAddPayment}
+                    >
+                      Record Payment
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
   );
 }
+
+export default PaymentList;

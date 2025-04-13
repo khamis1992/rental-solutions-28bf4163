@@ -1,7 +1,6 @@
 
 import { useQuery, useMutation, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { DbId, handleSupabaseResponse } from '@/lib/supabase-types';
 import { asTableId } from '@/lib/uuid-helpers';
 import { Database } from '@/types/database.types';
 import { hasData } from '@/utils/supabase-type-helpers';
@@ -41,7 +40,7 @@ export const createSupabaseQuery = async <T>(
 ): Promise<T | null> => {
   try {
     const response = await query(supabase);
-    return handleSupabaseResponse<T>(response);
+    return response.data as T;
   } catch (error) {
     console.error(`Error querying ${tableName}:`, error);
     return null;
@@ -68,17 +67,25 @@ export function createTypedQuery<T, TableName extends keyof Database['public']['
         .from(tableName)
         .select(columns);
       
-      return handleSupabaseResponse<T[]>(response);
+      if (!hasData(response)) {
+        console.error('Error in Supabase query:', response.error);
+        return null;
+      }
+      return response.data as T[];
     },
     
     getById: async (id: string, columns: string = '*') => {
       const response = await supabase
         .from(tableName)
         .select(columns)
-        .eq('id', asTableId(tableName, id))
+        .eq('id', id)
         .single();
         
-      return handleSupabaseResponse<T>(response);
+      if (!hasData(response)) {
+        console.error('Error in Supabase query:', response.error);
+        return null;
+      }
+      return response.data as T;
     },
     
     filter: async (filters: Array<{ column: string, value: any }>, columns: string = '*') => {
@@ -91,12 +98,12 @@ export function createTypedQuery<T, TableName extends keyof Database['public']['
       }
       
       const response = await query;
-      return handleSupabaseResponse<T[]>(response);
-    },
-    
-    // Helper method to safely check if response has data
-    hasData: <R>(response: any): response is { data: R, error: null } => {
-      return hasData(response);
+      
+      if (!hasData(response)) {
+        console.error('Error in Supabase query:', response.error);
+        return null;
+      }
+      return response.data as T[];
     }
   };
 }

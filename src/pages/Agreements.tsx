@@ -1,10 +1,10 @@
 
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import { AgreementList } from '@/components/agreements/AgreementList';
+import { AgreementList } from '@/components/agreements/AgreementList-Simple';
 import { ImportHistoryList } from '@/components/agreements/ImportHistoryList';
 import { CSVImportModal } from '@/components/agreements/CSVImportModal';
-import { Loader2, X, FileUp, AlertTriangle } from 'lucide-react';
+import { Loader2, FileUp, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';

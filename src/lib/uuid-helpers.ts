@@ -27,14 +27,19 @@ export function asUUID(id: string): UUID {
 }
 
 /**
+ * List of all supported tables for typed operations
+ */
+export type SupportedTable = keyof Database['public']['Tables'];
+
+/**
  * Safely cast string to a table-specific ID type
  * This helps TypeScript understand we're using the right ID type for a specific table
  */
-export function asTableId<T extends keyof Database['public']['Tables']>(
+export function asTableId<T extends SupportedTable>(
   table: T, 
   id: string
-): Database['public']['Tables'][T]['Row']['id'] {
-  return id as Database['public']['Tables'][T]['Row']['id'];
+): string {
+  return id;
 }
 
 /**
@@ -63,10 +68,10 @@ export function castToUUID(id: string): UUID {
  * Helper function to safely cast a string ID to a specific table's ID type
  * for use in database operations like eq(), in(), etc.
  */
-export function tableId<T extends keyof Database['public']['Tables']>(
+export function tableId<T extends SupportedTable>(
   tableName: T,
   columnName: keyof Database['public']['Tables'][T]['Row'],
   id: string
-): Database['public']['Tables'][T]['Row'][typeof columnName] {
-  return id as any; // The cast is type-safe because of the generic constraints
+): string {
+  return id;
 }

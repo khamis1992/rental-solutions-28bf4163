@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,10 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { asTableId } from '@/lib/uuid-helpers'; 
 import { formatCurrency } from '@/lib/utils';
-import { ExclamationTriangleIcon, ExternalLinkIcon } from '@radix-ui/react-icons';
-import { handleSupabaseResponse, hasData } from '@/utils/supabase-type-helpers';
+import { hasData } from '@/utils/supabase-type-helpers';
+import { ExclamationTriangleIcon } from '@/components/icons/radix-shim';
 import { CustomerInfo } from '@/types/customer';
 
 interface CustomerTrafficFinesProps {

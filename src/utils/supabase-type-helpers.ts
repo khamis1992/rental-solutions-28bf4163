@@ -22,6 +22,17 @@ export function hasData<T>(
 }
 
 /**
+ * Handle Supabase response with proper error logging
+ */
+export function handleSupabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
+  if (response.error) {
+    console.error('Error in Supabase response:', response.error);
+    return null;
+  }
+  return response.data || null;
+}
+
+/**
  * Safe database ID type 
  */
 export type SafeId = string;

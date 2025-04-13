@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -76,16 +75,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       make: initialData?.make || '',
       model: initialData?.model || '',
       year: initialData?.year || new Date().getFullYear(),
-      license_plate: initialData?.licensePlate || initialData?.license_plate || '',
+      license_plate: initialData?.license_plate || '',
       vin: initialData?.vin || '',
       status: (initialData?.status as VehicleStatus) || 'available',
       color: initialData?.color || '',
       mileage: initialData?.mileage || 0,
       location: initialData?.location || '',
-      description: initialData?.notes || initialData?.description || '',
+      description: initialData?.description || '',
       insurance_company: initialData?.insurance_company || '',
       insurance_expiry: initialData?.insurance_expiry || '',
-      rent_amount: initialData?.dailyRate || initialData?.rent_amount || 0,
+      rent_amount: initialData?.rent_amount || 0,
       vehicle_type_id: initialData?.vehicle_type_id || ''
     };
     console.log('VehicleForm computed default values:', values);
@@ -138,7 +137,9 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         location: formValues.location || undefined,
         description: formValues.description || undefined,
         insurance_company: formValues.insurance_company || undefined,
-        insurance_expiry: formValues.insurance_expiry || undefined,
+        insurance_expiry: formValues.insurance_expiry instanceof Date ? 
+          formValues.insurance_expiry.toISOString().split('T')[0] : 
+          formValues.insurance_expiry,
         rent_amount: formValues.rent_amount,
         vehicle_type_id: formValues.vehicle_type_id === 'none' ? undefined : formValues.vehicle_type_id,
         image: selectedImage,
@@ -164,7 +165,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               <FormLabel className="mb-2 block">Vehicle Image</FormLabel>
               <VehicleImageUpload 
                 onImageSelected={setSelectedImage}
-                initialImageUrl={initialData?.imageUrl || initialData?.image_url}
+                initialImageUrl={initialData?.image_url || initialData?.imageUrl}
               />
             </div>
             

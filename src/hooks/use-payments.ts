@@ -1,9 +1,8 @@
 
 import { useSupabaseQuery, useSupabaseMutation, createSupabaseQuery } from './use-supabase-query';
-import { DatabaseId, castToDatabaseId, handleDatabaseResponse, ensureArray } from '@/lib/type-helpers';
 import { supabase } from '@/lib/supabase';
-import { castDbId } from '@/lib/supabase-types';
 import { asTableId } from '@/lib/uuid-helpers';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 // Define a Payment type to ensure consistent typing
 export interface Payment {
@@ -30,16 +29,17 @@ export const usePayments = (agreementId?: string) => {
     async () => {
       if (!agreementId) return [] as Payment[];
       
-      // Use proper type casting for the ID
       const response = await supabase
         .from('unified_payments')
         .select('*')
         .eq('lease_id', agreementId);
         
-      const responseData = handleDatabaseResponse(response);
+      if (!hasData(response)) {
+        console.error("Error fetching payments:", response.error);
+        return [] as Payment[];
+      }
       
-      // Ensure we always return an array of Payment objects
-      return ensureArray<Payment>(responseData as Payment[]);
+      return response.data as Payment[];
     },
     {
       enabled: !!agreementId,
@@ -47,7 +47,7 @@ export const usePayments = (agreementId?: string) => {
   );
 
   // Ensure we always have an array of payments, even if data is null or undefined
-  const payments: Payment[] = ensureArray(data);
+  const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
     const response = await supabase
@@ -55,26 +55,38 @@ export const usePayments = (agreementId?: string) => {
       .insert([newPayment])
       .select();
 
-    return handleDatabaseResponse(response);
+    if (!hasData(response)) {
+      console.error("Error adding payment:", response.error);
+      return null;
+    }
+    return response.data[0];
   });
 
-  const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: DatabaseId; data: Partial<Payment> }) => {
+  const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentUpdate.data)
-      .eq('id', asTableId('unified_payments', paymentUpdate.id as string))
+      .eq('id', paymentUpdate.id)
       .select();
 
-    return handleDatabaseResponse(response);
+    if (!hasData(response)) {
+      console.error("Error updating payment:", response.error);
+      return null;
+    }
+    return response.data[0];
   });
 
-  const deletePayment = useSupabaseMutation(async (paymentId: DatabaseId) => {
+  const deletePayment = useSupabaseMutation(async (paymentId: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', asTableId('unified_payments', paymentId as string));
+      .eq('id', paymentId);
 
-    return handleDatabaseResponse(response);
+    if (response.error) {
+      console.error("Error deleting payment:", response.error);
+      return null;
+    }
+    return { success: true };
   });
 
   // Add a function to fetch payments that uses refetch

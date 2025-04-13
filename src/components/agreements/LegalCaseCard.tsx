@@ -1,158 +1,124 @@
 
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { LegalCase } from '@/types/legal-case';
-import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { CalendarClock, Scale, FileText } from 'lucide-react';
-import { toast } from 'sonner';
-import { asTableId } from '@/lib/uuid-helpers';
-import { handleSupabaseResponse, hasData } from '@/utils/supabase-type-helpers';
-import { Database } from '@/types/database.types';
+import { CheckIcon, Clock, FileWarning, UserCircle2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { handleResponseData, hasData } from '@/utils/supabase-type-helpers';
+import { formatCurrency } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface LegalCaseCardProps {
-  agreementId: string;
+  caseId: string;
 }
 
-export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
-  const [legalCases, setLegalCases] = useState<LegalCase[]>([]);
+interface LegalCase {
+  id: string;
+  status: string;
+  case_type: string;
+  amount_owed: number;
+  customer_id: string;
+  escalation_date: string | null;
+  assigned_to: string | null;
+  description: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Customer {
+  id: string;
+  full_name: string;
+}
+
+const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ caseId }) => {
+  const [legalCase, setLegalCase] = useState<LegalCase | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchLegalCases = async () => {
-      if (!agreementId) return;
+    const fetchLegalCase = async () => {
+      const { data: caseData, error: caseError } = await supabase
+        .from('legal_cases')
+        .select('*')
+        .eq('id', caseId)
+        .single();
 
-      try {
-        setIsLoading(true);
-        // Find customer_id first using strongly typed ID
-        const leaseResponse = await supabase
-          .from('leases')
-          .select('customer_id')
-          .eq('id', agreementId)
+      if (caseError) {
+        console.error('Error fetching legal case:', caseError);
+        setIsLoading(false);
+        return;
+      }
+
+      if (caseData) {
+        setLegalCase(caseData as LegalCase);
+
+        // Fetch customer data
+        const { data: customerData, error: customerError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('id', caseData.customer_id)
           .single();
 
-        if (!hasData(leaseResponse)) {
-          console.error('Error fetching lease data:', leaseResponse.error);
-          setIsLoading(false);
-          return;
+        if (customerError) {
+          console.error('Error fetching customer:', customerError);
+        } else {
+          setCustomer(customerData as Customer);
         }
-
-        const customerId = leaseResponse.data.customer_id;
-        if (!customerId) {
-          console.log('No customer ID found for this agreement');
-          setIsLoading(false);
-          return;
-        }
-
-        // Fetch legal cases for the customer with properly typed ID
-        const casesResponse = await supabase
-          .from('legal_cases')
-          .select('*')
-          .eq('customer_id', customerId);
-
-        if (!hasData(casesResponse)) {
-          console.error('Error fetching legal cases:', casesResponse.error);
-          setIsLoading(false);
-          return;
-        }
-
-        const data = casesResponse.data;
-        console.log('Legal cases data:', data);
-
-        // Transform the data to match the LegalCase type safely
-        const transformedData: LegalCase[] = data.map(item => {
-          if (!item) {
-            return null as unknown as LegalCase; // Skip invalid items
-          }
-          
-          // Safely check if notes exists and ensure it's a string
-          let notesValue = '';
-          if (item && 'notes' in item && item.notes !== null && item.notes !== undefined) {
-            notesValue = String(item.notes); // Convert to string to ensure type compatibility
-          }
-          
-          return {
-            id: item.id,
-            case_number: `CASE-${item.id.substring(0, 8)}`,
-            title: item.description ? `Case regarding ${item.description.substring(0, 30)}...` : `Case regarding ${item.case_type || 'dispute'}`,
-            description: item.description || '',
-            customer_id: item.customer_id,
-            customer_name: 'Customer', // Default value
-            status: (item.status as 'pending' | 'active' | 'closed' | 'settled') || 'pending',
-            hearing_date: item.escalation_date || null,
-            court_location: '',
-            assigned_attorney: item.assigned_to || '',
-            opposing_party: '',
-            case_type: (item.case_type as 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other') || 'other',
-            documents: [],
-            amount_claimed: item.amount_owed || 0,
-            amount_settled: null,
-            created_at: item.created_at,
-            updated_at: item.updated_at,
-            notes: notesValue
-          };
-        }).filter(Boolean) as LegalCase[]; // Filter out any null values from failed transformations
-
-        setLegalCases(transformedData);
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Unexpected error fetching legal cases:', err);
-        setIsLoading(false);
       }
+
+      setIsLoading(false);
     };
 
-    fetchLegalCases();
-  }, [agreementId]);
+    fetchLegalCase();
+  }, [caseId]);
 
   const getStatusBadge = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'pending':
-        return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
-      case 'active':
-        return <Badge className="bg-blue-500 text-white">Active</Badge>;
-      case 'closed':
-        return <Badge className="bg-green-500 text-white">Closed</Badge>;
-      case 'settled':
-        return <Badge className="bg-indigo-500 text-white">Settled</Badge>;
+    switch (status) {
+      case 'pending_reminder':
+        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Pending Reminder</Badge>;
+      case 'pending_escalation':
+        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Pending Escalation</Badge>;
+      case 'resolved':
+        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Resolved</Badge>;
+      case 'escalated':
+        return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">Escalated</Badge>;
       default:
-        return <Badge className="bg-gray-500 text-white">{status}</Badge>;
+        return <Badge variant="outline">{status}</Badge>;
     }
   };
 
-  const handleViewDetails = (caseId: string) => {
-    toast.info("Case details functionality coming soon");
-    // Navigation to case details would go here
+  const handleViewDetails = () => {
+    navigate(`/legal/${caseId}`);
   };
 
   if (isLoading) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Legal Cases</CardTitle>
-          <CardDescription>Associated legal matters</CardDescription>
+          <Skeleton className="h-6 w-1/3" />
+          <Skeleton className="h-4 w-1/4" />
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-24 w-full mb-4" />
-          <Skeleton className="h-24 w-full" />
+        <CardContent className="space-y-4">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+          <Skeleton className="h-4 w-3/4" />
         </CardContent>
       </Card>
     );
   }
 
-  if (legalCases.length === 0) {
+  if (!legalCase) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Legal Cases</CardTitle>
-          <CardDescription>Associated legal matters</CardDescription>
+          <CardTitle>Case Not Found</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-6 text-muted-foreground">
-            <p>No legal cases associated with this agreement.</p>
-          </div>
+          <p>The legal case could not be found or has been removed.</p>
         </CardContent>
       </Card>
     );
@@ -160,53 +126,46 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Legal Cases</CardTitle>
-        <CardDescription>Associated legal matters</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {legalCases.map((legalCase) => (
-            <div 
-              key={legalCase.id} 
-              className="border rounded-md p-4 hover:border-primary/50 transition-colors"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h4 className="font-medium">{legalCase.title}</h4>
-                  <p className="text-sm text-muted-foreground">Case #{legalCase.case_number}</p>
-                </div>
-                {getStatusBadge(legalCase.status)}
-              </div>
-              
-              <p className="text-sm mb-3 line-clamp-2">{legalCase.description}</p>
-              
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
-                <div className="flex items-center">
-                  <CalendarClock className="h-4 w-4 mr-1" />
-                  <span>Hearing: {legalCase.hearing_date ? format(new Date(legalCase.hearing_date), 'MMM d, yyyy') : 'Not scheduled'}</span>
-                </div>
-                {legalCase.amount_claimed && (
-                  <div className="flex items-center">
-                    <Scale className="h-4 w-4 mr-1" />
-                    <span>Claim: ${legalCase.amount_claimed.toLocaleString()}</span>
-                  </div>
-                )}
-              </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-                onClick={() => handleViewDetails(legalCase.id)}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                View Details
-              </Button>
-            </div>
-          ))}
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>{legalCase.case_type} Case</CardTitle>
+            <CardDescription className="mt-1">
+              {legalCase.description || 'No description provided'}
+            </CardDescription>
+          </div>
+          {getStatusBadge(legalCase.status)}
         </div>
+      </CardHeader>
+      <CardContent className="space-y-3 pb-2">
+        <div className="flex items-center gap-2">
+          <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">
+            {customer?.full_name || 'Unknown Customer'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <FileWarning className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium">
+            Amount Owed: {formatCurrency(legalCase.amount_owed || 0)}
+          </span>
+        </div>
+        {legalCase.escalation_date && (
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm">
+              Escalation Date: {format(new Date(legalCase.escalation_date), 'dd/MM/yyyy')}
+            </span>
+          </div>
+        )}
       </CardContent>
+      <CardFooter className="pt-2">
+        <Button variant="outline" size="sm" className="w-full" onClick={handleViewDetails}>
+          View Details
+        </Button>
+      </CardFooter>
     </Card>
   );
-}
+};
+
+export default LegalCaseCard;
