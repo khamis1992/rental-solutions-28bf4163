@@ -72,3 +72,36 @@ export function asPaymentStatus(status: string): DbPayment['status'] {
 export function isPaymentResponse(response: any): response is { data: Payment } {
   return response && !response.error && response.data && isPayment(response.data);
 }
+
+/**
+ * Type safe access to database table properties
+ */
+export function asColumnValue<T extends keyof Database['public']['Tables'], 
+  K extends keyof Database['public']['Tables'][T]['Row']>(
+  tableName: T,
+  columnName: K,
+  value: string | number | boolean
+): Database['public']['Tables'][T]['Row'][K] {
+  return value as Database['public']['Tables'][T]['Row'][K];
+}
+
+/**
+ * Helper function to safely access Supabase response data with proper type checking
+ */
+export function getResponseData<T>(
+  response: { data: T | null; error: any } | null | undefined
+): T | null {
+  if (!response || response.error || !response.data) {
+    return null;
+  }
+  return response.data;
+}
+
+/**
+ * Type guard to check if a response contains data
+ */
+export function hasData<T>(
+  response: { data: T | null; error: any } | null | undefined
+): response is { data: T; error: null } {
+  return !!response && !response.error && response.data !== null;
+}

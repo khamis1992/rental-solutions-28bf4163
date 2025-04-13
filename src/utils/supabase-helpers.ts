@@ -51,3 +51,59 @@ export function safeProperty<T, K extends keyof T>(obj: T | null | undefined, pr
   }
   return fallback;
 }
+
+/**
+ * Safe type casting with error checking
+ * @param response - Supabase response to check
+ * @param transform - Function to transform response data if valid
+ */
+export function safeTransform<T, R>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined,
+  transform: (data: T) => R
+): R | null {
+  if (isValidResponse(response)) {
+    return transform(response.data);
+  }
+  return null;
+}
+
+/**
+ * Type guard to check if a response is an error
+ */
+export function isErrorResponse(response: any): response is { error: Error } {
+  return response && response.error !== null && response.error !== undefined;
+}
+
+/**
+ * Safe database query execution that handles errors
+ */
+export async function safeQueryExecution<T>(
+  queryFn: () => Promise<PostgrestSingleResponse<T> | PostgrestResponse<T>>,
+  errorHandler?: (error: any) => void
+): Promise<T | null> {
+  try {
+    const response = await queryFn();
+    
+    if (response.error) {
+      console.error("Database query error:", response.error);
+      errorHandler?.(response.error);
+      return null;
+    }
+    
+    return response.data as T;
+  } catch (error) {
+    console.error("Unexpected error during query execution:", error);
+    errorHandler?.(error);
+    return null;
+  }
+}
+
+/**
+ * Type-safe error extraction
+ */
+export function getErrorMessage(error: any): string {
+  if (typeof error === 'object' && error !== null) {
+    return error.message || error.toString() || 'Unknown error';
+  }
+  return String(error || 'Unknown error');
+}

@@ -1,211 +1,170 @@
+
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { DollarSign, Trash2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
-import { Payment } from './PaymentHistory.types';
-import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, CalendarIcon, Trash2 } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
+import { useCallback } from 'react';
+
+// Make sure to export the Payment type to fix the error 
+// in AgreementDetail.tsx
+export interface Payment {
+  id: string;
+  amount: number;
+  payment_date: string | null;
+  payment_method?: string;
+  reference_number?: string | null; 
+  notes?: string;
+  type?: string;
+  status?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  lease_id?: string;
+  original_due_date?: string | null;
+  amount_paid?: number;
+  balance?: number;
+  description?: string;
+  due_date?: string;
+}
 
 interface PaymentHistoryProps {
   payments: Payment[];
-  isLoading: boolean;
-  rentAmount: number | null;
+  isLoading?: boolean;
+  rentAmount?: number | null;
   onPaymentDeleted: () => void;
-  leaseStartDate?: Date | string;
-  leaseEndDate?: Date | string;
+  leaseStartDate?: string | Date | null;
+  leaseEndDate?: string | Date | null;
 }
 
 export function PaymentHistory({
-  payments,
-  isLoading,
+  payments = [],
+  isLoading = false,
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
   leaseEndDate
 }: PaymentHistoryProps) {
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
-  const [isDeletingPayment, setIsDeletingPayment] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
-  const handleDeleteClick = (paymentId: string) => {
-    setSelectedPaymentId(paymentId);
-    setIsDeleteConfirmOpen(true);
-  };
-
-  const confirmDeletePayment = async () => {
-    if (!selectedPaymentId) return;
-    
+  const handleDelete = useCallback(async (paymentId: string) => {
     try {
-      setIsDeletingPayment(true);
+      setIsDeleting(paymentId);
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', selectedPaymentId);
-      
+        .eq('id', paymentId);
+
       if (error) {
         toast.error(`Failed to delete payment: ${error.message}`);
-      } else {
-        toast.success('Payment deleted successfully');
-        onPaymentDeleted();
+        return;
       }
-    } catch (error: any) {
-      console.error('Error deleting payment:', error);
-      toast.error('An unexpected error occurred while deleting the payment');
+
+      toast.success('Payment deleted successfully');
+      onPaymentDeleted();
+    } catch (err) {
+      console.error('Error deleting payment:', err);
+      toast.error('An unexpected error occurred');
     } finally {
-      setIsDeletingPayment(false);
-      setIsDeleteConfirmOpen(false);
+      setIsDeleting(null);
+    }
+  }, [onPaymentDeleted]);
+
+  const formatPaymentDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      console.error('Invalid date format:', dateString);
+      return dateString || 'N/A';
     }
   };
 
-  const getStatusBadge = (status?: string) => {
-    if (!status) return <Badge variant="outline">Unknown</Badge>;
-    
-    switch (status.toLowerCase()) {
-      case 'completed':
-        return <Badge className="bg-green-500">Completed</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-500">Overdue</Badge>;
-      case 'partially_paid':
-        return <Badge className="bg-blue-500">Partially Paid</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
+  const sortedPayments = [...payments].sort((a, b) => {
+    const dateA = a.payment_date ? new Date(a.payment_date).getTime() : 0;
+    const dateB = b.payment_date ? new Date(b.payment_date).getTime() : 0;
+    return dateB - dateA;
+  });
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'QAR',
-      minimumFractionDigits: 0
-    }).format(amount);
-  };
+  const columns = [
+    {
+      accessorKey: 'payment_date',
+      header: 'Date',
+      cell: ({ row }) => formatPaymentDate(row.original.payment_date),
+    },
+    {
+      accessorKey: 'amount',
+      header: 'Amount',
+      cell: ({ row }) => `QAR ${row.original.amount.toLocaleString()}`,
+    },
+    {
+      accessorKey: 'payment_method',
+      header: 'Method',
+      cell: ({ row }) => row.original.payment_method || 'N/A',
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <span className={`px-2 py-1 rounded-full text-xs ${
+          row.original.status === 'completed' ? 'bg-green-100 text-green-800' :
+          row.original.status === 'overdue' ? 'bg-red-100 text-red-800' :
+          row.original.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+          'bg-gray-100 text-gray-800'
+        }`}>
+          {row.original.status}
+        </span>
+      ),
+    },
+    {
+      accessorKey: 'description',
+      header: 'Description',
+      cell: ({ row }) => row.original.description || 'N/A',
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={() => handleDelete(row.original.id)}
+          disabled={isDeleting === row.original.id}
+        >
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      ),
+    },
+  ];
 
-  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <DollarSign className="h-5 w-5 mr-2 text-primary" />
-          Payment History
-        </CardTitle>
-        <CardDescription>Record of all payments for this rental agreement</CardDescription>
+    <Card className="my-8">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>View all transactions for this agreement</CardDescription>
+        </div>
+        <div className="flex items-center space-x-2">
+          <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
+            Monthly Rent: QAR {rentAmount?.toLocaleString() || '0'}
+          </span>
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
-            <Skeleton className="h-8 w-full" />
+          <div className="flex items-center justify-center h-52">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : payments.length > 0 ? (
-          <div className="rounded-md border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead className="hidden md:table-cell">Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Reference</TableHead>
-                  <TableHead className="hidden md:table-cell">Method</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>
-                      {payment.payment_date ? format(new Date(payment.payment_date), 'MMM d, yyyy') : 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      {payment.type === 'LATE_PAYMENT_FEE' ? 'Late Fee' : 
-                       payment.type === 'rent' ? 'Rent' : payment.type || 'Payment'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">
-                        {formatCurrency(payment.amount_paid || payment.amount || 0)}
-                      </div>
-                      {payment.status === 'partially_paid' && payment.balance ? (
-                        <div className="text-xs text-muted-foreground">
-                          Balance: {formatCurrency(payment.balance)}
-                        </div>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {getStatusBadge(payment.status)}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {payment.reference_number || '-'}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {payment.payment_method || 'Cash'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteClick(payment.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable columns={columns} data={sortedPayments} />
         ) : (
-          <div className="text-center py-6">
-            <p className="text-muted-foreground">No payment records found.</p>
+          <div className="text-center p-8 text-muted-foreground">
+            No payment records found for this agreement.
           </div>
         )}
       </CardContent>
-
-      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this payment? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)} disabled={isDeletingPayment}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={confirmDeletePayment} disabled={isDeletingPayment}>
-              {isDeletingPayment ? 'Deleting...' : 'Delete'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }

@@ -1,27 +1,9 @@
 
 import { useSupabaseQuery, useSupabaseMutation, createSupabaseQuery } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
-import { asTableId } from '@/lib/uuid-helpers';
 import { hasData } from '@/utils/supabase-type-helpers';
-
-// Define a Payment type to ensure consistent typing
-export interface Payment {
-  id: string;
-  amount: number;
-  payment_date: string | null;
-  payment_method?: string;
-  reference_number?: string | null;
-  notes?: string;
-  type?: string;
-  status?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  lease_id?: string;
-  original_due_date?: string | null;
-  amount_paid?: number;
-  balance?: number;
-  description?: string;
-}
+import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { asLeaseId } from '@/utils/database-type-helpers';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -32,7 +14,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', agreementId);
+        .eq('lease_id', asLeaseId(agreementId));
         
       if (!hasData(response)) {
         console.error("Error fetching payments:", response.error);
