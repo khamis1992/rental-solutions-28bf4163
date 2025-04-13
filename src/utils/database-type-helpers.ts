@@ -1,92 +1,82 @@
 
-import { Database } from '@/types/database.types';
+import { Database } from "@/types/database.types";
+
+type Tables = Database['public']['Tables'];
 
 /**
  * Helper function to cast string IDs to the correct database type
- * 
- * This helps with TypeScript type errors when passing string IDs to Supabase queries
- * that expect specific database column types.
- * 
- * @param id - The string ID to cast
- * @returns The ID with the correct TypeScript type
  */
-export function asDbId<T>(id: string): T {
-  return id as T;
+export function asTableId<T extends keyof Tables>(
+  table: T,
+  id: string
+): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
 }
 
 /**
- * Cast a string to a proper agreement/lease ID type
+ * Cast string values to database column types
+ */
+export function asColumnValue<
+  T extends keyof Tables,
+  K extends keyof Tables[T]['Row']
+>(
+  table: T,
+  column: K,
+  value: string
+): Tables[T]['Row'][K] {
+  return value as Tables[T]['Row'][K];
+}
+
+/**
+ * Common table ID casting functions
  */
 export function asAgreementId(id: string): string {
-  return id as any;
+  return asTableId('leases', id);
 }
 
-/**
- * Cast a string to a proper lease ID type
- */
 export function asLeaseId(id: string): string {
-  return id as any;
+  return asTableId('leases', id);
 }
 
-/**
- * Cast a string to a proper payment ID type
- */
-export function asPaymentId(id: string): string {
-  return id as any;
-}
-
-/**
- * Cast a string to a proper vehicle ID type
- */
 export function asVehicleId(id: string): string {
-  return id as any;
+  return asTableId('vehicles', id);
 }
 
-/**
- * Cast a string to a proper customer ID type
- */
-export function asCustomerId(id: string): string {
-  return id as any;
-}
-
-/**
- * Cast a string to a proper lease_id column type
- */
 export function asLeaseIdColumn(id: string): string {
-  return id as any;
+  return asColumnValue('unified_payments', 'lease_id', id);
 }
 
-/**
- * Cast a string to a proper agreement_id column type
- */
-export function asAgreementIdColumn(id: string): string {
-  return id as any;
-}
-
-/**
- * Cast a string to a proper import_id column type
- */
 export function asImportIdColumn(id: string): string {
-  return id as any;
+  return asColumnValue('agreement_import_reverts', 'import_id', id);
+}
+
+export function asAgreementIdColumn(id: string): string {
+  return asColumnValue('traffic_fines', 'agreement_id', id);
 }
 
 /**
- * Cast a string to a proper status column type
+ * Cast enums and statuses 
  */
-export function asStatusColumn(status: string, table: string, column: string): string {
-  return status as any;
+export function asStatusColumn(
+  status: string,
+  table: keyof Tables,
+  column: string
+): string {
+  return asColumnValue(table, column as any, status);
 }
 
 /**
- * Type guard function to check if response data is valid
+ * Type guard to check if response has data
  */
-export function isValidData<T>(data: any): data is T {
-  return data !== null && typeof data === 'object' && !('error' in data);
+export function hasResponseData<T>(
+  response: { data: T | null; error: null } | { error: any }
+): response is { data: T; error: null } {
+  return !response.error && response.data !== null;
 }
 
 /**
- * Type guard for checking response data
+ * Extract error message from response
  */
-export function hasResponseData<T>(response: any): response is { data: T; error: null } {
-  return response && !response.error && response.data;
+export function getErrorMessage(error: any): string {
+  return error?.message || 'An error occurred';
 }
