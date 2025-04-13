@@ -1,6 +1,4 @@
-import React from 'react';
-import LegalCaseCard from './LegalCaseCard';
-import { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,6 +14,10 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import LegalCaseCard from './LegalCaseCard';
+import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
+import { supabase } from '@/lib/supabase';
 import { Payment } from './PaymentHistory';
 
 interface AgreementDetailProps {
@@ -65,8 +67,11 @@ export function AgreementDetail({
   } = usePaymentGeneration(agreement, agreement?.id);
 
   const handleDelete = useCallback(() => {
-    setIsDeleteDialogOpen(true);
-  }, []);
+    if (agreement) {
+      const typedId = asDbId<LeaseId>(agreement.id);
+      onDelete(typedId);
+    }
+  }, [agreement, onDelete]);
 
   const confirmDelete = useCallback(() => {
     if (agreement) {
@@ -358,6 +363,10 @@ export function AgreementDetail({
         leaseStartDate={agreement.start_date} 
         leaseEndDate={agreement.end_date} 
       />}
+
+      {agreement.start_date && agreement.end_date && (
+        <LegalCaseCard agreementId={agreement.id} />
+      )}
 
       {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>

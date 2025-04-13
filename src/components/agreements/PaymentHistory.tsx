@@ -1,32 +1,5 @@
-
-import React, { useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { DollarSign, Edit, Trash2, CheckSquare, AlertCircle, Clock } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { supabase } from '@/lib/supabase';
-
-export interface Payment {
-  id: string;
-  amount: number;
-  payment_date: string | null;
-  payment_method?: string;
-  reference_number?: string | null;
-  notes?: string;
-  type?: string;
-  status?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  lease_id?: string;
-  original_due_date?: string | null;
-  amount_paid?: number;
-  balance?: number;
-}
+import React from 'react';
+import { Payment } from './PaymentHistory.types';
 
 interface PaymentHistoryProps {
   payments: Payment[];

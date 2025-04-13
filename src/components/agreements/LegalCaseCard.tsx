@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 
-interface LegalCaseCardProps {
+export interface LegalCaseCardProps {
   agreementId: string;
 }
 
