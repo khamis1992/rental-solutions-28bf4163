@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -206,6 +205,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           updated_at: item.updated_at,
           total_amount: item.total_amount || 0,
           deposit_amount: item.deposit_amount || 0,
+          rent_amount: item.rent_amount || 0,
+          daily_late_fee: item.daily_late_fee || 120.0,
           agreement_number: item.agreement_number || '',
           notes: item.notes || '',
           customers: item.profiles,
