@@ -2,6 +2,8 @@
 import { useQuery, useMutation, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { DbId, handleSupabaseResponse } from '@/lib/supabase-types';
+import { asTableId } from '@/lib/uuid-helpers';
+import { Database } from '@/types/database.types';
 
 export const useSupabaseQuery = <T>(
   key: string[],
@@ -58,7 +60,7 @@ export function createFilter<T extends keyof any>(
 /**
  * Create a type-safe Supabase query builder
  */
-export function createTypedQuery<T>(tableName: string) {
+export function createTypedQuery<T, TableName extends keyof Database['public']['Tables']>(tableName: TableName) {
   return {
     select: async (columns: string = '*') => {
       const response = await supabase
@@ -72,7 +74,7 @@ export function createTypedQuery<T>(tableName: string) {
       const response = await supabase
         .from(tableName)
         .select(columns)
-        .eq('id', id)
+        .eq('id', asTableId(tableName, id))
         .single();
         
       return handleSupabaseResponse<T>(response);

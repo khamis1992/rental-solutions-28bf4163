@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { asTableId } from '@/lib/uuid-helpers';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
 
@@ -67,20 +69,23 @@ export const useTrafficFines = () => {
         let customerInfo: Record<string, { customer_id: string; customer_name?: string }> = {};
         
         if (finesWithLeaseIds.length > 0) {
+          const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
           const { data: leases, error: leaseError } = await supabase
             .from('leases')
             .select('id, customer_id, profiles(full_name)')
-            .in('id', finesWithLeaseIds.map(fine => fine.lease_id));
+            .in('id', leaseIds as string[]);
             
           if (leaseError) {
             console.error('Error fetching lease information:', leaseError);
           } else if (leases) {
             // Create a mapping of lease_id to customer information
             leases.forEach(lease => {
-              customerInfo[lease.id] = {
-                customer_id: lease.customer_id,
-                customer_name: lease.profiles?.full_name
-              };
+              if (lease && lease.id) {
+                customerInfo[lease.id] = {
+                  customer_id: lease.customer_id,
+                  customer_name: lease.profiles?.full_name
+                };
+              }
             });
           }
         }
@@ -91,9 +96,9 @@ export const useTrafficFines = () => {
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
           violationDate: new Date(fine.violation_date),
-          fineAmount: fine.fine_amount,
+          fineAmount: fine.fine_amount || 0,
           violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status as TrafficFineStatusType,
+          paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
           location: fine.fine_location,
           vehicleId: fine.vehicle_id,
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
@@ -117,25 +122,25 @@ export const useTrafficFines = () => {
         const { data: fine, error: fineError } = await supabase
           .from('traffic_fines')
           .select('license_plate')
-          .eq('id', id)
+          .eq('id', asTableId('traffic_fines', id))
           .single();
           
-        if (fineError) {
-          throw new Error(`Failed to fetch fine details: ${fineError.message}`);
+        if (fineError || !fine) {
+          throw new Error(`Failed to fetch fine details: ${fineError?.message || 'No data found'}`);
         }
         
-        if (!fine?.license_plate) {
+        if (!fine.license_plate) {
           throw new Error('Cannot assign fine: No license plate information available');
         }
         
-        // Find the most recent lease for this license plate
+        // Find the vehicle with this license plate
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .select('id')
           .eq('license_plate', fine.license_plate)
           .single();
           
-        if (vehicleError) {
+        if (vehicleError || !vehicleData) {
           throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
         }
         
@@ -143,13 +148,13 @@ export const useTrafficFines = () => {
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('id, customer_id')
-          .eq('vehicle_id', vehicleData.id)
-          .eq('status', 'active')
+          .eq('vehicle_id', asTableId('leases', vehicleData.id))
+          .eq('status', asColumnValue('leases', 'status', 'active'))
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
           
-        if (leaseError) {
+        if (leaseError || !leaseData) {
           throw new Error(`No active lease found for this vehicle`);
         }
         
@@ -157,10 +162,10 @@ export const useTrafficFines = () => {
         const { error: updateError } = await supabase
           .from('traffic_fines')
           .update({ 
-            lease_id: leaseData.id,
+            lease_id: asTableId('traffic_fines', leaseData.id),
             assignment_status: 'assigned'
           })
-          .eq('id', id);
+          .eq('id', asTableId('traffic_fines', id));
           
         if (updateError) {
           throw new Error(`Failed to assign fine: ${updateError.message}`);
@@ -194,10 +199,10 @@ export const useTrafficFines = () => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ 
-          payment_status: 'paid',
+          payment_status: asColumnValue('traffic_fines', 'payment_status', 'paid'),
           payment_date: new Date().toISOString()
         })
-        .eq('id', id);
+        .eq('id', asTableId('traffic_fines', id));
         
       if (error) {
         throw new Error(`Failed to pay fine: ${error.message}`);
@@ -215,8 +220,8 @@ export const useTrafficFines = () => {
     mutationFn: async ({ id }: TrafficFinePayload) => {
       const { error } = await supabase
         .from('traffic_fines')
-        .update({ payment_status: 'disputed' })
-        .eq('id', id);
+        .update({ payment_status: asColumnValue('traffic_fines', 'payment_status', 'disputed') })
+        .eq('id', asTableId('traffic_fines', id));
         
       if (error) {
         throw new Error(`Failed to dispute fine: ${error.message}`);
@@ -238,3 +243,8 @@ export const useTrafficFines = () => {
     disputeTrafficFine
   };
 };
+
+// Helper for type-safe column value assignment
+function asColumnValue<T extends keyof any>(table: string, column: string, value: T): T {
+  return value;
+}

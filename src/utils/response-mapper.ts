@@ -65,3 +65,21 @@ export function safeExtract<T, K extends keyof T>(
   if (!exists(obj)) return defaultValue;
   return obj[key] ?? defaultValue;
 }
+
+/**
+ * Safely navigates nested objects with proper type checking
+ * @param obj The root object to navigate
+ * @param path Array of keys to traverse
+ * @param defaultValue Optional default value if path not found
+ */
+export function safeNavigate<T, D = undefined>(
+  obj: any,
+  path: string[],
+  defaultValue?: D
+): T | D | undefined {
+  const result = path.reduce((prev, key) => 
+    prev && (typeof prev === 'object') && key in prev ? prev[key] : undefined, 
+  obj as any);
+  
+  return (result === undefined) ? defaultValue : result as T;
+}

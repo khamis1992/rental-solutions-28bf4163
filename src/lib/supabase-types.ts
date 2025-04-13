@@ -1,7 +1,7 @@
 
 import { Database } from '@/types/database.types';
 import { asUUID, UUID } from '@/lib/uuid-helpers';
-import { extractResponseData } from '@/lib/type-helpers';
+import { getResponseData } from '@/utils/supabase-type-helpers';
 
 type Tables = Database['public']['Tables'];
 
@@ -37,7 +37,11 @@ export const castAgreementStatus = (status: string): AgreementStatus => status a
 
 // Helper function to handle Supabase response errors
 export const handleSupabaseResponse = <T>(response: any): T | null => {
-  return extractResponseData<T>(response);
+  if (response?.error) {
+    console.error("Supabase response error:", response.error);
+    return null;
+  }
+  return response?.data ?? null;
 };
 
 /**
@@ -68,6 +72,16 @@ export function asColumnValue<
   C extends keyof Tables[T]['Row']
 >(table: T, column: C, value: any): Tables[T]['Row'][C] {
   return value as Tables[T]['Row'][C];
+}
+
+/**
+ * Creates a strongly typed reference to a table column for use in queries
+ */
+export function column<T extends keyof Tables, C extends keyof Tables[T]['Row']>(
+  table: T, 
+  columnName: C
+): string {
+  return columnName as string;
 }
 
 /**

@@ -3,6 +3,7 @@ import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { DatabaseId, castToDatabaseId, handleDatabaseResponse, ensureArray } from '@/lib/type-helpers';
 import { supabase } from '@/lib/supabase';
 import { castDbId } from '@/lib/supabase-types';
+import { asTableId } from '@/lib/uuid-helpers';
 
 // Define a Payment type to ensure consistent typing
 export interface Payment {
@@ -33,7 +34,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', castDbId(agreementId));
+        .eq('lease_id', asTableId('unified_payments', agreementId));
         
       const responseData = handleDatabaseResponse(response);
       
@@ -61,7 +62,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentUpdate.data)
-      .eq('id', paymentUpdate.id)
+      .eq('id', asTableId('unified_payments', paymentUpdate.id as string))
       .select();
 
     return handleDatabaseResponse(response);
@@ -71,7 +72,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', paymentId);
+      .eq('id', asTableId('unified_payments', paymentId as string));
 
     return handleDatabaseResponse(response);
   });

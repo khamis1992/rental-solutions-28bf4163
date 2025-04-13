@@ -117,3 +117,33 @@ export type EntityId = Opaque<string, 'EntityId'>;
 export function hasProperty<T, K extends string>(obj: T, prop: K): obj is T & Record<K, unknown> {
   return obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, prop);
 }
+
+/**
+ * Safely cast a value to a specific enum type
+ * @param value Value to cast
+ * @param enumType Enum object
+ * @param defaultValue Default value if casting fails
+ */
+export function safeEnumCast<T extends Record<string, string | number>>(
+  value: unknown,
+  enumType: T,
+  defaultValue: T[keyof T]
+): T[keyof T] {
+  if (value === null || value === undefined) return defaultValue;
+  
+  const values = Object.values(enumType);
+  return values.includes(value as any) ? (value as T[keyof T]) : defaultValue;
+}
+
+/**
+ * Safe type assertion that checks at runtime
+ */
+export function assertType<T>(
+  value: unknown, 
+  validator: (val: unknown) => boolean, 
+  errorMsg = 'Type assertion failed'
+): asserts value is T {
+  if (!validator(value)) {
+    throw new TypeError(errorMsg);
+  }
+}

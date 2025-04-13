@@ -9,8 +9,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { CalendarClock, Scale, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { castDbId } from '@/lib/supabase-types'; // Using castDbId from supabase-types
+import { asTableId } from '@/lib/uuid-helpers';
 import { getResponseData, hasData } from '@/utils/supabase-type-helpers';
+import { Database } from '@/types/database.types';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -26,11 +27,11 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
 
       try {
         setIsLoading(true);
-        // Find customer_id first
+        // Find customer_id first using strongly typed ID
         const leaseResponse = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', castDbId(agreementId))
+          .eq('id', asTableId('leases', agreementId))
           .single();
 
         if (!hasData(leaseResponse)) {
@@ -46,11 +47,11 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
           return;
         }
 
-        // Fetch legal cases for the customer
+        // Fetch legal cases for the customer with properly typed ID
         const casesResponse = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', castDbId(customerId));
+          .eq('customer_id', asTableId('legal_cases', customerId));
 
         if (!hasData(casesResponse)) {
           console.error('Error fetching legal cases:', casesResponse.error);
@@ -65,7 +66,7 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         const transformedData: LegalCase[] = data.map(item => {
           // Safely check if notes exists and ensure it's a string
           let notesValue = '';
-          if ('notes' in item && item.notes !== null && item.notes !== undefined) {
+          if (item !== null && 'notes' in item && item.notes !== null && item.notes !== undefined) {
             notesValue = String(item.notes); // Convert to string to ensure type compatibility
           }
           

@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrafficFine, TrafficFineStatusType } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
@@ -12,6 +11,8 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { validateDataConsistency, logOperation } from '@/utils/monitoring-utils';
+import { asTableId } from '@/lib/uuid-helpers';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
@@ -39,7 +40,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         const { data: leases, error: leasesError } = await supabase
           .from('leases')
           .select('id')
-          .eq('customer_id', customerId);
+          .eq('customer_id', asTableId('leases', customerId));
           
         if (leasesError) {
           console.error("Error fetching customer leases:", leasesError);
@@ -53,7 +54,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           return;
         }
         
-        // Extract the lease IDs
+        // Extract the lease IDs - ensuring they are properly typed
         const leaseIds = leases.map(lease => lease.id);
         console.log(`Found ${leaseIds.length} leases for customer ${customerId}`, leaseIds);
         
@@ -73,8 +74,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             lease_id,
             payment_date
           `)
-          .in('lease_id', leaseIds)
-          .order('violation_date', { ascending: false });
+          .in('lease_id', leaseIds);
           
         if (finesError) {
           console.error("Error fetching traffic fines:", finesError);
@@ -86,8 +86,8 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         // If we have vehicle IDs, get vehicle details to enhance the data
         if (trafficFines && trafficFines.length > 0) {
           const vehicleIds = trafficFines
-            .map(fine => fine.vehicle_id)
-            .filter(Boolean) as string[];
+            .filter(fine => fine && fine.vehicle_id)
+            .map(fine => fine.vehicle_id as string);
             
           if (vehicleIds.length > 0) {
             // Get vehicle details
@@ -103,45 +103,57 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
             
             // Create a map of vehicle IDs to vehicle models
             const vehicleMap = new Map();
-            vehicles?.forEach(vehicle => {
-              vehicleMap.set(vehicle.id, `${vehicle.make} ${vehicle.model}`);
-            });
+            if (vehicles) {
+              vehicles.forEach(vehicle => {
+                if (vehicle && vehicle.id) {
+                  vehicleMap.set(vehicle.id, `${vehicle.make} ${vehicle.model}`);
+                }
+              });
+            }
             
             // Transform and enhance the data to match the TrafficFine interface
-            const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => ({
-              id: fine.id,
-              violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
-              licensePlate: fine.license_plate,
-              vehicleModel: fine.vehicle_id ? vehicleMap.get(fine.vehicle_id) : undefined,
-              violationDate: new Date(fine.violation_date),
-              fineAmount: fine.fine_amount,
-              violationCharge: fine.violation_charge,
-              paymentStatus: fine.payment_status as TrafficFineStatusType,
-              location: fine.fine_location || '',
-              vehicleId: fine.vehicle_id,
-              paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-              customerId: customerId,
-              leaseId: fine.lease_id
-            }));
+            const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => {
+              if (!fine) return {} as TrafficFine;
+              
+              return {
+                id: fine.id,
+                violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
+                licensePlate: fine.license_plate,
+                vehicleModel: fine.vehicle_id ? vehicleMap.get(fine.vehicle_id) : undefined,
+                violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+                fineAmount: fine.fine_amount || 0,
+                violationCharge: fine.violation_charge,
+                paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
+                location: fine.fine_location || '',
+                vehicleId: fine.vehicle_id,
+                paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
+                customerId: customerId,
+                leaseId: fine.lease_id
+              };
+            });
             
             setFines(formattedFines);
           } else {
             // Transform the data without vehicle details
-            const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => ({
-              id: fine.id,
-              violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
-              licensePlate: fine.license_plate,
-              vehicleModel: undefined,
-              violationDate: new Date(fine.violation_date),
-              fineAmount: fine.fine_amount,
-              violationCharge: fine.violation_charge,
-              paymentStatus: fine.payment_status as TrafficFineStatusType,
-              location: fine.fine_location || '',
-              vehicleId: fine.vehicle_id,
-              paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
-              customerId: customerId,
-              leaseId: fine.lease_id
-            }));
+            const formattedFines: TrafficFine[] = (trafficFines || []).map(fine => {
+              if (!fine) return {} as TrafficFine;
+              
+              return {
+                id: fine.id,
+                violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
+                licensePlate: fine.license_plate,
+                vehicleModel: undefined,
+                violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+                fineAmount: fine.fine_amount || 0,
+                violationCharge: fine.violation_charge,
+                paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
+                location: fine.fine_location || '',
+                vehicleId: fine.vehicle_id,
+                paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
+                customerId: customerId,
+                leaseId: fine.lease_id
+              };
+            });
             
             setFines(formattedFines);
           }
@@ -177,10 +189,10 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
       case 'paid':
         return <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300"><CheckCircle className="mr-1 h-3 w-3" /> Paid</Badge>;
       case 'disputed':
-        return <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300"><AlertTriangle className="mr-1 h-3 w-3" /> Disputed</Badge>;
+        return <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300"><HelpCircle className="mr-1 h-3 w-3" /> Disputed</Badge>;
       case 'pending':
       default:
-        return <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300"><X className="mr-1 h-3 w-3" /> Pending</Badge>;
+        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300"><Clock className="mr-1 h-3 w-3" /> Pending</Badge>;
     }
   };
 
