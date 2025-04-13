@@ -1,5 +1,5 @@
 
-import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
+import { useSupabaseQuery, useSupabaseMutation, createSupabaseQuery } from './use-supabase-query';
 import { DatabaseId, castToDatabaseId, handleDatabaseResponse, ensureArray } from '@/lib/type-helpers';
 import { supabase } from '@/lib/supabase';
 import { castDbId } from '@/lib/supabase-types';
@@ -34,7 +34,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asTableId('unified_payments', agreementId));
+        .eq('lease_id', agreementId);
         
       const responseData = handleDatabaseResponse(response);
       

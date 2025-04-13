@@ -97,3 +97,25 @@ export function getResponseValue<T, K extends keyof T, D>(
   }
   return defaultValue;
 }
+
+/**
+ * Safely handle a response and extract data with proper error handling
+ */
+export function handleResponseData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
+  if (response.error) {
+    console.error('Error in Supabase response:', response.error);
+    return null;
+  }
+  return response.data;
+}
+
+/**
+ * Extract data from an array response, with safe handling
+ */
+export function handleArrayResponse<T>(response: PostgrestResponse<T[]>): T[] {
+  if (response.error || !response.data) {
+    console.error('Error in Supabase array response:', response.error);
+    return [];
+  }
+  return response.data;
+}

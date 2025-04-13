@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
+import { asTableId } from '@/lib/uuid-helpers';
 import { 
   ColumnDef, 
   flexRender, 

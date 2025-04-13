@@ -15,7 +15,9 @@ import { formatCurrency } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { differenceInDays } from 'date-fns';
 import { castDbId } from '@/lib/supabase-types';
+import { asTableId } from '@/lib/uuid-helpers';
 import { ensureArray } from '@/lib/type-helpers';
+import { handleSupabaseResponse, hasData } from '@/utils/supabase-type-helpers';
 
 interface PaymentListProps {
   agreementId: string;
@@ -40,30 +42,32 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
   useEffect(() => {
     const calculateMissingPayments = async () => {
       try {
-        const { data: lease, error } = await supabase
+        const leaseResponse = await supabase
           .from('leases')
           .select('start_date, rent_amount')
-          .eq('id', castDbId(agreementId))
+          .eq('id', agreementId)
           .single();
           
-        if (error || !lease) {
-          console.error("Error fetching lease details:", error);
+        if (!hasData(leaseResponse)) {
+          console.error("Error fetching lease details:", leaseResponse.error);
           return;
         }
+        
+        const lease = leaseResponse.data;
         
         const today = new Date();
         const startDate = new Date(lease.start_date);
         const currentMonth = today.getMonth();
         const currentYear = today.getFullYear();
         
-        const { data: currentMonthPayment } = await supabase
+        const paymentResponse = await supabase
           .from('unified_payments')
           .select('id')
-          .eq('lease_id', castDbId(agreementId))
+          .eq('lease_id', agreementId)
           .gte('payment_date', new Date(currentYear, currentMonth, 1).toISOString())
           .lt('payment_date', new Date(currentYear, currentMonth + 1, 0).toISOString());
           
-        if (currentMonthPayment && currentMonthPayment.length > 0) {
+        if (hasData(paymentResponse) && paymentResponse.data && paymentResponse.data.length > 0) {
           setMissingPayments([]);
           return;
         }
@@ -106,7 +110,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', castDbId(paymentToDelete));
+        .eq('id', asTableId('unified_payments', paymentToDelete));
 
       if (error) {
         console.error("Error deleting payment:", error);

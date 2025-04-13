@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { DbId, handleSupabaseResponse } from '@/lib/supabase-types';
 import { asTableId } from '@/lib/uuid-helpers';
 import { Database } from '@/types/database.types';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 export const useSupabaseQuery = <T>(
   key: string[],
@@ -91,6 +92,11 @@ export function createTypedQuery<T, TableName extends keyof Database['public']['
       
       const response = await query;
       return handleSupabaseResponse<T[]>(response);
+    },
+    
+    // Helper method to safely check if response has data
+    hasData: <R>(response: any): response is { data: R, error: null } => {
+      return hasData(response);
     }
   };
 }

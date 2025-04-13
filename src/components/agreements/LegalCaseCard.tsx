@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { CalendarClock, Scale, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { asTableId } from '@/lib/uuid-helpers';
-import { getResponseData, hasData } from '@/utils/supabase-type-helpers';
+import { handleSupabaseResponse, hasData } from '@/utils/supabase-type-helpers';
 import { Database } from '@/types/database.types';
 
 interface LegalCaseCardProps {
@@ -31,7 +31,7 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         const leaseResponse = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', asTableId('leases', agreementId))
+          .eq('id', agreementId)
           .single();
 
         if (!hasData(leaseResponse)) {
@@ -51,7 +51,7 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         const casesResponse = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', asTableId('legal_cases', customerId));
+          .eq('customer_id', customerId);
 
         if (!hasData(casesResponse)) {
           console.error('Error fetching legal cases:', casesResponse.error);
@@ -62,11 +62,15 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
         const data = casesResponse.data;
         console.log('Legal cases data:', data);
 
-        // Transform the data to match the LegalCase type
+        // Transform the data to match the LegalCase type safely
         const transformedData: LegalCase[] = data.map(item => {
+          if (!item) {
+            return null as unknown as LegalCase; // Skip invalid items
+          }
+          
           // Safely check if notes exists and ensure it's a string
           let notesValue = '';
-          if (item !== null && 'notes' in item && item.notes !== null && item.notes !== undefined) {
+          if (item && 'notes' in item && item.notes !== null && item.notes !== undefined) {
             notesValue = String(item.notes); // Convert to string to ensure type compatibility
           }
           
@@ -90,7 +94,7 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
             updated_at: item.updated_at,
             notes: notesValue
           };
-        });
+        }).filter(Boolean) as LegalCase[]; // Filter out any null values from failed transformations
 
         setLegalCases(transformedData);
         setIsLoading(false);
