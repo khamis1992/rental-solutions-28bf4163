@@ -32,7 +32,7 @@ const AgreementDetailPage = () => {
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
+  const { payments = [], isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -86,7 +86,7 @@ const AgreementDetailPage = () => {
   }, [id, refreshTrigger]);
 
   useEffect(() => {
-    if (id && !isLoading && agreement && payments && payments.length > 0) {
+    if (id && !isLoading && agreement && Array.isArray(payments) && payments.length > 0) {
       const paymentDates = payments
         .filter(p => p.original_due_date)
         .map(p => {

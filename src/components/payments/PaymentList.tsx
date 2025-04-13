@@ -37,7 +37,7 @@ interface PaymentListProps {
 export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const { payments, isLoading, fetchPayments } = usePayments(agreementId);
+  const { payments = [], isLoading, fetchPayments } = usePayments(agreementId);
   const [missingPayments, setMissingPayments] = useState<any[]>([]);
 
   useEffect(() => {
@@ -218,7 +218,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
               </div>
             )}
 
-            {payments.length > 0 ? (
+            {Array.isArray(payments) && payments.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>

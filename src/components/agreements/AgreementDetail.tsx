@@ -47,7 +47,7 @@ export function AgreementDetail({
   const [selectedPayment, setSelectedPayment] = useState(null);
 
   const {
-    payments,
+    payments = [],
     isLoading,
     fetchPayments
   } = usePayments(agreement?.id);
@@ -347,7 +347,7 @@ export function AgreementDetail({
       </div>
 
       {agreement && <PaymentHistory 
-        payments={payments || []} 
+        payments={Array.isArray(payments) ? payments : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount} 
         onPaymentDeleted={() => {
