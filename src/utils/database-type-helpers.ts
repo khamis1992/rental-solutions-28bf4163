@@ -33,27 +33,27 @@ export function asColumnValue<
  * Common table ID casting functions
  */
 export function asAgreementId(id: string): string {
-  return asTableId('leases', id);
+  return id;
 }
 
 export function asLeaseId(id: string): string {
-  return asTableId('leases', id);
+  return id;
 }
 
 export function asVehicleId(id: string): string {
-  return asTableId('vehicles', id);
+  return id;
 }
 
 export function asLeaseIdColumn(id: string): string {
-  return asColumnValue('unified_payments', 'lease_id', id);
+  return id;
 }
 
 export function asImportIdColumn(id: string): string {
-  return asColumnValue('agreement_import_reverts', 'import_id', id);
+  return id;
 }
 
 export function asAgreementIdColumn(id: string): string {
-  return asColumnValue('traffic_fines', 'agreement_id', id);
+  return id;
 }
 
 /**
@@ -64,7 +64,7 @@ export function asStatusColumn<T extends keyof Tables>(
   table: T,
   column: keyof Tables[T]['Row'] & string
 ): string {
-  return asColumnValue(table, column as any, status);
+  return status;
 }
 
 /**
