@@ -16,6 +16,7 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
+import { Payment } from './PaymentHistory';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
