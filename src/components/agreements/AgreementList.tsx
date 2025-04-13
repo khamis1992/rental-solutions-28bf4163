@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
 import { asTableId } from '@/lib/uuid-helpers';
+import { asAgreementIdColumn, asLeaseIdColumn, asImportIdColumn } from '@/utils/database-type-helpers';
 import { 
   ColumnDef, 
   flexRender, 
@@ -77,6 +79,109 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+
+const fetchOverduePayments = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('overdue_payments')
+      .select('*')
+      .eq('agreement_id', asAgreementIdColumn(agreementId))
+      .single();
+    
+    if (error) {
+      console.error("Error fetching overdue payments:", error);
+    } else {
+      console.log("Overdue payments fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching overdue payments:", err);
+  }
+};
+
+const fetchPayments = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', asLeaseIdColumn(agreementId));
+    
+    if (error) {
+      console.error("Error fetching payments:", error);
+    } else {
+      console.log("Payments fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching payments:", err);
+  }
+};
+
+const fetchImportReverts = async (importId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('agreement_import_reverts')
+      .select('*')
+      .eq('import_id', asImportIdColumn(importId));
+    
+    if (error) {
+      console.error("Error fetching import reverts:", error);
+    } else {
+      console.log("Import reverts fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching import reverts:", err);
+  }
+};
+
+const getImportRevertStatus = async (importId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('agreement_import_reverts')
+      .select('*')
+      .eq('import_id', asImportIdColumn(importId));
+    
+    if (error) {
+      console.error("Error fetching import revert status:", error);
+    } else {
+      console.log("Import revert status fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching import revert status:", err);
+  }
+};
+
+const fetchTrafficFines = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('agreement_id', asAgreementIdColumn(agreementId));
+    
+    if (error) {
+      console.error("Error fetching traffic fines:", error);
+    } else {
+      console.log("Traffic fines fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching traffic fines:", err);
+  }
+};
+
+const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('agreement_id', asAgreementIdColumn(agreementId));
+    
+    if (error) {
+      console.error("Error fetching traffic fines by agreement ID:", error);
+    } else {
+      console.log("Traffic fines by agreement ID fetched:", data);
+    }
+  } catch (err) {
+    console.error("Error fetching traffic fines by agreement ID:", err);
+  }
+};
 
 export const AgreementList = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');

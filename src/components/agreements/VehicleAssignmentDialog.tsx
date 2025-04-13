@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,14 @@ import { Loader2 } from "lucide-react";
 import { TrafficFine, TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import {
+  asVehicleId,
+  asLeaseId,
+  asLeaseIdColumn,
+  asStatusColumn
+} from '@/utils/database-type-helpers';
+import { hasResponseData } from '@/utils/database-type-helpers';
+import { Payment } from "./PaymentHistory.types";
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -19,15 +26,6 @@ interface VehicleAssignmentDialogProps {
     id: string;
     agreement_number: string;
   };
-}
-
-interface Payment {
-  id: string;
-  amount: number;
-  status: string;
-  description?: string;
-  payment_date?: Date;
-  due_date?: Date;
 }
 
 interface CustomerInfo {
@@ -79,7 +77,7 @@ export function VehicleAssignmentDialog({
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .select('id, make, model, license_plate, year, color')
-          .eq('id', vehicleId)
+          .eq('id', asVehicleId(vehicleId))
           .single();
           
         if (!vehicleError && vehicleData) {

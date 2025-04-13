@@ -11,6 +11,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { recordVehicleReassignment, transferObligations } from '@/utils/reassignment-utils';
 import { toast } from 'sonner';
+import { 
+  asLeaseId, 
+  asVehicleId, 
+  asLeaseIdColumn, 
+  asStatusColumn 
+} from '@/utils/database-type-helpers';
 
 interface AgreementSummary {
   id: string;

@@ -16,3 +16,19 @@ export interface Payment {
   balance?: number;
   description?: string;
 }
+
+// Add a utility type for the extended payment interface
+export interface ExtendedPayment extends Payment {
+  id: string;
+  lease_id?: string;
+  amount: number;
+  amount_paid?: number;
+  balance?: number;
+  payment_date: string | null;
+  due_date?: string | null;
+  status?: string;
+  payment_method?: string | null;
+  description?: string | null;
+  type?: string;
+  days_overdue?: number;
+}

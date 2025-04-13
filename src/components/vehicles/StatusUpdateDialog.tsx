@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { toast } from 'sonner';
 import {
@@ -20,6 +19,10 @@ import {
 import { VehicleStatus } from '@/types/vehicle';
 import { updateVehicleStatus } from '@/utils/vehicle-update';
 import { Loader2 } from 'lucide-react';
+import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 
 interface StatusUpdateDialogProps {
   isOpen: boolean;
@@ -42,11 +45,9 @@ const StatusUpdateDialog = ({
   vehicleDetails,
   onStatusUpdated
 }: StatusUpdateDialogProps) => {
-  // Use state keyed by vehicleId to ensure it maintains the current selected status
   const [status, setStatus] = React.useState<VehicleStatus>(currentStatus);
   const [isUpdating, setIsUpdating] = React.useState(false);
 
-  // Reset status whenever currentStatus changes or dialog opens
   React.useEffect(() => {
     if (isOpen) {
       console.log(`StatusUpdateDialog: Setting initial status to ${currentStatus}`);
@@ -77,7 +78,6 @@ const StatusUpdateDialog = ({
       setIsUpdating(true);
       console.log(`Attempting to update vehicle ${vehicleId} status from ${currentStatus} to ${status}`);
       
-      // Ensure status is one of the allowed VehicleStatus values before calling API
       const validStatuses: VehicleStatus[] = [
         'available', 'rented', 'reserved', 'maintenance', 
         'police_station', 'accident', 'stolen', 'retired'
@@ -88,10 +88,8 @@ const StatusUpdateDialog = ({
         throw new Error(`Invalid status: ${status}`);
       }
 
-      // Log everything for debugging
       console.log(`About to call updateVehicleStatus with id=${vehicleId} and status=${status}`);
 
-      // Perform the status update with verification
       const result = await updateVehicleStatus(vehicleId, status);
       console.log(`Status update API response:`, result);
 
@@ -100,21 +98,17 @@ const StatusUpdateDialog = ({
         console.log("Status update result:", result);
         
         try {
-          // Force a wait before closing to ensure database write completes
           await new Promise(resolve => setTimeout(resolve, 500));
           
-          // Wait for the status update callback to complete
           console.log("Calling onStatusUpdated callback");
           const refreshResult = await onStatusUpdated();
           console.log("onStatusUpdated result:", refreshResult);
           
           if (refreshResult) {
             console.log("Status update callback completed successfully");
-            // Only close the dialog after we've confirmed the data refresh completed
             onClose();
           } else {
             console.warn("Status updated but refresh may not have completed properly");
-            // Still close the dialog as the update was successful
             onClose();
           }
         } catch (refreshError) {
@@ -122,7 +116,6 @@ const StatusUpdateDialog = ({
           toast.error("Status updated but error refreshing UI data", {
             description: "The status was saved but there was a problem refreshing the data. Please refresh the page."
           });
-          // Still close the dialog since the update was successful
           onClose();
         }
       } else {
@@ -143,7 +136,6 @@ const StatusUpdateDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
-      // Only allow closing if not currently updating
       if (!isUpdating && !open) {
         onClose();
       }

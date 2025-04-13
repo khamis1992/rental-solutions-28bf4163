@@ -18,7 +18,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from '@/lib/supabase';
-import { Vehicle } from '@/types/vehicle';
+import { Vehicle, VehicleStatus } from '@/types/vehicle';
 
 interface VehicleDetailProps {
   vehicleId?: string;

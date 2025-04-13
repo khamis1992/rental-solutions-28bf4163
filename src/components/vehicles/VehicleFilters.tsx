@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -12,8 +11,9 @@ import {
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { VehicleStatus } from '@/types/vehicle';
+import { Button } from '@/components/ui/button';
+import { FilterX } from 'lucide-react';
 
-// Define the filter values interface
 export interface VehicleFilterValues {
   status: string;
   make: string;
@@ -23,7 +23,6 @@ export interface VehicleFilterValues {
   search?: string;
 }
 
-// Props interface
 interface VehicleFiltersProps {
   onFilterChange: (filters: VehicleFilterValues) => void;
   initialValues?: VehicleFilterValues;
@@ -42,20 +41,16 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   },
   className
 }) => {
-  // State for filters
   const [filters, setFilters] = useState<VehicleFilterValues>(initialValues);
   
-  // Apply filters when they change
   useEffect(() => {
     onFilterChange(filters);
   }, [filters, onFilterChange]);
   
-  // Handle input changes
   const handleFilterChange = (key: keyof VehicleFilterValues, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
   
-  // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setFilters(prev => ({ ...prev, search: value }));
@@ -64,7 +59,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
   return (
     <div className={cn("rounded-lg", className)}>
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        {/* Search field */}
         <div className="relative md:col-span-2">
           <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search className="h-4 w-4 text-muted-foreground" />
@@ -78,7 +72,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           />
         </div>
         
-        {/* Status filter */}
         <div>
           <Select 
             value={filters.status} 
@@ -101,7 +94,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           </Select>
         </div>
         
-        {/* Make filter */}
         <div>
           <Select 
             value={filters.make} 
@@ -127,7 +119,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           </Select>
         </div>
         
-        {/* Location filter */}
         <div>
           <Select 
             value={filters.location} 
@@ -149,7 +140,6 @@ const VehicleFilters: React.FC<VehicleFiltersProps> = ({
           </Select>
         </div>
         
-        {/* Year filter */}
         <div>
           <Select 
             value={filters.year} 

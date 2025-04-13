@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { DollarSign, Trash2 } from 'lucide-react';
@@ -108,6 +107,7 @@ export function PaymentHistory({
     }).format(amount);
   };
 
+  
   return (
     <Card>
       <CardHeader>
