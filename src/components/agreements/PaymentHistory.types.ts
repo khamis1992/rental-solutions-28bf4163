@@ -14,4 +14,5 @@ export interface Payment {
   original_due_date?: string | null;
   amount_paid?: number;
   balance?: number;
+  description?: string;
 }

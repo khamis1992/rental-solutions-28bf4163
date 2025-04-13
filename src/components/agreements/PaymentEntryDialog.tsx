@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format as dateFormat } from 'date-fns';
-import { Payment } from './PaymentHistory';
+import { Payment } from './PaymentHistory.types';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { useAgreements } from '@/hooks/use-agreements';
 import { useParams } from 'react-router-dom';
@@ -19,7 +19,7 @@ import { supabase } from '@/lib/supabase';
 
 // Extend the Payment type to include the missing description property
 interface ExtendedPayment extends Payment {
-  description?: string;
+  // All properties from Payment are already included
 }
 
 interface PaymentEntryDialogProps {
