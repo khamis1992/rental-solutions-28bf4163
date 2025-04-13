@@ -1,10 +1,11 @@
+
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { DbId, PaymentStatus, castDbId } from '@/lib/supabase-types';
 import { supabase } from '@/lib/supabase';
 import { handleSupabaseResponse } from '@/lib/supabase-types';
 
 export const usePayments = (agreementId?: string) => {
-  const { data: payments, isLoading, error } = useSupabaseQuery(
+  const { data: payments, isLoading, error, refetch } = useSupabaseQuery(
     ['payments', agreementId],
     async () => {
       if (!agreementId) return null;
@@ -49,6 +50,11 @@ export const usePayments = (agreementId?: string) => {
     return handleSupabaseResponse(response);
   });
 
+  // Add a function to fetch payments that uses refetch
+  const fetchPayments = () => {
+    return refetch();
+  };
+
   return {
     payments,
     isLoading,
@@ -56,5 +62,6 @@ export const usePayments = (agreementId?: string) => {
     addPayment: addPayment.mutateAsync,
     updatePayment: updatePayment.mutateAsync,
     deletePayment: deletePayment.mutateAsync,
+    fetchPayments,
   };
 };

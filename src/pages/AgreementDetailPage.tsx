@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -33,7 +32,7 @@ const AgreementDetailPage = () => {
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', rentAmount);
+  const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
 
   const fetchAgreementData = async () => {
     if (!id) return;

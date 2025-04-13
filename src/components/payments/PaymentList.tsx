@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -36,7 +37,7 @@ interface PaymentListProps {
 export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(agreementId, null);
+  const { payments, isLoading, fetchPayments } = usePayments(agreementId);
   const [missingPayments, setMissingPayments] = useState<any[]>([]);
 
   useEffect(() => {
@@ -179,7 +180,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
         )}
       </CardHeader>
       <CardContent>
-        {isLoadingPayments ? (
+        {isLoading ? (
           <div className="space-y-3">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-24 w-full" />

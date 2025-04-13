@@ -1,4 +1,3 @@
-
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -49,18 +48,17 @@ export function AgreementDetail({
 
   const {
     payments,
-    isLoadingPayments,
+    isLoading,
     fetchPayments
-  } = usePayments(agreement?.id, rentAmount);
-  console.log('Agreement ID from AgreementDetail:', agreement?.id);
-  console.log('Payments from usePayments:', payments);
-  console.log('Loading state:', isLoadingPayments);
+  } = usePayments(agreement?.id);
+  
   useEffect(() => {
     if (agreement?.id) {
       console.log('Fetching payments for agreement:', agreement.id);
       fetchPayments();
     }
   }, [agreement?.id, fetchPayments]);
+  
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
@@ -348,10 +346,17 @@ export function AgreementDetail({
         </Button>
       </div>
 
-      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
-      onPaymentDeleted();
-      fetchPayments();
-    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
+      {agreement && <PaymentHistory 
+        payments={payments || []} 
+        isLoading={isLoading} 
+        rentAmount={rentAmount} 
+        onPaymentDeleted={() => {
+          onPaymentDeleted();
+          fetchPayments();
+        }} 
+        leaseStartDate={agreement.start_date} 
+        leaseEndDate={agreement.end_date} 
+      />}
 
       {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>
