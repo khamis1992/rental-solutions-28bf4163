@@ -103,7 +103,7 @@ export function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   }, [agreementId]);
 
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch(status.toLowerCase()) {
       case 'pending':
         return <Badge className="bg-yellow-500 text-white">Pending</Badge>;
       case 'active':

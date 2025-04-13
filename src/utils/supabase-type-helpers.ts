@@ -1,5 +1,5 @@
 
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
 /**
  * Safely get data from a Supabase response, returns null if error or no data
