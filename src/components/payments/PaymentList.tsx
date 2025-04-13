@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, Edit, Trash2, AlertTriangle } from 'lucide-react';
-import { usePayments } from '@/hooks/use-payments';
+import { usePayments, Payment } from '@/hooks/use-payments';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,20 +14,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { formatCurrency } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { differenceInDays } from 'date-fns';
-
-export interface Payment {
-  id: string;
-  amount: number;
-  payment_date: string;
-  payment_method: string;
-  reference_number?: string;
-  notes?: string;
-  type: string;
-  status: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  lease_id: string;
-}
+import { castDbId } from '@/lib/supabase-types';
+import { ensureArray } from '@/lib/type-helpers';
 
 interface PaymentListProps {
   agreementId: string;
@@ -37,8 +25,11 @@ interface PaymentListProps {
 export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<string | null>(null);
-  const { payments = [], isLoading, fetchPayments } = usePayments(agreementId);
+  const { payments, isLoading, fetchPayments } = usePayments(agreementId);
   const [missingPayments, setMissingPayments] = useState<any[]>([]);
+
+  // Make sure we properly handle the payments with the new type utilities
+  const safePayments = ensureArray(payments);
 
   useEffect(() => {
     if (agreementId) {
@@ -52,7 +43,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
         const { data: lease, error } = await supabase
           .from('leases')
           .select('start_date, rent_amount')
-          .eq('id', agreementId)
+          .eq('id', castDbId(agreementId))
           .single();
           
         if (error || !lease) {
@@ -68,7 +59,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
         const { data: currentMonthPayment } = await supabase
           .from('unified_payments')
           .select('id')
-          .eq('lease_id', agreementId)
+          .eq('lease_id', castDbId(agreementId))
           .gte('payment_date', new Date(currentYear, currentMonth, 1).toISOString())
           .lt('payment_date', new Date(currentYear, currentMonth + 1, 0).toISOString());
           
@@ -115,7 +106,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', paymentToDelete);
+        .eq('id', castDbId(paymentToDelete));
 
       if (error) {
         console.error("Error deleting payment:", error);
@@ -133,7 +124,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
   };
 
   const renderPaymentMethodBadge = (method: string) => {
-    switch(method.toLowerCase()) {
+    switch(method?.toLowerCase()) {
       case 'cash':
         return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Cash</Badge>;
       case 'credit_card':
@@ -147,12 +138,12 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
       case 'mobile_payment':
         return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Mobile Payment</Badge>;
       default:
-        return <Badge variant="outline">{method}</Badge>;
+        return <Badge variant="outline">{method || 'Unknown'}</Badge>;
     }
   };
 
   const renderStatusBadge = (status: string) => {
-    switch(status.toLowerCase()) {
+    switch(status?.toLowerCase()) {
       case 'completed':
       case 'paid':
         return <Badge className="bg-green-500 text-white">Paid</Badge>;
@@ -161,7 +152,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
       case 'cancelled':
         return <Badge className="bg-red-500 text-white">Cancelled</Badge>;
       default:
-        return <Badge>{status}</Badge>;
+        return <Badge>{status || 'Unknown'}</Badge>;
     }
   };
 
@@ -218,7 +209,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
               </div>
             )}
 
-            {Array.isArray(payments) && payments.length > 0 ? (
+            {safePayments.length > 0 ? (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
@@ -233,7 +224,7 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {payments.map((payment) => (
+                    {safePayments.map((payment) => (
                       <TableRow key={payment.id}>
                         <TableCell>{formatDate(payment.payment_date)}</TableCell>
                         <TableCell className="font-medium">
@@ -260,8 +251,8 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
                           payment.type === "fee" ? "Fee" : 
                           payment.type || "Other"}
                         </TableCell>
-                        <TableCell>{renderPaymentMethodBadge(payment.payment_method)}</TableCell>
-                        <TableCell>{renderStatusBadge(payment.status)}</TableCell>
+                        <TableCell>{renderPaymentMethodBadge(payment.payment_method || '')}</TableCell>
+                        <TableCell>{renderStatusBadge(payment.status || '')}</TableCell>
                         <TableCell className="max-w-[200px] truncate">
                           <TooltipProvider>
                             <Tooltip>
@@ -281,7 +272,9 @@ export function PaymentList({ agreementId, onPaymentDeleted }: PaymentListProps)
                             <Button variant="ghost" size="icon">
                               <Edit className="h-4 w-4" />
                             </Button>
-                            {payment.status.toLowerCase() !== 'paid' && payment.status.toLowerCase() !== 'completed' && (
+                            {(!payment.status || 
+                              (payment.status.toLowerCase() !== 'paid' && 
+                               payment.status.toLowerCase() !== 'completed')) && (
                               <Button 
                                 variant="ghost" 
                                 size="icon"

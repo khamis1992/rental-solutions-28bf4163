@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -17,6 +18,7 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
+import { ensureArray } from '@/lib/type-helpers';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -32,7 +34,8 @@ const AgreementDetailPage = () => {
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  const { payments = [], isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
+  // Ensure we properly handle the payments array with type safety
+  const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
 
   const fetchAgreementData = async () => {
     if (!id) return;
