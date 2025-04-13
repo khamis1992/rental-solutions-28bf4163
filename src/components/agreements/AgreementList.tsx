@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
 import { 
@@ -86,6 +87,7 @@ export const AgreementList = () => {
     pageSize: 10,
   });
   
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   
   const { 
@@ -104,7 +106,6 @@ export const AgreementList = () => {
     { id: 'created_at', desc: true }
   ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     setRowSelection({});
