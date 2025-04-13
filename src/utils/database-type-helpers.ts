@@ -2,35 +2,38 @@
 import { Database } from "@/types/database.types";
 import { PostgrestSingleResponse, PostgrestResponse } from "@supabase/supabase-js";
 
-type Tables = Database['public']['Tables'];
-type SchemaName = keyof Database;
+// Define a more flexible type system for database operations
+export type DbTables = Database['public']['Tables'];
+export type SchemaName = keyof Database;
 
 /**
- * Helper function to cast string IDs to the correct database type
+ * Universal ID casting function for all table types
+ * This safely converts string IDs to the correct database types
  */
-export function asTableId<T extends keyof Tables>(
-  table: T,
+export function asTableId<T extends keyof DbTables>(
+  _table: T,
   id: string
-): Tables[T]['Row']['id'] {
-  return id as Tables[T]['Row']['id'];
+): DbTables[T]['Row']['id'] {
+  return id as DbTables[T]['Row']['id'];
 }
 
 /**
  * Cast string values to database column types
+ * Handles type safety for Supabase queries
  */
 export function asColumnValue<
-  T extends keyof Tables,
-  K extends keyof Tables[T]['Row']
+  T extends keyof DbTables,
+  K extends keyof DbTables[T]['Row']
 >(
-  table: T,
-  column: K,
+  _table: T,
+  _column: K,
   value: string | number | boolean
-): Tables[T]['Row'][K] {
-  return value as Tables[T]['Row'][K];
+): DbTables[T]['Row'][K] {
+  return value as DbTables[T]['Row'][K];
 }
 
 /**
- * Common table ID casting functions
+ * Common table ID casting functions with simplified implementation
  */
 export function asAgreementId(id: string): string {
   return id;
@@ -41,6 +44,10 @@ export function asLeaseId(id: string): string {
 }
 
 export function asVehicleId(id: string): string {
+  return id;
+}
+
+export function asPaymentId(id: string): string {
   return id;
 }
 
@@ -59,10 +66,10 @@ export function asAgreementIdColumn(id: string): string {
 /**
  * Cast enums and statuses 
  */
-export function asStatusColumn<T extends keyof Tables>(
+export function asStatusColumn<T extends keyof DbTables>(
   status: string,
-  table: T,
-  column: keyof Tables[T]['Row'] & string
+  _table: T,
+  _column: keyof DbTables[T]['Row'] & string
 ): string {
   return status;
 }
@@ -117,4 +124,17 @@ export function handleSupabaseResponse<T>(
     return { data: null, error: new Error(response.error.message) };
   }
   return { data: response.data, error: null };
+}
+
+/**
+ * Safe null checking for database responses
+ */
+export function ensureDataExists<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): T | null {
+  if (response.error || !response.data) {
+    console.error("Database response error:", response.error);
+    return null;
+  }
+  return response.data;
 }

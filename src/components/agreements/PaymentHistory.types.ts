@@ -52,40 +52,6 @@ export function isPayment(obj: any): obj is Payment {
 }
 
 /**
- * Database ID type helper functions
- */
-export function asPaymentId(id: string): DbPayment['id'] {
-  return id as DbPayment['id'];
-}
-
-export function asLeaseId(id: string): DbPayment['lease_id'] {
-  return id as DbPayment['lease_id'];
-}
-
-export function asPaymentStatus(status: string): DbPayment['status'] {
-  return status as DbPayment['status'];
-}
-
-/**
- * Response type guard
- */
-export function isPaymentResponse(response: any): response is { data: Payment } {
-  return response && !response.error && response.data && isPayment(response.data);
-}
-
-/**
- * Type safe access to database table properties
- */
-export function asColumnValue<T extends keyof Database['public']['Tables'], 
-  K extends keyof Database['public']['Tables'][T]['Row']>(
-  tableName: T,
-  columnName: K,
-  value: string | number | boolean
-): Database['public']['Tables'][T]['Row'][K] {
-  return value as Database['public']['Tables'][T]['Row'][K];
-}
-
-/**
  * Helper function to safely access Supabase response data with proper type checking
  */
 export function getResponseData<T>(

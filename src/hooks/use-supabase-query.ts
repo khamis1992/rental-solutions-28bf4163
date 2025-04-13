@@ -1,9 +1,12 @@
 
 import { useQuery, useMutation, UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { asTableId } from '@/lib/uuid-helpers';
 import { Database } from '@/types/database.types';
 import { hasData } from '@/utils/supabase-type-helpers';
+
+// Define helper types for improved type safety
+type DbTables = Database['public']['Tables'];
+type TableName = keyof DbTables;
 
 export const useSupabaseQuery = <T>(
   key: string[],
@@ -32,19 +35,6 @@ export const useSupabaseMutation = <T>(
       console.error('Mutation error:', error);
     },
   });
-};
-
-export const createSupabaseQuery = async <T>(
-  tableName: string,
-  query: (supabase: any) => Promise<any>
-): Promise<T | null> => {
-  try {
-    const response = await query(supabase);
-    return response.data as T;
-  } catch (error) {
-    console.error(`Error querying ${tableName}:`, error);
-    return null;
-  }
 };
 
 /**
