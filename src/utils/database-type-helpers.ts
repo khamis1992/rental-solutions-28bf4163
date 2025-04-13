@@ -96,7 +96,10 @@ export function getErrorMessage(error: any): string {
 export function safeGetResponseData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): T | null {
-  return hasResponseData(response) ? response.data : null;
+  if (!response || response.error || !response.data) {
+    return null;
+  }
+  return response.data;
 }
 
 /**

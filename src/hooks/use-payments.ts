@@ -3,7 +3,7 @@ import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
-import { asLeaseId } from '@/utils/database-type-helpers';
+import { asLeaseIdColumn, asPaymentId } from '@/utils/database-type-helpers';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -14,7 +14,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseId(agreementId));
+        .eq('lease_id', agreementId);
         
       if (!hasData(response)) {
         console.error("Error fetching payments:", response.error);
@@ -45,13 +45,12 @@ export const usePayments = (agreementId?: string) => {
   });
 
   const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    // Use type-safe ID handling
     const { id, data: paymentData } = paymentUpdate;
     
     const response = await supabase
       .from('unified_payments')
       .update(paymentData)
-      .eq('id', id) // No need for type casting here as it's handled internally
+      .eq('id', id)
       .select();
 
     if (!hasData(response)) {
@@ -62,7 +61,6 @@ export const usePayments = (agreementId?: string) => {
   });
 
   const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    // No need for type casting here as it's handled internally
     const response = await supabase
       .from('unified_payments')
       .delete()
