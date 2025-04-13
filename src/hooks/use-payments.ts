@@ -2,6 +2,7 @@
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { DatabaseId, castToDatabaseId, handleDatabaseResponse, ensureArray } from '@/lib/type-helpers';
 import { supabase } from '@/lib/supabase';
+import { castDbId } from '@/lib/supabase-types';
 
 // Define a Payment type to ensure consistent typing
 export interface Payment {
@@ -28,11 +29,11 @@ export const usePayments = (agreementId?: string) => {
     async () => {
       if (!agreementId) return [] as Payment[];
       
-      // Use castToDatabaseId to safely type our ID
+      // Use proper type casting for the ID
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', castToDatabaseId(agreementId));
+        .eq('lease_id', castDbId(agreementId));
         
       const responseData = handleDatabaseResponse(response);
       

@@ -44,3 +44,51 @@ export const createSupabaseQuery = async <T>(
     return null;
   }
 };
+
+/**
+ * Type-safe helper for creating Supabase filters
+ */
+export function createFilter<T extends keyof any>(
+  column: T, 
+  value: any
+): { column: T, value: any } {
+  return { column, value };
+}
+
+/**
+ * Create a type-safe Supabase query builder
+ */
+export function createTypedQuery<T>(tableName: string) {
+  return {
+    select: async (columns: string = '*') => {
+      const response = await supabase
+        .from(tableName)
+        .select(columns);
+      
+      return handleSupabaseResponse<T[]>(response);
+    },
+    
+    getById: async (id: string, columns: string = '*') => {
+      const response = await supabase
+        .from(tableName)
+        .select(columns)
+        .eq('id', id)
+        .single();
+        
+      return handleSupabaseResponse<T>(response);
+    },
+    
+    filter: async (filters: Array<{ column: string, value: any }>, columns: string = '*') => {
+      let query = supabase
+        .from(tableName)
+        .select(columns);
+        
+      for (const filter of filters) {
+        query = query.eq(filter.column, filter.value);
+      }
+      
+      const response = await query;
+      return handleSupabaseResponse<T[]>(response);
+    }
+  };
+}

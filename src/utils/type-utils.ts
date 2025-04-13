@@ -87,3 +87,33 @@ export interface BasicMutationResult {
   isError: boolean;
   error: Error | null;
 }
+
+/**
+ * Creates a static type that doesn't have reference to deeply nested generics
+ * This helps with TypeScript's type instantiation depth errors
+ */
+export type Concrete<T> = T extends infer U ? { [K in keyof U]: Concrete<U[K]> } : never;
+
+/**
+ * Represents a field that might be null or undefined
+ */
+export type Maybe<T> = T | null | undefined;
+
+/**
+ * Creates a wrapper type that preserves the original type but erases the 
+ * complex type relationships to avoid TypeScript limits
+ */
+export type Opaque<T, K extends string> = T & { __brand: K };
+
+/**
+ * Creates simple typing for database IDs to avoid TypeScript errors
+ * while still maintaining type safety
+ */
+export type EntityId = Opaque<string, 'EntityId'>;
+
+/**
+ * Type guard for checking if a property exists at runtime
+ */
+export function hasProperty<T, K extends string>(obj: T, prop: K): obj is T & Record<K, unknown> {
+  return obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, prop);
+}

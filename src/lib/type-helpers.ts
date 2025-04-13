@@ -97,3 +97,37 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
 export function castToTableId<T extends keyof Tables>(id: string, _table: T): Tables[T]['Row']['id'] {
   return id as Tables[T]['Row']['id'];
 }
+
+/**
+ * Safe way to access properties from a Supabase response that might be an error
+ */
+export function safelyAccessProperty<T, K extends keyof T>(
+  obj: T | null | undefined, 
+  key: K, 
+  defaultValue?: T[K]
+): T[K] | undefined {
+  if (!obj) return defaultValue;
+  return (obj as any)[key] ?? defaultValue;
+}
+
+/**
+ * Type guard to check if an object has a specific property
+ */
+export function hasProperty<T extends object, K extends string>(
+  obj: T,
+  key: K
+): obj is T & Record<K, unknown> {
+  return key in obj;
+}
+
+/**
+ * Creates a strongly typed filter for a specific table column
+ */
+export function createTableColumnFilter<
+  T extends keyof Database['public']['Tables'],
+  C extends keyof Database['public']['Tables'][T]['Row']
+>(table: T, column: C) {
+  return function(value: Database['public']['Tables'][T]['Row'][C]) {
+    return { column: column as string, value };
+  };
+}

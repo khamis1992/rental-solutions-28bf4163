@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { CalendarClock, Scale, FileText } from 'lucide-react';
 import { toast } from 'sonner';
-import { castDbId } from '@/lib/supabase-types'; // Using castDbId from supabase-helpers
+import { castDbId } from '@/lib/supabase-types'; // Using castDbId from supabase-types
 import { getResponseData, hasData } from '@/utils/supabase-type-helpers';
 
 interface LegalCaseCardProps {
