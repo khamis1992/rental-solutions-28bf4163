@@ -55,6 +55,9 @@ export function asProfileId(id: string): string {
   return id;
 }
 
+/**
+ * Common column ID casting functions for foreign keys and other fields
+ */
 export function asLeaseIdColumn(id: string): string {
   return id;
 }
@@ -65,6 +68,22 @@ export function asImportIdColumn(id: string): string {
 
 export function asAgreementIdColumn(id: string): string {
   return id;
+}
+
+export function asTrafficFineIdColumn(id: string): string {
+  return id;
+}
+
+export function asVehicleIdColumn(id: string): string {
+  return id;
+}
+
+export function asAgreementStatusColumn(status: string): string {
+  return status;
+}
+
+export function asPaymentStatusColumn(status: string): string {
+  return status;
 }
 
 /**
@@ -104,6 +123,16 @@ export function safeGetResponseData<T>(
     return null;
   }
   return response.data;
+}
+
+/**
+ * Helper to safely handle response objects that might be error objects
+ */
+export function safelyExtractData<T>(result: any): T | null {
+  if (!result || result.error || !result.data) {
+    return null;
+  }
+  return result.data as T;
 }
 
 /**

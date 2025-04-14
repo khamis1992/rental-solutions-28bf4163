@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Calendar, CalendarIcon, Trash2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { useCallback } from 'react';
+import { asPaymentId } from '@/utils/database-type-helpers';
 
 // Make sure to export the Payment type to fix the error 
 // in AgreementDetail.tsx
@@ -55,7 +56,7 @@ export function PaymentHistory({
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', paymentId);
+        .eq('id', asPaymentId(paymentId));
 
       if (error) {
         toast.error(`Failed to delete payment: ${error.message}`);

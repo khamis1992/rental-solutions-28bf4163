@@ -3,7 +3,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { castDbId } from '@/lib/supabase-types';
-import { asTableId, asAgreementIdColumn, asLeaseIdColumn, asImportIdColumn } from '@/utils/database-type-helpers';
+import { 
+  asTableId, 
+  asAgreementIdColumn, 
+  asLeaseIdColumn, 
+  asImportIdColumn,
+  asTrafficFineIdColumn 
+} from '@/utils/database-type-helpers';
 import { 
   ColumnDef, 
   flexRender, 
@@ -153,7 +159,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asAgreementIdColumn(agreementId));
+      .eq('agreement_id', asTrafficFineIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -170,7 +176,7 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', asAgreementIdColumn(agreementId));
+      .eq('agreement_id', asTrafficFineIdColumn(agreementId));
     
     if (error) {
       console.error("Error fetching traffic fines by agreement ID:", error);
@@ -281,7 +287,7 @@ export const AgreementList = () => {
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
-          .eq('agreement_id', asAgreementIdColumn(id));
+          .eq('agreement_id', asTrafficFineIdColumn(id));
         
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
@@ -289,7 +295,7 @@ export const AgreementList = () => {
           const { error: finesDeleteError } = await supabase
             .from('traffic_fines')
             .delete()
-            .eq('agreement_id', asAgreementIdColumn(id));
+            .eq('agreement_id', asTrafficFineIdColumn(id));
           
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
