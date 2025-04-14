@@ -51,6 +51,10 @@ export function asPaymentId(id: string): string {
   return id;
 }
 
+export function asProfileId(id: string): string {
+  return id;
+}
+
 export function asLeaseIdColumn(id: string): string {
   return id;
 }
