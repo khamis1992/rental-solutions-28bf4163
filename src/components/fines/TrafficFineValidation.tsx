@@ -1,241 +1,208 @@
 
-import React, { useState } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Info, CheckCircle, XCircle, Clock, AlertTriangle, Shield, Car } from "lucide-react";
-import { useTrafficFinesValidation, ValidationResult } from "@/hooks/use-traffic-fines-validation";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, Check, Loader2, Search } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 
-const ValidationInfoAlert = () => (
-  <Alert className="mb-6">
-    <Info className="h-4 w-4" />
-    <AlertTitle>About Traffic Fine Validation</AlertTitle>
-    <AlertDescription>
-      <p>This tool validates if a vehicle has any outstanding traffic fines by checking against the Ministry of Interior traffic system.</p>
-      
-      <h4 className="font-semibold mt-2 mb-1">This process will:</h4>
-      <ol className="list-decimal list-inside space-y-1 text-sm">
-        <li>Query the MOI traffic system with the provided license plate</li>
-        <li>Determine if there are any unpaid fines for the vehicle</li>
-        <li>Automatically update the status of any matching unpaid fines in our system</li>
-        <li>Store the validation history for future reference</li>
-      </ol>
-      
-      <div className="text-xs bg-blue-50 text-blue-800 p-2 rounded mt-2 border border-blue-200">
-        <p><strong>Note:</strong></p>
-        <p>The system connects to the official MOI traffic system. Validation may take a few moments to complete.</p>
-      </div>
-    </AlertDescription>
-  </Alert>
-);
+const validationSchema = z.object({
+  licensePlate: z.string().min(1, 'License plate is required'),
+});
 
-const ValidationStatus = ({ result }: { result: ValidationResult | null }) => {
-  if (!result) return null;
-  
-  return (
-    <Card className={`mt-4 ${result.hasFine ? 'border-red-300' : 'border-green-300'}`}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          {result.hasFine ? (
-            <>
-              <XCircle className="h-5 w-5 text-red-600" />
-              <span>Fine Detected</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle className="h-5 w-5 text-green-600" />
-              <span>No Fines Found</span>
-            </>
-          )}
-        </CardTitle>
-        <CardDescription>
-          License Plate: <span className="font-medium">{result.licensePlate}</span>
-          <br />
-          Validation Date: {new Date(result.validationDate).toLocaleString()}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p className={`text-sm ${result.hasFine ? 'text-red-600' : 'text-green-600'} font-medium`}>
-          {result.details}
-        </p>
-      </CardContent>
-    </Card>
-  );
-};
+type ValidationFormValues = z.infer<typeof validationSchema>;
 
-const ValidationHistoryItem = ({ validation }: { validation: ValidationResult }) => {
-  const date = new Date(validation.validationDate).toLocaleString();
-  
-  return (
-    <div className="flex items-start gap-2 p-3 border-b hover:bg-slate-50 transition-colors">
-      <div className={`p-1 rounded-full shrink-0 mt-1 ${validation.hasFine ? 'bg-red-100' : 'bg-green-100'}`}>
-        {validation.hasFine ? (
-          <XCircle className="h-4 w-4 text-red-600" />
-        ) : (
-          <CheckCircle className="h-4 w-4 text-green-600" />
-        )}
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <div className="flex justify-between items-center">
-          <p className="font-medium flex items-center gap-1">
-            <Car className="h-3 w-3" />
-            {validation.licensePlate}
-          </p>
-          <p className="text-xs text-gray-500">{date}</p>
-        </div>
-        <p className={`text-sm truncate ${validation.hasFine ? 'text-red-600' : 'text-green-600'}`}>
-          {validation.hasFine ? (
-            <span className="font-medium">Fine detected</span>
-          ) : (
-            <span>No fine found</span>
-          )}
-        </p>
-        <p className="text-xs text-gray-500 truncate">{validation.details}</p>
-      </div>
-    </div>
-  );
-};
-
-const TrafficFineValidation = () => {
-  const [licensePlate, setLicensePlate] = useState("");
+const TrafficFineValidation: React.FC = () => {
+  const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
-  const { validationHistory, validateTrafficFine, batchValidateTrafficFines, updateAllPendingFines } = useTrafficFinesValidation();
+  const { trafficFines } = useTrafficFines();
   
-  const handleValidation = async () => {
-    if (!licensePlate.trim()) {
-      toast.error("Please enter a license plate number");
-      return;
-    }
+  const form = useForm<ValidationFormValues>({
+    resolver: zodResolver(validationSchema),
+    defaultValues: {
+      licensePlate: '',
+    },
+  });
+
+  const onSubmit = async (data: ValidationFormValues) => {
+    setIsValidating(true);
+    setValidationResult(null);
     
     try {
-      setIsValidating(true);
-      const result = await validateTrafficFine(licensePlate);
-      setValidationResult(result);
-      toast.success("Validation completed", {
-        description: result.hasFine ? "Fine detected" : "No fines found"
+      // Find traffic fines for this license plate
+      const relevantFines = trafficFines?.filter(fine => 
+        fine.licensePlate?.toLowerCase() === data.licensePlate.toLowerCase()
+      ) || [];
+      
+      // Calculate some stats
+      const totalAmount = relevantFines.reduce((sum, fine) => sum + fine.fineAmount, 0);
+      const pendingAmount = relevantFines
+        .filter(fine => fine.paymentStatus === 'pending')
+        .reduce((sum, fine) => sum + fine.fineAmount, 0);
+      
+      // Create a validation record
+      const { error: validationError } = await supabase
+        .from('traffic_fine_validations')
+        .insert({
+          license_plate: data.licensePlate,
+          validation_date: new Date().toISOString(),
+          validation_source: 'manual',
+          result: {
+            fines_found: relevantFines.length,
+            total_amount: totalAmount,
+            pending_amount: pendingAmount,
+            fines: relevantFines.map(fine => ({
+              id: fine.id,
+              violation_number: fine.violationNumber,
+              violation_date: fine.violationDate,
+              amount: fine.fineAmount,
+              status: fine.paymentStatus
+            }))
+          },
+          status: 'completed'
+        });
+        
+      if (validationError) {
+        console.error('Error recording validation:', validationError);
+        toast.error('Error recording validation result');
+      }
+      
+      // Set the result for display
+      setValidationResult({
+        licensePlate: data.licensePlate,
+        finesCount: relevantFines.length,
+        totalAmount,
+        pendingAmount,
+        fines: relevantFines
       });
+      
     } catch (error) {
-      console.error("Validation error:", error);
-      toast.error("Validation failed", { 
-        description: error instanceof Error ? error.message : "An unexpected error occurred" 
-      });
+      console.error('Validation error:', error);
+      toast.error('Failed to validate license plate');
     } finally {
       setIsValidating(false);
     }
   };
-  
-  const handleBatchUpdate = async () => {
-    try {
-      // Pass an empty object to fix the TypeScript error
-      const result = await updateAllPendingFines.mutateAsync({});
-      toast.success("Batch update completed", {
-        description: result.message
-      });
-    } catch (error) {
-      console.error("Batch update error:", error);
-      toast.error("Batch update failed", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred"
-      });
-    }
-  };
-  
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="md:col-span-2 space-y-6">
-        <ValidationInfoAlert />
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Validate License Plate</CardTitle>
-            <CardDescription>
-              Check if a vehicle has any outstanding traffic fines
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div>
-                <Label htmlFor="license-plate">License Plate</Label>
-                <div className="flex gap-3 mt-1">
-                  <Input
-                    id="license-plate"
-                    placeholder="Enter license plate number"
-                    value={licensePlate}
-                    onChange={(e) => setLicensePlate(e.target.value)}
-                    className="flex-1"
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Traffic Fine Validation</CardTitle>
+          <CardDescription>
+            Check if a vehicle has any pending traffic fines
+          </CardDescription>
+        </CardHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent>
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-12 md:col-span-6">
+                  <FormField
+                    control={form.control}
+                    name="licensePlate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>License Plate</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter license plate" 
+                            {...field} 
+                            disabled={isValidating}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
+                </div>
+                <div className="col-span-12 md:col-span-6 md:flex md:items-end">
                   <Button 
-                    type="button" 
-                    onClick={handleValidation} 
-                    disabled={isValidating}
+                    type="submit" 
+                    disabled={isValidating} 
+                    className="w-full"
                   >
-                    {isValidating ? "Validating..." : "Validate"}
+                    {isValidating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Validating...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="mr-2 h-4 w-4" />
+                        Validate
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
-            </div>
-            
-            <ValidationStatus result={validationResult} />
-            
-            <Separator className="my-6" />
-            
-            <div>
-              <h3 className="text-lg font-medium mb-2">Batch Actions</h3>
-              <Button 
-                variant="outline" 
-                onClick={handleBatchUpdate}
-                disabled={updateAllPendingFines.isPending}
-                className="w-full sm:w-auto"
+            </CardContent>
+          </form>
+        </Form>
+        <CardFooter className="flex flex-col items-start">
+          {validationResult && (
+            <div className="w-full">
+              <Alert 
+                variant={validationResult.finesCount > 0 ? "destructive" : "default"}
+                className={validationResult.finesCount > 0 ? "mb-4" : ""}
               >
-                {updateAllPendingFines.isPending ? 
-                  "Processing..." : 
-                  "Update All Pending Fines"
-                }
-              </Button>
-              <p className="text-xs text-gray-500 mt-1">
-                This will check all pending fines against the MOI system and update their status
-              </p>
+                {validationResult.finesCount > 0 ? (
+                  <AlertCircle className="h-4 w-4" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                <AlertTitle>
+                  {validationResult.finesCount > 0 
+                    ? `${validationResult.finesCount} Traffic Fine(s) Found` 
+                    : 'No Traffic Fines Found'}
+                </AlertTitle>
+                <AlertDescription>
+                  {validationResult.finesCount > 0 
+                    ? `Total amount: $${validationResult.totalAmount.toFixed(2)}, Pending amount: $${validationResult.pendingAmount.toFixed(2)}`
+                    : `No traffic fines found for license plate ${validationResult.licensePlate}`}
+                </AlertDescription>
+              </Alert>
+
+              {validationResult.finesCount > 0 && (
+                <div className="mt-4 border rounded-md p-4">
+                  <h3 className="font-semibold mb-2">Fine Details</h3>
+                  <div className="space-y-2">
+                    {validationResult.fines.map((fine: any) => (
+                      <div key={fine.id} className="p-2 border rounded flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{fine.violationNumber}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(fine.violationDate).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium">${fine.fineAmount.toFixed(2)}</p>
+                          <p className={`text-sm ${
+                            fine.paymentStatus === 'paid' 
+                              ? 'text-green-600' 
+                              : fine.paymentStatus === 'disputed' 
+                                ? 'text-amber-600' 
+                                : 'text-red-600'
+                          }`}>
+                            {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <div>
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              Validation History
-            </CardTitle>
-            <CardDescription>Recent license plate validations</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {validationHistory && validationHistory.length > 0 ? (
-              <div className="space-y-0 max-h-[400px] overflow-y-auto border rounded-md">
-                {validationHistory.map((validation, index) => (
-                  <ValidationHistoryItem key={index} validation={validation} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center p-6 text-gray-500">
-                <AlertTriangle className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-                <p>No validation history available</p>
-                <p className="text-sm">Validate a license plate to see results</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardFooter>
+      </Card>
     </div>
   );
 };

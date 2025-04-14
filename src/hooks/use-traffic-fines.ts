@@ -29,6 +29,16 @@ export interface TrafficFinePayload {
   id: string;
 }
 
+export interface TrafficFineCreatePayload {
+  violationNumber: string;
+  licensePlate: string;
+  violationDate: Date;
+  fineAmount: number;
+  violationCharge?: string;
+  location?: string;
+  paymentStatus?: TrafficFineStatusType;
+}
+
 export const useTrafficFines = () => {
   const queryClient = useQueryClient();
   
@@ -111,6 +121,48 @@ export const useTrafficFines = () => {
         console.error('Error in traffic fines data fetching:', error);
         throw error;
       }
+    }
+  });
+  
+  // Create a new traffic fine
+  const createTrafficFine = useMutation({
+    mutationFn: async (fineData: TrafficFineCreatePayload) => {
+      try {
+        // Ensure licensePlate is present and not empty
+        if (!fineData.licensePlate || fineData.licensePlate.trim() === '') {
+          throw new Error('License plate is required for traffic fines');
+        }
+        
+        // Create payload for database
+        const dbPayload = {
+          violation_number: fineData.violationNumber,
+          license_plate: fineData.licensePlate.trim(),
+          violation_date: fineData.violationDate,
+          fine_amount: fineData.fineAmount,
+          violation_charge: fineData.violationCharge,
+          fine_location: fineData.location,
+          payment_status: fineData.paymentStatus || 'pending',
+          assignment_status: 'pending'
+        };
+        
+        const { data, error } = await supabase
+          .from('traffic_fines')
+          .insert(dbPayload)
+          .select('*')
+          .single();
+          
+        if (error) {
+          throw new Error(`Failed to create traffic fine: ${error.message}`);
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error creating traffic fine:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
     }
   });
   
@@ -240,7 +292,8 @@ export const useTrafficFines = () => {
     error,
     assignToCustomer,
     payTrafficFine,
-    disputeTrafficFine
+    disputeTrafficFine,
+    createTrafficFine
   };
 };
 
