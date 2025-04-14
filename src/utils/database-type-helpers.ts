@@ -55,6 +55,14 @@ export function asProfileId(id: string): string {
   return id;
 }
 
+export function asImportId(id: string): string {
+  return id;
+}
+
+export function asTrafficFineId(id: string): string {
+  return id;
+}
+
 /**
  * Common column ID casting functions for foreign keys and other fields
  */

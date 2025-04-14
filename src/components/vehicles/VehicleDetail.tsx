@@ -1,182 +1,286 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Edit, Trash2, AlertTriangle } from 'lucide-react';
-import { Skeleton } from "@/components/ui/skeleton";
+
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Vehicle } from '@/types/vehicle';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { supabase } from '@/lib/supabase';
-import { Vehicle, VehicleStatus } from '@/types/vehicle';
+  Car,
+  Calendar,
+  CreditCard,
+  MapPin,
+  Shield,
+  Clipboard,
+  Info,
+  Gauge,
+  Palette,
+  BarChart3
+} from 'lucide-react';
 
 interface VehicleDetailProps {
-  vehicleId?: string;
+  vehicle: Vehicle;
 }
 
-const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicleId }) => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
+  if (!vehicle) {
+    return null;
+  }
 
-  useEffect(() => {
-    const fetchVehicle = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('vehicles')
-          .select('*')
-          .eq('id', id || vehicleId)
-          .single();
-
-        if (error) {
-          console.error("Error fetching vehicle:", error);
-          return;
-        }
-
-        if (data) {
-          setVehicle(data as Vehicle);
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchVehicle();
-  }, [id, vehicleId]);
-
-  const handleDelete = async () => {
-    try {
-      const { error } = await supabase
-        .from('vehicles')
-        .delete()
-        .eq('id', id || vehicleId);
-
-      if (error) {
-        console.error("Error deleting vehicle:", error);
-        return;
-      }
-
-      navigate('/vehicles');
-    } finally {
-      setIsDeleteDialogOpen(false);
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'available':
+        return 'bg-green-100 text-green-800';
+      case 'rented':
+        return 'bg-blue-100 text-blue-800';
+      case 'maintenance':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'police_station':
+        return 'bg-purple-100 text-purple-800';
+      case 'accident':
+        return 'bg-red-100 text-red-800';
+      case 'stolen':
+        return 'bg-red-200 text-red-900';
+      case 'retired':
+        return 'bg-gray-100 text-gray-800';
+      case 'reserved':
+        return 'bg-indigo-100 text-indigo-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle><Skeleton className="h-6 w-1/2" /></CardTitle>
-          <CardDescription><Skeleton className="h-4 w-1/4" /></CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
-          <Skeleton className="h-4 w-2/3" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!vehicle) {
-    return (
-      <Card>
-        <CardContent className="flex flex-col items-center justify-center p-8">
-          <AlertTriangle className="h-10 w-10 text-red-500 mb-4" />
-          <CardTitle className="text-lg font-semibold">Vehicle Not Found</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            The requested vehicle could not be found.
-          </CardDescription>
-        </CardContent>
-      </Card>
-    );
-  }
+  const formatStatus = (status: string) => {
+    return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{vehicle.make} {vehicle.model}</CardTitle>
-        <CardDescription>Vehicle Details</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {vehicle?.image_url ? (
-          <img src={vehicle.image_url} alt={`${vehicle.make} ${vehicle.model}`} className="w-full h-auto object-cover rounded-lg" />
-        ) : (
-          <div className="w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500">
-            No Image
-          </div>
-        )}
-        <div className="space-y-1">
-          <p className="text-sm font-medium">Make: <span className="font-medium">{vehicle.make}</span></p>
-          <p className="text-sm font-medium">Model: <span className="font-medium">{vehicle.model}</span></p>
-          <p className="text-sm font-medium">Year: <span className="font-medium">{vehicle.year}</span></p>
-          <p className="text-sm font-medium">License Plate: <span className="font-medium">{vehicle.license_plate}</span></p>
-          <p className="text-sm font-medium">VIN: <span className="font-medium">{vehicle.vin}</span></p>
-          <p className="text-sm font-medium">Color: <span className="font-medium">{vehicle.color || 'Not specified'}</span></p>
-          <p className="text-sm font-medium">Mileage: <span className="font-medium">{vehicle?.mileage !== undefined ? (
-            <span className="font-medium">{vehicle.mileage}%</span>
+    <div className="space-y-6">
+      {/* Vehicle Header with Image */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        <div className="w-full lg:w-1/3 rounded-lg overflow-hidden h-64 bg-gray-100">
+          {vehicle?.image_url ? (
+            <img 
+              src={vehicle.image_url} 
+              alt={`${vehicle.make} ${vehicle.model}`} 
+              className="w-full h-full object-cover"
+            />
           ) : (
-            <span className="font-medium">Not Available</span>
-          )}</span></p>
-          <p className="text-sm font-medium">Rent Amount: <span className="font-medium">{formatCurrency(vehicle.rent_amount || 0)}</span></p>
-          <p className="text-sm font-medium">Status: <Badge variant="secondary">{vehicle.status}</Badge></p>
-          <p className="text-sm font-medium">Category: <span className="font-medium">Not specified</span></p>
-          <p className="text-sm font-medium">Transmission: <span className="font-medium">Not specified</span></p>
-          <p className="text-sm font-medium">Fuel Type: <span className="font-medium">Not specified</span></p>
-          <p className="text-sm font-medium">Last Serviced: <span className="font-medium">Not recorded</span></p>
-          <p className="text-sm font-medium">Next Service Due: <span className="font-medium">Not scheduled</span></p>
-          <p className="text-sm font-medium">Insurance Company: <span className="font-medium">{vehicle.insurance_company || 'Not specified'}</span></p>
-          <p className="text-sm font-medium">Insurance Expiry: <span className="font-medium">{vehicle.insurance_expiry ? format(new Date(vehicle.insurance_expiry), 'dd/MM/yyyy') : 'Not specified'}</span></p>
-          <p className="text-sm font-medium">Location: <span className="font-medium">{vehicle.location || 'Not specified'}</span></p>
-          <p className="text-sm font-medium">Description: <span className="font-medium">{vehicle.description || 'Not specified'}</span></p>
-          <p className="text-sm font-medium">Features: <span className="font-medium"><span className="text-muted-foreground">No features listed</span></span></p>
-          <p className="text-sm font-medium">Notes: {vehicle?.description ? (
-            <p className="text-sm mt-1">{vehicle.description}</p>
-          ) : (
-            <span className="text-muted-foreground">No notes</span>
-          )}</p>
+            <div className="w-full h-full flex items-center justify-center">
+              <Car size={64} className="text-gray-300" />
+              <span className="ml-2 text-gray-400">No image available</span>
+            </div>
+          )}
         </div>
-      </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <Button variant="outline" size="sm" onClick={() => navigate(`/vehicles/edit/${vehicle.id}`)}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit
-        </Button>
-        <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
-          <Trash2 className="h-4 w-4 mr-2" />
-          Delete
-        </Button>
-      </CardFooter>
-
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the vehicle from our
-              servers.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Card>
+        
+        <div className="w-full lg:w-2/3 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">{vehicle.make} {vehicle.model}</h1>
+              <p className="text-muted-foreground">{vehicle.year} • {vehicle.license_plate}</p>
+            </div>
+            <Badge className={`mt-2 md:mt-0 ${getStatusColor(vehicle.status)}`}>
+              {formatStatus(vehicle.status)}
+            </Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="flex items-center">
+              <CreditCard className="h-5 w-5 mr-2 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Rent Amount</p>
+                <p className="text-lg">{formatCurrency(vehicle.rent_amount || 0)}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <Palette className="h-5 w-5 mr-2 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Color</p>
+                <p className="text-lg">{vehicle.color || 'Not specified'}</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center">
+              <MapPin className="h-5 w-5 mr-2 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium">Location</p>
+                <p className="text-lg">{vehicle.location || 'Not specified'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Tabbed Content */}
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="insurance">Insurance</TabsTrigger>
+          <TabsTrigger value="additional">Additional Info</TabsTrigger>
+        </TabsList>
+        
+        {/* Details Tab */}
+        <TabsContent value="details" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Info className="h-5 w-5 mr-2" />
+                Vehicle Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VIN</span>
+                    <span className="font-medium">{vehicle.vin}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">License Plate</span>
+                    <span className="font-medium">{vehicle.license_plate}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Make</span>
+                    <span className="font-medium">{vehicle.make}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Model</span>
+                    <span className="font-medium">{vehicle.model}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Year</span>
+                    <span className="font-medium">{vehicle.year}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Mileage</span>
+                    <span className="font-medium">{vehicle.mileage !== undefined ? `${vehicle.mileage}km` : 'Not Available'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Color</span>
+                    <span className="font-medium">{vehicle.color || 'Not specified'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Transmission</span>
+                    <span className="font-medium">Not specified</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Fuel Type</span>
+                    <span className="font-medium">Not specified</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Category</span>
+                    <span className="font-medium">Not specified</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2" />
+                Financial Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Daily Rate</span>
+                    <span className="font-medium">{formatCurrency(vehicle.dailyRate || 0)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Monthly Rate</span>
+                    <span className="font-medium">{formatCurrency((vehicle.rent_amount || 0))}</span>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Current Customer</span>
+                    <span className="font-medium">{vehicle.currentCustomer || 'None'}</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Insurance Tab */}
+        <TabsContent value="insurance">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Shield className="h-5 w-5 mr-2" />
+                Insurance Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Insurance Company</span>
+                      <span className="font-medium">{vehicle.insurance_company || 'Not specified'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Insurance Expiry</span>
+                      <span className="font-medium">
+                        {vehicle.insurance_expiry 
+                          ? format(new Date(vehicle.insurance_expiry), 'dd/MM/yyyy') 
+                          : 'Not specified'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        {/* Additional Info Tab */}
+        <TabsContent value="additional">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clipboard className="h-5 w-5 mr-2" />
+                Additional Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Description</h3>
+                  <p className="text-muted-foreground">
+                    {vehicle.description || 'No description available for this vehicle.'}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Maintenance Schedule</h3>
+                  <div className="text-muted-foreground">
+                    <p>Last serviced: Not recorded</p>
+                    <p>Next service due: Not scheduled</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Features</h3>
+                  <p className="text-muted-foreground">No features listed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
