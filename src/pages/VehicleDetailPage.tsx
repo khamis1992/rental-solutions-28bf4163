@@ -21,18 +21,27 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { asVehicleId } from '@/utils/database-type-helpers';
 
 const VehicleDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
   const { useVehicle, useDelete } = useVehicles();
-  const { data: vehicle, isLoading, error } = useVehicle(id || '');
+  const { data: vehicle, isLoading, error, refetch } = useVehicle(id ? asVehicleId(id) : '');
   const { mutate: deleteVehicle, isPending: isDeleting } = useDelete();
+  
+  // Force a refresh on component mount
+  React.useEffect(() => {
+    if (id) {
+      console.log('VehicleDetailPage: Fetching fresh vehicle data for ID:', id);
+      refetch();
+    }
+  }, [id, refetch]);
   
   const handleDelete = async () => {
     if (id) {
-      deleteVehicle(id, {
+      deleteVehicle(asVehicleId(id), {
         onSuccess: () => {
           toast.success('Vehicle deleted successfully', {
             description: 'You have been redirected to the vehicles list'
@@ -49,9 +58,13 @@ const VehicleDetailPage = () => {
   };
 
   const handleScheduleMaintenance = () => {
-    toast('Feature coming soon', {
-      description: 'Maintenance scheduling will be available in a future update'
-    });
+    if (id) {
+      navigate(`/maintenance/schedule/${id}`);
+    } else {
+      toast('Feature coming soon', {
+        description: 'Maintenance scheduling will be available in a future update'
+      });
+    }
   };
   
   if (isLoading) {
@@ -93,7 +106,8 @@ const VehicleDetailPage = () => {
             <AlertOctagon className="h-6 w-6 mr-2" />
             <h2 className="text-xl font-semibold">Vehicle Not Found</h2>
           </div>
-          <p>The vehicle you're looking for doesn't exist or has been removed.</p>
+          <p className="mb-2">The vehicle you're looking for doesn't exist or has been removed.</p>
+          <p className="text-sm text-red-600">{error instanceof Error ? error.message : 'Failed to load vehicle data'}</p>
           <Button 
             className="mt-4" 
             variant="outline" 
@@ -178,7 +192,10 @@ const VehicleDetailPage = () => {
       />
       
       <div className="section-transition mt-6">
-        <VehicleDetail vehicle={vehicle} />
+        <VehicleDetail 
+          vehicle={vehicle} 
+          key={`vehicle-detail-${vehicle.id}-${vehicle.updated_at}`} 
+        />
       </div>
     </PageContainer>
   );

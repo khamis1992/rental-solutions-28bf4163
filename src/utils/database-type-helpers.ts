@@ -63,6 +63,14 @@ export function asTrafficFineId(id: string): string {
   return id;
 }
 
+export function asCustomerId(id: string): string {
+  return id;
+}
+
+export function asMaintenanceId(id: string): string {
+  return id;
+}
+
 /**
  * Common column ID casting functions for foreign keys and other fields
  */
@@ -91,6 +99,10 @@ export function asAgreementStatusColumn(status: string): string {
 }
 
 export function asPaymentStatusColumn(status: string): string {
+  return status;
+}
+
+export function asVehicleStatusColumn(status: string): string {
   return status;
 }
 
