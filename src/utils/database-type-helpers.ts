@@ -203,3 +203,14 @@ export function hasData<T>(
 ): response is { data: T; error: null } {
   return !response?.error && response?.data !== null;
 }
+
+// Add specific casting functions for Agreement List error fixes
+export function asAgreementIdColumn(id: string): string {
+  return id;
+}
+
+// Add helpers for financial data related to vehicles
+export function asVehicleFinancialData(data: any): any {
+  return data;
+}
+

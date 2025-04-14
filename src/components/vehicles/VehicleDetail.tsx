@@ -1,12 +1,12 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Vehicle } from '@/types/vehicle';
+import { supabase } from '@/lib/supabase';
 import {
   Car,
   Calendar,
@@ -17,14 +17,97 @@ import {
   Info,
   Gauge,
   Palette,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from 'lucide-react';
+import { asVehicleId } from '@/utils/database-type-helpers';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
 }
 
 const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
+  const [financialData, setFinancialData] = useState<any>(null);
+  const [isLoadingFinancials, setIsLoadingFinancials] = useState<boolean>(false);
+  const [financialError, setFinancialError] = useState<Error | null>(null);
+  
+  // Fetch financial data when the component mounts or when the vehicle ID changes
+  useEffect(() => {
+    const fetchFinancialData = async () => {
+      if (!vehicle?.id) return;
+      
+      setIsLoadingFinancials(true);
+      setFinancialError(null);
+      
+      try {
+        console.log('Fetching financial data for vehicle:', vehicle.id);
+        
+        // Get all leases associated with this vehicle to calculate revenue
+        const { data: leaseData, error: leaseError } = await supabase
+          .from('leases')
+          .select('id, rent_amount, total_amount, status')
+          .eq('vehicle_id', asVehicleId(vehicle.id));
+        
+        if (leaseError) throw new Error(leaseError.message);
+        
+        // Get unified payments for this vehicle's leases
+        let payments: any[] = [];
+        if (leaseData && leaseData.length > 0) {
+          const leaseIds = leaseData.map(lease => lease.id);
+          
+          const { data: paymentData, error: paymentError } = await supabase
+            .from('unified_payments')
+            .select('*')
+            .in('lease_id', leaseIds);
+            
+          if (paymentError) throw new Error(paymentError.message);
+          payments = paymentData || [];
+        }
+        
+        // Get maintenance costs
+        const { data: maintenanceData, error: maintenanceError } = await supabase
+          .from('maintenance')
+          .select('cost')
+          .eq('vehicle_id', asVehicleId(vehicle.id));
+          
+        if (maintenanceError) throw new Error(maintenanceError.message);
+        
+        // Calculate financial metrics
+        const totalMaintenance = maintenanceData?.reduce((acc, maintenance) => acc + (maintenance.cost || 0), 0) || 0;
+        const totalRevenue = payments.reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
+        const totalPotentialRevenue = leaseData?.reduce((acc, lease) => acc + (lease.total_amount || 0), 0) || 0;
+        const currentMonthRevenue = payments
+          .filter(payment => {
+            if (!payment.payment_date) return false;
+            const paymentDate = new Date(payment.payment_date);
+            const now = new Date();
+            return paymentDate.getMonth() === now.getMonth() && 
+                  paymentDate.getFullYear() === now.getFullYear();
+          })
+          .reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
+          
+        setFinancialData({
+          totalRevenue,
+          totalPotentialRevenue,
+          currentMonthRevenue,
+          totalMaintenance,
+          netProfit: totalRevenue - totalMaintenance,
+          currentCustomerPayments: payments.filter(p => p.status === 'paid').length,
+          dailyRate: vehicle.dailyRate || (vehicle.rent_amount ? vehicle.rent_amount / 30 : 0),
+          roi: totalMaintenance > 0 ? (totalRevenue / totalMaintenance * 100).toFixed(1) + '%' : 'N/A',
+          latestPayments: payments.slice(0, 5)
+        });
+      } catch (err) {
+        console.error('Error fetching financial data:', err);
+        setFinancialError(err instanceof Error ? err : new Error('Unknown error fetching financial data'));
+      } finally {
+        setIsLoadingFinancials(false);
+      }
+    };
+
+    fetchFinancialData();
+  }, [vehicle?.id]);
+
   if (!vehicle) {
     return null;
   }
@@ -198,25 +281,61 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Daily Rate</span>
-                    <span className="font-medium">{formatCurrency(vehicle.dailyRate || 0)}</span>
-                  </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Monthly Rate</span>
-                    <span className="font-medium">{formatCurrency((vehicle.rent_amount || 0))}</span>
+              {isLoadingFinancials ? (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
+              ) : financialError ? (
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 flex items-start">
+                  <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 mr-2" />
+                  <div>
+                    <p className="font-medium text-red-700">Error loading financial data</p>
+                    <p className="text-sm text-red-600">{financialError.message}</p>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  <div className="flex justify-between border-b pb-2">
-                    <span className="text-muted-foreground">Current Customer</span>
-                    <span className="font-medium">{vehicle.currentCustomer || 'None'}</span>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Daily Rate</span>
+                      <span className="font-medium">{formatCurrency(financialData?.dailyRate || vehicle.dailyRate || 0)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Monthly Rate</span>
+                      <span className="font-medium">{formatCurrency(vehicle.rent_amount || 0)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Total Revenue</span>
+                      <span className="font-medium text-green-600">{formatCurrency(financialData?.totalRevenue || 0)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Current Month Revenue</span>
+                      <span className="font-medium">{formatCurrency(financialData?.currentMonthRevenue || 0)}</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Maintenance Costs</span>
+                      <span className="font-medium text-red-600">{formatCurrency(financialData?.totalMaintenance || 0)}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Net Profit</span>
+                      <span className={`font-medium ${(financialData?.netProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(financialData?.netProfit || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">ROI</span>
+                      <span className="font-medium">{financialData?.roi || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between border-b pb-2">
+                      <span className="text-muted-foreground">Current Customer</span>
+                      <span className="font-medium">{vehicle.currentCustomer || 'None'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
