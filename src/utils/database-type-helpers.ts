@@ -141,3 +141,12 @@ export function ensureDataExists<T>(
   }
   return response.data;
 }
+
+/**
+ * Type guard to check if a response has data
+ */
+export function hasData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { data: T; error: null } {
+  return !response?.error && response?.data !== null;
+}
