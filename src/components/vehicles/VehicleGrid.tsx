@@ -17,7 +17,17 @@ interface VehicleGridProps {
 
 const VehicleGrid: React.FC<VehicleGridProps> = ({ onSelectVehicle, filter, showAdd = true }) => {
   const { useList } = useVehicles();
-  const { data: vehicles, isLoading, error } = useList(filter);
+  
+  // Handle case when filter.status contains multiple statuses (comma-separated)
+  const processedFilter = { ...filter };
+  if (filter?.status && filter.status.includes(',')) {
+    // Remove status from filter object as we'll handle it separately
+    const { status, ...restFilter } = processedFilter;
+    processedFilter.statuses = status.split(',');
+    delete processedFilter.status;
+  }
+  
+  const { data: vehicles, isLoading, error } = useList(processedFilter);
   const navigate = useNavigate();
   
   // Handle navigation to vehicle details

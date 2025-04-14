@@ -36,6 +36,13 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
       console.log(`API fetchVehicles: Filtering by status ${filters.status} (mapped to DB status: ${dbStatus})`);
     }
     
+    // Handle multiple statuses as an array
+    if (filters.statuses && filters.statuses.length > 0) {
+      const dbStatuses = filters.statuses.map(status => mapToDBStatus(status));
+      query = query.in('status', dbStatuses);
+      console.log(`API fetchVehicles: Filtering by multiple statuses: ${dbStatuses.join(', ')}`);
+    }
+    
     if (filters.make) {
       query = query.eq('make', filters.make);
     }
