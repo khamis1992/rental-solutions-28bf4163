@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +30,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const [isLoadingFinancials, setIsLoadingFinancials] = useState<boolean>(false);
   const [financialError, setFinancialError] = useState<Error | null>(null);
   
-  // Fetch financial data when the component mounts or when the vehicle ID changes
   useEffect(() => {
     const fetchFinancialData = async () => {
       if (!vehicle?.id) return;
@@ -42,7 +40,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
       try {
         console.log('Fetching financial data for vehicle:', vehicle.id);
         
-        // Get all leases associated with this vehicle to calculate revenue
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('id, rent_amount, total_amount, status')
@@ -50,7 +47,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
         
         if (leaseError) throw new Error(leaseError.message);
         
-        // Get unified payments for this vehicle's leases
         let payments: any[] = [];
         if (leaseData && leaseData.length > 0) {
           const leaseIds = leaseData.map(lease => lease.id);
@@ -64,7 +60,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           payments = paymentData || [];
         }
         
-        // Get maintenance costs
         const { data: maintenanceData, error: maintenanceError } = await supabase
           .from('maintenance')
           .select('cost')
@@ -72,7 +67,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           
         if (maintenanceError) throw new Error(maintenanceError.message);
         
-        // Calculate financial metrics
         const totalMaintenance = maintenanceData?.reduce((acc, maintenance) => acc + (maintenance.cost || 0), 0) || 0;
         const totalRevenue = payments.reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
         const totalPotentialRevenue = leaseData?.reduce((acc, lease) => acc + (lease.total_amount || 0), 0) || 0;
@@ -86,6 +80,8 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           })
           .reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
           
+        const fixedDailyRate = 100;
+          
         setFinancialData({
           totalRevenue,
           totalPotentialRevenue,
@@ -93,7 +89,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           totalMaintenance,
           netProfit: totalRevenue - totalMaintenance,
           currentCustomerPayments: payments.filter(p => p.status === 'paid').length,
-          dailyRate: vehicle.dailyRate || (vehicle.rent_amount ? vehicle.rent_amount / 30 : 0),
+          dailyRate: fixedDailyRate,
           roi: totalMaintenance > 0 ? (totalRevenue / totalMaintenance * 100).toFixed(1) + '%' : 'N/A',
           latestPayments: payments.slice(0, 5)
         });
@@ -107,10 +103,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
 
     fetchFinancialData();
   }, [vehicle?.id]);
-
-  if (!vehicle) {
-    return null;
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -139,9 +131,10 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     return status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown';
   };
 
+  const monthlyRate = vehicle.rent_amount || (100 * 30);
+
   return (
     <div className="space-y-6">
-      {/* Vehicle Header with Image */}
       <div className="flex flex-col lg:flex-row gap-6 items-start">
         <div className="w-full lg:w-1/3 rounded-lg overflow-hidden h-64 bg-gray-100 border border-gray-200 shadow-sm">
           {vehicle?.image_url ? (
@@ -197,7 +190,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
         </div>
       </div>
       
-      {/* Tabbed Content */}
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="grid grid-cols-3 mb-4">
           <TabsTrigger value="details">Details</TabsTrigger>
@@ -205,7 +197,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           <TabsTrigger value="additional">Additional Info</TabsTrigger>
         </TabsList>
         
-        {/* Details Tab */}
         <TabsContent value="details" className="space-y-4">
           <Card>
             <CardHeader>
@@ -298,11 +289,11 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                   <div className="space-y-2">
                     <div className="flex justify-between border-b pb-2">
                       <span className="text-muted-foreground">Daily Rate</span>
-                      <span className="font-medium">{formatCurrency(financialData?.dailyRate || vehicle.dailyRate || 0)}</span>
+                      <span className="font-medium">{formatCurrency(100)}</span>
                     </div>
                     <div className="flex justify-between border-b pb-2">
                       <span className="text-muted-foreground">Monthly Rate</span>
-                      <span className="font-medium">{formatCurrency(vehicle.rent_amount || 0)}</span>
+                      <span className="font-medium">{formatCurrency(monthlyRate)}</span>
                     </div>
                     <div className="flex justify-between border-b pb-2">
                       <span className="text-muted-foreground">Total Revenue</span>
@@ -340,7 +331,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           </Card>
         </TabsContent>
         
-        {/* Insurance Tab */}
         <TabsContent value="insurance">
           <Card>
             <CardHeader>
@@ -380,7 +370,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           </Card>
         </TabsContent>
         
-        {/* Additional Info Tab */}
         <TabsContent value="additional">
           <Card>
             <CardHeader>
