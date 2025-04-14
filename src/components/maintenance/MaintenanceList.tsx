@@ -38,13 +38,16 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export const MaintenanceList = () => {
+  
   const { 
     getAll,
     remove,
     getAllRecords
   } = useMaintenance();
   const { useList: useVehicleList } = useVehicles();
-  const { data: vehicles } = useVehicleList();
+  const { data: vehicles } = useVehicleList({
+    statuses: ['maintenance', 'accident', 'available', 'rented', 'reserved']
+  });
   const navigate = useNavigate();
   
   const [maintenanceRecords, setMaintenanceRecords] = useState([]);
@@ -74,6 +77,7 @@ export const MaintenanceList = () => {
     
     fetchMaintenance();
   }, []);
+  
   
   const handleSelectRecord = (id) => {
     if (selectedRecords.includes(id)) {
@@ -284,6 +288,7 @@ export const MaintenanceList = () => {
           <CardTitle>Maintenance Records</CardTitle>
         </CardHeader>
         <CardContent>
+          
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map((_, index) => (

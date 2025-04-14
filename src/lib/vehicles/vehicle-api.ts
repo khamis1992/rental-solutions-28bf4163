@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
@@ -28,8 +27,15 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     .select('*, vehicle_types(*)');
   
   if (filters) {
-    // Use a simple for loop with explicit string keys to avoid deep type instantiation
-    if (filters.status) {
+    // Support for multiple statuses
+    if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
+      // Map all statuses to DB format
+      const dbStatuses = filters.statuses.map(status => mapToDBStatus(status));
+      query = query.in('status', dbStatuses);
+      console.log(`API fetchVehicles: Filtering by multiple statuses: ${filters.statuses.join(', ')} (mapped to DB statuses: ${dbStatuses.join(', ')})`);
+    }
+    // Single status filter (backward compatibility)
+    else if (filters.status) {
       // Convert application status to database status
       const dbStatus = mapToDBStatus(filters.status);
       query = query.eq('status', dbStatus);

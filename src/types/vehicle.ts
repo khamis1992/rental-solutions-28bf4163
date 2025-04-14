@@ -63,6 +63,7 @@ export interface VehicleFormData {
  */
 export interface VehicleFilterParams {
   status?: string;
+  statuses?: string[];
   make?: string;
   model?: string;
   year?: number | null;
