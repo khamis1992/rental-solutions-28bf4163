@@ -36,12 +36,6 @@ export interface Vehicle {
   vehicle_type_id?: string | null;
   currentCustomer?: string | null;
   dailyRate?: number | null;
-  vehicleType?: {
-    id: string;
-    name: string;
-    daily_rate: number;
-    features?: string[];
-  };
 }
 
 /**
@@ -69,7 +63,6 @@ export interface VehicleFormData {
  */
 export interface VehicleFilterParams {
   status?: string;
-  statuses?: string[]; // New field for multiple status filtering
   make?: string;
   model?: string;
   year?: number | null;
@@ -78,9 +71,6 @@ export interface VehicleFilterParams {
   searchTerm?: string;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
-  search?: string;
-  location?: string;
-  vehicle_type_id?: string;
 }
 
 /**
@@ -94,8 +84,4 @@ export interface VehicleType {
   weekly_rate?: number;
   monthly_rate?: number;
   description?: string;
-  features?: string[];
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
 }
