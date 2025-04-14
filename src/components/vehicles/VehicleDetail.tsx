@@ -20,6 +20,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { asVehicleId } from '@/utils/database-type-helpers';
+import { useMaintenance } from '@/hooks/use-maintenance';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
@@ -29,6 +30,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const [financialData, setFinancialData] = useState<any>(null);
   const [isLoadingFinancials, setIsLoadingFinancials] = useState<boolean>(false);
   const [financialError, setFinancialError] = useState<Error | null>(null);
+  const { getByVehicleId } = useMaintenance();
   
   useEffect(() => {
     const fetchFinancialData = async () => {
@@ -60,14 +62,18 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           payments = paymentData || [];
         }
         
-        const { data: maintenanceData, error: maintenanceError } = await supabase
-          .from('maintenance')
-          .select('cost')
-          .eq('vehicle_id', asVehicleId(vehicle.id));
-          
-        if (maintenanceError) throw new Error(maintenanceError.message);
+        let maintenanceRecords = [];
+        let totalMaintenance = 0;
         
-        const totalMaintenance = maintenanceData?.reduce((acc, maintenance) => acc + (maintenance.cost || 0), 0) || 0;
+        try {
+          maintenanceRecords = await getByVehicleId(asVehicleId(vehicle.id));
+          totalMaintenance = maintenanceRecords.reduce((acc, maintenance) => acc + (parseFloat(maintenance.cost) || 0), 0);
+          console.log('Maintenance records:', maintenanceRecords.length, 'Total cost:', totalMaintenance);
+        } catch (maintenanceError) {
+          console.error('Error fetching maintenance data:', maintenanceError);
+          setFinancialError(maintenanceError);
+        }
+        
         const totalRevenue = payments.reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
         const totalPotentialRevenue = leaseData?.reduce((acc, lease) => acc + (lease.total_amount || 0), 0) || 0;
         const currentMonthRevenue = payments
@@ -81,6 +87,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           .reduce((acc, payment) => acc + (payment.amount_paid || 0), 0);
           
         const fixedDailyRate = 100;
+        const monthlyRate = vehicle.rent_amount || (fixedDailyRate * 30);
           
         setFinancialData({
           totalRevenue,
@@ -90,6 +97,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           netProfit: totalRevenue - totalMaintenance,
           currentCustomerPayments: payments.filter(p => p.status === 'paid').length,
           dailyRate: fixedDailyRate,
+          monthlyRate: monthlyRate,
           roi: totalMaintenance > 0 ? (totalRevenue / totalMaintenance * 100).toFixed(1) + '%' : 'N/A',
           latestPayments: payments.slice(0, 5)
         });
@@ -102,7 +110,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     };
 
     fetchFinancialData();
-  }, [vehicle?.id]);
+  }, [vehicle?.id, getByVehicleId]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -130,8 +138,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const formatStatus = (status: string) => {
     return status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown';
   };
-
-  const monthlyRate = vehicle.rent_amount || (100 * 30);
 
   return (
     <div className="space-y-6">
@@ -289,11 +295,11 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
                   <div className="space-y-2">
                     <div className="flex justify-between border-b pb-2">
                       <span className="text-muted-foreground">Daily Rate</span>
-                      <span className="font-medium">{formatCurrency(100)}</span>
+                      <span className="font-medium">{formatCurrency(financialData?.dailyRate || 100)}</span>
                     </div>
                     <div className="flex justify-between border-b pb-2">
                       <span className="text-muted-foreground">Monthly Rate</span>
-                      <span className="font-medium">{formatCurrency(monthlyRate)}</span>
+                      <span className="font-medium">{formatCurrency(financialData?.monthlyRate || (100 * 30))}</span>
                     </div>
                     <div className="flex justify-between border-b pb-2">
                       <span className="text-muted-foreground">Total Revenue</span>
