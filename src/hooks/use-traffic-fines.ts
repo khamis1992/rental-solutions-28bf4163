@@ -95,9 +95,10 @@ export const useTrafficFines = () => {
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          violationDate: new Date(fine.violation_date),
+          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
           fineAmount: fine.fine_amount || 0,
           violationCharge: fine.violation_charge,
+          // Handle null/undefined payment_status by defaulting to 'pending'
           paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
           location: fine.fine_location,
           vehicleId: fine.vehicle_id,
@@ -122,7 +123,7 @@ export const useTrafficFines = () => {
         const { data: fine, error: fineError } = await supabase
           .from('traffic_fines')
           .select('license_plate')
-          .eq('id', asTableId('traffic_fines', id))
+          .eq('id', id)
           .single();
           
         if (fineError || !fine) {
@@ -148,8 +149,8 @@ export const useTrafficFines = () => {
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
           .select('id, customer_id')
-          .eq('vehicle_id', asTableId('leases', vehicleData.id))
-          .eq('status', asColumnValue('leases', 'status', 'active'))
+          .eq('vehicle_id', vehicleData.id)
+          .eq('status', 'active')
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
@@ -162,10 +163,10 @@ export const useTrafficFines = () => {
         const { error: updateError } = await supabase
           .from('traffic_fines')
           .update({ 
-            lease_id: asTableId('traffic_fines', leaseData.id),
+            lease_id: leaseData.id,
             assignment_status: 'assigned'
           })
-          .eq('id', asTableId('traffic_fines', id));
+          .eq('id', id);
           
         if (updateError) {
           throw new Error(`Failed to assign fine: ${updateError.message}`);
@@ -199,10 +200,10 @@ export const useTrafficFines = () => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ 
-          payment_status: asColumnValue('traffic_fines', 'payment_status', 'paid'),
+          payment_status: 'paid',
           payment_date: new Date().toISOString()
         })
-        .eq('id', asTableId('traffic_fines', id));
+        .eq('id', id);
         
       if (error) {
         throw new Error(`Failed to pay fine: ${error.message}`);
@@ -220,8 +221,8 @@ export const useTrafficFines = () => {
     mutationFn: async ({ id }: TrafficFinePayload) => {
       const { error } = await supabase
         .from('traffic_fines')
-        .update({ payment_status: asColumnValue('traffic_fines', 'payment_status', 'disputed') })
-        .eq('id', asTableId('traffic_fines', id));
+        .update({ payment_status: 'disputed' })
+        .eq('id', id);
         
       if (error) {
         throw new Error(`Failed to dispute fine: ${error.message}`);
@@ -243,8 +244,3 @@ export const useTrafficFines = () => {
     disputeTrafficFine
   };
 };
-
-// Helper for type-safe column value assignment
-function asColumnValue<T extends keyof any>(table: string, column: string, value: T): T {
-  return value;
-}
