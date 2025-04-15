@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -125,7 +124,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
     
     const searchLower = customerNameSearch.toLowerCase().trim();
     return agreements.filter(agreement => {
-      const customerName = agreement.customers?.full_name || '';
+      const customerName = agreement.profiles?.full_name || '';
       return customerName.toLowerCase().includes(searchLower);
     });
   }, [agreements, customerNameSearch]);
@@ -154,13 +153,13 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       accessorKey: 'customers',
       header: 'Customer',
       cell: ({ row }) => {
-        const customer = row.original.customers;
-        return customer ? (
+        const profile = row.original.profiles;
+        return profile ? (
           <Link 
-            to={`/customers/${customer.id}`}
+            to={`/customers/${profile.id}`}
             className="hover:underline"
           >
-            {customer.full_name || 'N/A'}
+            {profile.full_name || 'N/A'}
           </Link>
         ) : 'N/A';
       }
@@ -284,18 +283,13 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
     
     setIsDeleting(true);
     
-    // Get the IDs of selected rows
     const selectedIds = Object.keys(rowSelection).map(
       index => filteredAgreements[parseInt(index)].id
     );
     
-    // Confirm deletion
     if (selectedIds.length > 0) {
       try {
-        // Use the deleteAgreement mutation
         deleteAgreement.mutate(selectedIds);
-        
-        // Reset selection and close dialog
         setRowSelection({});
         setBulkDeleteDialogOpen(false);
       } catch (error) {

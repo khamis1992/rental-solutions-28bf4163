@@ -34,6 +34,11 @@ export interface Agreement {
     year?: number;
     color?: string;
     vin?: string;
+    vehicle_type_id?: string;
+    vehicleType?: {
+      id: string;
+      name: string;
+    };
   };
 }
 

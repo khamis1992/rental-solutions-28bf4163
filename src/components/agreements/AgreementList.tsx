@@ -319,7 +319,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', asAgreementIdColumn(id));
+          .eq('agreement_id', asAgreementIdColumn(id as any));
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -455,15 +455,15 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       accessorKey: "customers.full_name",
       header: "Customer",
       cell: ({ row }) => {
-        const customer = row.original.customers;
+        const profile = row.original.profiles;
         return (
           <div>
-            {customer && customer.id ? (
+            {profile && profile.id ? (
               <Link 
-                to={`/customers/${customer.id}`}
+                to={`/customers/${profile.id}`}
                 className="hover:underline"
               >
-                {customer.full_name || 'N/A'}
+                {profile.full_name || 'N/A'}
               </Link>
             ) : (
               'N/A'

@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 /**
  * Custom hook for managing agreement status changes
@@ -55,7 +56,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       setStatusUpdateProgress("Updating agreement status...");
       const { error: updateError } = await supabase
         .from('leases')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', id as any);
         
       if (updateError) {
@@ -139,19 +140,21 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
   const generatePaymentSchedule = async (id: string): Promise<{ success: boolean; message: string }> => {
     try {
       // First get the agreement details
-      const { data, error } = await supabase
+      const response = await supabase
         .from('leases')
         .select('*')
         .eq('id', id as any)
         .single();
         
-      if (error || !data) {
-        console.error("Error fetching agreement for payment schedule:", error);
+      if (!hasData(response)) {
+        console.error("Error fetching agreement for payment schedule:", response.error);
         return { 
           success: false, 
-          message: `Failed to fetch agreement details: ${error?.message || 'No data found'}` 
+          message: `Failed to fetch agreement details: ${response.error?.message || 'No data found'}` 
         };
       }
+      
+      const data = response.data;
       
       // Check if payment already exists
       const { data: existingPayments, error: checkError } = await supabase
@@ -194,7 +197,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       
       const { error: insertError } = await supabase
         .from('unified_payments')
-        .insert(paymentData);
+        .insert([paymentData as any]);
         
       if (insertError) {
         console.error("Error creating payment:", insertError);

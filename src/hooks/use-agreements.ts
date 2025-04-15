@@ -5,6 +5,7 @@ import { Agreement } from '@/types/agreement';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 export interface UseAgreementsProps {
   status?: string;
@@ -45,11 +46,11 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       .order('created_at', { ascending: false });
 
     if (status && status !== 'all') {
-      query = query.eq('status', status);
+      query = query.eq('status', status as any);
     }
     
     if (customer_id) {
-      query = query.eq('customer_id', customer_id);
+      query = query.eq('customer_id', customer_id as any);
     }
 
     const { data, error } = await query;
@@ -99,7 +100,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       const { data, error } = await supabase
         .from('leases')
         .update(updatedAgreement as any)
-        .eq('id', updatedAgreement.id)
+        .eq('id', updatedAgreement.id as any)
         .select()
         .single();
 
@@ -159,7 +160,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
           license_plate
         )
       `)
-      .eq('id', id)
+      .eq('id', id as any)
       .single();
 
     if (error) {
