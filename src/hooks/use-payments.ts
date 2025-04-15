@@ -9,16 +9,17 @@ export interface Payment {
   amount: number;
   amount_paid: number;
   balance: number;
-  payment_date: string;
-  payment_method?: string;
+  payment_date: string | null;
+  due_date: string | null;  // Added this property to match PaymentHistory.types
   status: string;
+  payment_method?: string;
   description?: string;
   type?: string;
   late_fine_amount?: number;
   days_overdue?: number;
-  original_due_date?: string;
-  created_at?: string;
-  updated_at?: string;
+  original_due_date?: string | null;
+  created_at: string;  // Changed from optional to required
+  updated_at: string;  // Changed from optional to required
 }
 
 export const usePayments = (agreementId?: string) => {

@@ -36,8 +36,7 @@ export function VehicleOnboardingWizard({
     documents_verified: false
   });
   const [isProcessing, setIsProcessing] = useState(false);
-  const { useCreate } = useVehicles();
-  const { mutate: createVehicle } = useCreate();
+  const { addVehicle } = useVehicles();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -64,6 +63,7 @@ export function VehicleOnboardingWizard({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsProcessing(true);
     
     try {
       const vehicleData = {
@@ -71,7 +71,7 @@ export function VehicleOnboardingWizard({
         year: Number(formData.year),
       };
       
-      await createVehicle(vehicleData);
+      await addVehicle(vehicleData);
       toast.success("Vehicle successfully onboarded");
       onComplete();
       onClose();
@@ -132,7 +132,7 @@ export function VehicleOnboardingWizard({
         <Label htmlFor="insurance_expiry">Insurance Expiry Date</Label>
         <Input type="date" id="insurance_expiry" name="insurance_expiry" value={formData.insurance_expiry} onChange={handleInputChange} />
       </div>
-      <VehicleImageUpload onUpload={(url) => console.log('Image uploaded:', url)} />
+      <VehicleImageUpload onImageSelected={(file) => console.log('Image selected:', file)} />
     </div>
   );
 

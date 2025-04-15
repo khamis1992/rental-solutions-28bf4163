@@ -125,8 +125,7 @@ export const useVehicles = () => {
       toast.error(`Error deleting vehicle: ${error.message}`);
     }
   });
-  
-  // Add useRealtimeUpdates method
+
   const useRealtimeUpdates = () => {
     const queryClient = useQueryClient();
     
@@ -145,6 +144,22 @@ export const useVehicles = () => {
     }, [queryClient]);
   };
 
+  const useList = () => {
+    return {
+      data: vehicles,
+      isLoading,
+      error
+    };
+  };
+
+  const useCreate = () => {
+    return {
+      mutate: (vehicleData: Omit<Vehicle, 'id' | 'created_at' | 'updated_at'>) => {
+        return addVehicle.mutateAsync(vehicleData);
+      }
+    };
+  };
+
   return {
     vehicles,
     isLoading,
@@ -152,6 +167,8 @@ export const useVehicles = () => {
     addVehicle: addVehicle.mutateAsync,
     updateVehicle: updateVehicle.mutateAsync,
     deleteVehicle: deleteVehicle.mutateAsync,
-    useRealtimeUpdates
+    useRealtimeUpdates,
+    useList,
+    useCreate
   };
 };

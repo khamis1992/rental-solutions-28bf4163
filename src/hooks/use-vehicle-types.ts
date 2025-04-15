@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-export interface VehicleType {
+interface VehicleType {
   id: string;
   name: string;
   description?: string;
@@ -17,22 +17,20 @@ export const useVehicleTypes = () => {
       const { data, error } = await supabase
         .from('vehicle_types')
         .select('*')
-        .order('name');
-        
+        .order('name', { ascending: true });
+
       if (error) {
         console.error('Error fetching vehicle types:', error);
         throw new Error(error.message);
       }
-      
+
       return data as VehicleType[];
     }
   });
 
   return {
-    vehicleTypes: vehicleTypes || [],
+    vehicleTypes,
     isLoading,
     error
   };
 };
-
-export default useVehicleTypes;

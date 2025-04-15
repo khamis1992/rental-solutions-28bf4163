@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement } from '@/types/agreement';
@@ -8,7 +7,7 @@ import { toast } from 'sonner';
 
 export interface UseAgreementsProps {
   status?: string;
-  customer_id?: string; // Added customer_id support
+  customer_id?: string;
 }
 
 export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) => {
@@ -16,7 +15,6 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
   const [searchParams, setSearchParamsState] = useSearchParams();
   const queryClient = useQueryClient();
 
-  // Function to update the search parameters
   const setSearchParams = useCallback(
     (paramsFn: (prevState: URLSearchParams) => URLSearchParams) => {
       const newParams = paramsFn(new URLSearchParams(searchParams.toString()));
@@ -46,12 +44,11 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       .order('created_at', { ascending: false });
 
     if (status && status !== 'all') {
-      query = query.eq('status', status);
+      query = query.eq('status', status as any);
     }
     
-    // Add filter by customer_id if provided
     if (customer_id) {
-      query = query.eq('customer_id', customer_id);
+      query = query.eq('customer_id', customer_id as any);
     }
 
     const { data, error } = await query;
@@ -68,7 +65,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['agreements', status, customer_id], // Include customer_id in query key
+    queryKey: ['agreements', status, customer_id],
     queryFn: getAgreements,
   });
 
@@ -76,7 +73,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
     mutationFn: async (newAgreement: Omit<Agreement, 'id'>) => {
       const { data, error } = await supabase
         .from('leases')
-        .insert([newAgreement])
+        .insert([newAgreement as any])
         .select()
         .single();
 
@@ -121,10 +118,8 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
     },
   });
 
-  // Update or add the deleteAgreement mutation to handle both single ID and array of IDs
   const deleteAgreement = useMutation({
     mutationFn: async (id: string | string[]) => {
-      // Handle both single ID and array of IDs
       if (Array.isArray(id)) {
         const { error } = await supabase.from('leases').delete().in('id', id);
         if (error) throw new Error(error.message);
@@ -145,7 +140,6 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
     },
   });
 
-  // Add a getAgreement function to get a single agreement by ID
   const getAgreement = async (id: string): Promise<Agreement | null> => {
     const { data, error } = await supabase
       .from('leases')
@@ -188,7 +182,6 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
   };
 };
 
-// Export a SimpleAgreement type for use in other components
 export type SimpleAgreement = {
   id: string;
   status: string;

@@ -8,12 +8,14 @@ export interface VehicleImageUploadProps {
   onImageSelected?: (file: File) => void;
   initialImageUrl?: string;
   className?: string;
+  onUpload?: (url: string) => void;  // Add onUpload prop
 }
 
 export const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ 
   onImageSelected, 
   initialImageUrl, 
-  className 
+  className,
+  onUpload
 }) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
   const [isUploading, setIsUploading] = useState(false);
@@ -31,6 +33,11 @@ export const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({
       // Notify parent component
       if (onImageSelected) {
         onImageSelected(file);
+      }
+
+      // Support legacy onUpload prop
+      if (onUpload) {
+        onUpload(url);
       }
       
       setIsUploading(false);

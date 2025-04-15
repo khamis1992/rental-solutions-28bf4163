@@ -1,24 +1,15 @@
 
 export interface CustomerObligation {
   id: string;
-  type: string;
-  title: string;
-  description: string;
-  dueDate: Date | null;
+  customerId: string;
+  obligationType: string;
   amount?: number;
+  dueDate: Date | null;
   status: string;
-  customerId?: string;
-  agreementId?: string;
-  agreementNumber?: string;
-  obligationType: "payment" | "document" | "legal";
-  urgency: "low" | "medium" | "high" | "critical";
+  urgency: string;
   daysOverdue?: number;
   lateFine?: number;
-}
-
-export interface CustomerObligationsProps {
-  customerId?: string;
   agreementId?: string;
-  showHeader?: boolean;
-  limit?: number;
+  type: string;  // Added this missing property
+  title: string;  // Added this missing property
 }
