@@ -2,137 +2,85 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UploadCloud } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { ImageIcon, Loader2 } from 'lucide-react';
 
 export interface VehicleImageUploadProps {
-  vehicleId?: string;
-  onComplete?: (url: string) => void;
-  onUpload?: (url: string) => void;
-  onImageSelected?: (file: File | null) => void;
+  onImageSelected?: (file: File) => void;
   initialImageUrl?: string;
+  className?: string;
 }
 
-const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ 
-  vehicleId, 
-  onComplete, 
-  onUpload, 
-  onImageSelected,
-  initialImageUrl 
+export const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ 
+  onImageSelected, 
+  initialImageUrl, 
+  className 
 }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    // If onImageSelected is provided, call it with the selected file
-    if (onImageSelected) {
-      onImageSelected(file);
-      
-      // Create a local preview
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-      return;
-    }
-
-    try {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
       setIsUploading(true);
-      setError(null);
       
-      // Generate a unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-      const filePath = `vehicles/${vehicleId || 'new'}/${fileName}`;
+      // Create preview URL
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
       
-      // Upload the file
-      const { data, error: uploadError } = await supabase
-        .storage
-        .from('vehicle_images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: file.type,
-        });
-        
-      if (uploadError) {
-        throw new Error(uploadError.message);
+      // Notify parent component
+      if (onImageSelected) {
+        onImageSelected(file);
       }
       
-      // Get the public URL
-      const { data: urlData } = supabase
-        .storage
-        .from('vehicle_images')
-        .getPublicUrl(filePath);
-        
-      const publicUrl = urlData.publicUrl;
-      
-      if (onUpload) {
-        onUpload(publicUrl);
-      }
-      
-      if (onComplete) {
-        onComplete(publicUrl);
-      }
-      
-      setPreviewUrl(publicUrl);
-      
-    } catch (error: any) {
-      console.error('Error uploading image:', error);
-      setError(error.message || 'Failed to upload image');
-    } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 
+  const handleClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
-    <div className="space-y-4">
-      {previewUrl && (
-        <div className="mt-4">
+    <div className={`flex flex-col items-center ${className || ''}`}>
+      <div 
+        className="relative w-full h-48 border-2 border-dashed border-gray-300 rounded-md mb-4 flex items-center justify-center cursor-pointer overflow-hidden bg-gray-50"
+        onClick={handleClick}
+      >
+        {isUploading ? (
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-10 w-10 text-gray-400 animate-spin" />
+            <span className="ml-2 text-gray-500">Uploading...</span>
+          </div>
+        ) : previewUrl ? (
           <img 
             src={previewUrl} 
             alt="Vehicle preview" 
-            className="max-h-64 rounded-md mx-auto"
+            className="w-full h-full object-cover" 
           />
-        </div>
-      )}
-      
-      <div className="flex items-center justify-center w-full">
-        <label htmlFor="vehicle-image-upload" className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700">
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <UploadCloud className="w-10 h-10 mb-3 text-gray-400" />
-            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-              <span className="font-semibold">Click to upload</span> or drag and drop
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              JPEG, PNG or JPG (MAX. 5MB)
-            </p>
+        ) : (
+          <div className="flex flex-col items-center text-gray-500">
+            <ImageIcon className="w-10 h-10 mb-2" />
+            <span>Click to upload vehicle image</span>
           </div>
-          <Input
-            id="vehicle-image-upload"
-            type="file"
-            accept="image/png, image/jpeg, image/jpg"
-            className="hidden"
-            onChange={handleFileChange}
-            disabled={isUploading}
-          />
-        </label>
+        )}
       </div>
-
-      {isUploading && (
-        <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 mt-2">
-          <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${uploadProgress}%` }}></div>
-          <p className="text-sm text-center mt-1">Uploading... {uploadProgress}%</p>
-        </div>
-      )}
-
-      {error && (
-        <p className="text-sm text-red-500 mt-2">{error}</p>
-      )}
+      
+      <Input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      
+      <Button
+        type="button"
+        variant="outline"
+        onClick={handleClick}
+      >
+        {previewUrl ? 'Change Image' : 'Upload Image'}
+      </Button>
     </div>
   );
 };

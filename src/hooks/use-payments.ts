@@ -2,7 +2,24 @@
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData, asLeaseId } from '@/utils/database-type-helpers';
-import { Payment } from '@/components/agreements/PaymentHistory.types';
+
+export interface Payment {
+  id: string;
+  lease_id: string;
+  amount: number;
+  amount_paid: number;
+  balance: number;
+  payment_date: string;
+  payment_method?: string;
+  status: string;
+  description?: string;
+  type?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  original_due_date?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(

@@ -37,12 +37,16 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const isActivation = newStatus === 'active';
       const isClosure = newStatus === 'closed';
       
-      // Create update data
+      // Create update data - using a properly typed object
       const updateData = {
         status: newStatus,
-        updated_at: new Date().toISOString(),
-        notes: notes || agreement?.notes
+        updated_at: new Date().toISOString()
       };
+      
+      // Add notes if provided
+      if (notes || agreement?.notes) {
+        Object.assign(updateData, { notes: notes || agreement?.notes });
+      }
       
       // Track timing if needed for debugging
       const startTime = Date.now();

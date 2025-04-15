@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import React from 'react';
 
 export interface Vehicle {
   id: string;
@@ -125,6 +125,25 @@ export const useVehicles = () => {
       toast.error(`Error deleting vehicle: ${error.message}`);
     }
   });
+  
+  // Add useRealtimeUpdates method
+  const useRealtimeUpdates = () => {
+    const queryClient = useQueryClient();
+    
+    React.useEffect(() => {
+      const channel = supabase
+        .channel('vehicles-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, () => {
+          // Invalidate and refetch when data changes
+          queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        })
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }, [queryClient]);
+  };
 
   return {
     vehicles,
@@ -132,6 +151,7 @@ export const useVehicles = () => {
     error,
     addVehicle: addVehicle.mutateAsync,
     updateVehicle: updateVehicle.mutateAsync,
-    deleteVehicle: deleteVehicle.mutateAsync
+    deleteVehicle: deleteVehicle.mutateAsync,
+    useRealtimeUpdates
   };
 };
