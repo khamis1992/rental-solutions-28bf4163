@@ -35,6 +35,9 @@ export interface Vehicle {
   rent_amount?: number | null;
   vehicle_type_id?: string | null;
   currentCustomer?: string | null;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
+  customerId?: string | null;
   dailyRate?: number | null;
 }
 

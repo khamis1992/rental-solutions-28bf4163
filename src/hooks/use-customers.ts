@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
 import { castDbId } from '@/utils/db-id-helper';
+import { getResponseData } from '@/utils/supabase-type-helpers';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
@@ -115,7 +116,7 @@ export const useCustomers = () => {
           status: newCustomer.status || 'active',
           role: CUSTOMER_ROLE,
           created_at: new Date().toISOString() 
-        }])
+        } as any])
         .select()
         .single();
 
@@ -125,10 +126,13 @@ export const useCustomers = () => {
       }
       
       console.log('Created customer:', data);
-      return {
-        ...data,
-        phone: stripCountryCode(data.phone_number || '')
-      } as Customer;
+      if (data) {
+        return {
+          ...data,
+          phone: stripCountryCode(data.phone_number || '')
+        } as Customer;
+      }
+      throw new Error('Failed to create customer: No data returned');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -156,16 +160,19 @@ export const useCustomers = () => {
           notes: customer.notes,
           status: customer.status,
           updated_at: new Date().toISOString() 
-        })
+        } as any)
         .eq('id', customer.id as any)
         .select();
 
       if (error) throw new Error(error.message);
       
-      return {
-        ...data[0],
-        phone: stripCountryCode(data[0].phone_number || '')
-      } as Customer;
+      if (data && data.length > 0) {
+        return {
+          ...data[0],
+          phone: stripCountryCode(data[0].phone_number || '')
+        } as Customer;
+      }
+      throw new Error('Failed to update customer: No data returned');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
@@ -218,21 +225,24 @@ export const useCustomers = () => {
 
       console.log('Raw customer data from profiles:', data);
 
-      const customerData: Customer = {
-        id: data.id,
-        full_name: data.full_name || '',
-        email: data.email || '',
-        phone: stripCountryCode(data.phone_number || ''),
-        driver_license: data.driver_license || '',
-        nationality: data.nationality || '',
-        address: data.address || '',
-        notes: data.notes || '',
-        status: (data.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-        created_at: data.created_at,
-        updated_at: data.updated_at,
+      // Need to explicitly type data as 'any' to access properties
+      const customerData = data as any;
+
+      const processedCustomer: Customer = {
+        id: customerData.id,
+        full_name: customerData.full_name || '',
+        email: customerData.email || '',
+        phone: stripCountryCode(customerData.phone_number || ''),
+        driver_license: customerData.driver_license || '',
+        nationality: customerData.nationality || '',
+        address: customerData.address || '',
+        notes: customerData.notes || '',
+        status: (customerData.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
+        created_at: customerData.created_at,
+        updated_at: customerData.updated_at,
       };
       
-      return customerData;
+      return processedCustomer;
     } catch (error) {
       console.error('Unexpected error fetching customer:', error);
       toast.error('Failed to fetch customer');

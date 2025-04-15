@@ -24,8 +24,9 @@ const getVehiclesByType = (vehicles: Vehicle[]) => {
   }>();
 
   vehicles.forEach(vehicle => {
-    const typeName = vehicle.vehicleType?.name || 'Unspecified';
-    const dailyRate = vehicle.dailyRate || vehicle.vehicleType?.daily_rate || 0;
+    // Use optional chaining to safely access vehicleType
+    const typeName = vehicle.vehicle_type_id || 'Unspecified';
+    const dailyRate = vehicle.dailyRate || 0;
     
     if (!typeMap.has(typeName)) {
       typeMap.set(typeName, {
@@ -87,8 +88,8 @@ const attachCustomerInfo = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
     const { data: leases, error } = await supabase
       .from('leases')
       .select('vehicle_id, customer_id, profiles:customer_id(full_name, email, phone_number)')
-      .in('vehicle_id', rentedVehicleIds)
-      .eq('status', 'active');
+      .in('vehicle_id', rentedVehicleIds as any)
+      .eq('status', 'active' as any);
 
     if (error || !leases) {
       console.error('Error fetching customer information:', error);
@@ -98,7 +99,7 @@ const attachCustomerInfo = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
     // Map customer data to vehicles
     return vehicles.map(vehicle => {
       if (vehicle.status === 'rented') {
-        const lease = leases.find(l => l.vehicle_id === vehicle.id);
+        const lease = leases.find((l: any) => l.vehicle_id === vehicle.id);
         if (lease && lease.profiles && lease.profiles.full_name) {
           return {
             ...vehicle,
