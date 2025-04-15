@@ -49,7 +49,7 @@ interface TrafficFineEntryProps {
 }
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const { createTrafficFine, validateLicensePlate } = useTrafficFines();
+  const { createTrafficFine, validateLicensePlate, refetch } = useTrafficFines();
   const [validatingPlate, setValidatingPlate] = useState(false);
   const [plateValidationResult, setPlateValidationResult] = useState<{
     isValid: boolean;
@@ -105,13 +105,28 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
 
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      await createTrafficFine.mutate(data as TrafficFineCreatePayload);
-      toast.success("Traffic fine created successfully");
-      form.reset();
-      setPlateValidationResult(null);
-      if (onFineSaved) {
-        onFineSaved();
-      }
+      await createTrafficFine.mutate(data as TrafficFineCreatePayload, {
+        onSuccess: () => {
+          toast.success("Traffic fine created successfully");
+          form.reset({
+            violationNumber: `TF-${Math.floor(Math.random() * 10000)}`,
+            licensePlate: '',
+            violationDate: new Date(),
+            fineAmount: 0,
+            violationCharge: '',
+            location: '',
+            paymentStatus: 'pending',
+          });
+          setPlateValidationResult(null);
+          
+          // Force a refetch to update the list
+          refetch();
+          
+          if (onFineSaved) {
+            onFineSaved();
+          }
+        }
+      });
     } catch (error) {
       toast.error("Failed to create traffic fine", {
         description: error instanceof Error ? error.message : "An unknown error occurred"

@@ -42,7 +42,7 @@ export const useTrafficFines = () => {
   const queryClient = useQueryClient();
   
   // Fetch all traffic fines
-  const { data: trafficFines, isLoading, error } = useQuery({
+  const { data: trafficFines, isLoading, error, refetch } = useQuery({
     queryKey: ['trafficFines'],
     queryFn: async () => {
       try {
@@ -146,6 +146,8 @@ export const useTrafficFines = () => {
           assignment_status: 'pending'
         };
         
+        console.log('Creating traffic fine with payload:', dbPayload);
+        
         const { data, error } = await supabase
           .from('traffic_fines')
           .insert(dbPayload)
@@ -163,7 +165,10 @@ export const useTrafficFines = () => {
       }
     },
     onSuccess: () => {
+      // Invalidate the traffic fines query to refetch the data
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      // Explicitly trigger a refetch to ensure immediate update
+      refetch();
     }
   });
   
@@ -374,6 +379,7 @@ export const useTrafficFines = () => {
     payTrafficFine,
     disputeTrafficFine,
     createTrafficFine,
-    validateLicensePlate
+    validateLicensePlate,
+    refetch
   };
 };
