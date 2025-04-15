@@ -30,7 +30,6 @@ const VehicleDetailPage = () => {
   const { data: vehicle, isLoading, error, refetch } = useVehicle(id ? asVehicleId(id) : '');
   const { mutate: deleteVehicle, isPending: isDeleting } = useDelete();
   
-  // Force a refresh on component mount
   React.useEffect(() => {
     if (id) {
       console.log('VehicleDetailPage: Fetching fresh vehicle data for ID:', id);
@@ -74,7 +73,6 @@ const VehicleDetailPage = () => {
           <Skeleton className="h-5 w-1/4 mt-1" />
         </div>
 
-        {/* Skeleton for header area */}
         <div className="flex flex-col lg:flex-row gap-6 mb-6">
           <Skeleton className="w-full lg:w-1/3 h-64 rounded-lg" />
           <div className="w-full lg:w-2/3 space-y-4">
@@ -88,7 +86,6 @@ const VehicleDetailPage = () => {
           </div>
         </div>
 
-        {/* Skeleton for tabs */}
         <div className="space-y-6">
           <Skeleton className="h-12 w-full" />
           <Skeleton className="h-64 w-full rounded-lg" />

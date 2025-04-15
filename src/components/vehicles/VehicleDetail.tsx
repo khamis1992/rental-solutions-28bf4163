@@ -70,7 +70,8 @@ const statusConfig = {
 const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isLoading, error, deleteVehicle } = useVehicles();
+  const { useDelete } = useVehicles();
+  const { mutate: deleteVehicle, isPending: isDeleting } = useDelete();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   
@@ -99,19 +100,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
       fetchVehicle();
     }
   }, [id, vehicle]);
-
-  if (isLoading && !currentVehicle) {
-    return <div>Loading vehicle details...</div>;
-  }
-
-  if (error && !currentVehicle) {
-    return <Alert variant="destructive">
-      <AlertTitle>Error</AlertTitle>
-      <AlertDescription>
-        {error instanceof Error ? error.message : String(error)}
-      </AlertDescription>
-    </Alert>;
-  }
 
   if (!currentVehicle) {
     return <div>Vehicle not found.</div>;

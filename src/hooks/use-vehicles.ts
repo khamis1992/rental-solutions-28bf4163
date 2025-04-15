@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -144,6 +145,89 @@ export const useVehicles = () => {
     }, [queryClient]);
   };
 
+  // Add useVehicle function to fetch a single vehicle by ID
+  const useVehicle = (vehicleId: string) => {
+    return useQuery({
+      queryKey: ['vehicle', vehicleId],
+      queryFn: async () => {
+        if (!vehicleId) {
+          throw new Error('Vehicle ID is required');
+        }
+        
+        const { data, error } = await supabase
+          .from('vehicles')
+          .select(`
+            *,
+            vehicle_types(id, name, description)
+          `)
+          .eq('id', vehicleId)
+          .single();
+
+        if (error) {
+          console.error(`Error fetching vehicle ${vehicleId}:`, error);
+          throw new Error(error.message);
+        }
+
+        return {
+          ...data,
+          vehicleType: data.vehicle_types
+        } as Vehicle;
+      },
+      enabled: !!vehicleId
+    });
+  };
+
+  // Add a useDelete hook for consistency with other operations
+  const useDelete = () => {
+    return useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase
+          .from('vehicles')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error('Error deleting vehicle:', error);
+          throw new Error(error.message);
+        }
+        
+        return id;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        toast.success('Vehicle deleted successfully');
+      },
+      onError: (error: Error) => {
+        toast.error(`Error deleting vehicle: ${error.message}`);
+      }
+    });
+  };
+
+  // Add a useUpdate hook for consistency
+  const useUpdate = () => {
+    return useMutation({
+      mutationFn: async ({ id, data }: { id: string; data: Partial<Vehicle> }) => {
+        const { data: updatedData, error } = await supabase
+          .from('vehicles')
+          .update(data)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error updating vehicle:', error);
+          throw new Error(error.message);
+        }
+        
+        return updatedData as Vehicle;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        toast.success('Vehicle updated successfully');
+      }
+    });
+  };
+
   const useList = () => {
     return {
       data: vehicles,
@@ -169,6 +253,10 @@ export const useVehicles = () => {
     deleteVehicle: deleteVehicle.mutateAsync,
     useRealtimeUpdates,
     useList,
-    useCreate
+    useCreate,
+    useVehicle, // Export the new useVehicle function
+    useDelete,  // Export the new useDelete function
+    useUpdate   // Export the new useUpdate function
   };
 };
+
