@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,17 +70,31 @@ const statusConfig = {
 const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { vehicle: fetchedVehicle, isLoading, error, deleteVehicle, restoreVehicle } = useVehicles({ id: id! });
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
-  const [isRestoring, setIsRestoring] = React.useState(false);
+  const { getVehicle, isLoading, error, deleteVehicle, restoreVehicle } = useVehicles();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
   
-  const currentVehicle = vehicle || fetchedVehicle;
+  const [currentVehicle, setCurrentVehicle] = React.useState<any>(vehicle);
+  
+  React.useEffect(() => {
+    if (!vehicle && id) {
+      const fetchVehicle = async () => {
+        try {
+          const data = await getVehicle(id);
+          setCurrentVehicle(data);
+        } catch (err) {
+          console.error('Error fetching vehicle:', err);
+        }
+      };
+      fetchVehicle();
+    }
+  }, [id, vehicle, getVehicle]);
 
-  if (isLoading && !vehicle) {
+  if (isLoading && !currentVehicle) {
     return <div>Loading vehicle details...</div>;
   }
 
-  if (error && !vehicle) {
+  if (error && !currentVehicle) {
     return <Alert variant="destructive">
       <AlertTitle>Error</AlertTitle>
       <AlertDescription>
@@ -95,7 +109,8 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
 
   const handleDelete = async () => {
     try {
-      await deleteVehicle.mutateAsync(currentVehicle.id);
+      if (!id) return;
+      await deleteVehicle(id);
       toast.success('Vehicle deleted successfully');
       navigate('/vehicles');
     } catch (err: any) {
@@ -109,7 +124,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     setIsRestoring(true);
     try {
       if (currentVehicle.id) {
-        await restoreVehicle.mutateAsync(currentVehicle.id);
+        await restoreVehicle(currentVehicle.id);
         toast.success('Vehicle restored successfully');
         navigate('/vehicles');
       } else {

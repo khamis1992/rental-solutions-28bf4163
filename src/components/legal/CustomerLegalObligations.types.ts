@@ -1,16 +1,11 @@
 
 export interface CustomerObligation {
   id: string;
-  customerId: string;
-  obligationType: string;
-  amount?: number;
-  dueDate: Date | null;
-  status: string;
-  urgency: string;
-  daysOverdue?: number;
-  lateFine?: number;
-  agreementId?: string;
   type: string;
   title: string;
   description?: string;
+  amount?: number | string;
+  dueDate?: Date | string;
+  status?: string;
+  obligationType?: string; // For backward compatibility
 }

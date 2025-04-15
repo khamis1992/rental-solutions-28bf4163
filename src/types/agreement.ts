@@ -40,6 +40,15 @@ export interface Agreement {
       name: string;
     };
   };
+  // Adding customers property for backward compatibility
+  customers?: {
+    id: string;
+    full_name?: string;
+    email?: string;
+    phone_number?: string;
+    address?: string;
+    driver_license?: string;
+  };
 }
 
 export interface SimpleAgreement {

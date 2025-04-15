@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -50,7 +51,7 @@ export const useCarInstallmentPayments = (contractId: string) => {
     const { data, error } = await supabase
       .from('car_installment_payments')
       .select('*')
-      .eq('contract_id', contractId);
+      .eq('contract_id', contractId as string);
 
     if (error) {
       throw new Error(error.message);
@@ -67,42 +68,54 @@ export const useCarInstallmentPayments = (contractId: string) => {
 
 export const useCarInstallmentAnalytics = () => {
   const getContractSummary = async () => {
-    // Get total contract value
-    const contractValueResponse = await supabase
-      .from('car_installment_contracts')
-      .select('total_contract_value, amount_paid')
-      .single();
+    try {
+      // Get total contract value
+      const contractValueResponse = await supabase
+        .from('car_installment_contracts')
+        .select('total_contract_value, amount_paid')
+        .single();
 
-    // Safe handling to avoid property access on error
-    let totalContractValue = 0;
-    let totalAmountPaid = 0;
-    
-    if (!contractValueResponse.error && contractValueResponse.data) {
-      totalContractValue = contractValueResponse.data.total_contract_value || 0;
-      totalAmountPaid = contractValueResponse.data.amount_paid || 0;
-    }
-
-    // Get outstanding payments
-    const overduePaymentsResponse = await supabase
-      .from('car_installment_payments')
-      .select('amount')
-      .eq('status', 'overdue' as any)
-      .single();
+      // Safe handling to avoid property access on error
+      let totalContractValue = 0;
+      let totalAmountPaid = 0;
       
-    let overdueAmount = 0;
-    if (!overduePaymentsResponse.error && overduePaymentsResponse.data) {
-      overdueAmount = overduePaymentsResponse.data.amount || 0;
-    }
+      if (!contractValueResponse.error && contractValueResponse.data) {
+        totalContractValue = contractValueResponse.data.total_contract_value || 0;
+        totalAmountPaid = contractValueResponse.data.amount_paid || 0;
+      }
 
-    return {
-      total_contract_value: totalContractValue,
-      amount_paid: totalAmountPaid,
-      overdue_amount: overdueAmount,
-    };
+      // Get outstanding payments
+      const overduePaymentsResponse = await supabase
+        .from('car_installment_payments')
+        .select('amount')
+        .eq('status', 'overdue')
+        .single();
+        
+      let overdueAmount = 0;
+      if (!overduePaymentsResponse.error && overduePaymentsResponse.data) {
+        overdueAmount = overduePaymentsResponse.data.amount || 0;
+      }
+
+      return {
+        total_contract_value: totalContractValue,
+        amount_paid: totalAmountPaid,
+        overdue_amount: overdueAmount,
+      };
+    } catch (error) {
+      console.error("Error in installment analytics:", error);
+      return {
+        total_contract_value: 0,
+        amount_paid: 0,
+        overdue_amount: 0
+      };
+    }
   };
 
   return useQuery({
     queryKey: ['car-installment-analytics'],
-    queryFn: getContractSummary as any
+    queryFn: getContractSummary
   });
 };
+
+// For backward compatibility
+export const useCarInstallments = useCarInstallmentContracts;

@@ -1,3 +1,4 @@
+
 import { useQuery, UseQueryResult } from '@tanstack/react-query';
 
 interface ApiResponse<TData> {
@@ -10,6 +11,17 @@ interface ApiOptions {
   retry?: boolean | number;
   refetchOnWindowFocus?: boolean;
 }
+
+export const handleApiError = (error: any): never => {
+  console.error("API Error:", error);
+  if (error.message) {
+    throw new Error(error.message);
+  } else if (typeof error === 'string') {
+    throw new Error(error);
+  } else {
+    throw new Error('An unknown error occurred');
+  }
+};
 
 const apiHandler = async <TData>(
   fetchFn: () => Promise<any>,
@@ -42,11 +54,15 @@ export const useApi = <TData>(
   fetchFn: () => Promise<any>,
   options: ApiOptions = {}
 ): UseQueryResult<TData, any> => {
-  return useQuery<TData, any>(queryKey, async () => {
-    const result = await apiHandler<TData>(fetchFn, options);
-    if (result.error) {
-      throw result.error;
-    }
-    return result.data as TData;
-  }, options);
+  return useQuery({
+    queryKey,
+    queryFn: async () => {
+      const result = await apiHandler<TData>(fetchFn, options);
+      if (result.error) {
+        throw result.error;
+      }
+      return result.data as TData;
+    },
+    ...options
+  });
 };
