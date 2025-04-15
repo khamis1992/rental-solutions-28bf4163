@@ -5,13 +5,27 @@
  */
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
+import { Database } from '@/types/database.types';
+
+type SchemaName = keyof Database;
+type Tables = Database['public']['Tables'];
+
+// Generic database ID type
+export type DatabaseId = string;
 
 // Cast a string to a valid UUID for database operations
 export function castToUUID<T extends string>(id: T): string {
   return id;
 }
 
-// Type helpers for database column names
+// Helper function to correctly cast IDs for specific tables
+export function asColumnValue<T extends keyof Tables, C extends keyof Tables[T]['Row']>(
+  table: T, column: C, value: any
+): Tables[T]['Row'][C] {
+  return value as Tables[T]['Row'][C];
+}
+
+// Type helpers for database column names with proper typing
 export function asStatusColumn(status: string): string {
   return status;
 }

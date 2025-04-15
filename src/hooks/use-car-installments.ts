@@ -2,33 +2,26 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
+import { 
+  CarInstallmentContract as OriginalCarInstallmentContract,
+  CarInstallmentPayment,
+  PaymentFilters,
+  ContractSummary 
+} from '@/types/car-installment';
 
-export interface CarInstallmentContract {
-  id: string;
-  customer_id: string;
-  vehicle_id: string;
-  start_date: string;
-  end_date: string;
-  interest_rate: number;
-  loan_amount: number;
-  monthly_payment: number;
-  number_of_payments: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  car_type?: string;
-  model_year?: string;
-}
-
-export interface CarInstallmentPayment {
-  id: string;
-  contract_id: string;
-  payment_date: string;
-  amount: number;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
+// Use the original type from car-installment.ts and extend it for backward compatibility
+export type CarInstallmentContract = OriginalCarInstallmentContract & {
+  // Fields from original hook implementation
+  customer_id?: string;
+  vehicle_id?: string;
+  start_date?: string;
+  end_date?: string;
+  interest_rate?: number;
+  loan_amount?: number;
+  monthly_payment?: number;
+  number_of_payments?: number;
+  status?: string;
+};
 
 export interface PaymentFilters {
   status?: string;
@@ -63,6 +56,26 @@ export const useCarInstallmentContracts = () => {
     queryKey: ['car-installment-contracts', contractFilters],
     queryFn: getCarInstallmentContracts,
   });
+  
+  const getContractSummary = async (): Promise<ContractSummary> => {
+    try {
+      // Mock implementation for contract summary with correct structure
+      return {
+        totalContracts: 10,
+        totalPortfolioValue: 250000,
+        totalCollections: 125000,
+        upcomingPayments: 15000
+      };
+    } catch (error) {
+      console.error("Error in installment analytics:", error);
+      return {
+        totalContracts: 0,
+        totalPortfolioValue: 0,
+        totalCollections: 0,
+        upcomingPayments: 0
+      };
+    }
+  };
   
   const summaryQuery = useQuery({
     queryKey: ['car-installment-analytics'],
@@ -123,24 +136,6 @@ export const useCarInstallmentContracts = () => {
     importPayments
   };
 };
-
-async function getContractSummary() {
-  try {
-    // Mock implementation for contract summary
-    return {
-      total_contract_value: 250000,
-      amount_paid: 125000,
-      overdue_amount: 15000
-    };
-  } catch (error) {
-    console.error("Error in installment analytics:", error);
-    return {
-      total_contract_value: 0,
-      amount_paid: 0,
-      overdue_amount: 0
-    };
-  }
-}
 
 // For backward compatibility
 export const useCarInstallments = useCarInstallmentContracts;

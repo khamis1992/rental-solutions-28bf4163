@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 
@@ -20,13 +21,25 @@ const FinancialReport: React.FC<FinancialReportProps> = ({ data }) => {
 
   return (
     <Card>
-      <CardTitle>Financial Report</CardTitle>
+      <CardTitle className="p-4">Financial Report</CardTitle>
       <CardContent>
-        <div className="financial-summary">
-          <div>Total: ${total.toLocaleString()}</div>
-          <div>Income: ${income.toLocaleString()}</div>
-          <div>Expenses: ${expense.toLocaleString()}</div>
-          <div>Profit Percentage: {percentage}%</div>
+        <div className="financial-summary space-y-2">
+          <div className="flex justify-between">
+            <span className="font-medium">Total:</span> 
+            <span>${total.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Income:</span> 
+            <span>${income.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Expenses:</span> 
+            <span>${expense.toLocaleString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="font-medium">Profit Percentage:</span> 
+            <span>{percentage}%</span>
+          </div>
         </div>
       </CardContent>
     </Card>
