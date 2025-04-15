@@ -2,7 +2,6 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { castDbId } from '@/lib/supabase-types';
 import { 
   asTableId, 
   asAgreementIdColumn, 
