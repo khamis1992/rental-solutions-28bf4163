@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useVehicles } from '@/hooks/use-vehicles';
@@ -25,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { MaintenanceSchedulingWizard } from '@/components/maintenance/MaintenanceSchedulingWizard';
 
 interface VehicleDetailProps {
+  vehicle?: any;
 }
 
 const statusConfig = {
@@ -65,18 +67,20 @@ const statusConfig = {
   },
 };
 
-const VehicleDetail: React.FC<VehicleDetailProps> = () => {
+const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { vehicle, isLoading, error, deleteVehicle, restoreVehicle } = useVehicles({ id: id! });
+  const { vehicle: fetchedVehicle, isLoading, error, deleteVehicle, restoreVehicle } = useVehicles({ id: id! });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
   const [isRestoring, setIsRestoring] = React.useState(false);
+  
+  const currentVehicle = vehicle || fetchedVehicle;
 
-  if (isLoading) {
+  if (isLoading && !vehicle) {
     return <div>Loading vehicle details...</div>;
   }
 
-  if (error) {
+  if (error && !vehicle) {
     return <Alert variant="destructive">
       <AlertTitle>Error</AlertTitle>
       <AlertDescription>
@@ -85,13 +89,13 @@ const VehicleDetail: React.FC<VehicleDetailProps> = () => {
     </Alert>;
   }
 
-  if (!vehicle) {
+  if (!currentVehicle) {
     return <div>Vehicle not found.</div>;
   }
 
   const handleDelete = async () => {
     try {
-      await deleteVehicle.mutateAsync(vehicle.id);
+      await deleteVehicle.mutateAsync(currentVehicle.id);
       toast.success('Vehicle deleted successfully');
       navigate('/vehicles');
     } catch (err: any) {
@@ -104,8 +108,8 @@ const VehicleDetail: React.FC<VehicleDetailProps> = () => {
   const handleRestore = async () => {
     setIsRestoring(true);
     try {
-      if (vehicle.id) {
-        await restoreVehicle.mutateAsync(vehicle.id);
+      if (currentVehicle.id) {
+        await restoreVehicle.mutateAsync(currentVehicle.id);
         toast.success('Vehicle restored successfully');
         navigate('/vehicles');
       } else {
@@ -123,38 +127,38 @@ const VehicleDetail: React.FC<VehicleDetailProps> = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 className="text-base font-semibold">Make</h3>
-          <p>{vehicle.make || 'N/A'}</p>
+          <p>{currentVehicle.make || 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Model</h3>
-          <p>{vehicle.model || 'N/A'}</p>
+          <p>{currentVehicle.model || 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Year</h3>
-          <p>{vehicle.year || 'N/A'}</p>
+          <p>{currentVehicle.year || 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">License Plate</h3>
-          <p>{vehicle.license_plate || 'N/A'}</p>
+          <p>{currentVehicle.license_plate || 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">VIN</h3>
-          <p>{vehicle.vin || 'N/A'}</p>
+          <p>{currentVehicle.vin || 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Color</h3>
-          <p>{vehicle.color || 'N/A'}</p>
+          <p>{currentVehicle.color || 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Mileage</h3>
-          <p>{vehicle.mileage ? `${vehicle.mileage} miles` : 'N/A'}</p>
+          <p>{currentVehicle.mileage ? `${currentVehicle.mileage} miles` : 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Status</h3>
-          {vehicle.status && statusConfig[vehicle.status as VehicleStatus] ? (
-            <Badge variant={statusConfig[vehicle.status as VehicleStatus].variant}>
-              <statusConfig[vehicle.status as VehicleStatus].icon className="mr-2 h-4 w-4" />
-              {statusConfig[vehicle.status as VehicleStatus].label}
+          {currentVehicle.status && statusConfig[currentVehicle.status as VehicleStatus] ? (
+            <Badge variant={statusConfig[currentVehicle.status as VehicleStatus].variant as any}>
+              {React.createElement(statusConfig[currentVehicle.status as VehicleStatus].icon, { className: "mr-2 h-4 w-4" })}
+              {statusConfig[currentVehicle.status as VehicleStatus].label}
             </Badge>
           ) : (
             <Badge variant="secondary">
@@ -165,29 +169,29 @@ const VehicleDetail: React.FC<VehicleDetailProps> = () => {
         </div>
         <div>
           <h3 className="text-base font-semibold">Rental Rate</h3>
-          <p>{vehicle.rental_rate ? `$${vehicle.rental_rate}` : 'N/A'}</p>
+          <p>{currentVehicle.rental_rate ? `$${currentVehicle.rental_rate}` : 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Location</h3>
-          <p>{vehicle.location || 'N/A'}</p>
+          <p>{currentVehicle.location || 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Acquisition Date</h3>
-          <p>{vehicle.acquisition_date ? format(new Date(vehicle.acquisition_date), 'MMM d, yyyy') : 'N/A'}</p>
+          <p>{currentVehicle.acquisition_date ? format(new Date(currentVehicle.acquisition_date), 'MMM d, yyyy') : 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Last Service Date</h3>
-          <p>{vehicle.last_service_date ? format(new Date(vehicle.last_service_date), 'MMM d, yyyy') : 'N/A'}</p>
+          <p>{currentVehicle.last_service_date ? format(new Date(currentVehicle.last_service_date), 'MMM d, yyyy') : 'N/A'}</p>
         </div>
         <div>
           <h3 className="text-base font-semibold">Notes</h3>
-          <p>{vehicle.notes || 'N/A'}</p>
+          <p>{currentVehicle.notes || 'N/A'}</p>
         </div>
       
-      <div>
-        <h3 className="text-base font-semibold">Type</h3>
-        <p>{vehicle?.vehicle_type_id ? vehicle.vehicle_type_id : 'Not specified'}</p>
-      </div>
+        <div>
+          <h3 className="text-base font-semibold">Type</h3>
+          <p>{currentVehicle.vehicle_type_id || 'Not specified'}</p>
+        </div>
       
       </div>
     );
@@ -205,7 +209,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = () => {
         </div>
         <div>
           <Button variant="outline" asChild>
-            <Link to={`/vehicles/edit/${vehicle.id}`}>
+            <Link to={`/vehicles/edit/${currentVehicle.id}`}>
               <Edit className="mr-2 h-4 w-4" />
               Edit Vehicle
             </Link>
@@ -234,7 +238,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = () => {
       </div>
 
       <div className="space-x-2">
-        {!vehicle.deleted_at ? (
+        {!currentVehicle.deleted_at ? (
           <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
             <Trash2 className="mr-2 h-4 w-4" />
             Delete Vehicle
