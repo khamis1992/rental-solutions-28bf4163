@@ -2,6 +2,7 @@
 /**
  * Database helpers and utilities for Supabase
  */
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 import { Database } from '@/types/database.types';
 import { DbTables, SchemaName } from '@/types/database-types';
