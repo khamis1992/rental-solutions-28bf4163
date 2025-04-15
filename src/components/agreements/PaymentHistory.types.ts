@@ -1,4 +1,5 @@
 
+// Export the Payment interface properly
 export interface Payment {
   id: string;
   amount: number;

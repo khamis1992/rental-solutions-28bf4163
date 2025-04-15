@@ -75,32 +75,20 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
   return response?.data || null;
 }
 
-// Simple string cast helpers to maintain type safety with Supabase
-// These functions don't need complex logic, they just help TypeScript understand
-// that the strings are being used as specific column identifiers
-
-/**
- * Simple string cast for table id columns - handles all ID column types
- */
-export function asTableId(table: string, id: string): string {
-  return id;
-}
-
-// Simplified helper functions for various ID columns
-// These just return the string as-is but help with type safety
+// Simplified id cast functions for Supabase operations
 export function asAgreementId(id: string): string { return id; }
 export function asLeaseId(id: string): string { return id; }
-export function asLeaseIdColumn(id: string): string { return id; }
 export function asVehicleId(id: string): string { return id; }
-export function asAgreementIdColumn(id: string): string { return id; }
-export function asImportIdColumn(id: string): string { return id; }
-export function asImportId(id: string): string { return id; }
-export function asTrafficFineIdColumn(id: string): string { return id; }
 export function asPaymentId(id: string): string { return id; }
-
-// Simple string cast for status columns
-export function asStatusColumn(status: string): string { return status; }
-export function asPaymentStatusColumn(status: string): string { return status; }
+export function asImportId(id: string): string { return id; }
+export function asCustomerId(id: string): string { return id; }
+export function asProfileId(id: string): string { return id; }
+export function asMaintenanceId(id: string): string { return id; }
+export function asTrafficFineId(id: string): string { return id; }
+export function asDocumentId(id: string): string { return id; }
+export function asTemplateId(id: string): string { return id; }
+export function asCategoryId(id: string): string { return id; }
+export function asLegalCaseId(id: string): string { return id; }
 
 /**
  * Helper for checking response and safely handling error cases
