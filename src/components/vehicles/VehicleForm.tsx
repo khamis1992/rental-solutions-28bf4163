@@ -1,4 +1,5 @@
-import React, { useState, useEffect, Dispatch, SetStateAction } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import {
   Form,
   FormControl,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { VehicleImageUpload } from './VehicleImageUpload';
+import VehicleImageUpload from './VehicleImageUpload';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
@@ -57,11 +58,10 @@ const vehicleFormSchema = z.object({
   documents_verified: z.boolean().default(false),
   image_url: z.string().optional(),
   vehicle_type_id: z.string().optional(),
+  id: z.string().optional(),
 });
 
-export interface VehicleFormData extends z.infer<typeof vehicleFormSchema> {
-  image?: File | null;
-}
+export interface VehicleFormData extends z.infer<typeof vehicleFormSchema> {}
 
 interface VehicleFormProps {
   onSubmit: (data: VehicleFormData) => void;
@@ -71,8 +71,7 @@ interface VehicleFormProps {
 const VehicleForm: React.FC<VehicleFormProps> = ({ onSubmit, vehicle = {} }) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const { addVehicle, updateVehicle } = useVehicles();
-  const { vehicleTypes, isLoading: isLoadingVehicleTypes, error: vehicleTypesError } = useVehicleTypes();
+  const { vehicleTypes, isLoading: isLoadingVehicleTypes } = useVehicleTypes();
 
   useEffect(() => {
     if (vehicle.image_url) {
@@ -94,7 +93,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ onSubmit, vehicle = {} }) => 
       insurance_expiry: vehicle.insurance_expiry || "",
       documents_verified: vehicle.documents_verified || false,
       image_url: vehicle.image_url || "",
-      vehicle_type_id: vehicle.vehicle_type_id || ""
+      vehicle_type_id: vehicle.vehicle_type_id || "",
+      id: vehicle.id,
     },
   })
 
@@ -105,7 +105,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ onSubmit, vehicle = {} }) => 
       const formData = form.getValues();
       const submissionData = { ...formData };
 
-      if (selectedImage && typeof selectedImage === 'object' && 'name' in selectedImage) {
+      if (selectedImage) {
         const imagePath = `vehicles/${uuidv4()}-${selectedImage.name}`;
 
         const { error: uploadError } = await supabase.storage
@@ -125,17 +125,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ onSubmit, vehicle = {} }) => 
         submissionData.image_url = publicURL;
       }
 
-      const { image, ...dataToSubmit } = submissionData;
-
-      if (vehicle.id) {
-        await updateVehicle({ id: vehicle.id, data: dataToSubmit });
-        toast.success("Vehicle updated successfully!");
-      } else {
-        await addVehicle(dataToSubmit);
-        toast.success("Vehicle added successfully!");
-      }
-
-      onSubmit(dataToSubmit);
+      onSubmit(submissionData);
     } catch (error) {
       console.error("Form submission error: ", error);
       toast.error("Failed to submit the form. Please check the console for details.");
@@ -286,7 +276,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({ onSubmit, vehicle = {} }) => 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Vehicle Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select a vehicle type" />

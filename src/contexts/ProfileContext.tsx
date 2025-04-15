@@ -1,8 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // Define proper Profile type
-interface Profile {
+export interface Profile {
   id: string;
   full_name?: string;
   email?: string;
@@ -10,6 +11,8 @@ interface Profile {
   address?: string;
   created_at?: string;
   updated_at?: string;
+  role?: string;
+  status?: string;
   // Add any other profile fields
 }
 
@@ -30,7 +33,7 @@ export const useProfile = () => {
   return context;
 };
 
-const ProfileProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const ProfileProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   

@@ -1,21 +1,12 @@
+
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { useVehicles } from '@/hooks/use-vehicles';
+import { useVehicles, Vehicle } from '@/hooks/use-vehicles';
 import { useNavigate } from 'react-router-dom';
-
-interface Vehicle {
-  id: string;
-  make: string;
-  model: string;
-  year: number;
-  license_plate: string;
-  status: string;
-  image_url: string;
-}
 
 const VehicleCard: React.FC<{ vehicle: Vehicle }> = ({ vehicle }) => {
   return (
@@ -62,18 +53,16 @@ const VehicleGrid = () => {
       {isLoading ? (
         <p>Loading vehicles...</p>
       ) : error ? (
-        <p>Error: {error.message}</p>
+        <p>Error: {(error as Error).message}</p>
       ) : (
         <>
           {hasVehicles ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.isArray(vehicles) ? (
-                vehicles.map(vehicle => (
-                  <VehicleCard key={vehicle.id} vehicle={vehicle} />
-                ))
-              ) : (
-                <p>No vehicles found.</p>
-              )}
+              {vehicles.map(vehicle => (
+                <Link to={`/vehicles/${vehicle.id}`} key={vehicle.id}>
+                  <VehicleCard vehicle={vehicle} />
+                </Link>
+              ))}
             </div>
           ) : (
             <p>No vehicles found.</p>

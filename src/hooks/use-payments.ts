@@ -2,24 +2,7 @@
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData, asLeaseId } from '@/utils/database-type-helpers';
-
-// Export the Payment type to fix the import error
-export interface Payment {
-  id: string;
-  lease_id?: string;
-  amount: number;
-  payment_date?: Date | string | null;
-  status?: string;
-  description?: string;
-  payment_method?: string;
-  transaction_id?: string;
-  type?: string;
-  due_date?: Date | string | null;
-  days_overdue?: number;
-  late_fine_amount?: number;
-  amount_paid?: number;
-  balance?: number;
-}
+import { Payment } from '@/components/agreements/PaymentHistory.types';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(

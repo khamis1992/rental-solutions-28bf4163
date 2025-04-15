@@ -9,16 +9,35 @@ export interface VehicleImageUploadProps {
   vehicleId?: string;
   onComplete?: (url: string) => void;
   onUpload?: (url: string) => void;
+  onImageSelected?: (file: File | null) => void;
+  initialImageUrl?: string;
 }
 
-const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ vehicleId, onComplete, onUpload }) => {
+const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ 
+  vehicleId, 
+  onComplete, 
+  onUpload, 
+  onImageSelected,
+  initialImageUrl 
+}) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialImageUrl || null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // If onImageSelected is provided, call it with the selected file
+    if (onImageSelected) {
+      onImageSelected(file);
+      
+      // Create a local preview
+      const objectUrl = URL.createObjectURL(file);
+      setPreviewUrl(objectUrl);
+      return;
+    }
 
     try {
       setIsUploading(true);
@@ -59,6 +78,8 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ vehicleId, onCo
         onComplete(publicUrl);
       }
       
+      setPreviewUrl(publicUrl);
+      
     } catch (error: any) {
       console.error('Error uploading image:', error);
       setError(error.message || 'Failed to upload image');
@@ -70,6 +91,16 @@ const VehicleImageUpload: React.FC<VehicleImageUploadProps> = ({ vehicleId, onCo
 
   return (
     <div className="space-y-4">
+      {previewUrl && (
+        <div className="mt-4">
+          <img 
+            src={previewUrl} 
+            alt="Vehicle preview" 
+            className="max-h-64 rounded-md mx-auto"
+          />
+        </div>
+      )}
+      
       <div className="flex items-center justify-center w-full">
         <label htmlFor="vehicle-image-upload" className="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:hover:bg-gray-700">
           <div className="flex flex-col items-center justify-center pt-5 pb-6">
