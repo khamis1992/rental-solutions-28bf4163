@@ -8,7 +8,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { PaymentFilters } from '@/types/car-installment';
+import { PaymentFilters, InstallmentStatus } from '@/types/car-installment';
 
 interface PaymentFiltersBarProps {
   filters: PaymentFilters;
@@ -22,7 +22,7 @@ export const PaymentFiltersBar: React.FC<PaymentFiltersBarProps> = ({
   const handleStatusChange = (value: string) => {
     onFilterChange({ 
       ...filters, 
-      status: value === 'all' ? 'all' : value as any 
+      status: value === 'all' ? 'all' : value as InstallmentStatus
     });
   };
 

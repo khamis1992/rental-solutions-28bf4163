@@ -1,32 +1,18 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { 
-  CarInstallmentContract as OriginalCarInstallmentContract,
+  CarInstallmentContract,
   CarInstallmentPayment,
-  ContractSummary 
+  ContractSummary,
+  PaymentFilters as PaymentFiltersType 
 } from '@/types/car-installment';
+import { castDbId } from '@/utils/db-id-helper';
 
-// Use the original type from car-installment.ts and extend it for backward compatibility
-export type CarInstallmentContract = OriginalCarInstallmentContract & {
-  // Fields from original hook implementation
-  customer_id?: string;
-  vehicle_id?: string;
-  start_date?: string;
-  end_date?: string;
-  interest_rate?: number;
-  loan_amount?: number;
-  monthly_payment?: number;
-  number_of_payments?: number;
-  status?: string;
-};
-
-export interface PaymentFilters {
-  status?: string;
-  dateFrom?: string;
-  dateTo?: string;
-  search?: string;
-}
+// Use types from car-installment.ts
+export type { CarInstallmentContract };
+export type PaymentFilters = PaymentFiltersType;
 
 export const useCarInstallmentContracts = () => {
   const [contractFilters, setContractFilters] = useState({
@@ -85,13 +71,13 @@ export const useCarInstallmentContracts = () => {
     const { data, error } = await supabase
       .from('car_installment_payments')
       .select('*')
-      .eq('contract_id', contractId as string);
+      .eq('contract_id', contractId as any);
 
     if (error) {
       throw new Error(error.message);
     }
 
-    return data as CarInstallmentPayment[];
+    return data as unknown as CarInstallmentPayment[];
   };
   
   const addPayment = async (payment: Omit<CarInstallmentPayment, 'id' | 'created_at' | 'updated_at'>) => {

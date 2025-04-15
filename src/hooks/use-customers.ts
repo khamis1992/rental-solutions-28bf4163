@@ -1,8 +1,10 @@
+
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Customer } from '@/lib/validation-schemas/customer';
 import { toast } from 'sonner';
+import { castDbId } from '@/utils/db-id-helper';
 
 const PROFILES_TABLE = 'profiles';
 const CUSTOMER_ROLE = 'customer';
@@ -42,11 +44,11 @@ export const useCustomers = () => {
         let query = supabase
           .from(PROFILES_TABLE)
           .select('*')
-          .eq('role', CUSTOMER_ROLE)
+          .eq('role', CUSTOMER_ROLE as any)
           .order('created_at', { ascending: false });
 
         if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment");
+          query = query.eq('status', searchParams.status as any);
         }
 
         if (searchParams.query) {
@@ -64,7 +66,8 @@ export const useCustomers = () => {
         
         console.log('Raw customer data from profiles table:', data);
         
-        const processedCustomers = (data || []).map(profile => ({
+        // Safely cast the data to the expected type
+        const processedCustomers = (data || []).map((profile: any) => ({
           id: profile.id,
           full_name: profile.full_name || '',
           email: profile.email || '',
@@ -154,7 +157,7 @@ export const useCustomers = () => {
           status: customer.status,
           updated_at: new Date().toISOString() 
         })
-        .eq('id', customer.id)
+        .eq('id', customer.id as any)
         .select();
 
       if (error) throw new Error(error.message);
@@ -178,7 +181,7 @@ export const useCustomers = () => {
       const { error } = await supabase
         .from(PROFILES_TABLE)
         .delete()
-        .eq('id', id);
+        .eq('id', id as any);
 
       if (error) throw new Error(error.message);
       return id;
@@ -199,7 +202,7 @@ export const useCustomers = () => {
       const { data, error } = await supabase
         .from(PROFILES_TABLE)
         .select('*')
-        .eq('id', id)
+        .eq('id', id as any)
         .maybeSingle();
 
       if (error) {
