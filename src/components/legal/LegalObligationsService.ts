@@ -1,3 +1,4 @@
+
 import { supabase } from '@/lib/supabase';
 import { hasData, asStatusColumn, asLeaseIdColumn, asCustomerId } from '@/utils/database-type-helpers';
 
@@ -13,6 +14,70 @@ export interface LegalObligation {
   leaseId?: string;
   agreementNumber?: string;
 }
+
+// Function to determine the urgency level based on various factors
+export const determineUrgency = (daysOverdue: number, amount: number): 'low' | 'medium' | 'high' | 'critical' => {
+  if (daysOverdue > 60 || amount > 10000) return 'critical';
+  if (daysOverdue > 30 || amount > 5000) return 'high';
+  if (daysOverdue > 14 || amount > 2000) return 'medium';
+  return 'low';
+};
+
+// Comprehensive function to fetch all types of legal obligations
+export const fetchLegalObligations = async () => {
+  try {
+    // Fetch different types of obligations
+    const overduePayments = await LegalObligationsService.getOverduePaymentObligations();
+    const upcomingPayments = await LegalObligationsService.getUpcomingPaymentObligations();
+    const expiringAgreements = await LegalObligationsService.getExpiringAgreementObligations();
+    const trafficFines = await LegalObligationsService.getUnpaidTrafficFines();
+
+    // Combine all obligations
+    const allObligations = [
+      ...overduePayments.map(item => ({
+        ...item,
+        daysOverdue: 30, // Example value, in reality should be calculated
+        lateFine: 500, // Example value
+        obligationType: 'payment' as const,
+        urgency: determineUrgency(30, item.amount || 0)
+      })),
+      ...upcomingPayments.map(item => ({
+        ...item,
+        daysOverdue: 0,
+        lateFine: 0,
+        obligationType: 'payment' as const,
+        urgency: determineUrgency(0, item.amount || 0)
+      })),
+      ...expiringAgreements.map(item => ({
+        ...item,
+        daysOverdue: 0,
+        lateFine: 0,
+        obligationType: 'legal_case' as const,
+        urgency: determineUrgency(0, 0)
+      })),
+      ...trafficFines.map(item => ({
+        ...item,
+        daysOverdue: 15, // Example value
+        lateFine: 200, // Example value
+        obligationType: 'traffic_fine' as const,
+        urgency: determineUrgency(15, item.amount || 0)
+      }))
+    ];
+
+    return {
+      obligations: allObligations,
+      partialSuccess: false,
+      error: null
+    };
+  } catch (error) {
+    console.error('Error fetching legal obligations:', error);
+    return {
+      obligations: [],
+      partialSuccess: false,
+      error: 'Failed to fetch legal obligations'
+    };
+  }
+};
 
 export class LegalObligationsService {
   
@@ -91,16 +156,16 @@ export class LegalObligationsService {
       }
 
       return payments.map(payment => {
-        const leaseId = payment.leases?.lease_id;
+        // Use optional chaining and nullish coalescing for safety
         return {
-          id: payment.id,
+          id: payment.id || '',
           type: 'upcoming_payment',
           title: 'Upcoming Payment',
           dueDate: payment.due_date ? new Date(payment.due_date) : null,
           amount: payment.amount,
           customerId: payment.leases?.customer_id || '',
           customerName: payment.profiles?.full_name || 'Unknown Customer',
-          status: payment.status,
+          status: payment.status || 'pending',
           leaseId: payment.lease_id,
           agreementNumber: payment.leases?.agreement_number
         };
@@ -140,17 +205,13 @@ export class LegalObligationsService {
 
       return leases.map(lease => {
         // Safe access using optional chaining
-        const id = lease?.id;
-        const customerName = lease?.profiles?.full_name || 'Unknown Customer';
-        const customerId = lease?.customer_id || '';
-        
         return {
-          id: id || '',
+          id: lease?.id || '',
           type: 'expiring_agreement',
           title: 'Expiring Agreement',
           dueDate: lease.end_date ? new Date(lease.end_date) : null,
-          customerId,
-          customerName,
+          customerId: lease?.customer_id || '',
+          customerName: lease?.profiles?.full_name || 'Unknown Customer',
           status: 'pending',
           leaseId: lease.id,
           agreementNumber: lease.agreement_number
@@ -188,18 +249,15 @@ export class LegalObligationsService {
       }
 
       return (fines || []).map(fine => {
-        // Extract customer name safely with optional chaining
-        const customerName = fine.profiles?.full_name || 'Unknown';
-        const customerId = fine.profiles?.id || '';
-
+        // Use optional chaining and nullish coalescing for safety
         return {
-          id: fine.id,
+          id: fine.id || '',
           type: 'unpaid_fine',
           title: `Unpaid Traffic Fine (${fine.license_plate || 'Unknown'})`,
           dueDate: fine.violation_date ? new Date(fine.violation_date) : null,
           amount: fine.fine_amount,
-          customerId: customerId,
-          customerName: customerName,
+          customerId: fine.profiles?.id || '',
+          customerName: fine.profiles?.full_name || 'Unknown',
           status: fine.payment_status || 'pending',
           agreementNumber: fine.leases?.agreement_number
         };

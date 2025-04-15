@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -63,9 +64,9 @@ export interface CustomerObligation {
   urgency: UrgencyLevel;
   status: string;
   daysOverdue: number;
-  agreementId?: string; // Added for lease agreement integration
-  agreementNumber?: string; // Added for lease agreement integration
-  lateFine?: number; // Added for late fine calculation
+  agreementId?: string;
+  agreementNumber?: string;
+  lateFine?: number;
 }
 
 // Urgency badge styling
