@@ -1,4 +1,3 @@
-
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/database-type-helpers';
 
@@ -25,6 +24,10 @@ export interface CustomerObligation {
   agreementId?: string;
   agreementNumber?: string;
   lateFine?: number;
+  
+  // For backward compatibility
+  type?: string;
+  title?: string;
 }
 
 // Mock data for various obligations

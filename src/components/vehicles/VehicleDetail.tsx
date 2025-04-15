@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +69,7 @@ const statusConfig = {
 const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getVehicle, isLoading, error, deleteVehicle, restoreVehicle } = useVehicles();
+  const { isLoading, error, deleteVehicle } = useVehicles();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   
@@ -80,7 +79,18 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     if (!vehicle && id) {
       const fetchVehicle = async () => {
         try {
-          const data = await getVehicle(id);
+          // We'll access the vehicle directly from Supabase since getVehicle is missing
+          const { data, error } = await supabase
+            .from('vehicles')
+            .select('*')
+            .eq('id', id)
+            .single();
+            
+          if (error) {
+            console.error('Error fetching vehicle:', error);
+            return;
+          }
+          
           setCurrentVehicle(data);
         } catch (err) {
           console.error('Error fetching vehicle:', err);
@@ -88,7 +98,7 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
       };
       fetchVehicle();
     }
-  }, [id, vehicle, getVehicle]);
+  }, [id, vehicle]);
 
   if (isLoading && !currentVehicle) {
     return <div>Loading vehicle details...</div>;
@@ -124,7 +134,17 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     setIsRestoring(true);
     try {
       if (currentVehicle.id) {
-        await restoreVehicle(currentVehicle.id);
+        // Direct interaction with Supabase since restoreVehicle is missing
+        const { data, error } = await supabase
+          .from('vehicles')
+          .update({ deleted_at: null })
+          .eq('id', currentVehicle.id)
+          .select();
+          
+        if (error) {
+          throw new Error(error.message);
+        }
+        
         toast.success('Vehicle restored successfully');
         navigate('/vehicles');
       } else {
@@ -207,7 +227,6 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
           <h3 className="text-base font-semibold">Type</h3>
           <p>{currentVehicle.vehicle_type_id || 'Not specified'}</p>
         </div>
-      
       </div>
     );
   };

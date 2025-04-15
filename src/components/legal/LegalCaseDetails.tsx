@@ -25,7 +25,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
     return null;
   }
 
-  const getUrgencyColorClass = (urgency: string) => {
+  const getUrgencyColorClass = (urgency: string | undefined) => {
     switch (urgency) {
       case 'critical': return 'text-red-600';
       case 'high': return 'text-orange-500';
@@ -41,9 +41,9 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
     return daysDiff <= 30;
   };
 
-  const formatDate = (date: Date | null) => {
+  const formatDate = (date: Date | string | undefined | null) => {
     if (!date) return 'N/A';
-    return format(date, 'MMM d, yyyy');
+    return format(new Date(date), 'MMM d, yyyy');
   };
 
   return (
@@ -64,10 +64,10 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <div className="flex items-center">
               <UserCog className="mr-2 h-4 w-4 text-muted-foreground" />
               <Link 
-                to={`/customers/${obligation.customerId}`} 
+                to={`/customers/${obligation.customerId || ''}`} 
                 className="text-primary hover:underline flex items-center"
               >
-                {obligation.customerId}
+                {obligation.customerId || 'Unknown'}
                 <ExternalLink className="ml-1 h-3 w-3" />
               </Link>
             </div>
@@ -87,7 +87,7 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Due Date</h4>
             <div className="flex items-center">
               <CalendarClock className="mr-2 h-4 w-4 text-muted-foreground" />
-              <span className={obligation.dueDate && isRecentDate(obligation.dueDate) ? 'text-red-500 font-medium' : ''}>
+              <span className={obligation.dueDate && typeof obligation.dueDate === 'object' && isRecentDate(obligation.dueDate) ? 'text-red-500 font-medium' : ''}>
                 {formatDate(obligation.dueDate)}
               </span>
             </div>
@@ -96,14 +96,14 @@ const LegalCaseDetails: React.FC<LegalCaseDetailsProps> = ({ obligation, onClose
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Urgency</h4>
             <p className={`font-medium ${getUrgencyColorClass(obligation.urgency)}`}>
-              {obligation.urgency.charAt(0).toUpperCase() + obligation.urgency.slice(1)}
+              {obligation.urgency ? obligation.urgency.charAt(0).toUpperCase() + obligation.urgency.slice(1) : 'Unknown'}
             </p>
           </div>
           
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Status</h4>
-            <Badge variant={obligation.status.toLowerCase().includes('overdue') ? 'destructive' : 'outline'}>
-              {obligation.status}
+            <Badge variant={obligation.status?.toLowerCase().includes('overdue') ? 'destructive' : 'outline'}>
+              {obligation.status || 'Unknown'}
             </Badge>
           </div>
           
