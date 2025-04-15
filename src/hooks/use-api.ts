@@ -1,5 +1,5 @@
 
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useMutation, UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 
 interface ApiResponse<TData> {
   data: TData | null;
@@ -62,6 +62,33 @@ export const useApi = <TData>(
         throw result.error;
       }
       return result.data as TData;
+    },
+    ...options
+  });
+};
+
+// Add the useApiQuery as an alias for useApi for compatibility
+export const useApiQuery = useApi;
+
+// Add the useApiMutation function
+export const useApiMutation = <TData, TVariables>(
+  mutationFn: (variables: TVariables) => Promise<TData>,
+  options: {
+    onSuccess?: (data: TData, variables: TVariables) => void;
+    onError?: (error: any, variables: TVariables) => void;
+    onSettled?: (data: TData | undefined, error: any, variables: TVariables) => void;
+    [key: string]: any;
+  } = {}
+): UseMutationResult<TData, any, TVariables, any> => {
+  return useMutation({
+    mutationFn: async (variables: TVariables) => {
+      try {
+        const result = await mutationFn(variables);
+        return result;
+      } catch (error) {
+        handleApiError(error);
+        throw error; // This will be caught by React Query
+      }
     },
     ...options
   });
