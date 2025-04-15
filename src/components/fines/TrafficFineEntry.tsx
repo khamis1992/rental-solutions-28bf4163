@@ -194,7 +194,7 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                     </div>
                     {plateValidationResult && (
                       <Alert 
-                        variant={plateValidationResult.isValid ? "success" : "destructive"} 
+                        variant={plateValidationResult.isValid ? "default" : "destructive"} 
                         className="mt-2"
                       >
                         <AlertTitle>

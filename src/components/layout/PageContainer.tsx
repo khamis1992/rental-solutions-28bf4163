@@ -1,64 +1,62 @@
-import React, { useState, useCallback } from 'react';
-import Sidebar from './Sidebar';
-import Header from './Header';
-import { useIsMobile } from "@/hooks/use-mobile";
 
-// Update the interface to include headerProps
+import React, { ReactNode } from 'react';
+import { cn } from "@/lib/utils";
+import Sidebar from './Sidebar';
+import { useSidebar } from '@/hooks/use-sidebar';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
+import { Toaster } from 'sonner';
+
 interface PageContainerProps {
-  title: string;
+  children: ReactNode;
+  className?: string;
+  title?: string;
   description?: string;
-  children: React.ReactNode;
   actions?: React.ReactNode;
-  headerProps?: {
-    onSearch?: (query: string) => void;
-    searchQuery?: string;
-    searchPlaceholder?: string;
-  };
 }
 
-const PageContainer: React.FC<PageContainerProps> = ({ 
-  title, 
-  description, 
-  children, 
-  actions,
-  headerProps 
+const PageContainer: React.FC<PageContainerProps> = ({
+  children,
+  className,
+  title,
+  description,
+  actions
 }) => {
-  const isMobile = useIsMobile();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  
-  // Toggle sidebar function
-  const toggleSidebar = useCallback(() => {
-    setIsSidebarOpen(prev => !prev);
-  }, []);
+  const { isOpen, toggle } = useSidebar();
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar isOpen={isSidebarOpen} />
+    <div className="flex min-h-screen bg-muted/30">
+      <Toaster richColors position="top-center" />
       
-      <div className="flex flex-col w-full">
-        <Header 
-          onToggleSidebar={toggleSidebar} 
-          isSidebarOpen={isSidebarOpen}
-          onSearch={headerProps?.onSearch}
-          searchQuery={headerProps?.searchQuery}
-          searchPlaceholder={headerProps?.searchPlaceholder}
-        />
-        
-        <main className="flex-1 p-4 md:p-6 space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
-              {description && (
-                <p className="text-muted-foreground mt-1">{description}</p>
-              )}
-            </div>
-            {actions && (
-              <div className="mt-2 sm:mt-0">
-                {actions}
+      {/* Mobile menu toggle */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="absolute top-4 left-4 z-50 lg:hidden"
+        onClick={toggle}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* Sidebar */}
+      <Sidebar />
+      
+      {/* Main content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <main className={cn(
+          "flex-1 p-4 sm:p-6 overflow-auto",
+          isOpen ? "lg:ml-64" : "",
+          className
+        )}>
+          {(title || description || actions) && (
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
+                {description && <p className="text-muted-foreground mt-1">{description}</p>}
               </div>
-            )}
-          </div>
-          
+              {actions && <div>{actions}</div>}
+            </div>
+          )}
           {children}
         </main>
       </div>

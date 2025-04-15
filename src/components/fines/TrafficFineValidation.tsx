@@ -70,33 +70,35 @@ const TrafficFineValidation: React.FC = () => {
         .reduce((sum, fine) => sum + fine.fineAmount, 0);
       
       // Create a validation record
+      const validationData = {
+        license_plate: standardizedLicensePlate,
+        validation_date: new Date().toISOString(),
+        validation_source: 'manual',
+        result: {
+          fines_found: relevantFines.length,
+          total_amount: totalAmount,
+          pending_amount: pendingAmount,
+          vehicle_found: vehicleData ? true : false,
+          vehicle_info: vehicleData ? {
+            id: vehicleData.id,
+            license_plate: vehicleData.license_plate,
+            make: vehicleData.make,
+            model: vehicleData.model
+          } : null,
+          fines: relevantFines.map(fine => ({
+            id: fine.id,
+            violation_number: fine.violationNumber,
+            violation_date: fine.violationDate,
+            amount: fine.fineAmount,
+            status: fine.paymentStatus
+          }))
+        },
+        status: 'completed'
+      };
+        
       const { error: validationError } = await supabase
         .from('traffic_fine_validations')
-        .insert({
-          license_plate: standardizedLicensePlate,
-          validation_date: new Date().toISOString(),
-          validation_source: 'manual',
-          result: {
-            fines_found: relevantFines.length,
-            total_amount: totalAmount,
-            pending_amount: pendingAmount,
-            vehicle_found: vehicleData ? true : false,
-            vehicle_info: vehicleData ? {
-              id: vehicleData.id,
-              license_plate: vehicleData.license_plate,
-              make: vehicleData.make,
-              model: vehicleData.model
-            } : null,
-            fines: relevantFines.map(fine => ({
-              id: fine.id,
-              violation_number: fine.violationNumber,
-              violation_date: fine.violationDate,
-              amount: fine.fineAmount,
-              status: fine.paymentStatus
-            }))
-          },
-          status: 'completed'
-        });
+        .insert(validationData as any);
         
       if (validationError) {
         console.error('Error recording validation:', validationError);
@@ -110,7 +112,7 @@ const TrafficFineValidation: React.FC = () => {
         totalAmount,
         pendingAmount,
         vehicleFound: vehicleData ? true : false,
-        vehicleInfo: vehicleData,
+        vehicleInfo: vehicleData || undefined,
         fines: relevantFines
       });
       
@@ -203,11 +205,11 @@ const TrafficFineValidation: React.FC = () => {
 
               {/* Vehicle Information */}
               {validationResult.vehicleFound && (
-                <Alert variant="info" className="mb-4">
+                <Alert variant="warning" className="mb-4">
                   <AlertTitle>Vehicle Found in System</AlertTitle>
                   <AlertDescription>
-                    {validationResult.vehicleInfo.make} {validationResult.vehicleInfo.model} 
-                    (License: {validationResult.vehicleInfo.license_plate})
+                    {validationResult.vehicleInfo?.make} {validationResult.vehicleInfo?.model} 
+                    (License: {validationResult.vehicleInfo?.license_plate})
                   </AlertDescription>
                 </Alert>
               )}

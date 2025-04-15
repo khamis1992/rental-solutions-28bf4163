@@ -139,7 +139,13 @@ const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
     try {
       await updateTrafficFine.mutate({
         id: trafficFine.id,
-        ...data
+        violationNumber: data.violationNumber,
+        licensePlate: data.licensePlate,
+        violationDate: data.violationDate,
+        fineAmount: data.fineAmount,
+        violationCharge: data.violationCharge || '',
+        location: data.location || '',
+        paymentStatus: data.paymentStatus
       }, {
         onSuccess: () => {
           toast.success("Traffic fine updated successfully");
@@ -209,7 +215,7 @@ const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
                   </div>
                   {plateValidationResult && (
                     <Alert 
-                      variant={plateValidationResult.isValid ? "success" : "destructive"} 
+                      variant={plateValidationResult.isValid ? "default" : "destructive"} 
                       className="mt-2"
                     >
                       <AlertTitle>
