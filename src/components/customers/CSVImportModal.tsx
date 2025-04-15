@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CSVImportModalProps {
   open: boolean;
@@ -56,14 +56,13 @@ export const CSVImportModal = ({
       setUploadProgress(60);
 
       // Create import record 
-      // Use type casting to work around type errors
       const importData = {
         file_name: fileName,
         original_file_name: file.name,
-        status: 'pending', // Assuming this is a valid status
+        status: 'pending', 
         created_by: user.id,
         mapping_used: {} // Empty object as placeholder
-      } as any; // Type cast to bypass strict checking
+      }; 
 
       const { data: importRecord, error: importError } = await supabase
         .from('customer_import_logs')
