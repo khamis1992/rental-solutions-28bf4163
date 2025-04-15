@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { asTableId } from '@/lib/uuid-helpers';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { formatLicensePlate, isValidLicensePlate } from '@/utils/format-utils';
 
 export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
 
@@ -128,15 +127,17 @@ export const useTrafficFines = () => {
   const createTrafficFine = useMutation({
     mutationFn: async (fineData: TrafficFineCreatePayload) => {
       try {
-        // Ensure licensePlate is present and not empty
-        if (!fineData.licensePlate || fineData.licensePlate.trim() === '') {
-          throw new Error('License plate is required for traffic fines');
+        // Ensure licensePlate is present and valid
+        if (!isValidLicensePlate(fineData.licensePlate)) {
+          throw new Error('Valid license plate is required for traffic fines');
         }
+        
+        const standardizedPlate = formatLicensePlate(fineData.licensePlate);
         
         // Create payload for database
         const dbPayload = {
           violation_number: fineData.violationNumber,
-          license_plate: fineData.licensePlate.trim(),
+          license_plate: standardizedPlate,
           violation_date: fineData.violationDate,
           fine_amount: fineData.fineAmount,
           violation_charge: fineData.violationCharge,
@@ -170,64 +171,97 @@ export const useTrafficFines = () => {
   const assignToCustomer = useMutation({
     mutationFn: async ({ id }: TrafficFinePayload) => {
       try {
+        console.log(`Attempting to assign fine ID: ${id}`);
+        
         // First get the traffic fine details to find license plate
         const { data: fine, error: fineError } = await supabase
           .from('traffic_fines')
-          .select('license_plate')
-          .eq('id', asTableId('traffic_fines', id))
+          .select('id, license_plate')
+          .eq('id', id)
           .single();
           
         if (fineError || !fine) {
+          console.error('Failed to fetch fine details:', fineError);
           throw new Error(`Failed to fetch fine details: ${fineError?.message || 'No data found'}`);
         }
         
         if (!fine.license_plate) {
+          console.error('No license plate found for fine:', id);
           throw new Error('Cannot assign fine: No license plate information available');
         }
         
-        // Find the vehicle with this license plate
+        // Standardize the license plate format for consistent matching
+        const standardizedPlate = formatLicensePlate(fine.license_plate);
+        console.log(`Standardized license plate: "${standardizedPlate}" (original: "${fine.license_plate}")`);
+        
+        if (!standardizedPlate) {
+          throw new Error('Invalid license plate format');
+        }
+        
+        // Find the vehicle with this license plate using case-insensitive matching
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
-          .select('id')
-          .eq('license_plate', fine.license_plate)
-          .single();
+          .select('id, license_plate, make, model')
+          .ilike('license_plate', standardizedPlate)
+          .maybeSingle();
           
-        if (vehicleError || !vehicleData) {
-          throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
+        if (vehicleError) {
+          console.error('Error searching for vehicle:', vehicleError);
+          throw new Error(`Error searching for vehicle: ${vehicleError.message}`);
         }
+        
+        if (!vehicleData) {
+          console.error('No vehicle found with license plate:', standardizedPlate);
+          throw new Error(`No vehicle found with license plate ${standardizedPlate}`);
+        }
+        
+        console.log(`Found vehicle: ${vehicleData.id} - ${vehicleData.make} ${vehicleData.model} (${vehicleData.license_plate})`);
         
         // Find active lease for this vehicle
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select('id, customer_id')
-          .eq('vehicle_id', asTableId('leases', vehicleData.id))
-          .eq('status', asColumnValue('leases', 'status', 'active'))
+          .select('id, customer_id, status')
+          .eq('vehicle_id', vehicleData.id)
+          .eq('status', 'active')
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
           
-        if (leaseError || !leaseData) {
+        if (leaseError) {
+          console.error('Error searching for lease:', leaseError);
+          throw new Error(`Error searching for lease: ${leaseError.message}`);
+        }
+        
+        if (!leaseData) {
+          console.error('No active lease found for vehicle:', vehicleData.id);
           throw new Error(`No active lease found for this vehicle`);
         }
         
-        // Update the fine with the lease ID
+        console.log(`Found lease: ${leaseData.id} (customer: ${leaseData.customer_id})`);
+        
+        // Update the fine with the lease ID and vehicle ID
         const { error: updateError } = await supabase
           .from('traffic_fines')
           .update({ 
-            lease_id: asTableId('traffic_fines', leaseData.id),
+            lease_id: leaseData.id,
+            vehicle_id: vehicleData.id,
             assignment_status: 'assigned'
           })
-          .eq('id', asTableId('traffic_fines', id));
+          .eq('id', id);
           
         if (updateError) {
+          console.error('Error updating fine:', updateError);
           throw new Error(`Failed to assign fine: ${updateError.message}`);
         }
+        
+        console.log(`Successfully assigned fine ${id} to customer ${leaseData.customer_id} (lease: ${leaseData.id})`);
         
         return { 
           success: true, 
           message: 'Fine assigned to customer successfully',
           leaseId: leaseData.id,
-          customerId: leaseData.customer_id
+          customerId: leaseData.customer_id,
+          vehicleId: vehicleData.id
         };
       } catch (error) {
         console.error('Error assigning fine to customer:', error);
@@ -251,10 +285,10 @@ export const useTrafficFines = () => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ 
-          payment_status: asColumnValue('traffic_fines', 'payment_status', 'paid'),
+          payment_status: 'paid',
           payment_date: new Date().toISOString()
         })
-        .eq('id', asTableId('traffic_fines', id));
+        .eq('id', id);
         
       if (error) {
         throw new Error(`Failed to pay fine: ${error.message}`);
@@ -264,6 +298,7 @@ export const useTrafficFines = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      toast.success('Traffic fine marked as paid');
     }
   });
   
@@ -272,8 +307,8 @@ export const useTrafficFines = () => {
     mutationFn: async ({ id }: TrafficFinePayload) => {
       const { error } = await supabase
         .from('traffic_fines')
-        .update({ payment_status: asColumnValue('traffic_fines', 'payment_status', 'disputed') })
-        .eq('id', asTableId('traffic_fines', id));
+        .update({ payment_status: 'disputed' })
+        .eq('id', id);
         
       if (error) {
         throw new Error(`Failed to dispute fine: ${error.message}`);
@@ -283,8 +318,53 @@ export const useTrafficFines = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      toast.success('Traffic fine marked as disputed');
     }
   });
+  
+  // Validate a license plate against the database
+  const validateLicensePlate = async (licensePlate: string) => {
+    if (!isValidLicensePlate(licensePlate)) {
+      return { isValid: false, message: 'Invalid license plate format' };
+    }
+    
+    const standardizedPlate = formatLicensePlate(licensePlate);
+    
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('id, license_plate, make, model')
+        .ilike('license_plate', standardizedPlate)
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error validating license plate:', error);
+        return { isValid: false, message: `Error during validation: ${error.message}` };
+      }
+      
+      if (!data) {
+        return { 
+          isValid: false, 
+          message: `No vehicle found with license plate ${standardizedPlate}`,
+          licensePlate: standardizedPlate
+        };
+      }
+      
+      return { 
+        isValid: true, 
+        message: 'License plate is valid and exists in the database',
+        vehicle: data,
+        licensePlate: standardizedPlate
+      };
+    } catch (error) {
+      console.error('Error in license plate validation:', error);
+      return { 
+        isValid: false, 
+        message: error instanceof Error ? error.message : 'Unknown error during validation',
+        licensePlate: standardizedPlate
+      };
+    }
+  };
   
   return {
     trafficFines,
@@ -293,11 +373,7 @@ export const useTrafficFines = () => {
     assignToCustomer,
     payTrafficFine,
     disputeTrafficFine,
-    createTrafficFine
+    createTrafficFine,
+    validateLicensePlate
   };
 };
-
-// Helper for type-safe column value assignment
-function asColumnValue<T extends keyof any>(table: string, column: string, value: T): T {
-  return value;
-}

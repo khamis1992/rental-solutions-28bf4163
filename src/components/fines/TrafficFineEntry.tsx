@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,18 +17,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Calendar } from 'lucide-react';
+import { AlertCircle, Calendar, Loader2 } from 'lucide-react';
 import { useTrafficFines, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { formatLicensePlate, isValidLicensePlate } from '@/utils/format-utils';
 
 // Define the schema for traffic fine entry form
 const trafficFineSchema = z.object({
   violationNumber: z.string().min(1, 'Violation number is required'),
-  licensePlate: z.string().min(1, 'License plate is required'),
+  licensePlate: z.string()
+    .min(1, 'License plate is required')
+    .transform(val => formatLicensePlate(val)) // Standardize format during validation
+    .refine(val => isValidLicensePlate(val), { message: 'Invalid license plate format' }),
   violationDate: z.date({
     required_error: 'Violation date is required',
   }),
@@ -45,7 +49,13 @@ interface TrafficFineEntryProps {
 }
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const { createTrafficFine } = useTrafficFines();
+  const { createTrafficFine, validateLicensePlate } = useTrafficFines();
+  const [validatingPlate, setValidatingPlate] = useState(false);
+  const [plateValidationResult, setPlateValidationResult] = useState<{
+    isValid: boolean;
+    message: string;
+    vehicle?: any;
+  } | null>(null);
 
   const form = useForm<TrafficFineFormData>({
     resolver: zodResolver(trafficFineSchema),
@@ -60,11 +70,45 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
     },
   });
 
+  const licensePlateValue = form.watch('licensePlate');
+
+  // Handle license plate validation
+  const handleValidateLicensePlate = async () => {
+    const plate = form.getValues('licensePlate');
+    if (!plate) return;
+    
+    setValidatingPlate(true);
+    setPlateValidationResult(null);
+    
+    try {
+      const result = await validateLicensePlate(plate);
+      setPlateValidationResult(result);
+      
+      if (!result.isValid) {
+        // No need to show a toast for validation failures
+        console.log('License plate validation failed:', result.message);
+      }
+    } catch (error) {
+      console.error('Error validating license plate:', error);
+      toast.error('Failed to validate license plate');
+    } finally {
+      setValidatingPlate(false);
+    }
+  };
+
+  // Handle license plate input blur
+  const handleLicensePlateBlur = () => {
+    if (licensePlateValue) {
+      handleValidateLicensePlate();
+    }
+  };
+
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
       await createTrafficFine.mutate(data as TrafficFineCreatePayload);
       toast.success("Traffic fine created successfully");
       form.reset();
+      setPlateValidationResult(null);
       if (onFineSaved) {
         onFineSaved();
       }
@@ -112,9 +156,45 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>License Plate *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="e.g., ABC123" />
-                    </FormControl>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="e.g., ABC123" 
+                          onBlur={handleLicensePlateBlur}
+                        />
+                      </FormControl>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleValidateLicensePlate}
+                        disabled={!licensePlateValue || validatingPlate}
+                      >
+                        {validatingPlate ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Validate'
+                        )}
+                      </Button>
+                    </div>
+                    {plateValidationResult && (
+                      <Alert 
+                        variant={plateValidationResult.isValid ? "success" : "destructive"} 
+                        className="mt-2"
+                      >
+                        <AlertTitle>
+                          {plateValidationResult.isValid ? 'Valid License Plate' : 'Invalid License Plate'}
+                        </AlertTitle>
+                        <AlertDescription>
+                          {plateValidationResult.message}
+                          {plateValidationResult.isValid && plateValidationResult.vehicle && (
+                            <div className="mt-1">
+                              Vehicle: {plateValidationResult.vehicle.make} {plateValidationResult.vehicle.model}
+                            </div>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <FormDescription>
                       License plate is required to match the fine to a vehicle
                     </FormDescription>
@@ -238,7 +318,20 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
           </CardContent>
 
           <CardFooter>
-            <Button type="submit" className="w-full">Create Traffic Fine</Button>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={createTrafficFine.isPending}
+            >
+              {createTrafficFine.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Traffic Fine'
+              )}
+            </Button>
           </CardFooter>
         </form>
       </Form>

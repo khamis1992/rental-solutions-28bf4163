@@ -12,9 +12,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { formatLicensePlate } from '@/utils/format-utils';
 
 const validationSchema = z.object({
-  licensePlate: z.string().min(1, 'License plate is required'),
+  licensePlate: z.string()
+    .min(1, 'License plate is required')
+    .transform(val => formatLicensePlate(val)), // Standardize format
 });
 
 type ValidationFormValues = z.infer<typeof validationSchema>;
@@ -22,7 +25,7 @@ type ValidationFormValues = z.infer<typeof validationSchema>;
 const TrafficFineValidation: React.FC = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const { trafficFines } = useTrafficFines();
+  const { trafficFines, isLoading: finesLoading } = useTrafficFines();
   
   const form = useForm<ValidationFormValues>({
     resolver: zodResolver(validationSchema),
@@ -36,10 +39,29 @@ const TrafficFineValidation: React.FC = () => {
     setValidationResult(null);
     
     try {
-      // Find traffic fines for this license plate
+      // Standardize license plate format for consistent matching
+      const standardizedLicensePlate = formatLicensePlate(data.licensePlate);
+      
+      if (!standardizedLicensePlate) {
+        toast.error('Invalid license plate format');
+        return;
+      }
+      
+      console.log(`Validating license plate: ${standardizedLicensePlate} (original: ${data.licensePlate})`);
+      
+      // Check if the license plate exists in the vehicles table
+      const { data: vehicleData, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('id, license_plate, make, model')
+        .ilike('license_plate', standardizedLicensePlate)
+        .maybeSingle();
+      
+      // Find traffic fines for this license plate with case-insensitive matching
       const relevantFines = trafficFines?.filter(fine => 
-        fine.licensePlate?.toLowerCase() === data.licensePlate.toLowerCase()
+        formatLicensePlate(fine.licensePlate || '') === standardizedLicensePlate
       ) || [];
+      
+      console.log(`Found ${relevantFines.length} fines for license plate ${standardizedLicensePlate}`);
       
       // Calculate some stats
       const totalAmount = relevantFines.reduce((sum, fine) => sum + fine.fineAmount, 0);
@@ -51,13 +73,20 @@ const TrafficFineValidation: React.FC = () => {
       const { error: validationError } = await supabase
         .from('traffic_fine_validations')
         .insert({
-          license_plate: data.licensePlate,
+          license_plate: standardizedLicensePlate,
           validation_date: new Date().toISOString(),
           validation_source: 'manual',
           result: {
             fines_found: relevantFines.length,
             total_amount: totalAmount,
             pending_amount: pendingAmount,
+            vehicle_found: vehicleData ? true : false,
+            vehicle_info: vehicleData ? {
+              id: vehicleData.id,
+              license_plate: vehicleData.license_plate,
+              make: vehicleData.make,
+              model: vehicleData.model
+            } : null,
             fines: relevantFines.map(fine => ({
               id: fine.id,
               violation_number: fine.violationNumber,
@@ -76,10 +105,12 @@ const TrafficFineValidation: React.FC = () => {
       
       // Set the result for display
       setValidationResult({
-        licensePlate: data.licensePlate,
+        licensePlate: standardizedLicensePlate,
         finesCount: relevantFines.length,
         totalAmount,
         pendingAmount,
+        vehicleFound: vehicleData ? true : false,
+        vehicleInfo: vehicleData,
         fines: relevantFines
       });
       
@@ -169,6 +200,26 @@ const TrafficFineValidation: React.FC = () => {
                     : `No traffic fines found for license plate ${validationResult.licensePlate}`}
                 </AlertDescription>
               </Alert>
+
+              {/* Vehicle Information */}
+              {validationResult.vehicleFound && (
+                <Alert variant="info" className="mb-4">
+                  <AlertTitle>Vehicle Found in System</AlertTitle>
+                  <AlertDescription>
+                    {validationResult.vehicleInfo.make} {validationResult.vehicleInfo.model} 
+                    (License: {validationResult.vehicleInfo.license_plate})
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              {!validationResult.vehicleFound && (
+                <Alert variant="warning" className="mb-4">
+                  <AlertTitle>Vehicle Not Found</AlertTitle>
+                  <AlertDescription>
+                    No vehicle with license plate {validationResult.licensePlate} was found in the system.
+                  </AlertDescription>
+                </Alert>
+              )}
 
               {validationResult.finesCount > 0 && (
                 <div className="mt-4 border rounded-md p-4">
