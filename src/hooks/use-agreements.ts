@@ -1,7 +1,8 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement } from '@/types/agreement';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 
@@ -10,17 +11,17 @@ interface UseAgreementsProps {
 }
 
 export const useAgreements = ({ status }: UseAgreementsProps = {}) => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParamsState] = useSearchParams();
   const queryClient = useQueryClient();
 
   // Function to update the search parameters
   const setSearchParams = useCallback(
-    (params: (prevState: URLSearchParams) => URLSearchParams) => {
-      const newParams = params(new URLSearchParams(searchParams?.toString()));
-      router.push(`?${newParams.toString()}`);
+    (paramsFn: (prevState: URLSearchParams) => URLSearchParams) => {
+      const newParams = paramsFn(new URLSearchParams(searchParams.toString()));
+      navigate(`?${newParams.toString()}`);
     },
-    [router, searchParams]
+    [navigate, searchParams]
   );
 
   const getAgreements = async (): Promise<Agreement[]> => {
@@ -138,6 +139,36 @@ export const useAgreements = ({ status }: UseAgreementsProps = {}) => {
     },
   });
 
+  // Add a getAgreement function to get a single agreement by ID
+  const getAgreement = async (id: string): Promise<Agreement | null> => {
+    const { data, error } = await supabase
+      .from('leases')
+      .select(`
+        *,
+        customers (
+          id,
+          full_name,
+          email,
+          phone_number
+        ),
+        vehicles (
+          id,
+          make,
+          model,
+          license_plate
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching agreement:', error);
+      return null;
+    }
+
+    return data as Agreement;
+  };
+
   return {
     agreements,
     isLoading,
@@ -147,5 +178,6 @@ export const useAgreements = ({ status }: UseAgreementsProps = {}) => {
     deleteAgreement,
     searchParams,
     setSearchParams,
+    getAgreement
   };
 };

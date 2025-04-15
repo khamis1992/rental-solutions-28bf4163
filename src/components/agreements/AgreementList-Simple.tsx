@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -73,8 +74,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
 
 interface AgreementListProps {
   customerNameSearch?: string;
@@ -92,14 +91,11 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
   });
   
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   
   const { 
     agreements, 
     isLoading, 
     error,
-    searchParams, 
-    setSearchParams,
     deleteAgreement 
   } = useAgreements({ status: statusFilter });
   
@@ -159,14 +155,14 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       header: 'Customer',
       cell: ({ row }) => {
         const customer = row.original.customers;
-        return (
+        return customer ? (
           <Link 
             to={`/customers/${customer.id}`}
             className="hover:underline"
           >
             {customer.full_name || 'N/A'}
           </Link>
-        );
+        ) : 'N/A';
       }
     },
     {
@@ -174,7 +170,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       header: 'Vehicle',
       cell: ({ row }) => {
         const vehicle = row.original.vehicles;
-        return (
+        return vehicle ? (
           <Link 
             to={`/vehicles/${vehicle.id}`}
             className="hover:underline"
@@ -188,7 +184,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
               <span>Vehicle: <span className="font-semibold text-primary">{vehicle.license_plate}</span></span>
             ) : 'N/A'}
           </Link>
-        );
+        ) : 'N/A';
       }
     },
     {
@@ -271,13 +267,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
               className="text-destructive focus:text-destructive"
               onClick={() => {
                 if (window.confirm(`Are you sure you want to delete agreement ${row.original.agreement_number}?`)) {
-                  const idsToDelete = Object.keys(rowSelection);
-                  if (idsToDelete.length === 1) {
-                    deleteAgreement.mutate(idsToDelete[0]);
-                  } else {
-                    deleteAgreement.mutate(idsToDelete);
-                  }
-                  setBulkDeleteDialogOpen(false);
+                  deleteAgreement.mutate(row.original.id);
                 }
               }}
             >
@@ -288,6 +278,34 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       )
     }
   ];
+
+  const handleBulkDelete = () => {
+    if (!agreements) return;
+    
+    setIsDeleting(true);
+    
+    // Get the IDs of selected rows
+    const selectedIds = Object.keys(rowSelection).map(
+      index => filteredAgreements[parseInt(index)].id
+    );
+    
+    // Confirm deletion
+    if (selectedIds.length > 0) {
+      try {
+        // Use the deleteAgreement mutation
+        deleteAgreement.mutate(selectedIds);
+        
+        // Reset selection and close dialog
+        setRowSelection({});
+        setBulkDeleteDialogOpen(false);
+      } catch (error) {
+        console.error('Error deleting agreements:', error);
+        toast.error('Failed to delete selected agreements');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   const table = useReactTable({
     data: filteredAgreements || [],
@@ -307,12 +325,11 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       pagination,
     },
     manualPagination: false,
-    pageCount: Math.ceil((filteredAgreements?.length || 0) / 10),
+    pageCount: pagination.pageCount,
   });
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    setSearchParams(prev => ({ ...prev, status: value }));
   };
 
   const selectedCount = Object.keys(rowSelection).length;
@@ -441,8 +458,8 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
             <Button 
               variant="outline" 
               size="icon"
-              onClick={() => setPagination(prev => ({ ...prev, pageIndex: 0 }))} 
-              disabled={pagination.pageIndex === 0}
+              onClick={() => table.setPageIndex(0)} 
+              disabled={!table.getCanPreviousPage()}
               className="h-8 w-8"
             >
               <ChevronLeft className="h-4 w-4" />
@@ -452,8 +469,8 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
             <Button
               variant="outline"
               size="icon"
-              onClick={() => setPagination(prev => ({ ...prev, pageIndex: pagination.pageIndex - 1 }))} 
-              disabled={pagination.pageIndex === 0}
+              onClick={() => table.previousPage()} 
+              disabled={!table.getCanPreviousPage()}
               className="h-8 w-8"
             >
               <ArrowUpDown className="h-4 w-4" />
@@ -462,7 +479,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
           <PaginationItem>
             <div className="flex items-center mx-2">
               <span className="text-sm">
-                Page {pagination.pageIndex + 1} of {pagination.pageCount || 1}
+                Page {table.getState().pagination.pageIndex + 1} of {pagination.pageCount || 1}
               </span>
             </div>
           </PaginationItem>
@@ -470,8 +487,8 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
             <Button 
               variant="outline"
               size="icon"
-              onClick={() => setPagination(prev => ({ ...prev, pageIndex: pagination.pageIndex + 1 }))} 
-              disabled={pagination.pageIndex >= pagination.pageCount - 1}
+              onClick={() => table.nextPage()} 
+              disabled={!table.getCanNextPage()}
               className="h-8 w-8"
             >
               <ArrowUpDown className="h-4 w-4" />
@@ -481,8 +498,8 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
             <Button 
               variant="outline"
               size="icon"
-              onClick={() => setPagination(prev => ({ ...prev, pageIndex: pagination.pageCount - 1 }))} 
-              disabled={pagination.pageIndex >= pagination.pageCount - 1}
+              onClick={() => table.setPageIndex(pagination.pageCount - 1)} 
+              disabled={!table.getCanNextPage()}
               className="h-8 w-8"
             >
               <ChevronRight className="h-4 w-4" />
@@ -500,21 +517,23 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (window.confirm(`Are you sure you want to delete ${selectedCount} agreement(s)?`)) {
-                  const idsToDelete = Object.keys(rowSelection);
-                  if (idsToDelete.length === 1) {
-                    deleteAgreement.mutate(idsToDelete[0]);
-                  } else {
-                    deleteAgreement.mutate(idsToDelete);
-                  }
-                  setBulkDeleteDialogOpen(false);
-                }
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
               }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Agreements'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
