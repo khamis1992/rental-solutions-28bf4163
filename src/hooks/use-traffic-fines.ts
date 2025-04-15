@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,6 +35,10 @@ export interface TrafficFineCreatePayload {
   violationCharge?: string;
   location?: string;
   paymentStatus?: TrafficFineStatusType;
+}
+
+export interface TrafficFineUpdatePayload extends TrafficFineCreatePayload {
+  id: string;
 }
 
 export const useTrafficFines = () => {
@@ -161,6 +164,55 @@ export const useTrafficFines = () => {
         return data;
       } catch (error) {
         console.error('Error creating traffic fine:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      // Invalidate the traffic fines query to refetch the data
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      // Explicitly trigger a refetch to ensure immediate update
+      refetch();
+    }
+  });
+  
+  // Update a traffic fine
+  const updateTrafficFine = useMutation({
+    mutationFn: async (fineData: TrafficFineUpdatePayload) => {
+      try {
+        // Ensure licensePlate is present and valid
+        if (!isValidLicensePlate(fineData.licensePlate)) {
+          throw new Error('Valid license plate is required for traffic fines');
+        }
+        
+        const standardizedPlate = formatLicensePlate(fineData.licensePlate);
+        
+        // Create payload for database
+        const dbPayload = {
+          violation_number: fineData.violationNumber,
+          license_plate: standardizedPlate,
+          violation_date: fineData.violationDate,
+          fine_amount: fineData.fineAmount,
+          violation_charge: fineData.violationCharge,
+          fine_location: fineData.location,
+          payment_status: fineData.paymentStatus || 'pending'
+        };
+        
+        console.log(`Updating traffic fine ${fineData.id} with payload:`, dbPayload);
+        
+        const { data, error } = await supabase
+          .from('traffic_fines')
+          .update(dbPayload)
+          .eq('id', fineData.id)
+          .select('*')
+          .single();
+          
+        if (error) {
+          throw new Error(`Failed to update traffic fine: ${error.message}`);
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error updating traffic fine:', error);
         throw error;
       }
     },
@@ -379,6 +431,7 @@ export const useTrafficFines = () => {
     payTrafficFine,
     disputeTrafficFine,
     createTrafficFine,
+    updateTrafficFine,
     validateLicensePlate,
     refetch
   };
