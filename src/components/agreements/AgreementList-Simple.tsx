@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -88,6 +89,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
+    pageCount: 1,  // Add pageCount to pagination state
   });
   
   const navigate = useNavigate();
@@ -115,6 +117,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
     setPagination({
       pageIndex: 0,
       pageSize: 10,
+      pageCount: Math.ceil((filteredAgreements?.length || 0) / 10),
     });
   }, [agreements, statusFilter]);
 
@@ -131,6 +134,14 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       return customerName.toLowerCase().includes(searchLower);
     });
   }, [agreements, customerNameSearch]);
+
+  // Update pageCount whenever filteredAgreements changes
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      pageCount: Math.ceil((filteredAgreements?.length || 0) / prev.pageSize)
+    }));
+  }, [filteredAgreements]);
 
   const columns: ColumnDef<any>[] = [
     {
@@ -423,36 +434,55 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
       <Pagination>
         <PaginationContent>
           <PaginationItem>
-            <PaginationLink
+            <Button 
+              variant="outline" 
+              size="icon"
               onClick={() => setPagination(prev => ({ ...prev, pageIndex: 0 }))} 
               disabled={pagination.pageIndex === 0}
+              className="h-8 w-8"
             >
               <ChevronLeft className="h-4 w-4" />
-            </PaginationLink>
+            </Button>
           </PaginationItem>
           <PaginationItem>
-            <PaginationLink
+            <Button
+              variant="outline"
+              size="icon"
               onClick={() => setPagination(prev => ({ ...prev, pageIndex: pagination.pageIndex - 1 }))} 
               disabled={pagination.pageIndex === 0}
+              className="h-8 w-8"
             >
               <ArrowUpDown className="h-4 w-4" />
-            </PaginationLink>
+            </Button>
           </PaginationItem>
           <PaginationItem>
-            <PaginationLink
+            <div className="flex items-center mx-2">
+              <span className="text-sm">
+                Page {pagination.pageIndex + 1} of {pagination.pageCount || 1}
+              </span>
+            </div>
+          </PaginationItem>
+          <PaginationItem>
+            <Button 
+              variant="outline"
+              size="icon"
               onClick={() => setPagination(prev => ({ ...prev, pageIndex: pagination.pageIndex + 1 }))} 
-              disabled={pagination.pageIndex === pagination.pageCount - 1}
+              disabled={pagination.pageIndex >= pagination.pageCount - 1}
+              className="h-8 w-8"
             >
               <ArrowUpDown className="h-4 w-4" />
-            </PaginationLink>
+            </Button>
           </PaginationItem>
           <PaginationItem>
-            <PaginationLink
+            <Button 
+              variant="outline"
+              size="icon"
               onClick={() => setPagination(prev => ({ ...prev, pageIndex: pagination.pageCount - 1 }))} 
-              disabled={pagination.pageIndex === pagination.pageCount - 1}
+              disabled={pagination.pageIndex >= pagination.pageCount - 1}
+              className="h-8 w-8"
             >
               <ChevronRight className="h-4 w-4" />
-            </PaginationLink>
+            </Button>
           </PaginationItem>
         </PaginationContent>
       </Pagination>
@@ -470,7 +500,8 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
             <AlertDialogAction
               onClick={() => {
                 if (window.confirm(`Are you sure you want to delete ${selectedCount} agreement(s)?`)) {
-                  deleteAgreement.mutate(Object.keys(rowSelection).map(Number));
+                  const idsToDelete = Object.keys(rowSelection).map(id => id); // Convert to string[]
+                  deleteAgreement.mutate(idsToDelete);
                   setBulkDeleteDialogOpen(false);
                 }
               }}
