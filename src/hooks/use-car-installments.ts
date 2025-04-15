@@ -1,11 +1,9 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
 import { 
   CarInstallmentContract as OriginalCarInstallmentContract,
   CarInstallmentPayment,
-  PaymentFilters,
   ContractSummary 
 } from '@/types/car-installment';
 
@@ -49,7 +47,8 @@ export const useCarInstallmentContracts = () => {
       throw new Error(error.message);
     }
 
-    return data as CarInstallmentContract[];
+    // Properly cast the data to the expected return type
+    return data as unknown as CarInstallmentContract[];
   };
   
   const contractsQuery = useQuery({

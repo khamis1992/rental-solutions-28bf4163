@@ -17,6 +17,16 @@ export interface CarInstallmentContract {
   category: string;
   created_at: string;
   updated_at: string;
+  // Adding optional fields that might be used elsewhere
+  customer_id?: string;
+  vehicle_id?: string;
+  start_date?: string;
+  end_date?: string;
+  interest_rate?: number;
+  loan_amount?: number;
+  monthly_payment?: number;
+  number_of_payments?: number;
+  status?: string;
 }
 
 export interface CarInstallmentPayment {
@@ -61,4 +71,5 @@ export interface PaymentFilters {
   status?: InstallmentStatus | 'all';
   dateFrom?: string;
   dateTo?: string;
+  search?: string;
 }

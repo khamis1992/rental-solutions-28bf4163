@@ -23,6 +23,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { MaintenanceSchedulingWizard } from '@/components/maintenance/MaintenanceSchedulingWizard';
+import { castDbId } from '@/utils/db-id-helper';
 
 interface VehicleDetailProps {
   vehicle?: any;
@@ -79,11 +80,10 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     if (!vehicle && id) {
       const fetchVehicle = async () => {
         try {
-          // We'll access the vehicle directly from Supabase since getVehicle is missing
           const { data, error } = await supabase
             .from('vehicles')
             .select('*')
-            .eq('id', id)
+            .eq('id', id as any)
             .single();
             
           if (error) {
@@ -134,11 +134,10 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     setIsRestoring(true);
     try {
       if (currentVehicle.id) {
-        // Direct interaction with Supabase since restoreVehicle is missing
         const { data, error } = await supabase
           .from('vehicles')
-          .update({ deleted_at: null })
-          .eq('id', currentVehicle.id)
+          .update({ deleted_at: null } as any)
+          .eq('id', currentVehicle.id as any)
           .select();
           
         if (error) {
