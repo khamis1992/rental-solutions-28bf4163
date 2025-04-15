@@ -18,7 +18,7 @@ export interface Agreement {
   created_at?: string | Date;
   updated_at?: string | Date;
   rent_due_day?: number;
-  customers?: {
+  profiles?: {
     id: string;
     full_name?: string;
     email?: string;

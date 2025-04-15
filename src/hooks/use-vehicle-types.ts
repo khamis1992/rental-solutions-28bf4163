@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-interface VehicleType {
+export interface VehicleType {
   id: string;
   name: string;
   description?: string;

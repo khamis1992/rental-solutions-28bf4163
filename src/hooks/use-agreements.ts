@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement } from '@/types/agreement';
@@ -28,7 +29,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       .from('leases')
       .select(`
         *,
-        customers (
+        profiles (
           id,
           full_name,
           email,
@@ -44,11 +45,11 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       .order('created_at', { ascending: false });
 
     if (status && status !== 'all') {
-      query = query.eq('status', status as any);
+      query = query.eq('status', status);
     }
     
     if (customer_id) {
-      query = query.eq('customer_id', customer_id as any);
+      query = query.eq('customer_id', customer_id);
     }
 
     const { data, error } = await query;
@@ -57,7 +58,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       throw new Error(error.message);
     }
 
-    return data as Agreement[];
+    return data as unknown as Agreement[];
   };
 
   const {
@@ -81,7 +82,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
         throw new Error(error.message);
       }
 
-      return data as Agreement;
+      return data as unknown as Agreement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
@@ -97,7 +98,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
     mutationFn: async (updatedAgreement: Agreement) => {
       const { data, error } = await supabase
         .from('leases')
-        .update(updatedAgreement)
+        .update(updatedAgreement as any)
         .eq('id', updatedAgreement.id)
         .select()
         .single();
@@ -106,7 +107,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
         throw new Error(error.message);
       }
 
-      return data as Agreement;
+      return data as unknown as Agreement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
@@ -121,11 +122,11 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
   const deleteAgreement = useMutation({
     mutationFn: async (id: string | string[]) => {
       if (Array.isArray(id)) {
-        const { error } = await supabase.from('leases').delete().in('id', id);
+        const { error } = await supabase.from('leases').delete().in('id', id as any);
         if (error) throw new Error(error.message);
         return id;
       } else {
-        const { error } = await supabase.from('leases').delete().eq('id', id);
+        const { error } = await supabase.from('leases').delete().eq('id', id as any);
         if (error) throw new Error(error.message);
         return id;
       }
@@ -145,7 +146,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       .from('leases')
       .select(`
         *,
-        customers (
+        profiles (
           id,
           full_name,
           email,
@@ -166,7 +167,7 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
       return null;
     }
 
-    return data as Agreement;
+    return data as unknown as Agreement;
   };
 
   return {

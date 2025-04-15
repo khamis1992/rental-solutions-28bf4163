@@ -1,4 +1,3 @@
-
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData, asLeaseId } from '@/utils/database-type-helpers';
@@ -10,16 +9,16 @@ export interface Payment {
   amount_paid: number;
   balance: number;
   payment_date: string | null;
-  due_date: string | null;  // Added this property to match PaymentHistory.types
+  due_date: string | null;
   status: string;
-  payment_method?: string;
+  payment_method: string;
   description?: string;
   type?: string;
   late_fine_amount?: number;
   days_overdue?: number;
   original_due_date?: string | null;
-  created_at: string;  // Changed from optional to required
-  updated_at: string;  // Changed from optional to required
+  created_at: string;
+  updated_at: string;
 }
 
 export const usePayments = (agreementId?: string) => {
@@ -45,7 +44,6 @@ export const usePayments = (agreementId?: string) => {
     }
   );
 
-  // Ensure we always have an array of payments, even if data is null or undefined
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
@@ -90,7 +88,6 @@ export const usePayments = (agreementId?: string) => {
     return { success: true };
   });
 
-  // Add a function to fetch payments that uses refetch
   const fetchPayments = () => {
     return refetch();
   };

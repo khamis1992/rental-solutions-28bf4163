@@ -10,6 +10,7 @@ export interface CustomerObligation {
   daysOverdue?: number;
   lateFine?: number;
   agreementId?: string;
-  type: string;  // Added this missing property
-  title: string;  // Added this missing property
+  type: string;
+  title: string;
+  description?: string;
 }

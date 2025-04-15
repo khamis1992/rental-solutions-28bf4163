@@ -37,8 +37,8 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const isActivation = newStatus === 'active';
       const isClosure = newStatus === 'closed';
       
-      // Create update data - using a properly typed object
-      const updateData: any = {  // Use any type to avoid TS errors
+      // Create update data
+      const updateData: any = {
         status: newStatus,
         updated_at: new Date().toISOString()
       };
@@ -56,7 +56,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const { error: updateError } = await supabase
         .from('leases')
         .update(updateData)
-        .eq('id', id as any);  // Cast to any to avoid type error
+        .eq('id', id as any);
         
       if (updateError) {
         console.error("Error updating agreement status:", updateError);
@@ -142,7 +142,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const { data, error } = await supabase
         .from('leases')
         .select('*')
-        .eq('id', id as any)  // Cast to any to avoid type error
+        .eq('id', id as any)
         .single();
         
       if (error || !data) {
@@ -157,7 +157,7 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       const { data: existingPayments, error: checkError } = await supabase
         .from('unified_payments')
         .select('id')
-        .eq('lease_id', id as any)  // Cast to any to avoid type error
+        .eq('lease_id', id as any)
         .limit(1);
         
       if (!checkError && existingPayments && existingPayments.length > 0) {
@@ -180,17 +180,21 @@ export const useAgreementStatus = (agreement: Agreement | null, agreementId: str
       }
       
       // Create payment record
+      const paymentData = {
+        lease_id: id,
+        amount: data.rent_amount,
+        amount_paid: 0,
+        balance: data.rent_amount,
+        description: `Rent Payment - ${dueDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
+        type: 'rent',
+        status: 'pending',
+        due_date: dueDate.toISOString(),
+        is_recurring: false
+      };
+      
       const { error: insertError } = await supabase
         .from('unified_payments')
-        .insert({
-          lease_id: id,
-          amount: data.rent_amount,
-          description: `Rent Payment - ${dueDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
-          type: 'rent',
-          status: 'pending',
-          due_date: dueDate.toISOString(),
-          is_recurring: false
-        } as any);  // Cast to any to avoid type error
+        .insert(paymentData);
         
       if (insertError) {
         console.error("Error creating payment:", insertError);

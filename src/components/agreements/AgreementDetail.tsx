@@ -353,7 +353,7 @@ export function AgreementDetail({
       </div>
 
       {agreement && <PaymentHistory 
-        payments={Array.isArray(payments) ? payments : []} 
+        payments={Array.isArray(payments) ? payments as import('@/components/agreements/PaymentHistory.types').Payment[] : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount} 
         onPaymentDeleted={() => {

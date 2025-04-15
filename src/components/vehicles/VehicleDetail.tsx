@@ -21,16 +21,20 @@ import {
 } from 'lucide-react';
 import { asVehicleId } from '@/utils/database-type-helpers';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import { useVehicleTypes } from '@/hooks/use-vehicle-types';
 
 interface VehicleDetailProps {
   vehicle: Vehicle;
+  onUpdate?: (vehicle: Vehicle) => void;
+  onDelete?: () => void;
 }
 
-const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
+const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle, onUpdate, onDelete }) => {
   const [financialData, setFinancialData] = useState<any>(null);
   const [isLoadingFinancials, setIsLoadingFinancials] = useState<boolean>(false);
   const [financialError, setFinancialError] = useState<Error | null>(null);
   const { getByVehicleId } = useMaintenance();
+  const { vehicleTypes } = useVehicleTypes();
   
   useEffect(() => {
     const fetchFinancialData = async () => {
@@ -143,11 +147,17 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     const vehicleTypeInfo = vehicle?.vehicle_type_id ? (
       <div className="flex flex-col space-y-1">
         <span className="text-sm font-medium">Vehicle Type</span>
-        <span>{vehicle.vehicle_type_id}</span>
+        <span>{getVehicleTypeName()}</span>
       </div>
     ) : null;
     
     return vehicleTypeInfo;
+  };
+
+  const getVehicleTypeName = () => {
+    if (!vehicle.vehicle_type_id || !vehicleTypes) return 'N/A';
+    const foundType = vehicleTypes.find(type => type.id === vehicle.vehicle_type_id);
+    return foundType?.name || 'N/A';
   };
 
   return (
