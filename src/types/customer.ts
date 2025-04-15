@@ -1,4 +1,6 @@
 
+export type CustomerStatus = 'active' | 'inactive' | 'pending_review' | 'blacklisted' | 'pending_payment';
+
 export interface CustomerInfo {
   id: string;
   full_name: string;
@@ -8,10 +10,10 @@ export interface CustomerInfo {
   driver_license?: string;
   nationality?: string;
   address?: string;
-  notes?: string; // Added missing property
-  status?: string; // Added missing property
-  created_at?: string; // Added missing property
-  updated_at?: string; // Added missing property
+  notes?: string;
+  status?: CustomerStatus;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CustomerListItem {

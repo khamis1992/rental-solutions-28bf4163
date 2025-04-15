@@ -1,26 +1,8 @@
 
-// Define types for car installment functionality
-
-// Status types for installments
-export type InstallmentStatus = "pending" | "paid" | "overdue" | "cancelled";
-
-// Payment filters for filtering installment payments
-export interface PaymentFilters {
-  status?: InstallmentStatus | "all";
-  dateFrom?: string;
-  dateTo?: string;
-  search?: string;
-}
-
-// Added ContractFilters interface
-export interface ContractFilters {
-  status?: string;
-  search?: string;
-}
-
-// Car installment contract type
 export interface CarInstallmentContract {
   id: string;
+  created_at: string;
+  updated_at: string;
   car_type: string;
   category: string;
   model_year: number;
@@ -33,34 +15,25 @@ export interface CarInstallmentContract {
   remaining_installments: number;
   installment_value: number;
   overdue_payments: number;
-  created_at: string;
-  updated_at: string;
 }
 
-// Car installment payment type
 export interface CarInstallmentPayment {
   id: string;
   contract_id: string;
-  amount: number;
-  paid_amount: number;
-  remaining_amount: number;
   payment_date: string;
+  amount: number;
+  status: string;
   cheque_number: string;
   drawee_bank: string;
-  status: InstallmentStatus;
+  payment_notes?: string;
   days_overdue: number;
-  last_payment_date?: string;
-  reconciliation_date?: string;
-  payment_reference?: string;
-  notes?: string;
-  created_at: string;
-  updated_at: string;
+  reconciliation_status?: string;
 }
 
-// Summary type for contract overview
-export interface ContractSummary {
-  totalContracts: number;
-  totalPortfolioValue: number;
-  totalCollections: number;
-  upcomingPayments: number;
+export interface ContractFilters {
+  category?: string;
+  car_type?: string;
+  model_year?: number;
+  status?: string;
+  search?: string;
 }

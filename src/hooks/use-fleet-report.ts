@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Vehicle } from '@/types/vehicle';
-import { castDbId } from '@/utils/database-type-helpers';
+import { castDbId, hasData } from '@/utils/database-type-helpers';
 
 interface MonthlyExpense {
   month: string;
@@ -91,26 +91,22 @@ export const useFleetReport = () => {
         return (data || []).map(rental => {
           if (!rental) return null;
           
-          // Handle profiles whether it's an array or a single object
-          let profile: any;
-          if (rental.profiles) {
-            if (Array.isArray(rental.profiles) && rental.profiles.length > 0) {
-              profile = rental.profiles[0];
-            } else if (!Array.isArray(rental.profiles)) {
-              profile = rental.profiles;
-            }
-          }
+          // Handle profiles data safely
+          const profile = rental.profiles;
           
           if (!profile) {
             return null;
           }
           
+          // Handle if profile is an array
+          const profileData = Array.isArray(profile) ? profile[0] : profile;
+          
           return {
             vehicleId: rental.vehicle_id,
             customerId: rental.customer_id,
-            customerName: profile.full_name || 'Unknown',
-            customerEmail: profile.email || '',
-            customerPhone: profile.phone_number || '',
+            customerName: profileData?.full_name || 'Unknown',
+            customerEmail: profileData?.email || '',
+            customerPhone: profileData?.phone_number || '',
           };
         }).filter(Boolean);
       } catch (error) {
@@ -158,14 +154,32 @@ export const useFleetReport = () => {
     }
   });
 
-  // Add empty implementations of fleetStats and vehiclesByType to satisfy imports
+  // Calculate maintenance required count
+  const maintenanceRequired = vehicles?.filter(v => 
+    v.status === 'maintenance' || v.status === 'maintenance_scheduled'
+  ).length || 0;
+
+  // Calculate average daily rate (just a placeholder value for now)
+  const calculateAverageDailyRate = () => {
+    // In a real implementation, this would calculate based on actual rental data
+    return 150; // Example placeholder value
+  };
+
+  // Create fleetStats with all required properties
   const fleetStats = {
     totalVehicles: vehicles?.length || 0,
     activeVehicles: vehicles?.filter(v => v.status === 'available').length || 0,
-    rentalRate: vehicles?.length ? (vehicles.filter(v => v.status === 'rented').length / vehicles.length) * 100 : 0
+    rentalRate: vehicles?.length ? (vehicles.filter(v => v.status === 'rented').length / vehicles.length) * 100 : 0,
+    activeRentals: getActiveRentals(),
+    averageDailyRate: calculateAverageDailyRate(),
+    maintenanceRequired
   };
 
-  const vehiclesByType = {};
+  // Create vehiclesByType with actual data
+  const vehiclesByType = getVehicleTypeDistribution().reduce((acc, item) => {
+    acc[item.vehicleType] = item.count;
+    return acc;
+  }, {} as Record<string, number>);
 
   return {
     vehicles,

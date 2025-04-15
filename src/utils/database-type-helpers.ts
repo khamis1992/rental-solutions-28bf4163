@@ -88,7 +88,7 @@ export const getPropertySafely = <T extends object, K extends keyof T>(
  * Type guard to check if a response has data
  */
 export function hasData<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | { data: T; error: null }
 ): response is { data: NonNullable<T>; error: null } {
   return !response.error && response.data !== null;
 }

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
+import { hasData } from '@/utils/database-type-helpers';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -29,7 +30,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('vehicle_id')
-          .eq('id', agreementId)
+          .eq('id', agreementId as any)
           .single();
 
         if (agreementError) {
@@ -39,7 +40,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (!agreementData.vehicle_id) {
+        if (!hasData({ data: agreementData, error: null }) || !agreementData.vehicle_id) {
           setIsLoading(false);
           return;
         }
@@ -48,7 +49,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .select('rent_amount')
-          .eq('id', agreementData.vehicle_id)
+          .eq('id', agreementData.vehicle_id as any)
           .single();
 
         if (vehicleError) {
@@ -58,7 +59,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (vehicleData && vehicleData.rent_amount) {
+        if (hasData({ data: vehicleData, error: null }) && vehicleData.rent_amount) {
           setRentAmount(vehicleData.rent_amount);
         }
       } catch (err) {

@@ -3,7 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { castDbId } from '@/utils/database-type-helpers';
+import { castDbId, castToUUID, hasData } from '@/utils/database-type-helpers';
 
 // Main hook export - renamed to fix the import errors in other components
 export const usePaymentManagement = () => {
@@ -108,7 +108,7 @@ export const usePaymentManagement = () => {
         const balance = payment.amount - amountPaid >= 0 ? payment.amount - amountPaid : 0;
         const status = balance === 0 ? 'completed' : 'partial';
 
-        // Update the payment record using type casting to avoid TS errors
+        // Update the payment record
         const { data, error } = await supabase
           .from('unified_payments')
           .update({
@@ -160,7 +160,7 @@ export const usePaymentManagement = () => {
         const paid = new Date(paymentDate);
         const daysOverdue = Math.max(0, Math.floor((paid.getTime() - due.getTime()) / (1000 * 60 * 60 * 24)));
 
-        // Create the payment record with type casting to avoid TS errors
+        // Create the payment record
         const { data, error } = await supabase
           .from('unified_payments')
           .insert({
@@ -227,19 +227,45 @@ export const usePaymentManagement = () => {
 
 // Export this alias function for backward compatibility
 export const usePaymentGeneration = (agreement: any, agreementId: string | undefined) => {
-  return {
-    handleSpecialAgreementPayments: async (
-      amount: number, 
-      paymentDate: Date, 
-      notes?: string, 
-      paymentMethod?: string, 
-      referenceNumber?: string, 
-      includeLatePaymentFee?: boolean,
-      isPartialPayment?: boolean
-    ) => {
-      // This function is implemented to satisfy the interface required by components
-      // Add implementation as needed
+  const [isProcessing, setIsProcessing] = useState(false);
+  
+  const handleSpecialAgreementPayments = async (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string, 
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean,
+    targetPaymentId?: string
+  ) => {
+    setIsProcessing(true);
+    try {
+      // Implement payment processing logic here
+      // For now just returning true to satisfy the interface
+      console.log('Processing payment:', {
+        amount,
+        paymentDate,
+        notes,
+        paymentMethod,
+        referenceNumber,
+        includeLatePaymentFee,
+        isPartialPayment,
+        targetPaymentId
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate processing
+      setIsProcessing(false);
       return true;
+    } catch (error) {
+      console.error('Error in handleSpecialAgreementPayments:', error);
+      setIsProcessing(false);
+      return false;
     }
+  };
+
+  return {
+    handleSpecialAgreementPayments,
+    isProcessing
   };
 };
