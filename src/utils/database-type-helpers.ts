@@ -75,30 +75,30 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
   return response?.data || null;
 }
 
-// Simple string cast for all ID column types
-// These functions now use basic type assertions to work around complex type issues
-export function asTableId(table: string, id: string): any { return id as any; }
-export function asAgreementId(id: string): any { return id as any; }
-export function asLeaseId(id: string): any { return id as any; }
-export function asLeaseIdColumn(id: string): any { return id as any; }
-export function asVehicleId(id: string): any { return id as any; }
-export function asAgreementIdColumn(id: string): any { return id as any; }
-export function asImportIdColumn(id: string): any { return id as any; }
-export function asImportId(id: string): any { return id as any; }
-export function asTrafficFineIdColumn(id: string): any { return id as any; }
-export function asTrafficFineId(id: string): any { return id as any; }
-export function asPaymentId(id: string): any { return id as any; }
-export function asCustomerId(id: string): any { return id as any; }
-export function asProfileId(id: string): any { return id as any; }
-export function asMaintenanceId(id: string): any { return id as any; }
-export function asDocumentId(id: string): any { return id as any; }
-export function asTemplateId(id: string): any { return id as any; }
-export function asCategoryId(id: string): any { return id as any; }
-export function asLegalCaseId(id: string): any { return id as any; }
+// Simple ID casts that work around complex type issues by using basic type assertions
+// These functions safely cast string IDs to the required database ID types
+export function asTableId(_table: string, id: string): any { return id; }
+export function asAgreementId(id: string): any { return id; }
+export function asLeaseId(id: string): any { return id; }
+export function asLeaseIdColumn(id: string): any { return id; }
+export function asVehicleId(id: string): any { return id; }
+export function asAgreementIdColumn(id: string): any { return id; }
+export function asImportIdColumn(id: string): any { return id; }
+export function asImportId(id: string): any { return id; }
+export function asTrafficFineIdColumn(id: string): any { return id; }
+export function asTrafficFineId(id: string): any { return id; }
+export function asPaymentId(id: string): any { return id; }
+export function asCustomerId(id: string): any { return id; }
+export function asProfileId(id: string): any { return id; }
+export function asMaintenanceId(id: string): any { return id; }
+export function asDocumentId(id: string): any { return id; }
+export function asTemplateId(id: string): any { return id; }
+export function asCategoryId(id: string): any { return id; }
+export function asLegalCaseId(id: string): any { return id; }
 
-// Status columns
-export function asStatusColumn(status: string): any { return status as any; }
-export function asPaymentStatusColumn(status: string): any { return status as any; }
+// Status columns 
+export function asStatusColumn(status: string): any { return status; }
+export function asPaymentStatusColumn(status: string): any { return status; }
 
 /**
  * Helper for checking response and safely handling error cases
@@ -108,4 +108,9 @@ export function getResponseData<T>(response: PostgrestSingleResponse<T> | Postgr
     return null;
   }
   return response.data;
+}
+
+// Type assertion helper to safely cast any query response
+export function castQueryResponse<T>(data: any): T {
+  return data as T;
 }

@@ -6,11 +6,12 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
 
-interface UseAgreementsProps {
+export interface UseAgreementsProps {
   status?: string;
+  customer_id?: string; // Added customer_id support
 }
 
-export const useAgreements = ({ status }: UseAgreementsProps = {}) => {
+export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParamsState] = useSearchParams();
   const queryClient = useQueryClient();
@@ -47,6 +48,11 @@ export const useAgreements = ({ status }: UseAgreementsProps = {}) => {
     if (status && status !== 'all') {
       query = query.eq('status', status);
     }
+    
+    // Add filter by customer_id if provided
+    if (customer_id) {
+      query = query.eq('customer_id', customer_id);
+    }
 
     const { data, error } = await query;
 
@@ -62,7 +68,7 @@ export const useAgreements = ({ status }: UseAgreementsProps = {}) => {
     isLoading,
     error,
   } = useQuery({
-    queryKey: ['agreements', status],
+    queryKey: ['agreements', status, customer_id], // Include customer_id in query key
     queryFn: getAgreements,
   });
 
@@ -179,5 +185,20 @@ export const useAgreements = ({ status }: UseAgreementsProps = {}) => {
     searchParams,
     setSearchParams,
     getAgreement
+  };
+};
+
+// Export a SimpleAgreement type for use in other components
+export type SimpleAgreement = {
+  id: string;
+  status: string;
+  agreement_number?: string;
+  start_date?: string;
+  end_date?: string;
+  total_amount?: number;
+  vehicles?: {
+    make?: string;
+    model?: string;
+    license_plate?: string;
   };
 };

@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Edit, Trash2, UserCog, CalendarClock, Clock, AlertTriangle, FileText } from 'lucide-react';
@@ -30,14 +29,16 @@ import { toast } from 'sonner';
 import { CustomerTrafficFines } from './CustomerTrafficFines';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { formatDate, formatDateTime } from '@/lib/date-utils';
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getCustomer, deleteCustomer } = useCustomers();
-  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ customer_id: id });
+  const { agreements, isLoading: isLoadingAgreements } = useAgreements({ 
+    customer_id: id 
+  });
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
