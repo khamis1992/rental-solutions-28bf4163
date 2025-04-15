@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -34,7 +35,7 @@ interface UserData {
   createdAt: Date;
 }
 
-export function UserList() {
+const UserList = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -136,4 +137,6 @@ export function UserList() {
       )}
     </div>
   );
-}
+};
+
+export default UserList;
