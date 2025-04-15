@@ -12,6 +12,12 @@ export interface PaymentFilters {
   search?: string;
 }
 
+// Added ContractFilters interface
+export interface ContractFilters {
+  status?: string;
+  search?: string;
+}
+
 // Car installment contract type
 export interface CarInstallmentContract {
   id: string;

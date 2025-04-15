@@ -1,181 +1,163 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { fetchVehicles } from '@/lib/vehicles/vehicle-api';
-import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { supabase } from '@/integrations/supabase/client';
-import { getResponseData } from '@/utils/supabase-type-helpers';
+import { supabase } from '@/lib/supabase';
+import { Vehicle } from '@/types/vehicle';
+import { castDbId } from '@/utils/database-type-helpers';
 
-// Helper function to calculate utilization rate (based on status)
-const calculateUtilizationRate = (vehicles: Vehicle[]) => {
-  if (!vehicles.length) return 0;
-  
-  const rentedCount = vehicles.filter(v => v.status === 'rented').length;
-  return Math.round((rentedCount / vehicles.length) * 100);
-};
+interface MonthlyExpense {
+  month: string;
+  total: number;
+}
 
-// Helper function to get vehicles grouped by type
-const getVehiclesByType = (vehicles: Vehicle[]) => {
-  const typeMap = new Map<string, {
-    type: string,
-    count: number,
-    avgDailyRate: number,
-    totalRevenue: number,
-    vehicles: Vehicle[]
-  }>();
-
-  vehicles.forEach(vehicle => {
-    // Use optional chaining to safely access vehicleType
-    const typeName = vehicle.vehicle_type_id || 'Unspecified';
-    const dailyRate = vehicle.dailyRate || 0;
-    
-    if (!typeMap.has(typeName)) {
-      typeMap.set(typeName, {
-        type: typeName,
-        count: 0,
-        avgDailyRate: 0,
-        totalRevenue: 0,
-        vehicles: []
-      });
-    }
-    
-    const typeData = typeMap.get(typeName)!;
-    typeData.count += 1;
-    typeData.vehicles.push(vehicle);
-    typeData.totalRevenue += dailyRate;
-  });
-  
-  // Calculate average daily rate for each type
-  return Array.from(typeMap.values()).map(typeData => ({
-    ...typeData,
-    avgDailyRate: typeData.totalRevenue / typeData.count
-  }));
-};
-
-// Calculate status counts
-const getStatusCounts = (vehicles: Vehicle[]) => {
-  const statusMap: Record<string, number> = {
-    available: 0,
-    rented: 0,
-    reserved: 0,
-    maintenance: 0,
-    other: 0
-  };
-
-  vehicles.forEach(vehicle => {
-    if (vehicle.status && statusMap[vehicle.status] !== undefined) {
-      statusMap[vehicle.status]++;
-    } else {
-      statusMap.other++;
-    }
-  });
-  
-  return statusMap;
-};
-
-// Fetch customer information for rented vehicles
-const attachCustomerInfo = async (vehicles: Vehicle[]): Promise<Vehicle[]> => {
-  // Get rented vehicles IDs
-  const rentedVehicleIds = vehicles
-    .filter(v => v.status === 'rented')
-    .map(v => v.id);
-  
-  if (rentedVehicleIds.length === 0) {
-    return vehicles;
-  }
-
-  try {
-    // Fetch active leases for these vehicles
-    const { data: leases, error } = await supabase
-      .from('leases')
-      .select('vehicle_id, customer_id, profiles:customer_id(full_name, email, phone_number)')
-      .in('vehicle_id', rentedVehicleIds as any)
-      .eq('status', 'active' as any);
-
-    if (error || !leases) {
-      console.error('Error fetching customer information:', error);
-      return vehicles;
-    }
-
-    // Map customer data to vehicles
-    return vehicles.map(vehicle => {
-      if (vehicle.status === 'rented') {
-        const lease = leases.find((l: any) => l.vehicle_id === vehicle.id);
-        if (lease && lease.profiles && lease.profiles.full_name) {
-          return {
-            ...vehicle,
-            currentCustomer: lease.profiles.full_name,
-            customerEmail: lease.profiles.email,
-            customerPhone: lease.profiles.phone_number,
-            customerId: lease.customer_id
-          };
-        }
-      }
-      return vehicle;
-    });
-  } catch (error) {
-    console.error('Error in attachCustomerInfo:', error);
-    return vehicles;
-  }
-};
+interface VehicleTypeDistribution {
+  vehicleType: string;
+  count: number;
+}
 
 export const useFleetReport = () => {
-  const { data: fetchedVehicles = [], isLoading, error } = useQuery({
+  const { data: vehicles, isLoading: isLoadingVehicles } = useQuery({
     queryKey: ['vehicles'],
-    queryFn: () => fetchVehicles(),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*, vehicle_types(id, name, description)')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching vehicles:', error);
+        throw error;
+      }
+
+      return (data || []).map((vehicle: any) => {
+        if (!vehicle) return null;
+        
+        return {
+          ...vehicle,
+          vehicleType: vehicle.vehicle_types
+        } as Vehicle;
+      }).filter(Boolean) as Vehicle[];
+    }
   });
 
-  // Fetch customer information and attach to vehicles
-  const { data: vehicles = [] } = useQuery({
-    queryKey: ['vehicles-with-customers', fetchedVehicles],
-    queryFn: () => attachCustomerInfo(fetchedVehicles),
-    enabled: fetchedVehicles.length > 0,
-    initialData: fetchedVehicles,
-  });
-
-  // Calculate utilization rate
-  const fleetUtilizationRate = calculateUtilizationRate(vehicles);
-  
-  // Group vehicles by type
-  const vehiclesByType = getVehiclesByType(vehicles);
-  
-  // Get status counts
-  const statusCounts = getStatusCounts(vehicles);
-  
-  // Prepare data for reports - MODIFIED to remove specified fields
-  const reportData = vehicles.map(vehicle => ({
-    license_plate: vehicle.license_plate,
-    status: vehicle.status,
-    customer_name: vehicle.currentCustomer || 'Not Assigned',
-    // Fields removed: make, model, year, daily_rate, customer_contact
-  }));
-  
-  // Calculate fleet statistics
-  const fleetStats = {
-    totalVehicles: vehicles.length,
-    activeRentals: vehicles.filter(v => v.status === 'rented').length,
-    averageDailyRate: vehicles.reduce((acc, v) => acc + (v.dailyRate || 0), 0) / 
-                      (vehicles.length || 1),
-    maintenanceRequired: vehicles.filter(v => v.status === 'maintenance').length
+  const getVehicleTypeDistribution = (): VehicleTypeDistribution[] => {
+    if (!vehicles) return [];
+    
+    const distribution: Record<string, number> = {};
+    
+    vehicles.forEach(vehicle => {
+      const type = vehicle.vehicleType?.name || 'Unknown';
+      distribution[type] = (distribution[type] || 0) + 1;
+    });
+    
+    return Object.entries(distribution).map(([vehicleType, count]) => ({
+      vehicleType,
+      count
+    }));
   };
 
-  // Helper function to format currency
-  function formatCurrency(amount: number): string {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'QAR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  }
+  const getActiveRentals = () => {
+    if (!vehicles) return 0;
+    return vehicles.filter(v => v.status === 'rented').length;
+  };
+
+  const { data: rentals, isLoading: isLoadingRentals } = useQuery({
+    queryKey: ['fleet-rentals'],
+    queryFn: async () => {
+      try {
+        // First get all vehicles that are currently rented
+        const rentedVehicleIds = vehicles
+          ?.filter(v => v.status === 'rented')
+          .map(v => v.id) || [];
+        
+        if (rentedVehicleIds.length === 0) {
+          return [];
+        }
+        
+        const { data, error } = await supabase
+          .from('leases')
+          .select(`
+            vehicle_id,
+            customer_id,
+            profiles!inner(full_name, email, phone_number, nationality)
+          `)
+          .in('vehicle_id', rentedVehicleIds as any)
+          .eq('status', 'active' as any);
+
+        if (error) throw error;
+        
+        // Safely transform the data
+        return (data || []).map(rental => {
+          if (!rental || !rental.profiles) {
+            return null;
+          }
+          
+          const profile = Array.isArray(rental.profiles) && rental.profiles.length > 0 
+            ? rental.profiles[0] 
+            : rental.profiles;
+            
+          if (!profile) {
+            return null;
+          }
+          
+          return {
+            vehicleId: rental.vehicle_id,
+            customerId: rental.customer_id,
+            customerName: profile.full_name || 'Unknown',
+            customerEmail: profile.email || '',
+            customerPhone: profile.phone_number || '',
+          };
+        }).filter(Boolean);
+      } catch (error) {
+        console.error('Error fetching rental info:', error);
+        return [];
+      }
+    },
+    enabled: !!vehicles && vehicles.some(v => v.status === 'rented')
+  });
+
+  // Get monthly maintenance expenses
+  const { data: maintenanceExpenses, isLoading: isLoadingExpenses } = useQuery({
+    queryKey: ['fleet-maintenance-expenses'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('maintenance')
+          .select('cost, completed_date')
+          .not('cost', 'is', null)
+          .order('completed_date', { ascending: false });
+
+        if (error) throw error;
+        
+        // Group by month and sum
+        const monthlyExpenses: Record<string, number> = {};
+        
+        (data || []).forEach((expense: any) => {
+          if (!expense || !expense.completed_date || !expense.cost) return;
+          
+          const date = new Date(expense.completed_date);
+          const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+          
+          monthlyExpenses[monthYear] = (monthlyExpenses[monthYear] || 0) + Number(expense.cost);
+        });
+        
+        // Convert to array format
+        return Object.entries(monthlyExpenses).map(([month, total]) => ({
+          month,
+          total
+        })).sort((a, b) => a.month.localeCompare(b.month));
+      } catch (error) {
+        console.error('Error fetching maintenance expenses:', error);
+        return [];
+      }
+    }
+  });
 
   return {
     vehicles,
-    fleetStats,
-    fleetUtilizationRate,
-    vehiclesByType,
-    statusCounts,
-    reportData,
-    isLoading,
-    error
+    isLoading: isLoadingVehicles || isLoadingRentals || isLoadingExpenses,
+    getVehicleTypeDistribution,
+    getActiveRentals,
+    rentals,
+    maintenanceExpenses
   };
 };

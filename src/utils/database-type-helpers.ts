@@ -30,18 +30,22 @@ export function asStatusColumn(status: string): string {
   return status;
 }
 
+// Cast an ID for vehicle tables
 export function asVehicleId(id: string): string {
   return id;
 }
 
+// Cast an ID for customer tables
 export function asCustomerId(id: string): string {
   return id;
 }
 
+// Cast an ID for profile tables
 export function asProfileId(id: string): string {
   return id;
 }
 
+// Cast an ID for payment tables
 export function asPaymentId(id: string): string {
   return id;
 }
@@ -51,20 +55,9 @@ export function asTableId(id: string): string {
   return id;
 }
 
-export function asLeaseIdColumn(id: string): string {
-  return id;
-}
-
-export function asAgreementIdColumn(id: string): string {
-  return id;
-}
-
-export function asImportIdColumn(id: string): string {
-  return id;
-}
-
-export function asTrafficFineIdColumn(id: string): string {
-  return id;
+// General purpose DB ID casting - use this when table type is unknown or generic
+export function castDbId<T = string>(id: string): T {
+  return id as unknown as T;
 }
 
 // Function to check if a value exists (not null or undefined)

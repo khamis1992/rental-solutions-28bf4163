@@ -1,265 +1,247 @@
 
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Customer } from '@/lib/validation-schemas/customer';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { castDbId } from '@/utils/db-id-helper';
-import { getResponseData } from '@/utils/supabase-type-helpers';
+import { CustomerInfo, CustomerListItem } from '@/types/customer';
+import { castDbId } from '@/utils/database-type-helpers';
 
-const PROFILES_TABLE = 'profiles';
-const CUSTOMER_ROLE = 'customer';
-
-const formatQatarPhoneNumber = (phone: string): string => {
-  const cleanPhone = phone.replace(/^\+974/, '').trim();
-  
-  if (/^[3-9]\d{7}$/.test(cleanPhone)) {
-    return `+974${cleanPhone}`;
-  }
-  
-  return phone;
-};
-
-const stripCountryCode = (phone: string): string => {
-  return phone.replace(/^\+974/, '').trim();
-};
+// Define customer status type
+type CustomerStatus = 'active' | 'inactive' | 'pending_review' | 'blacklisted' | 'pending_payment';
 
 export const useCustomers = () => {
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useState({
-    query: '',
-    status: 'all',
-  });
 
-  const { 
-    data: customers, 
-    isLoading, 
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ['customers', searchParams],
+  // Get all customers
+  const { data: customers = [], isLoading, error } = useQuery({
+    queryKey: ['customers'],
     queryFn: async () => {
-      console.log('Fetching customers with params:', searchParams);
-      
       try {
-        let query = supabase
-          .from(PROFILES_TABLE)
+        const { data, error } = await supabase
+          .from('profiles')
           .select('*')
-          .eq('role', CUSTOMER_ROLE as any)
+          .eq('role', 'customer' as any)
           .order('created_at', { ascending: false });
 
-        if (searchParams.status !== 'all' && searchParams.status) {
-          query = query.eq('status', searchParams.status as any);
-        }
+        if (error) throw error;
 
-        if (searchParams.query) {
-          query = query.or(
-            `full_name.ilike.%${searchParams.query}%,email.ilike.%${searchParams.query}%,phone_number.ilike.%${searchParams.query}%,driver_license.ilike.%${searchParams.query}%`
-          );
-        }
-
-        const { data, error } = await query;
-        
-        if (error) {
-          console.error('Supabase query error:', error);
-          throw new Error(error.message);
-        }
-        
-        console.log('Raw customer data from profiles table:', data);
-        
-        // Safely cast the data to the expected type
-        const processedCustomers = (data || []).map((profile: any) => ({
-          id: profile.id,
-          full_name: profile.full_name || '',
-          email: profile.email || '',
-          phone: stripCountryCode(profile.phone_number || ''),
-          driver_license: profile.driver_license || '',
-          nationality: profile.nationality || '',
-          address: profile.address || '',
-          notes: profile.notes || '',
-          status: (profile.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-          created_at: profile.created_at,
-          updated_at: profile.updated_at,
-        }));
-        
-        console.log('Processed customers from profiles:', processedCustomers);
-        return processedCustomers as Customer[];
-      } catch (catchError) {
-        console.error('Unexpected error in customer fetch:', catchError);
-        return [];
+        // Type check and transform data
+        return (data || []).map(customer => {
+          // Safely access properties with type checking
+          if (!customer || typeof customer !== 'object') {
+            return null;
+          }
+          
+          return {
+            id: customer.id,
+            full_name: customer.full_name || '',
+            email: customer.email || '',
+            phone_number: customer.phone_number || '',
+            driver_license: customer.driver_license || '',
+            nationality: customer.nationality || '',
+            address: customer.address || '',
+            notes: customer.notes || '',
+            status: (customer.status as CustomerStatus) || 'pending_review',
+            created_at: customer.created_at || '',
+            updated_at: customer.updated_at || ''
+          } as CustomerInfo;
+        }).filter(Boolean) as CustomerInfo[];
+      } catch (error) {
+        console.error('Error fetching customers:', error);
+        throw error;
       }
-    },
-    initialData: []
+    }
   });
 
-  const refreshCustomers = () => {
-    return refetch();
+  // Get customers by status
+  const getCustomersByStatus = (status: CustomerStatus) => {
+    return (customers || []).filter(customer => customer.status === status);
   };
 
-  const createCustomer = useMutation({
-    mutationFn: async (newCustomer: Omit<Customer, 'id'>) => {
-      console.log('Creating new customer with data:', newCustomer);
-      
-      const formattedPhone = formatQatarPhoneNumber(newCustomer.phone);
-      console.log('Formatted phone number:', formattedPhone);
-      
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .insert([{ 
-          full_name: newCustomer.full_name,
-          email: newCustomer.email,
-          phone_number: formattedPhone,
-          address: newCustomer.address,
-          driver_license: newCustomer.driver_license,
-          nationality: newCustomer.nationality,
-          notes: newCustomer.notes,
-          status: newCustomer.status || 'active',
-          role: CUSTOMER_ROLE,
-          created_at: new Date().toISOString() 
-        } as any])
-        .select()
-        .single();
+  // Add customer
+  const addCustomer = useMutation({
+    mutationFn: async (newCustomer: CustomerInfo) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .insert([{
+            full_name: newCustomer.full_name,
+            email: newCustomer.email,
+            phone_number: newCustomer.phone_number,
+            address: newCustomer.address,
+            driver_license: newCustomer.driver_license,
+            nationality: newCustomer.nationality,
+            notes: newCustomer.notes,
+            status: newCustomer.status as any,
+            role: 'customer',
+            created_at: new Date().toISOString()
+          }] as any)
+          .select();
 
-      if (error) {
-        console.error('Error creating customer:', error);
-        throw new Error(error.message);
+        if (error) throw error;
+
+        // Safe access with type checking
+        if (Array.isArray(data) && data.length > 0 && data[0]) {
+          const customer = data[0];
+          return {
+            id: customer.id || '',
+            full_name: customer.full_name || '',
+            email: customer.email || '',
+            phone_number: customer.phone_number || '',
+            driver_license: customer.driver_license || '',
+            nationality: customer.nationality || '',
+            address: customer.address || '',
+            notes: customer.notes || '',
+            status: (customer.status as CustomerStatus) || 'pending_review'
+          };
+        }
+        
+        throw new Error('Failed to retrieve customer data after creation');
+      } catch (error) {
+        console.error('Error adding customer:', error);
+        throw error;
       }
-      
-      console.log('Created customer:', data);
-      if (data) {
-        return {
-          ...data,
-          phone: stripCountryCode(data.phone_number || '')
-        } as Customer;
-      }
-      throw new Error('Failed to create customer: No data returned');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
-      toast.success('Customer created successfully');
+      toast.success('Customer added successfully');
     },
-    onError: (error) => {
-      toast.error('Failed to create customer', { description: error.message });
-    },
+    onError: (error: Error) => {
+      toast.error(`Error adding customer: ${error.message}`);
+    }
   });
 
+  // Update customer
   const updateCustomer = useMutation({
-    mutationFn: async (customer: Customer) => {
-      const formattedPhone = formatQatarPhoneNumber(customer.phone);
-      console.log('Updating customer with formatted phone:', formattedPhone);
-      
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .update({ 
-          full_name: customer.full_name,
-          email: customer.email,
-          phone_number: formattedPhone,
-          address: customer.address,
-          driver_license: customer.driver_license,
-          nationality: customer.nationality,
-          notes: customer.notes,
-          status: customer.status,
-          updated_at: new Date().toISOString() 
-        } as any)
-        .eq('id', customer.id as any)
-        .select();
+    mutationFn: async (updatedCustomer: CustomerInfo) => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .update({
+            full_name: updatedCustomer.full_name,
+            email: updatedCustomer.email,
+            phone_number: updatedCustomer.phone_number,
+            address: updatedCustomer.address,
+            driver_license: updatedCustomer.driver_license,
+            nationality: updatedCustomer.nationality,
+            notes: updatedCustomer.notes,
+            status: updatedCustomer.status as any,
+            updated_at: new Date().toISOString()
+          } as any)
+          .eq('id', castDbId(updatedCustomer.id))
+          .select();
 
-      if (error) throw new Error(error.message);
-      
-      if (data && data.length > 0) {
-        return {
-          ...data[0],
-          phone: stripCountryCode(data[0].phone_number || '')
-        } as Customer;
+        if (error) throw error;
+
+        // Safe access with type checking
+        if (Array.isArray(data) && data.length > 0 && data[0]) {
+          const customer = data[0];
+          return {
+            id: customer.id || '',
+            full_name: customer.full_name || '',
+            email: customer.email || '',
+            phone_number: customer.phone_number || '',
+            driver_license: customer.driver_license || '',
+            nationality: customer.nationality || '',
+            address: customer.address || '',
+            notes: customer.notes || '',
+            status: (customer.status as CustomerStatus) || 'pending_review'
+          };
+        }
+        
+        throw new Error('Failed to retrieve customer data after update');
+      } catch (error) {
+        console.error('Error updating customer:', error);
+        throw error;
       }
-      throw new Error('Failed to update customer: No data returned');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer updated successfully');
     },
-    onError: (error) => {
-      toast.error('Failed to update customer', { description: error.message });
-    },
+    onError: (error: Error) => {
+      toast.error(`Error updating customer: ${error.message}`);
+    }
   });
 
+  // Delete customer
   const deleteCustomer = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from(PROFILES_TABLE)
-        .delete()
-        .eq('id', id as any);
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', castDbId(id));
 
-      if (error) throw new Error(error.message);
-      return id;
+        if (error) throw error;
+        return id;
+      } catch (error) {
+        console.error('Error deleting customer:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       toast.success('Customer deleted successfully');
     },
-    onError: (error) => {
-      toast.error('Failed to delete customer', { description: error.message });
-    },
+    onError: (error: Error) => {
+      toast.error(`Error deleting customer: ${error.message}`);
+    }
   });
 
-  const getCustomer = async (id: string): Promise<Customer | null> => {
-    try {
-      console.log('Fetching customer with ID:', id);
-      
-      const { data, error } = await supabase
-        .from(PROFILES_TABLE)
-        .select('*')
-        .eq('id', id as any)
-        .maybeSingle();
+  // Get customer by ID
+  const useCustomer = (customerId: string) => {
+    return useQuery({
+      queryKey: ['customer', customerId],
+      queryFn: async () => {
+        if (!customerId) {
+          throw new Error('Customer ID is required');
+        }
+        
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', castDbId(customerId))
+            .single();
 
-      if (error) {
-        console.error('Error fetching customer by ID:', error);
-        toast.error('Failed to fetch customer', { description: error.message });
-        return null;
-      }
+          if (error) throw error;
 
-      if (!data) {
-        console.log('No customer found with ID:', id);
-        return null;
-      }
+          // Type check and transform data
+          if (!data || typeof data !== 'object') {
+            throw new Error('Invalid customer data received');
+          }
 
-      console.log('Raw customer data from profiles:', data);
-
-      // Need to explicitly type data as 'any' to access properties
-      const customerData = data as any;
-
-      const processedCustomer: Customer = {
-        id: customerData.id,
-        full_name: customerData.full_name || '',
-        email: customerData.email || '',
-        phone: stripCountryCode(customerData.phone_number || ''),
-        driver_license: customerData.driver_license || '',
-        nationality: customerData.nationality || '',
-        address: customerData.address || '',
-        notes: customerData.notes || '',
-        status: (customerData.status || 'active') as "active" | "inactive" | "pending_review" | "blacklisted" | "pending_payment",
-        created_at: customerData.created_at,
-        updated_at: customerData.updated_at,
-      };
-      
-      return processedCustomer;
-    } catch (error) {
-      console.error('Unexpected error fetching customer:', error);
-      toast.error('Failed to fetch customer');
-      return null;
-    }
+          return {
+            id: data.id || '',
+            full_name: data.full_name || '',
+            email: data.email || '',
+            phone_number: data.phone_number || '',
+            driver_license: data.driver_license || '',
+            nationality: data.nationality || '',
+            address: data.address || '',
+            notes: data.notes || '',
+            status: (data.status as CustomerStatus) || 'pending_review',
+            created_at: data.created_at || '',
+            updated_at: data.updated_at || ''
+          } as CustomerInfo;
+        } catch (error) {
+          console.error(`Error fetching customer ${customerId}:`, error);
+          throw error;
+        }
+      },
+      enabled: !!customerId
+    });
   };
 
+  // Return all functions and state
   return {
     customers,
     isLoading,
     error,
-    searchParams,
-    setSearchParams,
-    createCustomer,
-    updateCustomer,
-    deleteCustomer,
-    getCustomer,
-    refreshCustomers,
+    getCustomersByStatus,
+    addCustomer: addCustomer.mutateAsync,
+    updateCustomer: updateCustomer.mutateAsync,
+    deleteCustomer: deleteCustomer.mutateAsync,
+    useCustomer
   };
 };
