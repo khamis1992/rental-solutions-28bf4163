@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -89,7 +88,7 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
   const [pagination, setPagination] = useState({
     pageIndex: 0,
     pageSize: 10,
-    pageCount: 1,  // Add pageCount to pagination state
+    pageCount: 1,
   });
   
   const navigate = useNavigate();
@@ -135,7 +134,6 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
     });
   }, [agreements, customerNameSearch]);
 
-  // Update pageCount whenever filteredAgreements changes
   useEffect(() => {
     setPagination(prev => ({
       ...prev,
@@ -273,7 +271,13 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
               className="text-destructive focus:text-destructive"
               onClick={() => {
                 if (window.confirm(`Are you sure you want to delete agreement ${row.original.agreement_number}?`)) {
-                  deleteAgreement.mutate(row.original.id);
+                  const idsToDelete = Object.keys(rowSelection);
+                  if (idsToDelete.length === 1) {
+                    deleteAgreement.mutate(idsToDelete[0]);
+                  } else {
+                    deleteAgreement.mutate(idsToDelete);
+                  }
+                  setBulkDeleteDialogOpen(false);
                 }
               }}
             >
@@ -500,8 +504,12 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
             <AlertDialogAction
               onClick={() => {
                 if (window.confirm(`Are you sure you want to delete ${selectedCount} agreement(s)?`)) {
-                  const idsToDelete = Object.keys(rowSelection).map(id => id); // Convert to string[]
-                  deleteAgreement.mutate(idsToDelete);
+                  const idsToDelete = Object.keys(rowSelection);
+                  if (idsToDelete.length === 1) {
+                    deleteAgreement.mutate(idsToDelete[0]);
+                  } else {
+                    deleteAgreement.mutate(idsToDelete);
+                  }
                   setBulkDeleteDialogOpen(false);
                 }
               }}

@@ -3,16 +3,16 @@
  * Database helpers and utilities for Supabase
  */
 import { asTableId, asUUID } from './uuid-helpers';
-import { handleSupabaseResponse, hasData, castDbId } from '@/utils/supabase-type-helpers';
+import { handleDatabaseResponse, hasData, safelyExtractData } from '@/utils/database-type-helpers';
 import { Database } from '@/types/database.types';
 
 // Re-export helpers
 export {
   asTableId,
   asUUID,
-  handleSupabaseResponse,
+  handleDatabaseResponse,
   hasData,
-  castDbId
+  safelyExtractData
 };
 
 // Create a common type for Database IDs
@@ -42,3 +42,10 @@ export type TableInsert<T extends keyof Database['public']['Tables']> =
  */
 export type TableUpdate<T extends keyof Database['public']['Tables']> = 
   Database['public']['Tables'][T]['Update'];
+
+/**
+ * Safely cast a database ID to the correct type
+ */
+export function castDbId<T extends string>(id: string): T {
+  return id as T;
+}
