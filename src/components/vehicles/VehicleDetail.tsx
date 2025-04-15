@@ -139,6 +139,17 @@ const VehicleDetail: React.FC<VehicleDetailProps> = ({ vehicle }) => {
     return status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Unknown';
   };
 
+  const renderVehicleTypeInfo = () => {
+    const vehicleTypeInfo = vehicle?.vehicle_type_id ? (
+      <div className="flex flex-col space-y-1">
+        <span className="text-sm font-medium">Vehicle Type</span>
+        <span>{vehicle.vehicle_type_id}</span>
+      </div>
+    ) : null;
+    
+    return vehicleTypeInfo;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col lg:flex-row gap-6 items-start">

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,6 +36,7 @@ export function MaintenanceSchedulingWizard({
     status: MaintenanceStatus.SCHEDULED
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { create } = useMaintenance();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -69,10 +69,26 @@ export function MaintenanceSchedulingWizard({
     }
   };
 
-  const handleSubmit = async () => {
-    setIsProcessing(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
     try {
-      await create.mutateAsync(formData);
+      const estimatedCostNum = parseFloat(formData.estimated_cost);
+      
+      const maintenanceData = {
+        vehicle_id: formData.vehicle_id,
+        maintenance_type: formData.maintenance_type,
+        description: formData.description,
+        scheduled_date: formData.scheduled_date,
+        cost: estimatedCostNum,
+        estimated_cost: formData.estimated_cost,
+        notes: formData.notes,
+        assigned_to: formData.assigned_to,
+        status: "scheduled"
+      };
+
+      await create.mutateAsync(maintenanceData);
       toast.success("Maintenance scheduled successfully");
       onComplete();
       onClose();
@@ -80,7 +96,7 @@ export function MaintenanceSchedulingWizard({
       toast.error("Failed to schedule maintenance");
       console.error(error);
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
   };
 

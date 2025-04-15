@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { 
   Card, 
@@ -27,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Gavel, Plus, Search, MoreVertical, FileText, AlertTriangle, Loader2 } from 'lucide-react';
 import { formatDate } from '@/lib/date-utils';
 import LegalCaseDetails from './LegalCaseDetails';
-import { CustomerObligation } from './CustomerLegalObligations';
+import { CustomerObligation } from './LegalObligationsService';
 import { useLegalCases } from '@/hooks/use-legal-cases';
 import { LegalCase } from '@/types/legal-case';
 import { toast } from 'sonner';
@@ -36,10 +35,8 @@ const LegalCaseManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCase, setSelectedCase] = useState<CustomerObligation | null>(null);
   
-  // Fetch legal cases from Supabase
   const { cases, loading, error } = useLegalCases();
   
-  // Filter cases based on search query
   const filteredCases = useMemo(() => {
     if (!cases) return [];
     
@@ -53,7 +50,6 @@ const LegalCaseManagement = () => {
   }, [cases, searchQuery]);
 
   const handleCaseClick = (legalCase: LegalCase) => {
-    // Convert the LegalCase to CustomerObligation format expected by LegalCaseDetails
     const obligation: CustomerObligation = {
       id: legalCase.id,
       customerId: legalCase.customer_id,
@@ -77,7 +73,6 @@ const LegalCaseManagement = () => {
     toast.info('New case creation functionality is coming soon');
   };
 
-  // Helper function to determine urgency based on case type
   const getUrgencyFromCaseType = (caseType: string): 'low' | 'medium' | 'high' | 'critical' => {
     if (!caseType) return 'medium';
     switch (caseType) {
@@ -94,7 +89,6 @@ const LegalCaseManagement = () => {
     }
   };
 
-  // Calculate days since case was created
   const calculateDaysOverdue = (createdAt: string): number => {
     const created = new Date(createdAt);
     const today = new Date();

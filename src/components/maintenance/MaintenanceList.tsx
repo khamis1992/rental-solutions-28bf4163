@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useState, useEffect } from 'react';
 import { useMaintenance } from '@/hooks/use-maintenance';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +38,7 @@ import {
 } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-export const MaintenanceList = () => {
+export const MaintenanceList = ({ categoryFilter, statusFilter }) => {
   
   const { 
     getAll,
@@ -59,7 +60,8 @@ export const MaintenanceList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all-statuses');
   const [vehicleFilter, setVehicleFilter] = useState('all-vehicles');
-  
+  const [categories, setCategories] = useState([]);
+
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
@@ -201,6 +203,14 @@ export const MaintenanceList = () => {
     );
   };
   
+  const handleCategoryFilter = (category: string) => {
+    if (Array.isArray(categories)) {
+      const foundCategory = categories.find(cat => cat.id === category);
+      return foundCategory ? foundCategory.name : 'All Categories';
+    }
+    return 'All Categories';
+  };
+
   if (error) {
     return (
       <Alert variant="destructive">
@@ -407,3 +417,5 @@ export const MaintenanceList = () => {
     </div>
   );
 };
+
+export default MaintenanceList;

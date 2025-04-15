@@ -1,5 +1,5 @@
-
-import React, { useState } from 'react';
+import React from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -62,10 +62,16 @@ export function VehicleOnboardingWizard({
     }
   };
 
-  const handleSubmit = async () => {
-    setIsProcessing(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
-      await createVehicle(formData);
+      const vehicleData = {
+        ...formData,
+        year: Number(formData.year),
+      };
+      
+      await createVehicle(vehicleData);
       toast.success("Vehicle successfully onboarded");
       onComplete();
       onClose();

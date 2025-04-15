@@ -27,7 +27,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Loader2, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 
-// Create form schema type
 type MaintenanceFormSchema = z.infer<typeof maintenanceSchema>;
 
 interface MaintenanceFormProps {
@@ -36,6 +35,7 @@ interface MaintenanceFormProps {
   isLoading?: boolean;
   isEditMode?: boolean;
   submitLabel?: string;
+  onCancel?: () => void;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
@@ -44,8 +44,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   isLoading = false,
   isEditMode = false,
   submitLabel,
+  onCancel,
 }) => {
-  // Setup form with validation
   const form = useForm<MaintenanceFormSchema>({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: {
@@ -63,11 +63,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     },
   });
 
-  // Get vehicles for the dropdown
   const { useList } = useVehicles();
   const { data: vehicles, isLoading: isLoadingVehicles } = useList();
 
-  // Format the maintenance type value
   const formatMaintenanceType = (type: string) => {
     if (!type) return 'Unknown Type';
     return type
@@ -76,10 +74,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       .join(' ');
   };
 
-  // Make sure vehicles has a default value if it's undefined
   const vehiclesList = vehicles || [];
 
-  // Filter out invalid vehicle data to prevent select errors
   const validVehicles = vehiclesList.filter(vehicle => 
     vehicle && 
     vehicle.id && 
@@ -88,7 +84,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     vehicle.license_plate
   );
 
-  // Check if there are any vehicles available
   const hasVehicles = validVehicles.length > 0;
 
   return (
@@ -100,7 +95,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Vehicle Selection */}
               <FormField
                 control={form.control}
                 name="vehicle_id"
@@ -137,7 +131,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
               />
 
-              {/* Maintenance Type */}
               <FormField
                 control={form.control}
                 name="maintenance_type"
@@ -169,7 +162,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
               />
 
-              {/* Status */}
               <FormField
                 control={form.control}
                 name="status"
@@ -197,7 +189,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
               />
 
-              {/* Scheduled Date */}
               <FormField
                 control={form.control}
                 name="scheduled_date"
@@ -236,7 +227,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
               />
 
-              {/* Completion Date - only show if status is completed */}
               {form.watch('status') === 'completed' && (
                 <FormField
                   control={form.control}
@@ -277,7 +267,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 />
               )}
 
-              {/* Cost */}
               <FormField
                 control={form.control}
                 name="cost"
@@ -298,7 +287,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
               />
 
-              {/* Service Provider */}
               <FormField
                 control={form.control}
                 name="service_provider"
@@ -313,7 +301,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
               />
 
-              {/* Invoice Number */}
               <FormField
                 control={form.control}
                 name="invoice_number"
@@ -328,7 +315,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 )}
               />
 
-              {/* Odometer Reading */}
               <FormField
                 control={form.control}
                 name="odometer_reading"
@@ -349,7 +335,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               />
             </div>
 
-            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -368,7 +353,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               )}
             />
 
-            {/* Notes */}
             <FormField
               control={form.control}
               name="notes"

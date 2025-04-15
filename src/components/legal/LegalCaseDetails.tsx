@@ -7,7 +7,7 @@ import { ExternalLink, FileText, UserCog, CalendarClock, AlertTriangle } from 'l
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
-import { CustomerObligation } from './CustomerLegalObligations';
+import { CustomerObligation } from './LegalObligationsService';
 
 interface LegalCaseDetailsProps {
   obligation: CustomerObligation | null;
