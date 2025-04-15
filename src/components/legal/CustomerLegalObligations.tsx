@@ -22,11 +22,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { CustomerObligation } from './CustomerLegalObligations.types';
 
 interface CustomerLegalObligationsProps {
-  obligations: CustomerObligation[];
+  obligations?: CustomerObligation[];
 }
 
-export function CustomerLegalObligations({ obligations }: CustomerLegalObligationsProps) {
-
+const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> = ({ 
+  obligations = [] 
+}) => {
   const renderObligationRows = () => {
     return obligations.map((obligation: CustomerObligation) => {
       // Ensure obligation has required type and title properties
@@ -77,5 +78,7 @@ export function CustomerLegalObligations({ obligations }: CustomerLegalObligatio
         </ScrollArea>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
+
+export default CustomerLegalObligations;
