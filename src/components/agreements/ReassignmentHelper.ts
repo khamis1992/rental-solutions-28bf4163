@@ -4,6 +4,7 @@ import {
   asLeaseIdColumn, 
   asTableId, 
   asVehicleId,
+  asLeaseId,
   hasData
 } from '@/utils/database-type-helpers';
 
@@ -21,7 +22,7 @@ export async function fetchAgreementWithCustomer(id: string) {
       *,
       profiles: customers (*)
     `)
-    .eq('id', asTableId('leases', id))
+    .eq('id', asLeaseId(id))
     .single();
 
   if (error) {

@@ -94,6 +94,13 @@ export function asLeaseIdColumn(id: string): DbTables['unified_payments']['Row']
 }
 
 /**
+ * Ensures that a string ID is treated as a valid lease ID in database queries
+ */
+export function asLeaseId(id: string): DbTables['leases']['Row']['id'] {
+  return id as DbTables['leases']['Row']['id'];
+}
+
+/**
  * Ensures that a string ID is treated as a valid import_id in database queries
  */
 export function asImportIdColumn(id: string): DbTables['agreement_import_reverts']['Row']['import_id'] {

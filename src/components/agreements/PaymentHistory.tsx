@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -7,20 +8,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { asPaymentId } from '@/utils/database-type-helpers';
-
-interface PaymentHistoryProps {
-  agreementId: string;
-  onAddPayment?: () => void;
-}
-
-type Payment = {
-  id: string;
-  amount: number;
-  amount_paid: number;
-  payment_date: string | null;
-  payment_method: string | null;
-  status: string;
-};
+import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
 
 export function PaymentHistory({ agreementId, onAddPayment }: PaymentHistoryProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -71,7 +59,7 @@ export function PaymentHistory({ agreementId, onAddPayment }: PaymentHistoryProp
       } else {
         setPayments(payments.filter(payment => payment.id !== id));
         toast.success('Payment deleted successfully');
-        queryClient.invalidateQueries(['agreements', agreementId]);
+        queryClient.invalidateQueries({ queryKey: ['agreements', agreementId] });
       }
     } catch (err) {
       console.error('Unexpected error:', err);

@@ -1,7 +1,7 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasData } from '@/utils/database-type-helpers';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
 import { asLeaseIdColumn, asPaymentId } from '@/utils/database-type-helpers';
 
@@ -14,7 +14,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(agreementId));
+        .eq('lease_id', agreementId);
         
       if (!hasData(response)) {
         console.error("Error fetching payments:", response.error);
