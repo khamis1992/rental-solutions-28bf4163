@@ -51,7 +51,7 @@ export function VehicleAssignmentDialog({
   vehicleId,
   existingAgreement
 }: VehicleAssignmentDialogProps) {
-  const [pendingPayments, setPendingPayments] = useState<Payment[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [vehicleInfo, setVehicleInfo] = useState<VehicleInfo | null>(null);
@@ -77,7 +77,7 @@ export function VehicleAssignmentDialog({
         const vehicleResponse = await supabase
           .from('vehicles')
           .select('id, make, model, license_plate, year, color')
-          .eq('id', asVehicleId(vehicleId))
+          .eq('id', vehicleId)
           .single();
           
         if (hasData(vehicleResponse)) {
@@ -89,19 +89,20 @@ export function VehicleAssignmentDialog({
       const paymentsResponse = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .eq('lease_id', existingAgreement.id)
         .in('status', ['pending', 'overdue']);
         
       if (hasData(paymentsResponse)) {
         const formattedPayments = paymentsResponse.data.map(payment => ({
           id: payment.id,
           amount: payment.amount,
+          amount_paid: payment.amount_paid || 0,
           status: payment.status,
           description: payment.description,
           payment_date: payment.payment_date,
           due_date: payment.due_date
         }));
-        setPendingPayments(formattedPayments);
+        setPayments(formattedPayments);
       } else {
         console.error("Error fetching pending payments:", paymentsResponse.error);
       }
@@ -110,7 +111,7 @@ export function VehicleAssignmentDialog({
       const finesResponse = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .eq('lease_id', existingAgreement.id)
         .eq('payment_status', 'pending');
         
       if (hasData(finesResponse)) {
@@ -137,7 +138,7 @@ export function VehicleAssignmentDialog({
       const agreementResponse = await supabase
         .from('leases')
         .select('customer_id')
-        .eq('id', asLeaseId(existingAgreement.id))
+        .eq('id', existingAgreement.id)
         .single();
         
       if (hasData(agreementResponse) && agreementResponse.data?.customer_id) {
@@ -159,7 +160,7 @@ export function VehicleAssignmentDialog({
   };
 
   // Check if we need acknowledgments for payments or fines
-  const needsPaymentAcknowledgment = pendingPayments.length > 0;
+  const needsPaymentAcknowledgment = payments.length > 0;
   const needsFinesAcknowledgment = trafficFines.length > 0;
   
   // Can proceed if no acknowledgments needed, or all are acknowledged
@@ -269,7 +270,7 @@ export function VehicleAssignmentDialog({
             )}
 
             {/* Collapsible Section for Payment History */}
-            {pendingPayments.length > 0 && (
+            {payments.length > 0 && (
               <Collapsible
                 open={isPaymentHistoryOpen}
                 onOpenChange={setIsPaymentHistoryOpen}
@@ -301,7 +302,7 @@ export function VehicleAssignmentDialog({
                           </tr>
                         </thead>
                         <tbody>
-                          {pendingPayments.map((payment) => (
+                          {payments.map((payment) => (
                             <tr key={payment.id} className="border-b">
                               <td className="p-2">{payment.amount} QAR</td>
                               <td className="p-2">{getStatusBadge(payment.status)}</td>
@@ -316,14 +317,14 @@ export function VehicleAssignmentDialog({
               </Collapsible>
             )}
 
-            {pendingPayments.length > 0 && (
+            {payments.length > 0 && (
               <div className="mt-2 border rounded-md p-3 bg-amber-50">
                 <div className="flex items-center space-x-2">
                   <AlertCircle className="h-4 w-4 text-amber-500" />
                   <h3 className="text-sm font-medium">Pending Payments</h3>
                 </div>
                 <p className="text-sm mt-1 text-gray-600">
-                  There {pendingPayments.length === 1 ? 'is' : 'are'} {pendingPayments.length} pending {pendingPayments.length === 1 ? 'payment' : 'payments'} associated with this agreement.
+                  There {payments.length === 1 ? 'is' : 'are'} {payments.length} pending {payments.length === 1 ? 'payment' : 'payments'} associated with this agreement.
                 </p>
                 <div className="mt-2">
                   <label className="flex items-center space-x-2 cursor-pointer">

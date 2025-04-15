@@ -60,7 +60,6 @@ export function hasData<T>(
  * Safely extract data from a Supabase response
  */
 export function safelyExtractData(response: any): any {
-  // Safely extracts data from a Supabase response
   if (!response) return null;
   return response.data || null;
 }
@@ -76,73 +75,89 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
   return response?.data || null;
 }
 
-// Column-specific helper functions for type-safe database operations
+// Simple string cast helpers to maintain type safety with Supabase
+// These functions don't need complex logic, they just help TypeScript understand
+// that the strings are being used as specific column identifiers
 
 /**
- * Ensures that a string ID is treated as a valid agreement_id in database queries 
- */
-export function asAgreementIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Ensures that a string ID is treated as a valid lease_id in database queries
- */
-export function asLeaseIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Ensures that a string ID is treated as a valid lease ID in database queries
- */
-export function asLeaseId(id: string): string {
-  return id;
-}
-
-/**
- * Ensures that a string ID is treated as a valid import_id in database queries
- */
-export function asImportIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Ensures that a string ID is treated as a valid traffic_fine_id in database queries
- */
-export function asTrafficFineIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Ensures that a string ID is treated as a valid vehicle_id in database queries
- */
-export function asVehicleId(id: string): string {
-  return id;
-}
-
-/**
- * Ensures that a string ID is treated as a valid payment_id in database queries
- */
-export function asPaymentId(id: string): string {
-  return id;
-}
-
-/**
- * Ensures that a string ID is treated as a valid table ID in database queries
+ * Simple string cast for table id columns - handles all ID column types
  */
 export function asTableId(table: string, id: string): string {
   return id;
 }
 
 /**
- * Ensures that a string status is treated as a valid status column in database queries
+ * Simple string cast for agreement_id column
+ */
+export function asAgreementId(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for lease_id column
+ */
+export function asLeaseId(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for lease_id column
+ */
+export function asLeaseIdColumn(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for vehicle_id column
+ */
+export function asVehicleId(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for agreement_id column
+ */
+export function asAgreementIdColumn(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for import_id column
+ */
+export function asImportIdColumn(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for import_id column
+ */
+export function asImportId(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for traffic_fine_id column
+ */
+export function asTrafficFineIdColumn(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for payment_id column
+ */
+export function asPaymentId(id: string): string {
+  return id;
+}
+
+/**
+ * Simple string cast for status column
  */
 export function asStatusColumn(status: string): string {
   return status;
 }
 
 /**
- * Ensures that a string payment status is treated as a valid payment_status column in database queries
+ * Simple string cast for payment_status column
  */
 export function asPaymentStatusColumn(status: string): string {
   return status;

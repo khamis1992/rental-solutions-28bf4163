@@ -87,3 +87,5 @@ export const usePayments = (agreementId?: string) => {
     fetchPayments,
   };
 };
+
+export type { Payment };

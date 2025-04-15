@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -17,9 +16,8 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 
-// Define ExtendedPayment interface
-interface ExtendedPayment extends Payment {
-  amount_paid?: number;
+// Define an interface for payments with additional properties needed in this component
+interface PaymentEntryDialogPayment extends Payment {
   balance: number;
   created_at?: string;
 }
@@ -69,7 +67,7 @@ export function PaymentEntryDialog({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
   const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
-  const [pendingPayments, setPendingPayments] = useState<ExtendedPayment[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PaymentEntryDialogPayment[]>([]);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | undefined>(
     selectedPayment?.id
   );
@@ -106,7 +104,7 @@ export function PaymentEntryDialog({
       }
       
       if (data && data.length > 0) {
-        setPendingPayments(data as ExtendedPayment[]);
+        setPendingPayments(data as PaymentEntryDialogPayment[]);
         console.log("Found payments for dialog:", data);
       } else {
         console.log("No pending/overdue payments found");
@@ -175,7 +173,7 @@ export function PaymentEntryDialog({
 
   const showLateFeeOption = lateFeeDetails !== null;
 
-  const formatPaymentDescription = (payment: ExtendedPayment) => {
+  const formatPaymentDescription = (payment: PaymentEntryDialogPayment) => {
     let desc = payment.description || 
                `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
     

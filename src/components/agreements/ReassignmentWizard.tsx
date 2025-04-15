@@ -42,7 +42,7 @@ export function ReassignmentWizard({
         const sourceData = await fetchAgreementWithCustomer(sourceAgreementId);
         setSourceAgreement(sourceData);
         
-        if (sourceData?.vehicle_id) {
+        if (sourceData && sourceData.vehicle_id) {
           const vehicleData = await fetchVehicle(sourceData.vehicle_id);
           setVehicle(vehicleData);
         }
@@ -86,7 +86,7 @@ export function ReassignmentWizard({
       const { error: updateError } = await supabase
         .from('leases')
         .update({ status: 'cancelled' })
-        .eq('id', asTableId('leases', sourceAgreementId));
+        .eq('id', sourceAgreementId);
 
       if (updateError) {
         throw new Error('Failed to update source agreement status');
