@@ -75,38 +75,30 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
   return response?.data || null;
 }
 
-// These helpers are simplified to avoid strong typing issues
-// These functions accept any string and cast them appropriately for database operations
+// Simple string cast for all ID column types
+// These functions now use basic type assertions to work around complex type issues
+export function asTableId(table: string, id: string): any { return id as any; }
+export function asAgreementId(id: string): any { return id as any; }
+export function asLeaseId(id: string): any { return id as any; }
+export function asLeaseIdColumn(id: string): any { return id as any; }
+export function asVehicleId(id: string): any { return id as any; }
+export function asAgreementIdColumn(id: string): any { return id as any; }
+export function asImportIdColumn(id: string): any { return id as any; }
+export function asImportId(id: string): any { return id as any; }
+export function asTrafficFineIdColumn(id: string): any { return id as any; }
+export function asTrafficFineId(id: string): any { return id as any; }
+export function asPaymentId(id: string): any { return id as any; }
+export function asCustomerId(id: string): any { return id as any; }
+export function asProfileId(id: string): any { return id as any; }
+export function asMaintenanceId(id: string): any { return id as any; }
+export function asDocumentId(id: string): any { return id as any; }
+export function asTemplateId(id: string): any { return id as any; }
+export function asCategoryId(id: string): any { return id as any; }
+export function asLegalCaseId(id: string): any { return id as any; }
 
-/**
- * Simple string cast for table id columns - handles all ID column types
- */
-export function asTableId(table: string, id: string): string {
-  return id;
-}
-
-// Simplified helper functions for various ID columns
-export function asAgreementId(id: string): string { return id; }
-export function asLeaseId(id: string): string { return id; }
-export function asLeaseIdColumn(id: string): string { return id; }
-export function asVehicleId(id: string): string { return id; }
-export function asAgreementIdColumn(id: string): string { return id; }
-export function asImportIdColumn(id: string): string { return id; }
-export function asImportId(id: string): string { return id; }
-export function asTrafficFineIdColumn(id: string): string { return id; }
-export function asTrafficFineId(id: string): string { return id; }
-export function asPaymentId(id: string): string { return id; }
-export function asCustomerId(id: string): string { return id; }
-export function asProfileId(id: string): string { return id; }
-export function asMaintenanceId(id: string): string { return id; }
-export function asDocumentId(id: string): string { return id; }
-export function asTemplateId(id: string): string { return id; }
-export function asCategoryId(id: string): string { return id; }
-export function asLegalCaseId(id: string): string { return id; }
-
-// Simple string cast for status columns
-export function asStatusColumn(status: string): string { return status; }
-export function asPaymentStatusColumn(status: string): string { return status; }
+// Status columns
+export function asStatusColumn(status: string): any { return status as any; }
+export function asPaymentStatusColumn(status: string): any { return status as any; }
 
 /**
  * Helper for checking response and safely handling error cases

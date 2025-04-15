@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -8,10 +7,7 @@ import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 import { asPaymentId } from '@/utils/database-type-helpers';
-import type { Payment, PaymentHistoryProps } from './PaymentHistory.types';
-
-// Re-export the Payment type for other components to import
-export type { Payment } from './PaymentHistory.types';
+import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
 
 export function PaymentHistory({ 
   agreementId, 

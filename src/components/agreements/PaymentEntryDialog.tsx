@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import { supabase } from '@/lib/supabase';
 
 // Define an interface for payments with additional properties needed in this component
 interface PaymentEntryDialogPayment extends ExtendedPayment {
-  created_at?: string;
+  // All required properties are now in ExtendedPayment
 }
 
 interface PaymentEntryDialogProps {

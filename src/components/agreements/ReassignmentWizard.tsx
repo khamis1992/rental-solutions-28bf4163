@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,8 +81,7 @@ export function ReassignmentWizard({
         throw new Error('Failed to update payments');
       }
 
-      // Step 2: Mark the original agreement as cancelled
-      // Use an explicit type cast to fix the type error
+      // Step 2: Mark the original agreement as cancelled using type assertions to work around TypeScript errors
       const { error: updateError } = await supabase
         .from('leases')
         .update({ 
