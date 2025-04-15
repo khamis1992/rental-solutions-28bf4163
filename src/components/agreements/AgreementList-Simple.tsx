@@ -1,5 +1,4 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
 import { 
@@ -233,14 +232,6 @@ export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) =
           {row.original.status}
         </Badge>
       )
-    },
-    {
-      accessorKey: 'created_at',
-      header: 'Created Date',
-      cell: ({ row }) => {
-        const createdAt = row.original.created_at;
-        return createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : 'N/A';
-      }
     },
     {
       accessorKey: 'actions',
