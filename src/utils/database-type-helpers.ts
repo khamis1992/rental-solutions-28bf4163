@@ -86,82 +86,21 @@ export function asTableId(table: string, id: string): string {
   return id;
 }
 
-/**
- * Simple string cast for agreement_id column
- */
-export function asAgreementId(id: string): string {
-  return id;
-}
+// Simplified helper functions for various ID columns
+// These just return the string as-is but help with type safety
+export function asAgreementId(id: string): string { return id; }
+export function asLeaseId(id: string): string { return id; }
+export function asLeaseIdColumn(id: string): string { return id; }
+export function asVehicleId(id: string): string { return id; }
+export function asAgreementIdColumn(id: string): string { return id; }
+export function asImportIdColumn(id: string): string { return id; }
+export function asImportId(id: string): string { return id; }
+export function asTrafficFineIdColumn(id: string): string { return id; }
+export function asPaymentId(id: string): string { return id; }
 
-/**
- * Simple string cast for lease_id column
- */
-export function asLeaseId(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for lease_id column
- */
-export function asLeaseIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for vehicle_id column
- */
-export function asVehicleId(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for agreement_id column
- */
-export function asAgreementIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for import_id column
- */
-export function asImportIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for import_id column
- */
-export function asImportId(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for traffic_fine_id column
- */
-export function asTrafficFineIdColumn(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for payment_id column
- */
-export function asPaymentId(id: string): string {
-  return id;
-}
-
-/**
- * Simple string cast for status column
- */
-export function asStatusColumn(status: string): string {
-  return status;
-}
-
-/**
- * Simple string cast for payment_status column
- */
-export function asPaymentStatusColumn(status: string): string {
-  return status;
-}
+// Simple string cast for status columns
+export function asStatusColumn(status: string): string { return status; }
+export function asPaymentStatusColumn(status: string): string { return status; }
 
 /**
  * Helper for checking response and safely handling error cases

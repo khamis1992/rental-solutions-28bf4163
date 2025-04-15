@@ -9,6 +9,8 @@ import { Loader2 } from 'lucide-react';
 import { asPaymentId } from '@/utils/database-type-helpers';
 import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
 
+export { Payment } from './PaymentHistory.types';
+
 export function PaymentHistory({ 
   agreementId, 
   onAddPayment, 
@@ -23,7 +25,6 @@ export function PaymentHistory({
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
 
-  // Use provided payments if they exist, otherwise fetch
   useEffect(() => {
     if (providedPayments) {
       setPayments(providedPayments);
@@ -56,7 +57,6 @@ export function PaymentHistory({
     }
   }, [agreementId, providedPayments]);
 
-  // Use provided loading state if it exists
   useEffect(() => {
     if (providedIsLoading !== undefined) {
       setIsLoading(providedIsLoading);

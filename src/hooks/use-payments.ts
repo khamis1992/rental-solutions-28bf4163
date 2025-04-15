@@ -1,7 +1,7 @@
 
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
-import { hasData } from '@/utils/database-type-helpers';
+import { hasData, asLeaseId } from '@/utils/database-type-helpers';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
 
 export const usePayments = (agreementId?: string) => {
@@ -87,5 +87,3 @@ export const usePayments = (agreementId?: string) => {
     fetchPayments,
   };
 };
-
-export type { Payment };

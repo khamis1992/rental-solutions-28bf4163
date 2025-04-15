@@ -16,7 +16,8 @@ export interface Payment {
   original_due_date?: string | null;
 }
 
-export interface ExtendedPayment extends Omit<Payment, 'amount_paid'> {
+// Modified to avoid conflicts with required vs optional properties
+export interface ExtendedPayment extends Omit<Payment, 'amount_paid' | 'balance'> {
   amount_paid?: number; // Make optional in ExtendedPayment
   balance: number; // Required in ExtendedPayment
   days_overdue?: number;

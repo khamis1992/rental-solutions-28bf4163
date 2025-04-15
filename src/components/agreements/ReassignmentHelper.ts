@@ -1,80 +1,85 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  asLeaseIdColumn, 
-  asTableId, 
-  asVehicleId,
-  asLeaseId,
-  hasData
-} from '@/utils/database-type-helpers';
+import { supabase } from '@/lib/supabase';
+import { hasData } from '@/utils/database-type-helpers';
 
 /**
- * Helper functions for the ReassignmentWizard component to ensure type-safe database operations
+ * Fetches an agreement with associated customer data
  */
-
-/**
- * Safely fetch agreement data with profile information
- */
-export async function fetchAgreementWithCustomer(id: string) {
-  const { data, error } = await supabase
-    .from('leases')
-    .select(`
-      *,
-      profiles: customers (*)
-    `)
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    console.error('Error fetching agreement:', error);
+export async function fetchAgreementWithCustomer(agreementId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('leases')
+      .select(`
+        *,
+        profiles:customer_id (*)
+      `)
+      .eq('id', agreementId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching agreement:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('Unexpected error:', err);
     return null;
   }
-
-  return data;
 }
 
 /**
- * Safely fetch vehicle data
+ * Fetches vehicle data by ID
  */
-export async function fetchVehicle(id: string) {
-  const { data, error } = await supabase
-    .from('vehicles')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    console.error('Error fetching vehicle:', error);
+export async function fetchVehicle(vehicleId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('id', vehicleId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching vehicle:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (err) {
+    console.error('Unexpected error:', err);
     return null;
   }
-
-  return data;
 }
 
 /**
- * Safely update payments with new lease ID
+ * Updates payment lease_id references to point to a new agreement
  */
-export async function updatePaymentsLeaseId(oldLeaseId: string, newLeaseId: string) {
-  const { error } = await supabase
-    .from('unified_payments')
-    .update({ lease_id: newLeaseId })
-    .eq('lease_id', oldLeaseId);
-
-  if (error) {
-    console.error('Error updating payments:', error);
+export async function updatePaymentsLeaseId(sourceId: string, targetId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('unified_payments')
+      .update({ lease_id: targetId })
+      .eq('lease_id', sourceId);
+    
+    if (error) {
+      console.error('Error updating payments:', error);
+      return false;
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('Unexpected error:', err);
     return false;
   }
-  
-  return true;
 }
 
 /**
- * Type safe response processing
+ * Processes response data for consistency
  */
-export function processResponseData<T>(response: any): T | null {
+export function processResponseData(response: any) {
   if (!hasData(response)) {
     return null;
   }
   
-  return response.data as T;
+  return response.data;
 }
