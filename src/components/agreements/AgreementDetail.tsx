@@ -14,7 +14,7 @@ import { PaymentEntryDialog } from './PaymentEntryDialog';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import { PaymentHistory, type Payment } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
