@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -12,7 +11,7 @@ import {
   asVehicleId,
   hasData
 } from '@/utils/database-type-helpers';
-import { Input } from "@/components/ui/input"
+import { Input } from "@/components/ui/input";
 import { VehicleStatus } from '@/lib/validation-schemas/vehicle';
 
 interface VehicleAssignmentDialogProps {
@@ -58,10 +57,12 @@ export function VehicleAssignmentDialog({
         .eq('id', vehicleId)
         .single();
 
-      if (hasData({ data, error })) {
-        return data;
+      if (error) {
+        console.error("Error fetching vehicle details:", error);
+        return null;
       }
-      return null;
+      
+      return data;
     } catch (err) {
       console.error("Error fetching vehicle details:", err);
       return null;
@@ -172,7 +173,7 @@ export function VehicleAssignmentDialog({
         toast({
           title: "Warning",
           description: "Failed to update payments status, but vehicle was assigned.",
-          variant: "warning",
+          variant: "destructive",
         });
       }
 

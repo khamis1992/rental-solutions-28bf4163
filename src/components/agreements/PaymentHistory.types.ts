@@ -1,37 +1,24 @@
 
-// Export the Payment interface properly
 export interface Payment {
   id: string;
+  lease_id: string;
   amount: number;
   amount_paid: number;
+  balance: number;
   payment_date: string | null;
-  payment_method: string | null;
+  due_date: string | null;
   status: string;
-  due_date?: string | null;
-  description?: string | null;
-  reference_number?: string | null;
-  notes?: string | null;
-  lease_id?: string | null;
-  balance?: number;
-  transaction_id?: string | null;
+  payment_method: string | null;
+  description: string | null;
+  type: string;
+  created_at: string;
+  updated_at: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
   original_due_date?: string | null;
 }
 
-// Modified to avoid conflicts with required vs optional properties
-export interface ExtendedPayment extends Omit<Payment, 'amount_paid' | 'balance'> {
-  amount_paid?: number; // Make optional in ExtendedPayment
-  balance: number; // Required in ExtendedPayment
-  days_overdue?: number;
-  late_fine_amount?: number;
-}
-
-export interface PaymentHistoryProps {
-  agreementId?: string;
-  onAddPayment?: () => void;
-  payments?: Payment[];
-  isLoading?: boolean;
-  rentAmount?: number | null;
-  onPaymentDeleted?: () => void;
-  leaseStartDate?: Date;
-  leaseEndDate?: Date;
+export interface PaymentListProps {
+  leaseId: string;
+  onPaymentUpdated?: () => void;
 }

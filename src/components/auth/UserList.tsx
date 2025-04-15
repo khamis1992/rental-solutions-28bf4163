@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { 
   ColumnDef, 
@@ -146,6 +145,38 @@ const UserList = () => {
   });
 
   useEffect(() => {
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*');
+
+        if (error) {
+          console.error('Error fetching users:', error);
+          return;
+        }
+
+        // Convert the data to UserData[] format to ensure type safety
+        if (data) {
+          const userData = data.map(user => ({
+            id: user.id,
+            full_name: user.full_name || '',
+            email: user.email || '',
+            phone_number: user.phone_number || '',
+            role: user.role || 'user',
+            status: user.status || 'active',
+            // Add any other required properties based on your UserData interface
+          }));
+          setUsers(userData);
+        }
+      } catch (err) {
+        console.error('Failed to fetch users:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchUsers();
   }, []);
 
@@ -170,30 +201,6 @@ const UserList = () => {
       setUserPermissions(DEFAULT_PERMISSIONS[selectedUser.role as keyof typeof DEFAULT_PERMISSIONS] || DEFAULT_PERMISSIONS.staff);
     }
   }, [selectedUser, form]);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      console.log("Fetching users from Supabase...");
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .not('role', 'eq', 'customer');
-      
-      if (error) {
-        console.error("Error details:", error);
-        throw error;
-      }
-      
-      console.log("Fetched users:", data);
-      setUsers(data || []);
-    } catch (error: any) {
-      console.error("Error fetching users:", error.message);
-      toast.error("Failed to load users: " + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const deleteUser = async (userId: string) => {
     try {

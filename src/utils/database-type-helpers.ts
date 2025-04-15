@@ -75,9 +75,8 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
   return response?.data || null;
 }
 
-// Simple string cast helpers to maintain type safety with Supabase
-// These functions don't need complex logic, they just help TypeScript understand
-// that the strings are being used as specific column identifiers
+// These helpers are simplified to avoid strong typing issues
+// These functions accept any string and cast them appropriately for database operations
 
 /**
  * Simple string cast for table id columns - handles all ID column types

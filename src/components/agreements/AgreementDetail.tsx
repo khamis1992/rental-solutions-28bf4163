@@ -18,7 +18,7 @@ import { PaymentHistory, type Payment } from '@/components/agreements/PaymentHis
 import LegalCaseCard from './LegalCaseCard';
 import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
-import { Payment } from './PaymentHistory';
+import { Payment } from '@/components/agreements/PaymentHistory.types';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;

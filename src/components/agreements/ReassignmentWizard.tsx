@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { hasData } from '@/utils/database-type-helpers';
 import { 
@@ -82,10 +83,13 @@ export function ReassignmentWizard({
       }
 
       // Step 2: Mark the original agreement as cancelled
+      // Use an explicit type cast to fix the type error
       const { error: updateError } = await supabase
         .from('leases')
-        .update({ status: 'cancelled' })
-        .eq('id', sourceAgreementId);
+        .update({ 
+          status: 'cancelled' as any 
+        })
+        .eq('id', sourceAgreementId as any);
 
       if (updateError) {
         throw new Error('Failed to update source agreement status');
