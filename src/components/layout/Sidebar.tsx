@@ -37,6 +37,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open = true }) => {
             <li>
               <a href="/maintenance" className="flex items-center p-2 rounded-lg hover:bg-muted">Maintenance</a>
             </li>
+            <li>
+              <a href="/legal" className="flex items-center p-2 rounded-lg hover:bg-muted">Legal</a>
+            </li>
           </ul>
         </nav>
       </div>

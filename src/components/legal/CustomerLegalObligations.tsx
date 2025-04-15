@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -44,33 +43,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateLegalCustomerReport } from '@/utils/legalReportUtils';
-import { fetchLegalObligations, determineUrgency } from './LegalObligationsService';
+import { fetchLegalObligations, CustomerObligation } from './LegalObligationsService';
 import LegalCaseDetails from './LegalCaseDetails';
 import { Link } from 'react-router-dom';
 import { formatCurrency } from '@/lib/utils';
 
-// Types
-export type ObligationType = 'payment' | 'traffic_fine' | 'legal_case';
-export type UrgencyLevel = 'low' | 'medium' | 'high' | 'critical';
-
-export interface CustomerObligation {
-  id: string;
-  customerId: string;
-  customerName: string;
-  obligationType: ObligationType;
-  amount: number;
-  dueDate: Date;
-  description: string;
-  urgency: UrgencyLevel;
-  status: string;
-  daysOverdue: number;
-  agreementId?: string;
-  agreementNumber?: string;
-  lateFine?: number;
-}
-
 // Urgency badge styling
-const getUrgencyBadge = (urgency: UrgencyLevel) => {
+const getUrgencyBadge = (urgency: 'low' | 'medium' | 'high' | 'critical') => {
   switch (urgency) {
     case 'critical':
       return <Badge variant="destructive">Critical</Badge>;
@@ -281,7 +260,7 @@ const CustomerLegalObligations: React.FC = () => {
       customerId: string;
       customerName: string;
       totalAmount: number;
-      highestUrgency: UrgencyLevel;
+      highestUrgency: 'low' | 'medium' | 'high' | 'critical';
       obligationCount: number;
     }> = {};
     
@@ -475,7 +454,7 @@ const CustomerLegalObligations: React.FC = () => {
                         </Link>
                       </TableCell>
                       <TableCell>
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'QAR' }).format(summary.totalAmount)}
+                        {formatCurrency(summary.totalAmount)}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {summary.obligationCount}
@@ -506,7 +485,6 @@ const CustomerLegalObligations: React.FC = () => {
           </div>
         )}
         
-        {/* Detailed list of all obligations */}
         {showDetails && filteredObligations.length > 0 && (
           <div className="mt-8">
             <h3 className="text-lg font-medium mb-4">All Obligations</h3>
@@ -603,7 +581,7 @@ const CustomerLegalObligations: React.FC = () => {
                         {obligation.daysOverdue}
                       </TableCell>
                       <TableCell className="text-right">
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'QAR' }).format(obligation.amount)}
+                        {formatCurrency(obligation.amount)}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {getUrgencyBadge(obligation.urgency)}

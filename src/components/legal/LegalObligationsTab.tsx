@@ -8,27 +8,10 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
-import { fetchLegalObligations } from './LegalObligationsService';
+import { fetchLegalObligations, CustomerObligation } from './LegalObligationsService';
 
 interface LegalObligationsTabProps {
   customerId: string;
-}
-
-// Define the CustomerObligation type to match what is returned by fetchLegalObligations
-export interface CustomerObligation {
-  id: string;
-  customerId: string;
-  customerName: string;
-  obligationType: 'payment' | 'traffic_fine' | 'legal_case';
-  amount: number;
-  dueDate: Date;
-  description: string;
-  urgency: 'low' | 'medium' | 'high' | 'critical';
-  status: string;
-  daysOverdue: number;
-  agreementId?: string;
-  agreementNumber?: string;
-  lateFine?: number;
 }
 
 const LegalObligationsTab: React.FC<LegalObligationsTabProps> = ({ customerId }) => {
