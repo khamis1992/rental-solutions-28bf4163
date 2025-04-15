@@ -1,5 +1,5 @@
 
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { cn } from "@/lib/utils";
 import Sidebar from './Sidebar';
 import { useSidebar } from '@/hooks/use-sidebar';
@@ -8,7 +8,7 @@ import { Menu } from 'lucide-react';
 import { Toaster } from 'sonner';
 
 interface PageContainerProps {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
   title?: string;
   description?: string;
@@ -39,7 +39,7 @@ const PageContainer: React.FC<PageContainerProps> = ({
       </Button>
 
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar open={isOpen} />
       
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
