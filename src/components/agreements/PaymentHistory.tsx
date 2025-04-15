@@ -10,38 +10,59 @@ import { Loader2 } from 'lucide-react';
 import { asPaymentId } from '@/utils/database-type-helpers';
 import { Payment, PaymentHistoryProps } from './PaymentHistory.types';
 
-export function PaymentHistory({ agreementId, onAddPayment }: PaymentHistoryProps) {
+export function PaymentHistory({ 
+  agreementId, 
+  onAddPayment, 
+  payments: providedPayments, 
+  isLoading: providedIsLoading,
+  rentAmount,
+  onPaymentDeleted,
+  leaseStartDate,
+  leaseEndDate
+}: PaymentHistoryProps) {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
 
+  // Use provided payments if they exist, otherwise fetch
   useEffect(() => {
-    const fetchPayments = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('lease_id', agreementId)
-          .order('payment_date', { ascending: false });
+    if (providedPayments) {
+      setPayments(providedPayments);
+      setIsLoading(false);
+    } else if (agreementId) {
+      const fetchPayments = async () => {
+        setIsLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from('unified_payments')
+            .select('*')
+            .eq('lease_id', agreementId)
+            .order('payment_date', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching payments:', error);
-          toast.error('Failed to load payment history');
-          setPayments([]);
-        } else if (data) {
-          setPayments(data as Payment[]);
+          if (error) {
+            console.error('Error fetching payments:', error);
+            toast.error('Failed to load payment history');
+            setPayments([]);
+          } else if (data) {
+            setPayments(data as Payment[]);
+          }
+        } catch (err) {
+          console.error('Unexpected error:', err);
+          toast.error('An unexpected error occurred');
+        } finally {
+          setIsLoading(false);
         }
-      } catch (err) {
-        console.error('Unexpected error:', err);
-        toast.error('An unexpected error occurred');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      };
+      fetchPayments();
+    }
+  }, [agreementId, providedPayments]);
 
-    fetchPayments();
-  }, [agreementId]);
+  // Use provided loading state if it exists
+  useEffect(() => {
+    if (providedIsLoading !== undefined) {
+      setIsLoading(providedIsLoading);
+    }
+  }, [providedIsLoading]);
 
   const handleDeletePayment = async (id: string) => {
     const confirmed = window.confirm('Are you sure you want to delete this payment?');
@@ -60,6 +81,9 @@ export function PaymentHistory({ agreementId, onAddPayment }: PaymentHistoryProp
         setPayments(payments.filter(payment => payment.id !== id));
         toast.success('Payment deleted successfully');
         queryClient.invalidateQueries({ queryKey: ['agreements', agreementId] });
+        if (onPaymentDeleted) {
+          onPaymentDeleted();
+        }
       }
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -67,7 +91,9 @@ export function PaymentHistory({ agreementId, onAddPayment }: PaymentHistoryProp
     }
   };
 
-  if (isLoading) {
+  const isLoadingState = providedIsLoading !== undefined ? providedIsLoading : isLoading;
+
+  if (isLoadingState) {
     return (
       <div className="flex items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />

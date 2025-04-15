@@ -77,62 +77,61 @@ export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> |
 }
 
 // Column-specific helper functions for type-safe database operations
-// These will convert string IDs to the expected column types
 
 /**
  * Ensures that a string ID is treated as a valid agreement_id in database queries 
  */
-export function asAgreementIdColumn(id: string): DbTables['leases']['Row']['id'] {
-  return id as DbTables['leases']['Row']['id'];
+export function asAgreementIdColumn(id: string): string {
+  return id;
 }
 
 /**
  * Ensures that a string ID is treated as a valid lease_id in database queries
  */
-export function asLeaseIdColumn(id: string): DbTables['unified_payments']['Row']['lease_id'] {
-  return id as DbTables['unified_payments']['Row']['lease_id'];
+export function asLeaseIdColumn(id: string): string {
+  return id;
 }
 
 /**
  * Ensures that a string ID is treated as a valid lease ID in database queries
  */
-export function asLeaseId(id: string): DbTables['leases']['Row']['id'] {
-  return id as DbTables['leases']['Row']['id'];
+export function asLeaseId(id: string): string {
+  return id;
 }
 
 /**
  * Ensures that a string ID is treated as a valid import_id in database queries
  */
-export function asImportIdColumn(id: string): DbTables['agreement_import_reverts']['Row']['import_id'] {
-  return id as DbTables['agreement_import_reverts']['Row']['import_id'];
+export function asImportIdColumn(id: string): string {
+  return id;
 }
 
 /**
  * Ensures that a string ID is treated as a valid traffic_fine_id in database queries
  */
-export function asTrafficFineIdColumn(id: string): DbTables['traffic_fines']['Row']['agreement_id'] {
-  return id as DbTables['traffic_fines']['Row']['agreement_id'];
+export function asTrafficFineIdColumn(id: string): string {
+  return id;
 }
 
 /**
  * Ensures that a string ID is treated as a valid vehicle_id in database queries
  */
-export function asVehicleId(id: string): DbTables['vehicles']['Row']['id'] {
-  return id as DbTables['vehicles']['Row']['id'];
+export function asVehicleId(id: string): string {
+  return id;
 }
 
 /**
  * Ensures that a string ID is treated as a valid payment_id in database queries
  */
-export function asPaymentId(id: string): DbTables['unified_payments']['Row']['id'] {
-  return id as DbTables['unified_payments']['Row']['id'];
+export function asPaymentId(id: string): string {
+  return id;
 }
 
 /**
  * Ensures that a string ID is treated as a valid table ID in database queries
  */
-export function asTableId<T extends keyof DbTables>(table: T, id: string): DbTables[T]['Row']['id'] {
-  return id as DbTables[T]['Row']['id'];
+export function asTableId(table: string, id: string): string {
+  return id;
 }
 
 /**

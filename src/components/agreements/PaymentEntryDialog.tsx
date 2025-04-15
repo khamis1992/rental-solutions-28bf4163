@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,13 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format as dateFormat } from 'date-fns';
-import { ExtendedPayment, Payment } from './PaymentHistory.types';
+import { Payment } from './PaymentHistory.types';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { useAgreements } from '@/hooks/use-agreements';
 import { useParams } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+
+// Define ExtendedPayment interface
+interface ExtendedPayment extends Payment {
+  amount_paid?: number;
+  balance: number;
+  created_at?: string;
+}
 
 interface PaymentEntryDialogProps {
   open: boolean;

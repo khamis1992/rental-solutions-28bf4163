@@ -22,7 +22,7 @@ export async function fetchAgreementWithCustomer(id: string) {
       *,
       profiles: customers (*)
     `)
-    .eq('id', asLeaseId(id))
+    .eq('id', id)
     .single();
 
   if (error) {
@@ -40,7 +40,7 @@ export async function fetchVehicle(id: string) {
   const { data, error } = await supabase
     .from('vehicles')
     .select('*')
-    .eq('id', asVehicleId(id))
+    .eq('id', id)
     .single();
 
   if (error) {
@@ -57,8 +57,8 @@ export async function fetchVehicle(id: string) {
 export async function updatePaymentsLeaseId(oldLeaseId: string, newLeaseId: string) {
   const { error } = await supabase
     .from('unified_payments')
-    .update({ lease_id: asLeaseIdColumn(newLeaseId) })
-    .eq('lease_id', asLeaseIdColumn(oldLeaseId));
+    .update({ lease_id: newLeaseId })
+    .eq('lease_id', oldLeaseId);
 
   if (error) {
     console.error('Error updating payments:', error);
