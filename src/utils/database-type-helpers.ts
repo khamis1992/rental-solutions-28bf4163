@@ -50,6 +50,16 @@ export function asPaymentId(id: string): string {
   return id;
 }
 
+// Cast an ID for lease tables
+export function asLeaseId(id: string): string {
+  return id;
+}
+
+// Cast a specific lease id column
+export function asLeaseIdColumn(id: string): string {
+  return id;
+}
+
 // Additional column helpers for compatibility with existing code
 export function asTableId(id: string): string {
   return id;

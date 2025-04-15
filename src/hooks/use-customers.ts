@@ -4,16 +4,26 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { CustomerInfo, CustomerListItem } from '@/types/customer';
 import { castDbId } from '@/utils/database-type-helpers';
+import { useState } from 'react';
 
 // Define customer status type
 type CustomerStatus = 'active' | 'inactive' | 'pending_review' | 'blacklisted' | 'pending_payment';
 
 export const useCustomers = () => {
   const queryClient = useQueryClient();
+  
+  // Add search params state
+  const [searchParams, setSearchParams] = useState<{
+    query: string;
+    status: string;
+  }>({
+    query: '',
+    status: 'all'
+  });
 
   // Get all customers
-  const { data: customers = [], isLoading, error } = useQuery({
-    queryKey: ['customers'],
+  const { data: customers = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['customers', searchParams],
     queryFn: async () => {
       try {
         const { data, error } = await supabase
@@ -36,6 +46,7 @@ export const useCustomers = () => {
             full_name: customer.full_name || '',
             email: customer.email || '',
             phone_number: customer.phone_number || '',
+            phone: customer.phone_number || '', // Added for compatibility
             driver_license: customer.driver_license || '',
             nationality: customer.nationality || '',
             address: customer.address || '',
@@ -87,11 +98,14 @@ export const useCustomers = () => {
             full_name: customer.full_name || '',
             email: customer.email || '',
             phone_number: customer.phone_number || '',
+            phone: customer.phone_number || '',
             driver_license: customer.driver_license || '',
             nationality: customer.nationality || '',
             address: customer.address || '',
             notes: customer.notes || '',
-            status: (customer.status as CustomerStatus) || 'pending_review'
+            status: (customer.status as CustomerStatus) || 'pending_review',
+            created_at: customer.created_at || '',
+            updated_at: customer.updated_at || ''
           };
         }
         
@@ -140,11 +154,14 @@ export const useCustomers = () => {
             full_name: customer.full_name || '',
             email: customer.email || '',
             phone_number: customer.phone_number || '',
+            phone: customer.phone_number || '',
             driver_license: customer.driver_license || '',
             nationality: customer.nationality || '',
             address: customer.address || '',
             notes: customer.notes || '',
-            status: (customer.status as CustomerStatus) || 'pending_review'
+            status: (customer.status as CustomerStatus) || 'pending_review',
+            created_at: customer.created_at || '',
+            updated_at: customer.updated_at || ''
           };
         }
         
@@ -188,7 +205,43 @@ export const useCustomers = () => {
     }
   });
 
-  // Get customer by ID
+  // Get customer by ID - implemented as a standalone function
+  const getCustomer = async (customerId: string): Promise<CustomerInfo | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', castDbId(customerId))
+        .single();
+
+      if (error) throw error;
+
+      // Type check and transform data
+      if (!data || typeof data !== 'object') {
+        return null;
+      }
+
+      return {
+        id: data.id || '',
+        full_name: data.full_name || '',
+        email: data.email || '',
+        phone_number: data.phone_number || '',
+        phone: data.phone_number || '', // Added for compatibility
+        driver_license: data.driver_license || '',
+        nationality: data.nationality || '',
+        address: data.address || '',
+        notes: data.notes || '',
+        status: (data.status as CustomerStatus) || 'pending_review',
+        created_at: data.created_at || '',
+        updated_at: data.updated_at || ''
+      };
+    } catch (error) {
+      console.error(`Error fetching customer ${customerId}:`, error);
+      throw error;
+    }
+  };
+
+  // Get customer by ID as a query hook
   const useCustomer = (customerId: string) => {
     return useQuery({
       queryKey: ['customer', customerId],
@@ -197,40 +250,16 @@ export const useCustomers = () => {
           throw new Error('Customer ID is required');
         }
         
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', castDbId(customerId))
-            .single();
-
-          if (error) throw error;
-
-          // Type check and transform data
-          if (!data || typeof data !== 'object') {
-            throw new Error('Invalid customer data received');
-          }
-
-          return {
-            id: data.id || '',
-            full_name: data.full_name || '',
-            email: data.email || '',
-            phone_number: data.phone_number || '',
-            driver_license: data.driver_license || '',
-            nationality: data.nationality || '',
-            address: data.address || '',
-            notes: data.notes || '',
-            status: (data.status as CustomerStatus) || 'pending_review',
-            created_at: data.created_at || '',
-            updated_at: data.updated_at || ''
-          } as CustomerInfo;
-        } catch (error) {
-          console.error(`Error fetching customer ${customerId}:`, error);
-          throw error;
-        }
+        return getCustomer(customerId);
       },
       enabled: !!customerId
     });
+  };
+
+  // Function to refresh customers data
+  const refreshCustomers = () => {
+    queryClient.invalidateQueries({ queryKey: ['customers'] });
+    refetch();
   };
 
   // Return all functions and state
@@ -239,9 +268,13 @@ export const useCustomers = () => {
     isLoading,
     error,
     getCustomersByStatus,
-    addCustomer: addCustomer.mutateAsync,
-    updateCustomer: updateCustomer.mutateAsync,
-    deleteCustomer: deleteCustomer.mutateAsync,
-    useCustomer
+    addCustomer,
+    updateCustomer,
+    deleteCustomer,
+    useCustomer,
+    getCustomer,
+    searchParams,
+    setSearchParams,
+    refreshCustomers
   };
 };

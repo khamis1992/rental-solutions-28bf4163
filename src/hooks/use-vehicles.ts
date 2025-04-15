@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -254,9 +253,8 @@ export const useVehicles = () => {
     useRealtimeUpdates,
     useList,
     useCreate,
-    useVehicle, // Export the new useVehicle function
-    useDelete,  // Export the new useDelete function
-    useUpdate   // Export the new useUpdate function
+    useVehicle,
+    useDelete,
+    useUpdate
   };
 };
-

@@ -15,7 +15,7 @@ interface VehicleTypeDistribution {
 }
 
 export const useFleetReport = () => {
-  const { data: vehicles, isLoading: isLoadingVehicles } = useQuery({
+  const { data: vehicles = [], isLoading: isLoadingVehicles, error } = useQuery({
     queryKey: ['vehicles'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -31,9 +31,10 @@ export const useFleetReport = () => {
       return (data || []).map((vehicle: any) => {
         if (!vehicle) return null;
         
+        // Explicitly map vehicleType here
         return {
           ...vehicle,
-          vehicleType: vehicle.vehicle_types
+          vehicleType: vehicle.vehicle_types || {}
         } as Vehicle;
       }).filter(Boolean) as Vehicle[];
     }
@@ -45,7 +46,8 @@ export const useFleetReport = () => {
     const distribution: Record<string, number> = {};
     
     vehicles.forEach(vehicle => {
-      const type = vehicle.vehicleType?.name || 'Unknown';
+      // Add null/undefined check
+      const type = vehicle?.vehicleType?.name || 'Unknown';
       distribution[type] = (distribution[type] || 0) + 1;
     });
     
@@ -60,7 +62,7 @@ export const useFleetReport = () => {
     return vehicles.filter(v => v.status === 'rented').length;
   };
 
-  const { data: rentals, isLoading: isLoadingRentals } = useQuery({
+  const { data: rentals = [], isLoading: isLoadingRentals } = useQuery({
     queryKey: ['fleet-rentals'],
     queryFn: async () => {
       try {
@@ -85,16 +87,20 @@ export const useFleetReport = () => {
 
         if (error) throw error;
         
-        // Safely transform the data
+        // Safely transform the data with proper type checking
         return (data || []).map(rental => {
-          if (!rental || !rental.profiles) {
-            return null;
+          if (!rental) return null;
+          
+          // Handle profiles whether it's an array or a single object
+          let profile: any;
+          if (rental.profiles) {
+            if (Array.isArray(rental.profiles) && rental.profiles.length > 0) {
+              profile = rental.profiles[0];
+            } else if (!Array.isArray(rental.profiles)) {
+              profile = rental.profiles;
+            }
           }
           
-          const profile = Array.isArray(rental.profiles) && rental.profiles.length > 0 
-            ? rental.profiles[0] 
-            : rental.profiles;
-            
           if (!profile) {
             return null;
           }
@@ -116,7 +122,7 @@ export const useFleetReport = () => {
   });
 
   // Get monthly maintenance expenses
-  const { data: maintenanceExpenses, isLoading: isLoadingExpenses } = useQuery({
+  const { data: maintenanceExpenses = [], isLoading: isLoadingExpenses } = useQuery({
     queryKey: ['fleet-maintenance-expenses'],
     queryFn: async () => {
       try {
@@ -152,12 +158,24 @@ export const useFleetReport = () => {
     }
   });
 
+  // Add empty implementations of fleetStats and vehiclesByType to satisfy imports
+  const fleetStats = {
+    totalVehicles: vehicles?.length || 0,
+    activeVehicles: vehicles?.filter(v => v.status === 'available').length || 0,
+    rentalRate: vehicles?.length ? (vehicles.filter(v => v.status === 'rented').length / vehicles.length) * 100 : 0
+  };
+
+  const vehiclesByType = {};
+
   return {
     vehicles,
     isLoading: isLoadingVehicles || isLoadingRentals || isLoadingExpenses,
     getVehicleTypeDistribution,
     getActiveRentals,
     rentals,
-    maintenanceExpenses
+    maintenanceExpenses,
+    fleetStats,
+    vehiclesByType,
+    error
   };
 };
