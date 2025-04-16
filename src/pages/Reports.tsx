@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -151,6 +152,7 @@ const Reports = () => {
           <span>Scheduled Reports</span>
         </Button>
       }
+      className="pb-20" // Add bottom padding to avoid overlapping with fixed elements
     >
       <div className="flex items-center mb-6">
         <SectionHeader 
@@ -168,7 +170,7 @@ const Reports = () => {
         </AlertDescription>
       </Alert>
       
-      <Card className="mb-8">
+      <Card className="mb-16"> {/* Increased bottom margin to prevent overlap with footer */}
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
             <TabsList className="grid grid-cols-6 mb-8 space-x-2">

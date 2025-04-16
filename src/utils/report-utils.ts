@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -207,12 +208,12 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(100, 100, 100);
-  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 30, { align: 'center' });
+  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 15, { align: 'center' });
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
+  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 10, { align: 'center' });
   
-  // Add horizontal line
+  // Add horizontal line (slightly higher to avoid overlap)
   doc.setDrawColor(220, 220, 220);
   doc.setLineWidth(0.5);
   doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
@@ -221,9 +222,9 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(150, 150, 150);
-  doc.text('CONFIDENTIAL', 14, pageHeight - 10);
-  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 10, { align: 'right' });
+  doc.text('CONFIDENTIAL', 14, pageHeight - 5);
+  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
+  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 5, { align: 'right' });
 };
 
 /**
@@ -287,23 +288,23 @@ export const generateStandardReport = (
     const startY = 50;
     const finalY = contentGenerator(doc, startY);
     
-    // Footer
+    // Footer for each page
     const totalPages = doc.getNumberOfPages();
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
       
-      // Footer background
+      // Footer background - ensure it's properly positioned
       doc.setFillColor(240, 240, 240);
-      doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+      doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
       
       // Footer text
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(10);
+      doc.setFontSize(8);
       doc.setTextColor(100, 100, 100);
       
-      doc.text('© 2025 ALARAF CAR RENTAL', 15, pageHeight - 8);
-      doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 8, { align: 'center' });
-      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
+      doc.text('© 2025 ALARAF CAR RENTAL', 15, pageHeight - 6);
+      doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 6, { align: 'center' });
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 6, { align: 'right' });
     }
     
     return doc;

@@ -39,19 +39,24 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           { from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to: new Date() },
           (doc, startY) => {
             let y = startY;
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const marginBottom = 30; // Space to reserve for footer
             
             const totalAmount = data.reduce((sum, item) => {
-              const amount = parseFloat(item.fineAmount.replace(/[^\d.-]/g, ''));
+              const amount = typeof item.fineAmount === 'string' ? 
+                parseFloat(item.fineAmount.replace(/[^\d.-]/g, '')) : 
+                (item.fineAmount || 0);
               return sum + (isNaN(amount) ? 0 : amount);
             }, 0);
             
             doc.setFillColor(240, 240, 240);
-            doc.rect(15, y, doc.internal.pageSize.getWidth() - 30, 20, 'F');
+            doc.rect(15, y, pageWidth - 30, 20, 'F');
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
             doc.setTextColor(44, 62, 80);
             doc.text(`Total Fines: ${data.length}`, 20, y + 12);
-            doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, doc.internal.pageSize.getWidth() - 40, y + 12, { align: 'right' });
+            doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, pageWidth - 40, y + 12, { align: 'right' });
             
             y += 30;
             
@@ -62,9 +67,16 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               customerGroups[customerName].push(fine);
             });
             
-            Object.entries(customerGroups).forEach(([customerName, customerFines]) => {
+            Object.entries(customerGroups).forEach(([customerName, customerFines], groupIndex) => {
+              // Check if we need a new page for this customer group
+              const estimatedGroupHeight = 12 + (customerFines.length * 10) + 30;
+              if (y + estimatedGroupHeight > pageHeight - marginBottom && groupIndex > 0) {
+                doc.addPage();
+                y = startY; // Reset Y position for the new page
+              }
+              
               doc.setFillColor(52, 73, 94);
-              doc.rect(15, y - 8, doc.internal.pageSize.getWidth() - 30, 12, 'F');
+              doc.rect(15, y - 8, pageWidth - 30, 12, 'F');
               doc.setTextColor(255, 255, 255);
               doc.setFontSize(12);
               doc.text(customerName, 20, y);
@@ -76,7 +88,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               const tableStartX = 15;
               
               doc.setFillColor(240, 240, 240);
-              doc.rect(tableStartX, y, doc.internal.pageSize.getWidth() - 30, 10, 'F');
+              doc.rect(tableStartX, y, pageWidth - 30, 10, 'F');
               
               doc.setFont('helvetica', 'bold');
               doc.setTextColor(44, 62, 80);
@@ -94,11 +106,35 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               doc.setTextColor(70, 70, 70);
               
               customerFines.forEach((fine, index) => {
+                // Check if we need a new page for this row
+                if (y > pageHeight - marginBottom - 10) {
+                  doc.addPage();
+                  y = startY; // Reset Y position for the new page
+                  
+                  // Redraw the headers on the new page
+                  doc.setFillColor(240, 240, 240);
+                  doc.rect(tableStartX, y, pageWidth - 30, 10, 'F');
+                  
+                  doc.setFont('helvetica', 'bold');
+                  doc.setTextColor(44, 62, 80);
+                  doc.setFontSize(10);
+                  
+                  x = tableStartX + 5;
+                  headers.forEach((header, i) => {
+                    doc.text(header, x, y + 8);
+                    x += columnWidths[i];
+                  });
+                  
+                  y += 15;
+                  doc.setFont('helvetica', 'normal');
+                  doc.setTextColor(70, 70, 70);
+                }
+                
                 x = tableStartX + 5;
                 
                 if (index % 2 === 1) {
                   doc.setFillColor(248, 248, 248);
-                  doc.rect(tableStartX, y - 5, doc.internal.pageSize.getWidth() - 30, 10, 'F');
+                  doc.rect(tableStartX, y - 5, pageWidth - 30, 10, 'F');
                 }
                 
                 doc.text(fine.violationNumber, x, y);
@@ -125,7 +161,11 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         doc.save('traffic-fines-report.pdf');
         toast.success('PDF Report downloaded successfully');
       } else {
+        // Handle other report types with proper pagination
         const pdf = new jsPDF();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const marginBottom = 30;
         
         pdf.setFontSize(20);
         pdf.setTextColor(44, 62, 80);
@@ -137,6 +177,8 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         pdf.setFont('helvetica', 'normal');
         const date = formatDate(new Date());
         pdf.text(`Generated on: ${date}`, 105, 30, { align: 'center' });
+        
+        let y = 40;
         
         if (reportType === 'traffic') {
           const totalAmount = data.reduce((sum, item) => {
@@ -178,11 +220,12 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             groupedData[month].push(item);
           });
           
-          let y = 75;
           const headers = ['Violation #', 'License Plate', 'Date', 'Driver/Customer', 'Amount'];
+          const columnWidths = [40, 30, 30, 50, 30];
           
           Object.entries(groupedData).forEach(([month, monthData]) => {
-            if (y > 250) {
+            // Check if we need a new page for this month group
+            if (y > pageHeight - marginBottom - 40) {
               pdf.addPage();
               y = 20;
             }
@@ -192,7 +235,6 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             pdf.text(month, 20, y);
             y += 10;
             
-            const columnWidths = [40, 30, 30, 50, 30];
             const startX = 20;
             
             pdf.setFillColor(240, 240, 240);
@@ -220,7 +262,8 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
                 monthTotal += row.fineAmount;
               }
               
-              if (y > 270) {
+              // Check if we need a new page for this row
+              if (y > pageHeight - marginBottom) {
                 pdf.addPage();
                 y = 20;
                 
@@ -269,6 +312,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           const headers = Object.keys(data[0]);
           const rows = data.map(item => Object.values(item));
           
+          // Calculate column widths based on content
           const columnWidths = headers.map((header, i) => {
             const headerLength = header.length;
             const maxContentLength = Math.max(...rows.map(row => String(row[i] || '').length));
@@ -279,6 +323,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           
           let y = 35;
           
+          // Draw headers
           let x = 20;
           pdf.setFont('helvetica', 'bold');
           headers.forEach((header, i) => {
@@ -298,8 +343,35 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           
           y += 8;
           
+          // Draw rows
           pdf.setFont('helvetica', 'normal');
           rows.forEach((row, rowIndex) => {
+            // Check if we need a new page for this row
+            if (y > pageHeight - marginBottom) {
+              pdf.addPage();
+              y = 20;
+              
+              // Redraw headers on new page
+              x = 20;
+              pdf.setFont('helvetica', 'bold');
+              headers.forEach((header, i) => {
+                const displayHeader = header
+                  .split('_')
+                  .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                  .join(' ');
+                
+                const width = columnWidths[i];
+                pdf.text(displayHeader, x, y);
+                x += width;
+                if (x > 190) {
+                  x = 20;
+                  y += 10;
+                }
+              });
+              y += 8;
+              pdf.setFont('helvetica', 'normal');
+            }
+            
             x = 20;
             row.forEach((cell, i) => {
               const width = columnWidths[i];
@@ -321,14 +393,10 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               }
             });
             y += 8;
-            
-            if (y > 280) {
-              pdf.addPage();
-              y = 20;
-            }
           });
         }
         
+        // Add page numbers and footer to each page
         const pageCount = pdf.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
           pdf.setPage(i);
