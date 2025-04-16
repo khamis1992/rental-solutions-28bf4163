@@ -6,91 +6,109 @@ import { LegalCase } from '@/types/legal-case';
 
 export const useLegalCases = () => {
   const [cases, setCases] = useState<LegalCase[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchLegalCases = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const { data, error } = await supabase
-          .from('legal_cases')
-          .select(`
-            id,
-            description,
-            customer_id,
-            status,
-            escalation_date,
-            assigned_to,
-            case_type,
-            amount_owed,
-            created_at,
-            updated_at
-          `);
-        
-        if (error) {
-          console.error('Error fetching legal cases:', error);
-          setError(`Failed to load legal cases: ${error.message}`);
-          toast.error('Failed to load legal cases');
-          return;
-        }
-        
-        // Now fetch the customer data for each case
-        const enhancedCases = await Promise.all(
-          data.map(async (caseData: any) => {
-            let customerName = 'Unknown Customer';
-            
-            if (caseData.customer_id) {
-              const { data: customerData, error: customerError } = await supabase
-                .from('profiles')
-                .select('full_name')
-                .eq('id', caseData.customer_id)
-                .single();
-                
-              if (!customerError && customerData) {
-                customerName = customerData.full_name;
-              }
-            }
-            
-            // Transform to match the LegalCase type
-            const transformedCase: LegalCase = {
-              id: caseData.id,
-              case_number: `CASE-${caseData.id.substring(0, 8)}`,
-              title: caseData.description ? `Case regarding ${caseData.description.substring(0, 30)}...` : `Case regarding ${caseData.case_type || 'dispute'}`,
-              description: caseData.description || '',
-              customer_id: caseData.customer_id,
-              customer_name: customerName,
-              status: caseData.status || 'pending',
-              hearing_date: caseData.escalation_date,
-              court_location: '',
-              assigned_attorney: caseData.assigned_to || '',
-              opposing_party: '',
-              case_type: caseData.case_type || 'other',
-              documents: [],
-              amount_claimed: caseData.amount_owed || 0,
-              amount_settled: null,
-              created_at: caseData.created_at,
-              updated_at: caseData.updated_at,
-              notes: ''
-            };
-            
-            return transformedCase;
-          })
-        );
-        
-        setCases(enhancedCases);
-      } catch (err) {
-        console.error('Unexpected error fetching legal cases:', err);
-        setError('An unexpected error occurred while fetching legal cases');
-        toast.error('Failed to load legal cases');
-      } finally {
-        setLoading(false);
+    // Using hardcoded data instead of fetching from Supabase
+    const hardcodedCases: LegalCase[] = [
+      {
+        id: '1',
+        case_number: 'CASE-2023001',
+        title: 'Contract dispute with customer',
+        description: 'Customer claims vehicle was in poor condition upon delivery',
+        customer_id: '101',
+        customer_name: 'Ahmed Al-Farsi',
+        status: 'active',
+        hearing_date: '2024-05-20',
+        court_location: 'Doha Central Court',
+        assigned_attorney: 'Fatima Hassan',
+        opposing_party: 'Customer',
+        case_type: 'contract_dispute',
+        documents: ['contract.pdf', 'complaint.pdf'],
+        amount_claimed: 15000,
+        created_at: '2024-03-15',
+        updated_at: '2024-04-01'
+      },
+      {
+        id: '2',
+        case_number: 'CASE-2023002',
+        title: 'Insurance claim dispute',
+        description: 'Insurance company denied coverage for accident damage',
+        customer_id: '102',
+        customer_name: 'Mohammed Al-Thani',
+        status: 'pending',
+        hearing_date: '2024-06-10',
+        court_location: 'Doha Commercial Court',
+        assigned_attorney: 'Yousef Al-Mahmoud',
+        opposing_party: 'Insurance Company',
+        case_type: 'insurance_claim',
+        documents: ['policy.pdf', 'damage_report.pdf'],
+        amount_claimed: 32000,
+        created_at: '2024-02-22',
+        updated_at: '2024-03-30'
+      },
+      {
+        id: '3',
+        case_number: 'CASE-2023003',
+        title: 'Traffic violation dispute',
+        description: 'Customer refusing to pay traffic fine incurred during rental period',
+        customer_id: '103',
+        customer_name: 'Sara Al-Mansouri',
+        status: 'active',
+        hearing_date: '2024-05-28',
+        opposing_party: 'Customer',
+        case_type: 'traffic_violation',
+        documents: ['rental_agreement.pdf', 'fine_notice.pdf'],
+        amount_claimed: 3500,
+        created_at: '2024-04-02',
+        updated_at: '2024-04-10'
+      },
+      {
+        id: '4',
+        case_number: 'CASE-2023004',
+        title: 'Customer complaint about fees',
+        description: 'Customer disputing late return fees applied to account',
+        customer_id: '104',
+        customer_name: 'Khalid Al-Sulaiti',
+        status: 'closed',
+        hearing_date: '2024-03-15',
+        assigned_attorney: 'Maryam Al-Khater',
+        opposing_party: 'Customer',
+        case_type: 'customer_complaint',
+        documents: ['agreement.pdf', 'fee_structure.pdf', 'correspondence.pdf'],
+        amount_claimed: 7800,
+        amount_settled: 5000,
+        created_at: '2024-01-20',
+        updated_at: '2024-03-25'
+      },
+      {
+        id: '5',
+        case_number: 'CASE-2023005',
+        title: 'Vehicle damage dispute',
+        description: 'Disagreement over extent of damage caused by customer',
+        customer_id: '105',
+        customer_name: 'Aisha Al-Emadi',
+        status: 'pending',
+        hearing_date: '2024-06-22',
+        court_location: 'Doha Central Court',
+        assigned_attorney: 'Hassan Al-Kuwari',
+        opposing_party: 'Customer',
+        case_type: 'contract_dispute',
+        documents: ['damage_assessment.pdf', 'photos.pdf', 'repair_quote.pdf'],
+        amount_claimed: 22500,
+        created_at: '2024-03-28',
+        updated_at: '2024-04-12'
       }
-    };
+    ];
     
-    fetchLegalCases();
+    // Simulate loading for better UX
+    setLoading(true);
+    setTimeout(() => {
+      setCases(hardcodedCases);
+      setLoading(false);
+    }, 800);
+    
   }, []);
 
   return { cases, loading, error };
