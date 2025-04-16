@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/date-utils';
 import LegalCaseDetails from './LegalCaseDetails';
-import { Search, AlertTriangle, Loader2 } from 'lucide-react';
+import { Search, AlertTriangle, Loader2, Plus } from 'lucide-react';
 
 export interface CustomerObligation {
   id: string;
@@ -26,69 +27,8 @@ export const CustomerLegalObligations = () => {
   const [selectedObligation, setSelectedObligation] = useState<CustomerObligation | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Hardcoded customer obligations data
-  const obligations: CustomerObligation[] = [
-    {
-      id: '1',
-      customerId: '101',
-      customerName: 'Ahmed Al-Farsi',
-      description: 'Contract dispute resolution payment',
-      obligationType: 'legal_settlement',
-      amount: 15000,
-      dueDate: new Date('2024-05-25'),
-      urgency: 'high',
-      status: 'pending',
-      daysOverdue: 0
-    },
-    {
-      id: '2',
-      customerId: '102',
-      customerName: 'Mohammed Al-Thani',
-      description: 'Insurance claim documentation requirement',
-      obligationType: 'document_submission',
-      amount: 0,
-      dueDate: new Date('2024-04-30'),
-      urgency: 'medium',
-      status: 'overdue',
-      daysOverdue: 5
-    },
-    {
-      id: '3',
-      customerId: '103',
-      customerName: 'Sara Al-Mansouri',
-      description: 'Traffic violation fine payment',
-      obligationType: 'fine_payment',
-      amount: 3500,
-      dueDate: new Date('2024-05-15'),
-      urgency: 'medium',
-      status: 'pending',
-      daysOverdue: 0
-    },
-    {
-      id: '4',
-      customerId: '104',
-      customerName: 'Khalid Al-Sulaiti',
-      description: 'Late return fee settlement',
-      obligationType: 'fee_settlement',
-      amount: 5000,
-      dueDate: new Date('2024-03-20'),
-      urgency: 'low',
-      status: 'completed',
-      daysOverdue: 0
-    },
-    {
-      id: '5',
-      customerId: '105',
-      customerName: 'Aisha Al-Emadi',
-      description: 'Vehicle damage assessment hearing',
-      obligationType: 'court_appearance',
-      amount: 22500,
-      dueDate: new Date('2024-06-22'),
-      urgency: 'critical',
-      status: 'pending',
-      daysOverdue: 0
-    }
-  ];
+  // Empty array for obligations (removed hardcoded data)
+  const obligations: CustomerObligation[] = [];
 
   // Filter obligations based on search query
   const filteredObligations = useMemo(() => {
@@ -98,7 +38,7 @@ export const CustomerLegalObligations = () => {
         obligation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
         obligation.status.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery]);
+  }, [searchQuery, obligations]);
 
   const handleObligationClick = (obligation: CustomerObligation) => {
     setSelectedObligation(obligation);
@@ -168,10 +108,17 @@ export const CustomerLegalObligations = () => {
       ) : (
         <Card>
           <CardHeader>
-            <CardTitle>Customer Legal Obligations</CardTitle>
-            <CardDescription>
-              Manage and track customer legal obligations and requirements
-            </CardDescription>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle>Customer Legal Obligations</CardTitle>
+                <CardDescription>
+                  Manage and track customer legal obligations and requirements
+                </CardDescription>
+              </div>
+              <Button className="w-full md:w-auto">
+                <Plus className="mr-2 h-4 w-4" /> New Obligation
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2 mb-4">
@@ -227,9 +174,13 @@ export const CustomerLegalObligations = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24 text-center">
-                        <div className="flex flex-col items-center justify-center">
+                        <div className="flex flex-col items-center justify-center p-4">
                           <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
-                          <p>No obligations match your search.</p>
+                          <p className="text-lg font-medium">No customer obligations found</p>
+                          <p className="text-muted-foreground mb-4">Start by creating a new customer obligation</p>
+                          <Button>
+                            <Plus className="mr-2 h-4 w-4" /> New Obligation
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>

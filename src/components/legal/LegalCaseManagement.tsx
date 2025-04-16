@@ -282,7 +282,14 @@ const LegalCaseManagement = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={8} className="h-24 text-center">
-                        {searchQuery ? "No cases match your search." : "No legal cases found."}
+                        <div className="flex flex-col items-center justify-center p-4">
+                          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
+                          <p className="text-lg font-medium">No legal cases found</p>
+                          <p className="text-muted-foreground mb-4">Get started by creating your first case</p>
+                          <Button onClick={handleCreateCase}>
+                            <Plus className="mr-2 h-4 w-4" /> New Case
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )}
