@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -169,10 +168,10 @@ const Reports = () => {
         </AlertDescription>
       </Alert>
       
-      <Card>
+      <Card className="mb-8">
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-6 mb-8">
+            <TabsList className="grid grid-cols-6 mb-8 space-x-2">
               <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
               <TabsTrigger value="financial">Financial Report</TabsTrigger>
               <TabsTrigger value="customers">Customer Report</TabsTrigger>
@@ -181,36 +180,38 @@ const Reports = () => {
               <TabsTrigger value="legal">Legal Report</TabsTrigger>
             </TabsList>
             
-            <div className="mb-6">
+            <div className="mb-6 px-4">
               <ReportDownloadOptions 
                 reportType={selectedTab} 
                 getReportData={getReportData} 
               />
             </div>
             
-            <TabsContent value="fleet" className="mt-0">
-              <FleetReport />
-            </TabsContent>
-            
-            <TabsContent value="financial" className="mt-0">
-              <FinancialReport />
-            </TabsContent>
-            
-            <TabsContent value="customers" className="mt-0">
-              <CustomerReport />
-            </TabsContent>
-            
-            <TabsContent value="maintenance" className="mt-0">
-              <MaintenanceReport />
-            </TabsContent>
-            
-            <TabsContent value="traffic" className="mt-0">
-              <TrafficFineReport />
-            </TabsContent>
-            
-            <TabsContent value="legal" className="mt-0">
-              <LegalReport />
-            </TabsContent>
+            <div className="space-y-4">
+              <TabsContent value="fleet" className="mt-0">
+                <FleetReport />
+              </TabsContent>
+              
+              <TabsContent value="financial" className="mt-0">
+                <FinancialReport />
+              </TabsContent>
+              
+              <TabsContent value="customers" className="mt-0">
+                <CustomerReport />
+              </TabsContent>
+              
+              <TabsContent value="maintenance" className="mt-0">
+                <MaintenanceReport />
+              </TabsContent>
+              
+              <TabsContent value="traffic" className="mt-0">
+                <TrafficFineReport />
+              </TabsContent>
+              
+              <TabsContent value="legal" className="mt-0">
+                <LegalReport />
+              </TabsContent>
+            </div>
           </Tabs>
         </CardContent>
       </Card>
