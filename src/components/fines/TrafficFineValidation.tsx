@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, FileText, Loader2, Search, Upload, X } from 'lucide-react';
+import { AlertCircle, Check, Loader2, Search } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,9 +22,6 @@ type ValidationFormValues = z.infer<typeof validationSchema>;
 const TrafficFineValidation: React.FC = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
   const { trafficFines } = useTrafficFines();
   
   const form = useForm<ValidationFormValues>({
@@ -94,73 +91,6 @@ const TrafficFineValidation: React.FC = () => {
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      if (file.type === 'application/pdf') {
-        setSelectedFile(file);
-      } else {
-        toast.error('Please select a PDF file');
-      }
-    }
-  };
-
-  const uploadFile = async () => {
-    if (!selectedFile || !validationResult) {
-      toast.error('Please select a file and complete validation first');
-      return;
-    }
-
-    try {
-      setIsUploading(true);
-      const timestamp = Date.now();
-      const filePath = `traffic-fines/${validationResult.licensePlate}/${timestamp}_${selectedFile.name.replace(/\s+/g, '_')}`;
-      
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get the public URL for the uploaded file
-      const { data: publicUrlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-      
-      setUploadedFileUrl(publicUrlData.publicUrl);
-      
-      // Update the validation record with the document reference
-      if (validationResult) {
-        await supabase
-          .from('traffic_fine_validations')
-          .update({
-            document_url: publicUrlData.publicUrl,
-            document_name: selectedFile.name
-          })
-          .eq('license_plate', validationResult.licensePlate)
-          .order('validation_date', { ascending: false })
-          .limit(1);
-      }
-      
-      toast.success('Document uploaded successfully');
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload document');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const clearUploadedFile = () => {
-    setSelectedFile(null);
-    setUploadedFileUrl(null);
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -218,7 +148,7 @@ const TrafficFineValidation: React.FC = () => {
         </Form>
         <CardFooter className="flex flex-col items-start">
           {validationResult && (
-            <div className="w-full space-y-4">
+            <div className="w-full">
               <Alert 
                 variant={validationResult.finesCount > 0 ? "destructive" : "default"}
                 className={validationResult.finesCount > 0 ? "mb-4" : ""}
@@ -269,93 +199,6 @@ const TrafficFineValidation: React.FC = () => {
                   </div>
                 </div>
               )}
-
-              <div className="w-full border-t pt-4">
-                <h3 className="font-semibold mb-2">Upload Documentation</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  You can attach a PDF document related to this validation (e.g., traffic fine notice, payment receipt)
-                </p>
-                
-                {!uploadedFileUrl ? (
-                  <div className="flex flex-col space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="file"
-                        id="pdf-upload"
-                        onChange={handleFileChange}
-                        accept="application/pdf"
-                        className="hidden"
-                      />
-                      <Button 
-                        type="button" 
-                        variant="outline"
-                        onClick={() => document.getElementById('pdf-upload')?.click()}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        Select PDF
-                      </Button>
-                      {selectedFile && (
-                        <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
-                      )}
-                    </div>
-
-                    {selectedFile && (
-                      <Button 
-                        type="button"
-                        onClick={uploadFile}
-                        disabled={isUploading}
-                        className="w-full"
-                      >
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Uploading...
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="mr-2 h-4 w-4" />
-                            Upload Document
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="border rounded-md p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <FileText className="h-5 w-5 text-blue-500" />
-                        <div>
-                          <p className="font-medium">{selectedFile?.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedFile?.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          asChild
-                        >
-                          <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer">
-                            View
-                          </a>
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={clearUploadedFile}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </CardFooter>

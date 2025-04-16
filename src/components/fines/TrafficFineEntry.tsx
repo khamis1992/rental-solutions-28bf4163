@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,14 +17,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Calendar, FileText, Loader2, Upload, X } from 'lucide-react';
+import { AlertCircle, Calendar } from 'lucide-react';
 import { useTrafficFines, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
 
 // Define the schema for traffic fine entry form
 const trafficFineSchema = z.object({
@@ -47,10 +46,6 @@ interface TrafficFineEntryProps {
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
   const { createTrafficFine } = useTrafficFines();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null);
 
   const form = useForm<TrafficFineFormData>({
     resolver: zodResolver(trafficFineSchema),
@@ -65,104 +60,11 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
     },
   });
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      if (file.type === 'application/pdf') {
-        setSelectedFile(file);
-      } else {
-        toast.error('Please select a PDF file');
-      }
-    }
-  };
-
-  const uploadFile = async (licensePlate: string) => {
-    if (!selectedFile) {
-      return null;
-    }
-
-    try {
-      setIsUploading(true);
-      const timestamp = Date.now();
-      const filePath = `traffic-fines/${licensePlate}/${timestamp}_${selectedFile.name.replace(/\s+/g, '_')}`;
-      
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get the public URL for the uploaded file
-      const { data: publicUrlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-      
-      setUploadedFileUrl(publicUrlData.publicUrl);
-      
-      // Save document reference in the documents table
-      const { data: documentData, error: documentError } = await supabase
-        .from('traffic_fine_documents')
-        .insert({
-          file_name: selectedFile.name,
-          file_path: filePath,
-          file_size: selectedFile.size,
-          file_type: selectedFile.type,
-          public_url: publicUrlData.publicUrl,
-          uploaded_at: new Date().toISOString(),
-          document_type: 'traffic_fine',
-          status: 'active'
-        })
-        .select('id')
-        .single();
-        
-      if (documentError) {
-        console.error('Error saving document reference:', documentError);
-      } else if (documentData) {
-        setUploadedDocumentId(documentData.id);
-        return documentData.id;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload document');
-      return null;
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const clearUploadedFile = () => {
-    setSelectedFile(null);
-    setUploadedFileUrl(null);
-    setUploadedDocumentId(null);
-  };
-
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      // First upload any attached document
-      const documentId = selectedFile ? await uploadFile(data.licensePlate) : null;
-      
-      // Create the fine with document reference if available
-      const fineData: TrafficFineCreatePayload & { document_id?: string } = {
-        ...data
-      };
-      
-      if (documentId) {
-        fineData.document_id = documentId;
-      }
-      
-      await createTrafficFine.mutate(fineData);
-      
+      await createTrafficFine.mutate(data as TrafficFineCreatePayload);
       toast.success("Traffic fine created successfully");
       form.reset();
-      clearUploadedFile();
-      
       if (onFineSaved) {
         onFineSaved();
       }
@@ -333,77 +235,10 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                 </FormItem>
               )}
             />
-
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">Upload Documentation</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Attach a PDF document of the traffic fine notice or receipt
-              </p>
-              
-              {!uploadedFileUrl ? (
-                <div className="flex flex-col space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="file"
-                      id="pdf-upload"
-                      onChange={handleFileChange}
-                      accept="application/pdf"
-                      className="hidden"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => document.getElementById('pdf-upload')?.click()}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Select PDF
-                    </Button>
-                    {selectedFile && (
-                      <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="border rounded-md p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <p className="font-medium">{selectedFile?.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedFile?.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearUploadedFile}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
           </CardContent>
 
           <CardFooter>
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading document...
-                </>
-              ) : (
-                "Create Traffic Fine"
-              )}
-            </Button>
+            <Button type="submit" className="w-full">Create Traffic Fine</Button>
           </CardFooter>
         </form>
       </Form>

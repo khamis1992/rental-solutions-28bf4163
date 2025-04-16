@@ -23,8 +23,6 @@ export interface TrafficFine {
   customerName?: string;
   paymentDate?: Date;
   leaseId?: string;
-  documentId?: string;
-  documentUrl?: string;
 }
 
 export interface TrafficFinePayload {
@@ -39,7 +37,6 @@ export interface TrafficFineCreatePayload {
   violationCharge?: string;
   location?: string;
   paymentStatus?: TrafficFineStatusType;
-  document_id?: string;
 }
 
 export const useTrafficFines = () => {
@@ -64,9 +61,7 @@ export const useTrafficFines = () => {
             vehicle_id,
             lease_id,
             payment_date,
-            assignment_status,
-            document_id,
-            traffic_fine_documents(public_url)
+            assignment_status
           `)
           .order('violation_date', { ascending: false });
         
@@ -120,10 +115,7 @@ export const useTrafficFines = () => {
           leaseId: fine.lease_id,
           // Add customer information if available
           customerId: fine.lease_id ? customerInfo[fine.lease_id]?.customer_id : undefined,
-          customerName: fine.lease_id ? customerInfo[fine.lease_id]?.customer_name : undefined,
-          // Add document information
-          documentId: fine.document_id,
-          documentUrl: fine.traffic_fine_documents?.public_url
+          customerName: fine.lease_id ? customerInfo[fine.lease_id]?.customer_name : undefined
         }));
       } catch (error) {
         console.error('Error in traffic fines data fetching:', error);
@@ -150,8 +142,7 @@ export const useTrafficFines = () => {
           violation_charge: fineData.violationCharge,
           fine_location: fineData.location,
           payment_status: fineData.paymentStatus || 'pending',
-          assignment_status: 'pending',
-          document_id: fineData.document_id
+          assignment_status: 'pending'
         };
         
         const { data, error } = await supabase
