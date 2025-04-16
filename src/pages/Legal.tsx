@@ -23,7 +23,9 @@ const Legal = () => {
   };
 
   const handleNewCase = () => {
+    // Make sure this path matches exactly with the router path
     navigate('/legal/cases/new');
+    console.log("Navigating to new case page");
   };
   
   return <PageContainer 
