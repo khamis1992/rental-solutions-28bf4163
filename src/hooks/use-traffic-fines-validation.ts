@@ -13,7 +13,7 @@ export const useTrafficFinesValidation = () => {
     
     try {
       // Create validation record
-      const { data: validationRecord, error: validationError } = await supabase
+      const response = await supabase
         .from('traffic_fine_validations')
         .insert({
           fine_id: fineId,
@@ -27,15 +27,17 @@ export const useTrafficFinesValidation = () => {
         })
         .select()
         .single();
-      
-      if (validationError) {
-        console.error("Error creating validation record:", validationError);
+        
+      if (response.error) {
+        console.error("Error creating validation record:", response.error);
         toast.error("Failed to create validation record");
         return false;
       }
       
+      const validationRecord = response.data;
+      
       // Update traffic fine with validation result
-      if (hasData({ data: validationRecord, error: null })) {
+      if (validationRecord) {
         const validationData = {
           validation_status: 'completed',
           validation_date: validationRecord.validation_date,
@@ -43,13 +45,13 @@ export const useTrafficFinesValidation = () => {
           last_check_date: new Date().toISOString()
         };
         
-        const { error: updateError } = await supabase
+        const updateResponse = await supabase
           .from('traffic_fines')
           .update(validationData)
           .eq('id', fineId as any);
           
-        if (updateError) {
-          console.error("Error updating traffic fine:", updateError);
+        if (updateResponse.error) {
+          console.error("Error updating traffic fine:", updateResponse.error);
           toast.error("Failed to update traffic fine with validation result");
           return false;
         }

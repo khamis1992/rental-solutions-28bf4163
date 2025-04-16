@@ -1,3 +1,4 @@
+
 /**
  * Helper functions to safely cast database IDs and column values
  * for type safety with the Supabase client

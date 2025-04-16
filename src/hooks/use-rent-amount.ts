@@ -40,7 +40,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (hasData({ data: agreementData, error: null }) && agreementData.vehicle_id) {
+        if (agreementData && agreementData.vehicle_id) {
           // Fetch the vehicle to get rent_amount
           const { data: vehicleData, error: vehicleError } = await supabase
             .from('vehicles')
@@ -55,7 +55,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
             return;
           }
 
-          if (hasData({ data: vehicleData, error: null }) && vehicleData.rent_amount) {
+          if (vehicleData && vehicleData.rent_amount !== undefined) {
             setRentAmount(vehicleData.rent_amount);
           }
         }
