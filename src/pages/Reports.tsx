@@ -31,7 +31,6 @@ const Reports = () => {
   const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
-  // Load maintenance data
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
@@ -45,7 +44,6 @@ const Reports = () => {
     fetchMaintenance();
   }, []);
   
-  // Debug log to check traffic fines data
   useEffect(() => {
     if (trafficFines) {
       console.log("Traffic fines data loaded in Reports:", trafficFines.length);
@@ -62,14 +60,12 @@ const Reports = () => {
   const handleGenerateScheduledReport = () => {
     setIsGenerating(true);
     
-    // Simulate report generation
     setTimeout(() => {
       setIsGenerating(false);
       toast.success('Scheduled report generated successfully');
     }, 2000);
   };
   
-  // Function to get report data based on selected tab
   const getReportData = () => {
     console.log("Getting report data for:", selectedTab);
     switch (selectedTab) {
@@ -125,15 +121,11 @@ const Reports = () => {
             }
             
             return {
-              id: fine.id,
               violationNumber: fine.violationNumber || 'N/A',
               licensePlate: fine.licensePlate || 'N/A',
               violationDate: violationDate,
-              location: fine.location || 'N/A',
               fineAmount: typeof fine.fineAmount === 'number' ? fine.fineAmount : 0,
-              paymentStatus: fine.paymentStatus || 'pending',
-              customerName: fine.customerName || 'Unassigned',
-              customerId: fine.customerId || null
+              customerName: fine.customerName || 'Unassigned'
             };
           });
         }

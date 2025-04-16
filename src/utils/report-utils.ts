@@ -133,8 +133,9 @@ export const addReportHeader = (
     img.src = logoPath;
     
     // Add text instead of image as reliable fallback
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(44, 62, 80); // Dark blue color
     doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
     
     // Try to add the image if it's available
@@ -144,23 +145,27 @@ export const addReportHeader = (
   } catch (error) {
     console.warn('Failed to add logo to PDF header:', error);
     // Add text instead of image as fallback
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
+    doc.setTextColor(44, 62, 80);
     doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
   }
   
   // Add a separator line
-  doc.setDrawColor(200, 200, 200);
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
   doc.line(14, 30, pageWidth - 14, 30);
   
   // Add title
-  doc.setFontSize(18);
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.text(title, pageWidth / 2, 40, { align: 'center' });
+  doc.setTextColor(44, 62, 80);
+  doc.text(title, pageWidth / 2, 45, { align: 'center' });
   
   // Add date range with updated format
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
   
   // Safely format dates with error handling
   let fromDateStr = 'N/A';
@@ -182,12 +187,12 @@ export const addReportHeader = (
     console.error("Error formatting to date:", err);
   }
   
-  doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 50, { align: 'center' });
+  doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 55, { align: 'center' });
   
   // Add date of generation with updated format
-  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 55, { align: 'center' });
+  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 62, { align: 'center' });
   
-  return 65; // Return next Y position
+  return 75; // Return next Y position with more space
 };
 
 /**
@@ -201,18 +206,21 @@ export const addReportFooter = (doc: jsPDF): void => {
   // Add footer text
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 100, 100);
   doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 30, { align: 'center' });
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
   
-  // Add horizontal line instead of the Arabic text image
-  doc.setDrawColor(200, 200, 200);
+  // Add horizontal line
+  doc.setDrawColor(220, 220, 220);
+  doc.setLineWidth(0.5);
   doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
   
   // Add page bottom elements with correct spacing/positioning
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(150, 150, 150);
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
   doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
   doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 10, { align: 'right' });
