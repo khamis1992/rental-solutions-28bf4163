@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,10 +36,18 @@ type VehicleInfo = {
   model: string;
 };
 
+type LeaseInfo = {
+  id: string;
+  start_date: string;
+  end_date: string | null;
+  agreement_number: string;
+};
+
 export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [vehicles, setVehicles] = useState<Record<string, VehicleInfo>>({});
+  const [leases, setLeases] = useState<Record<string, LeaseInfo>>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -50,7 +59,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         // First, get all leases for this customer
         const leaseResponse = await supabase
           .from('leases')
-          .select('id')
+          .select('id, start_date, end_date, agreement_number')
           .eq('customer_id', customerId);
 
         if (!hasData(leaseResponse)) {
@@ -59,14 +68,28 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           return;
         }
 
-        const leases = leaseResponse.data;
-        if (!leases.length) {
+        const leaseData = leaseResponse.data;
+        if (!leaseData.length) {
           setIsLoading(false);
           return;
         }
 
+        // Create a lease lookup object
+        const leaseMap: Record<string, LeaseInfo> = {};
+        leaseData.forEach(lease => {
+          if (lease && lease.id) {
+            leaseMap[lease.id] = {
+              id: lease.id,
+              start_date: lease.start_date,
+              end_date: lease.end_date,
+              agreement_number: lease.agreement_number
+            };
+          }
+        });
+        setLeases(leaseMap);
+
         // Get all traffic fines for these leases
-        const leaseIds = leases.map(lease => lease.id);
+        const leaseIds = leaseData.map(lease => lease.id);
         
         const finesResponse = await supabase
           .from('traffic_fines')
@@ -81,10 +104,24 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
 
         const fineData = finesResponse.data as TrafficFine[];
         
+        // Verify that violation dates fall within lease periods
+        const validFines = fineData.filter(fine => {
+          if (!fine.lease_id || !fine.violation_date) return false;
+          
+          const lease = leaseMap[fine.lease_id];
+          if (!lease) return false;
+          
+          const violationDate = new Date(fine.violation_date);
+          const startDate = new Date(lease.start_date);
+          const endDate = lease.end_date ? new Date(lease.end_date) : new Date();
+          
+          return violationDate >= startDate && violationDate <= endDate;
+        });
+        
         // Collect unique vehicle IDs
         const vehicleIds = Array.from(
           new Set(
-            fineData
+            validFines
               .filter(fine => fine && fine.vehicle_id)
               .map(fine => fine.vehicle_id)
           )
@@ -113,7 +150,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
           }
         }
 
-        setFines(fineData);
+        setFines(validFines);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching traffic fines:', error);
@@ -128,6 +165,11 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
     if (!vehicleId || !vehicles[vehicleId]) return 'Unknown Vehicle';
     const vehicle = vehicles[vehicleId];
     return `${vehicle.make} ${vehicle.model}`;
+  };
+
+  const getLeaseInfo = (leaseId: string | null): string => {
+    if (!leaseId || !leases[leaseId]) return 'N/A';
+    return leases[leaseId].agreement_number || 'Unknown Agreement';
   };
 
   return (
@@ -153,6 +195,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                 <TableHead>License Plate</TableHead>
                 <TableHead>Amount</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Agreement #</TableHead>
                 <TableHead>Location</TableHead>
               </TableRow>
             </TableHeader>
@@ -175,10 +218,13 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Paid</Badge>
                       ) : fine.payment_status === 'pending' ? (
                         <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pending</Badge>
+                      ) : fine.payment_status === 'disputed' ? (
+                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Disputed</Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Unpaid</Badge>
+                        <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">Unknown</Badge>
                       )}
                     </TableCell>
+                    <TableCell>{getLeaseInfo(fine.lease_id)}</TableCell>
                     <TableCell className="max-w-[200px] truncate">
                       {fine.fine_location || 'N/A'}
                     </TableCell>
