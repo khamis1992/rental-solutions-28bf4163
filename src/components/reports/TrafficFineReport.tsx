@@ -27,12 +27,13 @@ interface CustomerFineGroup {
 }
 
 const TrafficFineReport = () => {
-  const { trafficFines, isLoading, assignToCustomer } = useTrafficFines();
+  const { trafficFines, isLoading, assignToCustomer, cleanupInvalidAssignments } = useTrafficFines();
   const [searchTerm, setSearchTerm] = useState('');
   const [finesData, setFinesData] = useState<any[]>([]);
   const [showUnassigned, setShowUnassigned] = useState(true);
   const [assigningFine, setAssigningFine] = useState<string | null>(null);
   const [showInvalidDates, setShowInvalidDates] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
 
   // Ensure we have data to process even when trafficFines is undefined
   useEffect(() => {
@@ -48,7 +49,10 @@ const TrafficFineReport = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-6">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading traffic fines data...</p>
+        </div>
       </div>
     );
   }
@@ -58,7 +62,7 @@ const TrafficFineReport = () => {
     if (!fine.leaseId) return false;
     
     // Check if the fine has a violation date and the assigned lease has start/end dates
-    if (!fine.violationDate || !fine.leaseStartDate || !fine.leaseEndDate) return false;
+    if (!fine.violationDate || !fine.leaseStartDate) return false;
     
     const violationDate = new Date(fine.violationDate);
     const leaseStartDate = new Date(fine.leaseStartDate);
@@ -106,6 +110,21 @@ const TrafficFineReport = () => {
     }
   };
 
+  // Handle cleanup of invalid assignments
+  const handleCleanupInvalidAssignments = async () => {
+    try {
+      setIsCleaningUp(true);
+      await cleanupInvalidAssignments.mutateAsync();
+    } catch (error) {
+      console.error("Error cleaning up invalid assignments:", error);
+      toast.error("Failed to clean up invalid assignments", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
+    } finally {
+      setIsCleaningUp(false);
+    }
+  };
+
   // Calculate summary metrics based on valid assignments only
   const totalFines = showInvalidDates ? filteredFines.length : validFines.length;
   const totalAmount = (showInvalidDates ? filteredFines : validFines)
@@ -115,7 +134,7 @@ const TrafficFineReport = () => {
   const unassignedFines = (showInvalidDates ? filteredFines : validFines)
     .filter(fine => !fine.customerId).length;
 
-  // Group fines by customer (only valid ones)
+  // Group fines by customer (only valid ones by default)
   const finesToDisplay = showInvalidDates ? filteredFines : validFines;
 
   // Group fines by customer
@@ -203,8 +222,8 @@ const TrafficFineReport = () => {
       </div>
 
       {/* Display Controls */}
-      <div className="flex items-center justify-between space-x-2">
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
           <label className="flex items-center space-x-2">
             <input 
               type="checkbox"
@@ -214,8 +233,7 @@ const TrafficFineReport = () => {
             />
             <span className="text-sm">Show unassigned fines</span>
           </label>
-        </div>
-        <div>
+
           <label className="flex items-center space-x-2">
             <input 
               type="checkbox"
@@ -226,6 +244,28 @@ const TrafficFineReport = () => {
             <span className="text-sm">Include invalid lease period assignments</span>
           </label>
         </div>
+
+        {invalidAssignedFines.length > 0 && (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleCleanupInvalidAssignments}
+            disabled={isCleaningUp}
+            className="flex items-center gap-1"
+          >
+            {isCleaningUp ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                Cleaning...
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+                Fix invalid assignments
+              </>
+            )}
+          </Button>
+        )}
       </div>
       
       {invalidAssignedFines.length > 0 && (
@@ -233,8 +273,9 @@ const TrafficFineReport = () => {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Invalid Fine Assignments Detected</AlertTitle>
           <AlertDescription>
-            {invalidAssignedFines.length} traffic fines are assigned to customers but their violation dates 
-            fall outside the lease periods. These are hidden by default.
+            {invalidAssignedFines.length} traffic {invalidAssignedFines.length === 1 ? 'fine is' : 'fines are'} assigned to customers 
+            but the violation dates fall outside the lease periods. 
+            {!showInvalidDates && ' These are hidden by default.'}
           </AlertDescription>
         </Alert>
       )}

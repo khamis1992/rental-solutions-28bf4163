@@ -229,8 +229,9 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
                 <ExclamationTriangleIcon className="h-4 w-4" />
                 <AlertTitle>Invalid Fine Assignments</AlertTitle>
                 <AlertDescription>
-                  {invalidFines.length} traffic fines are assigned to this customer but their violation dates 
-                  fall outside the lease periods. These are hidden by default.
+                  {invalidFines.length} traffic {invalidFines.length === 1 ? 'fine is' : 'fines are'} assigned to this customer but 
+                  {invalidFines.length === 1 ? ' its violation date falls' : ' their violation dates fall'} outside the lease periods. 
+                  {!showInvalidFines && ' These are hidden by default.'}
                 </AlertDescription>
               </Alert>
             )}
@@ -302,7 +303,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
               <div className="flex flex-col items-center justify-center py-8 border rounded-lg bg-muted/30">
                 <ExclamationTriangleIcon className="h-8 w-8 text-muted-foreground mb-2" />
                 <h3 className="text-lg font-medium">No Traffic Fines</h3>
-                <p className="text-sm text-muted-foreground">This customer has no recorded traffic fines.</p>
+                <p className="text-sm text-muted-foreground">This customer has no valid traffic fines.</p>
               </div>
             )}
           </>
