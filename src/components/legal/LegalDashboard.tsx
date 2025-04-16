@@ -5,12 +5,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Gavel, 
   AlertTriangle, 
-  Calendar, 
   BarChart4, 
   ShieldAlert 
 } from 'lucide-react';
 import LegalCaseManagement from './LegalCaseManagement';
-import ComplianceCalendar from './ComplianceCalendar';
 import LegalRiskAssessment from './LegalRiskAssessment';
 import ComplianceReporting from './ComplianceReporting';
 
@@ -30,14 +28,10 @@ const LegalDashboard = () => {
             value={activeTab}
             onValueChange={setActiveTab}
           >
-            <TabsList className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <TabsList className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <TabsTrigger value="cases" className="flex items-center space-x-2">
                 <Gavel className="h-4 w-4" />
                 <span>Case Management</span>
-              </TabsTrigger>
-              <TabsTrigger value="compliance" className="flex items-center space-x-2">
-                <Calendar className="h-4 w-4" />
-                <span>Compliance Calendar</span>
               </TabsTrigger>
               <TabsTrigger value="risk" className="flex items-center space-x-2">
                 <ShieldAlert className="h-4 w-4" />
@@ -51,10 +45,6 @@ const LegalDashboard = () => {
             
             <TabsContent value="cases" className="space-y-4">
               <LegalCaseManagement />
-            </TabsContent>
-            
-            <TabsContent value="compliance" className="space-y-4">
-              <ComplianceCalendar />
             </TabsContent>
             
             <TabsContent value="risk" className="space-y-4">
