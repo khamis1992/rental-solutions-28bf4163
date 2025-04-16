@@ -20,7 +20,7 @@ import VehicleStatusUpdatePage from "./pages/VehicleStatusUpdatePage";
 import { useIsMobile } from "./hooks/use-mobile";
 import { MobileDashboard } from "./components/mobile/MobileDashboard";
 import { VehicleInspection } from "./components/mobile/VehicleInspection";
-
+import NewLegalCasePage from "./pages/NewLegalCasePage";
 
 const router = createBrowserRouter([
   {
@@ -94,6 +94,10 @@ const router = createBrowserRouter([
       {
         path: '/settings',
         element: <Settings />,
+      },
+      {
+        path: "/legal/cases/new",
+        element: <NewLegalCasePage />,
       },
     ],
   },

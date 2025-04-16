@@ -22,6 +22,10 @@ const Legal = () => {
   const handleExportReport = () => {
     toast.success("Legal compliance report is being generated");
   };
+
+  const handleNewCase = () => {
+    navigate('/legal/cases/new');
+  };
   
   return <PageContainer 
     title="Legal Management" 
@@ -31,7 +35,7 @@ const Legal = () => {
             <ClipboardList className="h-4 w-4" />
             <span>Export Report</span>
           </Button>
-          <Button onClick={() => navigate('/legal/cases/new')} className="flex items-center space-x-2">
+          <Button onClick={handleNewCase} className="flex items-center space-x-2">
             <AlertTriangle className="h-4 w-4" />
             <span>New Case</span>
           </Button>
