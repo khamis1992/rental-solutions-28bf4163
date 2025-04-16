@@ -54,7 +54,7 @@ export const useTrafficFinesValidation = () => {
       const updateResponse = await supabase
         .from('traffic_fines')
         .update(validationData)
-        .eq('id', fineId as any);
+        .eq('id', fineId);
         
       if (updateResponse.error) {
         console.error("Error updating traffic fine:", updateResponse.error);

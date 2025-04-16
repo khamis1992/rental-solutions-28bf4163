@@ -171,11 +171,12 @@ export function hasProperty<T, K extends string>(
  */
 export function safeMapArray<T, R>(
   items: T[] | null | undefined, 
-  mapFn: (item: T) => R
+  mapFn: (item: T) => R | null
 ): R[] {
   if (!items) return [];
   
   return items
-    .filter(item => item !== null && item !== undefined && (typeof item !== 'object' || !('error' in item)))
-    .map(mapFn);
+    .filter(item => item !== null && item !== undefined && (typeof item !== 'object' || !('error' in (item as any))))
+    .map(mapFn)
+    .filter((item): item is R => item !== null && item !== undefined);
 }

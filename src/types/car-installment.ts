@@ -27,7 +27,6 @@ export interface ContractSummary {
   overdueAmount: number;
   overdueCount: number;
   completionRate: number;
-  // Add these properties so they're available in both interfaces
   totalPortfolioValue: number;
   totalCollections: number;
   upcomingPayments: number;
