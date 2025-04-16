@@ -30,6 +30,12 @@ export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({ summ
 
   const data = summary || {
     totalContracts: 0,
+    totalAmount: 0,
+    totalPaid: 0,
+    totalPending: 0,
+    overdueAmount: 0,
+    overdueCount: 0,
+    completionRate: 0,
     totalPortfolioValue: 0,
     totalCollections: 0,
     upcomingPayments: 0
@@ -51,7 +57,7 @@ export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({ summ
           <CardTitle className="text-sm font-medium text-muted-foreground">Total Portfolio Value</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.totalPortfolioValue)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(data.totalPortfolioValue || data.totalAmount)}</div>
         </CardContent>
       </Card>
 
@@ -60,7 +66,7 @@ export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({ summ
           <CardTitle className="text-sm font-medium text-muted-foreground">Total Collections</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.totalCollections)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(data.totalCollections || data.totalPaid)}</div>
         </CardContent>
       </Card>
 
@@ -69,7 +75,7 @@ export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({ summ
           <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Payments</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.upcomingPayments)}</div>
+          <div className="text-2xl font-bold">{formatCurrency(data.upcomingPayments || data.overdueAmount)}</div>
         </CardContent>
       </Card>
     </div>

@@ -89,9 +89,17 @@ export const getPropertySafely = <T extends object, K extends keyof T>(
  * Enhanced version that is more type-safe and handles potential errors
  */
 export function hasData<T>(
-  response: { data: T | null; error: any } | null | undefined
+  response: { data: T | null | undefined; error: any } | null | undefined
 ): response is { data: NonNullable<T>; error: null } {
-  return !!response && !response.error && response.data !== null && response.data !== undefined;
+  if (!response) return false;
+  if (response.error) return false;
+  if (response.data === null || response.data === undefined) return false;
+  
+  // Additional check for SelectQueryError objects
+  const data = response.data as any;
+  if (data && typeof data === 'object' && data.error === true) return false;
+  
+  return true;
 }
 
 /**
@@ -118,4 +126,27 @@ export function handleDatabaseResponse<T>(
     return null;
   }
   return response.data || null;
+}
+
+/**
+ * Improved type-safe function to check and access data properties
+ * Will first verify response has valid data before accessing properties
+ */
+export function safeGetProperty<T, K extends keyof T>(
+  response: { data: T | null; error: any } | null | undefined,
+  key: K
+): T[K] | undefined {
+  if (!hasData(response)) return undefined;
+  return response.data[key];
+}
+
+/**
+ * Type guard to check if response data has a specific property
+ */
+export function hasProperty<T, K extends string>(
+  response: { data: T | null; error: any } | null | undefined,
+  key: K
+): response is { data: T & Record<K, unknown>; error: null } {
+  if (!hasData(response)) return false;
+  return key in response.data;
 }

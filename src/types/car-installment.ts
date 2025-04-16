@@ -18,7 +18,7 @@ export interface CarInstallmentContract {
   overdue_payments?: number;
 }
 
-// Define the ContractSummary interface
+// Define the ContractSummary interface with all properties needed
 export interface ContractSummary {
   totalContracts: number;
   totalAmount: number;
@@ -27,6 +27,10 @@ export interface ContractSummary {
   overdueAmount: number;
   overdueCount: number;
   completionRate: number;
+  // Add these properties for backward compatibility
+  totalPortfolioValue?: number;
+  totalCollections?: number;
+  upcomingPayments?: number;
 }
 
 // Define the PaymentFilters interface
@@ -36,6 +40,9 @@ export interface PaymentFilters {
   search?: string;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
+  // Add these properties for backward compatibility
+  dateFrom?: string;
+  dateTo?: string;
 }
 
 // Define the InstallmentStatus type
@@ -67,4 +74,43 @@ export interface ContractFilters {
   dateRange?: [Date, Date] | null;
   sortBy?: string;
   sortDirection?: 'asc' | 'desc';
+}
+
+// Define TrafficFine interface for consistency
+export interface TrafficFine {
+  id: string;
+  violation_number: string;
+  violation_date: string;
+  fine_amount: number;
+  violation_charge: string;
+  fine_location?: string;
+  license_plate: string;
+  payment_status?: string;
+  lease_id?: string;
+  customer_id?: string;
+  vehicle_id?: string;
+  validation_status?: string;
+  validation_date?: string;
+  assignment_status?: string;
+  // Camel case aliases for UI components
+  violationNumber?: string;
+  violationDate?: string | Date;
+  fineAmount?: number;
+  violationCharge?: string;
+  location?: string;
+  licensePlate?: string;
+  paymentStatus?: string;
+  leaseId?: string;
+  customerId?: string;
+  vehicleId?: string;
+}
+
+export interface TrafficFineCreatePayload {
+  violation_number: string;
+  violation_date: string;
+  fine_amount: number;
+  violation_charge: string;
+  fine_location?: string;
+  license_plate: string;
+  payment_status?: string;
 }

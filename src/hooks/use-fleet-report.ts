@@ -14,9 +14,9 @@ interface FleetStats {
   totalVehicles: number;
   activeVehicles: number;
   rentalRate: number;
-  maintenanceRequired?: number; // Added for compatibility
-  activeRentals?: number; // Added for compatibility
-  averageDailyRate?: number; // Added for compatibility
+  maintenanceRequired?: number;
+  activeRentals?: number;
+  averageDailyRate?: number;
 }
 
 export const useFleetReport = () => {
@@ -34,18 +34,31 @@ export const useFleetReport = () => {
       }
 
       // Cast the data to Vehicle[] and ensure it has all required properties
-      return (data || []).map(vehicle => ({
-        id: vehicle.id,
-        make: vehicle.make,
-        model: vehicle.model,
-        license_plate: vehicle.license_plate,
-        year: vehicle.year,
-        status: vehicle.status,
-        rent_amount: vehicle.rent_amount,
-        dailyRate: vehicle.rent_amount, // Map to dailyRate for compatibility
-        currentCustomer: '', // Default value for compatibility
-        ...vehicle
-      })) as Vehicle[];
+      return (data || []).map(vehicle => {
+        // Only create mapped object from valid vehicle data
+        if (vehicle && typeof vehicle === 'object' && !('error' in vehicle)) {
+          return {
+            id: vehicle.id || '',
+            make: vehicle.make || '',
+            model: vehicle.model || '',
+            license_plate: vehicle.license_plate || '',
+            year: vehicle.year || 0,
+            status: vehicle.status || 'available',
+            rent_amount: vehicle.rent_amount || 0,
+            dailyRate: vehicle.rent_amount || 0, // Map to dailyRate for compatibility
+            currentCustomer: '', // Default value for compatibility
+            ...vehicle
+          };
+        }
+        // Return a minimal valid Vehicle object if data is invalid
+        return {
+          id: '',
+          make: '',
+          model: '',
+          license_plate: '',
+          status: 'available' as VehicleStatus
+        };
+      }) as Vehicle[];
     }
   });
 
@@ -81,58 +94,66 @@ export const useFleetReport = () => {
   const { data: rentals = [] } = useQuery({
     queryKey: ['rentals'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('leases')
-        .select(`
-          id,
-          vehicle_id,
-          customer_id,
-          profiles:customer_id(
-            full_name,
-            email,
-            phone_number,
-            nationality
-          )
-        `)
-        .eq('status', 'active' as any);
+      try {
+        const { data, error } = await supabase
+          .from('leases')
+          .select(`
+            id,
+            vehicle_id,
+            customer_id,
+            profiles:customer_id(
+              full_name,
+              email,
+              phone_number,
+              nationality
+            )
+          `)
+          .eq('status', 'active');
 
-      if (error) {
-        console.error('Error fetching rentals:', error);
+        if (error) {
+          console.error('Error fetching rentals:', error);
+          return [];
+        }
+
+        return (data || []).map(lease => {
+          // Safe type checking for each property
+          if (lease && typeof lease === 'object' && !('error' in lease)) {
+            // Safe access with null checks for all properties
+            const vehicleId = lease.vehicle_id;
+            const customerId = lease.customer_id;
+            const profiles = lease.profiles;
+            
+            // Safe access to profile data
+            let fullName = 'Unknown';
+            let email = '';
+            let phone = '';
+            
+            if (profiles) {
+              if (Array.isArray(profiles) && profiles.length > 0) {
+                fullName = profiles[0]?.full_name || 'Unknown';
+                email = profiles[0]?.email || '';
+                phone = profiles[0]?.phone_number || '';
+              } else if (typeof profiles === 'object') {
+                fullName = profiles.full_name || 'Unknown';
+                email = profiles.email || '';
+                phone = profiles.phone_number || '';
+              }
+            }
+            
+            return {
+              vehicleId,
+              customerId,
+              customerName: fullName,
+              customerEmail: email,
+              customerPhone: phone
+            };
+          }
+          return null;
+        }).filter(Boolean);
+      } catch (err) {
+        console.error("Error fetching rentals:", err);
         return [];
       }
-
-      return data.map(lease => {
-        if (hasData({ data: lease, error: null })) {
-          // Type-safe access with null checks
-          const profiles = lease.profiles;
-          const fullName = Array.isArray(profiles) && profiles.length > 0 
-            ? profiles[0]?.full_name 
-            : typeof profiles === 'object' && profiles 
-              ? profiles.full_name 
-              : 'Unknown';
-          
-          const email = Array.isArray(profiles) && profiles.length > 0 
-            ? profiles[0]?.email 
-            : typeof profiles === 'object' && profiles 
-              ? profiles.email 
-              : '';
-          
-          const phone = Array.isArray(profiles) && profiles.length > 0 
-            ? profiles[0]?.phone_number 
-            : typeof profiles === 'object' && profiles 
-              ? profiles.phone_number 
-              : '';
-          
-          return {
-            vehicleId: lease.vehicle_id,
-            customerId: lease.customer_id,
-            customerName: fullName,
-            customerEmail: email,
-            customerPhone: phone
-          };
-        }
-        return null;
-      }).filter(Boolean);
     }
   });
 
@@ -140,21 +161,35 @@ export const useFleetReport = () => {
   const { data: maintenanceExpenses = [] } = useQuery({
     queryKey: ['maintenance-expenses'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('maintenance')
-        .select('id, cost, vehicle_id')
-        .gte('created_at', new Date(new Date().setDate(new Date().getDate() - 30)).toISOString());
+      try {
+        const { data, error } = await supabase
+          .from('maintenance')
+          .select('id, cost, vehicle_id')
+          .gte('created_at', new Date(new Date().setDate(new Date().getDate() - 30)).toISOString());
 
-      if (error) {
-        console.error('Error fetching maintenance expenses:', error);
+        if (error) {
+          console.error('Error fetching maintenance expenses:', error);
+          return [];
+        }
+
+        return (data || []).map(item => {
+          if (item && typeof item === 'object' && !('error' in item)) {
+            return {
+              id: item.id || '',
+              cost: item.cost || 0,
+              vehicleId: item.vehicle_id || ''
+            };
+          }
+          return {
+            id: '',
+            cost: 0,
+            vehicleId: ''
+          };
+        });
+      } catch (err) {
+        console.error("Error fetching maintenance expenses:", err);
         return [];
       }
-
-      return data.map(item => ({
-        id: item.id,
-        cost: item.cost || 0,
-        vehicleId: item.vehicle_id
-      }));
     }
   });
 

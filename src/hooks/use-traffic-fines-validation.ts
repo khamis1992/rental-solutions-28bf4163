@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { hasData } from '@/utils/database-type-helpers';
+import { hasData, hasProperty } from '@/utils/database-type-helpers';
 
 export const useTrafficFinesValidation = () => {
   const [isValidating, setIsValidating] = useState(false);
@@ -34,9 +34,10 @@ export const useTrafficFinesValidation = () => {
         return false;
       }
       
-      // Check if we have valid data
-      if (hasData(response)) {
-        const validationRecord = response.data;
+      // Safely check if we have valid data
+      const validationResponse = { data: response.data, error: response.error };
+      if (hasData(validationResponse)) {
+        const validationRecord = validationResponse.data;
         
         // Update traffic fine with validation result
         const validationData = {

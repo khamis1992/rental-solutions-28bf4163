@@ -6,12 +6,14 @@ import {
   CarInstallmentContract,
   CarInstallmentPayment,
   ContractSummary,
-  PaymentFilters as PaymentFiltersType 
+  PaymentFilters as PaymentFiltersType,
+  TrafficFine,
+  TrafficFineCreatePayload
 } from '@/types/car-installment';
 import { castDbId } from '@/utils/database-type-helpers';
 
 // Use types from car-installment.ts
-export type { CarInstallmentContract, ContractSummary };
+export type { CarInstallmentContract, ContractSummary, TrafficFine, TrafficFineCreatePayload };
 export type PaymentFilters = PaymentFiltersType;
 
 export const useCarInstallmentContracts = () => {
@@ -47,6 +49,13 @@ export const useCarInstallmentContracts = () => {
       // Mock implementation for contract summary with correct structure
       return {
         totalContracts: 10,
+        totalAmount: 250000,
+        totalPaid: 125000,
+        totalPending: 125000,
+        overdueAmount: 15000,
+        overdueCount: 2,
+        completionRate: 50,
+        // Add compatible properties
         totalPortfolioValue: 250000,
         totalCollections: 125000,
         upcomingPayments: 15000
@@ -55,6 +64,13 @@ export const useCarInstallmentContracts = () => {
       console.error("Error in installment analytics:", error);
       return {
         totalContracts: 0,
+        totalAmount: 0,
+        totalPaid: 0,
+        totalPending: 0,
+        overdueAmount: 0,
+        overdueCount: 0,
+        completionRate: 0,
+        // Add compatible properties
         totalPortfolioValue: 0,
         totalCollections: 0,
         upcomingPayments: 0
