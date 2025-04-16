@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, DollarSign, User, UserCheck, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, DollarSign, User, UserCheck, Loader2, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import {
@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 // Define types for fine grouping
 interface CustomerFineGroup {
@@ -31,6 +32,7 @@ const TrafficFineReport = () => {
   const [finesData, setFinesData] = useState<any[]>([]);
   const [showUnassigned, setShowUnassigned] = useState(true);
   const [assigningFine, setAssigningFine] = useState<string | null>(null);
+  const [showInvalidDates, setShowInvalidDates] = useState(false);
 
   // Ensure we have data to process even when trafficFines is undefined
   useEffect(() => {
@@ -51,17 +53,36 @@ const TrafficFineReport = () => {
     );
   }
 
+  // Validate if the fine occurred within the lease period
+  const isValidFine = (fine: any) => {
+    if (!fine.leaseId) return false;
+    
+    // Check if the fine has a violation date and the assigned lease has start/end dates
+    if (!fine.violationDate || !fine.leaseStartDate || !fine.leaseEndDate) return false;
+    
+    const violationDate = new Date(fine.violationDate);
+    const leaseStartDate = new Date(fine.leaseStartDate);
+    const leaseEndDate = fine.leaseEndDate ? new Date(fine.leaseEndDate) : new Date();
+    
+    return violationDate >= leaseStartDate && violationDate <= leaseEndDate;
+  };
+
   // Process traffic fines data
   const filteredFines = finesData.filter(fine => 
-    (fine.licensePlate?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    ((fine.licensePlate?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
     (fine.customerName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-    (fine.violationNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    (fine.violationNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase()))
   );
+  
+  // Split fines into valid and invalid assignments
+  const validFines = filteredFines.filter(fine => !fine.customerId || isValidFine(fine));
+  const invalidAssignedFines = filteredFines.filter(fine => fine.customerId && !isValidFine(fine));
 
   // Add debug log for filtered fines
   console.log("Filtered traffic fines for report:", {
-    count: filteredFines.length,
-    first5: filteredFines.slice(0, 5)
+    all: filteredFines.length,
+    valid: validFines.length,
+    invalid: invalidAssignedFines.length
   });
 
   // Handle assigning a fine to a customer
@@ -85,14 +106,20 @@ const TrafficFineReport = () => {
     }
   };
 
-  // Calculate summary metrics
-  const totalFines = filteredFines.length;
-  const totalAmount = filteredFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
-  const assignedFines = filteredFines.filter(fine => fine.customerId).length;
-  const unassignedFines = filteredFines.filter(fine => !fine.customerId).length;
+  // Calculate summary metrics based on valid assignments only
+  const totalFines = showInvalidDates ? filteredFines.length : validFines.length;
+  const totalAmount = (showInvalidDates ? filteredFines : validFines)
+    .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+  const assignedFines = (showInvalidDates ? filteredFines : validFines)
+    .filter(fine => fine.customerId).length;
+  const unassignedFines = (showInvalidDates ? filteredFines : validFines)
+    .filter(fine => !fine.customerId).length;
+
+  // Group fines by customer (only valid ones)
+  const finesToDisplay = showInvalidDates ? filteredFines : validFines;
 
   // Group fines by customer
-  const finesByCustomer = filteredFines.reduce<Record<string, CustomerFineGroup>>((acc, fine) => {
+  const finesByCustomer = finesToDisplay.reduce<Record<string, CustomerFineGroup>>((acc, fine) => {
     if (fine.customerId && fine.customerName) {
       if (!acc[fine.customerId]) {
         acc[fine.customerId] = {
@@ -112,17 +139,7 @@ const TrafficFineReport = () => {
   const sortedCustomers = Object.values(finesByCustomer).sort((a, b) => b.totalAmount - a.totalAmount);
 
   // Collect all unassigned fines
-  const unassignedFinesList = filteredFines.filter(fine => !fine.customerId);
-
-  // Add debug log for report data
-  console.log("Prepared data for report:", {
-    totalFines,
-    totalAmount,
-    assignedFines,
-    unassignedFines,
-    sortedCustomers: sortedCustomers.length,
-    unassignedFinesList: unassignedFinesList.length
-  });
+  const unassignedFinesList = finesToDisplay.filter(fine => !fine.customerId);
 
   return (
     <div className="space-y-6">
@@ -186,17 +203,41 @@ const TrafficFineReport = () => {
       </div>
 
       {/* Display Controls */}
-      <div className="flex items-center space-x-2">
-        <label className="flex items-center space-x-2">
-          <input 
-            type="checkbox"
-            className="h-4 w-4" 
-            checked={showUnassigned}
-            onChange={(e) => setShowUnassigned(e.target.checked)}
-          />
-          <span className="text-sm">Show unassigned fines</span>
-        </label>
+      <div className="flex items-center justify-between space-x-2">
+        <div className="flex items-center space-x-2">
+          <label className="flex items-center space-x-2">
+            <input 
+              type="checkbox"
+              className="h-4 w-4" 
+              checked={showUnassigned}
+              onChange={(e) => setShowUnassigned(e.target.checked)}
+            />
+            <span className="text-sm">Show unassigned fines</span>
+          </label>
+        </div>
+        <div>
+          <label className="flex items-center space-x-2">
+            <input 
+              type="checkbox"
+              className="h-4 w-4" 
+              checked={showInvalidDates}
+              onChange={(e) => setShowInvalidDates(e.target.checked)}
+            />
+            <span className="text-sm">Include invalid lease period assignments</span>
+          </label>
+        </div>
       </div>
+      
+      {invalidAssignedFines.length > 0 && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Invalid Fine Assignments Detected</AlertTitle>
+          <AlertDescription>
+            {invalidAssignedFines.length} traffic fines are assigned to customers but their violation dates 
+            fall outside the lease periods. These are hidden by default.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Traffic Fines Report */}
       <Card>
@@ -237,27 +278,42 @@ const TrafficFineReport = () => {
                               <TableHead>Location</TableHead>
                               <TableHead>Amount</TableHead>
                               <TableHead>Status</TableHead>
+                              <TableHead>Validity</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {customer.fines.map((fine) => (
-                              <TableRow key={fine.id}>
-                                <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
-                                <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
-                                <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
-                                <TableCell>{fine.location || 'N/A'}</TableCell>
-                                <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
-                                <TableCell>
-                                  <Badge className={fine.paymentStatus === 'paid' 
-                                    ? 'bg-green-500' 
-                                    : fine.paymentStatus === 'disputed' 
-                                      ? 'bg-yellow-500' 
-                                      : 'bg-red-500'}>
-                                    {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
-                                  </Badge>
-                                </TableCell>
-                              </TableRow>
-                            ))}
+                            {customer.fines.map((fine) => {
+                              const isValidFineDate = isValidFine(fine);
+                              return (
+                                <TableRow key={fine.id}>
+                                  <TableCell>{fine.violationNumber || 'N/A'}</TableCell>
+                                  <TableCell>{fine.licensePlate || 'N/A'}</TableCell>
+                                  <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
+                                  <TableCell>{fine.location || 'N/A'}</TableCell>
+                                  <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
+                                  <TableCell>
+                                    <Badge className={fine.paymentStatus === 'paid' 
+                                      ? 'bg-green-500' 
+                                      : fine.paymentStatus === 'disputed' 
+                                        ? 'bg-yellow-500' 
+                                        : 'bg-red-500'}>
+                                      {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    {isValidFineDate ? (
+                                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                        Valid
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                        Invalid Period
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
                           </TableBody>
                         </Table>
                       </CardContent>

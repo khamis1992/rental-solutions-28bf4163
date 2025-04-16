@@ -23,6 +23,8 @@ export interface TrafficFine {
   customerName?: string;
   paymentDate?: Date;
   leaseId?: string;
+  leaseStartDate?: Date;
+  leaseEndDate?: Date;
 }
 
 export interface TrafficFinePayload {
@@ -76,24 +78,31 @@ export const useTrafficFines = () => {
         
         // Get customer information for assigned fines
         const finesWithLeaseIds = data.filter(fine => fine.lease_id);
-        let customerInfo: Record<string, { customer_id: string; customer_name?: string }> = {};
+        let customerAndLeaseInfo: Record<string, { 
+          customer_id: string; 
+          customer_name?: string;
+          start_date?: string;
+          end_date?: string;
+        }> = {};
         
         if (finesWithLeaseIds.length > 0) {
           const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
           const { data: leases, error: leaseError } = await supabase
             .from('leases')
-            .select('id, customer_id, profiles(full_name)')
+            .select('id, customer_id, start_date, end_date, profiles(full_name)')
             .in('id', leaseIds as string[]);
             
           if (leaseError) {
             console.error('Error fetching lease information:', leaseError);
           } else if (leases) {
-            // Create a mapping of lease_id to customer information
+            // Create a mapping of lease_id to customer information and lease dates
             leases.forEach(lease => {
               if (lease && lease.id) {
-                customerInfo[lease.id] = {
+                customerAndLeaseInfo[lease.id] = {
                   customer_id: lease.customer_id,
-                  customer_name: lease.profiles?.full_name
+                  customer_name: lease.profiles?.full_name,
+                  start_date: lease.start_date,
+                  end_date: lease.end_date
                 };
               }
             });
@@ -105,7 +114,7 @@ export const useTrafficFines = () => {
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          violationDate: new Date(fine.violation_date),
+          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
           fineAmount: fine.fine_amount || 0,
           violationCharge: fine.violation_charge,
           paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
@@ -114,8 +123,13 @@ export const useTrafficFines = () => {
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
           leaseId: fine.lease_id,
           // Add customer information if available
-          customerId: fine.lease_id ? customerInfo[fine.lease_id]?.customer_id : undefined,
-          customerName: fine.lease_id ? customerInfo[fine.lease_id]?.customer_name : undefined
+          customerId: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_id : undefined,
+          customerName: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_name : undefined,
+          // Add lease dates for validation
+          leaseStartDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.start_date ? 
+            new Date(customerAndLeaseInfo[fine.lease_id].start_date as string) : undefined,
+          leaseEndDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.end_date ?
+            new Date(customerAndLeaseInfo[fine.lease_id].end_date as string) : undefined
         }));
       } catch (error) {
         console.error('Error in traffic fines data fetching:', error);
@@ -313,6 +327,58 @@ export const useTrafficFines = () => {
     }
   });
   
+  // Function to clean up invalid assignments
+  const cleanupInvalidAssignments = useMutation({
+    mutationFn: async () => {
+      try {
+        if (!trafficFines || trafficFines.length === 0) {
+          throw new Error('No traffic fines data available');
+        }
+        
+        // Get all fines with invalid date ranges
+        const invalidFines = trafficFines.filter(fine => 
+          fine.leaseId && fine.violationDate && fine.leaseStartDate && 
+          (fine.violationDate < fine.leaseStartDate || 
+           (fine.leaseEndDate && fine.violationDate > fine.leaseEndDate))
+        );
+        
+        if (invalidFines.length === 0) {
+          toast.info('No invalid fine assignments found');
+          return { cleaned: 0 };
+        }
+        
+        const invalidFineIds = invalidFines.map(fine => fine.id);
+        
+        // Clear the lease_id for these fines
+        const { error, count } = await supabase
+          .from('traffic_fines')
+          .update({ 
+            lease_id: null,
+            assignment_status: 'pending'
+          })
+          .in('id', invalidFineIds);
+        
+        if (error) {
+          throw new Error(`Failed to clean up invalid assignments: ${error.message}`);
+        }
+        
+        return { cleaned: invalidFineIds.length };
+      } catch (error) {
+        console.error('Error cleaning up invalid assignments:', error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      toast.success(`Successfully cleaned up ${data.cleaned} invalid fine assignments`);
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to clean up invalid assignments', {
+        description: error.message
+      });
+    }
+  });
+  
   return {
     trafficFines,
     isLoading,
@@ -320,6 +386,7 @@ export const useTrafficFines = () => {
     assignToCustomer,
     payTrafficFine,
     disputeTrafficFine,
-    createTrafficFine
+    createTrafficFine,
+    cleanupInvalidAssignments
   };
 };
