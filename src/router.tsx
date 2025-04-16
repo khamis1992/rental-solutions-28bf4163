@@ -102,7 +102,7 @@ const router = createBrowserRouter([
         element: <Legal />,
       },
       {
-        path: "/legal/cases/new",
+        path: '/legal/cases/new',
         element: <NewLegalCasePage />,
       },
     ],
