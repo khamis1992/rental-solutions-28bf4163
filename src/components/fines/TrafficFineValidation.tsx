@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, Loader2, Search } from 'lucide-react';
+import { AlertCircle, Check, Loader2, Search, UserCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,7 +22,8 @@ type ValidationFormValues = z.infer<typeof validationSchema>;
 const TrafficFineValidation: React.FC = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const { trafficFines } = useTrafficFines();
+  const [assigningFine, setAssigningFine] = useState<string | null>(null);
+  const { trafficFines, assignToCustomer } = useTrafficFines();
   
   const form = useForm<ValidationFormValues>({
     resolver: zodResolver(validationSchema),
@@ -88,6 +89,40 @@ const TrafficFineValidation: React.FC = () => {
       toast.error('Failed to validate license plate');
     } finally {
       setIsValidating(false);
+    }
+  };
+
+  // Handle assigning a fine to a customer
+  const handleAssignToCustomer = async (id: string) => {
+    if (!id) {
+      toast.error("Invalid fine ID");
+      return;
+    }
+
+    try {
+      setAssigningFine(id);
+      await assignToCustomer.mutateAsync({ id });
+      toast.success("Fine assigned to customer successfully");
+      
+      // Update the validation result to reflect the new assignment status
+      if (validationResult && validationResult.fines) {
+        setValidationResult({
+          ...validationResult,
+          fines: validationResult.fines.map((fine: any) => {
+            if (fine.id === id) {
+              return { ...fine, isAssigned: true };
+            }
+            return fine;
+          })
+        });
+      }
+    } catch (error) {
+      console.error("Error assigning fine to customer:", error);
+      toast.error("Failed to assign fine to customer", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
+    } finally {
+      setAssigningFine(null);
     }
   };
 
@@ -182,7 +217,7 @@ const TrafficFineValidation: React.FC = () => {
                             {new Date(fine.violationDate).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="text-right">
+                        <div className="flex flex-col items-end">
                           <p className="font-medium">${fine.fineAmount.toFixed(2)}</p>
                           <p className={`text-sm ${
                             fine.paymentStatus === 'paid' 
@@ -193,6 +228,35 @@ const TrafficFineValidation: React.FC = () => {
                           }`}>
                             {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
                           </p>
+                        </div>
+                        <div className="ml-4">
+                          {!fine.customerId && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleAssignToCustomer(fine.id)}
+                              disabled={assigningFine === fine.id}
+                              className="flex items-center"
+                            >
+                              {assigningFine === fine.id ? (
+                                <>
+                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                  Assigning...
+                                </>
+                              ) : (
+                                <>
+                                  <UserCheck className="h-3 w-3 mr-1" />
+                                  Assign
+                                </>
+                              )}
+                            </Button>
+                          )}
+                          {fine.customerId && (
+                            <div className="text-xs text-green-600 flex items-center">
+                              <UserCheck className="h-3 w-3 mr-1" />
+                              Assigned
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}

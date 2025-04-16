@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, DollarSign, User, UserCheck } from 'lucide-react';
+import { AlertTriangle, DollarSign, User, UserCheck, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import {
@@ -14,6 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 // Define types for fine grouping
 interface CustomerFineGroup {
@@ -24,10 +26,11 @@ interface CustomerFineGroup {
 }
 
 const TrafficFineReport = () => {
-  const { trafficFines, isLoading } = useTrafficFines();
+  const { trafficFines, isLoading, assignToCustomer } = useTrafficFines();
   const [searchTerm, setSearchTerm] = useState('');
   const [finesData, setFinesData] = useState<any[]>([]);
   const [showUnassigned, setShowUnassigned] = useState(true);
+  const [assigningFine, setAssigningFine] = useState<string | null>(null);
 
   // Ensure we have data to process even when trafficFines is undefined
   useEffect(() => {
@@ -60,6 +63,27 @@ const TrafficFineReport = () => {
     count: filteredFines.length,
     first5: filteredFines.slice(0, 5)
   });
+
+  // Handle assigning a fine to a customer
+  const handleAssignToCustomer = async (id: string) => {
+    if (!id) {
+      toast.error("Invalid fine ID");
+      return;
+    }
+
+    try {
+      setAssigningFine(id);
+      await assignToCustomer.mutateAsync({ id });
+      toast.success("Fine assigned to customer successfully");
+    } catch (error) {
+      console.error("Error assigning fine to customer:", error);
+      toast.error("Failed to assign fine to customer", {
+        description: error instanceof Error ? error.message : "An unexpected error occurred"
+      });
+    } finally {
+      setAssigningFine(null);
+    }
+  };
 
   // Calculate summary metrics
   const totalFines = filteredFines.length;
@@ -212,6 +236,7 @@ const TrafficFineReport = () => {
                               <TableHead>Date</TableHead>
                               <TableHead>Location</TableHead>
                               <TableHead>Amount</TableHead>
+                              <TableHead>Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -222,6 +247,15 @@ const TrafficFineReport = () => {
                                 <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
                                 <TableCell>{fine.location || 'N/A'}</TableCell>
                                 <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
+                                <TableCell>
+                                  <Badge className={fine.paymentStatus === 'paid' 
+                                    ? 'bg-green-500' 
+                                    : fine.paymentStatus === 'disputed' 
+                                      ? 'bg-yellow-500' 
+                                      : 'bg-red-500'}>
+                                    {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
+                                  </Badge>
+                                </TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -246,6 +280,8 @@ const TrafficFineReport = () => {
                             <TableHead>Date</TableHead>
                             <TableHead>Location</TableHead>
                             <TableHead>Amount</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -256,6 +292,36 @@ const TrafficFineReport = () => {
                               <TableCell>{fine.violationDate ? formatDate(new Date(fine.violationDate)) : 'N/A'}</TableCell>
                               <TableCell>{fine.location || 'N/A'}</TableCell>
                               <TableCell>{formatCurrency(fine.fineAmount || 0)}</TableCell>
+                              <TableCell>
+                                <Badge className={fine.paymentStatus === 'paid' 
+                                  ? 'bg-green-500' 
+                                  : fine.paymentStatus === 'disputed' 
+                                    ? 'bg-yellow-500' 
+                                    : 'bg-red-500'}>
+                                  {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleAssignToCustomer(fine.id)}
+                                  disabled={assigningFine === fine.id}
+                                  className="flex items-center"
+                                >
+                                  {assigningFine === fine.id ? (
+                                    <>
+                                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                      Assigning...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <UserCheck className="h-3 w-3 mr-1" />
+                                      Assign
+                                    </>
+                                  )}
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
