@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -293,3 +294,4 @@ export const generateStandardReport = (
     return doc;
   }
 };
+

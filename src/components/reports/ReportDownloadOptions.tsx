@@ -66,19 +66,19 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             
             // Add summary section
             doc.setFillColor(244, 244, 249);
-            doc.rect(14, y, doc.internal.pageSize.getWidth() - 28, 35, 'F');
+            doc.rect(14, y, doc.internal.pageSize.getWidth() - 28, 25, 'F');
             
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(12);
             doc.setTextColor(44, 62, 80);
-            doc.text('Report Summary', 20, y + 10);
+            doc.text('Report Summary', 20, y + 8);
             
             doc.setFont('helvetica', 'normal');
             doc.setTextColor(70, 70, 70);
-            doc.text(`Total Fines: ${data.length}`, 20, y + 20);
-            doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, y + 30);
+            doc.text(`Total Fines: ${data.length}`, 20, y + 18);
+            doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 140, y + 18);
             
-            y += 45;
+            y += 35;
             
             // Group data by customer name
             const groupedByCustomer: Record<string, any[]> = {};
@@ -90,63 +90,28 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               }
               groupedByCustomer[customerName].push(item);
             });
-            
-            // Create table of contents
-            const tocY = y;
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(44, 62, 80);
-            doc.text('Fines by Customer', 14, y);
-            y += 10;
-            
-            let customerIndex = 1;
-            const customerPageMap = {};
-            const currentPage = doc.getNumberOfPages();
-            
-            Object.keys(groupedByCustomer).sort().forEach(customerName => {
-              doc.setFontSize(11);
-              doc.setFont('helvetica', 'normal');
-              const finesCount = groupedByCustomer[customerName].length;
-              doc.text(`${customerIndex}. ${customerName} (${finesCount} ${finesCount === 1 ? 'fine' : 'fines'})`, 20, y);
-              
-              customerPageMap[customerName] = { startPage: currentPage, tocY: y };
-              
-              y += 8;
-              customerIndex++;
-              
-              if (y > 250) {
-                doc.addPage();
-                y = 20;
-              }
-            });
-            
-            y += 10;
-            
-            // Draw a separator line
-            doc.setDrawColor(220, 220, 220);
-            doc.setLineWidth(0.5);
-            doc.line(14, y, doc.internal.pageSize.getWidth() - 14, y);
-            
-            y += 15;
-            
-            // Add customer details pages
+
+            // Create customer sections
             Object.keys(groupedByCustomer).sort().forEach((customerName, index) => {
               const fines = groupedByCustomer[customerName];
               
-              // Add a new page for each customer
-              if (index > 0) {
+              // Add a new page if needed
+              if (y > 240 && index > 0) {
                 doc.addPage();
-                y = 20;
+                y = 30;
               }
               
-              // Save the customer start page
-              customerPageMap[customerName].actualPage = doc.getNumberOfPages();
-              
               // Add a section for this customer
-              doc.setFontSize(16);
+              doc.setFontSize(14);
               doc.setFont('helvetica', 'bold');
               doc.setTextColor(44, 62, 80);
-              doc.text(`${index + 1}. ${customerName}`, 14, y);
+              
+              // Customer name header with background
+              doc.setFillColor(52, 73, 94);
+              doc.rect(14, y - 10, doc.internal.pageSize.getWidth() - 28, 12, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.text(customerName, 20, y - 2);
+              
               y += 10;
               
               // Calculate customer total
@@ -157,40 +122,28 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
                 return sum + (isNaN(amount) ? 0 : amount);
               }, 0);
 
-              // Add customer summary card
-              doc.setFillColor(248, 250, 252);
-              doc.roundedRect(14, y, doc.internal.pageSize.getWidth() - 28, 30, 3, 3, 'F');
-              
-              doc.setFontSize(12);
-              doc.setFont('helvetica', 'bold');
-              doc.setTextColor(44, 62, 80);
-              doc.text(`Total Fines: ${fines.length}`, 20, y + 12);
-              doc.text(`Total Amount: ${formatCurrency(customerTotal)}`, 20, y + 24);
-              
-              y += 40;
-              
               // Table headers
               const headers = ['Violation #', 'License Plate', 'Date', 'Amount'];
-              const columnWidths = [40, 40, 40, 40];
+              const columnWidths = [45, 45, 35, 35];
               const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
               const startX = (doc.internal.pageSize.getWidth() - tableWidth) / 2;
               
               // Draw header background
-              doc.setFillColor(52, 73, 94); // Dark blue header
-              doc.rect(startX, y - 10, tableWidth, 12, 'F');
+              doc.setFillColor(240, 240, 240); // Light gray header
+              doc.rect(startX, y - 5, tableWidth, 10, 'F');
               
               // Draw header text
               doc.setFontSize(10);
               doc.setFont('helvetica', 'bold');
-              doc.setTextColor(255, 255, 255); // White text for header
+              doc.setTextColor(70, 70, 70); // Dark text for header
               
               let x = startX + 5; // padding
               headers.forEach((header, i) => {
-                doc.text(header, x, y - 2);
+                doc.text(header, x, y);
                 x += columnWidths[i];
               });
               
-              y += 5;
+              y += 10;
               
               // Draw table rows
               doc.setFont('helvetica', 'normal');
@@ -200,15 +153,15 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
                 // Add page if needed
                 if (y > 270) {
                   doc.addPage();
-                  y = 20;
+                  y = 30;
                   
                   // Redraw headers on new page
-                  doc.setFillColor(52, 73, 94); // Dark blue header
-                  doc.rect(startX, y - 10, tableWidth, 12, 'F');
+                  doc.setFillColor(240, 240, 240);
+                  doc.rect(startX, y - 5, tableWidth, 10, 'F');
                   
                   doc.setFontSize(10);
                   doc.setFont('helvetica', 'bold');
-                  doc.setTextColor(255, 255, 255);
+                  doc.setTextColor(70, 70, 70);
                   
                   x = startX + 5;
                   headers.forEach((header, i) => {
@@ -216,12 +169,12 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
                     x += columnWidths[i];
                   });
                   
-                  y += 5;
+                  y += 8;
                   doc.setFont('helvetica', 'normal');
                   doc.setTextColor(70, 70, 70);
                 }
                 
-                // Alternating row background
+                // Alternating row background for better readability
                 if (rowIndex % 2 === 1) {
                   doc.setFillColor(248, 248, 248);
                   doc.rect(startX, y - 5, tableWidth, 10, 'F');
@@ -250,17 +203,9 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
               
               // Add note about total
               doc.setFont('helvetica', 'bold');
-              doc.text(`Total: ${formatCurrency(customerTotal)}`, startX + tableWidth - 40, y + 10);
+              doc.text(`Total: ${formatCurrency(customerTotal)}`, startX + tableWidth - 40, y + 5);
               
               y += 20;
-            });
-            
-            // Update table of contents with page numbers
-            doc.setPage(currentPage);
-            Object.keys(customerPageMap).forEach(customerName => {
-              const tocInfo = customerPageMap[customerName];
-              doc.setFont('helvetica', 'normal');
-              doc.text(`page ${tocInfo.actualPage}`, doc.internal.pageSize.getWidth() - 30, tocInfo.tocY);
             });
             
             return y;
@@ -272,7 +217,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         return;
       }
       
-      // Default table generation for other report types
+      // For other report types, use the default generation method
       const pdf = new jsPDF();
       
       // Add company logo and header
