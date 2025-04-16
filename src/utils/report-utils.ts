@@ -1,7 +1,7 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
+import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 
 /**
@@ -252,7 +252,6 @@ export const generateStandardReport = (
   dateRange: { from: Date | undefined; to: Date | undefined },
   contentGenerator: (doc: jsPDF, startY: number) => number
 ): jsPDF => {
-  // Initialize the PDF document with better error handling
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -260,38 +259,64 @@ export const generateStandardReport = (
   });
   
   try {
-    console.log('Generating standard report:', { title, dateRange });
-    // Add header and get the Y position to start content
-    const startY = addReportHeader(doc, title, dateRange);
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     
-    // Add content using the provided generator function
+    // Improved Header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(0, 0, pageWidth, 25, 'F');
+    
+    // Company Logo or Name
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(44, 62, 80);
+    doc.text('ALARAF CAR RENTAL', pageWidth / 2, 15, { align: 'center' });
+    
+    // Report Title
+    doc.setFontSize(14);
+    doc.setTextColor(70, 70, 70);
+    doc.text(title, pageWidth / 2, 35, { align: 'center' });
+    
+    // Date Range
+    doc.setFontSize(10);
+    const fromDateStr = dateRange.from ? formatDate(dateRange.from) : 'N/A';
+    const toDateStr = dateRange.to ? formatDate(dateRange.to) : 'N/A';
+    doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 42, { align: 'center' });
+    
+    // Generate content
+    const startY = 50;
     const finalY = contentGenerator(doc, startY);
-    console.log('Content generated successfully, final Y position:', finalY);
     
-    // Apply footer to all pages
+    // Footer
     const totalPages = doc.getNumberOfPages();
-    console.log(`Report generated with ${totalPages} pages`);
-    
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      addReportFooter(doc);
+      
+      // Footer background
+      doc.setFillColor(240, 240, 240);
+      doc.rect(0, pageHeight - 20, pageWidth, 20, 'F');
+      
+      // Footer text
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      
+      doc.text('© 2025 ALARAF CAR RENTAL', 15, pageHeight - 8);
+      doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 8, { align: 'center' });
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 8, { align: 'right' });
     }
     
     return doc;
   } catch (error) {
     console.error("Error generating standard report:", error);
-    // Create a simple error document
+    
+    // Error page
     doc.deletePage(1);
     doc.addPage();
     doc.setFontSize(16);
     doc.setTextColor(255, 0, 0);
     doc.text("Error Generating Report", 20, 20);
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text("An error occurred while generating this report.", 20, 30);
-    doc.text("Please try again or contact support.", 20, 40);
-    doc.text(error instanceof Error ? error.message : 'Unknown error', 20, 50);
+    
     return doc;
   }
 };
-
