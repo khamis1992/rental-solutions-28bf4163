@@ -7,24 +7,6 @@ import { useLegalDocuments, useComplianceItems } from '@/hooks/use-legal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 
-// Mock data - in production, this would come from the use-legal hook
-const MOCK_COMPLIANCE_DATA = [
-  { month: 'Jan', compliance: 92, nonCompliance: 8 },
-  { month: 'Feb', compliance: 88, nonCompliance: 12 },
-  { month: 'Mar', compliance: 95, nonCompliance: 5 },
-  { month: 'Apr', compliance: 90, nonCompliance: 10 },
-  { month: 'May', compliance: 85, nonCompliance: 15 },
-  { month: 'Jun', compliance: 93, nonCompliance: 7 },
-];
-
-const MOCK_CASE_DATA = [
-  { name: 'Contract Disputes', count: 12, resolved: 8, pending: 4 },
-  { name: 'Document Violations', count: 7, resolved: 5, pending: 2 },
-  { name: 'Insurance Claims', count: 15, resolved: 9, pending: 6 },
-  { name: 'Customer Complaints', count: 10, resolved: 7, pending: 3 },
-  { name: 'Traffic Violations', count: 18, resolved: 14, pending: 4 }
-];
-
 const LegalReport = () => {
   const [reportType, setReportType] = useState('compliance');
   const [timeRange, setTimeRange] = useState('6months');
@@ -94,7 +76,6 @@ const LegalReport = () => {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={MOCK_COMPLIANCE_DATA}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -166,7 +147,6 @@ const LegalReport = () => {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={MOCK_CASE_DATA}
                     margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />

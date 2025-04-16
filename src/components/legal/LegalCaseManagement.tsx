@@ -31,10 +31,12 @@ import { CustomerObligation } from './CustomerLegalObligations';
 import { useLegalCases } from '@/hooks/use-legal-cases';
 import { LegalCase } from '@/types/legal-case';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const LegalCaseManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCase, setSelectedCase] = useState<CustomerObligation | null>(null);
+  const navigate = useNavigate();
   
   // Fetch legal cases from Supabase
   const { cases, loading, error } = useLegalCases();
@@ -74,7 +76,7 @@ const LegalCaseManagement = () => {
   };
 
   const handleCreateCase = () => {
-    toast.info('New case creation functionality is coming soon');
+    navigate('/legal/cases/new');
   };
 
   // Helper function to determine urgency based on case type
