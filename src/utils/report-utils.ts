@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -156,7 +155,7 @@ export const addReportHeader = (
   doc.setLineWidth(0.5);
   doc.line(14, 30, pageWidth - 14, 30);
   
-  // Add title
+  // Add title with improved styling
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(44, 62, 80);

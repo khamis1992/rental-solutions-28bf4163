@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
+import { generateStandardReport } from '@/utils/report-utils';
 
 export interface ReportDownloadOptionsProps {
   reportType: string;
@@ -26,30 +27,252 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       
       // Special processing for traffic fines reports
       if (reportType === 'traffic') {
-        // Remove unwanted fields from traffic fine reports
+        // Clean and format data for traffic fines
         data = data.map(item => {
-          const { id, location, paymentStatus, customerId, ...keepFields } = item;
-          
           // Format date fields if they exist
-          if (keepFields.violationDate && keepFields.violationDate instanceof Date) {
-            keepFields.violationDate = formatDate(keepFields.violationDate);
+          if (item.violationDate && item.violationDate instanceof Date) {
+            item.violationDate = formatDate(item.violationDate);
           }
           
           // Format amounts
-          if (typeof keepFields.fineAmount === 'number') {
-            keepFields.fineAmount = formatCurrency(keepFields.fineAmount, '');
+          if (typeof item.fineAmount === 'number') {
+            item.fineAmount = formatCurrency(item.fineAmount, '');
           }
           
+          // Return only the fields we want for the report
           return {
-            violationNumber: keepFields.violationNumber || 'N/A',
-            licensePlate: keepFields.licensePlate || 'N/A',
-            violationDate: keepFields.violationDate || 'N/A',
-            customerName: keepFields.customerName || 'Unassigned',
-            fineAmount: keepFields.fineAmount || '0.00'
+            violationNumber: item.violationNumber || 'N/A',
+            licensePlate: item.licensePlate || 'N/A',
+            violationDate: item.violationDate || 'N/A',
+            customerName: item.customerName || 'Unassigned',
+            fineAmount: item.fineAmount || '0.00'
           };
         });
+        
+        // Generate the traffic fines report using the standard report generator
+        const doc = generateStandardReport(
+          'TRAFFIC FINES REPORT',
+          { from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to: new Date() },
+          (doc, startY) => {
+            let y = startY;
+
+            // Add report summary
+            const totalAmount = data.reduce((sum, item) => {
+              const amount = typeof item.fineAmount === 'string' 
+                ? parseFloat(item.fineAmount.replace(/[^\d.-]/g, ''))
+                : (item.fineAmount || 0);
+              return sum + (isNaN(amount) ? 0 : amount);
+            }, 0);
+            
+            // Add summary section
+            doc.setFillColor(244, 244, 249);
+            doc.rect(14, y, doc.internal.pageSize.getWidth() - 28, 35, 'F');
+            
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.setTextColor(44, 62, 80);
+            doc.text('Report Summary', 20, y + 10);
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(70, 70, 70);
+            doc.text(`Total Fines: ${data.length}`, 20, y + 20);
+            doc.text(`Total Amount: ${formatCurrency(totalAmount)}`, 20, y + 30);
+            
+            y += 45;
+            
+            // Group data by customer name
+            const groupedByCustomer: Record<string, any[]> = {};
+            
+            data.forEach(item => {
+              const customerName = item.customerName || 'Unassigned';
+              if (!groupedByCustomer[customerName]) {
+                groupedByCustomer[customerName] = [];
+              }
+              groupedByCustomer[customerName].push(item);
+            });
+            
+            // Create table of contents
+            const tocY = y;
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(44, 62, 80);
+            doc.text('Fines by Customer', 14, y);
+            y += 10;
+            
+            let customerIndex = 1;
+            const customerPageMap = {};
+            const currentPage = doc.getNumberOfPages();
+            
+            Object.keys(groupedByCustomer).sort().forEach(customerName => {
+              doc.setFontSize(11);
+              doc.setFont('helvetica', 'normal');
+              const finesCount = groupedByCustomer[customerName].length;
+              doc.text(`${customerIndex}. ${customerName} (${finesCount} ${finesCount === 1 ? 'fine' : 'fines'})`, 20, y);
+              
+              customerPageMap[customerName] = { startPage: currentPage, tocY: y };
+              
+              y += 8;
+              customerIndex++;
+              
+              if (y > 250) {
+                doc.addPage();
+                y = 20;
+              }
+            });
+            
+            y += 10;
+            
+            // Draw a separator line
+            doc.setDrawColor(220, 220, 220);
+            doc.setLineWidth(0.5);
+            doc.line(14, y, doc.internal.pageSize.getWidth() - 14, y);
+            
+            y += 15;
+            
+            // Add customer details pages
+            Object.keys(groupedByCustomer).sort().forEach((customerName, index) => {
+              const fines = groupedByCustomer[customerName];
+              
+              // Add a new page for each customer
+              if (index > 0) {
+                doc.addPage();
+                y = 20;
+              }
+              
+              // Save the customer start page
+              customerPageMap[customerName].actualPage = doc.getNumberOfPages();
+              
+              // Add a section for this customer
+              doc.setFontSize(16);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(44, 62, 80);
+              doc.text(`${index + 1}. ${customerName}`, 14, y);
+              y += 10;
+              
+              // Calculate customer total
+              const customerTotal = fines.reduce((sum, item) => {
+                const amount = typeof item.fineAmount === 'string' 
+                  ? parseFloat(item.fineAmount.replace(/[^\d.-]/g, ''))
+                  : (item.fineAmount || 0);
+                return sum + (isNaN(amount) ? 0 : amount);
+              }, 0);
+
+              // Add customer summary card
+              doc.setFillColor(248, 250, 252);
+              doc.roundedRect(14, y, doc.internal.pageSize.getWidth() - 28, 30, 3, 3, 'F');
+              
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(44, 62, 80);
+              doc.text(`Total Fines: ${fines.length}`, 20, y + 12);
+              doc.text(`Total Amount: ${formatCurrency(customerTotal)}`, 20, y + 24);
+              
+              y += 40;
+              
+              // Table headers
+              const headers = ['Violation #', 'License Plate', 'Date', 'Amount'];
+              const columnWidths = [40, 40, 40, 40];
+              const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0);
+              const startX = (doc.internal.pageSize.getWidth() - tableWidth) / 2;
+              
+              // Draw header background
+              doc.setFillColor(52, 73, 94); // Dark blue header
+              doc.rect(startX, y - 10, tableWidth, 12, 'F');
+              
+              // Draw header text
+              doc.setFontSize(10);
+              doc.setFont('helvetica', 'bold');
+              doc.setTextColor(255, 255, 255); // White text for header
+              
+              let x = startX + 5; // padding
+              headers.forEach((header, i) => {
+                doc.text(header, x, y - 2);
+                x += columnWidths[i];
+              });
+              
+              y += 5;
+              
+              // Draw table rows
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(70, 70, 70); // Dark gray text for content
+              
+              fines.forEach((fine, rowIndex) => {
+                // Add page if needed
+                if (y > 270) {
+                  doc.addPage();
+                  y = 20;
+                  
+                  // Redraw headers on new page
+                  doc.setFillColor(52, 73, 94); // Dark blue header
+                  doc.rect(startX, y - 10, tableWidth, 12, 'F');
+                  
+                  doc.setFontSize(10);
+                  doc.setFont('helvetica', 'bold');
+                  doc.setTextColor(255, 255, 255);
+                  
+                  x = startX + 5;
+                  headers.forEach((header, i) => {
+                    doc.text(header, x, y - 2);
+                    x += columnWidths[i];
+                  });
+                  
+                  y += 5;
+                  doc.setFont('helvetica', 'normal');
+                  doc.setTextColor(70, 70, 70);
+                }
+                
+                // Alternating row background
+                if (rowIndex % 2 === 1) {
+                  doc.setFillColor(248, 248, 248);
+                  doc.rect(startX, y - 5, tableWidth, 10, 'F');
+                }
+                
+                // Draw cells
+                x = startX + 5;
+                
+                // Violation Number
+                doc.text(String(fine.violationNumber).substring(0, 15), x, y);
+                x += columnWidths[0];
+                
+                // License Plate
+                doc.text(String(fine.licensePlate).substring(0, 12), x, y);
+                x += columnWidths[1];
+                
+                // Date
+                doc.text(String(fine.violationDate).substring(0, 12), x, y);
+                x += columnWidths[2];
+                
+                // Amount
+                doc.text(String(fine.fineAmount), x, y);
+                
+                y += 10;
+              });
+              
+              // Add note about total
+              doc.setFont('helvetica', 'bold');
+              doc.text(`Total: ${formatCurrency(customerTotal)}`, startX + tableWidth - 40, y + 10);
+              
+              y += 20;
+            });
+            
+            // Update table of contents with page numbers
+            doc.setPage(currentPage);
+            Object.keys(customerPageMap).forEach(customerName => {
+              const tocInfo = customerPageMap[customerName];
+              doc.setFont('helvetica', 'normal');
+              doc.text(`page ${tocInfo.actualPage}`, doc.internal.pageSize.getWidth() - 30, tocInfo.tocY);
+            });
+            
+            return y;
+          }
+        );
+        
+        doc.save('traffic-fines-report.pdf');
+        toast.success('PDF Report downloaded successfully');
+        return;
       }
       
+      // Default table generation for other report types
       const pdf = new jsPDF();
       
       // Add company logo and header
