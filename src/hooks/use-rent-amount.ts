@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { hasData, hasProperty } from '@/utils/database-type-helpers';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
@@ -32,7 +32,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           .select('vehicle_id')
           .eq('id', agreementId as any)
           .single();
-
+        
         if (agreementError) {
           console.error("Error fetching agreement for rent amount:", agreementError);
           setError(new Error(`Failed to fetch agreement: ${agreementError.message}`));
@@ -42,9 +42,17 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
 
         // Check if the agreement data exists and has a vehicle_id
         const agreementResponse = { data: agreementData, error: agreementError };
-        if (hasProperty(agreementResponse, 'vehicle_id') && agreementResponse.data.vehicle_id) {
+        
+        if (!agreementData) {
+          console.error("Agreement data is null or undefined");
+          setError(new Error("Agreement data not found"));
+          setIsLoading(false);
+          return;
+        }
+        
+        if ('vehicle_id' in agreementData && agreementData.vehicle_id) {
           // Fetch the vehicle to get rent_amount
-          const vehicleId = agreementResponse.data.vehicle_id;
+          const vehicleId = agreementData.vehicle_id;
           const { data: vehicleData, error: vehicleError } = await supabase
             .from('vehicles')
             .select('rent_amount')
@@ -59,9 +67,15 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           }
 
           // Check if vehicle data exists and has rent_amount
-          const vehicleResponse = { data: vehicleData, error: vehicleError };
-          if (hasProperty(vehicleResponse, 'rent_amount') && vehicleResponse.data.rent_amount !== undefined) {
-            setRentAmount(vehicleResponse.data.rent_amount);
+          if (!vehicleData) {
+            console.error("Vehicle data is null or undefined");
+            setError(new Error("Vehicle data not found"));
+            setIsLoading(false);
+            return;
+          }
+          
+          if ('rent_amount' in vehicleData && vehicleData.rent_amount !== undefined) {
+            setRentAmount(vehicleData.rent_amount);
           }
         }
       } catch (err) {

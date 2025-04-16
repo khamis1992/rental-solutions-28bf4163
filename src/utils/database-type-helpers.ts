@@ -97,9 +97,23 @@ export function hasData<T>(
   
   // Additional check for SelectQueryError objects
   const data = response.data as any;
-  if (data && typeof data === 'object' && data.error === true) return false;
+  if (data && typeof data === 'object' && 'error' in data && data.error === true) return false;
   
   return true;
+}
+
+/**
+ * Type-safe data extraction with null safety
+ * Use this when transforming Supabase response data
+ */
+export function safeTranformData<T, R>(data: T | null | undefined, transform: (item: NonNullable<T>) => R): R | null {
+  if (data === null || data === undefined) return null;
+  
+  // Check for error objects in the data
+  const dataObj = data as any;
+  if (dataObj && typeof dataObj === 'object' && 'error' in dataObj && dataObj.error === true) return null;
+  
+  return transform(data as NonNullable<T>);
 }
 
 /**
@@ -149,4 +163,19 @@ export function hasProperty<T, K extends string>(
 ): response is { data: T & Record<K, unknown>; error: null } {
   if (!hasData(response)) return false;
   return key in response.data;
+}
+
+/**
+ * Safe mapping function for array data from Supabase
+ * Handles null objects and error objects gracefully
+ */
+export function safeMapArray<T, R>(
+  items: T[] | null | undefined, 
+  mapFn: (item: T) => R
+): R[] {
+  if (!items) return [];
+  
+  return items
+    .filter(item => item !== null && item !== undefined && (typeof item !== 'object' || !('error' in item)))
+    .map(mapFn);
 }

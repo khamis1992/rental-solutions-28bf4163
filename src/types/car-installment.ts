@@ -27,10 +27,10 @@ export interface ContractSummary {
   overdueAmount: number;
   overdueCount: number;
   completionRate: number;
-  // Add these properties for backward compatibility
-  totalPortfolioValue?: number;
-  totalCollections?: number;
-  upcomingPayments?: number;
+  // Add these properties so they're available in both interfaces
+  totalPortfolioValue: number;
+  totalCollections: number;
+  upcomingPayments: number;
 }
 
 // Define the PaymentFilters interface
@@ -113,4 +113,12 @@ export interface TrafficFineCreatePayload {
   fine_location?: string;
   license_plate: string;
   payment_status?: string;
+  // Camel case properties for UI components
+  violationNumber?: string;
+  violationDate?: Date;
+  fineAmount?: number;
+  violationCharge?: string;
+  location?: string;
+  licensePlate?: string;
+  paymentStatus?: string;
 }

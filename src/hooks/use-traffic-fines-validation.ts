@@ -35,34 +35,35 @@ export const useTrafficFinesValidation = () => {
       }
       
       // Safely check if we have valid data
-      const validationResponse = { data: response.data, error: response.error };
-      if (hasData(validationResponse)) {
-        const validationRecord = validationResponse.data;
-        
-        // Update traffic fine with validation result
-        const validationData = {
-          validation_status: 'completed',
-          validation_date: validationRecord.validation_date,
-          validation_result: validationRecord.result,
-          last_check_date: new Date().toISOString()
-        };
-        
-        const updateResponse = await supabase
-          .from('traffic_fines')
-          .update(validationData)
-          .eq('id', fineId as any);
-          
-        if (updateResponse.error) {
-          console.error("Error updating traffic fine:", updateResponse.error);
-          toast.error("Failed to update traffic fine with validation result");
-          return false;
-        }
-        
-        toast.success("Traffic fine validated successfully");
-        return true;
+      if (!response.data) {
+        console.error("No validation record data returned");
+        toast.error("Failed to create validation record - no data returned");
+        return false;
       }
       
-      return false;
+      const validationRecord = response.data;
+      
+      // Update traffic fine with validation result
+      const validationData = {
+        validation_status: 'completed',
+        validation_date: validationRecord.validation_date,
+        validation_result: validationRecord.result,
+        last_check_date: new Date().toISOString()
+      };
+      
+      const updateResponse = await supabase
+        .from('traffic_fines')
+        .update(validationData)
+        .eq('id', fineId as any);
+        
+      if (updateResponse.error) {
+        console.error("Error updating traffic fine:", updateResponse.error);
+        toast.error("Failed to update traffic fine with validation result");
+        return false;
+      }
+      
+      toast.success("Traffic fine validated successfully");
+      return true;
     } catch (error) {
       console.error("Unexpected error in validateTrafficFine:", error);
       toast.error("An unexpected error occurred during validation");

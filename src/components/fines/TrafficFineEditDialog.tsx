@@ -1,380 +1,207 @@
 
-import React, { useState, useEffect } from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Calendar, Loader2 } from 'lucide-react';
-import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
-import { toast } from 'sonner';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { formatLicensePlate, isValidLicensePlate } from '@/utils/format-utils';
-import { 
-  DialogContent, 
-  DialogDescription,
+import React, { useEffect, useState } from 'react';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle 
+  DialogTitle
 } from '@/components/ui/dialog';
-
-// Define the schema for traffic fine entry form
-const trafficFineSchema = z.object({
-  violationNumber: z.string().min(1, 'Violation number is required'),
-  licensePlate: z.string()
-    .min(1, 'License plate is required')
-    .transform(val => formatLicensePlate(val)) // Standardize format during validation
-    .refine(val => isValidLicensePlate(val), { message: 'Invalid license plate format' }),
-  violationDate: z.date({
-    required_error: 'Violation date is required',
-  }),
-  fineAmount: z.coerce.number().min(0, 'Fine amount must be a positive number'),
-  violationCharge: z.string().optional(),
-  location: z.string().optional(),
-  paymentStatus: z.enum(['pending', 'paid', 'disputed']).default('pending'),
-});
-
-type TrafficFineFormData = z.infer<typeof trafficFineSchema>;
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { TrafficFine } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { CalendarIcon } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 interface TrafficFineEditDialogProps {
-  trafficFine: TrafficFine | null;
-  onSave: () => void;
-  onCancel: () => void;
+  fine: TrafficFine | null;
+  open: boolean;
+  onClose: () => void;
+  onSaved?: () => void;
 }
 
-const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({ 
-  trafficFine,
-  onSave,
-  onCancel
+export const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
+  fine,
+  open,
+  onClose,
+  onSaved
 }) => {
+  const [fineData, setFineData] = useState<Partial<TrafficFine> | null>(null);
+  const [violationDate, setViolationDate] = useState<Date | null>(null);
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  
   const { updateTrafficFine, validateLicensePlate } = useTrafficFines();
-  const [validatingPlate, setValidatingPlate] = useState(false);
-  const [plateValidationResult, setPlateValidationResult] = useState<{
-    isValid: boolean;
-    message: string;
-    vehicle?: any;
-  } | null>(null);
-
-  const form = useForm<TrafficFineFormData>({
-    resolver: zodResolver(trafficFineSchema),
-    defaultValues: {
-      violationNumber: trafficFine?.violation_number || '',
-      licensePlate: trafficFine?.license_plate || '',
-      violationDate: trafficFine?.violation_date ? new Date(trafficFine.violation_date) : new Date(),
-      fineAmount: trafficFine?.fine_amount || 0,
-      violationCharge: trafficFine?.violation_charge || '',
-      location: trafficFine?.fine_location || '',
-      paymentStatus: (trafficFine?.payment_status as 'pending' | 'paid' | 'disputed') || 'pending',
-    },
-  });
-
-  // Update form values when trafficFine changes
+  
   useEffect(() => {
-    if (trafficFine) {
-      form.reset({
-        violationNumber: trafficFine.violation_number || '',
-        licensePlate: trafficFine.license_plate || '',
-        violationDate: trafficFine.violation_date ? new Date(trafficFine.violation_date) : new Date(),
-        fineAmount: trafficFine.fine_amount || 0,
-        violationCharge: trafficFine.violation_charge || '',
-        location: trafficFine.fine_location || '',
-        paymentStatus: (trafficFine.payment_status as 'pending' | 'paid' | 'disputed') || 'pending',
-      });
-
-      // Validate the license plate automatically if it exists
-      if (trafficFine.license_plate) {
-        handleValidateLicensePlate(trafficFine.license_plate);
+    if (fine) {
+      setFineData({...fine});
+      
+      // Convert violation_date to Date object for the calendar
+      if (fine.violation_date) {
+        try {
+          const date = new Date(fine.violation_date);
+          setViolationDate(date);
+        } catch (error) {
+          console.error('Error parsing violation date:', error);
+          setViolationDate(null);
+        }
+      } else {
+        setViolationDate(null);
       }
     }
-  }, [trafficFine, form]);
-
-  const licensePlateValue = form.watch('licensePlate');
-
-  // Handle license plate validation
-  const handleValidateLicensePlate = async (plateValue?: string) => {
-    const plate = plateValue || form.getValues('licensePlate');
-    if (!plate) return;
-    
-    setValidatingPlate(true);
-    setPlateValidationResult(null);
-    
-    try {
-      const result = await validateLicensePlate(plate);
-      setPlateValidationResult(result);
-    } catch (error) {
-      console.error('Error validating license plate:', error);
-      toast.error('Failed to validate license plate');
-    } finally {
-      setValidatingPlate(false);
-    }
+  }, [fine]);
+  
+  const handleChange = (field: keyof TrafficFine, value: any) => {
+    setFineData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
-
-  // Handle license plate input blur
-  const handleLicensePlateBlur = () => {
-    if (licensePlateValue) {
-      handleValidateLicensePlate();
-    }
-  };
-
-  const onSubmit = async (data: TrafficFineFormData) => {
-    if (!trafficFine?.id) {
-      toast.error("No fine ID found for update");
+  
+  const handleSave = async () => {
+    if (!fineData || !fineData.id) {
+      toast.error('No fine data to save');
       return;
     }
-
+    
     try {
-      await updateTrafficFine.mutate({
-        id: trafficFine.id,
-        violation_number: data.violationNumber,
-        license_plate: data.licensePlate,
-        violation_date: data.violationDate.toISOString(), // Convert Date to string
-        fine_amount: data.fineAmount,
-        violation_charge: data.violationCharge || '',
-        fine_location: data.location || '',
-        payment_status: data.paymentStatus
-      }, {
-        onSuccess: () => {
-          toast.success("Traffic fine updated successfully");
-          setPlateValidationResult(null);
-          onSave();
+      // Validate license plate
+      if (fineData.license_plate) {
+        const validation = await validateLicensePlate(fineData.license_plate);
+        if (!validation.isValid) {
+          toast.warning(validation.message);
+          // Continue with saving despite warning
         }
-      });
+      }
+      
+      // Create a data object with the correct date format
+      const saveData: Partial<TrafficFine> & { id: string } = {
+        ...fineData,
+        id: fineData.id,
+        // Convert Date to string for the API
+        violation_date: violationDate ? violationDate.toISOString() : undefined,
+        violationDate: violationDate // Keep the Date object for the UI
+      };
+      
+      await updateTrafficFine.mutateAsync(saveData);
+      onClose();
+      if (onSaved) onSaved();
     } catch (error) {
-      toast.error("Failed to update traffic fine", {
-        description: error instanceof Error ? error.message : "An unknown error occurred"
-      });
+      console.error('Error saving traffic fine:', error);
+      toast.error('Failed to save traffic fine');
     }
   };
-
+  
+  if (!fineData) return null;
+  
   return (
-    <DialogContent className="sm:max-w-[600px]">
-      <DialogHeader>
-        <DialogTitle>Edit Traffic Fine</DialogTitle>
-        <DialogDescription>
-          Update the details of the traffic fine
-        </DialogDescription>
-      </DialogHeader>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Edit Traffic Fine</DialogTitle>
+        </DialogHeader>
+        
+        <div className="grid gap-4 py-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="violationNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Violation Number</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="e.g., TF-12345" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="licensePlate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>License Plate *</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        placeholder="e.g., ABC123" 
-                        onBlur={handleLicensePlateBlur}
-                      />
-                    </FormControl>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => handleValidateLicensePlate()}
-                      disabled={!licensePlateValue || validatingPlate}
-                    >
-                      {validatingPlate ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        'Validate'
-                      )}
-                    </Button>
-                  </div>
-                  {plateValidationResult && (
-                    <Alert 
-                      variant={plateValidationResult.isValid ? "default" : "destructive"} 
-                      className="mt-2"
-                    >
-                      <AlertTitle>
-                        {plateValidationResult.isValid ? 'Valid License Plate' : 'Invalid License Plate'}
-                      </AlertTitle>
-                      <AlertDescription>
-                        {plateValidationResult.message}
-                        {plateValidationResult.isValid && plateValidationResult.vehicle && (
-                          <div className="mt-1">
-                            Vehicle: {plateValidationResult.vehicle.make} {plateValidationResult.vehicle.model}
-                          </div>
-                        )}
-                      </AlertDescription>
-                    </Alert>
+            <div className="space-y-2">
+              <Label htmlFor="violationNumber">Violation #</Label>
+              <Input
+                id="violationNumber"
+                value={fineData.violation_number || ''}
+                onChange={(e) => handleChange('violation_number', e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="license_plate">License Plate</Label>
+              <Input
+                id="license_plate"
+                value={fineData.license_plate || ''}
+                onChange={(e) => handleChange('license_plate', e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="violation_date">Violation Date</Label>
+            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !violationDate && "text-muted-foreground"
                   )}
-                  <FormDescription>
-                    License plate is required to match the fine to a vehicle
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {violationDate ? format(violationDate, "PPP") : "Select date"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0">
+                <Calendar
+                  mode="single"
+                  selected={violationDate || undefined}
+                  onSelect={(date) => {
+                    setViolationDate(date);
+                    setIsCalendarOpen(false);
+                  }}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="fine_location">Location</Label>
+            <Input
+              id="fine_location"
+              value={fineData.fine_location || ''}
+              onChange={(e) => handleChange('fine_location', e.target.value)}
             />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="violationDate"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Violation Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={`w-full pl-3 text-left font-normal ${!field.value && "text-muted-foreground"}`}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <Calendar className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="fineAmount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fine Amount</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min="0" 
-                      step="0.01" 
-                      {...field} 
-                      placeholder="0.00" 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="violation_charge">Violation Charge</Label>
+            <Textarea
+              id="violation_charge"
+              value={fineData.violation_charge || ''}
+              onChange={(e) => handleChange('violation_charge', e.target.value)}
+              rows={3}
             />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="violationCharge"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Violation Charge</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="e.g., Speeding" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          
+          <div className="space-y-2">
+            <Label htmlFor="fine_amount">Fine Amount</Label>
+            <Input
+              id="fine_amount"
+              type="number"
+              value={fineData.fine_amount || 0}
+              onChange={(e) => handleChange('fine_amount', Number(e.target.value))}
             />
-
-            <FormField
-              control={form.control}
-              name="paymentStatus"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Payment Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="disputed">Disputed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="text-xs text-muted-foreground">
+              Current: {formatCurrency(fineData.fine_amount || 0)}
+            </div>
           </div>
-
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <FormControl>
-                  <Textarea {...field} placeholder="Enter violation location details" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-            <Button 
-              type="submit" 
-              className="ml-2"
-              disabled={updateTrafficFine.isPending}
-            >
-              {updateTrafficFine.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                'Update Traffic Fine'
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </DialogContent>
+        </div>
+        
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button type="button" variant="secondary">Cancel</Button>
+          </DialogClose>
+          <Button type="button" onClick={handleSave} disabled={updateTrafficFine.isPending}>
+            {updateTrafficFine.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
-
-export default TrafficFineEditDialog;

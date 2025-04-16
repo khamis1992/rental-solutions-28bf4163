@@ -1,8 +1,8 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { hasData, handleDatabaseResponse } from '@/utils/database-type-helpers';
+import { hasData, safeMapArray } from '@/utils/database-type-helpers';
 
 interface VehicleTypeDistribution {
   type: string;
@@ -33,32 +33,24 @@ export const useFleetReport = () => {
         throw new Error(error.message);
       }
 
-      // Cast the data to Vehicle[] and ensure it has all required properties
-      return (data || []).map(vehicle => {
-        // Only create mapped object from valid vehicle data
-        if (vehicle && typeof vehicle === 'object' && !('error' in vehicle)) {
-          return {
-            id: vehicle.id || '',
-            make: vehicle.make || '',
-            model: vehicle.model || '',
-            license_plate: vehicle.license_plate || '',
-            year: vehicle.year || 0,
-            status: vehicle.status || 'available',
-            rent_amount: vehicle.rent_amount || 0,
-            dailyRate: vehicle.rent_amount || 0, // Map to dailyRate for compatibility
-            currentCustomer: '', // Default value for compatibility
-            ...vehicle
-          };
-        }
-        // Return a minimal valid Vehicle object if data is invalid
+      // Map data to Vehicle[] safely, filtering out null items
+      return safeMapArray(data, vehicle => {
+        if (!vehicle) return null;
+        
         return {
-          id: '',
-          make: '',
-          model: '',
-          license_plate: '',
-          status: 'available' as VehicleStatus
-        };
-      }) as Vehicle[];
+          id: vehicle.id || '',
+          make: vehicle.make || '',
+          model: vehicle.model || '',
+          license_plate: vehicle.license_plate || '',
+          year: vehicle.year || 0,
+          status: vehicle.status || 'available',
+          rent_amount: vehicle.rent_amount || 0,
+          dailyRate: vehicle.rent_amount || 0, // Map to dailyRate for compatibility
+          currentCustomer: '', // Default value for compatibility
+          // Safely spread remaining properties
+          ...(vehicle as object)
+        } as Vehicle;
+      }).filter(Boolean) as Vehicle[];
     }
   });
 
@@ -68,14 +60,14 @@ export const useFleetReport = () => {
 
     vehicles.forEach((vehicle) => {
       // Safely access vehicleType using optional chaining
-      const type = vehicle.vehicleType?.name || 'Unknown';
+      const type = vehicle?.vehicleType?.name || 'Unknown';
       
       if (!distribution[type]) {
         distribution[type] = { count: 0, totalRate: 0 };
       }
       
       distribution[type].count += 1;
-      distribution[type].totalRate += vehicle.rent_amount || 0;
+      distribution[type].totalRate += vehicle?.rent_amount || 0;
     });
 
     return Object.entries(distribution).map(([type, { count, totalRate }]) => ({
@@ -87,7 +79,7 @@ export const useFleetReport = () => {
 
   // Get active rentals count
   const getActiveRentals = () => {
-    return vehicles.filter(v => v.status === 'rented').length;
+    return vehicles.filter(v => v?.status === 'rented').length;
   };
 
   // Fetch rental information
@@ -108,48 +100,45 @@ export const useFleetReport = () => {
               nationality
             )
           `)
-          .eq('status', 'active');
+          .eq('status', 'active' as any);
 
         if (error) {
           console.error('Error fetching rentals:', error);
           return [];
         }
 
-        return (data || []).map(lease => {
-          // Safe type checking for each property
-          if (lease && typeof lease === 'object' && !('error' in lease)) {
-            // Safe access with null checks for all properties
-            const vehicleId = lease.vehicle_id;
-            const customerId = lease.customer_id;
-            const profiles = lease.profiles;
-            
-            // Safe access to profile data
-            let fullName = 'Unknown';
-            let email = '';
-            let phone = '';
-            
-            if (profiles) {
-              if (Array.isArray(profiles) && profiles.length > 0) {
-                fullName = profiles[0]?.full_name || 'Unknown';
-                email = profiles[0]?.email || '';
-                phone = profiles[0]?.phone_number || '';
-              } else if (typeof profiles === 'object') {
-                fullName = profiles.full_name || 'Unknown';
-                email = profiles.email || '';
-                phone = profiles.phone_number || '';
-              }
+        // Safe mapping with proper null checks
+        return safeMapArray(data, lease => {
+          // Handle potential null values safely
+          const vehicleId = lease?.vehicle_id;
+          const customerId = lease?.customer_id;
+          const profiles = lease?.profiles;
+          
+          // Safe access to profile data
+          let fullName = 'Unknown';
+          let email = '';
+          let phone = '';
+          
+          if (profiles) {
+            if (Array.isArray(profiles) && profiles.length > 0) {
+              fullName = profiles[0]?.full_name || 'Unknown';
+              email = profiles[0]?.email || '';
+              phone = profiles[0]?.phone_number || '';
+            } else if (typeof profiles === 'object') {
+              fullName = (profiles as any)?.full_name || 'Unknown';
+              email = (profiles as any)?.email || '';
+              phone = (profiles as any)?.phone_number || '';
             }
-            
-            return {
-              vehicleId,
-              customerId,
-              customerName: fullName,
-              customerEmail: email,
-              customerPhone: phone
-            };
           }
-          return null;
-        }).filter(Boolean);
+          
+          return {
+            vehicleId,
+            customerId,
+            customerName: fullName,
+            customerEmail: email,
+            customerPhone: phone
+          };
+        });
       } catch (err) {
         console.error("Error fetching rentals:", err);
         return [];
@@ -172,18 +161,11 @@ export const useFleetReport = () => {
           return [];
         }
 
-        return (data || []).map(item => {
-          if (item && typeof item === 'object' && !('error' in item)) {
-            return {
-              id: item.id || '',
-              cost: item.cost || 0,
-              vehicleId: item.vehicle_id || ''
-            };
-          }
+        return safeMapArray(data, item => {
           return {
-            id: '',
-            cost: 0,
-            vehicleId: ''
+            id: item?.id || '',
+            cost: item?.cost || 0,
+            vehicleId: item?.vehicle_id || ''
           };
         });
       } catch (err) {
@@ -197,10 +179,10 @@ export const useFleetReport = () => {
   const fleetStats: FleetStats = {
     totalVehicles: vehicles.length,
     activeVehicles: getActiveRentals(),
-    rentalRate: vehicles.reduce((sum, v) => sum + (v.rent_amount || 0), 0) / (vehicles.length || 1),
-    maintenanceRequired: vehicles.filter(v => v.status === 'maintenance').length,
+    rentalRate: vehicles.reduce((sum, v) => sum + (v?.rent_amount || 0), 0) / (vehicles.length || 1),
+    maintenanceRequired: vehicles.filter(v => v?.status === 'maintenance').length,
     activeRentals: getActiveRentals(),
-    averageDailyRate: vehicles.reduce((sum, v) => sum + (v.rent_amount || 0), 0) / (vehicles.length || 1)
+    averageDailyRate: vehicles.reduce((sum, v) => sum + (v?.rent_amount || 0), 0) / (vehicles.length || 1)
   };
 
   // Calculate vehicle type distribution
