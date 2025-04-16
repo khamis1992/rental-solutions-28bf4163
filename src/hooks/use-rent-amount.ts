@@ -40,27 +40,24 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (!hasData({ data: agreementData, error: null }) || !agreementData.vehicle_id) {
-          setIsLoading(false);
-          return;
-        }
+        if (hasData({ data: agreementData, error: null }) && agreementData.vehicle_id) {
+          // Fetch the vehicle to get rent_amount
+          const { data: vehicleData, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('rent_amount')
+            .eq('id', agreementData.vehicle_id as any)
+            .single();
 
-        // Fetch the vehicle to get rent_amount
-        const { data: vehicleData, error: vehicleError } = await supabase
-          .from('vehicles')
-          .select('rent_amount')
-          .eq('id', agreementData.vehicle_id as any)
-          .single();
+          if (vehicleError) {
+            console.error("Error fetching vehicle rent amount:", vehicleError);
+            setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
+            setIsLoading(false);
+            return;
+          }
 
-        if (vehicleError) {
-          console.error("Error fetching vehicle rent amount:", vehicleError);
-          setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
-          setIsLoading(false);
-          return;
-        }
-
-        if (hasData({ data: vehicleData, error: null }) && vehicleData.rent_amount) {
-          setRentAmount(vehicleData.rent_amount);
+          if (hasData({ data: vehicleData, error: null }) && vehicleData.rent_amount) {
+            setRentAmount(vehicleData.rent_amount);
+          }
         }
       } catch (err) {
         console.error("Unexpected error in fetchRentAmount:", err);

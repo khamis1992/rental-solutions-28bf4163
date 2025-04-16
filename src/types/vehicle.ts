@@ -1,4 +1,14 @@
 
+export type VehicleStatus = 
+  'available' | 
+  'rented' | 
+  'reserved' | 
+  'maintenance' | 
+  'police_station' | 
+  'accident' | 
+  'stolen' | 
+  'retired';
+
 export interface Vehicle {
   id: string;
   make: string;
@@ -22,6 +32,8 @@ export interface Vehicle {
     description?: string;
   };
   rent_amount?: number;
+  dailyRate?: number; // Added property
+  currentCustomer?: string; // Added property
 }
 
 export interface VehicleListItem {

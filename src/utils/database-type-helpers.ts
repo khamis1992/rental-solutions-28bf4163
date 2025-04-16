@@ -1,4 +1,3 @@
-
 /**
  * Helper functions to safely cast database IDs and column values
  * for type safety with the Supabase client
@@ -88,9 +87,9 @@ export const getPropertySafely = <T extends object, K extends keyof T>(
  * Type guard to check if a response has data
  */
 export function hasData<T>(
-  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | { data: T; error: null }
+  response: { data: T | null; error: any } | null | undefined
 ): response is { data: NonNullable<T>; error: null } {
-  return !response.error && response.data !== null;
+  return !!response && !response.error && response.data !== null && response.data !== undefined;
 }
 
 /**

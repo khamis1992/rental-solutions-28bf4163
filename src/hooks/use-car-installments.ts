@@ -8,10 +8,10 @@ import {
   ContractSummary,
   PaymentFilters as PaymentFiltersType 
 } from '@/types/car-installment';
-import { castDbId } from '@/utils/db-id-helper';
+import { castDbId } from '@/utils/database-type-helpers';
 
 // Use types from car-installment.ts
-export type { CarInstallmentContract };
+export type { CarInstallmentContract, ContractSummary };
 export type PaymentFilters = PaymentFiltersType;
 
 export const useCarInstallmentContracts = () => {

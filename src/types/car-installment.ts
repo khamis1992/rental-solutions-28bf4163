@@ -28,6 +28,8 @@ export interface CarInstallmentPayment {
   payment_notes?: string;
   days_overdue: number;
   reconciliation_status?: string;
+  paid_amount?: number; // Added this property
+  remaining_amount?: number; // Added this property
 }
 
 export interface ContractFilters {
@@ -36,4 +38,20 @@ export interface ContractFilters {
   model_year?: number;
   status?: string;
   search?: string;
+}
+
+// Add missing types used in component imports
+export interface ContractSummary {
+  totalContracts: number;
+  totalPortfolioValue: number;
+  totalCollections: number;
+  upcomingPayments: number;
+}
+
+export type InstallmentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled';
+
+export interface PaymentFilters {
+  status?: InstallmentStatus | 'all';
+  dateFrom?: string;
+  dateTo?: string;
 }
