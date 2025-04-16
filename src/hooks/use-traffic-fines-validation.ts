@@ -34,10 +34,11 @@ export const useTrafficFinesValidation = () => {
         return false;
       }
       
-      const validationRecord = response.data;
-      
-      // Update traffic fine with validation result
-      if (validationRecord) {
+      // Check if we have valid data
+      if (hasData(response)) {
+        const validationRecord = response.data;
+        
+        // Update traffic fine with validation result
         const validationData = {
           validation_status: 'completed',
           validation_date: validationRecord.validation_date,

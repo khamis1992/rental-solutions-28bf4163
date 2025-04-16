@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { hasData } from '@/utils/database-type-helpers';
+import { hasData, handleDatabaseResponse } from '@/utils/database-type-helpers';
 
 interface VehicleTypeDistribution {
   type: string;
@@ -14,6 +14,9 @@ interface FleetStats {
   totalVehicles: number;
   activeVehicles: number;
   rentalRate: number;
+  maintenanceRequired?: number; // Added for compatibility
+  activeRentals?: number; // Added for compatibility
+  averageDailyRate?: number; // Added for compatibility
 }
 
 export const useFleetReport = () => {
@@ -30,7 +33,19 @@ export const useFleetReport = () => {
         throw new Error(error.message);
       }
 
-      return data as Vehicle[];
+      // Cast the data to Vehicle[] and ensure it has all required properties
+      return (data || []).map(vehicle => ({
+        id: vehicle.id,
+        make: vehicle.make,
+        model: vehicle.model,
+        license_plate: vehicle.license_plate,
+        year: vehicle.year,
+        status: vehicle.status,
+        rent_amount: vehicle.rent_amount,
+        dailyRate: vehicle.rent_amount, // Map to dailyRate for compatibility
+        currentCustomer: '', // Default value for compatibility
+        ...vehicle
+      })) as Vehicle[];
     }
   });
 
@@ -39,6 +54,7 @@ export const useFleetReport = () => {
     const distribution: Record<string, { count: number; totalRate: number }> = {};
 
     vehicles.forEach((vehicle) => {
+      // Safely access vehicleType using optional chaining
       const type = vehicle.vehicleType?.name || 'Unknown';
       
       if (!distribution[type]) {
@@ -78,7 +94,7 @@ export const useFleetReport = () => {
             nationality
           )
         `)
-        .eq('status', 'active');
+        .eq('status', 'active' as any);
 
       if (error) {
         console.error('Error fetching rentals:', error);
@@ -87,24 +103,32 @@ export const useFleetReport = () => {
 
       return data.map(lease => {
         if (hasData({ data: lease, error: null })) {
+          // Type-safe access with null checks
+          const profiles = lease.profiles;
+          const fullName = Array.isArray(profiles) && profiles.length > 0 
+            ? profiles[0]?.full_name 
+            : typeof profiles === 'object' && profiles 
+              ? profiles.full_name 
+              : 'Unknown';
+          
+          const email = Array.isArray(profiles) && profiles.length > 0 
+            ? profiles[0]?.email 
+            : typeof profiles === 'object' && profiles 
+              ? profiles.email 
+              : '';
+          
+          const phone = Array.isArray(profiles) && profiles.length > 0 
+            ? profiles[0]?.phone_number 
+            : typeof profiles === 'object' && profiles 
+              ? profiles.phone_number 
+              : '';
+          
           return {
             vehicleId: lease.vehicle_id,
             customerId: lease.customer_id,
-            customerName: Array.isArray(lease.profiles) && lease.profiles.length > 0 
-              ? lease.profiles[0].full_name 
-              : typeof lease.profiles === 'object' && lease.profiles 
-                ? lease.profiles.full_name 
-                : 'Unknown',
-            customerEmail: Array.isArray(lease.profiles) && lease.profiles.length > 0 
-              ? lease.profiles[0].email 
-              : typeof lease.profiles === 'object' && lease.profiles 
-                ? lease.profiles.email 
-                : '',
-            customerPhone: Array.isArray(lease.profiles) && lease.profiles.length > 0 
-              ? lease.profiles[0].phone_number 
-              : typeof lease.profiles === 'object' && lease.profiles 
-                ? lease.profiles.phone_number 
-                : ''
+            customerName: fullName,
+            customerEmail: email,
+            customerPhone: phone
           };
         }
         return null;
@@ -138,7 +162,10 @@ export const useFleetReport = () => {
   const fleetStats: FleetStats = {
     totalVehicles: vehicles.length,
     activeVehicles: getActiveRentals(),
-    rentalRate: vehicles.reduce((sum, v) => sum + (v.rent_amount || 0), 0) / (vehicles.length || 1)
+    rentalRate: vehicles.reduce((sum, v) => sum + (v.rent_amount || 0), 0) / (vehicles.length || 1),
+    maintenanceRequired: vehicles.filter(v => v.status === 'maintenance').length,
+    activeRentals: getActiveRentals(),
+    averageDailyRate: vehicles.reduce((sum, v) => sum + (v.rent_amount || 0), 0) / (vehicles.length || 1)
   };
 
   // Calculate vehicle type distribution

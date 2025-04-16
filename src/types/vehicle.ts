@@ -32,8 +32,8 @@ export interface Vehicle {
     description?: string;
   };
   rent_amount?: number;
-  dailyRate?: number; // Added property
-  currentCustomer?: string; // Added property
+  dailyRate?: number; // For compatibility
+  currentCustomer?: string; // For compatibility
 }
 
 export interface VehicleListItem {

@@ -86,6 +86,7 @@ export const getPropertySafely = <T extends object, K extends keyof T>(
 
 /**
  * Type guard to check if a response has data
+ * Enhanced version that is more type-safe and handles potential errors
  */
 export function hasData<T>(
   response: { data: T | null; error: any } | null | undefined

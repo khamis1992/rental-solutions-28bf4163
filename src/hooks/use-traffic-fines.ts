@@ -34,6 +34,7 @@ export interface TrafficFine {
   customerId?: string;
   customerName?: string;
   customerPhone?: string;
+  leaseId?: string;
 }
 
 // Define and export TrafficFineCreatePayload
@@ -123,7 +124,7 @@ export const useTrafficFines = () => {
           console.error('Error fetching leases for traffic fines:', leasesError);
         } else if (hasData({ data: leases, error: null })) {
           // Create a lookup map for lease information
-          const leaseMap = {};
+          const leaseMap: Record<string, any> = {};
           leases.forEach(lease => {
             if (lease && lease.id) {
               leaseMap[lease.id] = {
@@ -288,13 +289,13 @@ export const useTrafficFines = () => {
       
       // Convert camelCase to snake_case for database
       const dbData = {
-        violation_number: updateData.violationNumber,
-        license_plate: updateData.licensePlate,
-        violation_date: updateData.violationDate,
-        fine_amount: updateData.fineAmount,
-        violation_charge: updateData.violationCharge,
-        fine_location: updateData.location,
-        payment_status: updateData.paymentStatus
+        violation_number: updateData.violation_number || updateData.violationNumber,
+        license_plate: updateData.license_plate || updateData.licensePlate,
+        violation_date: updateData.violation_date || updateData.violationDate,
+        fine_amount: updateData.fine_amount || updateData.fineAmount,
+        violation_charge: updateData.violation_charge || updateData.violationCharge,
+        fine_location: updateData.fine_location || updateData.location,
+        payment_status: updateData.payment_status || updateData.paymentStatus
       };
       
       const { data, error } = await supabase

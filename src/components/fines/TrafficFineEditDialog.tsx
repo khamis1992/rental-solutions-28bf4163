@@ -72,13 +72,13 @@ const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
   const form = useForm<TrafficFineFormData>({
     resolver: zodResolver(trafficFineSchema),
     defaultValues: {
-      violationNumber: trafficFine?.violationNumber || '',
-      licensePlate: trafficFine?.licensePlate || '',
-      violationDate: trafficFine?.violationDate ? new Date(trafficFine.violationDate) : new Date(),
-      fineAmount: trafficFine?.fineAmount || 0,
-      violationCharge: trafficFine?.violationCharge || '',
-      location: trafficFine?.location || '',
-      paymentStatus: (trafficFine?.paymentStatus as 'pending' | 'paid' | 'disputed') || 'pending',
+      violationNumber: trafficFine?.violation_number || '',
+      licensePlate: trafficFine?.license_plate || '',
+      violationDate: trafficFine?.violation_date ? new Date(trafficFine.violation_date) : new Date(),
+      fineAmount: trafficFine?.fine_amount || 0,
+      violationCharge: trafficFine?.violation_charge || '',
+      location: trafficFine?.fine_location || '',
+      paymentStatus: (trafficFine?.payment_status as 'pending' | 'paid' | 'disputed') || 'pending',
     },
   });
 
@@ -86,18 +86,18 @@ const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
   useEffect(() => {
     if (trafficFine) {
       form.reset({
-        violationNumber: trafficFine.violationNumber || '',
-        licensePlate: trafficFine.licensePlate || '',
-        violationDate: trafficFine.violationDate ? new Date(trafficFine.violationDate) : new Date(),
-        fineAmount: trafficFine.fineAmount || 0,
-        violationCharge: trafficFine.violationCharge || '',
-        location: trafficFine.location || '',
-        paymentStatus: (trafficFine.paymentStatus as 'pending' | 'paid' | 'disputed') || 'pending',
+        violationNumber: trafficFine.violation_number || '',
+        licensePlate: trafficFine.license_plate || '',
+        violationDate: trafficFine.violation_date ? new Date(trafficFine.violation_date) : new Date(),
+        fineAmount: trafficFine.fine_amount || 0,
+        violationCharge: trafficFine.violation_charge || '',
+        location: trafficFine.fine_location || '',
+        paymentStatus: (trafficFine.payment_status as 'pending' | 'paid' | 'disputed') || 'pending',
       });
 
       // Validate the license plate automatically if it exists
-      if (trafficFine.licensePlate) {
-        handleValidateLicensePlate(trafficFine.licensePlate);
+      if (trafficFine.license_plate) {
+        handleValidateLicensePlate(trafficFine.license_plate);
       }
     }
   }, [trafficFine, form]);
@@ -139,13 +139,13 @@ const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
     try {
       await updateTrafficFine.mutate({
         id: trafficFine.id,
-        violationNumber: data.violationNumber,
-        licensePlate: data.licensePlate,
-        violationDate: data.violationDate,
-        fineAmount: data.fineAmount,
-        violationCharge: data.violationCharge || '',
-        location: data.location || '',
-        paymentStatus: data.paymentStatus
+        violation_number: data.violationNumber,
+        license_plate: data.licensePlate,
+        violation_date: data.violationDate.toISOString(), // Convert Date to string
+        fine_amount: data.fineAmount,
+        violation_charge: data.violationCharge || '',
+        fine_location: data.location || '',
+        payment_status: data.paymentStatus
       }, {
         onSuccess: () => {
           toast.success("Traffic fine updated successfully");
