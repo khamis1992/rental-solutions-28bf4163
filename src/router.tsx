@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
@@ -21,6 +22,7 @@ import { useIsMobile } from "./hooks/use-mobile";
 import { MobileDashboard } from "./components/mobile/MobileDashboard";
 import { VehicleInspection } from "./components/mobile/VehicleInspection";
 import NewLegalCasePage from "./pages/NewLegalCasePage";
+import Legal from "./pages/Legal";
 
 const router = createBrowserRouter([
   {
@@ -94,6 +96,10 @@ const router = createBrowserRouter([
       {
         path: '/settings',
         element: <Settings />,
+      },
+      {
+        path: '/legal',
+        element: <Legal />,
       },
       {
         path: "/legal/cases/new",
