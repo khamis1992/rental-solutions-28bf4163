@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Camera, Upload, RefreshCw } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { Client } from '@/lib/supabase';
 
 interface ReceiptScannerProps {
   onScanComplete: (data: {
@@ -31,7 +31,7 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onScanComplete }) => {
       // Upload to storage
       const timestamp = Date.now();
       const filename = `receipts/${timestamp}-${file.name}`;
-      const { data, error } = await supabase.storage
+      const { data, error } = await Client.storage
         .from('receipts')
         .upload(filename, file);
 

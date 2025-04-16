@@ -1,25 +1,9 @@
+
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
-import { hasData, asLeaseId } from '@/utils/database-type-helpers';
-
-export interface Payment {
-  id: string;
-  lease_id: string;
-  amount: number;
-  amount_paid: number;
-  balance: number;
-  payment_date: string | null;
-  due_date: string | null;
-  status: string;
-  payment_method: string;
-  description?: string;
-  type?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  original_due_date?: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import { hasData } from '@/utils/supabase-type-helpers';
+import { Payment } from '@/components/agreements/PaymentHistory.types';
+import { asLeaseIdColumn, asPaymentId } from '@/utils/database-type-helpers';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
@@ -30,7 +14,7 @@ export const usePayments = (agreementId?: string) => {
       const response = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', agreementId);
+        .eq('lease_id', asLeaseIdColumn(agreementId));
         
       if (!hasData(response)) {
         console.error("Error fetching payments:", response.error);
@@ -44,6 +28,7 @@ export const usePayments = (agreementId?: string) => {
     }
   );
 
+  // Ensure we always have an array of payments, even if data is null or undefined
   const payments: Payment[] = Array.isArray(data) ? data : [];
 
   const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
@@ -65,7 +50,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .update(paymentData)
-      .eq('id', id)
+      .eq('id', asPaymentId(id))
       .select();
 
     if (!hasData(response)) {
@@ -79,7 +64,7 @@ export const usePayments = (agreementId?: string) => {
     const response = await supabase
       .from('unified_payments')
       .delete()
-      .eq('id', paymentId);
+      .eq('id', asPaymentId(paymentId));
 
     if (response.error) {
       console.error("Error deleting payment:", response.error);
@@ -88,6 +73,7 @@ export const usePayments = (agreementId?: string) => {
     return { success: true };
   });
 
+  // Add a function to fetch payments that uses refetch
   const fetchPayments = () => {
     return refetch();
   };

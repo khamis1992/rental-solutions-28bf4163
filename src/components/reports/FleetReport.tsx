@@ -56,31 +56,31 @@ const FleetReport = () => {
         <StatCard 
           title="Total Vehicles" 
           value={fleetStats.totalVehicles.toString()} 
-          trend={5} 
+          trend={5} // This would come from comparing with previous period
           trendLabel="vs last month"
           icon={Car}
           iconColor="text-blue-500"
         />
         <StatCard 
           title="Active Rentals" 
-          value={(fleetStats.activeVehicles || 0).toString()} 
-          trend={12} 
+          value={fleetStats.activeRentals.toString()} 
+          trend={12} // This would come from comparing with previous period
           trendLabel="vs last month"
           icon={TrendingUp}
           iconColor="text-green-500"
         />
         <StatCard 
           title="Average Daily Rate" 
-          value={formatCurrency(fleetStats.rentalRate || 0)} 
-          trend={3} 
+          value={formatCurrency(fleetStats.averageDailyRate)} 
+          trend={3} // This would come from comparing with previous period
           trendLabel="vs last month"
           icon={CircleDollarSign}
           iconColor="text-indigo-500"
         />
         <StatCard 
           title="Maintenance Required" 
-          value={(fleetStats.totalVehicles - fleetStats.activeVehicles).toString()} 
-          trend={-2} 
+          value={fleetStats.maintenanceRequired.toString()} 
+          trend={-2} // This would come from comparing with previous period
           trendLabel="vs last month"
           icon={AlertTriangle}
           iconColor="text-amber-500"
@@ -117,7 +117,7 @@ const FleetReport = () => {
                         <span className="text-muted-foreground italic">Not assigned</span>
                       }
                     </TableCell>
-                    <TableCell className="text-right">{formatCurrency(vehicle.rent_amount || 0)}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(vehicle.dailyRate || 0)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -136,7 +136,7 @@ const FleetReport = () => {
           <CardTitle>Fleet Performance by Vehicle Type</CardTitle>
         </CardHeader>
         <CardContent>
-          {vehiclesByType && vehiclesByType.length > 0 ? (
+          {vehiclesByType.length > 0 ? (
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart

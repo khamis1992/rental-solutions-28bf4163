@@ -10,12 +10,10 @@ import { useAgreements } from '@/hooks/use-agreements';
 import { checkEdgeFunctionAvailability } from '@/utils/service-availability';
 import { toast } from 'sonner';
 import { runPaymentScheduleMaintenanceJob } from '@/lib/supabase';
-import Header from '@/components/layout/Header';
 
 const Agreements = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isEdgeFunctionAvailable, setIsEdgeFunctionAvailable] = useState(true);
-  const [customerNameSearch, setCustomerNameSearch] = useState('');
   const { setSearchParams } = useAgreements();
   
   React.useEffect(() => {
@@ -74,19 +72,10 @@ const Agreements = () => {
     });
   };
 
-  const handleSearch = (query: string) => {
-    setCustomerNameSearch(query);
-  };
-
   return (
     <PageContainer 
       title="Rental Agreements" 
       description="Manage customer rental agreements and contracts"
-      headerProps={{
-        onSearch: handleSearch,
-        searchQuery: customerNameSearch,
-        searchPlaceholder: "Search by customer name..."
-      }}
       actions={
         <Button 
           variant="outline" 
@@ -108,7 +97,7 @@ const Agreements = () => {
           <span className="ml-2">Loading agreements...</span>
         </div>
       }>
-        <AgreementList customerNameSearch={customerNameSearch} />
+        <AgreementList />
       </Suspense>
       
       <div className="mt-8">

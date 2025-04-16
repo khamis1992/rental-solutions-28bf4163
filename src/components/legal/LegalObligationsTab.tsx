@@ -1,5 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
+import { CustomerObligation } from './CustomerLegalObligations';
+import { fetchLegalObligations } from './LegalObligationsService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
-import { fetchLegalObligations, CustomerObligation } from './LegalObligationsService';
 
 interface LegalObligationsTabProps {
   customerId: string;

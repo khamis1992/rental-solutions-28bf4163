@@ -1,26 +1,28 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatCurrency } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Layers, DollarSign, CreditCard, Clock } from 'lucide-react';
 import { ContractSummary } from '@/types/car-installment';
+import { formatCurrency } from '@/lib/utils';
+import { StatCard } from '@/components/ui/stat-card';
 
 interface ContractSummaryCardsProps {
-  summary?: ContractSummary | null;
+  summary?: ContractSummary;
   isLoading: boolean;
 }
 
-export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({ summary, isLoading }) => {
+export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({ 
+  summary, 
+  isLoading 
+}) => {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <Card key={i}>
-            <CardHeader className="pb-2">
-              <Skeleton className="h-4 w-24" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-36" />
+        {[...Array(4)].map((_, index) => (
+          <Card key={index} className="animate-pulse">
+            <CardContent className="p-6">
+              <div className="h-4 bg-muted rounded w-1/3 mb-4"></div>
+              <div className="h-6 bg-muted rounded w-1/2"></div>
             </CardContent>
           </Card>
         ))}
@@ -28,56 +30,56 @@ export const ContractSummaryCards: React.FC<ContractSummaryCardsProps> = ({ summ
     );
   }
 
-  const data = summary || {
-    totalContracts: 0,
-    totalAmount: 0,
-    totalPaid: 0,
-    totalPending: 0,
-    overdueAmount: 0,
-    overdueCount: 0,
-    completionRate: 0,
-    totalPortfolioValue: 0,
-    totalCollections: 0,
-    upcomingPayments: 0
-  };
+  if (!summary) {
+    return (
+      <div className="rounded-md bg-muted p-4 text-center">
+        No contract data available
+      </div>
+    );
+  }
+
+  const summaryCards = [
+    {
+      title: 'Active Contracts',
+      value: summary.totalContracts,
+      icon: Layers,
+      iconClass: 'text-blue-500',
+      format: (value: number) => value.toString()
+    },
+    {
+      title: 'Portfolio Value',
+      value: summary.totalPortfolioValue,
+      icon: DollarSign,
+      iconClass: 'text-green-500',
+      format: formatCurrency
+    },
+    {
+      title: 'Total Collections',
+      value: summary.totalCollections,
+      icon: CreditCard,
+      iconClass: 'text-purple-500',
+      format: formatCurrency
+    },
+    {
+      title: 'Upcoming Payments',
+      value: summary.upcomingPayments,
+      icon: Clock,
+      iconClass: 'text-amber-500',
+      format: formatCurrency
+    }
+  ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Total Contracts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{data.totalContracts}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Total Portfolio Value</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.totalPortfolioValue || data.totalAmount)}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Total Collections</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.totalCollections || data.totalPaid)}</div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Upcoming Payments</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(data.upcomingPayments || data.overdueAmount)}</div>
-        </CardContent>
-      </Card>
+      {summaryCards.map((card, index) => (
+        <StatCard
+          key={index}
+          title={card.title}
+          value={card.format(card.value)}
+          icon={card.icon}
+          iconColor={card.iconClass}
+        />
+      ))}
     </div>
   );
 };
