@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,17 +69,33 @@ export const useTrafficFines = () => {
         }
 
         // Transform snake_case to camelCase for component compatibility
-        return data.filter(fine => fine !== null).map((fine: any) => ({
-          ...fine,
-          violationNumber: fine.violation_number,
-          violationDate: fine.violation_date,
-          fineAmount: fine.fine_amount,
-          violationCharge: fine.violation_charge,
-          location: fine.fine_location,
-          licensePlate: fine.license_plate,
-          paymentStatus: fine.payment_status,
-          leaseId: fine.lease_id
-        })) as TrafficFine[];
+        return data
+          .filter(fine => fine !== null)
+          .map((fine: any) => {
+            if (!fine) return null;
+            
+            // Create a new object instead of spreading
+            return {
+              id: fine.id,
+              violation_number: fine.violation_number,
+              violationNumber: fine.violation_number,
+              violation_date: fine.violation_date,
+              violationDate: fine.violation_date,
+              fine_amount: fine.fine_amount,
+              fineAmount: fine.fine_amount,
+              violation_charge: fine.violation_charge,
+              violationCharge: fine.violation_charge,
+              fine_location: fine.fine_location,
+              location: fine.fine_location,
+              license_plate: fine.license_plate,
+              licensePlate: fine.license_plate,
+              payment_status: fine.payment_status,
+              paymentStatus: fine.payment_status,
+              lease_id: fine.lease_id,
+              leaseId: fine.lease_id
+            } as TrafficFine;
+          })
+          .filter(Boolean) as TrafficFine[];
       } catch (error) {
         console.error('Error fetching traffic fines:', error);
         throw error;
@@ -106,8 +121,10 @@ export const useTrafficFines = () => {
       }
 
       // Get lease information for all fines that have a lease_id
-      const finesWithLeaseIds = fines.filter(fine => fine && fine.lease_id);
-      const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
+      const finesWithLeaseIds = fines.filter(fine => fine && 'lease_id' in fine && fine.lease_id);
+      const leaseIds = finesWithLeaseIds
+        .map(fine => 'lease_id' in fine ? fine.lease_id : null)
+        .filter(Boolean);
       
       if (leaseIds.length > 0) {
         // Use in to filter by multiple IDs
@@ -131,17 +148,17 @@ export const useTrafficFines = () => {
           // Create a lookup map for lease information
           const leaseMap: Record<string, any> = {};
           leases.forEach(lease => {
-            if (lease && lease.id) {
+            if (lease && 'id' in lease) {
               // Safely access profile data
-              const profileData = lease.profiles && typeof lease.profiles === 'object' 
+              const profileData = 'profiles' in lease && lease.profiles && typeof lease.profiles === 'object' 
                 ? lease.profiles 
                 : null;
               
               leaseMap[lease.id] = {
                 id: lease.id,
-                customerId: lease.customer_id,
-                customerName: profileData && profileData.full_name ? profileData.full_name : 'Unknown',
-                customerPhone: profileData && profileData.phone_number ? profileData.phone_number : 'Unknown'
+                customerId: 'customer_id' in lease ? lease.customer_id : '',
+                customerName: profileData && 'full_name' in profileData ? profileData.full_name : 'Unknown',
+                customerPhone: profileData && 'phone_number' in profileData ? profileData.phone_number : 'Unknown'
               };
             }
           });
@@ -150,32 +167,32 @@ export const useTrafficFines = () => {
           return fines
             .filter(fine => fine !== null)
             .map(fine => {
-              if (fine && fine.id) {
+              if (fine && 'id' in fine) {
                 const fineData = {
                   id: fine.id,
-                  violation_number: fine.violation_number,
-                  violationNumber: fine.violation_number,
-                  license_plate: fine.license_plate,
-                  licensePlate: fine.license_plate,
-                  violation_date: fine.violation_date,
-                  violationDate: fine.violation_date,
-                  fine_amount: fine.fine_amount,
-                  fineAmount: fine.fine_amount,
-                  violation_charge: fine.violation_charge,
-                  violationCharge: fine.violation_charge,
-                  validation_status: fine.validation_status,
-                  payment_status: fine.payment_status,
-                  paymentStatus: fine.payment_status,
-                  lease_id: fine.lease_id,
-                  leaseId: fine.lease_id,
-                  vehicle_id: fine.vehicle_id,
-                  vehicleId: fine.vehicle_id,
-                  fine_location: fine.fine_location,
-                  location: fine.fine_location
+                  violation_number: 'violation_number' in fine ? fine.violation_number : '',
+                  violationNumber: 'violation_number' in fine ? fine.violation_number : '',
+                  license_plate: 'license_plate' in fine ? fine.license_plate : '',
+                  licensePlate: 'license_plate' in fine ? fine.license_plate : '',
+                  violation_date: 'violation_date' in fine ? fine.violation_date : '',
+                  violationDate: 'violation_date' in fine ? fine.violation_date : '',
+                  fine_amount: 'fine_amount' in fine ? fine.fine_amount : 0,
+                  fineAmount: 'fine_amount' in fine ? fine.fine_amount : 0,
+                  violation_charge: 'violation_charge' in fine ? fine.violation_charge : '',
+                  violationCharge: 'violation_charge' in fine ? fine.violation_charge : '',
+                  validation_status: 'validation_status' in fine ? fine.validation_status : '',
+                  payment_status: 'payment_status' in fine ? fine.payment_status : '',
+                  paymentStatus: 'payment_status' in fine ? fine.payment_status : '',
+                  lease_id: 'lease_id' in fine ? fine.lease_id : '',
+                  leaseId: 'lease_id' in fine ? fine.lease_id : '',
+                  vehicle_id: 'vehicle_id' in fine ? fine.vehicle_id : '',
+                  vehicleId: 'vehicle_id' in fine ? fine.vehicle_id : '',
+                  fine_location: 'fine_location' in fine ? fine.fine_location : '',
+                  location: 'fine_location' in fine ? fine.fine_location : ''
                 };
                 
                 // Add lease information if available
-                if (fine.lease_id && leaseMap[fine.lease_id]) {
+                if ('lease_id' in fine && fine.lease_id && leaseMap[fine.lease_id]) {
                   return {
                     ...fineData,
                     customerName: leaseMap[fine.lease_id].customerName,
@@ -195,28 +212,33 @@ export const useTrafficFines = () => {
       // Return basic fine information if no leases are associated
       return fines
         .filter(fine => fine !== null)
-        .map(fine => ({
-          id: fine.id,
-          violation_number: fine.violation_number,
-          violationNumber: fine.violation_number,
-          license_plate: fine.license_plate,
-          licensePlate: fine.license_plate,
-          violation_date: fine.violation_date,
-          violationDate: fine.violation_date,
-          fine_amount: fine.fine_amount,
-          fineAmount: fine.fine_amount,
-          violation_charge: fine.violation_charge,
-          violationCharge: fine.violation_charge,
-          validation_status: fine.validation_status,
-          payment_status: fine.payment_status,
-          paymentStatus: fine.payment_status,
-          lease_id: fine.lease_id,
-          leaseId: fine.lease_id,
-          vehicle_id: fine.vehicle_id,
-          vehicleId: fine.vehicle_id,
-          fine_location: fine.fine_location,
-          location: fine.fine_location
-        })) as TrafficFine[];
+        .map(fine => {
+          if (!fine) return null;
+          
+          return {
+            id: 'id' in fine ? fine.id : '',
+            violation_number: 'violation_number' in fine ? fine.violation_number : '',
+            violationNumber: 'violation_number' in fine ? fine.violation_number : '',
+            license_plate: 'license_plate' in fine ? fine.license_plate : '',
+            licensePlate: 'license_plate' in fine ? fine.license_plate : '',
+            violation_date: 'violation_date' in fine ? fine.violation_date : '',
+            violationDate: 'violation_date' in fine ? fine.violation_date : '',
+            fine_amount: 'fine_amount' in fine ? fine.fine_amount : 0,
+            fineAmount: 'fine_amount' in fine ? fine.fine_amount : 0,
+            violation_charge: 'violation_charge' in fine ? fine.violation_charge : '',
+            violationCharge: 'violation_charge' in fine ? fine.violation_charge : '',
+            validation_status: 'validation_status' in fine ? fine.validation_status : '',
+            payment_status: 'payment_status' in fine ? fine.payment_status : '',
+            paymentStatus: 'payment_status' in fine ? fine.payment_status : '',
+            lease_id: 'lease_id' in fine ? fine.lease_id : '',
+            leaseId: 'lease_id' in fine ? fine.lease_id : '',
+            vehicle_id: 'vehicle_id' in fine ? fine.vehicle_id : '',
+            vehicleId: 'vehicle_id' in fine ? fine.vehicle_id : '',
+            fine_location: 'fine_location' in fine ? fine.fine_location : '',
+            location: 'fine_location' in fine ? fine.fine_location : ''
+          } as TrafficFine;
+        })
+        .filter(Boolean) as TrafficFine[];
     } catch (error) {
       console.error('Error in getTrafficFinesWithDetails:', error);
       return [];

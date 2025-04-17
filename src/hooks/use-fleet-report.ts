@@ -31,8 +31,13 @@ export const useFleetReport = () => {
           throw error;
         }
         
-        // Cast to unknown first, then to Vehicle[] to satisfy TypeScript
-        return ((data || []) as unknown) as Vehicle[];
+        // Return empty array if no data
+        if (!data) {
+          return [] as Vehicle[];
+        }
+        
+        // Cast to Vehicle[] to satisfy TypeScript
+        return (data.filter(item => item !== null) as unknown) as Vehicle[];
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         throw error;
@@ -85,7 +90,7 @@ export const useFleetReport = () => {
               nationality
             )
           `)
-          .eq('status', 'active' as any);
+          .eq('status', 'active');
 
         if (error) {
           console.error('Error fetching rentals:', error);
@@ -97,7 +102,7 @@ export const useFleetReport = () => {
         }
 
         // Type safe conversion of data, with null checks
-        return data.filter(item => item !== null).map(lease => {
+        return data.filter(lease => lease !== null).map(lease => {
           // Initialize with default values
           const result = {
             vehicleId: '',
@@ -109,20 +114,34 @@ export const useFleetReport = () => {
           
           // Only try to access properties if lease is not null
           if (lease) {
-            result.vehicleId = lease.vehicle_id || '';
-            result.customerId = lease.customer_id || '';
+            // Check for property existence before accessing
+            if ('vehicle_id' in lease) {
+              result.vehicleId = lease.vehicle_id || '';
+            }
+            
+            if ('customer_id' in lease) {
+              result.customerId = lease.customer_id || '';
+            }
             
             // Check if profiles exists and has the right type before accessing its properties
-            if (lease.profiles && typeof lease.profiles === 'object') {
+            if ('profiles' in lease && lease.profiles && typeof lease.profiles === 'object') {
               // Handle both array and object forms
               const profileData = Array.isArray(lease.profiles) && lease.profiles.length > 0
                 ? lease.profiles[0]
                 : lease.profiles;
                 
               if (profileData) {
-                result.customerName = profileData.full_name || 'Unknown';
-                result.customerEmail = profileData.email || '';
-                result.customerPhone = profileData.phone_number || '';
+                if ('full_name' in profileData) {
+                  result.customerName = profileData.full_name || 'Unknown';
+                }
+                
+                if ('email' in profileData) {
+                  result.customerEmail = profileData.email || '';
+                }
+                
+                if ('phone_number' in profileData) {
+                  result.customerPhone = profileData.phone_number || '';
+                }
               }
             }
           }
@@ -155,11 +174,32 @@ export const useFleetReport = () => {
           return [];
         }
 
-        return data.filter(item => item !== null).map(item => ({
-          id: item?.id || '',
-          cost: item?.cost || 0,
-          vehicleId: item?.vehicle_id || ''
-        }));
+        return data.filter(item => item !== null).map(item => {
+          // Initialize with default values
+          const result = {
+            id: '',
+            cost: 0,
+            vehicleId: ''
+          };
+          
+          // Only try to access properties if item is not null
+          if (item) {
+            // Check for property existence before accessing
+            if ('id' in item) {
+              result.id = item.id || '';
+            }
+            
+            if ('cost' in item) {
+              result.cost = item.cost || 0;
+            }
+            
+            if ('vehicle_id' in item) {
+              result.vehicleId = item.vehicle_id || '';
+            }
+          }
+          
+          return result;
+        });
       } catch (err) {
         console.error("Error fetching maintenance expenses:", err);
         return [];

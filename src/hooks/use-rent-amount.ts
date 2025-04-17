@@ -40,29 +40,38 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        // Check if data exists and has vehicle_id property before proceeding
-        if (agreementData && 'vehicle_id' in agreementData) {
-          const vehicleId = agreementData.vehicle_id;
+        // Check if data exists before proceeding
+        if (!agreementData) {
+          setError(new Error('Agreement data not found'));
+          setIsLoading(false);
+          return;
+        }
+
+        // Check for property existence before accessing
+        const vehicleId = 'vehicle_id' in agreementData ? agreementData.vehicle_id : null;
+        
+        if (!vehicleId) {
+          setError(new Error('Vehicle ID not found in agreement'));
+          setIsLoading(false);
+          return;
+        }
           
-          if (vehicleId) {
-            // Fetch the vehicle to get rent_amount
-            const { data: vehicleData, error: vehicleError } = await supabase
-              .from('vehicles')
-              .select('rent_amount')
-              .eq('id', vehicleId as any)
-              .single();
+        // Fetch the vehicle to get rent_amount
+        const { data: vehicleData, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('rent_amount')
+          .eq('id', vehicleId as any)
+          .single();
 
-            if (vehicleError) {
-              console.error("Error fetching vehicle rent amount:", vehicleError);
-              setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
-              setIsLoading(false);
-              return;
-            }
+        if (vehicleError) {
+          console.error("Error fetching vehicle rent amount:", vehicleError);
+          setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
+          setIsLoading(false);
+          return;
+        }
 
-            if (vehicleData && 'rent_amount' in vehicleData && vehicleData.rent_amount !== undefined) {
-              setRentAmount(vehicleData.rent_amount);
-            }
-          }
+        if (vehicleData && 'rent_amount' in vehicleData && vehicleData.rent_amount !== undefined) {
+          setRentAmount(vehicleData.rent_amount);
         }
       } catch (err) {
         console.error("Unexpected error in fetchRentAmount:", err);
