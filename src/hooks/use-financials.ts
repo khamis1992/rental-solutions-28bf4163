@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from './use-toast';
@@ -99,13 +100,13 @@ export function useFinancials() {
 
         if (installmentError) {
           console.error('Error fetching installment data:', installmentError);
-          throw installmentError;
+          // Don't throw error here, just log it and continue with empty array
         }
 
         const formattedTransactions: FinancialTransaction[] = [
-          ...(paymentData || []).map(payment => ({
+          ...((paymentData || []).map(payment => ({
             id: payment.id,
-            date: new Date(payment.payment_date),
+            date: new Date(payment.payment_date || getSystemDate()),
             amount: payment.amount || 0,
             description: payment.description || 'Rental Payment',
             type: payment.type?.toLowerCase() === 'expense' ? 'expense' : 'income' as TransactionType,
@@ -115,9 +116,9 @@ export function useFinancials() {
             paymentMethod: payment.payment_method || 'Unknown',
             vehicleId: payment.vehicle_id || '',
             customerId: payment.customer_id || ''
-          })),
+          }))),
           
-          ...(installmentData || []).map(installment => ({
+          ...((installmentData || []).map(installment => ({
             id: `inst-${installment.id}`,
             date: new Date(installment.payment_date || getSystemDate()),
             amount: installment.payment_amount || 0,
@@ -128,7 +129,7 @@ export function useFinancials() {
             reference: installment.reference || '',
             paymentMethod: installment.payment_method || 'Bank Transfer',
             vehicleId: installment.vehicle_id || ''
-          }))
+          })))
         ];
 
         let filtered = formattedTransactions;
@@ -769,6 +770,9 @@ export function useFinancials() {
     }
   );
 
+  // FIX: Add null check for expenses array when filtering for recurring expenses
+  const recurringExpenses = expenses ? expenses.filter(e => e.isRecurring === true) : [];
+
   return {
     transactions,
     isLoadingTransactions,
@@ -786,7 +790,7 @@ export function useFinancials() {
     addExpense: addExpenseMutation.mutate,
     updateExpense: updateExpenseMutation.mutate,
     deleteExpense: deleteExpenseMutation.mutate,
-    recurringExpenses: expenses.filter(e => e.isRecurring === true),
+    recurringExpenses,
     systemDate: getSystemDate()
   };
 }
