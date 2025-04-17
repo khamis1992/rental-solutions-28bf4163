@@ -21,6 +21,7 @@ export default {
 		extend: {
 			fontFamily: {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
+				cairo: ['Cairo', 'sans-serif'], // Add Cairo for Arabic text
 			},
 			colors: {
 				border: 'hsl(var(--border))',

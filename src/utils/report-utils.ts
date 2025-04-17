@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { hasRTLCharacters } from './rtl-utils';
 
 // Import jspdf-autotable package with proper error handling
 try {
@@ -152,15 +153,12 @@ const safelyAddImage = (doc: jsPDF, imgPath: string, x: number, y: number, w: nu
  */
 export const renderText = (doc: jsPDF, text: string, x: number, y: number, options: any = {}): void => {
   // Check if text contains RTL characters (Arabic, Hebrew, etc.)
-  const containsRTL = /[\u0591-\u07FF\uFB1D-\uFDFD\uFE70-\uFEFC]/.test(text);
+  const containsRTL = hasRTLCharacters(text);
   
   try {
     if (containsRTL) {
       // For RTL text
       const currentFontSize = doc.getFontSize();
-      const originalFont = doc.getFont();
-      
-      // For RTL text, we just use standard fonts with RTL support
       
       // Handle text alignment for RTL
       if (options.align === 'right' || !options.align) {

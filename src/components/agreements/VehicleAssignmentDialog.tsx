@@ -13,7 +13,8 @@ import {
   asLeaseId,
   asLeaseIdColumn,
   asStatusColumn,
-  hasData
+  hasData,
+  safelyGetRecordsFromResponse
 } from '@/utils/database-type-helpers';
 import { Payment } from "./PaymentHistory.types";
 
@@ -88,25 +89,36 @@ export function VehicleAssignmentDialog({
       }
       
       // Fetch pending payments
-      const paymentsResponse = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
-        .in('status', ['pending', 'overdue'] as PaymentStatus[]);
-        
-      if (hasData(paymentsResponse)) {
-        const formattedPayments = paymentsResponse.data.map(payment => ({
-          id: payment.id,
-          amount: payment.amount,
-          status: payment.status,
-          description: payment.description,
-          payment_date: payment.payment_date,
-          due_date: payment.due_date
-        }));
-        setPendingPayments(formattedPayments);
-      } else {
-        console.error("Error fetching pending payments:", paymentsResponse.error);
-      }
+      const fetchPayments = async () => {
+        try {
+          const pendingStatuses = ['pending', 'overdue', 'partially_paid'];
+          const { data, error } = await supabase
+            .from('unified_payments')
+            .select('*')
+            .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+            .in('status', asPaymentStatusColumn(pendingStatuses));
+          
+          if (error) throw error;
+          
+          // Safely access the data with proper typing
+          const payments = safelyGetRecordsFromResponse(data);
+          
+          // Now safely access properties through the typed array
+          setPendingPayments(payments.map(payment => ({
+            id: payment.id,
+            amount: payment.amount,
+            status: payment.status,
+            description: payment.description || '',
+            payment_date: payment.payment_date,
+            due_date: payment.due_date
+          })));
+        } catch (error) {
+          console.error("Error fetching payments:", error);
+          setPendingPayments([]);
+        }
+      };
+      
+      fetchPayments();
       
       // Fetch traffic fines
       const finesResponse = await supabase
