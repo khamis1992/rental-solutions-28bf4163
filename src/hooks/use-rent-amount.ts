@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
-import { hasData } from '@/utils/database-type-helpers';
+import { hasData, hasProperty } from '@/utils/database-type-helpers';
 
 export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
   const [rentAmount, setRentAmount] = useState<number | null>(null);
@@ -48,9 +48,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         }
 
         // Check for property existence before accessing
-        const vehicleId = 'vehicle_id' in agreementData ? agreementData.vehicle_id : null;
-        
-        if (!vehicleId) {
+        if (!hasProperty(agreementData, 'vehicle_id') || !agreementData.vehicle_id) {
           setError(new Error('Vehicle ID not found in agreement'));
           setIsLoading(false);
           return;
@@ -60,7 +58,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
         const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .select('rent_amount')
-          .eq('id', vehicleId as any)
+          .eq('id', agreementData.vehicle_id as any)
           .single();
 
         if (vehicleError) {
@@ -70,7 +68,7 @@ export const useRentAmount = (agreement: Agreement | null, agreementId: string |
           return;
         }
 
-        if (vehicleData && 'rent_amount' in vehicleData && vehicleData.rent_amount !== undefined) {
+        if (vehicleData && hasProperty(vehicleData, 'rent_amount') && vehicleData.rent_amount !== undefined) {
           setRentAmount(vehicleData.rent_amount);
         }
       } catch (err) {

@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { hasData } from '@/utils/database-type-helpers';
+import { hasData, hasProperty, castDatabaseObject } from '@/utils/database-type-helpers';
 
 interface VehicleTypeDistribution {
   type: string;
@@ -36,8 +36,8 @@ export const useFleetReport = () => {
           return [] as Vehicle[];
         }
         
-        // Cast to Vehicle[] to satisfy TypeScript
-        return (data.filter(item => item !== null) as unknown) as Vehicle[];
+        // Safely cast data to Vehicle[]
+        return (data.filter(item => item !== null) as any[]).map(item => castDatabaseObject<Vehicle>(item));
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         throw error;
@@ -90,7 +90,7 @@ export const useFleetReport = () => {
               nationality
             )
           `)
-          .eq('status', 'active');
+          .eq('status', 'active' as any);
 
         if (error) {
           console.error('Error fetching rentals:', error);
@@ -115,31 +115,31 @@ export const useFleetReport = () => {
           // Only try to access properties if lease is not null
           if (lease) {
             // Check for property existence before accessing
-            if ('vehicle_id' in lease) {
+            if (hasProperty(lease, 'vehicle_id')) {
               result.vehicleId = lease.vehicle_id || '';
             }
             
-            if ('customer_id' in lease) {
+            if (hasProperty(lease, 'customer_id')) {
               result.customerId = lease.customer_id || '';
             }
             
             // Check if profiles exists and has the right type before accessing its properties
-            if ('profiles' in lease && lease.profiles && typeof lease.profiles === 'object') {
+            if (hasProperty(lease, 'profiles') && lease.profiles && typeof lease.profiles === 'object') {
               // Handle both array and object forms
               const profileData = Array.isArray(lease.profiles) && lease.profiles.length > 0
                 ? lease.profiles[0]
                 : lease.profiles;
                 
               if (profileData) {
-                if ('full_name' in profileData) {
+                if (hasProperty(profileData, 'full_name')) {
                   result.customerName = profileData.full_name || 'Unknown';
                 }
                 
-                if ('email' in profileData) {
+                if (hasProperty(profileData, 'email')) {
                   result.customerEmail = profileData.email || '';
                 }
                 
-                if ('phone_number' in profileData) {
+                if (hasProperty(profileData, 'phone_number')) {
                   result.customerPhone = profileData.phone_number || '';
                 }
               }
@@ -185,15 +185,15 @@ export const useFleetReport = () => {
           // Only try to access properties if item is not null
           if (item) {
             // Check for property existence before accessing
-            if ('id' in item) {
+            if (hasProperty(item, 'id')) {
               result.id = item.id || '';
             }
             
-            if ('cost' in item) {
+            if (hasProperty(item, 'cost')) {
               result.cost = item.cost || 0;
             }
             
-            if ('vehicle_id' in item) {
+            if (hasProperty(item, 'vehicle_id')) {
               result.vehicleId = item.vehicle_id || '';
             }
           }
