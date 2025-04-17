@@ -13,6 +13,14 @@ export default defineConfig(({ mode }) => ({
   build: {
     cssCodeSplit: true,
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['react', 'react-dom', 'react-router-dom'],
+          'supabase': ['@supabase/supabase-js']
+        }
+      }
+    }
   },
   css: {
     devSourcemap: true,
@@ -24,13 +32,25 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Add Node.js polyfills
+      "stream": "stream-browserify",
+      "util": "util",
     },
     // Simplify the main fields to avoid dependency issues
-    mainFields: ['module', 'main'],
+    mainFields: ['browser', 'module', 'main'],
   },
   optimizeDeps: {
     include: ['jspdf', 'jspdf-autotable'],
     force: true, // Force re-optimization of dependencies
+    esbuildOptions: {
+      define: {
+        global: 'globalThis',
+      },
+    },
+  },
+  define: {
+    // Define global for the browser environment
+    global: 'globalThis',
   },
   // Add specific esbuild options to improve ESM handling
   esbuild: {

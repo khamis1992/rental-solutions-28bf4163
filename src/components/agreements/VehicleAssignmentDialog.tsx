@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -44,6 +43,8 @@ interface VehicleInfo {
   year?: number;
   color?: string;
 }
+
+type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled';
 
 export function VehicleAssignmentDialog({
   isOpen,
@@ -91,7 +92,7 @@ export function VehicleAssignmentDialog({
         .from('unified_payments')
         .select('*')
         .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
-        .in('status', ['pending', 'overdue']);
+        .in('status', ['pending', 'overdue'] as PaymentStatus[]);
         
       if (hasData(paymentsResponse)) {
         const formattedPayments = paymentsResponse.data.map(payment => ({
@@ -112,7 +113,7 @@ export function VehicleAssignmentDialog({
         .from('traffic_fines')
         .select('*')
         .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
-        .eq('payment_status', 'pending');
+        .eq('payment_status', 'pending' as TrafficFineStatusType);
         
       if (hasData(finesResponse)) {
         // Transform the data to ensure payment_status is a proper TrafficFineStatusType
@@ -159,11 +160,9 @@ export function VehicleAssignmentDialog({
     }
   };
 
-  // Check if we need acknowledgments for payments or fines
   const needsPaymentAcknowledgment = pendingPayments.length > 0;
   const needsFinesAcknowledgment = trafficFines.length > 0;
   
-  // Can proceed if no acknowledgments needed, or all are acknowledged
   const canProceed = (!needsPaymentAcknowledgment || acknowledgedPayments) && 
                     (!needsFinesAcknowledgment || acknowledgedFines);
 
@@ -221,7 +220,6 @@ export function VehicleAssignmentDialog({
           </div>
         ) : (
           <>
-            {/* Collapsible Section for Vehicle Information */}
             {vehicleInfo && (
               <Collapsible
                 open={isDetailsOpen}
@@ -269,7 +267,6 @@ export function VehicleAssignmentDialog({
               </Collapsible>
             )}
 
-            {/* Collapsible Section for Payment History */}
             {pendingPayments.length > 0 && (
               <Collapsible
                 open={isPaymentHistoryOpen}

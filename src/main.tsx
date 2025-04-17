@@ -1,8 +1,11 @@
 
-import { createRoot } from 'react-dom/client'
+// Import polyfills first
+import './polyfills';
+
+import { createRoot } from 'react-dom/client';
 import './styles/reset.css';  // Import reset CSS first
-import './index.css'
-import App from './App.tsx'
+import './index.css';
+import App from './App.tsx';
 
 // Ensure the DOM is ready before rendering
 document.addEventListener('DOMContentLoaded', () => {

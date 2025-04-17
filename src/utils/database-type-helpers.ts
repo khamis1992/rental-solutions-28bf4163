@@ -49,6 +49,9 @@ export function getEntityProperty<T extends keyof Database['public']['Tables'],
 /**
  * Type-safe function to cast IDs for table operations
  * This ensures ID columns match the required type in the database
+ * 
+ * The returned type is `any` specifically to work around TypeScript limitations
+ * with Supabase's strict typing system in queries.
  */
 export function asTableId(table: string, id: string): any {
   return id;
@@ -56,6 +59,7 @@ export function asTableId(table: string, id: string): any {
 
 /**
  * Helper functions for specific ID column types
+ * All return `any` type to ensure compatibility with Supabase query parameters
  */
 export function asAgreementIdColumn(id: string): any {
   return id;
@@ -120,4 +124,25 @@ export function asPaymentStatusColumn(status: string): any {
  */
 export function hasData(response: any): boolean {
   return response && !response.error && response.data !== null;
+}
+
+/**
+ * Helper to fix TypeScript issues with agreement_id and other column references
+ */
+export function asAgreementIdParam(id: string): any {
+  return id;
+}
+
+/**
+ * Helper specifically for agreement_id parameter in queries
+ */
+export function asAgreementIdFilterParam(id: string): any {
+  return id;
+}
+
+/**
+ * Helper for import_id parameter in queries
+ */
+export function asImportIdParam(id: string): any {
+  return id;
 }
