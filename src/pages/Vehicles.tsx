@@ -80,7 +80,7 @@ const Vehicles = () => {
       convertedFilters.location = newFilters.location;
     
     if (newFilters.year && newFilters.year !== 'all') 
-      convertedFilters.year = parseInt(newFilters.year);
+      convertedFilters.year = String(newFilters.year); // Convert to string to match the type
     
     // Handle the category to vehicle_type_id mapping
     if (newFilters.category && newFilters.category !== 'all') {
@@ -96,7 +96,7 @@ const Vehicles = () => {
   };
   
   return (
-    <PageContainer>
+    <PageContainer title="Vehicle Management">
       <div className="space-y-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <SectionHeader

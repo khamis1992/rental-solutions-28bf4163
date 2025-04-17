@@ -1,8 +1,7 @@
-
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 import {
   Form,
   FormControl,
@@ -12,8 +11,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -21,57 +18,84 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { DatePicker } from '@/components/ui/date-picker';
+import { useVehicles } from '@/hooks/use-vehicles';
 
-// Define the schema for the maintenance form
-const maintenanceSchema = z.object({
-  service_type: z.string().min(1, { message: "Service type is required" }),
-  description: z.string().optional(),
-  scheduled_date: z.string().min(1, { message: "Scheduled date is required" }),
-  status: z.string(),
-  cost: z.string().optional(),
-  notes: z.string().optional(),
-  vehicle_id: z.string().min(1, { message: "Vehicle is required" }),
-});
-
-// Define the props interface for the maintenance form component
 export interface MaintenanceFormProps {
-  onSubmit: (formData: any) => Promise<void>;
+  onSubmit: (formData: any) => void;
   isLoading?: boolean;
   initialData?: any;
   isEditMode?: boolean;
-  vehicles?: any[];
 }
+
+const maintenanceSchema = z.object({
+  vehicle_id: z.string().min(1, { message: "Vehicle is required" }),
+  service_date: z.date({
+    required_error: "Service date is required",
+  }),
+  service_type: z.string().min(1, { message: "Service type is required" }),
+  description: z.string().optional(),
+  cost: z.number().min(0, { message: "Cost must be a positive number" }).optional(),
+  odometer: z.number().min(0, { message: "Odometer reading must be a positive number" }).optional(),
+  performed_by: z.string().optional(),
+  notes: z.string().optional(),
+  status: z.string().default("scheduled"),
+});
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   onSubmit,
   isLoading = false,
   initialData,
-  isEditMode = false,
-  vehicles = []
+  isEditMode = false
 }) => {
-  // Set up form with zod resolver
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const { vehicles: allVehicles, isLoading: vehiclesLoading } = useVehicles();
+  
   const form = useForm({
     resolver: zodResolver(maintenanceSchema),
     defaultValues: initialData || {
+      vehicle_id: '',
+      service_date: new Date(),
       service_type: '',
       description: '',
-      scheduled_date: new Date().toISOString().substring(0, 10),
-      status: 'scheduled',
-      cost: '',
+      cost: 0,
+      odometer: 0,
+      performed_by: '',
       notes: '',
-      vehicle_id: '',
-    },
+      status: 'scheduled',
+    }
   });
 
-  const handleSubmit = (data: any) => {
-    // Parse the cost value as a number if provided
-    if (data.cost) {
-      data.cost = parseFloat(data.cost);
+  useEffect(() => {
+    if (allVehicles) {
+      setVehicles(allVehicles);
     }
-    
+  }, [allVehicles]);
+
+  const handleSubmit = (data: any) => {
     onSubmit(data);
   };
+
+  const serviceTypes = [
+    { id: 'oil_change', name: 'Oil Change' },
+    { id: 'tire_rotation', name: 'Tire Rotation' },
+    { id: 'brake_service', name: 'Brake Service' },
+    { id: 'engine_repair', name: 'Engine Repair' },
+    { id: 'transmission', name: 'Transmission Service' },
+    { id: 'inspection', name: 'General Inspection' },
+    { id: 'battery', name: 'Battery Replacement' },
+    { id: 'other', name: 'Other' },
+  ];
+
+  const statuses = [
+    { id: 'scheduled', name: 'Scheduled' },
+    { id: 'in_progress', name: 'In Progress' },
+    { id: 'completed', name: 'Completed' },
+    { id: 'cancelled', name: 'Cancelled' },
+  ];
 
   return (
     <Card>
@@ -79,7 +103,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Vehicle Selection Field */}
+              {/* Vehicle Selection */}
               <FormField
                 control={form.control}
                 name="vehicle_id"
@@ -89,6 +113,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <Select 
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
+                      disabled={vehiclesLoading}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -96,9 +121,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {vehicles.map(vehicle => (
+                        {vehicles.map((vehicle) => (
                           <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.make} {vehicle.model} - {vehicle.license_plate}
+                            {vehicle.make} {vehicle.model} ({vehicle.license_plate})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -107,8 +132,24 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   </FormItem>
                 )}
               />
-
-              {/* Service Type Field */}
+              
+              {/* Service Date */}
+              <FormField
+                control={form.control}
+                name="service_date"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Service Date</FormLabel>
+                    <DatePicker
+                      date={field.value}
+                      onSelect={field.onChange}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Service Type */}
               <FormField
                 control={form.control}
                 name="service_type"
@@ -125,35 +166,76 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="oil_change">Oil Change</SelectItem>
-                        <SelectItem value="tire_rotation">Tire Rotation</SelectItem>
-                        <SelectItem value="brake_service">Brake Service</SelectItem>
-                        <SelectItem value="engine_repair">Engine Repair</SelectItem>
-                        <SelectItem value="inspection">Inspection</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
+                        {serviceTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* Scheduled Date Field */}
+              
+              {/* Cost */}
               <FormField
                 control={form.control}
-                name="scheduled_date"
+                name="cost"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Scheduled Date</FormLabel>
+                    <FormLabel>Cost</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input 
+                        type="number" 
+                        placeholder="Enter cost" 
+                        {...field} 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* Status Field */}
+              
+              {/* Odometer */}
+              <FormField
+                control={form.control}
+                name="odometer"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Odometer Reading</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        placeholder="Enter odometer reading" 
+                        {...field} 
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Performed By */}
+              <FormField
+                control={form.control}
+                name="performed_by"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Performed By</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter technician or shop name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Status */}
               <FormField
                 control={form.control}
                 name="status"
@@ -170,34 +252,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="scheduled">Scheduled</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        {statuses.map((status) => (
+                          <SelectItem key={status.id} value={status.id}>
+                            {status.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              {/* Cost Field */}
-              <FormField
-                control={form.control}
-                name="cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cost</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="Enter cost" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
-
-            {/* Description Field */}
+            
+            {/* Description */}
             <FormField
               control={form.control}
               name="description"
@@ -206,7 +274,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter maintenance description" 
+                      placeholder="Enter service description" 
                       className="resize-none" 
                       {...field} 
                     />
@@ -215,8 +283,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </FormItem>
               )}
             />
-
-            {/* Notes Field */}
+            
+            {/* Notes */}
             <FormField
               control={form.control}
               name="notes"
@@ -234,10 +302,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </FormItem>
               )}
             />
-
+            
             <div className="flex justify-end gap-2">
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Saving...' : isEditMode ? 'Update Maintenance' : 'Schedule Maintenance'}
+                {isLoading ? 'Saving...' : isEditMode ? 'Update Maintenance' : 'Add Maintenance'}
               </Button>
             </div>
           </form>

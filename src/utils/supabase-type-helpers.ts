@@ -1,4 +1,3 @@
-
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
 /**
@@ -17,7 +16,7 @@ export function getResponseData<T>(response: PostgrestSingleResponse<T> | Postgr
  */
 export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: NonNullable<T>; error: null } {
+): response is PostgrestResponse<T> & { data: NonNullable<T>; error: null } {
   return !response.error && response.data !== null;
 }
 
@@ -29,7 +28,16 @@ export function handleSupabaseResponse<T>(response: PostgrestSingleResponse<T> |
     console.error('Error in Supabase response:', response.error);
     return null;
   }
-  return response.data || null;
+  
+  if (response.data) {
+    if (Array.isArray(response.data)) {
+      return response.data as unknown as T;
+    } else {
+      return response.data as T;
+    }
+  }
+  
+  return null;
 }
 
 /**

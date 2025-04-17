@@ -15,7 +15,11 @@ export function hasData<T>(
  */
 export function safelyExtractData<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
   if (hasData(response)) {
-    return response.data;
+    if (Array.isArray(response.data)) {
+      return response.data as unknown as T;
+    } else {
+      return response.data as T;
+    }
   }
   return null;
 }

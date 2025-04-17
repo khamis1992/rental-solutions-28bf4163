@@ -1,74 +1,36 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 export interface PageContainerProps {
   children: React.ReactNode;
-  title?: string; // Made title optional
+  title?: string;
   description?: string;
-  actions?: React.ReactNode;
   backLink?: string;
-  headerProps?: {
-    onSearch?: (query: string) => void;
-    searchQuery?: string;
-    searchPlaceholder?: string;
-  };
-  systemDate?: Date; // Added systemDate prop
+  headerProps?: any;
+  actions?: React.ReactNode;
+  systemDate?: Date;
 }
 
-const PageContainer: React.FC<PageContainerProps> = ({ 
-  children, 
-  title, 
-  description, 
-  actions,
+const PageContainer: React.FC<PageContainerProps> = ({
+  children,
+  title,
+  description,
   backLink,
   headerProps,
-  systemDate
+  actions,
+  systemDate,
 }) => {
+  // Set document title if provided
+  React.useEffect(() => {
+    if (title) {
+      document.title = `${title} | Fleet Management`;
+    }
+  }, [title]);
+
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
-      <div className="mb-8">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
-          <div className="mb-4 sm:mb-0">
-            {backLink && (
-              <Link to={backLink} className="flex items-center text-sm text-gray-500 mb-2 hover:text-gray-700">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                <span>Back</span>
-              </Link>
-            )}
-            {title && <h1 className="text-2xl font-semibold">{title}</h1>}
-            {description && <p className="text-gray-500 mt-1">{description}</p>}
-            {systemDate && <p className="text-sm text-gray-400 mt-1">Date: {systemDate.toLocaleDateString()}</p>}
-          </div>
-          {actions && (
-            <div className="flex flex-wrap gap-2 items-center">
-              {actions}
-            </div>
-          )}
-        </div>
-        
-        {/* Search Input */}
-        {headerProps?.onSearch && (
-          <div className="mt-4">
-            <div className="flex max-w-md">
-              <Input
-                placeholder={headerProps.searchPlaceholder || "Search..."}
-                value={headerProps.searchQuery || ""}
-                onChange={(e) => headerProps.onSearch && headerProps.onSearch(e.target.value)}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Main Content */}
-      <div className="space-y-6">
-        {children}
-      </div>
+      {/* Content */}
+      {children}
     </div>
   );
 };
