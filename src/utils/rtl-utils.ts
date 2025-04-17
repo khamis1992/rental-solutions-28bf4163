@@ -1,4 +1,6 @@
 
+import React from 'react';
+
 /**
  * Utility functions for handling RTL (Right-to-Left) text and Arabic language support
  */
@@ -51,12 +53,21 @@ export const formatBiDiText = (text: string, addContainer = false): JSX.Element 
   const fontClass = getFontClass(text);
   
   if (addContainer) {
-    return (
-      <div className={`bidi-container ${direction} ${fontClass}`}>
-        {text}
-      </div>
+    return React.createElement(
+      'div',
+      { 
+        className: `bidi-container ${direction} ${fontClass}`
+      },
+      text
     );
   }
   
-  return <span className={`${fontClass}`} style={{ direction }}>{text}</span>;
+  return React.createElement(
+    'span',
+    { 
+      className: `${fontClass}`,
+      style: { direction }
+    },
+    text
+  );
 };
