@@ -1,69 +1,37 @@
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Loader2, AlertTriangle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-type TrafficFine = {
-  id: string;
-  license_plate: string;
-  violation_date: string;
-  violation_number: string;
-  fine_amount: number;
-  payment_status: string;
-  payment_date: string | null;
-  fine_location?: string;
-  violation_charge?: string;
-};
+import { Badge } from '@/components/ui/badge';
 
 interface CustomerTrafficFinesProps {
   customerId: string;
 }
 
-export default function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
-  const [fines, setFines] = useState<TrafficFine[]>([]);
+const CustomerTrafficFines: React.FC<CustomerTrafficFinesProps> = ({ customerId }) => {
+  const [fines, setFines] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchFines = async () => {
-      setLoading(true);
-      setError(null);
+      if (!customerId) return;
       
+      setLoading(true);
       try {
-        // Get all leases for this customer
-        const { data: leases, error: leaseError } = await supabase
-          .from('leases')
-          .select('id')
-          .eq('customer_id', customerId);
-        
-        if (leaseError) throw leaseError;
-        
-        if (!leases || leases.length === 0) {
-          setFines([]);
-          return;
-        }
-        
-        // Get all traffic fines for these leases
-        const leaseIds = leases.map(lease => lease.id);
-        const { data: finesData, error: finesError } = await supabase
+        const { data, error } = await supabase
           .from('traffic_fines')
           .select('*')
-          .in('lease_id', leaseIds);
+          .eq('customer_id', customerId);
         
-        if (finesError) throw finesError;
-        
-        // Cast the response data to our TrafficFine type
-        setFines(finesData as unknown as TrafficFine[]);
+        if (error) throw error;
+        setFines(data as any[]);
       } catch (err) {
         console.error('Error fetching traffic fines:', err);
-        setError('Failed to load traffic fines');
-        toast.error('Failed to load traffic fines');
+        setError('Failed to load traffic fines data');
       } finally {
         setLoading(false);
       }
@@ -72,14 +40,18 @@ export default function CustomerTrafficFines({ customerId }: CustomerTrafficFine
     fetchFines();
   }, [customerId]);
 
-  const getTotalAmount = () => {
-    return fines.reduce((total, fine) => total + fine.fine_amount, 0);
-  };
-
-  const getPaidAmount = () => {
-    return fines
-      .filter(fine => fine.payment_status === 'completed')
-      .reduce((total, fine) => total + fine.fine_amount, 0);
+  const formatPaymentStatus = (status: string) => {
+    switch(status) {
+      case 'completed':
+      case 'paid':
+        return <Badge variant="success">Paid</Badge>;
+      case 'disputed':
+        return <Badge variant="warning">Disputed</Badge>;
+      case 'pending':
+        return <Badge variant="destructive">Pending</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
   };
   
   if (loading) {
@@ -96,70 +68,73 @@ export default function CustomerTrafficFines({ customerId }: CustomerTrafficFine
   }
   
   if (fines.length === 0) {
-    return <p>No traffic fines found for this customer.</p>;
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-muted-foreground">No traffic fines found for this customer.</p>
+        </CardContent>
+      </Card>
+    );
   }
-  
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl">Traffic Fines</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div className="rounded-lg border p-4">
-            <div className="text-sm text-muted-foreground">Total Fines</div>
-            <div className="text-2xl font-bold">{fines.length}</div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-sm text-muted-foreground">Total Amount</div>
-            <div className="text-2xl font-bold">{formatCurrency(getTotalAmount())}</div>
-          </div>
-          <div className="rounded-lg border p-4">
-            <div className="text-sm text-muted-foreground">Paid Amount</div>
-            <div className="text-2xl font-bold">{formatCurrency(getPaidAmount())}</div>
-          </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>License Plate</TableHead>
-                <TableHead>Violation Date</TableHead>
-                <TableHead>Violation #</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {fines.map((fine) => (
-                <TableRow key={fine.id}>
-                  <TableCell>{fine.license_plate}</TableCell>
-                  <TableCell>
-                    {fine.violation_date ? format(new Date(fine.violation_date), 'MMM d, yyyy') : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <AlertTriangle className="mr-2 h-4 w-4 text-warning" />
-                      {fine.violation_number}
-                    </div>
-                  </TableCell>
-                  <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={fine.payment_status === 'completed' ? 'success' : 
-                              fine.payment_status === 'disputed' ? 'warning' : 'destructive'}
-                    >
-                      {fine.payment_status === 'completed' ? 'Paid' : 
-                       fine.payment_status === 'disputed' ? 'Disputed' : 'Pending'}
-                    </Badge>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+  const totalAmount = fines.reduce((sum, fine) => sum + (fine.fine_amount || 0), 0);
+  const paidAmount = fines
+    .filter(fine => fine.payment_status === 'completed' || fine.payment_status === 'paid')
+    .reduce((sum, fine) => sum + (fine.fine_amount || 0), 0);
+  const pendingAmount = totalAmount - paidAmount;
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-card rounded-md p-4 border">
+          <span className="text-sm text-muted-foreground">Total Fines</span>
+          <p className="text-2xl font-bold">{fines.length}</p>
         </div>
-      </CardContent>
-    </Card>
+        <div className="bg-card rounded-md p-4 border">
+          <span className="text-sm text-muted-foreground">Total Amount</span>
+          <p className="text-2xl font-bold">{formatCurrency(totalAmount)}</p>
+        </div>
+        <div className="bg-card rounded-md p-4 border">
+          <span className="text-sm text-muted-foreground">Pending Amount</span>
+          <p className="text-2xl font-bold">{formatCurrency(pendingAmount)}</p>
+        </div>
+      </div>
+      
+      <div className="rounded-md border">
+        <table className="w-full">
+          <thead className="bg-muted">
+            <tr>
+              <th className="px-4 py-3 text-left font-medium text-sm">Violation #</th>
+              <th className="px-4 py-3 text-left font-medium text-sm">License Plate</th>
+              <th className="px-4 py-3 text-left font-medium text-sm">Date</th>
+              <th className="px-4 py-3 text-left font-medium text-sm">Location</th>
+              <th className="px-4 py-3 text-left font-medium text-sm">Amount</th>
+              <th className="px-4 py-3 text-left font-medium text-sm">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fines.map((fine) => (
+              <tr key={fine.id} className="border-t hover:bg-muted/50">
+                <td className="px-4 py-3">
+                  <div className="flex items-center">
+                    <AlertTriangle className="mr-2 h-4 w-4 text-amber-500" />
+                    {fine.violation_number}
+                  </div>
+                </td>
+                <td className="px-4 py-3">{fine.license_plate}</td>
+                <td className="px-4 py-3">
+                  {fine.violation_date ? formatDate(fine.violation_date) : 'N/A'}
+                </td>
+                <td className="px-4 py-3">{fine.location || fine.fine_location || 'N/A'}</td>
+                <td className="px-4 py-3">{formatCurrency(fine.fine_amount || 0)}</td>
+                <td className="px-4 py-3">{formatPaymentStatus(fine.payment_status)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
-}
+};
+
+export default CustomerTrafficFines;

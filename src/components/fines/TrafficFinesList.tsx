@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Table, 
@@ -23,7 +24,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { 
+import {
   AlertTriangle, 
   Car, 
   CheckCircle, 
@@ -44,8 +45,28 @@ import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { StatCard } from '@/components/ui/stat-card';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+
+// TrafficFineImport component would be needed - adding a stub here
+const TrafficFineImport = ({ onImportComplete }: { onImportComplete: () => void }) => {
+  return <div>Traffic Fine Import Component</div>;
+};
+
+// TrafficFineEditDialog component would be needed - adding a stub here
+const TrafficFineEditDialog = ({ 
+  trafficFine, 
+  onSave, 
+  onCancel 
+}: { 
+  trafficFine: TrafficFine, 
+  onSave: () => void, 
+  onCancel: () => void 
+}) => {
+  return <div>Traffic Fine Edit Dialog Component</div>;
+};
 
 interface TrafficFinesListProps {
   onAddFine?: () => void;
@@ -176,7 +197,8 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer({ id: fine.id });
+          // Use mutateAsync instead of mutate to properly wait for each assignment
+          await assignToCustomer.mutateAsync({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -446,7 +468,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
+                              onClick={() => assignToCustomer.mutateAsync({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
                               <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
@@ -471,11 +493,13 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         {selectedFine && (
-          <TrafficFineEditDialog 
-            trafficFine={selectedFine}
-            onSave={handleEditComplete}
-            onCancel={() => setShowEditDialog(false)}
-          />
+          <DialogContent>
+            <TrafficFineEditDialog 
+              trafficFine={selectedFine}
+              onSave={handleEditComplete}
+              onCancel={() => setShowEditDialog(false)}
+            />
+          </DialogContent>
         )}
       </Dialog>
     </div>

@@ -20,9 +20,11 @@ type TrafficFine = {
 
 interface AgreementTrafficFinesProps {
   agreementId: string;
+  startDate?: Date;
+  endDate?: Date;
 }
 
-export default function AgreementTrafficFines({ agreementId }: AgreementTrafficFinesProps) {
+export default function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
   const [trafficFines, setTrafficFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { BarChart3, Car, Users, Coins } from 'lucide-react';  // Changed FileBarGraph to BarChart3
+import { BarChart3, Car, Users, Coins } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -12,13 +11,17 @@ import { Vehicle } from '@/types/vehicle';
 import { VehicleTypeDistribution, FleetStats } from '@/types/fleet-report';
 import FinancialReport from '@/components/reports/FinancialReport';
 
+interface FinancialItem {
+  month: string;
+  amount: number;
+  // Other properties can remain
+}
+
 const Reports = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Modify the section that uses reportData with a check and default
   const fleetReport = useFleetReport();
   
-  // Add a default report data object if reportData doesn't exist
   const reportData = fleetReport.fleetStats || {
     totalVehicles: 0,
     availableCount: 0,
@@ -39,12 +42,10 @@ const Reports = () => {
     totalExpenses = financialData.expenses.reduce((sum, item) => sum + item.amount, 0);
   }
 
-  // Calculate percentages
   const availablePercentage = ((reportData.availableCount || 0) / (reportData.totalVehicles || 1)) * 100;
   const maintenancePercentage = ((reportData.maintenanceCount || 0) / (reportData.totalVehicles || 1)) * 100;
   const rentedPercentage = ((reportData.rentedCount || 0) / (reportData.totalVehicles || 1)) * 100;
 
-  // Handle error messages
   React.useEffect(() => {
     if (error) {
       if (error instanceof Error) {
@@ -57,7 +58,6 @@ const Reports = () => {
     }
   }, [error]);
 
-  // Clear error message after 5 seconds
   React.useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => {
@@ -68,7 +68,6 @@ const Reports = () => {
     }
   }, [errorMessage]);
 
-  // Handle loading state
   if (isLoading) {
     return (
       <PageContainer title="Reports">
@@ -77,7 +76,6 @@ const Reports = () => {
     );
   }
 
-  // Display error if present
   if (errorMessage) {
     return (
       <PageContainer title="Reports">
@@ -89,10 +87,15 @@ const Reports = () => {
     );
   }
 
+  const incomeChartData = financialData?.revenue || [];
+  const expenseChartData = financialData?.expenses || [];
+
+  const incomeData: { month: string; amount: number; }[] = incomeChartData as { month: string; amount: number; }[];
+  const expenseData: { month: string; amount: number; }[] = expenseChartData as { month: string; amount: number; }[];
+
   return (
     <PageContainer title="Reports">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Fleet Overview */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -125,7 +128,6 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        {/* Active Rentals */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -143,7 +145,6 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        {/* Vehicle Type Distribution */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
@@ -163,7 +164,6 @@ const Reports = () => {
           </CardContent>
         </Card>
 
-        {/* Financial Report */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">

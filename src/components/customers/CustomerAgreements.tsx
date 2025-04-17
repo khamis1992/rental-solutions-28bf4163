@@ -1,23 +1,76 @@
 
-import { useState, useEffect } from 'react';
-import { useAgreements } from '@/hooks/use-agreements';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2, FileText } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { formatDate } from '@/lib/date-utils';
+import { formatCurrency } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { formatCurrency } from '@/lib/utils';
-import { format } from 'date-fns';
-import { Loader2, FileText } from 'lucide-react';
 
 interface CustomerAgreementsProps {
   customerId: string;
 }
 
-const CustomerAgreements = ({ customerId }: CustomerAgreementsProps) => {
-  const { agreements, isLoading } = useAgreements({ customer_id: customerId });
+const CustomerAgreements: React.FC<CustomerAgreementsProps> = ({ customerId }) => {
+  const [agreements, setAgreements] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (isLoading) {
+  useEffect(() => {
+    const fetchAgreements = async () => {
+      if (!customerId) return;
+      
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('leases')
+          .select(`
+            id,
+            agreement_number,
+            start_date,
+            end_date,
+            status,
+            rent_amount,
+            total_amount,
+            vehicles (id, make, model, license_plate)
+          `)
+          .eq('customer_id', customerId)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setAgreements(data as any[]);
+      } catch (err) {
+        console.error('Error fetching agreements:', err);
+        setError('Failed to load agreement data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAgreements();
+  }, [customerId]);
+
+  const getStatusBadge = (status: string) => {
+    switch(status.toLowerCase()) {
+      case 'active':
+        return <Badge className="bg-green-500">Active</Badge>;
+      case 'pending':
+      case 'pending_payment':
+        return <Badge className="bg-amber-500">Pending</Badge>;
+      case 'closed':
+        return <Badge className="bg-blue-500">Closed</Badge>;
+      case 'expired':
+        return <Badge className="bg-gray-500">Expired</Badge>;
+      case 'cancelled':
+        return <Badge className="bg-red-500">Cancelled</Badge>;
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+  
+  if (loading) {
     return (
       <div className="flex justify-center items-center py-8">
         <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -25,108 +78,71 @@ const CustomerAgreements = ({ customerId }: CustomerAgreementsProps) => {
       </div>
     );
   }
-
-  if (!agreements || agreements.length === 0) {
+  
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+  
+  if (agreements.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
           <p className="text-muted-foreground">No agreements found for this customer.</p>
-          <Button asChild className="mt-4">
-            <Link to={`/agreements/add?customer=${customerId}`}>
-              Create Agreement
-            </Link>
-          </Button>
         </CardContent>
       </Card>
     );
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="success">Active</Badge>;
-      case 'completed':
-        return <Badge variant="secondary">Completed</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="text-amber-500 border-amber-500">Pending</Badge>;
-      case 'cancelled':
-        return <Badge variant="destructive">Cancelled</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-500 hover:bg-red-600">Overdue</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl">Customer Agreements</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table className="border rounded-md">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Agreement #</TableHead>
-              <TableHead>Period</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {agreements.map((agreement) => (
-              <TableRow key={agreement.id}>
-                <TableCell className="font-medium">
-                  {agreement.agreement_number || 'N/A'}
-                </TableCell>
-                <TableCell>
-                  {agreement.start_date && (
-                    <>
-                      {format(new Date(agreement.start_date), 'MMM d, yyyy')}
-                      {agreement.end_date && (
-                        <>
-                          <br />
-                          to {format(new Date(agreement.end_date), 'MMM d, yyyy')}
-                        </>
-                      )}
-                    </>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {agreement.vehicles ? (
-                    <>
-                      {agreement.vehicles.make} {agreement.vehicles.model}
-                      <br />
-                      <span className="text-xs text-muted-foreground">
-                        {agreement.vehicles.license_plate}
-                      </span>
-                    </>
-                  ) : (
-                    'N/A'
-                  )}
-                </TableCell>
-                <TableCell>
-                  {agreement.total_amount ? formatCurrency(agreement.total_amount) : 'N/A'}
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(agreement.status)}
-                </TableCell>
-                <TableCell>
-                  <Button asChild variant="ghost" size="sm">
-                    <Link to={`/agreements/${agreement.id}`}>
-                      <FileText className="h-4 w-4 mr-1" />
-                      View
-                    </Link>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+    <div className="rounded-md border">
+      <table className="w-full">
+        <thead className="bg-muted">
+          <tr>
+            <th className="px-4 py-3 text-left font-medium text-sm">Agreement #</th>
+            <th className="px-4 py-3 text-left font-medium text-sm">Vehicle</th>
+            <th className="px-4 py-3 text-left font-medium text-sm">Period</th>
+            <th className="px-4 py-3 text-left font-medium text-sm">Amount</th>
+            <th className="px-4 py-3 text-left font-medium text-sm">Status</th>
+            <th className="px-4 py-3 text-right font-medium text-sm"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {agreements.map((agreement) => (
+            <tr key={agreement.id} className="border-t hover:bg-muted/50">
+              <td className="px-4 py-3 font-medium">{agreement.agreement_number}</td>
+              <td className="px-4 py-3">
+                {agreement.vehicles ? 
+                  `${agreement.vehicles.make} ${agreement.vehicles.model} (${agreement.vehicles.license_plate})` : 
+                  'N/A'}
+              </td>
+              <td className="px-4 py-3">
+                {agreement.start_date && agreement.end_date ? 
+                  `${formatDate(agreement.start_date)} - ${formatDate(agreement.end_date)}` : 
+                  'N/A'}
+              </td>
+              <td className="px-4 py-3">
+                {formatCurrency(agreement.total_amount || agreement.rent_amount || 0)}
+              </td>
+              <td className="px-4 py-3">
+                {getStatusBadge(agreement.status)}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  asChild
+                >
+                  <Link to={`/agreements/${agreement.id}`} className="flex items-center">
+                    <FileText className="mr-2 h-4 w-4" /> 
+                    View
+                  </Link>
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

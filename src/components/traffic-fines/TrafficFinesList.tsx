@@ -72,11 +72,21 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
   const unassignedFinesAmount = unassignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
 
   const handlePayFine = (id: string) => {
-    payTrafficFine.mutate({ id });
+    payTrafficFine.mutateAsync({ id }).then(() => {
+      toast.success("Traffic fine marked as paid successfully");
+    }).catch(error => {
+      toast.error("Error paying traffic fine");
+      console.error("Error paying traffic fine:", error);
+    });
   };
 
   const handleDisputeFine = (id: string) => {
-    disputeTrafficFine.mutate({ id });
+    disputeTrafficFine.mutateAsync({ id }).then(() => {
+      toast.success("Traffic fine marked as disputed successfully");
+    }).catch(error => {
+      toast.error("Error disputing traffic fine");
+      console.error("Error disputing traffic fine:", error);
+    });
   };
 
   const handleAutoAssignFines = async () => {
@@ -106,7 +116,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer({ id: fine.id });
+          await assignToCustomer.mutateAsync({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -286,7 +296,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
+                              onClick={() => assignToCustomer.mutateAsync({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
                               <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer

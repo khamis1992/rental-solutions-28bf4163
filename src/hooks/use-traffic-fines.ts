@@ -74,11 +74,52 @@ export function useTrafficFines() {
   const trafficFines = trafficFinesData as any[];
 
   const assignToCustomer = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
+    mutationFn: async ({ id, customerId }: { id: string; customerId?: string }) => {
       try {
+        // If customerId is not provided, we'll need to determine it from the license plate
+        let actualCustomerId = customerId;
+        
+        if (!actualCustomerId) {
+          // Get the fine details to access the license plate
+          const { data: fineData, error: fineError } = await supabase
+            .from('traffic_fines')
+            .select('license_plate')
+            .eq('id', id)
+            .single();
+          
+          if (fineError || !fineData) {
+            throw new Error('Failed to retrieve fine details');
+          }
+          
+          // Find vehicle by license plate
+          const { data: vehicleData, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('id')
+            .eq('license_plate', fineData.license_plate)
+            .single();
+          
+          if (vehicleError || !vehicleData) {
+            throw new Error(`No vehicle found with license plate ${fineData.license_plate}`);
+          }
+          
+          // Find active lease for the vehicle
+          const { data: leaseData, error: leaseError } = await supabase
+            .from('leases')
+            .select('customer_id')
+            .eq('vehicle_id', vehicleData.id)
+            .in('status', ['active', 'pending_payment'])
+            .single();
+          
+          if (leaseError || !leaseData || !leaseData.customer_id) {
+            throw new Error('No active lease found for this vehicle');
+          }
+          
+          actualCustomerId = leaseData.customer_id;
+        }
+
         const { error } = await supabase
           .from('traffic_fines')
-          .update({ customer_id: customerId })
+          .update({ customer_id: actualCustomerId })
           .eq('id', id);
 
         if (error) {

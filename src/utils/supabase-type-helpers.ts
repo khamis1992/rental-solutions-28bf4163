@@ -9,6 +9,12 @@ export function getResponseData<T>(response: PostgrestSingleResponse<T> | Postgr
     console.error('Error in Supabase response:', response?.error);
     return null;
   }
+  
+  // Handle both single responses and array responses properly
+  if (Array.isArray(response.data)) {
+    return response.data.length > 0 ? response.data[0] : null;
+  }
+  
   return response.data;
 }
 
@@ -35,6 +41,10 @@ export function handleSupabaseResponse<T>(response: PostgrestSingleResponse<T> |
   }
   
   // Safely handle both single responses and array responses
+  if (Array.isArray(response.data)) {
+    return response.data.length > 0 ? response.data : null;
+  }
+  
   return response.data;
 }
 
