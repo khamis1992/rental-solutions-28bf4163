@@ -45,6 +45,11 @@ export function asStatusColumn(status: string) {
   return status as string;
 }
 
+// Fix: Add asPaymentStatusColumn which was missing
+export function asPaymentStatusColumn(status: string) {
+  return status as string;
+}
+
 export function safelyExtractData<T>(result: any): T | null {
   if (!result || result.error || !result.data) {
     return null;
@@ -75,5 +80,24 @@ export async function safeQuery<T>(queryFn: () => Promise<any>): Promise<T | nul
   } catch (error) {
     console.error("Exception in query:", error);
     return null;
+  }
+}
+
+// Helper to safely handle profiles data in query responses
+export function safelyGetProfileNames(profiles: any[] | undefined | null): string {
+  if (!profiles || !Array.isArray(profiles) || profiles.length === 0) {
+    return 'Unknown';
+  }
+  
+  try {
+    // Handle both single object and array formats
+    if (profiles.length === 1) {
+      return profiles[0]?.full_name || 'Unnamed';
+    } else {
+      return profiles.map(profile => profile?.full_name || 'Unnamed').join(', ');
+    }
+  } catch (error) {
+    console.error('Error extracting profile names:', error);
+    return 'Error';
   }
 }

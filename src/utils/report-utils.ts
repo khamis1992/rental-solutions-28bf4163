@@ -3,10 +3,16 @@ import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
-import 'jspdf-autotable';
 
-// Import Arabic font support - now proper import
-import 'jspdf-autotable';
+// Import jspdf-autotable package with proper error handling
+try {
+  // Use dynamic import to prevent bundling errors
+  import('jspdf-autotable').catch(err => {
+    console.error('Error loading jspdf-autotable:', err);
+  });
+} catch (err) {
+  console.warn('jspdf-autotable import failed, PDF tables may not work correctly:', err);
+}
 
 /**
  * Generates a CSV string from an array of objects
