@@ -348,6 +348,36 @@ export const useTrafficFines = () => {
     }
   });
 
+  // Validate license plate
+  const validateLicensePlate = async (licensePlate: string) => {
+    try {
+      const { data: vehicles, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('license_plate', licensePlate)
+        .single();
+
+      if (error) {
+        return {
+          isValid: false,
+          message: `No vehicle found with license plate ${licensePlate}`
+        };
+      }
+
+      return {
+        isValid: true,
+        message: `Vehicle found: ${vehicles.make} ${vehicles.model}`,
+        vehicle: vehicles
+      };
+    } catch (error) {
+      console.error('Error validating license plate:', error);
+      return {
+        isValid: false,
+        message: `Error validating license plate: ${error instanceof Error ? error.message : 'Unknown error'}`
+      };
+    }
+  };
+
   // Pay a traffic fine
   const payTrafficFine = useMutation({
     mutationFn: async ({ id }: { id: string }) => {
@@ -532,6 +562,10 @@ export const useTrafficFines = () => {
     addTrafficFine,
     createTrafficFine,
     updateTrafficFine,
+    validateLicensePlate,
+    payTrafficFine,
+    disputeTrafficFine,
+    assignToCustomer,
     refetch
   };
 };
