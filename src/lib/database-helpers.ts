@@ -1,51 +1,21 @@
 
-/**
- * Database helpers and utilities for Supabase
- */
-import { asTableId, asUUID } from './uuid-helpers';
-import { handleDatabaseResponse, hasData, safelyExtractData } from '@/utils/database-type-helpers';
+import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
+import { Tables, Schema } from './database-types';
+import { 
+  hasData, 
+  hasProperty, 
+  safelyExtractData,
+} from '@/utils/database-type-helpers';
 
-// Re-export helpers
-export {
-  asTableId,
-  asUUID,
-  handleDatabaseResponse,
-  hasData,
-  safelyExtractData
-};
+// Re-export helper functions for compatibility
+export { hasData, hasProperty, safelyExtractData };
 
-// Create a common type for Database IDs
-export type DatabaseId = string;
-
-/**
- * Safe type checking function for database responses
- */
-export function isSuccessfulResponse<T>(response: any): response is { data: T, error: null } {
-  return !response.error && response.data !== null && response.data !== undefined;
-}
-
-/**
- * Helper for ensuring all row typings match database schema 
- */
-export type TableRow<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Row'];
-
-/**
- * Helper for creating insert values
- */
-export type TableInsert<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Insert'];
-
-/**
- * Helper for creating update values
- */
-export type TableUpdate<T extends keyof Database['public']['Tables']> = 
-  Database['public']['Tables'][T]['Update'];
-
-/**
- * Safely cast a database ID to the correct type
- */
-export function castDbId<T extends string>(id: string): T {
-  return id as T;
+// Helper function to safely extract data from a Supabase response
+export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): T | null {
+  if (response.error) {
+    console.error('Database error:', response.error);
+    return null;
+  }
+  return response.data;
 }

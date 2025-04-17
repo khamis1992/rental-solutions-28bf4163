@@ -3,7 +3,15 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { hasData, hasProperty, asDatabaseType } from '@/utils/database-type-helpers';
+import {
+  hasData,
+  hasProperty,
+  asDatabaseType,
+  asString,
+  asNumber,
+  asTrafficFineId,
+  safeProperty
+} from '@/utils/database-type-helpers';
 
 // Define and export the TrafficFine interface
 export interface TrafficFine {
@@ -77,23 +85,23 @@ export const useTrafficFines = () => {
             
             // Create a new object with type safety
             const transformedFine: TrafficFine = {
-              id: fine.id || '',
-              violation_number: fine.violation_number || '',
-              violationNumber: fine.violation_number || '',
-              violation_date: fine.violation_date || '',
-              violationDate: fine.violation_date || '',
-              fine_amount: fine.fine_amount || 0,
-              fineAmount: fine.fine_amount || 0,
-              violation_charge: fine.violation_charge || '',
-              violationCharge: fine.violation_charge || '',
-              fine_location: fine.fine_location || '',
-              location: fine.fine_location || '',
-              license_plate: fine.license_plate || '',
-              licensePlate: fine.license_plate || '',
-              payment_status: fine.payment_status || '',
-              paymentStatus: fine.payment_status || '',
-              lease_id: fine.lease_id || '',
-              leaseId: fine.lease_id || ''
+              id: asString(fine.id),
+              violation_number: asString(fine.violation_number),
+              violationNumber: asString(fine.violation_number),
+              violation_date: asString(fine.violation_date),
+              violationDate: asString(fine.violation_date),
+              fine_amount: asNumber(fine.fine_amount),
+              fineAmount: asNumber(fine.fine_amount),
+              violation_charge: asString(fine.violation_charge),
+              violationCharge: asString(fine.violation_charge),
+              fine_location: asString(fine.fine_location),
+              location: asString(fine.fine_location),
+              license_plate: asString(fine.license_plate),
+              licensePlate: asString(fine.license_plate),
+              payment_status: asString(fine.payment_status),
+              paymentStatus: asString(fine.payment_status),
+              lease_id: asString(fine.lease_id),
+              leaseId: asString(fine.lease_id)
             };
             
             return transformedFine;
@@ -159,12 +167,12 @@ export const useTrafficFines = () => {
                 ? lease.profiles 
                 : null;
               
-              const customerId = hasProperty(lease, 'customer_id') ? lease.customer_id : '';
-              const customerName = profileData && hasProperty(profileData, 'full_name') ? profileData.full_name : 'Unknown';
-              const customerPhone = profileData && hasProperty(profileData, 'phone_number') ? profileData.phone_number : 'Unknown';
+              const customerId = hasProperty(lease, 'customer_id') ? asString(lease.customer_id) : '';
+              const customerName = profileData && hasProperty(profileData, 'full_name') ? asString(profileData.full_name) : 'Unknown';
+              const customerPhone = profileData && hasProperty(profileData, 'phone_number') ? asString(profileData.phone_number) : 'Unknown';
                 
-              leaseMap[lease.id] = {
-                id: lease.id,
+              leaseMap[asString(lease.id)] = {
+                id: asString(lease.id),
                 customerId,
                 customerName,
                 customerPhone
@@ -178,35 +186,34 @@ export const useTrafficFines = () => {
             .map(fine => {
               if (fine && hasProperty(fine, 'id')) {
                 const fineData: TrafficFine = {
-                  id: fine.id,
-                  violation_number: hasProperty(fine, 'violation_number') ? fine.violation_number : '',
-                  violationNumber: hasProperty(fine, 'violation_number') ? fine.violation_number : '',
-                  license_plate: hasProperty(fine, 'license_plate') ? fine.license_plate : '',
-                  licensePlate: hasProperty(fine, 'license_plate') ? fine.license_plate : '',
-                  violation_date: hasProperty(fine, 'violation_date') ? fine.violation_date : '',
-                  violationDate: hasProperty(fine, 'violation_date') ? fine.violation_date : '',
-                  fine_amount: hasProperty(fine, 'fine_amount') ? fine.fine_amount : 0,
-                  fineAmount: hasProperty(fine, 'fine_amount') ? fine.fine_amount : 0,
-                  violation_charge: hasProperty(fine, 'violation_charge') ? fine.violation_charge : '',
-                  violationCharge: hasProperty(fine, 'violation_charge') ? fine.violation_charge : '',
-                  validation_status: hasProperty(fine, 'validation_status') ? fine.validation_status : '',
-                  payment_status: hasProperty(fine, 'payment_status') ? fine.payment_status : '',
-                  paymentStatus: hasProperty(fine, 'payment_status') ? fine.payment_status : '',
-                  lease_id: hasProperty(fine, 'lease_id') ? fine.lease_id : '',
-                  leaseId: hasProperty(fine, 'lease_id') ? fine.lease_id : '',
-                  vehicle_id: hasProperty(fine, 'vehicle_id') ? fine.vehicle_id : '',
-                  vehicleId: hasProperty(fine, 'vehicle_id') ? fine.vehicle_id : '',
-                  fine_location: hasProperty(fine, 'fine_location') ? fine.fine_location : '',
-                  location: hasProperty(fine, 'fine_location') ? fine.fine_location : ''
+                  id: asString(fine.id),
+                  violation_number: hasProperty(fine, 'violation_number') ? asString(fine.violation_number) : '',
+                  violationNumber: hasProperty(fine, 'violation_number') ? asString(fine.violation_number) : '',
+                  license_plate: hasProperty(fine, 'license_plate') ? asString(fine.license_plate) : '',
+                  licensePlate: hasProperty(fine, 'license_plate') ? asString(fine.license_plate) : '',
+                  violation_date: hasProperty(fine, 'violation_date') ? asString(fine.violation_date) : '',
+                  violationDate: hasProperty(fine, 'violation_date') ? asString(fine.violation_date) : '',
+                  fine_amount: hasProperty(fine, 'fine_amount') ? asNumber(fine.fine_amount) : 0,
+                  fineAmount: hasProperty(fine, 'fine_amount') ? asNumber(fine.fine_amount) : 0,
+                  violation_charge: hasProperty(fine, 'violation_charge') ? asString(fine.violation_charge) : '',
+                  violationCharge: hasProperty(fine, 'violation_charge') ? asString(fine.violation_charge) : '',
+                  validation_status: hasProperty(fine, 'validation_status') ? asString(fine.validation_status) : '',
+                  payment_status: hasProperty(fine, 'payment_status') ? asString(fine.payment_status) : '',
+                  paymentStatus: hasProperty(fine, 'payment_status') ? asString(fine.payment_status) : '',
+                  lease_id: hasProperty(fine, 'lease_id') ? asString(fine.lease_id) : '',
+                  vehicle_id: hasProperty(fine, 'vehicle_id') ? asString(fine.vehicle_id) : '',
+                  fine_location: hasProperty(fine, 'fine_location') ? asString(fine.fine_location) : '',
+                  location: hasProperty(fine, 'fine_location') ? asString(fine.fine_location) : ''
                 };
                 
                 // Add lease information if available
-                if (hasProperty(fine, 'lease_id') && fine.lease_id && leaseMap[fine.lease_id]) {
+                if (hasProperty(fine, 'lease_id') && fine.lease_id && leaseMap[asString(fine.lease_id)]) {
+                  const leaseInfo = leaseMap[asString(fine.lease_id)];
                   return {
                     ...fineData,
-                    customerName: leaseMap[fine.lease_id].customerName,
-                    customerPhone: leaseMap[fine.lease_id].customerPhone,
-                    customerId: leaseMap[fine.lease_id].customerId
+                    customerName: leaseInfo.customerName,
+                    customerPhone: leaseInfo.customerPhone,
+                    customerId: leaseInfo.customerId
                   };
                 }
                 
@@ -225,26 +232,24 @@ export const useTrafficFines = () => {
           if (!fine) return null;
           
           const result: TrafficFine = {
-            id: hasProperty(fine, 'id') ? fine.id : '',
-            violation_number: hasProperty(fine, 'violation_number') ? fine.violation_number : '',
-            violationNumber: hasProperty(fine, 'violation_number') ? fine.violation_number : '',
-            license_plate: hasProperty(fine, 'license_plate') ? fine.license_plate : '',
-            licensePlate: hasProperty(fine, 'license_plate') ? fine.license_plate : '',
-            violation_date: hasProperty(fine, 'violation_date') ? fine.violation_date : '',
-            violationDate: hasProperty(fine, 'violation_date') ? fine.violation_date : '',
-            fine_amount: hasProperty(fine, 'fine_amount') ? fine.fine_amount : 0,
-            fineAmount: hasProperty(fine, 'fine_amount') ? fine.fine_amount : 0,
-            violation_charge: hasProperty(fine, 'violation_charge') ? fine.violation_charge : '',
-            violationCharge: hasProperty(fine, 'violation_charge') ? fine.violation_charge : '',
-            validation_status: hasProperty(fine, 'validation_status') ? fine.validation_status : '',
-            payment_status: hasProperty(fine, 'payment_status') ? fine.payment_status : '',
-            paymentStatus: hasProperty(fine, 'payment_status') ? fine.payment_status : '',
-            lease_id: hasProperty(fine, 'lease_id') ? fine.lease_id : '',
-            leaseId: hasProperty(fine, 'lease_id') ? fine.lease_id : '',
-            vehicle_id: hasProperty(fine, 'vehicle_id') ? fine.vehicle_id : '',
-            vehicleId: hasProperty(fine, 'vehicle_id') ? fine.vehicle_id : '',
-            fine_location: hasProperty(fine, 'fine_location') ? fine.fine_location : '',
-            location: hasProperty(fine, 'fine_location') ? fine.fine_location : ''
+            id: hasProperty(fine, 'id') ? asString(fine.id) : '',
+            violation_number: hasProperty(fine, 'violation_number') ? asString(fine.violation_number) : '',
+            violationNumber: hasProperty(fine, 'violation_number') ? asString(fine.violation_number) : '',
+            license_plate: hasProperty(fine, 'license_plate') ? asString(fine.license_plate) : '',
+            licensePlate: hasProperty(fine, 'license_plate') ? asString(fine.license_plate) : '',
+            violation_date: hasProperty(fine, 'violation_date') ? asString(fine.violation_date) : '',
+            violationDate: hasProperty(fine, 'violation_date') ? asString(fine.violation_date) : '',
+            fine_amount: hasProperty(fine, 'fine_amount') ? asNumber(fine.fine_amount) : 0,
+            fineAmount: hasProperty(fine, 'fine_amount') ? asNumber(fine.fine_amount) : 0,
+            violation_charge: hasProperty(fine, 'violation_charge') ? asString(fine.violation_charge) : '',
+            violationCharge: hasProperty(fine, 'violation_charge') ? asString(fine.violation_charge) : '',
+            validation_status: hasProperty(fine, 'validation_status') ? asString(fine.validation_status) : '',
+            payment_status: hasProperty(fine, 'payment_status') ? asString(fine.payment_status) : '',
+            paymentStatus: hasProperty(fine, 'payment_status') ? asString(fine.payment_status) : '',
+            lease_id: hasProperty(fine, 'lease_id') ? asString(fine.lease_id) : '',
+            vehicle_id: hasProperty(fine, 'vehicle_id') ? asString(fine.vehicle_id) : '',
+            fine_location: hasProperty(fine, 'fine_location') ? asString(fine.fine_location) : '',
+            location: hasProperty(fine, 'fine_location') ? asString(fine.fine_location) : ''
           };
           
           return result;
@@ -263,7 +268,7 @@ export const useTrafficFines = () => {
       const { data: vehicles, error: vehiclesError } = await supabase
         .from('vehicles')
         .select('*')
-        .eq('license_plate', licensePlate as any)
+        .eq('license_plate', licensePlate)
         .limit(1);
       
       if (vehiclesError) throw vehiclesError;
@@ -292,7 +297,7 @@ export const useTrafficFines = () => {
   // Add a new traffic fine
   const addTrafficFine = useMutation({
     mutationFn: async (fineData: TrafficFineCreatePayload) => {
-      const insertData = asDatabaseType<any>({
+      const insertData = {
         violation_number: fineData.violationNumber,
         license_plate: fineData.licensePlate,
         violation_date: fineData.violationDate.toISOString(),
@@ -301,7 +306,7 @@ export const useTrafficFines = () => {
         fine_location: fineData.location,
         payment_status: fineData.paymentStatus || 'pending',
         validation_status: 'pending'
-      });
+      };
       
       const { data, error } = await supabase
         .from('traffic_fines')
@@ -338,7 +343,7 @@ export const useTrafficFines = () => {
       const { id, ...updateData } = fineData;
       
       // Convert camelCase to snake_case for database
-      const dbData = asDatabaseType<any>({
+      const dbData = {
         violation_number: updateData.violationNumber,
         license_plate: updateData.licensePlate,
         violation_date: updateData.violationDate,
@@ -346,12 +351,12 @@ export const useTrafficFines = () => {
         violation_charge: updateData.violationCharge,
         fine_location: updateData.location,
         payment_status: updateData.paymentStatus
-      });
+      };
       
       const { data, error } = await supabase
         .from('traffic_fines')
         .update(dbData)
-        .eq('id', id as any)
+        .eq('id', id)
         .select()
         .single();
       
@@ -381,15 +386,15 @@ export const useTrafficFines = () => {
   // Pay a traffic fine
   const payTrafficFine = useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const updateData = asDatabaseType<any>({
+      const updateData = {
         payment_status: 'paid',
         payment_date: new Date().toISOString()
-      });
+      };
       
       const { data, error } = await supabase
         .from('traffic_fines')
         .update(updateData)
-        .eq('id', id as any)
+        .eq('id', id)
         .select()
         .single();
       
@@ -419,14 +424,14 @@ export const useTrafficFines = () => {
   // Dispute a traffic fine
   const disputeTrafficFine = useMutation({
     mutationFn: async ({ id }: { id: string }) => {
-      const updateData = asDatabaseType<any>({
+      const updateData = {
         payment_status: 'disputed'
-      });
+      };
       
       const { data, error } = await supabase
         .from('traffic_fines')
         .update(updateData)
-        .eq('id', id as any)
+        .eq('id', id)
         .select()
         .single();
       
@@ -460,7 +465,7 @@ export const useTrafficFines = () => {
       const { data: fine, error: fineError } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('id', id as any)
+        .eq('id', id)
         .single();
       
       if (fineError || !fine) {
@@ -475,7 +480,7 @@ export const useTrafficFines = () => {
       const { data: vehicle, error: vehicleError } = await supabase
         .from('vehicles')
         .select('id')
-        .eq('license_plate', fine.license_plate as any)
+        .eq('license_plate', fine.license_plate)
         .single();
       
       if (vehicleError || !vehicle) {
@@ -490,12 +495,12 @@ export const useTrafficFines = () => {
       const { data: lease, error: leaseError } = await supabase
         .from('leases')
         .select('id, customer_id')
-        .eq('vehicle_id', vehicle.id as any)
-        .eq('status', 'active' as any)
+        .eq('vehicle_id', asString(vehicle.id))
+        .eq('status', 'active')
         .single();
       
       if (leaseError || !lease) {
-        throw new Error(`No active lease found for vehicle with license plate ${fine.license_plate}`);
+        throw new Error(`No active lease found for vehicle with license plate ${asString(fine.license_plate)}`);
       }
       
       if (!hasProperty(lease, 'id') || !hasProperty(lease, 'customer_id')) {
@@ -503,16 +508,16 @@ export const useTrafficFines = () => {
       }
       
       // Update fine with vehicle and lease information
-      const updateData = asDatabaseType<any>({
-        vehicle_id: vehicle.id,
-        lease_id: lease.id,
+      const updateData = {
+        vehicle_id: asString(vehicle.id),
+        lease_id: asString(lease.id),
         assignment_status: 'assigned'
-      });
+      };
       
       const { data, error } = await supabase
         .from('traffic_fines')
         .update(updateData)
-        .eq('id', id as any)
+        .eq('id', id)
         .select()
         .single();
       

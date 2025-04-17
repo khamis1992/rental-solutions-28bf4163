@@ -6,7 +6,7 @@ import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-
  */
 export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is { data: NonNullable<T>; error: null } {
+): response is PostgrestResponse<T> & { data: NonNullable<T>; error: null } {
   return !response.error && response.data !== null && response.data !== undefined;
 }
 
@@ -164,4 +164,59 @@ export function safelyGetNestedProperty<T, K extends keyof T>(
  */
 export function asDatabaseType<T>(value: any): T {
   return value as T;
+}
+
+/**
+ * Handle Supabase response and extract data with proper error handling
+ */
+export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
+  if (response.error) {
+    console.error("Database error:", response.error);
+    return null;
+  }
+  return response.data;
+}
+
+/**
+ * Safely cast a value to a specific type with verification
+ */
+export function safeCast<T>(value: unknown, defaultValue: T): T {
+  return (value as T) || defaultValue;
+}
+
+/**
+ * Safely cast a string value to a string type
+ */
+export function asString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+/**
+ * Safely cast a value to a number
+ */
+export function asNumber(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const parsed = parseFloat(value);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  return 0;
+}
+
+/**
+ * Safe access for property values with type conversion
+ */
+export function safeProperty<T>(obj: any, key: string, defaultValue: T): T {
+  if (!obj || typeof obj !== 'object' || !(key in obj)) return defaultValue;
+  
+  // Try to convert the value to the expected type
+  const value = obj[key];
+  if (typeof defaultValue === 'string') return (String(value) as unknown) as T;
+  if (typeof defaultValue === 'number') {
+    const num = Number(value);
+    return (isNaN(num) ? defaultValue : num) as T;
+  }
+  if (typeof defaultValue === 'boolean') return (Boolean(value) as unknown) as T;
+  
+  return (value as T) || defaultValue;
 }

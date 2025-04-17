@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { hasData, hasProperty, castDatabaseObject } from '@/utils/database-type-helpers';
+import { hasData, hasProperty, castDatabaseObject, asString, asNumber } from '@/utils/database-type-helpers';
 
 interface VehicleTypeDistribution {
   type: string;
@@ -90,7 +90,7 @@ export const useFleetReport = () => {
               nationality
             )
           `)
-          .eq('status', 'active' as any);
+          .eq('status', 'active');
 
         if (error) {
           console.error('Error fetching rentals:', error);
@@ -116,11 +116,11 @@ export const useFleetReport = () => {
           if (lease) {
             // Check for property existence before accessing
             if (hasProperty(lease, 'vehicle_id')) {
-              result.vehicleId = lease.vehicle_id || '';
+              result.vehicleId = asString(lease.vehicle_id);
             }
             
             if (hasProperty(lease, 'customer_id')) {
-              result.customerId = lease.customer_id || '';
+              result.customerId = asString(lease.customer_id);
             }
             
             // Check if profiles exists and has the right type before accessing its properties
@@ -132,15 +132,15 @@ export const useFleetReport = () => {
                 
               if (profileData) {
                 if (hasProperty(profileData, 'full_name')) {
-                  result.customerName = profileData.full_name || 'Unknown';
+                  result.customerName = asString(profileData.full_name) || 'Unknown';
                 }
                 
                 if (hasProperty(profileData, 'email')) {
-                  result.customerEmail = profileData.email || '';
+                  result.customerEmail = asString(profileData.email) || '';
                 }
                 
                 if (hasProperty(profileData, 'phone_number')) {
-                  result.customerPhone = profileData.phone_number || '';
+                  result.customerPhone = asString(profileData.phone_number) || '';
                 }
               }
             }
@@ -186,15 +186,15 @@ export const useFleetReport = () => {
           if (item) {
             // Check for property existence before accessing
             if (hasProperty(item, 'id')) {
-              result.id = item.id || '';
+              result.id = asString(item.id);
             }
             
             if (hasProperty(item, 'cost')) {
-              result.cost = item.cost || 0;
+              result.cost = asNumber(item.cost);
             }
             
             if (hasProperty(item, 'vehicle_id')) {
-              result.vehicleId = item.vehicle_id || '';
+              result.vehicleId = asString(item.vehicle_id);
             }
           }
           
