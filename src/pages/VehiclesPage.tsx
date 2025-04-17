@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -76,7 +75,7 @@ const Vehicles = () => {
       convertedFilters.location = newFilters.location;
     
     if (newFilters.year && newFilters.year !== 'all') 
-      convertedFilters.year = parseInt(newFilters.year);
+      convertedFilters.year = newFilters.year;
     
     // Handle the category to vehicle_type_id mapping
     if (newFilters.category && newFilters.category !== 'all') {

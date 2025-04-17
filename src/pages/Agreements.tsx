@@ -1,4 +1,3 @@
-
 import React, { Suspense, useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { AgreementList } from '@/components/agreements/AgreementList-Simple';
@@ -69,8 +68,10 @@ const Agreements = () => {
   }, []);
   
   const handleImportComplete = () => {
-    setSearchParams({ 
-      status: 'all' 
+    setSearchParams((prevParams) => {
+      const newParams = new URLSearchParams(prevParams);
+      newParams.set('status', 'all');
+      return newParams;
     });
   };
 

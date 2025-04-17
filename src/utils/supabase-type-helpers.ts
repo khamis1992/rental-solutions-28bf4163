@@ -1,3 +1,4 @@
+
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
 /**
@@ -16,7 +17,7 @@ export function getResponseData<T>(response: PostgrestSingleResponse<T> | Postgr
  */
 export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): response is PostgrestResponse<T> & { data: NonNullable<T>; error: null } {
+): boolean {
   return !response.error && response.data !== null;
 }
 
@@ -29,15 +30,11 @@ export function handleSupabaseResponse<T>(response: PostgrestSingleResponse<T> |
     return null;
   }
   
-  if (response.data) {
-    if (Array.isArray(response.data)) {
-      return response.data as unknown as T;
-    } else {
-      return response.data as T;
-    }
+  if (!response.data) {
+    return null;
   }
   
-  return null;
+  return response.data as T;
 }
 
 /**
@@ -85,7 +82,7 @@ export function castDatabaseId(id: string): SafeId {
 /**
  * Safely check if a response is successful and has data
  */
-export function isSuccessResponse<T>(response: PostgrestResponse<T>): response is PostgrestResponse<T> & { data: T } {
+export function isSuccessResponse<T>(response: PostgrestResponse<T>): boolean {
   return !response.error && response.data !== null;
 }
 
@@ -96,7 +93,7 @@ export function isSuccessResponse<T>(response: PostgrestResponse<T>): response i
 export function ensureResponseHasData<T, K extends keyof T>(
   response: PostgrestResponse<T> | { error: any },
   key: K
-): response is PostgrestResponse<T> & { data: T & Record<K, NonNullable<unknown>> } {
+): boolean {
   if ('error' in response && response.error) return false;
   if (!('data' in response) || !response.data) return false;
   return key in response.data;
@@ -112,7 +109,7 @@ export function getResponseValue<T, K extends keyof T, D>(
   defaultValue: D
 ): T[K] | D {
   if (ensureResponseHasData(response, key)) {
-    return response.data[key];
+    return (response as any).data[key];
   }
   return defaultValue;
 }
@@ -125,7 +122,7 @@ export function handleResponseData<T>(response: PostgrestSingleResponse<T> | Pos
     console.error('Error in Supabase response:', response.error);
     return null;
   }
-  return response.data;
+  return response.data || null;
 }
 
 /**

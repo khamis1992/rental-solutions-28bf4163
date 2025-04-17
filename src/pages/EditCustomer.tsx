@@ -77,7 +77,12 @@ const EditCustomer = () => {
     setIsSubmitting(true);
     try {
       console.log("Updating customer with data:", data);
-      await updateCustomer.mutateAsync({ ...data, id });
+      // Ensure phone_number is also set when phone is provided
+      await updateCustomer.mutateAsync({ 
+        ...data, 
+        id,
+        phone_number: data.phone // Make sure phone_number is set 
+      });
       toast.success("Customer updated successfully");
       navigate(`/customers/${id}`);
     } catch (err) {

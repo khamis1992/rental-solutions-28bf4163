@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { CustomerInfo, CustomerListItem } from '@/types/customer';
+import { CustomerInfo } from '@/types/customer';
 import { castDbId } from '@/utils/database-type-helpers';
 import { useState } from 'react';
 

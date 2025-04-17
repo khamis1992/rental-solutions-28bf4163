@@ -17,7 +17,7 @@ const AddCustomer: React.FC = () => {
       setIsSubmitting(true);
       
       // Call the mutation function
-      await addCustomer(formData);
+      await addCustomer.mutateAsync(formData);
       
       toast.success('Customer added successfully');
       navigate('/customers');

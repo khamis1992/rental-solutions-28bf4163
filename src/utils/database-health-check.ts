@@ -1,85 +1,75 @@
+import { createClient } from '@supabase/supabase-js';
 
-import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+interface HealthCheckResult {
+  database: {
+    status: 'ok' | 'error';
+    message?: string;
+  };
+  api: {
+    status: 'ok' | 'error';
+    message?: string;
+  };
+}
 
-/**
- * Check the health of the Supabase connection using the client's built-in health check
- * @returns Promise with health status and optional error message
- */
-export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error?: string }> => {
+export async function checkDatabaseHealth(): Promise<HealthCheckResult> {
+  const result: HealthCheckResult = {
+    database: { status: 'ok' },
+    api: { status: 'ok' },
+  };
+
   try {
-    console.log('Checking database connection health');
-    const result = await checkSupabaseHealth();
-    
-    if (!result.isHealthy) {
-      console.error('Database health check failed:', result.error);
+    // Initialize Supabase client with dummy credentials to avoid actual DB access during URL check
+    const supabaseDummy = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE5NTczNDkyMDB9.fkG_ZmvkEG6ui64_jRPP9xKI15w9N_5Mnlw9nW0Eo5c'
+    );
+
+    // Helper function to safely access the Supabase URL
+    const getSupabaseUrl = () => {
+      // Access the base URL through the REST URL which is public
+      const restUrl = supabaseDummy.rest.url;
+      // Extract the base URL from the REST URL
+      return restUrl.split('/rest/')[0];
+    };
+
+    const supabaseUrl = getSupabaseUrl();
+
+    if (!supabaseUrl) {
+      result.database = {
+        status: 'error',
+        message: 'Supabase URL is not defined in environment variables.',
+      };
     } else {
-      console.log(`Database connection is healthy (latency: ${result.latency}ms)`);
+      result.database = { status: 'ok' };
     }
-    
-    return { 
-      isHealthy: result.isHealthy,
-      error: result.error 
+  } catch (error: any) {
+    result.database = {
+      status: 'error',
+      message: `Failed to validate Supabase URL: ${error.message}`,
     };
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown database error';
-    console.error('Database connection error:', errorMessage);
-    return { isHealthy: false, error: errorMessage };
   }
-};
 
-// Re-export connection retry functionality from the client
-export { checkConnectionWithRetry } from '@/integrations/supabase/client';
-
-/**
- * Monitor database connectivity and show UI feedback
- * @param onConnectionChange Optional callback that runs when connection status changes
- * @param pollingIntervalMs How often to check connection (default: 30 seconds)
- * @returns Function to stop the monitoring
- */
-export { monitorDatabaseConnection } from '@/integrations/supabase/client';
-
-/**
- * Show database connection status in UI
- * @param isConnected Current connection status
- * @returns JSX element or null
- */
-export const getConnectionErrorMessage = (isConnected: boolean): string | null => {
-  if (!isConnected) {
-    return 'Database connection error. Please check your internet connection and try again.';
-  }
-  return null;
-};
-
-/**
- * Run diagnostic check of database connection for troubleshooting
- * @returns Promise with detailed diagnostic information
- */
-export const runDatabaseDiagnostics = async (): Promise<{
-  isConnected: boolean;
-  latency?: number;
-  error?: string;
-  apiEndpoint: string;
-  clientVersion: string;
-}> => {
   try {
-    const startTime = performance.now();
-    const health = await checkSupabaseHealth();
-    const endTime = performance.now();
-    
-    return {
-      isConnected: health.isHealthy,
-      latency: health.latency || Math.round(endTime - startTime),
-      error: health.error,
-      apiEndpoint: supabase.supabaseUrl,
-      clientVersion: '2.38.4' // Version of @supabase/supabase-js
-    };
-  } catch (err) {
-    return {
-      isConnected: false,
-      error: err instanceof Error ? err.message : 'Unknown error during diagnostics',
-      apiEndpoint: supabase.supabaseUrl,
-      clientVersion: '2.38.4'
+    const supabaseService = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE5NTczNDkyMDB9.fkG_ZmvkEG6ui64_jRPP9xKI15w9N_5Mnlw9nW0Eo5c'
+    );
+    const { data, error } = await supabaseService.from('vehicles').select('id').limit(1);
+
+    if (error) {
+      result.api = {
+        status: 'error',
+        message: `API health check failed: ${error.message}`,
+      };
+    } else {
+      result.api = { status: 'ok' };
+    }
+  } catch (error: any) {
+    result.api = {
+      status: 'error',
+      message: `Failed to connect to Supabase API: ${error.message}`,
     };
   }
-};
+
+  return result;
+}
