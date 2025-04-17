@@ -4,7 +4,6 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Loader2, AlertTriangle } from 'lucide-react';
@@ -26,7 +25,7 @@ interface CustomerTrafficFinesProps {
   customerId: string;
 }
 
-export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
+export default function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) {
   const [fines, setFines] = useState<TrafficFine[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

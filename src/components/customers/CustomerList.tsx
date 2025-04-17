@@ -58,7 +58,7 @@ import {
   UserX,
   AlertTriangle,
   UserCheck,
-  UserClock
+  Clock,
 } from "lucide-react";
 import { CustomerInfo, CustomerStatus } from '@/types/customer';
 import { SelectFilter } from '@/components/ui/select-filter';
@@ -188,7 +188,7 @@ export function CustomerList() {
               </Badge>
             </TabsTrigger>
             <TabsTrigger value="pending_review">
-              <UserClock className="h-4 w-4 mr-1" /> Pending
+              <Clock className="h-4 w-4 mr-1" /> Pending
               <Badge className="ml-2 bg-amber-500/10 text-amber-500 border-0">
                 {customers.filter(c => c.status === 'pending_review').length}
               </Badge>

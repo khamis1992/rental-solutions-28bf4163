@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/tabs';
 import { Pencil, Loader2 } from 'lucide-react';
 import CustomerAgreements from './CustomerAgreements';
-import { CustomerTrafficFines } from './CustomerTrafficFines';
+import CustomerTrafficFines from './CustomerTrafficFines';
 import CustomerPayments from './CustomerPayments';
 
 export function CustomerDetail() {
