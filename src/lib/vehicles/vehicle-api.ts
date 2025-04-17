@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
@@ -28,16 +29,9 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
   
   if (filters) {
     // Support for multiple statuses
-    if (filters.statuses && Array.isArray(filters.statuses) && filters.statuses.length > 0) {
-      // Map all statuses to DB format
-      const dbStatuses = filters.statuses.map(status => mapToDBStatus(status));
-      query = query.in('status', dbStatuses);
-      console.log(`API fetchVehicles: Filtering by multiple statuses: ${filters.statuses.join(', ')} (mapped to DB statuses: ${dbStatuses.join(', ')})`);
-    }
-    // Single status filter (backward compatibility)
-    else if (filters.status) {
+    if (filters.status) {
       // Convert application status to database status
-      const dbStatus = mapToDBStatus(filters.status);
+      const dbStatus = mapToDBStatus(filters.status as VehicleStatus);
       query = query.eq('status', dbStatus);
       console.log(`API fetchVehicles: Filtering by status ${filters.status} (mapped to DB status: ${dbStatus})`);
     }
@@ -52,14 +46,6 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     
     if (filters.year) {
       query = query.eq('year', filters.year);
-    }
-    
-    if (filters.location) {
-      query = query.eq('location', filters.location);
-    }
-
-    if (filters.vehicle_type_id) {
-      query = query.eq('vehicle_type_id', filters.vehicle_type_id);
     }
     
     if (filters.search) {
@@ -92,14 +78,13 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
       rent_amount: record.rent_amount,
       insurance_company: record.insurance_company,
       insurance_expiry: record.insurance_expiry,
-      location: record.location,
     };
     
     if (record.vehicle_types) {
       vehicle.vehicleType = {
         id: record.vehicle_types.id,
         name: record.vehicle_types.name,
-        daily_rate: record.vehicle_types.daily_rate,
+        description: record.vehicle_types.description
       };
       
       // If the vehicle doesn't have a daily rate set directly, use the one from the vehicle type

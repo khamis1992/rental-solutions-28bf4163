@@ -1,64 +1,70 @@
 
 import React from 'react';
-import { cn } from "@/lib/utils";
-import Sidebar from './Sidebar';
-import { useSidebar } from '@/hooks/use-sidebar';
+import { Link } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
-import { Toaster } from 'sonner';
+import { Input } from '@/components/ui/input';
 
-interface PageContainerProps {
+export interface PageContainerProps {
   children: React.ReactNode;
-  className?: string;
-  title?: string;
+  title: string;
   description?: string;
   actions?: React.ReactNode;
+  backLink?: string;
+  headerProps?: {
+    onSearch?: (query: string) => void;
+    searchQuery?: string;
+    searchPlaceholder?: string;
+  }
 }
 
-const PageContainer: React.FC<PageContainerProps> = ({
-  children,
-  className,
-  title,
-  description,
-  actions
+const PageContainer: React.FC<PageContainerProps> = ({ 
+  children, 
+  title, 
+  description, 
+  actions,
+  backLink,
+  headerProps
 }) => {
-  const { isOpen, toggle } = useSidebar();
-
   return (
-    <div className="flex min-h-screen bg-muted/30">
-      <Toaster richColors position="top-center" />
-      
-      {/* Mobile menu toggle */}
-      <Button
-        variant="outline"
-        size="icon"
-        className="absolute top-4 left-4 z-50 lg:hidden"
-        onClick={toggle}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-
-      {/* Sidebar */}
-      <Sidebar open={isOpen} />
-      
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className={cn(
-          "flex-1 p-4 sm:p-6 overflow-auto",
-          isOpen ? "lg:ml-64" : "",
-          className
-        )}>
-          {(title || description || actions) && (
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                {title && <h1 className="text-2xl font-bold tracking-tight">{title}</h1>}
-                {description && <p className="text-muted-foreground mt-1">{description}</p>}
-              </div>
-              {actions && <div>{actions}</div>}
+    <div className="container mx-auto py-6 px-4 max-w-7xl">
+      <div className="mb-8">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
+          <div className="mb-4 sm:mb-0">
+            {backLink && (
+              <Link to={backLink} className="flex items-center text-sm text-gray-500 mb-2 hover:text-gray-700">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                <span>Back</span>
+              </Link>
+            )}
+            <h1 className="text-2xl font-semibold">{title}</h1>
+            {description && <p className="text-gray-500 mt-1">{description}</p>}
+          </div>
+          {actions && (
+            <div className="flex flex-wrap gap-2 items-center">
+              {actions}
             </div>
           )}
-          {children}
-        </main>
+        </div>
+        
+        {/* Search Input */}
+        {headerProps?.onSearch && (
+          <div className="mt-4">
+            <div className="flex max-w-md">
+              <Input
+                placeholder={headerProps.searchPlaceholder || "Search..."}
+                value={headerProps.searchQuery || ""}
+                onChange={(e) => headerProps.onSearch && headerProps.onSearch(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Main Content */}
+      <div className="space-y-6">
+        {children}
       </div>
     </div>
   );

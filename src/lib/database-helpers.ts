@@ -17,5 +17,11 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
     console.error('Database error:', response.error);
     return null;
   }
+  
+  // Handle both single and array responses
+  if (Array.isArray(response.data)) {
+    return response.data as unknown as T;
+  }
+  
   return response.data;
 }

@@ -468,8 +468,12 @@ export const useTrafficFines = () => {
         .eq('id', id)
         .single();
       
-      if (fineError || !fine) {
+      if (fineError) {
         throw new Error(fineError?.message || 'Fine not found');
+      }
+      
+      if (!fine) {
+        throw new Error('Fine not found');
       }
       
       if (!hasProperty(fine, 'license_plate') || !fine.license_plate) {
@@ -483,7 +487,11 @@ export const useTrafficFines = () => {
         .eq('license_plate', fine.license_plate)
         .single();
       
-      if (vehicleError || !vehicle) {
+      if (vehicleError) {
+        throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
+      }
+      
+      if (!vehicle) {
         throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
       }
       
@@ -499,7 +507,11 @@ export const useTrafficFines = () => {
         .eq('status', 'active')
         .single();
       
-      if (leaseError || !lease) {
+      if (leaseError) {
+        throw new Error(`No active lease found for vehicle with license plate ${asString(fine.license_plate)}`);
+      }
+      
+      if (!lease) {
         throw new Error(`No active lease found for vehicle with license plate ${asString(fine.license_plate)}`);
       }
       

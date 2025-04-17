@@ -58,7 +58,7 @@ export const supabase = createClient<Database>(
     global: {
       fetch: fetchWithTimeout as typeof fetch
     },
-    // Add retry configuration for better reliability
+    // Add configuration for better reliability
     db: {
       schema: 'public'
     }

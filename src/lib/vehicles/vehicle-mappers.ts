@@ -59,7 +59,8 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     vehicleType: vehicleType ? {
       id: vehicleType.id,
       name: vehicleType.name,
-      daily_rate: vehicleType.daily_rate
+      daily_rate: vehicleType.daily_rate,
+      description: vehicleType.description
     } : undefined,
     dailyRate: vehicleType?.daily_rate
   };

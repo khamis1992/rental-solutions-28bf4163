@@ -1,4 +1,3 @@
-
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 import { exists } from '@/utils/database-type-helpers';
@@ -43,7 +42,9 @@ export function getResponseData<T>(
     console.error('Error in response:', response.error.message);
     return null;
   }
-  return response.data;
+  
+  // Handle both single and array responses
+  return response.data as T | null;
 }
 
 /**
@@ -94,6 +95,13 @@ export function asType<T>(value: unknown, defaultValue: T): T {
 export function safeArrayData<T>(response: PostgrestResponse<T[]> | null): T[] {
   if (!response || response.error || !response.data) return [] as T[];
   return response.data as T[];
+}
+
+/**
+ * Ensure a value is an array
+ */
+export function ensureArray<T>(value: T | T[]): T[] {
+  return Array.isArray(value) ? value : [value];
 }
 
 /**
