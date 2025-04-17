@@ -1,104 +1,112 @@
-import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { hasData, asLeaseId } from '@/utils/database-type-helpers';
+import { asLeaseId } from '@/utils/database-type-helpers';
 
-export interface Payment {
-  id: string;
-  lease_id: string;
-  amount: number;
-  amount_paid: number;
-  balance: number;
-  payment_date: string | null;
-  due_date: string | null;
-  status: string;
-  payment_method: string;
-  description?: string;
-  type?: string;
-  late_fine_amount?: number;
-  days_overdue?: number;
-  original_due_date?: string | null;
-  created_at: string;
-  updated_at: string;
-}
+export const usePayments = (leaseId?: string) => {
+  const queryClient = useQueryClient();
 
-export const usePayments = (agreementId?: string) => {
-  const { data, isLoading, error, refetch } = useSupabaseQuery(
-    ['payments', agreementId],
-    async () => {
-      if (!agreementId) return [] as Payment[];
-      
-      const response = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', agreementId);
+  const { data: payments, isLoading, error } = useQuery({
+    queryKey: ['payments', leaseId],
+    queryFn: async () => {
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('unified_payments')
+          .select('*')
+          .eq('lease_id', asLeaseId(leaseId))
+          .order('payment_date', { ascending: false });
         
-      if (!hasData(response)) {
-        console.error("Error fetching payments:", response.error);
-        return [] as Payment[];
+        if (fetchError) {
+          console.error('Error fetching payments:', fetchError);
+          throw fetchError;
+        }
+        
+        return data || [];
+      } catch (err) {
+        console.error('Error in payments query:', err);
+        throw err;
       }
-      
-      return response.data as Payment[];
     },
-    {
-      enabled: !!agreementId,
-    }
-  );
-
-  const payments: Payment[] = Array.isArray(data) ? data : [];
-
-  const addPayment = useSupabaseMutation(async (newPayment: Partial<Payment>) => {
-    const response = await supabase
-      .from('unified_payments')
-      .insert([newPayment])
-      .select();
-
-    if (!hasData(response)) {
-      console.error("Error adding payment:", response.error);
-      return null;
-    }
-    return response.data[0];
+    enabled: !!leaseId
   });
 
-  const updatePayment = useSupabaseMutation(async (paymentUpdate: { id: string; data: Partial<Payment> }) => {
-    const { id, data: paymentData } = paymentUpdate;
-    
-    const response = await supabase
-      .from('unified_payments')
-      .update(paymentData)
-      .eq('id', id)
-      .select();
-
-    if (!hasData(response)) {
-      console.error("Error updating payment:", response.error);
-      return null;
+  const addPayment = useMutation({
+    mutationFn: async (payment: any) => {
+      try {
+        const { data, error: insertError } = await supabase
+          .from('unified_payments')
+          .insert([payment])
+          .select();
+        
+        if (insertError) {
+          console.error('Error adding payment:', insertError);
+          throw insertError;
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Error in add payment mutation:', err);
+        throw err;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     }
-    return response.data[0];
   });
 
-  const deletePayment = useSupabaseMutation(async (paymentId: string) => {
-    const response = await supabase
-      .from('unified_payments')
-      .delete()
-      .eq('id', paymentId);
-
-    if (response.error) {
-      console.error("Error deleting payment:", response.error);
-      return null;
+  const updatePayment = useMutation({
+    mutationFn: async ({ paymentId, data }: { paymentId: string; data: any }) => {
+      try {
+        const { data: updatedData, error: updateError } = await supabase
+          .from('unified_payments')
+          .update(data)
+          .eq('id', paymentId)
+          .select();
+        
+        if (updateError) {
+          console.error('Error updating payment:', updateError);
+          throw updateError;
+        }
+        
+        return updatedData;
+      } catch (err) {
+        console.error('Error in update payment mutation:', err);
+        throw err;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
     }
-    return { success: true };
   });
 
-  const fetchPayments = () => {
-    return refetch();
-  };
+  const deletePayment = useMutation({
+    mutationFn: async (paymentId: string) => {
+      try {
+        const { error: deleteError } = await supabase
+          .from('unified_payments')
+          .delete()
+          .eq('id', paymentId);
+        
+        if (deleteError) {
+          console.error('Error deleting payment:', deleteError);
+          throw deleteError;
+        }
+      } catch (err) {
+        console.error('Error in delete payment mutation:', err);
+        throw err;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments', leaseId] });
+    }
+  });
 
   return {
     payments,
     isLoading,
     error,
-    addPayment: addPayment.mutateAsync,
-    updatePayment: updatePayment.mutateAsync,
-    deletePayment: deletePayment.mutateAsync,
-    fetchPayments,
+    addPayment,
+    updatePayment,
+    deletePayment
   };
 };

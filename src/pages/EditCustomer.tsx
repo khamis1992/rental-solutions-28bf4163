@@ -5,6 +5,7 @@ import PageContainer from '@/components/layout/PageContainer';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
+import { CustomerInfo } from '@/types/customer';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -12,7 +13,7 @@ const EditCustomer = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getCustomer, updateCustomer } = useCustomers();
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,12 +78,15 @@ const EditCustomer = () => {
     setIsSubmitting(true);
     try {
       console.log("Updating customer with data:", data);
-      // Ensure phone_number is also set when phone is provided
-      await updateCustomer.mutateAsync({ 
-        ...data, 
+      // Ensure required fields are present
+      const updatedCustomer: CustomerInfo = {
+        ...data,
         id,
-        phone_number: data.phone // Make sure phone_number is set 
-      });
+        full_name: data.full_name,
+        phone_number: data.phone // Make sure phone_number is set
+      };
+      
+      await updateCustomer.mutateAsync(updatedCustomer);
       toast.success("Customer updated successfully");
       navigate(`/customers/${id}`);
     } catch (err) {

@@ -1,4 +1,6 @@
 
+import { VehicleStatus } from './vehicle';
+
 export interface DatabaseVehicleRecord {
   id: string;
   make: string;
@@ -7,47 +9,46 @@ export interface DatabaseVehicleRecord {
   license_plate: string;
   vin: string;
   color?: string | null;
-  image_url?: string | null;
   mileage?: number | null;
-  status: string;
+  status?: string | null; // Database status might be slightly different from app status
+  description?: string | null;
+  image_url?: string | null;
   created_at: string;
   updated_at: string;
-  description?: string | null;
-  location?: string | null;
+  rent_amount?: number | null;
   insurance_company?: string | null;
   insurance_expiry?: string | null;
-  rent_amount?: number | null;
+  location?: string | null;
+  vehicle_types?: DatabaseVehicleType | null;
   vehicle_type_id?: string | null;
-  vehicle_types?: DatabaseVehicleType;
-  // Add other fields as needed
 }
 
 export interface DatabaseVehicleType {
   id: string;
   name: string;
-  size: string;
+  description?: string;
   daily_rate: number;
   weekly_rate?: number;
   monthly_rate?: number;
-  description?: string;
-  features?: any[];
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  size?: string;
+  features?: any; // Can be string[], object, or string (JSON)
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface VehicleType {
   id: string;
   name: string;
-  size: string;
-  daily_rate: number;
+  description?: string;
+  daily_rate?: number;
   weekly_rate?: number;
   monthly_rate?: number;
-  description?: string;
-  features?: any[];
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
+  size?: 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | string;
+  features?: string[];
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface VehicleInsertData {
@@ -57,14 +58,14 @@ export interface VehicleInsertData {
   license_plate: string;
   vin: string;
   color?: string | null;
-  image_url?: string | null;
   mileage?: number | null;
-  status?: string;
+  status?: VehicleStatus | null;
   description?: string | null;
-  location?: string | null;
+  image_url?: string | null;
+  rent_amount?: number | null;
   insurance_company?: string | null;
   insurance_expiry?: string | null;
-  rent_amount?: number | null;
+  location?: string | null;
   vehicle_type_id?: string | null;
 }
 
@@ -75,14 +76,14 @@ export interface VehicleUpdateData {
   license_plate?: string;
   vin?: string;
   color?: string | null;
-  image_url?: string | null;
   mileage?: number | null;
-  status?: string;
+  status?: VehicleStatus | null;
   description?: string | null;
-  location?: string | null;
+  image_url?: string | null;
+  rent_amount?: number | null;
   insurance_company?: string | null;
   insurance_expiry?: string | null;
-  rent_amount?: number | null;
+  location?: string | null;
   vehicle_type_id?: string | null;
   updated_at?: string;
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft } from 'lucide-react';
@@ -40,7 +41,9 @@ const EditVehicle = () => {
   useEffect(() => {
     if (fetchedVehicle) {
       console.log("Vehicle data received from API:", fetchedVehicle);
-      setVehicle(fetchedVehicle);
+      if (fetchedVehicle && 'id' in fetchedVehicle) {
+        setVehicle(fetchedVehicle as Vehicle);
+      }
       setIsLoading(false);
       setLoadError(null);
     }
@@ -135,7 +138,9 @@ const EditVehicle = () => {
       }
       
       if (refreshResult.data) {
-        setVehicle(refreshResult.data);
+        if (refreshResult.data && 'id' in refreshResult.data) {
+          setVehicle(refreshResult.data as Vehicle);
+        }
         console.log('Local vehicle state updated with new data:', refreshResult.data);
       }
       
@@ -196,7 +201,7 @@ const EditVehicle = () => {
     <PageContainer>
       <SectionHeader
         title={`Edit Vehicle: ${vehicle.make} ${vehicle.model}`}
-        description={`${vehicle.year} • ${vehicle.licensePlate || vehicle.license_plate}`}
+        description={`${vehicle.year} • ${vehicle.license_plate || ''}`}
         icon={Car}
         actions={
           <>
@@ -244,7 +249,7 @@ const EditVehicle = () => {
         vehicleDetails={{
           make: vehicle.make,
           model: vehicle.model,
-          licensePlate: vehicle.licensePlate || vehicle.license_plate || ''
+          licensePlate: vehicle.license_plate || ''
         }}
         onStatusUpdated={handleStatusUpdated}
       />

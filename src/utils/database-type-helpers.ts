@@ -73,7 +73,6 @@ export function hasData<T>(response: PostgrestSingleResponse<T> | { error: Error
   if ('error' in response && response.error) {
     return false;
   }
-  // Using type assertion to work around the typing issue
   return 'data' in response;
 }
 
@@ -96,7 +95,14 @@ export function safeArray<T>(arr: T | T[] | null | undefined): T[] {
   return Array.isArray(arr) ? arr : [arr];
 }
 
-export function flattenSafeArray<T>(arr: T[][] | T[] | null | undefined): T[] {
+// Added the exists function
+export function exists<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
+}
+
+// Updated to properly handle type inference with arrays
+export function flattenSafeArray<T>(arr: T[] | T[][] | null | undefined): T[] {
   const safeArr = safeArray(arr);
-  return safeArr.flat();
+  // Use a type assertion here to handle the flattening properly
+  return (Array.isArray(safeArr[0]) ? (safeArr as T[][]).flat() : safeArr as T[]);
 }

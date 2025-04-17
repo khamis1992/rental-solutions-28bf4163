@@ -25,7 +25,17 @@ const VALID_STATUSES: VehicleStatus[] = [
 const Vehicles = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [filters, setFilters] = useState<VehicleFilterParams>({});
+  const [filters, setFilters] = useState<VehicleFilterParams>({
+    status: 'all',
+    make: '',
+    model: '',
+    year: 0,
+    minYear: 0,
+    maxYear: 0,
+    searchTerm: '',
+    location: '',
+    vehicle_type_id: ''
+  });
   const { useRealtimeUpdates } = useVehicles();
   
   // Setup real-time updates
@@ -124,7 +134,7 @@ const Vehicles = () => {
                 status: filters.status || 'all',
                 make: filters.make || 'all',
                 location: filters.location || 'all',
-                year: filters.year?.toString() || 'all',
+                year: filters.year || 'all',
                 category: filters.vehicle_type_id || 'all',
                 search: filters.search || ''
               }}
