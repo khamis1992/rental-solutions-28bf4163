@@ -12,7 +12,7 @@ interface AgreementTrafficFinesProps {
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading, trafficFines } = useTrafficFines();
+  const { isLoading, trafficFines, refetch } = useTrafficFines();
   const [showLoader, setShowLoader] = useState(false);
 
   useEffect(() => {
@@ -22,6 +22,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   const handleRefresh = async () => {
     setShowLoader(true);
+    await refetch();
     // Wait a moment for visual feedback
     setTimeout(() => {
       setShowLoader(false);
@@ -73,24 +74,24 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
             {filteredFines.map((fine) => (
               <tr key={fine.id} className="border-b hover:bg-muted/50">
                 <td className="py-3 px-4">
-                  {fine.violation_date 
-                    ? format(new Date(fine.violation_date), 'dd MMM yyyy') 
+                  {fine.violationDate 
+                    ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
                     : 'N/A'}
                 </td>
-                <td className="py-3 px-4">{fine.fine_location || 'N/A'}</td>
-                <td className="py-3 px-4">{fine.violation_charge || 'N/A'}</td>
+                <td className="py-3 px-4">{fine.location || 'N/A'}</td>
+                <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
                 <td className="py-3 px-4 text-right">
-                  {fine.fine_amount 
-                    ? `QAR ${fine.fine_amount.toLocaleString()}` 
+                  {fine.fineAmount 
+                    ? `QAR ${fine.fineAmount.toLocaleString()}` 
                     : 'N/A'}
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    fine.payment_status === 'paid' 
+                    fine.paymentStatus === 'paid' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {fine.payment_status === 'paid' ? 'Paid' : 'Pending'}
+                    {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
                   </span>
                 </td>
               </tr>

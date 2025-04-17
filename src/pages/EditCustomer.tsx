@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -19,8 +18,6 @@ const EditCustomer = () => {
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempts, setFetchAttempts] = useState(0);
 
-  // Use a stable reference to id to prevent useCallback from recreating
-  // the fetchCustomerData function on every render
   const fetchCustomerData = useCallback(async () => {
     if (!id) {
       setError("Customer ID not provided");
@@ -53,15 +50,12 @@ const EditCustomer = () => {
     }
   }, [id, getCustomer, fetchAttempts]);
 
-  // Only fetch data once on initial mount
   useEffect(() => {
-    // Only fetch if we don't already have the customer data
     if (!customer) {
       fetchCustomerData();
     }
   }, [fetchCustomerData, customer]);
 
-  // If first attempt fails, try once more after a delay
   useEffect(() => {
     if (error && fetchAttempts < 1 && !customer) {
       const retryTimer = setTimeout(() => {
@@ -78,12 +72,11 @@ const EditCustomer = () => {
     setIsSubmitting(true);
     try {
       console.log("Updating customer with data:", data);
-      // Ensure required fields are present
       const updatedCustomer: CustomerInfo = {
         ...data,
         id,
-        full_name: data.full_name,
-        phone_number: data.phone // Make sure phone_number is set
+        full_name: data.full_name || '',
+        phone_number: data.phone || '' // Make sure phone_number is set
       };
       
       await updateCustomer.mutateAsync(updatedCustomer);

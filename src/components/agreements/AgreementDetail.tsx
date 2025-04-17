@@ -51,7 +51,7 @@ export function AgreementDetail({
 
   const {
     payments = [],
-    isLoading,
+    isLoading: isLoadingPayments,
     fetchPayments
   } = usePayments(agreement?.id);
   
@@ -354,7 +354,7 @@ export function AgreementDetail({
 
       {agreement && <PaymentHistory 
         payments={Array.isArray(payments) ? payments as import('@/components/agreements/PaymentHistory.types').Payment[] : []} 
-        isLoading={isLoading} 
+        isLoading={isLoadingPayments} 
         rentAmount={rentAmount} 
         onPaymentDeleted={() => {
           onPaymentDeleted();

@@ -3,10 +3,28 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { asLeaseId } from '@/utils/database-type-helpers';
 
+export interface Payment {
+  id: string;
+  lease_id?: string;
+  amount: number;
+  amount_paid?: number;
+  payment_date?: Date | string;
+  due_date?: Date | string;
+  status?: string;
+  payment_method?: string;
+  transaction_id?: string;
+  description?: string;
+  type?: string;
+  late_fine_amount?: number;
+  days_overdue?: number;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
 export const usePayments = (leaseId?: string) => {
   const queryClient = useQueryClient();
 
-  const { data: payments, isLoading, error } = useQuery({
+  const { data: payments = [], isLoading, error, refetch } = useQuery({
     queryKey: ['payments', leaseId],
     queryFn: async () => {
       try {
@@ -29,6 +47,10 @@ export const usePayments = (leaseId?: string) => {
     },
     enabled: !!leaseId
   });
+
+  const fetchPayments = async () => {
+    return await refetch();
+  };
 
   const addPayment = useMutation({
     mutationFn: async (payment: any) => {
@@ -107,6 +129,7 @@ export const usePayments = (leaseId?: string) => {
     error,
     addPayment,
     updatePayment,
-    deletePayment
+    deletePayment,
+    fetchPayments
   };
 };
