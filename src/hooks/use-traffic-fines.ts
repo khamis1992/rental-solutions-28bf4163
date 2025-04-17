@@ -65,8 +65,12 @@ export const useTrafficFines = () => {
           throw error;
         }
         
+        if (!data) {
+          return [];
+        }
+
         // Transform snake_case to camelCase for component compatibility
-        return data.map(fine => ({
+        return data.map((fine: any) => ({
           ...fine,
           violationNumber: fine.violation_number,
           violationDate: fine.violation_date,
@@ -97,9 +101,13 @@ export const useTrafficFines = () => {
         throw error;
       }
       
+      if (!fines) {
+        return [];
+      }
+
       // Get lease information for all fines that have a lease_id
       const leaseIds = fines
-        .filter(fine => hasData({ data: fine, error: null }) && fine.lease_id)
+        .filter(fine => fine && fine.lease_id)
         .map(fine => fine.lease_id)
         .filter(Boolean);
       
@@ -121,9 +129,9 @@ export const useTrafficFines = () => {
         
         if (leasesError) {
           console.error('Error fetching leases for traffic fines:', leasesError);
-        } else if (hasData({ data: leases, error: null })) {
+        } else if (leases && leases.length > 0) {
           // Create a lookup map for lease information
-          const leaseMap = {};
+          const leaseMap: Record<string, any> = {};
           leases.forEach(lease => {
             if (lease && lease.id) {
               leaseMap[lease.id] = {
@@ -136,45 +144,48 @@ export const useTrafficFines = () => {
           });
           
           // Enrich traffic fines with lease information
-          return fines.map(fine => {
-            if (fine && fine.id) {
-              const fineData = {
-                id: fine.id,
-                violation_number: fine.violation_number,
-                violationNumber: fine.violation_number,
-                license_plate: fine.license_plate,
-                licensePlate: fine.license_plate,
-                violation_date: fine.violation_date,
-                violationDate: fine.violation_date,
-                fine_amount: fine.fine_amount,
-                fineAmount: fine.fine_amount,
-                violation_charge: fine.violation_charge,
-                violationCharge: fine.violation_charge,
-                validation_status: fine.validation_status,
-                payment_status: fine.payment_status,
-                paymentStatus: fine.payment_status,
-                lease_id: fine.lease_id,
-                leaseId: fine.lease_id,
-                vehicle_id: fine.vehicle_id,
-                vehicleId: fine.vehicle_id,
-                fine_location: fine.fine_location,
-                location: fine.fine_location
-              };
-              
-              // Add lease information if available
-              if (fine.lease_id && leaseMap[fine.lease_id]) {
-                return {
-                  ...fineData,
-                  customerName: leaseMap[fine.lease_id].customerName,
-                  customerPhone: leaseMap[fine.lease_id].customerPhone,
-                  customerId: leaseMap[fine.lease_id].customerId
+          return fines
+            .filter(fine => fine !== null)
+            .map(fine => {
+              if (fine && fine.id) {
+                const fineData = {
+                  id: fine.id,
+                  violation_number: fine.violation_number,
+                  violationNumber: fine.violation_number,
+                  license_plate: fine.license_plate,
+                  licensePlate: fine.license_plate,
+                  violation_date: fine.violation_date,
+                  violationDate: fine.violation_date,
+                  fine_amount: fine.fine_amount,
+                  fineAmount: fine.fine_amount,
+                  violation_charge: fine.violation_charge,
+                  violationCharge: fine.violation_charge,
+                  validation_status: fine.validation_status,
+                  payment_status: fine.payment_status,
+                  paymentStatus: fine.payment_status,
+                  lease_id: fine.lease_id,
+                  leaseId: fine.lease_id,
+                  vehicle_id: fine.vehicle_id,
+                  vehicleId: fine.vehicle_id,
+                  fine_location: fine.fine_location,
+                  location: fine.fine_location
                 };
+                
+                // Add lease information if available
+                if (fine.lease_id && leaseMap[fine.lease_id]) {
+                  return {
+                    ...fineData,
+                    customerName: leaseMap[fine.lease_id].customerName,
+                    customerPhone: leaseMap[fine.lease_id].customerPhone,
+                    customerId: leaseMap[fine.lease_id].customerId
+                  };
+                }
+                
+                return fineData;
               }
-              
-              return fineData;
-            }
-            return null;
-          }).filter(Boolean);
+              return null;
+            })
+            .filter(Boolean) as TrafficFine[];
         }
       }
       
@@ -200,7 +211,7 @@ export const useTrafficFines = () => {
         vehicleId: fine.vehicle_id,
         fine_location: fine.fine_location,
         location: fine.fine_location
-      }));
+      })) as TrafficFine[];
     } catch (error) {
       console.error('Error in getTrafficFinesWithDetails:', error);
       return [];

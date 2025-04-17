@@ -30,8 +30,8 @@ export const useFleetReport = () => {
         throw new Error(error.message);
       }
 
-      // Need to cast here to make TypeScript happy
-      return (data || []) as Vehicle[];
+      // Cast to unknown first, then to Vehicle[] to satisfy TypeScript
+      return (data || []) as unknown as Vehicle[];
     }
   });
 
@@ -86,26 +86,28 @@ export const useFleetReport = () => {
         return [];
       }
 
-      // Safely process the data with type checking
-      return (data || [])
-        .filter(lease => lease !== null)
-        .map(lease => {
-          const profiles = lease?.profiles;
-          const profileData = Array.isArray(profiles) && profiles.length > 0 
-            ? profiles[0] 
-            : typeof profiles === 'object' && profiles 
-              ? profiles 
-              : null;
-              
-          return {
-            vehicleId: lease?.vehicle_id,
-            customerId: lease?.customer_id,
-            customerName: profileData?.full_name || 'Unknown',
-            customerEmail: profileData?.email || '',
-            customerPhone: profileData?.phone_number || ''
-          };
-        })
-        .filter(item => item !== null);
+      if (!data) {
+        return [];
+      }
+
+      // Type safe conversion of data
+      return data.filter(item => item !== null).map(lease => {
+        // Extract profiles data safely
+        let profileData = null;
+        if (lease.profiles) {
+          profileData = Array.isArray(lease.profiles) && lease.profiles.length > 0
+            ? lease.profiles[0]
+            : typeof lease.profiles === 'object' ? lease.profiles : null;
+        }
+        
+        return {
+          vehicleId: lease.vehicle_id,
+          customerId: lease.customer_id,
+          customerName: profileData?.full_name || 'Unknown',
+          customerEmail: profileData?.email || '',
+          customerPhone: profileData?.phone_number || ''
+        };
+      });
     }
   });
 
@@ -123,7 +125,11 @@ export const useFleetReport = () => {
         return [];
       }
 
-      return (data || []).map(item => ({
+      if (!data) {
+        return [];
+      }
+
+      return data.map(item => ({
         id: item.id,
         cost: item.cost || 0,
         vehicleId: item.vehicle_id
