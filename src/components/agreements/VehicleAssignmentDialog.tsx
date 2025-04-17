@@ -82,7 +82,7 @@ export function VehicleAssignmentDialog({
           .single();
           
         if (hasData(vehicleResponse)) {
-          setVehicleInfo(vehicleResponse.data);
+          setVehicleInfo(vehicleResponse.data as VehicleInfo);
         }
       }
       
@@ -149,7 +149,7 @@ export function VehicleAssignmentDialog({
           .single();
           
         if (hasData(customerResponse)) {
-          setCustomerInfo(customerResponse.data);
+          setCustomerInfo(customerResponse.data as CustomerInfo);
         }
       }
     } catch (error) {
