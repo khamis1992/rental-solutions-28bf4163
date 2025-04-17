@@ -25,19 +25,19 @@ export function asImportId(id: string) {
 
 // Column-specific type casters
 export function asLeaseIdColumn(id: string) {
-  return id as string;
+  return id as any;  // Using any to ensure compatibility with strict Supabase types
 }
 
 export function asAgreementIdColumn(id: string) {
-  return id as string;
+  return id as any;  // Using any to ensure compatibility with strict Supabase types
 }
 
 export function asVehicleIdColumn(id: string) {
-  return id as string;
+  return id as any;  // Using any to ensure compatibility with strict Supabase types
 }
 
 export function asImportIdColumn(id: string) {
-  return id as string;
+  return id as any;  // Using any to ensure compatibility with strict Supabase types
 }
 
 // Enhanced safety for status and API responses
@@ -100,4 +100,9 @@ export function safelyGetProfileNames(profiles: any[] | undefined | null): strin
     console.error('Error extracting profile names:', error);
     return 'Error';
   }
+}
+
+// Type converters for database IDs - helps with TypeScript errors
+export function asDbId(id: string): any {
+  return id;
 }
