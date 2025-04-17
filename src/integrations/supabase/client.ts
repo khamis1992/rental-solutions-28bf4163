@@ -65,4 +65,115 @@ export const supabase = createClient<Database>(
   }
 );
 
+/**
+ * Checks the health of the Supabase connection
+ * @returns Promise with health status and optional error message
+ */
+export const checkSupabaseHealth = async (): Promise<{ 
+  isHealthy: boolean; 
+  error?: string;
+  latency?: number;
+}> => {
+  try {
+    const startTime = performance.now();
+    
+    // Simple query to check if the database is responsive
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+      
+    const endTime = performance.now();
+    const latency = Math.round(endTime - startTime);
+    
+    if (error) {
+      console.error('Supabase health check failed:', error);
+      return { 
+        isHealthy: false, 
+        error: error.message,
+        latency
+      };
+    }
+    
+    return { 
+      isHealthy: true,
+      latency
+    };
+  } catch (err) {
+    console.error('Unexpected error during health check:', err);
+    const errorMessage = err instanceof Error ? err.message : 'Unknown database connection error';
+    return { 
+      isHealthy: false, 
+      error: errorMessage
+    };
+  }
+};
+
+/**
+ * Checks connection with retry logic
+ * @param maxRetries Maximum number of retry attempts
+ * @returns Promise with connection status
+ */
+export const checkConnectionWithRetry = async (maxRetries = 3): Promise<boolean> => {
+  let retries = 0;
+  let isConnected = false;
+  
+  while (retries < maxRetries && !isConnected) {
+    const health = await checkSupabaseHealth();
+    isConnected = health.isHealthy;
+    
+    if (!isConnected) {
+      retries++;
+      console.log(`Connection retry attempt ${retries}/${maxRetries}`);
+      // Exponential backoff for retries
+      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retries - 1)));
+    }
+  }
+  
+  return isConnected;
+};
+
+/**
+ * Sets up a periodic database connection monitor
+ * @param onConnectionChange Callback function triggered when connection status changes
+ * @param pollingIntervalMs How often to check connection (default: 30 seconds) 
+ * @returns Function to stop monitoring
+ */
+export const monitorDatabaseConnection = (
+  onConnectionChange?: (isConnected: boolean) => void,
+  pollingIntervalMs = 30000
+): (() => void) => {
+  let isConnected = true; // Assume connected initially
+  let intervalId: number | undefined;
+  
+  const checkConnection = async () => {
+    const health = await checkSupabaseHealth();
+    const newConnectionStatus = health.isHealthy;
+    
+    // Only notify if the status changed
+    if (newConnectionStatus !== isConnected) {
+      isConnected = newConnectionStatus;
+      console.log(`Database connection status changed to: ${isConnected ? 'connected' : 'disconnected'}`);
+      
+      if (onConnectionChange) {
+        onConnectionChange(isConnected);
+      }
+    }
+  };
+  
+  // Initial check
+  checkConnection();
+  
+  // Set up interval for periodic checks
+  intervalId = window.setInterval(checkConnection, pollingIntervalMs);
+  
+  // Return function to stop monitoring
+  return () => {
+    if (intervalId !== undefined) {
+      window.clearInterval(intervalId);
+    }
+  };
+};
+
 export default supabase;
