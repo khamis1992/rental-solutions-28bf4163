@@ -30,7 +30,8 @@ export const useFleetReport = () => {
         throw new Error(error.message);
       }
 
-      return data as Vehicle[];
+      // Need to cast here to make TypeScript happy
+      return (data || []) as Vehicle[];
     }
   });
 
@@ -78,37 +79,33 @@ export const useFleetReport = () => {
             nationality
           )
         `)
-        .eq('status', 'active');
+        .eq('status', 'active' as any);
 
       if (error) {
         console.error('Error fetching rentals:', error);
         return [];
       }
 
-      return data.map(lease => {
-        if (hasData({ data: lease, error: null })) {
+      // Safely process the data with type checking
+      return (data || [])
+        .filter(lease => lease !== null)
+        .map(lease => {
+          const profiles = lease?.profiles;
+          const profileData = Array.isArray(profiles) && profiles.length > 0 
+            ? profiles[0] 
+            : typeof profiles === 'object' && profiles 
+              ? profiles 
+              : null;
+              
           return {
-            vehicleId: lease.vehicle_id,
-            customerId: lease.customer_id,
-            customerName: Array.isArray(lease.profiles) && lease.profiles.length > 0 
-              ? lease.profiles[0].full_name 
-              : typeof lease.profiles === 'object' && lease.profiles 
-                ? lease.profiles.full_name 
-                : 'Unknown',
-            customerEmail: Array.isArray(lease.profiles) && lease.profiles.length > 0 
-              ? lease.profiles[0].email 
-              : typeof lease.profiles === 'object' && lease.profiles 
-                ? lease.profiles.email 
-                : '',
-            customerPhone: Array.isArray(lease.profiles) && lease.profiles.length > 0 
-              ? lease.profiles[0].phone_number 
-              : typeof lease.profiles === 'object' && lease.profiles 
-                ? lease.profiles.phone_number 
-                : ''
+            vehicleId: lease?.vehicle_id,
+            customerId: lease?.customer_id,
+            customerName: profileData?.full_name || 'Unknown',
+            customerEmail: profileData?.email || '',
+            customerPhone: profileData?.phone_number || ''
           };
-        }
-        return null;
-      }).filter(Boolean);
+        })
+        .filter(item => item !== null);
     }
   });
 
@@ -126,7 +123,7 @@ export const useFleetReport = () => {
         return [];
       }
 
-      return data.map(item => ({
+      return (data || []).map(item => ({
         id: item.id,
         cost: item.cost || 0,
         vehicleId: item.vehicle_id

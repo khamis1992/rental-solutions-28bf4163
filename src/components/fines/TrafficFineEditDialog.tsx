@@ -137,16 +137,19 @@ const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
     }
 
     try {
-      await updateTrafficFine.mutate({
+      // Convert Date to string for violationDate
+      const submissionData = {
         id: trafficFine.id,
         violationNumber: data.violationNumber,
         licensePlate: data.licensePlate,
-        violationDate: data.violationDate,
+        violationDate: data.violationDate.toISOString(), // Convert Date to ISO string
         fineAmount: data.fineAmount,
         violationCharge: data.violationCharge || '',
         location: data.location || '',
         paymentStatus: data.paymentStatus
-      }, {
+      };
+      
+      await updateTrafficFine.mutate(submissionData, {
         onSuccess: () => {
           toast.success("Traffic fine updated successfully");
           setPlateValidationResult(null);
