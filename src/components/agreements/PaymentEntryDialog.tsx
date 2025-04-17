@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,13 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { format as dateFormat } from 'date-fns';
-import { ExtendedPayment, Payment } from './PaymentHistory.types';
+import { Payment, ExtendedPayment } from './PaymentHistory.types';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { useAgreements } from '@/hooks/use-agreements';
 import { useParams } from 'react-router-dom';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+
+// Define an interface for payments with additional properties needed in this component
+interface PaymentEntryDialogPayment extends ExtendedPayment {
+  // All required properties are now in ExtendedPayment
+}
 
 interface PaymentEntryDialogProps {
   open: boolean;
@@ -53,7 +59,7 @@ export function PaymentEntryDialog({
   const { getAgreement } = useAgreements();
   const { handleSpecialAgreementPayments, isProcessing } = usePaymentGeneration(null, agreementId);
   
-  const [amount, setAmount] = useState<number>(selectedPayment?.balance || defaultAmount);
+  const [amount, setAmount] = useState<number>(selectedPayment && 'balance' in selectedPayment ? selectedPayment.balance : defaultAmount);
   const [paymentDate, setPaymentDate] = useState<Date>(new Date());
   const [notes, setNotes] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
@@ -61,14 +67,14 @@ export function PaymentEntryDialog({
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [includeLatePaymentFee, setIncludeLatePaymentFee] = useState<boolean>(false);
   const [isPartialPayment, setIsPartialPayment] = useState<boolean>(false);
-  const [pendingPayments, setPendingPayments] = useState<ExtendedPayment[]>([]);
+  const [pendingPayments, setPendingPayments] = useState<PaymentEntryDialogPayment[]>([]);
   const [selectedPaymentId, setSelectedPaymentId] = useState<string | undefined>(
     selectedPayment?.id
   );
   
   useEffect(() => {
     if (open) {
-      setAmount(selectedPayment?.balance || defaultAmount);
+      setAmount(selectedPayment && 'balance' in selectedPayment ? selectedPayment.balance : defaultAmount);
       setPaymentDate(new Date());
       setNotes('');
       setPaymentMethod('cash');
@@ -98,7 +104,7 @@ export function PaymentEntryDialog({
       }
       
       if (data && data.length > 0) {
-        setPendingPayments(data as ExtendedPayment[]);
+        setPendingPayments(data as PaymentEntryDialogPayment[]);
         console.log("Found payments for dialog:", data);
       } else {
         console.log("No pending/overdue payments found");
@@ -158,7 +164,7 @@ export function PaymentEntryDialog({
     
     if (!isNaN(value) && defaultAmount > 0 && value < defaultAmount) {
       setIsPartialPayment(true);
-    } else if (selectedPayment && !isNaN(value) && value < (selectedPayment.balance || 0)) {
+    } else if (selectedPayment && 'balance' in selectedPayment && !isNaN(value) && value < (selectedPayment.balance || 0)) {
       setIsPartialPayment(true);
     } else {
       setIsPartialPayment(false);
@@ -167,7 +173,7 @@ export function PaymentEntryDialog({
 
   const showLateFeeOption = lateFeeDetails !== null;
 
-  const formatPaymentDescription = (payment: ExtendedPayment) => {
+  const formatPaymentDescription = (payment: PaymentEntryDialogPayment) => {
     let desc = payment.description || 
                `${dateFormat(new Date(payment.payment_date || new Date()), 'MMM yyyy')} Payment`;
     

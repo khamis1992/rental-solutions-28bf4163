@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { handleApiError } from '@/hooks/use-api';
 import { VehicleStatus } from '@/types/vehicle';
 
 export interface DashboardStats {
@@ -212,7 +211,7 @@ export function useDashboardData() {
           }
         };
       } catch (error) {
-        handleApiError(error);
+        console.error("API Error:", error);
         throw error;
       }
     }
@@ -255,7 +254,7 @@ export function useDashboardData() {
           revenue
         }));
       } catch (error) {
-        handleApiError(error);
+        console.error("API Error:", error);
         throw error;
       }
     }
@@ -363,7 +362,7 @@ export function useDashboardData() {
           return timeA - timeB;
         }).slice(0, 5);
       } catch (error) {
-        handleApiError(error);
+        console.error("API Error:", error);
         return [];
       }
     }

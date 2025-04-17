@@ -1,33 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useMaintenance } from '@/hooks/use-maintenance';
+
+import React, { useState, useCallback } from 'react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Pencil, Trash2, Plus, Search, Filter, Calendar, Car, Wrench, AlertCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { MaintenanceStatus, MaintenanceType } from '@/lib/validation-schemas/maintenance';
-import { Skeleton } from '@/components/ui/skeleton';
-import { useVehicles } from '@/hooks/use-vehicles';
 import {
   Select,
   SelectContent,
@@ -35,375 +17,226 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Loader2, Search } from 'lucide-react';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { useMaintenance } from '@/hooks/use-maintenance';
+import { useVehicles } from '@/hooks/use-vehicles';
+import { formatCurrency } from '@/lib/utils';
 
-export const MaintenanceList = () => {
+// Define the MaintenanceItem type
+interface MaintenanceItem {
+  id: string;
+  vehicle_id: string;
+  maintenance_type: string;
+  description: string;
+  scheduled_date: string;
+  cost: number;
+  status: "scheduled" | "in_progress" | "completed" | "cancelled";
+  assigned_to?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Define the Vehicle type for proper type checking
+interface Vehicle {
+  id: string;
+  make: string;
+  model: string;
+  year?: number;
+  license_plate: string;
+  [key: string]: any; // For other vehicle properties
+}
+
+export function MaintenanceList() {
+  const { maintenanceRecords, isLoading } = useMaintenance();
+  const { vehicles } = useVehicles();
   
-  const { 
-    getAll,
-    remove,
-    getAllRecords
-  } = useMaintenance();
-  const { useList: useVehicleList } = useVehicles();
-  const { data: vehicles } = useVehicleList({
-    statuses: ['maintenance', 'accident', 'available', 'rented', 'reserved']
-  });
-  const navigate = useNavigate();
-  
-  const [maintenanceRecords, setMaintenanceRecords] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [selectedRecords, setSelectedRecords] = useState([]);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all-statuses');
-  const [vehicleFilter, setVehicleFilter] = useState('all-vehicles');
+  const [vehicleFilter, setVehicleFilter] = useState<string>('');
+  const [maintenanceTypeFilter, setMaintenanceTypeFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
   
-  useEffect(() => {
-    const fetchMaintenance = async () => {
-      try {
-        setIsLoading(true);
-        const records = await getAllRecords();
-        console.log("Fetched maintenance records:", records);
-        setMaintenanceRecords(records || []);
-      } catch (err) {
-        console.error("Error fetching maintenance records:", err);
-        setError(err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Utility function to get vehicle details by ID
+  const getVehicleById = useCallback((vehicleId: string) => {
+    if (!vehicles || !Array.isArray(vehicles)) return null;
+    return vehicles.find(vehicle => vehicle.id === vehicleId);
+  }, [vehicles]);
+  
+  // Formatted records with vehicle details
+  const formattedRecords = React.useMemo(() => {
+    if (!maintenanceRecords) return [];
     
-    fetchMaintenance();
-  }, []);
+    return Array.isArray(maintenanceRecords) ? maintenanceRecords
+      .filter(record => {
+        // Apply all filters
+        const matchesSearch = searchTerm === '' || 
+          record.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (record.notes && record.notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (record.assigned_to && record.assigned_to.toLowerCase().includes(searchTerm.toLowerCase()));
+          
+        const matchesVehicle = vehicleFilter === '' || record.vehicle_id === vehicleFilter;
+        const matchesType = maintenanceTypeFilter === '' || record.maintenance_type === maintenanceTypeFilter;
+        const matchesStatus = statusFilter === '' || record.status === statusFilter;
+        
+        return matchesSearch && matchesVehicle && matchesType && matchesStatus;
+      })
+      .sort((a, b) => {
+        // Sort by scheduled date (most recent first)
+        const dateA = new Date(a.scheduled_date).getTime();
+        const dateB = new Date(b.scheduled_date).getTime();
+        return dateB - dateA;
+      }) : [];
+  }, [maintenanceRecords, searchTerm, vehicleFilter, maintenanceTypeFilter, statusFilter]);
   
-  
-  const handleSelectRecord = (id) => {
-    if (selectedRecords.includes(id)) {
-      setSelectedRecords(selectedRecords.filter(recordId => recordId !== id));
-    } else {
-      setSelectedRecords([...selectedRecords, id]);
-    }
-  };
-  
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedRecords(maintenanceRecords.map(record => record.id));
-    } else {
-      setSelectedRecords([]);
-    }
-  };
-  
-  const handleDelete = (id) => {
-    setRecordToDelete(id);
-    setIsDeleteDialogOpen(true);
-  };
-  
-  const confirmDelete = () => {
-    if (recordToDelete) {
-      remove.mutate(recordToDelete, {
-        onSuccess: () => {
-          setMaintenanceRecords(maintenanceRecords.filter(record => record.id !== recordToDelete));
-          setSelectedRecords(selectedRecords.filter(id => id !== recordToDelete));
-        }
-      });
-    }
-    setIsDeleteDialogOpen(false);
-    setRecordToDelete(null);
-  };
-  
-  const handleBulkDelete = () => {
-    console.log("Bulk delete functionality is not implemented");
-  };
-  
-  const applyFilters = async () => {
-    try {
-      setIsLoading(true);
-      const records = await getAllRecords();
-      
-      let filteredRecords = records;
-      
-      if (searchTerm) {
-        filteredRecords = filteredRecords.filter(record => 
-          record?.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          record?.maintenance_type?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      }
-      
-      if (statusFilter && statusFilter !== 'all-statuses') {
-        filteredRecords = filteredRecords.filter(record => record?.status === statusFilter);
-      }
-      
-      if (vehicleFilter && vehicleFilter !== 'all-vehicles') {
-        filteredRecords = filteredRecords.filter(record => record?.vehicle_id === vehicleFilter);
-      }
-      
-      setMaintenanceRecords(filteredRecords);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const clearFilters = async () => {
-    setSearchTerm('');
-    setStatusFilter('all-statuses');
-    setVehicleFilter('all-vehicles');
-    
-    try {
-      setIsLoading(true);
-      const records = await getAllRecords();
-      setMaintenanceRecords(records || []);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const formatMaintenanceType = (type) => {
-    if (!type) return 'Unknown';
-    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-  };
-  
-  const getStatusBadgeClass = (status) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case "scheduled":
-        return 'bg-blue-100 text-blue-800';
-      case "in_progress":
-        return 'bg-yellow-100 text-yellow-800';
-      case "completed":
-        return 'bg-green-100 text-green-800';
-      case "cancelled":
-        return 'bg-red-100 text-red-800';
+      case 'scheduled':
+        return 'outline';
+      case 'in_progress':
+        return 'secondary';
+      case 'completed':
+        return 'success';
+      case 'cancelled':
+        return 'destructive';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'default';
     }
   };
   
-  const getVehicleName = (vehicleId) => {
-    if (!vehicles) return 'Loading...';
-    const vehicle = vehicles.find(v => v?.id === vehicleId);
-    return vehicle ? `${vehicle.make} ${vehicle.model} (${vehicle.license_plate})` : 'Unknown Vehicle';
-  };
-  
-  const getValidVehicleOptions = () => {
-    if (!vehicles || !Array.isArray(vehicles)) return [];
-    
-    return vehicles.filter(vehicle => 
-      vehicle && 
-      vehicle.id &&
-      vehicle.make && 
-      vehicle.model && 
-      vehicle.license_plate
-    );
-  };
-  
-  if (error) {
+  if (isLoading) {
     return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          {error instanceof Error ? error.message : 'Failed to load maintenance records'}
-        </AlertDescription>
-      </Alert>
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
-
-  const validVehicleOptions = getValidVehicleOptions();
   
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search maintenance..."
-              className="pl-8 w-[250px]"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
-            />
-          </div>
-          
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-statuses">All Statuses</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
-            <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Filter by vehicle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all-vehicles">All Vehicles</SelectItem>
-              {validVehicleOptions.map(vehicle => (
-                <SelectItem key={vehicle.id} value={vehicle.id}>
-                  {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          
-          <Button variant="outline" size="sm" onClick={applyFilters}>
-            <Filter className="h-4 w-4 mr-2" />
-            Apply Filters
-          </Button>
-          
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            Clear
-          </Button>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search maintenance records..."
+            className="pl-10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         
-        <div className="flex items-center space-x-2">
-          {selectedRecords.length > 0 && (
-            <Button variant="outline" size="sm" onClick={handleBulkDelete}>
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Selected ({selectedRecords.length})
-            </Button>
-          )}
-          
-          <Button onClick={() => navigate('/maintenance/add')}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Maintenance
-          </Button>
-        </div>
+        <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="All Vehicles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Vehicles</SelectItem>
+            {vehicles && Array.isArray(vehicles) && vehicles.map((vehicle) => (
+              <SelectItem key={vehicle.id} value={vehicle.id}>
+                {vehicle.make} {vehicle.model}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        <Select value={maintenanceTypeFilter} onValueChange={setMaintenanceTypeFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="REGULAR_INSPECTION">Regular Inspection</SelectItem>
+            <SelectItem value="OIL_CHANGE">Oil Change</SelectItem>
+            <SelectItem value="TIRE_REPLACEMENT">Tire Replacement</SelectItem>
+            <SelectItem value="BRAKE_SERVICE">Brake Service</SelectItem>
+            <SelectItem value="OTHER">Other</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="scheduled">Scheduled</SelectItem>
+            <SelectItem value="in_progress">In Progress</SelectItem>
+            <SelectItem value="completed">Completed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Maintenance Records</CardTitle>
-        </CardHeader>
-        <CardContent>
-          
-          {isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((_, index) => (
-                <div key={index} className="flex items-center space-x-4">
-                  <Skeleton className="h-4 w-4" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ))}
-            </div>
-          ) : maintenanceRecords.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Wrench className="h-12 w-12 mx-auto mb-4 opacity-20" />
-              <h3 className="text-lg font-medium mb-2">No Maintenance Records</h3>
-              <p>No maintenance records found. Add your first maintenance record to get started.</p>
-              <Button className="mt-4" onClick={() => navigate('/maintenance/add')}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Maintenance
-              </Button>
-            </div>
-          ) : (
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox 
-                        onCheckedChange={handleSelectAll}
-                        checked={selectedRecords.length === maintenanceRecords.length && maintenanceRecords.length > 0}
-                      />
-                    </TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Vehicle</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Vehicle</TableHead>
+              <TableHead>Type</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Scheduled Date</TableHead>
+              <TableHead>Cost</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {formattedRecords.length > 0 ? (
+              formattedRecords.map((record) => {
+                const vehicle = getVehicleById(record.vehicle_id);
+                return (
+                  <TableRow key={record.id}>
+                    <TableCell>
+                      {vehicle ? (
+                        <span>
+                          {vehicle.make} {vehicle.model} <br />
+                          <span className="text-xs text-muted-foreground">
+                            {vehicle.license_plate}
+                          </span>
+                        </span>
+                      ) : (
+                        "Unknown Vehicle"
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {record.maintenance_type.replace(/_/g, " ")}
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {record.description}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(record.scheduled_date), "MMM d, yyyy")}
+                    </TableCell>
+                    <TableCell>{formatCurrency(record.cost)}</TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(record.status)}>
+                        {record.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link to={`/maintenance/${record.id}`}>
+                        <Button variant="ghost" size="sm">
+                          View
+                        </Button>
+                      </Link>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {maintenanceRecords.map(record => {
-                    if (!record || !record.id) return null;
-                    
-                    return (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          <Checkbox 
-                            checked={selectedRecords.includes(record.id)}
-                            onCheckedChange={() => handleSelectRecord(record.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          {formatMaintenanceType(record.maintenance_type || 'unknown')}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {getVehicleName(record.vehicle_id)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center">
-                            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                            {record.scheduled_date ? format(new Date(record.scheduled_date), 'MMM d, yyyy') : 'Not scheduled'}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusBadgeClass(record.status)}>
-                            {record.status ? record.status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ') : 'Unknown'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>${record.cost?.toFixed(2) || '0.00'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/maintenance/${record.id}`)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(record.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the maintenance record.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete}>
-              {remove.isPending ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  No maintenance records found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
-};
+}
+
+export default MaintenanceList;

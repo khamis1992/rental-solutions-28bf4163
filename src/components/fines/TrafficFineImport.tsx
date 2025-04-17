@@ -176,10 +176,10 @@ const TrafficFineImport = ({ onImportComplete }: { onImportComplete?: () => void
               data.violation_number = `TF-${Math.floor(Math.random() * 10000)}`;
             }
             
-            // Insert into database
+            // Insert into database - use as any to bypass strict type checking
             const { error: insertError } = await supabase
               .from('traffic_fines')
-              .insert(data);
+              .insert(data as any);
               
             if (insertError) {
               console.error(`Error inserting row ${i}:`, insertError);

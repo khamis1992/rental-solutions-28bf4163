@@ -6,39 +6,37 @@ import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-
 interface HeaderProps {
   onToggleSidebar?: () => void;
   isSidebarOpen?: boolean;
+  onSearch?: (query: string) => void;
+  searchQuery?: string;
+  searchPlaceholder?: string;
 }
-
-const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
+const Header = ({
+  onToggleSidebar,
+  isSidebarOpen = true,
+  onSearch,
+  searchQuery = '',
+  searchPlaceholder = "Search..."
+}: HeaderProps) => {
   const isMobile = useIsMobile();
+  
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (onSearch) {
+      onSearch(e.target.value);
+    }
+  };
 
-  return (
-    <header className="w-full h-16 px-4 md:px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
+  return <header className="w-full h-16 px-4 md:px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
       <div className="flex items-center gap-2">
         {/* Mobile menu button */}
-        {isMobile && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden" 
-            onClick={onToggleSidebar}
-          >
-            {isSidebarOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+        {isMobile && <Button variant="ghost" size="icon" className="md:hidden" onClick={onToggleSidebar}>
+            {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             <span className="sr-only">Toggle Menu</span>
-          </Button>
-        )}
+          </Button>}
         
-        <div className={cn(
-          "flex items-center",
-          isMobile ? "ml-0" : "ml-4"
-        )}>
+        <div className={cn("flex items-center", isMobile ? "ml-0" : "ml-4")}>
           <div className="h-10 w-10 rounded-md bg-primary text-primary-foreground items-center justify-center font-semibold text-xl hidden md:flex">
             RS
           </div>
@@ -47,19 +45,25 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
       </div>
       
       <div className="flex-1 max-w-md mx-4 relative hidden md:block">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-4 w-4 text-muted-foreground" />
-        </div>
-        <Input 
-          type="text" 
-          placeholder="Search..." 
-          className="w-full pl-10 pr-4 py-2 text-sm bg-secondary border-none rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20" 
-        />
+        {onSearch !== undefined && (
+          <>
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <Input 
+              type="text" 
+              placeholder={searchPlaceholder} 
+              className="pl-10 pr-4 py-2 text-sm w-full" 
+              value={searchQuery}
+              onChange={handleSearchChange}
+            />
+          </>
+        )}
       </div>
       
       <div className="flex items-center gap-2">
         {/* Mobile search trigger */}
-        {isMobile && (
+        {isMobile && onSearch !== undefined && (
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="h-9 w-9">
@@ -71,9 +75,11 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
               <div className="relative p-4">
                 <Input 
                   type="text" 
-                  placeholder="Search..." 
+                  placeholder={searchPlaceholder}
                   className="w-full pl-10 pr-4 py-2 text-sm" 
                   autoFocus
+                  value={searchQuery}
+                  onChange={handleSearchChange}
                 />
                 <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-muted-foreground" />
@@ -82,12 +88,6 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
             </SheetContent>
           </Sheet>
         )}
-        
-        <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-          <span className="sr-only">Notifications</span>
-        </Button>
         
         <Button variant="ghost" size="icon" className="h-9 w-9">
           <Settings className="h-4 w-4" />
@@ -99,8 +99,6 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
           <span className="sr-only">User</span>
         </Button>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default Header;

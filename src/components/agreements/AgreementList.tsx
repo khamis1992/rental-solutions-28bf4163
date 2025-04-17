@@ -2,14 +2,7 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { castDbId } from '@/lib/supabase-types';
-import { 
-  asTableId, 
-  asAgreementIdColumn, 
-  asLeaseIdColumn, 
-  asImportIdColumn,
-  asTrafficFineIdColumn 
-} from '@/utils/database-type-helpers';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   ColumnDef, 
   flexRender, 
@@ -36,7 +29,8 @@ import {
   ChevronRight,
   Info,
   ArrowUpDown,
-  Trash2
+  Trash2,
+  Car
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -69,7 +63,6 @@ import {
   PaginationLink
 } from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
-import { Car } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   AlertDialog,
@@ -82,16 +75,22 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { Database } from '@/types/database.types';
+import { castDbId } from '@/utils/db-id-helper';
+
+type DbTables = Database['public']['Tables'];
+type AgreementId = DbTables['leases']['Row']['id'];
+type PaymentId = DbTables['unified_payments']['Row']['id'];
+type ImportId = string;
+type TrafficFineId = DbTables['traffic_fines']['Row']['id'];
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', agreementId)
-      .single();
+      .eq('agreement_id', agreementId as any);
     
     if (error) {
       console.error("Error fetching overdue payments:", error);
@@ -108,7 +107,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', agreementId);
+      .eq('lease_id', agreementId as any);
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -125,7 +124,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', importId as any);
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -142,7 +141,7 @@ const getImportRevertStatus = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', importId as any);
     
     if (error) {
       console.error("Error fetching import revert status:", error);
@@ -159,7 +158,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', agreementId as any);
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -176,7 +175,7 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', agreementId as any);
     
     if (error) {
       console.error("Error fetching traffic fines by agreement ID:", error);
@@ -188,7 +187,81 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
   }
 };
 
-export const AgreementList = () => {
+const getOverduePaymentCount = async (id: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('overdue_payments')
+    .select('*', { count: 'exact', head: true })
+    .eq('agreement_id', id as any);
+  
+  if (error) {
+    console.error('Error getting overdue payments count:', error);
+    return 0;
+  }
+  
+  return count || 0;
+};
+
+const getPaymentCount = async (id: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('unified_payments')
+    .select('*', { count: 'exact', head: true })
+    .eq('lease_id', id as any);
+  
+  if (error) {
+    console.error('Error getting payment count:', error);
+    return 0;
+  }
+  
+  return count || 0;
+};
+
+const getRevertCount = async (id: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('agreement_import_reverts')
+    .select('*', { count: 'exact', head: true })
+    .eq('import_id', id as any);
+  
+  if (error) {
+    console.error('Error getting revert count:', error);
+    return 0;
+  }
+  
+  return count || 0;
+};
+
+const getTrafficFineCount = async (id: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('traffic_fines')
+    .select('*', { count: 'exact', head: true })
+    .eq('agreement_id', id as any);
+  
+  if (error) {
+    console.error('Error getting traffic fine count:', error);
+    return 0;
+  }
+  
+  return count || 0;
+};
+
+const getTrafficFineCountByAgreementId = async (id: string): Promise<number> => {
+  const { count, error } = await supabase
+    .from('traffic_fines')
+    .select('*', { count: 'exact', head: true })
+    .eq('agreement_id', id as any);
+  
+  if (error) {
+    console.error('Error getting traffic fine count by agreement ID:', error);
+    return 0;
+  }
+  
+  return count || 0;
+};
+
+interface AgreementListProps {
+  customerNameSearch?: string;
+}
+
+export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -247,7 +320,7 @@ export const AgreementList = () => {
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
-          .eq('agreement_id', id);
+          .eq('agreement_id', id as any);
         
         if (overduePaymentsDeleteError) {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
@@ -258,7 +331,7 @@ export const AgreementList = () => {
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
-          .eq('lease_id', id);
+          .eq('lease_id', id as any);
         
         if (paymentDeleteError) {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
@@ -269,13 +342,13 @@ export const AgreementList = () => {
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
-          .eq('import_id', id);
+          .eq('import_id', id as any);
         
         if (relatedReverts && relatedReverts.length > 0) {
           const { error: revertDeleteError } = await supabase
             .from('agreement_import_reverts')
             .delete()
-            .eq('import_id', id);
+            .eq('import_id', id as any);
           
           if (revertDeleteError) {
             console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
@@ -287,7 +360,7 @@ export const AgreementList = () => {
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
-          .eq('agreement_id', id);
+          .eq('agreement_id', id as any);
         
         if (trafficFinesError) {
           console.error(`Error checking traffic fines for ${id}:`, trafficFinesError);
@@ -295,7 +368,7 @@ export const AgreementList = () => {
           const { error: finesDeleteError } = await supabase
             .from('traffic_fines')
             .delete()
-            .eq('agreement_id', id);
+            .eq('agreement_id', id as any);
           
           if (finesDeleteError) {
             console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
@@ -307,18 +380,17 @@ export const AgreementList = () => {
         const { error } = await supabase
           .from('leases')
           .delete()
-          .eq('id', asTableId('leases', id));
+          .eq('id', id as any);
         
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);
-          toast.error(`Failed to delete agreement: ${error.message}`);
           errorCount++;
         } else {
           console.log(`Successfully deleted agreement ${id}`);
           successCount++;
         }
-      } catch (err) {
-        console.error('Error deleting:', err);
+      } catch (error) {
+        console.error(`Failed to delete agreement ${id}:`, error);
         errorCount++;
       }
     }
@@ -384,15 +456,15 @@ export const AgreementList = () => {
       accessorKey: "customers.full_name",
       header: "Customer",
       cell: ({ row }) => {
-        const customer = row.original.customers;
+        const profile = row.original.profiles;
         return (
           <div>
-            {customer && customer.id ? (
+            {profile && profile.id ? (
               <Link 
-                to={`/customers/${customer.id}`}
+                to={`/customers/${profile.id}`}
                 className="hover:underline"
               >
-                {customer.full_name || 'N/A'}
+                {profile.full_name || 'N/A'}
               </Link>
             ) : (
               'N/A'
@@ -499,6 +571,29 @@ export const AgreementList = () => {
       },
     },
     {
+      accessorKey: "created_at",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            className="px-0 font-medium"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Created Date
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const createdAt = row.original.created_at;
+        return (
+          <div className="whitespace-nowrap">
+            {createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : 'N/A'}
+          </div>
+        );
+      },
+    },
+    {
       id: "actions",
       cell: ({ row }) => {
         const agreement = row.original;
@@ -542,8 +637,22 @@ export const AgreementList = () => {
     },
   ];
 
+  const filteredAgreements = React.useMemo(() => {
+    if (!agreements) return [];
+    
+    if (customerNameSearch.trim() === '') {
+      return agreements;
+    }
+    
+    const searchLower = customerNameSearch.toLowerCase().trim();
+    return agreements.filter(agreement => {
+      const customerName = agreement.customers?.full_name || '';
+      return customerName.toLowerCase().includes(searchLower);
+    });
+  }, [agreements, customerNameSearch]);
+
   const table = useReactTable({
-    data: agreements || [],
+    data: filteredAgreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -560,7 +669,7 @@ export const AgreementList = () => {
       pagination,
     },
     manualPagination: false,
-    pageCount: Math.ceil((agreements?.length || 0) / 10),
+    pageCount: Math.ceil((filteredAgreements?.length || 0) / 10),
   });
 
   const handleStatusFilterChange = (value: string) => {
@@ -591,6 +700,12 @@ export const AgreementList = () => {
             </SelectContent>
           </Select>
         </div>
+        
+        {customerNameSearch && filteredAgreements && (
+          <div className="text-sm text-muted-foreground">
+            Found {filteredAgreements.length} {filteredAgreements.length === 1 ? 'result' : 'results'} for "{customerNameSearch}"
+          </div>
+        )}
         
         <div className="flex gap-2">
           {selectedCount > 0 && (
@@ -668,9 +783,11 @@ export const AgreementList = () => {
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Info className="h-5 w-5 text-muted-foreground" />
                     <p>
-                      {statusFilter !== 'all' ? 
-                        'No agreements found with the selected status.' : 
-                        'Add your first agreement using the button above.'}
+                      {customerNameSearch ? 
+                        'No agreements found matching your search.' : 
+                        statusFilter !== 'all' ? 
+                          'No agreements found with the selected status.' : 
+                          'Add your first agreement using the button above.'}
                     </p>
                   </div>
                 </TableCell>

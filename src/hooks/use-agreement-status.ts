@@ -1,211 +1,152 @@
 
-import { useState, useCallback } from 'react';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { exists } from '@/utils/database-type-helpers';
 
-/**
- * Custom hook for managing agreement status changes
- */
-export const useAgreementStatus = (agreement: Agreement | null, agreementId: string | undefined) => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [statusUpdateProgress, setStatusUpdateProgress] = useState<string | null>(null);
+// Helper function to safely get property values when they might be null/undefined
+const safeGet = <T, K extends keyof T>(obj: T | null | undefined, key: K, defaultValue: T[K]): T[K] => {
+  if (obj === null || obj === undefined) return defaultValue;
+  return obj[key] !== undefined ? obj[key] : defaultValue;
+};
 
-  /**
-   * Updates agreement status with proper validation and progress tracking
-   */
-  const updateStatus = useCallback(async (
-    newStatus: string,
-    notes?: string
-  ): Promise<boolean> => {
-    if (!agreement && !agreementId) {
-      toast.error("Agreement information is missing");
-      return false;
-    }
-    
-    const id = agreement?.id || agreementId;
-    if (!id) {
-      toast.error("Agreement ID is required");
-      return false;
-    }
-    
-    setIsProcessing(true);
-    setStatusUpdateProgress("Preparing status update...");
-    
-    try {
-      // Check if it's a significant status change
-      const isActivation = newStatus === 'active';
-      const isClosure = newStatus === 'closed';
-      
-      // Create update data
-      const updateData = {
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-        notes: notes || agreement?.notes
-      };
-      
-      // Track timing if needed for debugging
-      const startTime = Date.now();
-      
-      // Update agreement status
-      setStatusUpdateProgress("Updating agreement status...");
-      const { error: updateError } = await supabase
-        .from('leases')
-        .update(updateData)
-        .eq('id', id);
-        
-      if (updateError) {
-        console.error("Error updating agreement status:", updateError);
-        toast.error(`Failed to update status: ${updateError.message}`);
-        setStatusUpdateProgress(null);
-        setIsProcessing(false);
-        return false;
-      }
-      
-      // Special handling for activation
-      if (isActivation) {
-        setStatusUpdateProgress("Agreement activated. Setting up payment schedule...");
-        
-        // Run payment schedule generation as a separate task
-        try {
-          // Wait for max 15 seconds before giving up (but don't block UI)
-          const paymentSchedulePromise = generatePaymentSchedule(id);
-          const timeoutPromise = new Promise<{ success: boolean; message: string }>(
-            (resolve) => setTimeout(() => resolve({ 
-              success: true, 
-              message: "Payment setup initiated but taking longer than expected." 
-            }), 15000)
-          );
-          
-          // Race between completion and timeout
-          const result = await Promise.race([paymentSchedulePromise, timeoutPromise]);
-          
-          if (result.success) {
-            setStatusUpdateProgress("Payment schedule setup completed successfully");
-          } else {
-            console.warn("Payment schedule issue:", result.message);
-            setStatusUpdateProgress("Status updated, but there was an issue with the payment schedule");
-            toast.warning("Status updated, but there was an issue with the payment schedule. It will be retried automatically.");
-          }
-        } catch (err) {
-          console.error("Error in payment schedule setup:", err);
-          // Don't fail the status change, just show a warning
-          toast.warning("Status updated, but there was an issue with the payment schedule");
-        }
-      } 
-      // Special handling for closure
-      else if (isClosure) {
-        setStatusUpdateProgress("Finalizing agreement closure...");
-        
-        // Add any specific closure logic here
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        setStatusUpdateProgress("Agreement closed successfully");
-      } 
-      // Standard status changes
-      else {
-        setStatusUpdateProgress("Agreement status updated successfully");
-      }
-      
-      // Calculate how long the operation took
-      const operationTime = Date.now() - startTime;
-      console.log(`Status update operation completed in ${operationTime}ms`);
-      
-      toast.success(`Agreement status updated to ${newStatus}`);
-      
-      // Reset states after a delay to allow user to see the success message
-      setTimeout(() => {
-        setStatusUpdateProgress(null);
-        setIsProcessing(false);
-      }, 1500);
-      
-      return true;
-    } catch (error) {
-      console.error("Unexpected error updating agreement status:", error);
-      toast.error(`Failed to update status: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setStatusUpdateProgress(null);
-      setIsProcessing(false);
-      return false;
-    }
-  }, [agreement, agreementId]);
-  
-  /**
-   * Generate payment schedule with timeout protection
-   */
-  const generatePaymentSchedule = async (id: string): Promise<{ success: boolean; message: string }> => {
-    try {
-      // First get the agreement details
+// Helper function to check if a response has data 
+const hasData = (response: any): boolean => {
+  return response && !response.error && response.data;
+};
+
+export const useAgreementStatus = (agreementId: string) => {
+  const queryClient = useQueryClient();
+
+  const { data: agreement, isLoading, error } = useQuery({
+    queryKey: ['agreement', agreementId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('leases')
-        .select('*')
-        .eq('id', id)
+        .select(`
+          id, 
+          agreement_number,
+          status,
+          start_date,
+          end_date,
+          rent_amount,
+          rent_due_day,
+          total_amount
+        `)
+        .eq('id', agreementId)
         .single();
-        
-      if (error || !data) {
-        console.error("Error fetching agreement for payment schedule:", error);
-        return { 
-          success: false, 
-          message: `Failed to fetch agreement details: ${error?.message || 'No data found'}` 
-        };
-      }
-      
-      // Check if payment already exists
-      const { data: existingPayments, error: checkError } = await supabase
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!agreementId,
+  });
+
+  const { data: payments, isLoading: isLoadingPayments } = useQuery({
+    queryKey: ['agreement-payments', agreementId],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('unified_payments')
-        .select('id')
-        .eq('lease_id', id)
-        .limit(1);
-        
-      if (!checkError && existingPayments && existingPayments.length > 0) {
-        return { success: true, message: "Payments already exist for this agreement" };
-      }
+        .select('*')
+        .eq('lease_id', agreementId)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!agreementId,
+  });
+
+  const checkIsPaymentCreated = async (month: number, year: number) => {
+    if (!payments) return false;
+    
+    return payments.some((payment: any) => {
+      if (!payment.due_date) return false;
       
-      // Create a payment entry
-      if (!data.rent_amount) {
-        return { success: false, message: "Cannot create payment - no rent amount specified" };
-      }
-      
-      // Determine payment due date
-      const rentDueDay = data.rent_due_day || 1;
-      const today = new Date();
-      const dueDate = new Date(today.getFullYear(), today.getMonth(), rentDueDay);
-      
-      // If today's date is past the due day, set for next month
-      if (today.getDate() > rentDueDay) {
-        dueDate.setMonth(dueDate.getMonth() + 1);
-      }
-      
-      // Create payment record
-      const { error: insertError } = await supabase
-        .from('unified_payments')
-        .insert({
-          lease_id: id,
-          amount: data.rent_amount,
-          description: `Rent Payment - ${dueDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`,
-          type: 'rent',
-          status: 'pending',
-          due_date: dueDate.toISOString(),
-          is_recurring: false
-        });
-        
-      if (insertError) {
-        console.error("Error creating payment:", insertError);
-        return { success: false, message: `Failed to create payment: ${insertError.message}` };
-      }
-      
-      return { success: true, message: "Payment schedule created successfully" };
-    } catch (error) {
-      console.error("Error in generatePaymentSchedule:", error);
+      const paymentDate = new Date(payment.due_date);
+      return paymentDate.getMonth() === month && paymentDate.getFullYear() === year;
+    });
+  };
+
+  const generateNextPayment = async () => {
+    if (!agreement) {
+      console.error('Agreement data not available');
+      return { success: false, message: 'Agreement data not available' };
+    }
+    
+    // Default to 1 if rent_due_day is not available
+    const rentDueDay = agreement.rent_due_day || 1;
+    
+    // Use a safer default value if rent_amount is not available
+    const rentAmount = safeGet(agreement, 'rent_amount', 0);
+    
+    if (rentAmount <= 0) {
       return { 
         success: false, 
-        message: `Failed to generate payment schedule: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: 'Invalid rent amount: ' + rentAmount 
+      };
+    }
+    
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    // Check if we already have a payment for this month
+    const paymentExists = await checkIsPaymentCreated(currentMonth, currentYear);
+    if (paymentExists) {
+      return { 
+        success: false, 
+        message: 'Payment for current month already exists' 
+      };
+    }
+    
+    // Set the due date to the rent_due_day of current month
+    const dueDate = new Date(currentYear, currentMonth, rentDueDay);
+    
+    // Format the due date as ISO string
+    const dueDateString = dueDate.toISOString();
+    
+    try {
+      // Insert the new payment
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .insert({
+          lease_id: agreementId,
+          amount: rentAmount,
+          amount_paid: 0,
+          balance: rentAmount,
+          description: `Rent payment for ${dueDate.toLocaleString('default', { month: 'long' })} ${currentYear}`,
+          type: 'Income',
+          status: 'pending',
+          due_date: dueDateString,
+          is_recurring: true
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Invalidate the cache to refetch payments
+      queryClient.invalidateQueries({ queryKey: ['agreement-payments', agreementId] });
+      
+      return { 
+        success: true, 
+        message: 'Payment schedule generated successfully' 
+      };
+      
+    } catch (error: any) {
+      console.error('Error generating payment:', error);
+      return { 
+        success: false, 
+        message: error.message || 'Failed to generate payment' 
       };
     }
   };
 
   return {
-    isProcessing,
-    statusUpdateProgress,
-    updateStatus,
+    agreement,
+    payments,
+    isLoading: isLoading || isLoadingPayments,
+    error,
+    generateNextPayment,
   };
 };

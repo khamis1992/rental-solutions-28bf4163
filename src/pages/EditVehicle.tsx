@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Car, ArrowLeft } from 'lucide-react';
@@ -38,7 +37,6 @@ const EditVehicle = () => {
     isPending: isUpdating,
   } = useUpdate();
   
-  // Sync fetched data with local state, forcing an update when status changes
   useEffect(() => {
     if (fetchedVehicle) {
       console.log("Vehicle data received from API:", fetchedVehicle);
@@ -58,10 +56,8 @@ const EditVehicle = () => {
     }
   }, [fetchedVehicle, isFetching, fetchError]);
 
-  // Handle navigation after update is completed
   useEffect(() => {
     if (updateCompleted && !isSubmitting && !isUpdating) {
-      // Use a timeout to ensure we don't navigate too quickly before state updates are processed
       const timer = setTimeout(() => {
         navigate(`/vehicles/${id}`);
       }, 500);
@@ -78,13 +74,11 @@ const EditVehicle = () => {
       setIsSubmitting(true);
       console.log("Submitting form data:", formData);
       
-      // Make sure to preserve the current status if not changed in the form
       if (!formData.status && vehicle.status) {
         console.log(`Preserving current status: ${vehicle.status}`);
         formData.status = vehicle.status;
       }
       
-      // Make sure status is properly handled
       if (formData.status) {
         console.log(`EditVehicle: Status being submitted: ${formData.status}`);
       }
@@ -96,7 +90,6 @@ const EditVehicle = () => {
             onSuccess: async () => {
               console.log("Update successful, refreshing data");
               try {
-                // Force data refresh from server before navigating
                 await refetch();
                 toast.success('Vehicle updated successfully');
                 setUpdateCompleted(true);
@@ -128,13 +121,11 @@ const EditVehicle = () => {
     }
   };
   
-  // Handle status update completion with forced refresh
   const handleStatusUpdated = async (): Promise<boolean> => {
     console.log('Status updated, refreshing vehicle data');
     setStatusUpdateInProgress(true);
     
     try {
-      // Force cache invalidation and get fresh data
       const refreshResult = await refetch();
       
       console.log(`Data refresh completed:`, refreshResult);
@@ -144,15 +135,12 @@ const EditVehicle = () => {
       }
       
       if (refreshResult.data) {
-        // Update local state to ensure UI reflects the latest status
         setVehicle(refreshResult.data);
         console.log('Local vehicle state updated with new data:', refreshResult.data);
       }
       
-      // Add a small delay to ensure database consistency
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Return success to the caller
       return true;
     } catch (error) {
       console.error('Error refreshing data after status update:', error);
@@ -195,9 +183,7 @@ const EditVehicle = () => {
     );
   }
 
-  // Ensure status is a valid VehicleStatus or provide a default
   const vehicleStatus = vehicle?.status || 'available';
-  // Ensure the status is one of the allowed values
   const validatedStatus: VehicleStatus = 
     ['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired']
       .includes(vehicleStatus as string) 
@@ -247,7 +233,6 @@ const EditVehicle = () => {
         />
       </div>
 
-      {/* Status Update Dialog - With proper sync of current status */}
       <StatusUpdateDialog
         isOpen={showStatusDialog}
         onClose={() => {

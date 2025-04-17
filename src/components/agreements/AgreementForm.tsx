@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -34,10 +33,10 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
   const vehiclesHook = useVehicles();
-  const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
+  const vehicles = vehiclesHook.vehicles;
+  const isLoadingVehicles = vehiclesHook.isLoading;
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
 
-  // Initialize form with default values
   const form = useForm<Agreement>({
     resolver: zodResolver(agreementSchema),
     defaultValues: {
@@ -58,24 +57,20 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     },
   });
 
-  // Make sure to set the ID from initialData
   useEffect(() => {
     if (initialData?.id) {
       form.setValue('id', initialData.id);
     }
 
-    // Ensure rent_amount is correctly set
     if (initialData?.rent_amount) {
       console.log("Setting rent_amount from initialData:", initialData.rent_amount);
       form.setValue('rent_amount', initialData.rent_amount);
     }
 
-    // Set vehicle_id if it exists
     if (initialData?.vehicle_id) {
       console.log("Setting vehicle_id from initialData:", initialData.vehicle_id);
       form.setValue('vehicle_id', initialData.vehicle_id);
       
-      // If we have vehicle information, set the selected vehicle
       if (initialData.vehicles) {
         console.log("Setting selected vehicle from initialData:", initialData.vehicles);
         setSelectedVehicle(initialData.vehicles);
@@ -83,7 +78,6 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
     }
   }, [initialData, form]);
 
-  // When vehicle is selected, update selected vehicle state
   const handleVehicleChange = (vehicleId: string) => {
     if (vehicles && Array.isArray(vehicles)) {
       const vehicle = vehicles.find(v => v.id === vehicleId);
@@ -100,8 +94,6 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
         return;
       }
       
-      // We'll handle the terms separately from the form data
-      // to avoid sending it to the database
       const finalData = {
         ...data,
         terms_accepted: termsAccepted,
@@ -254,7 +246,6 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
             />
           </div>
 
-          {/* Display selected vehicle details */}
           {selectedVehicle && (
             <Card className="mt-4 bg-slate-50">
               <CardContent className="pt-4">

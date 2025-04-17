@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
@@ -38,7 +38,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
 
   // Filter traffic fines for this agreement if needed
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
-    fine.leaseId === agreementId
+    fine.lease_id === agreementId
   ) : [];
 
   if (!filteredFines || filteredFines.length === 0) {
@@ -73,24 +73,24 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
             {filteredFines.map((fine) => (
               <tr key={fine.id} className="border-b hover:bg-muted/50">
                 <td className="py-3 px-4">
-                  {fine.violationDate 
-                    ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
+                  {fine.violation_date 
+                    ? format(new Date(fine.violation_date), 'dd MMM yyyy') 
                     : 'N/A'}
                 </td>
-                <td className="py-3 px-4">{fine.location || 'N/A'}</td>
-                <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
+                <td className="py-3 px-4">{fine.fine_location || 'N/A'}</td>
+                <td className="py-3 px-4">{fine.violation_charge || 'N/A'}</td>
                 <td className="py-3 px-4 text-right">
-                  {fine.fineAmount 
-                    ? `QAR ${fine.fineAmount.toLocaleString()}` 
+                  {fine.fine_amount 
+                    ? `QAR ${fine.fine_amount.toLocaleString()}` 
                     : 'N/A'}
                 </td>
                 <td className="py-3 px-4 text-right">
                   <span className={`px-2 py-1 rounded-full text-xs ${
-                    fine.paymentStatus === 'paid' 
+                    fine.payment_status === 'paid' 
                       ? 'bg-green-100 text-green-800' 
                       : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
+                    {fine.payment_status === 'paid' ? 'Paid' : 'Pending'}
                   </span>
                 </td>
               </tr>

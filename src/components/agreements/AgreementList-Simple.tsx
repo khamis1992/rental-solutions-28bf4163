@@ -1,7 +1,18 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
+import { 
+  ColumnDef, 
+  flexRender, 
+  getCoreRowModel, 
+  useReactTable, 
+  SortingState,
+  getSortedRowModel,
+  getPaginationRowModel,
+  ColumnFiltersState,
+  getFilteredRowModel,
+  RowSelectionState
+} from "@tanstack/react-table";
 import { 
   MoreHorizontal, 
   FileText, 
@@ -11,7 +22,12 @@ import {
   FileEdit,
   FilePlus,
   AlertTriangle,
-  Loader2
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Info,
+  ArrowUpDown,
+  Trash2
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -32,14 +48,46 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink
+} from "@/components/ui/pagination";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Car } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from 'sonner';
 
-export const AgreementList = () => {
+interface AgreementListProps {
+  customerNameSearch?: string;
+}
+
+export const AgreementList = ({ customerNameSearch = '' }: AgreementListProps) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+    pageCount: 1,
+  });
   
   const navigate = useNavigate();
   
@@ -47,14 +95,238 @@ export const AgreementList = () => {
     agreements, 
     isLoading, 
     error,
-    setSearchParams,
     deleteAgreement 
   } = useAgreements({ status: statusFilter });
+  
+  const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
+  useVehicleRealtimeUpdates();
+  
+  const [sorting, setSorting] = useState<SortingState>([
+    { id: 'created_at', desc: true }
+  ]);
+  const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
+
+  useEffect(() => {
+    setRowSelection({});
+    setPagination({
+      pageIndex: 0,
+      pageSize: 10,
+      pageCount: Math.ceil((filteredAgreements?.length || 0) / 10),
+    });
+  }, [agreements, statusFilter]);
+
+  const filteredAgreements = React.useMemo(() => {
+    if (!agreements) return [];
+    
+    if (!customerNameSearch || customerNameSearch.trim() === '') {
+      return agreements;
+    }
+    
+    const searchLower = customerNameSearch.toLowerCase().trim();
+    return agreements.filter(agreement => {
+      const customerName = agreement.profiles?.full_name || '';
+      return customerName.toLowerCase().includes(searchLower);
+    });
+  }, [agreements, customerNameSearch]);
+
+  useEffect(() => {
+    setPagination(prev => ({
+      ...prev,
+      pageCount: Math.ceil((filteredAgreements?.length || 0) / prev.pageSize)
+    }));
+  }, [filteredAgreements]);
+
+  const columns: ColumnDef<any>[] = [
+    {
+      accessorKey: 'agreement_number',
+      header: 'Agreement #',
+      cell: ({ row }) => (
+        <Link 
+          to={`/agreements/${row.original.id}`}
+          className="font-medium text-primary hover:underline"
+        >
+          {row.original.agreement_number}
+        </Link>
+      )
+    },
+    {
+      accessorKey: 'customers',
+      header: 'Customer',
+      cell: ({ row }) => {
+        const profile = row.original.profiles;
+        return profile ? (
+          <Link 
+            to={`/customers/${profile.id}`}
+            className="hover:underline"
+          >
+            {profile.full_name || 'N/A'}
+          </Link>
+        ) : 'N/A';
+      }
+    },
+    {
+      accessorKey: 'vehicles',
+      header: 'Vehicle',
+      cell: ({ row }) => {
+        const vehicle = row.original.vehicles;
+        return vehicle ? (
+          <Link 
+            to={`/vehicles/${vehicle.id}`}
+            className="hover:underline"
+          >
+            {vehicle.make && vehicle.model ? (
+              <span>
+                {vehicle.make} {vehicle.model} 
+                <span className="font-semibold text-primary ml-1">({vehicle.license_plate})</span>
+              </span>
+            ) : vehicle.license_plate ? (
+              <span>Vehicle: <span className="font-semibold text-primary">{vehicle.license_plate}</span></span>
+            ) : 'N/A'}
+          </Link>
+        ) : 'N/A';
+      }
+    },
+    {
+      accessorKey: 'start_date',
+      header: 'Rental Period',
+      cell: ({ row }) => {
+        const startDate = row.original.start_date;
+        const endDate = row.original.end_date;
+        return (
+          <span>
+            {startDate && endDate && (
+              <span>
+                {format(new Date(startDate), 'MMM d, yyyy')} - {format(new Date(endDate), 'MMM d, yyyy')}
+              </span>
+            )}
+          </span>
+        );
+      }
+    },
+    {
+      accessorKey: 'rent_amount',
+      header: 'Monthly Rent',
+      cell: ({ row }) => formatCurrency(row.original.rent_amount || 0)
+    },
+    {
+      accessorKey: 'status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge 
+          variant={
+            row.original.status === AgreementStatus.ACTIVE ? "success" : 
+            row.original.status === AgreementStatus.DRAFT ? "secondary" : 
+            row.original.status === AgreementStatus.PENDING ? "warning" :
+            row.original.status === AgreementStatus.EXPIRED ? "outline" :
+            "destructive"
+          }
+          className="capitalize"
+        >
+          {row.original.status === AgreementStatus.ACTIVE ? (
+            <FileCheck className="h-3 w-3 mr-1" />
+          ) : row.original.status === AgreementStatus.DRAFT ? (
+            <FileEdit className="h-3 w-3 mr-1" />
+          ) : row.original.status === AgreementStatus.PENDING ? (
+            <FileClock className="h-3 w-3 mr-1" />
+          ) : row.original.status === AgreementStatus.EXPIRED ? (
+            <FileText className="h-3 w-3 mr-1" />
+          ) : (
+            <FileX className="h-3 w-3 mr-1" />
+          )}
+          {row.original.status}
+        </Badge>
+      )
+    },
+    {
+      accessorKey: 'actions',
+      header: 'Actions',
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to={`/agreements/${row.original.id}`}>
+                View details
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link to={`/agreements/edit/${row.original.id}`}>
+                Edit agreement
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => {
+                if (window.confirm(`Are you sure you want to delete agreement ${row.original.agreement_number}?`)) {
+                  deleteAgreement.mutate(row.original.id);
+                }
+              }}
+            >
+              Delete agreement
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+  ];
+
+  const handleBulkDelete = () => {
+    if (!agreements) return;
+    
+    setIsDeleting(true);
+    
+    const selectedIds = Object.keys(rowSelection).map(
+      index => filteredAgreements[parseInt(index)].id
+    );
+    
+    if (selectedIds.length > 0) {
+      try {
+        deleteAgreement.mutate(selectedIds);
+        setRowSelection({});
+        setBulkDeleteDialogOpen(false);
+      } catch (error) {
+        console.error('Error deleting agreements:', error);
+        toast.error('Failed to delete selected agreements');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  const table = useReactTable({
+    data: filteredAgreements || [],
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFiltersState,
+    onRowSelectionChange: setRowSelection,
+    onPaginationChange: setPagination,
+    state: {
+      sorting,
+      columnFilters,
+      rowSelection,
+      pagination,
+    },
+    manualPagination: false,
+    pageCount: pagination.pageCount,
+  });
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    setSearchParams(prev => ({ ...prev, status: value }));
   };
+
+  const selectedCount = Object.keys(rowSelection).length;
 
   return (
     <div className="space-y-4">
@@ -78,12 +350,30 @@ export const AgreementList = () => {
           </Select>
         </div>
         
-        <Button asChild>
-          <Link to="/agreements/add">
-            <FilePlus className="h-4 w-4 mr-2" />
-            New Agreement
-          </Link>
-        </Button>
+        {customerNameSearch && (
+          <div className="text-sm text-muted-foreground">
+            Found {filteredAgreements.length} {filteredAgreements.length === 1 ? 'result' : 'results'} for "{customerNameSearch}"
+          </div>
+        )}
+        
+        <div className="flex gap-2">
+          {selectedCount > 0 && (
+            <Button 
+              variant="destructive" 
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              className="flex items-center gap-1"
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete ({selectedCount})
+            </Button>
+          )}
+          <Button asChild>
+            <Link to="/agreements/add">
+              <FilePlus className="h-4 w-4 mr-2" />
+              New Agreement
+            </Link>
+          </Button>
+        </div>
       </div>
       
       {error && (
@@ -97,161 +387,56 @@ export const AgreementList = () => {
       <div className="rounded-md border">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Agreement #</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Rental Period</TableHead>
-              <TableHead>Monthly Rent</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Created Date</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
           </TableHeader>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={`skeleton-${i}`}>
-                  {Array.from({ length: 8 }).map((_, j) => (
+                  {Array.from({ length: columns.length }).map((_, j) => (
                     <TableCell key={`skeleton-cell-${i}-${j}`}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   ))}
                 </TableRow>
               ))
-            ) : agreements && agreements.length > 0 ? (
-              agreements.map((agreement) => (
-                <TableRow key={agreement.id}>
-                  <TableCell className="font-medium">
-                    <Link 
-                      to={`/agreements/${agreement.id}`}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      {agreement.agreement_number}
-                    </Link>
-                  </TableCell>
-                  <TableCell>
-                    {agreement.customers && agreement.customers.id ? (
-                      <Link 
-                        to={`/customers/${agreement.customers.id}`}
-                        className="hover:underline"
-                      >
-                        {agreement.customers.full_name || 'N/A'}
-                      </Link>
-                    ) : (
-                      'N/A'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {agreement.vehicles && agreement.vehicles.id ? (
-                      <Link 
-                        to={`/vehicles/${agreement.vehicles.id}`}
-                        className="hover:underline"
-                      >
-                        {agreement.vehicles.make && agreement.vehicles.model ? (
-                          <span>
-                            {agreement.vehicles.make} {agreement.vehicles.model} 
-                            <span className="font-semibold text-primary ml-1">({agreement.vehicles.license_plate})</span>
-                          </span>
-                        ) : agreement.vehicles.license_plate ? (
-                          <span>Vehicle: <span className="font-semibold text-primary">{agreement.vehicles.license_plate}</span></span>
-                        ) : 'N/A'}
-                      </Link>
-                    ) : agreement.vehicle_id ? (
-                      <Link 
-                        to={`/vehicles/${agreement.vehicle_id}`}
-                        className="hover:underline text-amber-600"
-                      >
-                        Vehicle ID: {agreement.vehicle_id}
-                      </Link>
-                    ) : (
-                      'N/A'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {agreement.start_date && agreement.end_date && (
-                      <span>
-                        {format(new Date(agreement.start_date), 'MMM d, yyyy')} - {format(new Date(agreement.end_date), 'MMM d, yyyy')}
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {formatCurrency(agreement.rent_amount || 0)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={
-                        agreement.status === AgreementStatus.ACTIVE ? "success" : 
-                        agreement.status === AgreementStatus.DRAFT ? "secondary" : 
-                        agreement.status === AgreementStatus.PENDING ? "warning" :
-                        agreement.status === AgreementStatus.EXPIRED ? "outline" :
-                        "destructive"
-                      }
-                      className="capitalize"
-                    >
-                      {agreement.status === AgreementStatus.ACTIVE ? (
-                        <FileCheck className="h-3 w-3 mr-1" />
-                      ) : agreement.status === AgreementStatus.DRAFT ? (
-                        <FileEdit className="h-3 w-3 mr-1" />
-                      ) : agreement.status === AgreementStatus.PENDING ? (
-                        <FileClock className="h-3 w-3 mr-1" />
-                      ) : agreement.status === AgreementStatus.EXPIRED ? (
-                        <FileText className="h-3 w-3 mr-1" />
-                      ) : (
-                        <FileX className="h-3 w-3 mr-1" />
-                      )}
-                      {agreement.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {agreement.created_at ? format(new Date(agreement.created_at), 'MMM d, yyyy') : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem asChild>
-                          <Link to={`/agreements/${agreement.id}`}>
-                            View details
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link to={`/agreements/edit/${agreement.id}`}>
-                            Edit agreement
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            if (window.confirm(`Are you sure you want to delete agreement ${agreement.agreement_number}?`)) {
-                              deleteAgreement.mutate(agreement.id);
-                            }
-                          }}
-                        >
-                          Delete agreement
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
+                    <Info className="h-5 w-5 text-muted-foreground" />
                     <p>
-                      {statusFilter !== 'all' ? 
-                        'No agreements found with the selected status.' : 
-                        'Add your first agreement using the button above.'}
+                      {customerNameSearch ? 
+                        'No agreements found matching your search.' : 
+                        statusFilter !== 'all' ? 
+                          'No agreements found with the selected status.' : 
+                          'Add your first agreement using the button above.'}
                     </p>
                   </div>
                 </TableCell>
@@ -260,6 +445,93 @@ export const AgreementList = () => {
           </TableBody>
         </Table>
       </div>
+      
+      <Pagination>
+        <PaginationContent>
+          <PaginationItem>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => table.setPageIndex(0)} 
+              disabled={!table.getCanPreviousPage()}
+              className="h-8 w-8"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
+          <PaginationItem>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => table.previousPage()} 
+              disabled={!table.getCanPreviousPage()}
+              className="h-8 w-8"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
+          <PaginationItem>
+            <div className="flex items-center mx-2">
+              <span className="text-sm">
+                Page {table.getState().pagination.pageIndex + 1} of {pagination.pageCount || 1}
+              </span>
+            </div>
+          </PaginationItem>
+          <PaginationItem>
+            <Button 
+              variant="outline"
+              size="icon"
+              onClick={() => table.nextPage()} 
+              disabled={!table.getCanNextPage()}
+              className="h-8 w-8"
+            >
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
+          <PaginationItem>
+            <Button 
+              variant="outline"
+              size="icon"
+              onClick={() => table.setPageIndex(pagination.pageCount - 1)} 
+              disabled={!table.getCanNextPage()}
+              className="h-8 w-8"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </PaginationItem>
+        </PaginationContent>
+      </Pagination>
+      
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Delete</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedCount} agreement(s)?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete Agreements'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
-}
+};

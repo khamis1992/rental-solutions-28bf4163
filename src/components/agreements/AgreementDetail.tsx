@@ -18,7 +18,7 @@ import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
-import { Payment } from './PaymentHistory';
+import type { Payment } from '@/components/agreements/PaymentHistory.types';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -353,7 +353,7 @@ export function AgreementDetail({
       </div>
 
       {agreement && <PaymentHistory 
-        payments={Array.isArray(payments) ? payments : []} 
+        payments={Array.isArray(payments) ? payments as import('@/components/agreements/PaymentHistory.types').Payment[] : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount} 
         onPaymentDeleted={() => {

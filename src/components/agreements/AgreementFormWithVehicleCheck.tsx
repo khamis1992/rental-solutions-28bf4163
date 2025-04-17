@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -709,11 +708,11 @@ const AgreementFormWithVehicleCheck = ({
 
       {/* Vehicle Assignment Confirmation Dialog */}
       <VehicleAssignmentDialog
-        isOpen={isVehicleDialogOpen}
-        onClose={() => setIsVehicleDialogOpen(false)}
-        onConfirm={handleVehicleConfirmation}
-        vehicleId={form.getValues("vehicle_id")}
-        existingAgreement={vehicleAvailabilityResult?.existingAgreement}
+        open={isVehicleDialogOpen}
+        onOpenChange={setIsVehicleDialogOpen}
+        agreementId={vehicleAvailabilityResult?.existingAgreement?.id}
+        currentVehicleId={form.getValues("vehicle_id")}
+        onVehicleAssigned={handleVehicleConfirmation}
       />
     </>
   );

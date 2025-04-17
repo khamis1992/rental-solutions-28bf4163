@@ -39,6 +39,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, addMonths, addWeeks, addDays } from 'date-fns';
 import { FinancialTransaction } from '@/hooks/use-financials';
+import ReceiptScanner from './ReceiptScanner';
 
 // Schema for expense form validation
 const expenseSchema = z.object({
@@ -162,6 +163,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
                 }}
               />
             </div>
+
             <FormField
               control={form.control}
               name="amount"

@@ -17,19 +17,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Calendar, FileText, Loader2, Upload, X } from 'lucide-react';
+import { AlertCircle, Calendar, Loader2 } from 'lucide-react';
 import { useTrafficFines, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
-import { supabase } from '@/integrations/supabase/client';
+import { formatLicensePlate, isValidLicensePlate } from '@/utils/format-utils';
 
 // Define the schema for traffic fine entry form
 const trafficFineSchema = z.object({
   violationNumber: z.string().min(1, 'Violation number is required'),
-  licensePlate: z.string().min(1, 'License plate is required'),
+  licensePlate: z.string()
+    .min(1, 'License plate is required')
+    .transform(val => formatLicensePlate(val)) // Standardize format during validation
+    .refine(val => isValidLicensePlate(val), { message: 'Invalid license plate format' }),
   violationDate: z.date({
     required_error: 'Violation date is required',
   }),
@@ -46,11 +49,13 @@ interface TrafficFineEntryProps {
 }
 
 const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
-  const { createTrafficFine } = useTrafficFines();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
-  const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null);
+  const { createTrafficFine, validateLicensePlate, refetch } = useTrafficFines();
+  const [validatingPlate, setValidatingPlate] = useState(false);
+  const [plateValidationResult, setPlateValidationResult] = useState<{
+    isValid: boolean;
+    message: string;
+    vehicle?: any;
+  } | null>(null);
 
   const form = useForm<TrafficFineFormData>({
     resolver: zodResolver(trafficFineSchema),
@@ -65,107 +70,63 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
     },
   });
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files.length > 0) {
-      const file = event.target.files[0];
-      if (file.type === 'application/pdf') {
-        setSelectedFile(file);
-      } else {
-        toast.error('Please select a PDF file');
-      }
-    }
-  };
+  const licensePlateValue = form.watch('licensePlate');
 
-  const uploadFile = async (licensePlate: string) => {
-    if (!selectedFile) {
-      return null;
-    }
-
+  // Handle license plate validation
+  const handleValidateLicensePlate = async () => {
+    const plate = form.getValues('licensePlate');
+    if (!plate) return;
+    
+    setValidatingPlate(true);
+    setPlateValidationResult(null);
+    
     try {
-      setIsUploading(true);
-      const timestamp = Date.now();
-      const filePath = `traffic-fines/${licensePlate}/${timestamp}_${selectedFile.name.replace(/\s+/g, '_')}`;
+      const result = await validateLicensePlate(plate);
+      setPlateValidationResult(result);
       
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(filePath, selectedFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
-      
-      if (error) {
-        throw error;
+      if (!result.isValid) {
+        // No need to show a toast for validation failures
+        console.log('License plate validation failed:', result.message);
       }
-      
-      // Get the public URL for the uploaded file
-      const { data: publicUrlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath);
-      
-      setUploadedFileUrl(publicUrlData.publicUrl);
-      
-      // Save document reference in the documents table
-      const { data: documentData, error: documentError } = await supabase
-        .from('traffic_fine_documents')
-        .insert({
-          file_name: selectedFile.name,
-          file_path: filePath,
-          file_size: selectedFile.size,
-          file_type: selectedFile.type,
-          public_url: publicUrlData.publicUrl,
-          uploaded_at: new Date().toISOString(),
-          document_type: 'traffic_fine',
-          status: 'active'
-        })
-        .select('id')
-        .single();
-        
-      if (documentError) {
-        console.error('Error saving document reference:', documentError);
-      } else if (documentData) {
-        setUploadedDocumentId(documentData.id);
-        return documentData.id;
-      }
-      
-      return null;
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error('Failed to upload document');
-      return null;
+      console.error('Error validating license plate:', error);
+      toast.error('Failed to validate license plate');
     } finally {
-      setIsUploading(false);
+      setValidatingPlate(false);
     }
   };
 
-  const clearUploadedFile = () => {
-    setSelectedFile(null);
-    setUploadedFileUrl(null);
-    setUploadedDocumentId(null);
+  // Handle license plate input blur
+  const handleLicensePlateBlur = () => {
+    if (licensePlateValue) {
+      handleValidateLicensePlate();
+    }
   };
 
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      // First upload any attached document
-      const documentId = selectedFile ? await uploadFile(data.licensePlate) : null;
-      
-      // Create the fine with document reference if available
-      const fineData: TrafficFineCreatePayload & { document_id?: string } = {
-        ...data
-      };
-      
-      if (documentId) {
-        fineData.document_id = documentId;
-      }
-      
-      await createTrafficFine.mutate(fineData);
-      
-      toast.success("Traffic fine created successfully");
-      form.reset();
-      clearUploadedFile();
-      
-      if (onFineSaved) {
-        onFineSaved();
-      }
+      await createTrafficFine.mutate(data as TrafficFineCreatePayload, {
+        onSuccess: () => {
+          toast.success("Traffic fine created successfully");
+          form.reset({
+            violationNumber: `TF-${Math.floor(Math.random() * 10000)}`,
+            licensePlate: '',
+            violationDate: new Date(),
+            fineAmount: 0,
+            violationCharge: '',
+            location: '',
+            paymentStatus: 'pending',
+          });
+          setPlateValidationResult(null);
+          
+          // Force a refetch to update the list
+          refetch();
+          
+          if (onFineSaved) {
+            onFineSaved();
+          }
+        }
+      });
     } catch (error) {
       toast.error("Failed to create traffic fine", {
         description: error instanceof Error ? error.message : "An unknown error occurred"
@@ -210,9 +171,45 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>License Plate *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="e.g., ABC123" />
-                    </FormControl>
+                    <div className="flex gap-2">
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          placeholder="e.g., ABC123" 
+                          onBlur={handleLicensePlateBlur}
+                        />
+                      </FormControl>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={handleValidateLicensePlate}
+                        disabled={!licensePlateValue || validatingPlate}
+                      >
+                        {validatingPlate ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          'Validate'
+                        )}
+                      </Button>
+                    </div>
+                    {plateValidationResult && (
+                      <Alert 
+                        variant={plateValidationResult.isValid ? "default" : "destructive"} 
+                        className="mt-2"
+                      >
+                        <AlertTitle>
+                          {plateValidationResult.isValid ? 'Valid License Plate' : 'Invalid License Plate'}
+                        </AlertTitle>
+                        <AlertDescription>
+                          {plateValidationResult.message}
+                          {plateValidationResult.isValid && plateValidationResult.vehicle && (
+                            <div className="mt-1">
+                              Vehicle: {plateValidationResult.vehicle.make} {plateValidationResult.vehicle.model}
+                            </div>
+                          )}
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     <FormDescription>
                       License plate is required to match the fine to a vehicle
                     </FormDescription>
@@ -333,75 +330,21 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
                 </FormItem>
               )}
             />
-
-            <div className="border-t pt-4">
-              <h3 className="font-semibold mb-2">Upload Documentation</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Attach a PDF document of the traffic fine notice or receipt
-              </p>
-              
-              {!uploadedFileUrl ? (
-                <div className="flex flex-col space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="file"
-                      id="pdf-upload"
-                      onChange={handleFileChange}
-                      accept="application/pdf"
-                      className="hidden"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => document.getElementById('pdf-upload')?.click()}
-                    >
-                      <FileText className="mr-2 h-4 w-4" />
-                      Select PDF
-                    </Button>
-                    {selectedFile && (
-                      <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="border rounded-md p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <FileText className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <p className="font-medium">{selectedFile?.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedFile?.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : ''}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={clearUploadedFile}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
           </CardContent>
 
           <CardFooter>
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isUploading}
+              disabled={createTrafficFine.isPending}
             >
-              {isUploading ? (
+              {createTrafficFine.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Uploading document...
+                  Creating...
                 </>
               ) : (
-                "Create Traffic Fine"
+                'Create Traffic Fine'
               )}
             </Button>
           </CardFooter>
