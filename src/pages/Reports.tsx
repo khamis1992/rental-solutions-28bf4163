@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { BarChart, Car, Users, Coins } from 'lucide-react';
+import { BarChart3, Car, Users, Coins } from 'lucide-react';  // Changed FileBarGraph to BarChart3
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -10,7 +10,6 @@ import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancialReport } from '@/hooks/use-financial-report';
 import { Vehicle } from '@/types/vehicle';
 import { VehicleTypeDistribution, FleetStats } from '@/types/fleet-report';
-import { FinancialReportProps } from '@/components/reports/FinancialReport';
 import FinancialReport from '@/components/reports/FinancialReport';
 
 const Reports = () => {
@@ -28,8 +27,7 @@ const Reports = () => {
   };
 
   const financialData = useFinancialReport();
-  const { isLoading, error } = fleetReport;
-  const vehicles = fleetReport.vehicles || [];
+  const { vehicles = [], isLoading, error } = fleetReport;
   const vehiclesByType = fleetReport.getVehicleTypeDistribution();
   const activeRentals = fleetReport.getActiveRentals();
 
@@ -42,9 +40,9 @@ const Reports = () => {
   }
 
   // Calculate percentages
-  const availablePercentage = (reportData.availableCount / reportData.totalVehicles) * 100 || 0;
-  const maintenancePercentage = (reportData.maintenanceCount / reportData.totalVehicles) * 100 || 0;
-  const rentedPercentage = (reportData.rentedCount / reportData.totalVehicles) * 100 || 0;
+  const availablePercentage = ((reportData.availableCount || 0) / (reportData.totalVehicles || 1)) * 100;
+  const maintenancePercentage = ((reportData.maintenanceCount || 0) / (reportData.totalVehicles || 1)) * 100;
+  const rentedPercentage = ((reportData.rentedCount || 0) / (reportData.totalVehicles || 1)) * 100;
 
   // Handle error messages
   React.useEffect(() => {
@@ -79,14 +77,7 @@ const Reports = () => {
     );
   }
 
-  // Handle error state - using the state variable instead of creating a new one
-  if (error && !errorMessage) {
-    if (error && typeof error === 'object' && 'message' in error) {
-      // Use setErrorMessage instead of creating a new variable
-      setErrorMessage((error as Error).message);
-    }
-  }
-
+  // Display error if present
   if (errorMessage) {
     return (
       <PageContainer title="Reports">
@@ -156,15 +147,15 @@ const Reports = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <BarChart className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4" />
               <span>Vehicle Type Distribution</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {vehiclesByType.map((item) => (
-                <div key={item.type} className="flex items-center justify-between">
-                  <span>{item.type}</span>
+                <div key={item.type || item.vehicleType} className="flex items-center justify-between">
+                  <span>{item.type || item.vehicleType}</span>
                   <Badge variant="secondary">{item.count}</Badge>
                 </div>
               ))}

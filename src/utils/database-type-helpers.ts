@@ -1,123 +1,102 @@
 
-/**
- * Check if a response has data
- */
-export function hasData(response: any): boolean {
-  return response && !response.error && response.data !== null;
+import { PostgrestSingleResponse } from '@supabase/supabase-js';
+
+// Helper for safely casting database IDs
+export function castDbId(id: string | undefined): string {
+  return id || '';
 }
 
-/**
- * Check if an object exists and has a specific property
- */
-export function hasProperty(obj: any, prop: string): boolean {
-  return obj && typeof obj === 'object' && prop in obj;
+export function asVehicleId(id: string | undefined): string {
+  return id || '';
 }
 
-/**
- * Check if a value exists (not null or undefined)
- */
-export function exists<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
+export function asLeaseId(id: string | undefined): string {
+  return id || '';
 }
 
-/**
- * Safely extract data from a response
- */
-export function safelyExtractData<T>(response: any): T | null {
-  if (!response || response.error || !response.data) {
-    return null;
-  }
-  return response.data;
+export function asCustomerId(id: string | undefined): string {
+  return id || '';
 }
 
-/**
- * Safely handle array data
- */
-export function safeArrayData<T>(data: T[] | null | undefined): T[] {
-  return Array.isArray(data) ? data : [];
+export function asProfileId(id: string | undefined): string {
+  return id || '';
 }
 
-// ID type conversion helpers
-export function asDbId<T>(id: string): T {
-  return id as unknown as T;
+export function asPaymentId(id: string | undefined): string {
+  return id || '';
 }
 
-export function asVehicleId(id: string): string {
-  return id as string;
+export function asTrafficFineId(id: string | undefined): string {
+  return id || '';
 }
 
-export function asLeaseId(id: string): string {
-  return id as string;
+export function asLeaseIdColumn(id: string | undefined): string {
+  return id || '';
 }
 
-export function asCustomerId(id: string): string {
-  return id as string;
+export function asStatusColumn(status: string | undefined): string {
+  return status || '';
 }
 
-export function asProfileId(id: string): string {
-  return id as string;
+export function asDatabaseType<T>(value: T): T {
+  return value;
 }
 
-export function asPaymentId(id: string): string {
-  return id as string;
+export function asString(value: string | undefined | null): string {
+  return value || '';
 }
 
-export function asTrafficFineId(id: string): string {
-  return id as string;
+export function asNumber(value: number | undefined | null): number {
+  return value || 0;
 }
 
-// Column helpers
-export function asLeaseIdColumn(columnName: string): string {
-  return columnName;
+export function asDate(value: string | undefined | null): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return isNaN(date.getTime()) ? null : date;
 }
 
-export function asStatusColumn(columnName: string): string {
-  return columnName;
+export function castToUUID(value: string | undefined): string {
+  return value || '';
 }
 
-// Type casting helpers 
-export function castDbId<T = string>(id: string): T {
-  return id as unknown as T;
-}
-
-export function castDatabaseObject<T>(obj: any): T {
-  return obj as T;
-}
-
-export function castToUUID(id: string): string {
-  return id;
-}
-
-// String and number conversion helpers
-export function asString(value: any): string {
-  return value?.toString() || '';
-}
-
-export function asNumber(value: any): number {
-  if (typeof value === 'number') return value;
-  if (typeof value === 'string') return parseFloat(value) || 0;
-  return 0;
-}
-
-// Type checking helper
-export function asDatabaseType<T>(value: any): T {
-  return value as T;
-}
-
-// Safe property access
-export function safeProperty<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
+export function safeProperty<T, K extends keyof T>(obj: T, key: K): T[K] | undefined {
   if (!obj) return undefined;
   return obj[key];
 }
 
-// Fix the handleResponseData function to avoid the T | T[] error
-export function handleResponseData<T>(response: any): T | null {
-  if (response?.error || !response?.data) {
-    return null;
+export function hasProperty<T, K extends string>(obj: any, key: K): obj is T & Record<K, any> {
+  return obj && typeof obj === 'object' && key in obj;
+}
+
+export function hasData<T>(response: PostgrestSingleResponse<T> | { error: Error }): response is PostgrestSingleResponse<T> {
+  if ('error' in response && response.error) {
+    return false;
   }
-  // Make sure we're returning T, not T | T[]
-  if (Array.isArray(response.data)) {
-    return response.data.length > 0 ? response.data[0] : null;
+  // Using type assertion to work around the typing issue
+  return 'data' in response;
+}
+
+export function safelyExtractData<T>(response: PostgrestSingleResponse<T> | null | undefined): T | null {
+  if (!response) return null;
+  if (!hasData(response)) return null;
+  return response.data as T;
+}
+
+export function safeCastType<T>(value: unknown): T {
+  return value as T;
+}
+
+// Safe array handling
+export function safeArray<T>(arr: T | T[] | null | undefined): T[] {
+  if (arr === null || arr === undefined) {
+    return [];
   }
-  return response.data;
+  
+  return Array.isArray(arr) ? arr : [arr];
+}
+
+export function flattenSafeArray<T>(arr: T[][] | T[] | null | undefined): T[] {
+  const safeArr = safeArray(arr);
+  return safeArr.flat();
 }

@@ -54,7 +54,7 @@ export interface TrafficFineCreatePayload {
   paymentStatus?: string;
 }
 
-export const useTrafficFines = () => {
+export function useTrafficFines() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -161,19 +161,31 @@ export const useTrafficFines = () => {
           leases.forEach(lease => {
             if (lease && hasProperty(lease, 'id')) {
               // Safely access profile data
-              const profileData = hasProperty(lease, 'profiles') && lease.profiles && typeof lease.profiles === 'object' 
-                ? lease.profiles 
-                : null;
-              
-              const customerId = hasProperty(lease, 'customer_id') ? asString(lease.customer_id) : '';
-              const customerName = profileData && hasProperty(profileData, 'full_name') ? asString(profileData.full_name) : 'Unknown';
-              const customerPhone = profileData && hasProperty(profileData, 'phone_number') ? asString(profileData.phone_number) : 'Unknown';
+              const profileData = lease?.profiles;
+              if (profileData) {
+                let customerName = '';
+                let customerPhone = '';
                 
+                // Check if it's an array or single object and handle accordingly
+                if (Array.isArray(profileData)) {
+                  if (profileData.length > 0) {
+                    customerName = profileData[0].full_name || '';
+                    customerPhone = profileData[0].phone_number || '';
+                  }
+                } else {
+                  customerName = profileData.full_name || '';
+                  customerPhone = profileData.phone_number || '';
+                }
+                
+                data.customerName = customerName;
+                data.customerPhone = customerPhone;
+              }
+              
               leaseMap[asString(lease.id)] = {
                 id: asString(lease.id),
-                customerId,
-                customerName,
-                customerPhone
+                customerId: hasProperty(lease, 'customer_id') ? asString(lease.customer_id) : '',
+                customerName: hasProperty(lease, 'customer_id') ? asString(lease.customer_id) : '',
+                customerPhone: hasProperty(lease, 'customer_id') ? asString(lease.customer_id) : ''
               };
             }
           });
@@ -568,4 +580,4 @@ export const useTrafficFines = () => {
     assignToCustomer,
     refetch
   };
-};
+}

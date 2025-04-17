@@ -1,13 +1,9 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { CustomerInfo } from '@/types/customer';
+import { CustomerInfo, CustomerStatus } from '@/types/customer';
 import { castDbId } from '@/utils/database-type-helpers';
 import { useState } from 'react';
-
-// Define customer status type
-type CustomerStatus = 'active' | 'inactive' | 'pending_review' | 'blacklisted' | 'pending_payment';
 
 export const useCustomers = () => {
   const queryClient = useQueryClient();
@@ -41,6 +37,15 @@ export const useCustomers = () => {
             return null;
           }
           
+          // Ensure we map the status to a valid CustomerStatus
+          const status = customer.status as any;
+          let validStatus: CustomerStatus = 'pending_review';
+          
+          // Map status to one of our valid statuses
+          if (['active', 'inactive', 'pending_review', 'blocked', 'archived', 'blacklisted', 'pending_payment'].includes(status)) {
+            validStatus = status as CustomerStatus;
+          }
+          
           return {
             id: customer.id,
             full_name: customer.full_name || '',
@@ -51,7 +56,7 @@ export const useCustomers = () => {
             nationality: customer.nationality || '',
             address: customer.address || '',
             notes: customer.notes || '',
-            status: (customer.status as CustomerStatus) || 'pending_review',
+            status: validStatus,
             created_at: customer.created_at || '',
             updated_at: customer.updated_at || ''
           } as CustomerInfo;

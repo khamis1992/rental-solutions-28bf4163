@@ -1,48 +1,69 @@
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { hasData } from '@/utils/database-type-helpers';
+import { supabase } from '@/lib/supabase';
 
-interface FinancialData {
-  revenue: Array<{ month: string; amount: number }>;
-  expenses: Array<{ month: string; amount: number }>;
+interface FinancialItem {
+  id: string;
+  amount: number;
+  date: string;
+  category: string;
+  description?: string;
+}
+
+interface FinancialReport {
+  revenue: FinancialItem[];
+  expenses: FinancialItem[];
 }
 
 export function useFinancialReport() {
-  const { data: financialData, isLoading, error } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['financial-report'],
-    queryFn: async (): Promise<FinancialData> => {
+    queryFn: async (): Promise<FinancialReport> => {
       try {
-        // This is a placeholder for actual API call
-        // Normally you would fetch this data from your backend
-        
-        // Simulate API response with mock data
-        const mockData: FinancialData = {
-          revenue: [
-            { month: 'Jan', amount: 12000 },
-            { month: 'Feb', amount: 15000 },
-            { month: 'Mar', amount: 18000 },
-            { month: 'Apr', amount: 16000 },
-            { month: 'May', amount: 21000 },
-            { month: 'Jun', amount: 19000 },
-          ],
-          expenses: [
-            { month: 'Jan', amount: 8000 },
-            { month: 'Feb', amount: 9500 },
-            { month: 'Mar', amount: 11000 },
-            { month: 'Apr', amount: 10500 },
-            { month: 'May', amount: 12000 },
-            { month: 'Jun', amount: 11500 },
-          ]
+        // Fetch revenue
+        const { data: revenue, error: revenueError } = await supabase
+          .from('transaction_amounts')
+          .select('*')
+          .eq('type', 'income');
+          
+        if (revenueError) throw revenueError;
+          
+        // Fetch expenses
+        const { data: expenses, error: expensesError } = await supabase
+          .from('transaction_amounts')
+          .select('*')
+          .eq('type', 'expense');
+            
+        if (expensesError) throw expensesError;
+          
+        // Map the data to our interface
+        const mappedRevenue = (revenue || []).map(item => ({
+          id: item.id,
+          amount: Number(item.amount) || 0,
+          date: item.recorded_date || new Date().toISOString(),
+          category: item.category || 'Uncategorized',
+          description: item.transaction_reference
+        }));
+          
+        const mappedExpenses = (expenses || []).map(item => ({
+          id: item.id,
+          amount: Number(item.amount) || 0,
+          date: item.recorded_date || new Date().toISOString(),
+          category: item.category || 'Uncategorized',
+          description: item.transaction_reference
+        }));
+          
+        return {
+          revenue: mappedRevenue,
+          expenses: mappedExpenses
         };
-
-        return mockData;
       } catch (error) {
         console.error('Error fetching financial data:', error);
-        throw error;
+        // Return empty data on error
+        return { revenue: [], expenses: [] };
       }
     }
   });
 
-  return financialData || { revenue: [], expenses: [] };
+  return data || { revenue: [], expenses: [] };
 }

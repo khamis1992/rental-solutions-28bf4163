@@ -1,5 +1,5 @@
 
-export type CustomerStatus = 'pending_review' | 'active' | 'inactive' | 'blocked' | 'archived';
+export type CustomerStatus = 'pending_review' | 'active' | 'inactive' | 'blocked' | 'archived' | 'blacklisted' | 'pending_payment';
 
 export interface CustomerListItem {
   id: string;

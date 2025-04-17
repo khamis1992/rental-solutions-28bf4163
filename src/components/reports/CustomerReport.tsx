@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -27,10 +26,10 @@ const CustomerReport = () => {
     return createdDate && createdDate > thirtyDaysAgo;
   }).length;
 
-  // Calculate customer segments based on status
+  // Get customers by status
   const activeCustomers = customers.filter(customer => customer.status === 'active').length;
   const inactiveCustomers = customers.filter(customer => customer.status === 'inactive').length;
-  const blacklistedCustomers = customers.filter(customer => customer.status === 'blacklisted').length;
+  const blacklistedCustomers = customers.filter(customer => customer.status === 'blacklisted' as any).length;
   const pendingCustomers = customers.filter(customer => customer.status === 'pending_review').length;
 
   // Prepare data for customer segments chart

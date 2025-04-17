@@ -1,205 +1,164 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatCard } from '@/components/ui/stat-card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Car, CircleDollarSign, TrendingUp, AlertTriangle } from 'lucide-react';
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/utils';
 import { useFleetReport } from '@/hooks/use-fleet-report';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Vehicle } from '@/types/vehicle';
+import { formatCurrency } from '@/lib/utils';
+import { VehicleTypeDistribution, FleetStats } from '@/types/fleet-report';
 
 const FleetReport = () => {
-  const { 
-    vehicles, 
-    fleetStats, 
-    vehiclesByType, 
+  const {
+    vehicles,
+    fleetStats,
+    vehiclesByType,
     isLoading,
-    error
+    error,
+    rentals,
+    maintenanceExpenses
   } = useFleetReport();
 
   if (isLoading) {
-    return (
-      <div className="space-y-8">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array(4).fill(0).map((_, i) => (
-            <div key={i} className="h-32 bg-gray-100 animate-pulse rounded-lg" />
-          ))}
-        </div>
-        <Card>
-          <CardHeader>
-            <div className="h-7 w-48 bg-gray-100 animate-pulse rounded" />
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 bg-gray-100 animate-pulse rounded" />
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <div className="flex justify-center items-center h-64">Loading fleet data...</div>;
   }
 
   if (error) {
-    return (
-      <div className="space-y-8">
-        <Card className="p-6">
-          <div className="text-center text-red-500">
-            <p>Error loading fleet data</p>
-            <p className="text-sm mt-2">{String(error)}</p>
-          </div>
-        </Card>
-      </div>
-    );
+    return <div className="text-red-500">Error loading fleet data: {error.message}</div>;
   }
+
+  const totalMaintenanceCost = maintenanceExpenses.reduce((sum, expense) => sum + expense.cost, 0);
+
+  const renderVehicleRow = (vehicle: Vehicle) => {
+    const isRented = vehicle.status === 'rented';
+    
+    // Find the customer information from rentals if available
+    const rentalInfo = rentals.find(rental => rental.vehicleId === vehicle.id);
+    const customerName = rentalInfo ? rentalInfo.customerName : 'N/A';
+    
+    return (
+      <TableRow key={vehicle.id}>
+        <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
+        <TableCell>{vehicle.license_plate}</TableCell>
+        <TableCell>{vehicle.year}</TableCell>
+        <TableCell>{vehicle.status}</TableCell>
+        
+        {/* Update these lines */}
+        <TableCell>{isRented ? customerName : 'N/A'}</TableCell>
+        <TableCell>{isRented ? rentalInfo?.customerPhone || 'N/A' : 'N/A'}</TableCell>
+        
+        <TableCell>{formatCurrency(vehicle.rent_amount || 0)}</TableCell>
+      </TableRow>
+    );
+  };
 
   return (
     <div className="space-y-8">
+      <div className="flex items-center mb-6">
+        <h2 className="text-xl font-bold">Fleet Analytics Dashboard</h2>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard 
-          title="Total Vehicles" 
-          value={fleetStats.totalVehicles.toString()} 
-          trend={5} 
-          trendLabel="vs last month"
-          icon={Car}
-          iconColor="text-blue-500"
-        />
-        <StatCard 
-          title="Active Rentals" 
-          value={(fleetStats.activeVehicles || 0).toString()} 
-          trend={12} 
-          trendLabel="vs last month"
-          icon={TrendingUp}
-          iconColor="text-green-500"
-        />
-        <StatCard 
-          title="Average Daily Rate" 
-          value={formatCurrency(fleetStats.rentalRate || 0)} 
-          trend={3} 
-          trendLabel="vs last month"
-          icon={CircleDollarSign}
-          iconColor="text-indigo-500"
-        />
-        <StatCard 
-          title="Maintenance Required" 
-          value={(fleetStats.totalVehicles - fleetStats.activeVehicles).toString()} 
-          trend={-2} 
-          trendLabel="vs last month"
-          icon={AlertTriangle}
-          iconColor="text-amber-500"
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle>Total Vehicles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{fleetStats.totalVehicles}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Available Vehicles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{fleetStats.availableCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Vehicles in Maintenance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{fleetStats.maintenanceCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Rented Vehicles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{fleetStats.rentedCount}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Vehicle Type Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Count</TableHead>
+                  <TableHead>Avg. Daily Rate</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {vehiclesByType.map((item: VehicleTypeDistribution) => (
+                  <TableRow key={item.type}>
+                    <TableCell className="font-medium">{item.type}</TableCell>
+                    <TableCell>{item.count}</TableCell>
+                    <TableCell>{formatCurrency(item.avgDailyRate || 0)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Maintenance Expenses</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-xl font-bold">Total: {formatCurrency(totalMaintenanceCost)}</div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Fleet Utilization</CardTitle>
+          <CardTitle>Vehicle Details</CardTitle>
         </CardHeader>
         <CardContent>
-          {vehicles.length > 0 ? (
+          <ScrollArea>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Vehicle</TableHead>
                   <TableHead>License Plate</TableHead>
+                  <TableHead>Year</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Current Customer</TableHead>
-                  <TableHead className="text-right">Daily Rate</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Customer Phone</TableHead>
+                  <TableHead>Rent Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {vehicles.slice(0, 5).map((vehicle) => (
-                  <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium">{vehicle.make} {vehicle.model}</TableCell>
-                    <TableCell>{vehicle.license_plate}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={vehicle.status || 'available'} />
-                    </TableCell>
-                    <TableCell>
-                      {vehicle.status === 'rented' && vehicle.currentCustomer ? 
-                        vehicle.currentCustomer : 
-                        <span className="text-muted-foreground italic">Not assigned</span>
-                      }
-                    </TableCell>
-                    <TableCell className="text-right">{formatCurrency(vehicle.rent_amount || 0)}</TableCell>
-                  </TableRow>
-                ))}
+                {vehicles.map(vehicle => renderVehicleRow(vehicle))}
               </TableBody>
             </Table>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground">
-              <p>No vehicle data available</p>
-              <p className="text-sm mt-2">Vehicle data will appear here when available</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Fleet Performance by Vehicle Type</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {vehiclesByType && vehiclesByType.length > 0 ? (
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={vehiclesByType.map(type => ({
-                    name: type.type,
-                    count: type.count,
-                    avgRate: type.avgDailyRate
-                  }))}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 70 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    tick={{ 
-                      transform: 'rotate(-45)',
-                      textAnchor: 'end',
-                      dominantBaseline: 'auto'
-                    }}
-                    height={70}
-                  />
-                  <YAxis yAxisId="left" orientation="left" stroke="#8884d8" />
-                  <YAxis 
-                    yAxisId="right" 
-                    orientation="right" 
-                    stroke="#82ca9d"
-                    tickFormatter={(value) => formatCurrency(value)}
-                  />
-                  <Tooltip formatter={(value, name) => {
-                    if (name === 'avgRate') {
-                      return [formatCurrency(Number(value)), 'Avg Daily Rate'];
-                    }
-                    return [value, name === 'count' ? 'Count' : name];
-                  }} />
-                  <Bar dataKey="count" fill="#8884d8" yAxisId="left" name="Vehicle Count" />
-                  <Bar dataKey="avgRate" fill="#82ca9d" yAxisId="right" name="Avg Daily Rate" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="text-center py-10 text-muted-foreground">
-              <p>No performance data available</p>
-              <p className="text-sm mt-2">Performance data will appear here when available</p>
-            </div>
-          )}
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>
-  );
-};
-
-const StatusBadge = ({ status }: { status: string }) => {
-  const variants: Record<string, string> = {
-    'available': 'bg-green-100 text-green-800',
-    'rented': 'bg-blue-100 text-blue-800',
-    'maintenance': 'bg-amber-100 text-amber-800',
-    'repair': 'bg-red-100 text-red-800',
-    'reserved': 'bg-purple-100 text-purple-800',
-  };
-
-  return (
-    <Badge className={variants[status] || 'bg-gray-100 text-gray-800'}>
-      {status}
-    </Badge>
   );
 };
 

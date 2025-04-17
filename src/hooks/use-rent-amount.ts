@@ -1,86 +1,30 @@
 
-import { useState, useEffect } from 'react';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { supabase } from '@/integrations/supabase/client';
-import { hasData, hasProperty } from '@/utils/database-type-helpers';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
-export const useRentAmount = (agreement: Agreement | null, agreementId: string | undefined) => {
-  const [rentAmount, setRentAmount] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    // If we already have an agreement with rent_amount, use that value
-    if (agreement?.rent_amount) {
-      setRentAmount(agreement.rent_amount);
-      return;
-    }
-
-    // If we don't have the agreement ID, exit early
-    if (!agreementId) {
-      return;
-    }
-
-    const fetchRentAmount = async () => {
-      setIsLoading(true);
-      setError(null);
-
+export function useRentAmount(agreementId: string, fallbackValue: number = 0) {
+  const { data: rentAmount = fallbackValue, isLoading, error } = useQuery({
+    queryKey: ['rent-amount', agreementId],
+    queryFn: async () => {
       try {
-        // Try to get rent_amount from vehicles table based on vehicle_id in agreement
-        const { data: agreementData, error: agreementError } = await supabase
+        // Skip fetching if no agreement ID
+        if (!agreementId) return fallbackValue;
+        
+        const { data, error } = await supabase
           .from('leases')
-          .select('vehicle_id')
-          .eq('id', agreementId as any)
-          .single();
-
-        if (agreementError) {
-          console.error("Error fetching agreement for rent amount:", agreementError);
-          setError(new Error(`Failed to fetch agreement: ${agreementError.message}`));
-          setIsLoading(false);
-          return;
-        }
-
-        // Check if data exists before proceeding
-        if (!agreementData) {
-          setError(new Error('Agreement data not found'));
-          setIsLoading(false);
-          return;
-        }
-
-        // Check for property existence before accessing
-        if (!hasProperty(agreementData, 'vehicle_id') || !agreementData.vehicle_id) {
-          setError(new Error('Vehicle ID not found in agreement'));
-          setIsLoading(false);
-          return;
-        }
-          
-        // Fetch the vehicle to get rent_amount
-        const { data: vehicleData, error: vehicleError } = await supabase
-          .from('vehicles')
           .select('rent_amount')
-          .eq('id', agreementData.vehicle_id as any)
+          .eq('id', agreementId)
           .single();
 
-        if (vehicleError) {
-          console.error("Error fetching vehicle rent amount:", vehicleError);
-          setError(new Error(`Failed to fetch vehicle: ${vehicleError.message}`));
-          setIsLoading(false);
-          return;
-        }
-
-        if (vehicleData && hasProperty(vehicleData, 'rent_amount') && vehicleData.rent_amount !== undefined) {
-          setRentAmount(vehicleData.rent_amount);
-        }
+        if (error) throw error;
+        return Number(data.rent_amount) || fallbackValue;
       } catch (err) {
-        console.error("Unexpected error in fetchRentAmount:", err);
-        setError(err instanceof Error ? err : new Error('Unknown error occurred'));
-      } finally {
-        setIsLoading(false);
+        console.error('Error fetching rent amount:', err);
+        return fallbackValue;
       }
-    };
-
-    fetchRentAmount();
-  }, [agreement, agreementId]);
+    },
+    enabled: !!agreementId
+  });
 
   return { rentAmount, isLoading, error };
-};
+}

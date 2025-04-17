@@ -23,6 +23,7 @@ export interface Vehicle {
     id: string;
     name: string;
     description?: string;
+    daily_rate?: number;
   };
   dailyRate?: number;
 }
@@ -37,4 +38,4 @@ export interface VehicleFilterParams {
   vehicle_type_id?: string;
 }
 
-export type DatabaseVehicleStatus = 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserve';
+export type DatabaseVehicleStatus = 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserved';

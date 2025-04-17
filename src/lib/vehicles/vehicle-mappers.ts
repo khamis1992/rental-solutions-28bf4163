@@ -1,92 +1,59 @@
 
+import { Vehicle } from '@/types/vehicle';
 import { 
-  Vehicle, 
-  VehicleType, 
+  VehicleType,
   DatabaseVehicleRecord, 
-  DatabaseVehicleType, 
-  VehicleStatus,
-  DatabaseVehicleStatus
-} from '@/types/vehicle';
+  DatabaseVehicleType 
+} from '@/types/vehicle-db-types';
 
-/**
- * Maps a database vehicle status to an app vehicle status
- */
-export function mapDBStatusToAppStatus(dbStatus: DatabaseVehicleStatus | null): VehicleStatus | undefined {
-  if (!dbStatus) return undefined;
-  
-  if (dbStatus === 'reserve') {
-    return 'reserved';
-  }
-  
-  return dbStatus as VehicleStatus;
-}
-
-/**
- * Maps an app vehicle status to a database vehicle status
- */
-export function mapToDBStatus(status: VehicleStatus | undefined): DatabaseVehicleStatus | undefined {
-  if (!status) return undefined;
-  
-  if (status === 'reserved') {
-    return 'reserve';
-  }
-  
-  return status as DatabaseVehicleStatus;
-}
-
-/**
- * Maps a database vehicle record to an app vehicle object
- */
-export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicleType?: DatabaseVehicleType): Vehicle {
-  return {
-    id: record.id,
-    license_plate: record.license_plate,
-    make: record.make,
-    model: record.model,
-    year: record.year,
-    color: record.color,
-    vin: record.vin,
-    mileage: record.mileage,
-    status: mapDBStatusToAppStatus(record.status || null),
-    description: record.description, // Properly handle description
-    image_url: record.image_url,
-    created_at: record.created_at,
-    updated_at: record.updated_at,
-    rent_amount: record.rent_amount,
-    insurance_company: record.insurance_company,
-    insurance_expiry: record.insurance_expiry,
-    location: record.location,
-    vehicleType: vehicleType ? {
-      id: vehicleType.id,
-      name: vehicleType.name,
-      description: vehicleType.description,
-      daily_rate: vehicleType.daily_rate
-    } : undefined,
-    dailyRate: vehicleType?.daily_rate
+export function mapDatabaseVehicleToClient(dbVehicle: DatabaseVehicleRecord): Vehicle {
+  // Transform database vehicle record to client vehicle model
+  const vehicle: Vehicle = {
+    id: dbVehicle.id,
+    make: dbVehicle.make,
+    model: dbVehicle.model,
+    year: dbVehicle.year,
+    license_plate: dbVehicle.license_plate,
+    vin: dbVehicle.vin,
+    color: dbVehicle.color,
+    image_url: dbVehicle.image_url,
+    mileage: dbVehicle.mileage,
+    status: dbVehicle.status as any,  // Cast to VehicleStatus
+    description: dbVehicle.description,
+    created_at: dbVehicle.created_at,
+    updated_at: dbVehicle.updated_at,
+    rent_amount: dbVehicle.rent_amount,
+    insurance_company: dbVehicle.insurance_company,
+    insurance_expiry: dbVehicle.insurance_expiry,
+    location: dbVehicle.location,
   };
+
+  // Add vehicle type information if available
+  if (dbVehicle.vehicle_types) {
+    vehicle.vehicleType = {
+      id: dbVehicle.vehicle_types.id,
+      name: dbVehicle.vehicle_types.name,
+      description: dbVehicle.vehicle_types.description,
+      daily_rate: dbVehicle.vehicle_types.daily_rate
+    };
+    
+    // Map daily rate from vehicle type
+    vehicle.dailyRate = dbVehicle.vehicle_types.daily_rate;
+  }
+
+  return vehicle;
 }
 
-/**
- * Normalize features array from various input formats
- */
-export function normalizeFeatures(features: any): string[] {
-  if (!features) return [];
-  
-  if (typeof features === 'string') {
-    try {
-      return JSON.parse(features);
-    } catch (e) {
-      return [features];
-    }
-  }
-  
-  if (Array.isArray(features)) {
-    return features.map(f => typeof f === 'string' ? f : JSON.stringify(f));
-  }
-  
-  if (typeof features === 'object') {
-    return Object.values(features).map(f => typeof f === 'string' ? f : JSON.stringify(f));
-  }
-  
-  return [String(features)];
+export function mapVehicleTypeFromDatabase(dbType: DatabaseVehicleType): {
+  id: string;
+  name: string;
+  description?: string;
+  daily_rate: number;  // Include this property
+} {
+  return {
+    id: dbType.id,
+    name: dbType.name,
+    description: dbType.description,
+    daily_rate: dbType.daily_rate  // Map this property correctly
+  };
 }

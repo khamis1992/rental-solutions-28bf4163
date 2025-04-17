@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -39,25 +40,31 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 }) => {
   const [vehicleTypes, setVehicleTypes] = useState([]);
   
+  // Prepare the default values appropriately
+  const defaultValues = initialData ? {
+    ...initialData,
+    vehicleType_id: initialData.vehicleType?.id  // Map to the correct property name
+  } : {
+    make: '',
+    model: '',
+    year: new Date().getFullYear(),
+    license_plate: '',
+    vin: '',
+    color: '',
+    mileage: 0,
+    status: 'available' as VehicleStatus,
+    description: '',
+    insurance_company: '',
+    insurance_expiry: '',
+    rent_amount: 0,
+    vehicleType_id: '',  // Use correct property name
+    location: ''
+  };
+  
   // Set up the form with Zod validation
   const form = useForm({
     resolver: zodResolver(vehicleSchema),
-    defaultValues: initialData || {
-      make: '',
-      model: '',
-      year: new Date().getFullYear(),
-      license_plate: '',
-      vin: '',
-      color: '',
-      mileage: 0,
-      status: 'available',
-      description: '',
-      insurance_company: '',
-      insurance_expiry: '',
-      rent_amount: 0,
-      vehicle_type_id: '',
-      location: ''
-    }
+    defaultValues
   });
 
   // Fetch vehicle types on component mount
@@ -80,7 +87,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   }, []);
 
   const handleSubmit = (data: any) => {
-    onSubmit(data);
+    // Convert to proper format before submitting
+    const submissionData = {
+      ...data,
+      vehicle_type_id: data.vehicleType_id, // Convert to the key expected by the backend
+    };
+    
+    // Delete the frontend-only field
+    delete submissionData.vehicleType_id;
+    
+    onSubmit(submissionData);
   };
 
   return (
@@ -288,7 +304,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               {/* Vehicle Type Field */}
               <FormField
                 control={form.control}
-                name="vehicle_type_id"
+                name="vehicleType_id"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vehicle Type</FormLabel>
