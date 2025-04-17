@@ -11,28 +11,29 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   build: {
-    // Improve build reliability and prevent CSS processing issues
     cssCodeSplit: true,
     sourcemap: true,
   },
   css: {
-    // Add proper error handling for CSS imports
     devSourcemap: true,
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    // Ensure package resolution prioritizes modern modules
-    mainFields: ['module', 'jsnext:main', 'main'],
+    // Simplify the main fields to avoid dependency issues
+    mainFields: ['module', 'main'],
   },
   optimizeDeps: {
-    // Force include problematic dependencies
     include: ['jspdf', 'jspdf-autotable'],
+    force: true, // Force re-optimization of dependencies
+  },
+  // Add specific esbuild options to improve ESM handling
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   }
 }));

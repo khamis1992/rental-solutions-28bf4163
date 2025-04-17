@@ -4,4 +4,12 @@ import './styles/reset.css';  // Import reset CSS first
 import './index.css'
 import App from './App.tsx'
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Ensure the DOM is ready before rendering
+document.addEventListener('DOMContentLoaded', () => {
+  const rootElement = document.getElementById("root");
+  if (rootElement) {
+    createRoot(rootElement).render(<App />);
+  } else {
+    console.error("Root element not found");
+  }
+});

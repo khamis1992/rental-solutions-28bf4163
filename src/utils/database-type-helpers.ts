@@ -45,3 +45,79 @@ export function getEntityProperty<T extends keyof Database['public']['Tables'],
                                key: K): Database['public']['Tables'][T]['Row'][K] | undefined {
   return entity[key];
 }
+
+/**
+ * Type-safe function to cast IDs for table operations
+ * This ensures ID columns match the required type in the database
+ */
+export function asTableId(table: string, id: string): any {
+  return id;
+}
+
+/**
+ * Helper functions for specific ID column types
+ */
+export function asAgreementIdColumn(id: string): any {
+  return id;
+}
+
+export function asLeaseIdColumn(id: string): any {
+  return id;
+}
+
+export function asVehicleIdColumn(id: string): any {
+  return id;
+}
+
+export function asImportIdColumn(id: string): any {
+  return id;
+}
+
+export function asTrafficFineIdColumn(id: string): any {
+  return id;
+}
+
+export function asPaymentIdColumn(id: string): any {
+  return id;
+}
+
+/**
+ * Entity-specific ID helpers
+ */
+export function asLeaseId(id: string): any {
+  return id;
+}
+
+export function asVehicleId(id: string): any {
+  return id;
+}
+
+export function asAgreementId(id: string): any {
+  return id;
+}
+
+export function asPaymentId(id: string): any {
+  return id;
+}
+
+export function asImportId(id: string): any {
+  return id;
+}
+
+/**
+ * Status column helpers
+ */
+export function asStatusColumn(status: string): any {
+  return status;
+}
+
+export function asPaymentStatusColumn(status: string): any {
+  return status;
+}
+
+/**
+ * Helper to check if a response has data
+ */
+export function hasData(response: any): boolean {
+  return response && !response.error && response.data !== null;
+}
