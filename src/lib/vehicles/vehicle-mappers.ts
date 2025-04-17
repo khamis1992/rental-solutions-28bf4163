@@ -48,7 +48,7 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     vin: record.vin,
     mileage: record.mileage,
     status: mapDBStatusToAppStatus(record.status || null),
-    description: record.description,
+    description: record.description, // Properly handle description
     image_url: record.image_url,
     created_at: record.created_at,
     updated_at: record.updated_at,
@@ -59,8 +59,8 @@ export function mapDatabaseRecordToVehicle(record: DatabaseVehicleRecord, vehicl
     vehicleType: vehicleType ? {
       id: vehicleType.id,
       name: vehicleType.name,
-      daily_rate: vehicleType.daily_rate,
-      description: vehicleType.description
+      description: vehicleType.description,
+      daily_rate: vehicleType.daily_rate
     } : undefined,
     dailyRate: vehicleType?.daily_rate
   };

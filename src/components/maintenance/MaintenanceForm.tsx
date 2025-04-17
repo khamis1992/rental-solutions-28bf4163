@@ -1,24 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { useMaintenance } from '@/hooks/use-maintenance';
-import { useVehicles } from '@/hooks/use-vehicles';
-import { Loader2 } from 'lucide-react';
-import { DatePicker } from '@/components/ui/date-picker';
 import {
   Select,
   SelectContent,
@@ -26,228 +21,230 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 
-const maintenanceFormSchema = z.object({
-  vehicle_id: z.string().min(1, { message: 'Vehicle is required' }),
-  maintenance_type: z.string().min(1, { message: 'Maintenance type is required' }),
-  description: z.string().min(3, { message: 'Description is required' }),
-  scheduled_date: z.string().min(1, { message: 'Scheduled date is required' }),
-  status: z.enum(['scheduled', 'in_progress', 'completed', 'cancelled']),
-  cost: z.coerce.number().min(0, { message: 'Cost must be a non-negative number' }),
+// Define the schema for the maintenance form
+const maintenanceSchema = z.object({
+  service_type: z.string().min(1, { message: "Service type is required" }),
+  description: z.string().optional(),
+  scheduled_date: z.string().min(1, { message: "Scheduled date is required" }),
+  status: z.string(),
+  cost: z.string().optional(),
   notes: z.string().optional(),
-  assigned_to: z.string().optional(),
+  vehicle_id: z.string().min(1, { message: "Vehicle is required" }),
 });
 
-export type MaintenanceFormValues = z.infer<typeof maintenanceFormSchema>;
-
-interface MaintenanceFormProps {
-  initialValues?: Partial<MaintenanceFormValues>;
-  onSubmit: (values: MaintenanceFormValues) => void;
-  isSubmitting: boolean;
+// Define the props interface for the maintenance form component
+export interface MaintenanceFormProps {
+  onSubmit: (formData: any) => Promise<void>;
+  isLoading?: boolean;
+  initialData?: any;
+  isEditMode?: boolean;
+  vehicles?: any[];
 }
 
-export function MaintenanceForm({ initialValues, onSubmit, isSubmitting }: MaintenanceFormProps) {
-  const { vehicles } = useVehicles();
-  
-  const form = useForm<MaintenanceFormValues>({
-    resolver: zodResolver(maintenanceFormSchema),
-    defaultValues: {
-      vehicle_id: initialValues?.vehicle_id || '',
-      maintenance_type: initialValues?.maintenance_type || 'REGULAR_INSPECTION',
-      description: initialValues?.description || '',
-      scheduled_date: initialValues?.scheduled_date || new Date().toISOString(),
-      status: initialValues?.status || 'scheduled',
-      cost: initialValues?.cost || 0,
-      notes: initialValues?.notes || '',
-      assigned_to: initialValues?.assigned_to || '',
+const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
+  onSubmit,
+  isLoading = false,
+  initialData,
+  isEditMode = false,
+  vehicles = []
+}) => {
+  // Set up form with zod resolver
+  const form = useForm({
+    resolver: zodResolver(maintenanceSchema),
+    defaultValues: initialData || {
+      service_type: '',
+      description: '',
+      scheduled_date: new Date().toISOString().substring(0, 10),
+      status: 'scheduled',
+      cost: '',
+      notes: '',
+      vehicle_id: '',
     },
   });
 
-  // Update form when initialValues change
-  useEffect(() => {
-    if (initialValues) {
-      form.reset({
-        vehicle_id: initialValues.vehicle_id || '',
-        maintenance_type: initialValues.maintenance_type || 'REGULAR_INSPECTION',
-        description: initialValues.description || '',
-        scheduled_date: initialValues.scheduled_date || new Date().toISOString(),
-        status: initialValues.status || 'scheduled',
-        cost: initialValues.cost || 0,
-        notes: initialValues.notes || '',
-        assigned_to: initialValues.assigned_to || '',
-      });
+  const handleSubmit = (data: any) => {
+    // Parse the cost value as a number if provided
+    if (data.cost) {
+      data.cost = parseFloat(data.cost);
     }
-  }, [initialValues, form]);
-
-  const availableVehicles = Array.isArray(vehicles) 
-    ? vehicles 
-    : [];
+    
+    onSubmit(data);
+  };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="vehicle_id"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Vehicle</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a vehicle" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {availableVehicles.map((vehicle) => (
-                    <SelectItem key={vehicle.id} value={vehicle.id}>
-                      {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="maintenance_type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Maintenance Type</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select maintenance type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="REGULAR_INSPECTION">Regular Inspection</SelectItem>
-                  <SelectItem value="OIL_CHANGE">Oil Change</SelectItem>
-                  <SelectItem value="TIRE_REPLACEMENT">Tire Replacement</SelectItem>
-                  <SelectItem value="BRAKE_SERVICE">Brake Service</SelectItem>
-                  <SelectItem value="OTHER">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Description of maintenance" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="scheduled_date"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Scheduled Date</FormLabel>
-              <DatePicker
-                date={field.value ? new Date(field.value) : undefined}
-                setDate={(date) => field.onChange(date ? date.toISOString() : "")}
+    <Card>
+      <CardContent className="pt-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Vehicle Selection Field */}
+              <FormField
+                control={form.control}
+                name="vehicle_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vehicle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {vehicles.map(vehicle => (
+                          <SelectItem key={vehicle.id} value={vehicle.id}>
+                            {vehicle.make} {vehicle.model} - {vehicle.license_plate}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <FormDescription>When should this maintenance be performed?</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              {/* Service Type Field */}
+              <FormField
+                control={form.control}
+                name="service_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Service Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select service type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="oil_change">Oil Change</SelectItem>
+                        <SelectItem value="tire_rotation">Tire Rotation</SelectItem>
+                        <SelectItem value="brake_service">Brake Service</SelectItem>
+                        <SelectItem value="engine_repair">Engine Repair</SelectItem>
+                        <SelectItem value="inspection">Inspection</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <FormField
-          control={form.control}
-          name="cost"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cost</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" {...field} />
-              </FormControl>
-              <FormDescription>Cost of the maintenance</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              {/* Scheduled Date Field */}
+              <FormField
+                control={form.control}
+                name="scheduled_date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Scheduled Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <FormField
-          control={form.control}
-          name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Additional notes" {...field} />
-              </FormControl>
-              <FormDescription>Any additional information</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              {/* Status Field */}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-        <FormField
-          control={form.control}
-          name="assigned_to"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Assigned To</FormLabel>
-              <FormControl>
-                <Input placeholder="Technician name" {...field} />
-              </FormControl>
-              <FormDescription>Who will perform this maintenance?</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              {/* Cost Field */}
+              <FormField
+                control={form.control}
+                name="cost"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost</FormLabel>
+                    <FormControl>
+                      <Input type="number" placeholder="Enter cost" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            "Save Maintenance"
-          )}
-        </Button>
-      </form>
-    </Form>
+            {/* Description Field */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter maintenance description" 
+                      className="resize-none" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Notes Field */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter additional notes" 
+                      className="resize-none" 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className="flex justify-end gap-2">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Saving...' : isEditMode ? 'Update Maintenance' : 'Schedule Maintenance'}
+              </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
-}
+};
 
 export default MaintenanceForm;

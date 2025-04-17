@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 
 export interface PageContainerProps {
   children: React.ReactNode;
-  title: string;
+  title?: string; // Made title optional
   description?: string;
   actions?: React.ReactNode;
   backLink?: string;
@@ -15,7 +15,8 @@ export interface PageContainerProps {
     onSearch?: (query: string) => void;
     searchQuery?: string;
     searchPlaceholder?: string;
-  }
+  };
+  systemDate?: Date; // Added systemDate prop
 }
 
 const PageContainer: React.FC<PageContainerProps> = ({ 
@@ -24,7 +25,8 @@ const PageContainer: React.FC<PageContainerProps> = ({
   description, 
   actions,
   backLink,
-  headerProps
+  headerProps,
+  systemDate
 }) => {
   return (
     <div className="container mx-auto py-6 px-4 max-w-7xl">
@@ -38,8 +40,9 @@ const PageContainer: React.FC<PageContainerProps> = ({
                 <span>Back</span>
               </Link>
             )}
-            <h1 className="text-2xl font-semibold">{title}</h1>
+            {title && <h1 className="text-2xl font-semibold">{title}</h1>}
             {description && <p className="text-gray-500 mt-1">{description}</p>}
+            {systemDate && <p className="text-sm text-gray-400 mt-1">Date: {systemDate.toLocaleDateString()}</p>}
           </div>
           {actions && (
             <div className="flex flex-wrap gap-2 items-center">

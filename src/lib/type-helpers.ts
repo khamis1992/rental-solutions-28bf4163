@@ -1,3 +1,4 @@
+
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 import { exists } from '@/utils/database-type-helpers';
@@ -43,8 +44,7 @@ export function getResponseData<T>(
     return null;
   }
   
-  // Handle both single and array responses
-  return response.data as T | null;
+  return response.data as T;
 }
 
 /**

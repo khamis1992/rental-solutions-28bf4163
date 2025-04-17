@@ -33,6 +33,7 @@ export interface Vehicle {
   dailyRate?: number;
   location?: string;
   currentCustomer?: string;
+  description?: string; // Added description field
 }
 
 export interface VehicleListItem {
@@ -70,6 +71,7 @@ export interface VehicleFormData {
   mileage?: number;
   rent_amount?: number;
   location?: string;
+  description?: string; // Added description field
 }
 
 export type VehicleInsertData = Omit<Vehicle, 'id' | 'created_at' | 'updated_at'>;
@@ -92,6 +94,7 @@ export interface VehicleType {
 export interface DatabaseVehicleRecord extends Vehicle {
   vehicle_types?: DatabaseVehicleType;
   status: DatabaseVehicleStatus | null;
+  description?: string; // Added description field
 }
 
 export interface DatabaseVehicleType {

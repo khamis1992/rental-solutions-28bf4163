@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Car, ArrowLeft, Edit, Trash2, AlertOctagon, Loader2, Calendar, AlertCircle } from 'lucide-react';
@@ -67,7 +68,7 @@ const VehicleDetailPage = () => {
   
   if (isLoading) {
     return (
-      <PageContainer>
+      <PageContainer title="Loading Vehicle">
         <div className="mb-6">
           <Skeleton className="h-10 w-1/3" />
           <Skeleton className="h-5 w-1/4 mt-1" />
@@ -96,7 +97,7 @@ const VehicleDetailPage = () => {
   
   if (error || !vehicle) {
     return (
-      <PageContainer>
+      <PageContainer title="Vehicle Not Found">
         <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg">
           <div className="flex items-center mb-4">
             <AlertOctagon className="h-6 w-6 mr-2" />
@@ -118,7 +119,7 @@ const VehicleDetailPage = () => {
   }
   
   return (
-    <PageContainer>
+    <PageContainer title={`${vehicle.make} ${vehicle.model}`}>
       <SectionHeader
         title={`${vehicle.make} ${vehicle.model}`}
         description={`${vehicle.year} • ${vehicle.license_plate}`}

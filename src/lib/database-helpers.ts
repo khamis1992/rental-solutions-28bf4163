@@ -18,10 +18,14 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
     return null;
   }
   
-  // Handle both single and array responses
-  if (Array.isArray(response.data)) {
-    return response.data as unknown as T;
+  // If we have a response with data, return it
+  if (response.data) {
+    if (Array.isArray(response.data)) {
+      return response.data as unknown as T;
+    } else {
+      return response.data as T;
+    }
   }
   
-  return response.data;
+  return null;
 }

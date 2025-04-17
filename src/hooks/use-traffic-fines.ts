@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,8 +99,7 @@ export const useTrafficFines = () => {
               licensePlate: asString(fine.license_plate),
               payment_status: asString(fine.payment_status),
               paymentStatus: asString(fine.payment_status),
-              lease_id: asString(fine.lease_id),
-              leaseId: asString(fine.lease_id)
+              lease_id: asString(fine.lease_id)
             };
             
             return transformedFine;
@@ -258,39 +256,6 @@ export const useTrafficFines = () => {
     } catch (error) {
       console.error('Error in getTrafficFinesWithDetails:', error);
       return [];
-    }
-  };
-  
-  // Validate license plate
-  const validateLicensePlate = async (licensePlate: string) => {
-    try {
-      // Check if license plate exists in vehicles
-      const { data: vehicles, error: vehiclesError } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('license_plate', licensePlate)
-        .limit(1);
-      
-      if (vehiclesError) throw vehiclesError;
-      
-      if (vehicles && vehicles.length > 0) {
-        return {
-          isValid: true,
-          message: `License plate ${licensePlate} is valid and matches a vehicle in the system.`,
-          vehicle: vehicles[0]
-        };
-      }
-      
-      return {
-        isValid: false,
-        message: `License plate ${licensePlate} does not match any vehicle in the system.`
-      };
-    } catch (error) {
-      console.error('Error validating license plate:', error);
-      return {
-        isValid: false,
-        message: 'An error occurred during validation'
-      };
     }
   };
   
@@ -567,10 +532,6 @@ export const useTrafficFines = () => {
     addTrafficFine,
     createTrafficFine,
     updateTrafficFine,
-    validateLicensePlate,
-    payTrafficFine,
-    disputeTrafficFine,
-    assignToCustomer,
     refetch
   };
 };

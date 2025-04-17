@@ -3,12 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
   Vehicle, 
-  VehicleFormData, 
-  VehicleInsertData, 
-  VehicleUpdateData, 
-  VehicleType, 
-  DatabaseVehicleRecord,
-  DatabaseVehicleType,
   VehicleStatus,
   DatabaseVehicleStatus
 } from '@/types/vehicle';
@@ -51,6 +45,14 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
     if (filters.search) {
       query = query.or(`vin.ilike.%${filters.search}%,license_plate.ilike.%${filters.search}%`);
     }
+    
+    if (filters.location) {
+      query = query.eq('location', filters.location);
+    }
+    
+    if (filters.vehicle_type_id) {
+      query = query.eq('vehicle_type_id', filters.vehicle_type_id);
+    }
   }
   
   const { data, error } = await query;
@@ -78,6 +80,7 @@ export async function fetchVehicles(filters?: VehicleFilterParams): Promise<Vehi
       rent_amount: record.rent_amount,
       insurance_company: record.insurance_company,
       insurance_expiry: record.insurance_expiry,
+      location: record.location
     };
     
     if (record.vehicle_types) {
