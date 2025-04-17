@@ -156,3 +156,33 @@ export function safelyGetRecordsFromResponse<T>(data: T[] | null | undefined): T
   }
   return Array.isArray(data) ? data : [];
 }
+
+/**
+ * Helper to safely transform any data into a properly typed array
+ * Useful for handling potentially malformed API responses
+ */
+export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
+  if (data === null || data === undefined) {
+    return [];
+  }
+  return Array.isArray(data) ? data : [data];
+}
+
+/**
+ * Helper to safely access properties on potentially undefined objects
+ */
+export function safelyAccessProperty<T, K extends keyof T>(obj: T | null | undefined, key: K): T[K] | undefined {
+  return obj ? obj[key] : undefined;
+}
+
+/**
+ * Type-safe function to handle Supabase response data
+ * Provides strong typing for database operations
+ */
+export function processQueryResponse<T>(response: { data: T | null, error: any }): T[] {
+  if (response.error || !response.data) {
+    return [];
+  }
+  
+  return ensureArray(response.data);
+}

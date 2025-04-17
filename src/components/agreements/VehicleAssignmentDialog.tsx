@@ -105,15 +105,17 @@ export function VehicleAssignmentDialog({
           // Safely access the data with proper typing
           const payments = safelyGetRecordsFromResponse(data);
           
-          // Now safely access properties through the typed array
-          setPendingPayments(payments.map(payment => ({
-            id: payment.id,
-            amount: payment.amount,
-            status: payment.status,
-            description: payment.description || '',
-            payment_date: payment.payment_date,
-            due_date: payment.due_date
-          })));
+          // Process payments with null checking
+          const typedPayments: Payment[] = payments.map(payment => ({
+            id: payment?.id || '',
+            amount: payment?.amount || 0,
+            status: (payment?.status as PaymentStatus) || 'pending',
+            description: payment?.description || '',
+            payment_date: payment?.payment_date ? new Date(payment.payment_date) : undefined,
+            due_date: payment?.due_date ? new Date(payment.due_date) : undefined
+          }));
+          
+          setPendingPayments(typedPayments);
         } catch (error) {
           console.error("Error fetching payments:", error);
           setPendingPayments([]);
@@ -127,26 +129,27 @@ export function VehicleAssignmentDialog({
         .from('traffic_fines')
         .select('*')
         .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
-        .eq('payment_status', 'pending' as TrafficFineStatusType);
+        .eq('payment_status', asPaymentStatusColumn('pending'));
         
       if (hasData(finesResponse)) {
         // Transform the data to ensure payment_status is a proper TrafficFineStatusType
-        const transformedFines: TrafficFine[] = (finesResponse.data || []).map(fine => ({
-          id: fine.id,
-          violationNumber: fine.violation_number || "",
-          licensePlate: fine.license_plate || "",
-          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
-          fineAmount: fine.fine_amount || 0,
-          violationCharge: fine.violation_charge,
-          paymentStatus: fine.payment_status as TrafficFineStatusType,
-          location: fine.fine_location,
-          vehicleId: fine.vehicle_id,
-          leaseId: fine.lease_id,
-          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
+        const finesData = safelyGetRecordsFromResponse(finesResponse.data);
+        const transformedFines: TrafficFine[] = finesData.map(fine => ({
+          id: fine?.id || '',
+          violationNumber: fine?.violation_number || "",
+          licensePlate: fine?.license_plate || "",
+          violationDate: fine?.violation_date ? new Date(fine.violation_date) : new Date(),
+          fineAmount: fine?.fine_amount || 0,
+          violationCharge: fine?.violation_charge || '',
+          paymentStatus: (fine?.payment_status as TrafficFineStatusType) || 'pending',
+          location: fine?.fine_location || '',
+          vehicleId: fine?.vehicle_id || '',
+          leaseId: fine?.lease_id || '',
+          paymentDate: fine?.payment_date ? new Date(fine.payment_date) : undefined
         }));
         setTrafficFines(transformedFines);
       } else {
-        console.error("Error fetching traffic fines:", finesResponse.error);
+        console.error("Error fetching traffic fines:", finesResponse?.error);
         setTrafficFines([]);
       }
       
