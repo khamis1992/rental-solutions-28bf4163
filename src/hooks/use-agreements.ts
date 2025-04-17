@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Agreement } from '@/types/agreement';
@@ -171,6 +170,18 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
     return data as unknown as Agreement;
   };
 
+  const getAgreementById = async (id: string): Promise<Agreement | null> => {
+    if (!id) return null;
+    
+    try {
+      const agreement = await getAgreement(id);
+      return agreement;
+    } catch (error) {
+      console.error(`Error fetching agreement with ID: ${id}`, error);
+      throw error;
+    }
+  };
+
   return {
     agreements,
     isLoading,
@@ -180,7 +191,8 @@ export const useAgreements = ({ status, customer_id }: UseAgreementsProps = {}) 
     deleteAgreement,
     searchParams,
     setSearchParams,
-    getAgreement
+    getAgreement,
+    getAgreementById
   };
 };
 

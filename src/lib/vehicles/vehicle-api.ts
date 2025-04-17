@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { 
   VehicleFilterParams, 
@@ -7,7 +6,14 @@ import {
   DatabaseVehicleStatus
 } from '@/types/vehicle';
 import { mapDatabaseRecordToVehicle, mapToDBStatus, normalizeFeatures } from './vehicle-mappers';
-import { castDbId, castToUUID } from '@/utils/supabase-type-helpers';
+import { castDbId, castToUUID } from '@/utils/database-type-helpers';
+import { 
+  DatabaseVehicleRecord, 
+  DatabaseVehicleType,
+  VehicleType,
+  VehicleInsertData,
+  VehicleUpdateData
+} from '@/types/vehicle-db-types';
 
 // Helper function to convert database status to app status
 const mapDBStatusToAppStatus = (dbStatus: string | null): VehicleStatus | null => {

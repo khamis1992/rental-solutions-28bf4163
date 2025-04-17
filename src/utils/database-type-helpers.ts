@@ -1,3 +1,4 @@
+
 // Add this function at the top of the file
 /**
  * Checks if a value exists (is not null or undefined)
@@ -5,8 +6,6 @@
 export function exists<T>(value: T | null | undefined): value is T {
   return value !== null && value !== undefined;
 }
-
-import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/postgrest-js';
 
 /**
  * Checks if a value exists (is not null or undefined)
@@ -170,7 +169,12 @@ export function flattenArray<T>(arr: T | T[]): T[] {
     return [arr]; 
   }
   
-  return arr.flat();
+  return arr.reduce((result: T[], item) => {
+    if (Array.isArray(item)) {
+      return [...result, ...item];
+    }
+    return [...result, item];
+  }, []);
 }
 
 /**
@@ -183,4 +187,63 @@ export function toNumber(value: any): number | null {
   }
   const num = Number(value);
   return isNaN(num) ? null : num;
+}
+
+/**
+ * Safely cast a string ID to a database ID type for use in operations
+ */
+export function castDbId(id: string): string {
+  return id as string;
+}
+
+/**
+ * Cast string ID to UUID format for database operations
+ */
+export function castToUUID(id: string): string {
+  return id;
+}
+
+/**
+ * Check if a database response has data
+ */
+export function hasData<T>(response: { data: T | null; error: any }): response is { data: T; error: null } {
+  return !response.error && response.data !== null;
+}
+
+/**
+ * Check if an object has a specific property
+ */
+export function hasProperty<T, K extends string>(obj: T, prop: K): obj is T & Record<K, unknown> {
+  return obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, prop);
+}
+
+/**
+ * Safely extract data from a response
+ */
+export function safelyExtractData<T>(response: { data: T | null; error: any }): T | null {
+  if (response.error || !response.data) {
+    return null;
+  }
+  return response.data;
+}
+
+/**
+ * Type-safe column accessor for lease ID
+ */
+export function asLeaseIdColumn(id: string): string {
+  return id;
+}
+
+/**
+ * Type-safe column accessor for status
+ */
+export function asStatusColumn(status: string): string {
+  return status;
+}
+
+/**
+ * Type-safe function for profile ID
+ */
+export function asProfileId(id: string): string {
+  return id;
 }

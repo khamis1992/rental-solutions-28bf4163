@@ -1,89 +1,102 @@
 
-import { VehicleStatus } from './vehicle';
-
+/**
+ * Database vehicle record type definition
+ */
 export interface DatabaseVehicleRecord {
   id: string;
   make: string;
   model: string;
   year: number;
+  color?: string;
   license_plate: string;
   vin: string;
-  color?: string | null;
-  mileage?: number | null;
-  status?: string | null; // Database status might be slightly different from app status
-  description?: string | null;
-  image_url?: string | null;
-  created_at: string;
-  updated_at: string;
-  rent_amount?: number | null;
-  insurance_company?: string | null;
-  insurance_expiry?: string | null;
-  location?: string | null;
-  vehicle_types?: DatabaseVehicleType | null;
-  vehicle_type_id?: string | null;
+  mileage?: number;
+  status?: string;
+  description?: string;
+  image_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  vehicle_type_id?: string;
+  vehicle_types?: DatabaseVehicleType;
+  rent_amount?: number;
+  insurance_company?: string;
+  insurance_expiry?: string;
+  location?: string;
 }
 
+/**
+ * Database vehicle type definition
+ */
 export interface DatabaseVehicleType {
   id: string;
   name: string;
-  description?: string;
+  size: string;
   daily_rate: number;
   weekly_rate?: number;
   monthly_rate?: number;
-  size?: string;
-  features?: any; // Can be string[], object, or string (JSON)
-  is_active?: boolean;
+  description?: string;
+  features?: any;
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
+/**
+ * Vehicle type definition
+ */
 export interface VehicleType {
   id: string;
   name: string;
-  description?: string;
-  daily_rate?: number;
+  size: 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | 'truck' | 'van';
+  daily_rate: number;
   weekly_rate?: number;
   monthly_rate?: number;
-  size?: 'compact' | 'midsize' | 'fullsize' | 'suv' | 'luxury' | string;
+  description?: string;
   features?: string[];
-  is_active?: boolean;
+  is_active: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
+/**
+ * Vehicle insert data
+ */
 export interface VehicleInsertData {
   make: string;
   model: string;
   year: number;
+  color?: string;
   license_plate: string;
   vin: string;
-  color?: string | null;
-  mileage?: number | null;
-  status?: VehicleStatus | null;
-  description?: string | null;
-  image_url?: string | null;
-  rent_amount?: number | null;
-  insurance_company?: string | null;
-  insurance_expiry?: string | null;
-  location?: string | null;
-  vehicle_type_id?: string | null;
+  mileage?: number;
+  status?: string;
+  description?: string;
+  image_url?: string;
+  vehicle_type_id?: string;
+  rent_amount?: number;
+  insurance_company?: string;
+  insurance_expiry?: string;
+  location?: string;
 }
 
+/**
+ * Vehicle update data
+ */
 export interface VehicleUpdateData {
   make?: string;
   model?: string;
   year?: number;
+  color?: string;
   license_plate?: string;
   vin?: string;
-  color?: string | null;
-  mileage?: number | null;
-  status?: VehicleStatus | null;
-  description?: string | null;
-  image_url?: string | null;
-  rent_amount?: number | null;
-  insurance_company?: string | null;
-  insurance_expiry?: string | null;
-  location?: string | null;
-  vehicle_type_id?: string | null;
+  mileage?: number;
+  status?: string;
+  description?: string;
+  image_url?: string;
+  vehicle_type_id?: string;
+  rent_amount?: number;
+  insurance_company?: string;
+  insurance_expiry?: string;
+  location?: string;
   updated_at?: string;
 }

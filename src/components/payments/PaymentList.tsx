@@ -1,12 +1,11 @@
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { usePayments, Payment } from '@/hooks/use-payments';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { AlertCircle, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
-import { Payment } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/supabase-type-helpers';
 
