@@ -12,14 +12,14 @@ import {
   TabsList, 
   TabsTrigger 
 } from '@/components/ui/tabs';
-import { Pencil, Loader2, UserCog } from 'lucide-react';
+import { Pencil, Loader2 } from 'lucide-react';
 import CustomerAgreements from './CustomerAgreements';
-import CustomerTrafficFines from './CustomerTrafficFines';
+import { CustomerTrafficFines } from './CustomerTrafficFines';
 import CustomerPayments from './CustomerPayments';
 
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
-  const { getCustomer, updateCustomerStatus } = useCustomers();
+  const { getCustomer } = useCustomers();
   const [customer, setCustomer] = useState<CustomerInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

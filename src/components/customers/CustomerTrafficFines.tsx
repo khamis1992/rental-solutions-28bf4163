@@ -6,9 +6,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
-import { asCustomerId } from '@/utils/database-type-helpers';
 import { format } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 type TrafficFine = {
   id: string;
@@ -41,7 +41,7 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
         const { data: leases, error: leaseError } = await supabase
           .from('leases')
           .select('id')
-          .eq('customer_id', asCustomerId(customerId));
+          .eq('customer_id', customerId);
         
         if (leaseError) throw leaseError;
         
@@ -72,6 +72,16 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
     
     fetchFines();
   }, [customerId]);
+
+  const getTotalAmount = () => {
+    return fines.reduce((total, fine) => total + fine.fine_amount, 0);
+  };
+
+  const getPaidAmount = () => {
+    return fines
+      .filter(fine => fine.payment_status === 'completed')
+      .reduce((total, fine) => total + fine.fine_amount, 0);
+  };
   
   if (loading) {
     return (
@@ -91,47 +101,66 @@ export function CustomerTrafficFines({ customerId }: CustomerTrafficFinesProps) 
   }
   
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>License Plate</TableHead>
-            <TableHead>Violation Date</TableHead>
-            <TableHead>Violation #</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {fines.map((fine) => (
-            <TableRow key={fine.id}>
-              <TableCell>{fine.license_plate}</TableCell>
-              <TableCell>
-                {fine.violation_date ? format(new Date(fine.violation_date), 'MMM d, yyyy') : 'N/A'}
-              </TableCell>
-              <TableCell>{fine.violation_number}</TableCell>
-              <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
-              <TableCell>
-                <Badge
-                  variant={fine.payment_status === 'completed' ? 'outline' : 'secondary'}
-                >
-                  {fine.payment_status}
-                </Badge>
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={fine.payment_status === 'completed'}
-                >
-                  View Details
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl">Traffic Fines</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div className="rounded-lg border p-4">
+            <div className="text-sm text-muted-foreground">Total Fines</div>
+            <div className="text-2xl font-bold">{fines.length}</div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-sm text-muted-foreground">Total Amount</div>
+            <div className="text-2xl font-bold">{formatCurrency(getTotalAmount())}</div>
+          </div>
+          <div className="rounded-lg border p-4">
+            <div className="text-sm text-muted-foreground">Paid Amount</div>
+            <div className="text-2xl font-bold">{formatCurrency(getPaidAmount())}</div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>License Plate</TableHead>
+                <TableHead>Violation Date</TableHead>
+                <TableHead>Violation #</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {fines.map((fine) => (
+                <TableRow key={fine.id}>
+                  <TableCell>{fine.license_plate}</TableCell>
+                  <TableCell>
+                    {fine.violation_date ? format(new Date(fine.violation_date), 'MMM d, yyyy') : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <AlertTriangle className="mr-2 h-4 w-4 text-warning" />
+                      {fine.violation_number}
+                    </div>
+                  </TableCell>
+                  <TableCell>{formatCurrency(fine.fine_amount)}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={fine.payment_status === 'completed' ? 'success' : 
+                              fine.payment_status === 'disputed' ? 'warning' : 'destructive'}
+                    >
+                      {fine.payment_status === 'completed' ? 'Paid' : 
+                       fine.payment_status === 'disputed' ? 'Disputed' : 'Pending'}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

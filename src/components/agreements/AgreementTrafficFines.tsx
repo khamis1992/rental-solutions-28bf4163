@@ -18,7 +18,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from '@/lib/supabase';
-import { TrafficFine, useTrafficFines } from '@/hooks/use-traffic-fines';
+import { TrafficFine } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { AlertTriangle, PlusCircle } from 'lucide-react';
