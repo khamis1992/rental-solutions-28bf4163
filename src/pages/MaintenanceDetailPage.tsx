@@ -29,7 +29,7 @@ const MaintenanceDetailPage = () => {
       <div>
         <h3>Maintenance Record Details</h3>
         <p>ID: {maintenanceRecord.id}</p>
-        <p>Vehicle ID: {maintenanceRecord.vehicleId}</p>
+        <p>Vehicle ID: {maintenanceRecord.vehicle_id}</p>
         <p>Description: {maintenanceRecord.description}</p>
         <Button onClick={handleDelete}>Delete</Button>
       </div>

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
-import { FileBarGraph, Car, Users, Coins } from 'lucide-react';
+import { BarChart, Car, Users, Coins } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -28,7 +28,8 @@ const Reports = () => {
   };
 
   const financialData = useFinancialReport();
-  const { data: vehicles = [], isLoading, error } = fleetReport;
+  const { isLoading, error } = fleetReport;
+  const vehicles = fleetReport.vehicles || [];
   const vehiclesByType = fleetReport.getVehicleTypeDistribution();
   const activeRentals = fleetReport.getActiveRentals();
 
@@ -155,7 +156,7 @@ const Reports = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
-              <FileBarGraph className="h-4 w-4" />
+              <BarChart className="h-4 w-4" />
               <span>Vehicle Type Distribution</span>
             </CardTitle>
           </CardHeader>

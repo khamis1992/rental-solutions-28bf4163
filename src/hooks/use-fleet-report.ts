@@ -1,20 +1,8 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { hasData, hasProperty, castDatabaseObject, asString, asNumber } from '@/utils/database-type-helpers';
-
-interface VehicleTypeDistribution {
-  type: string;
-  count: number;
-  avgDailyRate: number;
-}
-
-interface FleetStats {
-  totalVehicles: number;
-  activeVehicles: number;
-  rentalRate: number;
-}
+import { hasData, hasProperty } from '@/utils/database-type-helpers';
+import { VehicleTypeDistribution, FleetStats } from '@/types/fleet-report';
 
 export const useFleetReport = () => {
   // Fetch vehicles data
@@ -37,7 +25,7 @@ export const useFleetReport = () => {
         }
         
         // Safely cast data to Vehicle[]
-        return (data.filter(item => item !== null) as any[]).map(item => castDatabaseObject<Vehicle>(item));
+        return data as Vehicle[];
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         throw error;
@@ -116,32 +104,23 @@ export const useFleetReport = () => {
           if (lease) {
             // Check for property existence before accessing
             if (hasProperty(lease, 'vehicle_id')) {
-              result.vehicleId = asString(lease.vehicle_id);
+              result.vehicleId = String(lease.vehicle_id || '');
             }
             
             if (hasProperty(lease, 'customer_id')) {
-              result.customerId = asString(lease.customer_id);
+              result.customerId = String(lease.customer_id || '');
             }
             
-            // Check if profiles exists and has the right type before accessing its properties
-            if (hasProperty(lease, 'profiles') && lease.profiles && typeof lease.profiles === 'object') {
-              // Handle both array and object forms
-              const profileData = Array.isArray(lease.profiles) && lease.profiles.length > 0
-                ? lease.profiles[0]
-                : lease.profiles;
-                
-              if (profileData) {
-                if (hasProperty(profileData, 'full_name')) {
-                  result.customerName = asString(profileData.full_name) || 'Unknown';
-                }
-                
-                if (hasProperty(profileData, 'email')) {
-                  result.customerEmail = asString(profileData.email) || '';
-                }
-                
-                if (hasProperty(profileData, 'phone_number')) {
-                  result.customerPhone = asString(profileData.phone_number) || '';
-                }
+            // Handle profiles object safely
+            const profileData = lease.profiles;
+            if (profileData && typeof profileData === 'object') {
+              // Handle the profile data whether it's an array or a single object
+              const profile = Array.isArray(profileData) ? profileData[0] : profileData;
+              
+              if (profile) {
+                result.customerName = String(profile.full_name || 'Unknown');
+                result.customerEmail = String(profile.email || '');
+                result.customerPhone = String(profile.phone_number || '');
               }
             }
           }
@@ -186,15 +165,15 @@ export const useFleetReport = () => {
           if (item) {
             // Check for property existence before accessing
             if (hasProperty(item, 'id')) {
-              result.id = asString(item.id);
+              result.id = String(item.id || '');
             }
             
             if (hasProperty(item, 'cost')) {
-              result.cost = asNumber(item.cost);
+              result.cost = Number(item.cost || 0);
             }
             
             if (hasProperty(item, 'vehicle_id')) {
-              result.vehicleId = asString(item.vehicle_id);
+              result.vehicleId = String(item.vehicle_id || '');
             }
           }
           
@@ -210,8 +189,9 @@ export const useFleetReport = () => {
   // Calculate fleet stats
   const fleetStats: FleetStats = {
     totalVehicles: vehicles.length,
-    activeVehicles: getActiveRentals(),
-    rentalRate: vehicles.reduce((sum, v) => sum + (v.rent_amount || 0), 0) / (vehicles.length || 1)
+    availableCount: vehicles.filter(v => v.status === 'available').length,
+    maintenanceCount: vehicles.filter(v => v.status === 'maintenance').length,
+    rentedCount: vehicles.filter(v => v.status === 'rented').length,
   };
 
   // Calculate vehicle type distribution

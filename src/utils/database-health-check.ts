@@ -1,75 +1,132 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/types/database.types';
 
 interface HealthCheckResult {
-  database: {
-    status: 'ok' | 'error';
-    message?: string;
-  };
-  api: {
-    status: 'ok' | 'error';
-    message?: string;
-  };
+  status: 'ok' | 'error' | 'warning';
+  message: string;
+  details?: Record<string, any>;
+  timestamp: string;
 }
 
-export async function checkDatabaseHealth(): Promise<HealthCheckResult> {
-  const result: HealthCheckResult = {
-    database: { status: 'ok' },
-    api: { status: 'ok' },
-  };
-
+/**
+ * Performs a health check on the database connection
+ * @returns A promise that resolves to a health check result
+ */
+export const checkDatabaseHealth = async (): Promise<HealthCheckResult> => {
   try {
-    // Initialize Supabase client with dummy credentials to avoid actual DB access during URL check
-    const supabaseDummy = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE5NTczNDkyMDB9.fkG_ZmvkEG6ui64_jRPP9xKI15w9N_5Mnlw9nW0Eo5c'
-    );
-
-    // Helper function to safely access the Supabase URL
-    const getSupabaseUrl = () => {
-      // Access the base URL through the REST URL which is public
-      const restUrl = supabaseDummy.rest.url;
-      // Extract the base URL from the REST URL
-      return restUrl.split('/rest/')[0];
-    };
-
-    const supabaseUrl = getSupabaseUrl();
-
-    if (!supabaseUrl) {
-      result.database = {
-        status: 'error',
-        message: 'Supabase URL is not defined in environment variables.',
-      };
-    } else {
-      result.database = { status: 'ok' };
-    }
-  } catch (error: any) {
-    result.database = {
-      status: 'error',
-      message: `Failed to validate Supabase URL: ${error.message}`,
+    // Use a public API or method instead of accessing protected property
+    // For example, use a query to check connection
+    const healthCheck = await performHealthCheck();
+    return healthCheck;
+  } catch (error) {
+    console.error("Database health check failed:", error);
+    return { 
+      status: 'error', 
+      message: 'Unable to connect to database',
+      timestamp: new Date().toISOString()
     };
   }
+};
 
+/**
+ * Performs the actual health check by running a simple query
+ */
+async function performHealthCheck(): Promise<HealthCheckResult> {
   try {
-    const supabaseService = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwiaWF0IjoxNjQxNzY5MjAwLCJleHAiOjE5NTczNDkyMDB9.fkG_ZmvkEG6ui64_jRPP9xKI15w9N_5Mnlw9nW0Eo5c'
-    );
-    const { data, error } = await supabaseService.from('vehicles').select('id').limit(1);
-
+    // Run a simple query to check if the database is responsive
+    const startTime = performance.now();
+    const { data, error } = await supabase.from('system_settings').select('id').limit(1);
+    const endTime = performance.now();
+    
     if (error) {
-      result.api = {
+      return {
         status: 'error',
-        message: `API health check failed: ${error.message}`,
+        message: `Database query failed: ${error.message}`,
+        details: { error },
+        timestamp: new Date().toISOString()
       };
-    } else {
-      result.api = { status: 'ok' };
     }
-  } catch (error: any) {
-    result.api = {
+    
+    const responseTime = Math.round(endTime - startTime);
+    
+    // Check response time to determine if there might be performance issues
+    let status: 'ok' | 'warning' = 'ok';
+    let message = 'Database connection successful';
+    
+    if (responseTime > 1000) {
+      status = 'warning';
+      message = 'Database connection is slow';
+    }
+    
+    return {
+      status,
+      message,
+      details: {
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString()
+      },
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    return {
       status: 'error',
-      message: `Failed to connect to Supabase API: ${error.message}`,
+      message: `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      timestamp: new Date().toISOString()
     };
   }
-
-  return result;
 }
+
+/**
+ * Get connection information without exposing sensitive details
+ */
+export const getConnectionInfo = () => {
+  return {
+    status: 'connected',
+    // Don't expose protected properties
+    connectionDetails: 'Database connection established',
+    timestamp: new Date().toISOString()
+  };
+};
+
+/**
+ * Check if a specific table exists in the database
+ */
+export const checkTableExists = async (tableName: string): Promise<boolean> => {
+  try {
+    // Use RPC to check if table exists
+    const { data, error } = await supabase.rpc('check_table_exists', {
+      table_name: tableName
+    });
+    
+    if (error) {
+      console.error(`Error checking if table ${tableName} exists:`, error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error) {
+    console.error(`Failed to check if table ${tableName} exists:`, error);
+    return false;
+  }
+};
+
+/**
+ * Get the row count for a specific table
+ */
+export const getTableRowCount = async (tableName: keyof Database['public']['Tables']): Promise<number> => {
+  try {
+    const { count, error } = await supabase
+      .from(tableName)
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error(`Error getting row count for table ${tableName}:`, error);
+      return 0;
+    }
+    
+    return count || 0;
+  } catch (error) {
+    console.error(`Failed to get row count for table ${tableName}:`, error);
+    return 0;
+  }
+};

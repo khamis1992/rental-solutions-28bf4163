@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -6,8 +7,8 @@ import { useRentAmount } from '@/hooks/use-rent-amount';
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
 
-  // Fetch rent amount using the custom hook
-  const { rentAmount } = useRentAmount();
+  // Fetch rent amount using the custom hook - passing the ID as an argument
+  const { rentAmount } = useRentAmount(id || '');
 
   return (
     <PageContainer title="Agreement Detail">

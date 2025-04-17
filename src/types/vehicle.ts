@@ -1,114 +1,40 @@
 
-export type VehicleStatus = 
-  'available' | 
-  'rented' | 
-  'reserved' | 
-  'maintenance' | 
-  'police_station' | 
-  'accident' | 
-  'stolen' | 
-  'retired';
+export type VehicleStatus = 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserved';
 
 export interface Vehicle {
   id: string;
-  make: string;
-  model: string;
-  year?: number;
   license_plate: string;
-  licensePlate?: string; // Alternative property name
-  color?: string;
-  vin?: string;
-  status?: VehicleStatus | string;
-  insurance_company?: string;
-  insurance_policy?: string;
-  insurance_expiry?: string;
-  documents_verified?: boolean;
-  image_url?: string;
-  vehicle_type_id?: string;
-  created_at?: string;
-  updated_at?: string;
-  vehicleType?: VehicleType;
-  mileage?: number;
-  rent_amount?: number;
-  dailyRate?: number;
-  location?: string;
-  currentCustomer?: string;
-  description?: string; // Added description field
-}
-
-export interface VehicleListItem {
-  id: string;
   make: string;
   model: string;
   year: number;
-  license_plate: string;
-  status: string;
+  color?: string | null;
+  vin: string;
+  mileage?: number | null;
+  status?: VehicleStatus | null;
+  description?: string | null;
+  image_url?: string | null;
+  created_at: string;
+  updated_at: string;
+  rent_amount?: number | null;
+  insurance_company?: string | null;
+  insurance_expiry?: string | null;
+  location?: string | null;
+  vehicleType?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  dailyRate?: number;
 }
 
 export interface VehicleFilterParams {
   status?: string;
-  statuses?: string[];
   make?: string;
   model?: string;
-  year?: string;
+  year?: number;
   search?: string;
   location?: string;
   vehicle_type_id?: string;
 }
 
-export interface VehicleFormData {
-  make: string;
-  model: string;
-  year?: number;
-  license_plate: string;
-  color?: string;
-  vin?: string;
-  status?: VehicleStatus;
-  insurance_company?: string;
-  insurance_policy?: string;
-  insurance_expiry?: string;
-  vehicle_type_id?: string;
-  mileage?: number;
-  rent_amount?: number;
-  location?: string;
-  description?: string; // Added description field
-}
-
-export type VehicleInsertData = Omit<Vehicle, 'id' | 'created_at' | 'updated_at'>;
-export type VehicleUpdateData = Partial<VehicleInsertData>;
-
-export interface VehicleType {
-  id: string;
-  name: string;
-  size?: 'small' | 'midsize' | 'fullsize' | 'luxury' | 'suv' | 'van';
-  daily_rate?: number;
-  weekly_rate?: number;
-  monthly_rate?: number;
-  description?: string;
-  features?: string[];
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface DatabaseVehicleRecord extends Vehicle {
-  vehicle_types?: DatabaseVehicleType;
-  status: DatabaseVehicleStatus | null;
-  description?: string; // Added description field
-}
-
-export interface DatabaseVehicleType {
-  id: string;
-  name: string;
-  size?: string;
-  daily_rate?: number;
-  weekly_rate?: number;
-  monthly_rate?: number;
-  description?: string;
-  features?: string[] | string;
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export type DatabaseVehicleStatus = 'available' | 'rented' | 'reserve' | 'maintenance' | 'police_station' | 'accident' | 'stolen' | 'retired';
+export type DatabaseVehicleStatus = 'available' | 'rented' | 'maintenance' | 'retired' | 'police_station' | 'accident' | 'stolen' | 'reserve';
