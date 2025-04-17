@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
-import { MaintenanceList } from '@/components/maintenance/MaintenanceList';
+import MaintenanceList from '@/components/maintenance/MaintenanceList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
 import VehicleGrid from '@/components/vehicles/VehicleGrid';
@@ -13,7 +13,6 @@ const Maintenance = () => {
     <PageContainer 
       title="Vehicle Maintenance" 
       description="Track maintenance records and schedule service for your vehicles"
-      systemDate={new Date()}
     >
       <Tabs value={activeTab} onValueChange={setActiveTab} defaultValue="records" className="w-full">
         <TabsList className="mb-4">
@@ -30,8 +29,7 @@ const Maintenance = () => {
             <VehicleGrid 
               filter={{ 
                 statuses: ['maintenance', 'accident']
-              }} 
-              showAdd={false}
+              }}
             />
           </Card>
         </TabsContent>

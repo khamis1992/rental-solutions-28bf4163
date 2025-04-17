@@ -142,7 +142,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <FormLabel>Service Date</FormLabel>
                     <DatePicker
                       date={field.value}
-                      onSelect={field.onChange}
+                      setDate={field.onChange}
                     />
                     <FormMessage />
                   </FormItem>
