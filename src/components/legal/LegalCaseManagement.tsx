@@ -31,12 +31,10 @@ import { CustomerObligation } from './CustomerLegalObligations';
 import { useLegalCases } from '@/hooks/use-legal-cases';
 import { LegalCase } from '@/types/legal-case';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 
 const LegalCaseManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCase, setSelectedCase] = useState<CustomerObligation | null>(null);
-  const navigate = useNavigate();
   
   // Fetch legal cases from Supabase
   const { cases, loading, error } = useLegalCases();
@@ -76,7 +74,7 @@ const LegalCaseManagement = () => {
   };
 
   const handleCreateCase = () => {
-    navigate('/legal/cases/new');
+    toast.info('New case creation functionality is coming soon');
   };
 
   // Helper function to determine urgency based on case type
@@ -282,14 +280,7 @@ const LegalCaseManagement = () => {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={8} className="h-24 text-center">
-                        <div className="flex flex-col items-center justify-center p-4">
-                          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
-                          <p className="text-lg font-medium">No legal cases found</p>
-                          <p className="text-muted-foreground mb-4">Get started by creating your first case</p>
-                          <Button onClick={handleCreateCase}>
-                            <Plus className="mr-2 h-4 w-4" /> New Case
-                          </Button>
-                        </div>
+                        {searchQuery ? "No cases match your search." : "No legal cases found."}
                       </TableCell>
                     </TableRow>
                   )}

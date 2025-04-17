@@ -1,20 +1,21 @@
 
 export interface LegalCase {
   id: string;
+  case_number: string;
+  title: string;
+  description: string;
   customer_id: string;
-  case_type: string;
-  status: string | null;
-  amount_owed: number;
-  priority: string | null;
-  assigned_to: string | null;
-  description: string | null;
+  customer_name: string;
+  status: 'pending' | 'active' | 'closed' | 'settled';
+  hearing_date: string;
+  court_location?: string;
+  assigned_attorney?: string;
+  opposing_party?: string;
+  case_type: 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other';
+  documents?: string[];
+  amount_claimed?: number;
+  amount_settled?: number;
   created_at: string;
   updated_at: string;
-  resolution_date: string | null;
-  resolution_notes: string | null;
-  profiles?: {
-    full_name: string;
-    email: string | null;
-    phone_number: string | null;
-  };
+  notes?: string;
 }

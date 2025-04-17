@@ -23,8 +23,8 @@ export interface TrafficFine {
   customerName?: string;
   paymentDate?: Date;
   leaseId?: string;
-  leaseStartDate?: Date;
-  leaseEndDate?: Date;
+  documentId?: string;
+  documentUrl?: string;
 }
 
 export interface TrafficFinePayload {
@@ -39,6 +39,7 @@ export interface TrafficFineCreatePayload {
   violationCharge?: string;
   location?: string;
   paymentStatus?: TrafficFineStatusType;
+  document_id?: string;
 }
 
 export const useTrafficFines = () => {
@@ -63,7 +64,9 @@ export const useTrafficFines = () => {
             vehicle_id,
             lease_id,
             payment_date,
-            assignment_status
+            assignment_status,
+            document_id,
+            traffic_fine_documents(public_url)
           `)
           .order('violation_date', { ascending: false });
         
@@ -78,31 +81,24 @@ export const useTrafficFines = () => {
         
         // Get customer information for assigned fines
         const finesWithLeaseIds = data.filter(fine => fine.lease_id);
-        let customerAndLeaseInfo: Record<string, { 
-          customer_id: string; 
-          customer_name?: string;
-          start_date?: string;
-          end_date?: string;
-        }> = {};
+        let customerInfo: Record<string, { customer_id: string; customer_name?: string }> = {};
         
         if (finesWithLeaseIds.length > 0) {
           const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
           const { data: leases, error: leaseError } = await supabase
             .from('leases')
-            .select('id, customer_id, start_date, end_date, profiles(full_name)')
+            .select('id, customer_id, profiles(full_name)')
             .in('id', leaseIds as string[]);
             
           if (leaseError) {
             console.error('Error fetching lease information:', leaseError);
           } else if (leases) {
-            // Create a mapping of lease_id to customer information and lease dates
+            // Create a mapping of lease_id to customer information
             leases.forEach(lease => {
               if (lease && lease.id) {
-                customerAndLeaseInfo[lease.id] = {
+                customerInfo[lease.id] = {
                   customer_id: lease.customer_id,
-                  customer_name: lease.profiles?.full_name,
-                  start_date: lease.start_date,
-                  end_date: lease.end_date
+                  customer_name: lease.profiles?.full_name
                 };
               }
             });
@@ -114,7 +110,7 @@ export const useTrafficFines = () => {
           id: fine.id,
           violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+          violationDate: new Date(fine.violation_date),
           fineAmount: fine.fine_amount || 0,
           violationCharge: fine.violation_charge,
           paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
@@ -123,13 +119,11 @@ export const useTrafficFines = () => {
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
           leaseId: fine.lease_id,
           // Add customer information if available
-          customerId: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_id : undefined,
-          customerName: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_name : undefined,
-          // Add lease dates for validation
-          leaseStartDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.start_date ? 
-            new Date(customerAndLeaseInfo[fine.lease_id].start_date as string) : undefined,
-          leaseEndDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.end_date ?
-            new Date(customerAndLeaseInfo[fine.lease_id].end_date as string) : undefined
+          customerId: fine.lease_id ? customerInfo[fine.lease_id]?.customer_id : undefined,
+          customerName: fine.lease_id ? customerInfo[fine.lease_id]?.customer_name : undefined,
+          // Add document information
+          documentId: fine.document_id,
+          documentUrl: fine.traffic_fine_documents?.public_url
         }));
       } catch (error) {
         console.error('Error in traffic fines data fetching:', error);
@@ -156,7 +150,8 @@ export const useTrafficFines = () => {
           violation_charge: fineData.violationCharge,
           fine_location: fineData.location,
           payment_status: fineData.paymentStatus || 'pending',
-          assignment_status: 'pending'
+          assignment_status: 'pending',
+          document_id: fineData.document_id
         };
         
         const { data, error } = await supabase
@@ -184,13 +179,11 @@ export const useTrafficFines = () => {
   const assignToCustomer = useMutation({
     mutationFn: async ({ id }: TrafficFinePayload) => {
       try {
-        console.log(`Attempting to assign fine ${id} to customer`);
-        
-        // First get the traffic fine details to find license plate and violation date
+        // First get the traffic fine details to find license plate
         const { data: fine, error: fineError } = await supabase
           .from('traffic_fines')
-          .select('license_plate, violation_date')
-          .eq('id', id)
+          .select('license_plate')
+          .eq('id', asTableId('traffic_fines', id))
           .single();
           
         if (fineError || !fine) {
@@ -200,9 +193,6 @@ export const useTrafficFines = () => {
         if (!fine.license_plate) {
           throw new Error('Cannot assign fine: No license plate information available');
         }
-
-        const violationDate = new Date(fine.violation_date);
-        console.log(`Fine violation date: ${violationDate.toISOString()}`);
         
         // Find the vehicle with this license plate
         const { data: vehicleData, error: vehicleError } = await supabase
@@ -215,50 +205,28 @@ export const useTrafficFines = () => {
           throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
         }
         
-        // Find active lease for this vehicle that covers the violation date
+        // Find active lease for this vehicle
         const { data: leaseData, error: leaseError } = await supabase
           .from('leases')
-          .select('id, customer_id, start_date, end_date')
-          .eq('vehicle_id', vehicleData.id)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
+          .select('id, customer_id')
+          .eq('vehicle_id', asTableId('leases', vehicleData.id))
+          .eq('status', asColumnValue('leases', 'status', 'active'))
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
           
-        if (leaseError) {
-          throw new Error(`Error finding leases: ${leaseError.message}`);
-        }
-        
-        if (!leaseData || leaseData.length === 0) {
+        if (leaseError || !leaseData) {
           throw new Error(`No active lease found for this vehicle`);
         }
-
-        // Find a lease where violation date falls between start and end date
-        let matchingLease = null;
-        for (const lease of leaseData) {
-          const startDate = new Date(lease.start_date);
-          const endDate = lease.end_date ? new Date(lease.end_date) : new Date();
-          
-          console.log(`Checking lease ${lease.id}: start=${startDate.toISOString()}, end=${endDate.toISOString()}`);
-          
-          if (violationDate >= startDate && violationDate <= endDate) {
-            matchingLease = lease;
-            break;
-          }
-        }
-        
-        if (!matchingLease) {
-          throw new Error(`Traffic fine date (${violationDate.toLocaleDateString()}) is outside any lease period for this vehicle`);
-        }
-        
-        console.log(`Found matching lease ${matchingLease.id} for the violation date`);
         
         // Update the fine with the lease ID
         const { error: updateError } = await supabase
           .from('traffic_fines')
           .update({ 
-            lease_id: matchingLease.id,
+            lease_id: asTableId('traffic_fines', leaseData.id),
             assignment_status: 'assigned'
           })
-          .eq('id', id);
+          .eq('id', asTableId('traffic_fines', id));
           
         if (updateError) {
           throw new Error(`Failed to assign fine: ${updateError.message}`);
@@ -267,8 +235,8 @@ export const useTrafficFines = () => {
         return { 
           success: true, 
           message: 'Fine assigned to customer successfully',
-          leaseId: matchingLease.id,
-          customerId: matchingLease.customer_id
+          leaseId: leaseData.id,
+          customerId: leaseData.customer_id
         };
       } catch (error) {
         console.error('Error assigning fine to customer:', error);
@@ -292,10 +260,10 @@ export const useTrafficFines = () => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({ 
-          payment_status: 'paid',
+          payment_status: asColumnValue('traffic_fines', 'payment_status', 'paid'),
           payment_date: new Date().toISOString()
         })
-        .eq('id', id);
+        .eq('id', asTableId('traffic_fines', id));
         
       if (error) {
         throw new Error(`Failed to pay fine: ${error.message}`);
@@ -313,8 +281,8 @@ export const useTrafficFines = () => {
     mutationFn: async ({ id }: TrafficFinePayload) => {
       const { error } = await supabase
         .from('traffic_fines')
-        .update({ payment_status: 'disputed' })
-        .eq('id', id);
+        .update({ payment_status: asColumnValue('traffic_fines', 'payment_status', 'disputed') })
+        .eq('id', asTableId('traffic_fines', id));
         
       if (error) {
         throw new Error(`Failed to dispute fine: ${error.message}`);
@@ -327,58 +295,6 @@ export const useTrafficFines = () => {
     }
   });
   
-  // Function to clean up invalid assignments
-  const cleanupInvalidAssignments = useMutation({
-    mutationFn: async () => {
-      try {
-        if (!trafficFines || trafficFines.length === 0) {
-          throw new Error('No traffic fines data available');
-        }
-        
-        // Get all fines with invalid date ranges
-        const invalidFines = trafficFines.filter(fine => 
-          fine.leaseId && fine.violationDate && fine.leaseStartDate && 
-          (fine.violationDate < fine.leaseStartDate || 
-           (fine.leaseEndDate && fine.violationDate > fine.leaseEndDate))
-        );
-        
-        if (invalidFines.length === 0) {
-          toast.info('No invalid fine assignments found');
-          return { cleaned: 0 };
-        }
-        
-        const invalidFineIds = invalidFines.map(fine => fine.id);
-        
-        // Clear the lease_id for these fines
-        const { error, count } = await supabase
-          .from('traffic_fines')
-          .update({ 
-            lease_id: null,
-            assignment_status: 'pending'
-          })
-          .in('id', invalidFineIds);
-        
-        if (error) {
-          throw new Error(`Failed to clean up invalid assignments: ${error.message}`);
-        }
-        
-        return { cleaned: invalidFineIds.length };
-      } catch (error) {
-        console.error('Error cleaning up invalid assignments:', error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success(`Successfully cleaned up ${data.cleaned} invalid fine assignments`);
-    },
-    onError: (error: Error) => {
-      toast.error('Failed to clean up invalid assignments', {
-        description: error.message
-      });
-    }
-  });
-  
   return {
     trafficFines,
     isLoading,
@@ -386,7 +302,11 @@ export const useTrafficFines = () => {
     assignToCustomer,
     payTrafficFine,
     disputeTrafficFine,
-    createTrafficFine,
-    cleanupInvalidAssignments
+    createTrafficFine
   };
 };
+
+// Helper for type-safe column value assignment
+function asColumnValue<T extends keyof any>(table: string, column: string, value: T): T {
+  return value;
+}

@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Check, Loader2, Search, UserCheck } from 'lucide-react';
+import { AlertCircle, Check, FileText, Loader2, Search, Upload, X } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,8 +22,10 @@ type ValidationFormValues = z.infer<typeof validationSchema>;
 const TrafficFineValidation: React.FC = () => {
   const [validationResult, setValidationResult] = useState<any>(null);
   const [isValidating, setIsValidating] = useState(false);
-  const [assigningFine, setAssigningFine] = useState<string | null>(null);
-  const { trafficFines, assignToCustomer } = useTrafficFines();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const { trafficFines } = useTrafficFines();
   
   const form = useForm<ValidationFormValues>({
     resolver: zodResolver(validationSchema),
@@ -92,38 +94,71 @@ const TrafficFineValidation: React.FC = () => {
     }
   };
 
-  // Handle assigning a fine to a customer
-  const handleAssignToCustomer = async (id: string) => {
-    if (!id) {
-      toast.error("Invalid fine ID");
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      const file = event.target.files[0];
+      if (file.type === 'application/pdf') {
+        setSelectedFile(file);
+      } else {
+        toast.error('Please select a PDF file');
+      }
+    }
+  };
+
+  const uploadFile = async () => {
+    if (!selectedFile || !validationResult) {
+      toast.error('Please select a file and complete validation first');
       return;
     }
 
     try {
-      setAssigningFine(id);
-      await assignToCustomer.mutateAsync({ id });
-      toast.success("Fine assigned to customer successfully");
+      setIsUploading(true);
+      const timestamp = Date.now();
+      const filePath = `traffic-fines/${validationResult.licensePlate}/${timestamp}_${selectedFile.name.replace(/\s+/g, '_')}`;
       
-      // Update the validation result to reflect the new assignment status
-      if (validationResult && validationResult.fines) {
-        setValidationResult({
-          ...validationResult,
-          fines: validationResult.fines.map((fine: any) => {
-            if (fine.id === id) {
-              return { ...fine, isAssigned: true };
-            }
-            return fine;
-          })
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
         });
+      
+      if (error) {
+        throw error;
       }
+      
+      // Get the public URL for the uploaded file
+      const { data: publicUrlData } = supabase.storage
+        .from('documents')
+        .getPublicUrl(filePath);
+      
+      setUploadedFileUrl(publicUrlData.publicUrl);
+      
+      // Update the validation record with the document reference
+      if (validationResult) {
+        await supabase
+          .from('traffic_fine_validations')
+          .update({
+            document_url: publicUrlData.publicUrl,
+            document_name: selectedFile.name
+          })
+          .eq('license_plate', validationResult.licensePlate)
+          .order('validation_date', { ascending: false })
+          .limit(1);
+      }
+      
+      toast.success('Document uploaded successfully');
     } catch (error) {
-      console.error("Error assigning fine to customer:", error);
-      toast.error("Failed to assign fine to customer", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred"
-      });
+      console.error('Upload error:', error);
+      toast.error('Failed to upload document');
     } finally {
-      setAssigningFine(null);
+      setIsUploading(false);
     }
+  };
+
+  const clearUploadedFile = () => {
+    setSelectedFile(null);
+    setUploadedFileUrl(null);
   };
 
   return (
@@ -183,7 +218,7 @@ const TrafficFineValidation: React.FC = () => {
         </Form>
         <CardFooter className="flex flex-col items-start">
           {validationResult && (
-            <div className="w-full">
+            <div className="w-full space-y-4">
               <Alert 
                 variant={validationResult.finesCount > 0 ? "destructive" : "default"}
                 className={validationResult.finesCount > 0 ? "mb-4" : ""}
@@ -217,7 +252,7 @@ const TrafficFineValidation: React.FC = () => {
                             {new Date(fine.violationDate).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="flex flex-col items-end">
+                        <div className="text-right">
                           <p className="font-medium">${fine.fineAmount.toFixed(2)}</p>
                           <p className={`text-sm ${
                             fine.paymentStatus === 'paid' 
@@ -229,40 +264,98 @@ const TrafficFineValidation: React.FC = () => {
                             {fine.paymentStatus.charAt(0).toUpperCase() + fine.paymentStatus.slice(1)}
                           </p>
                         </div>
-                        <div className="ml-4">
-                          {!fine.customerId && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleAssignToCustomer(fine.id)}
-                              disabled={assigningFine === fine.id}
-                              className="flex items-center"
-                            >
-                              {assigningFine === fine.id ? (
-                                <>
-                                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                  Assigning...
-                                </>
-                              ) : (
-                                <>
-                                  <UserCheck className="h-3 w-3 mr-1" />
-                                  Assign
-                                </>
-                              )}
-                            </Button>
-                          )}
-                          {fine.customerId && (
-                            <div className="text-xs text-green-600 flex items-center">
-                              <UserCheck className="h-3 w-3 mr-1" />
-                              Assigned
-                            </div>
-                          )}
-                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+
+              <div className="w-full border-t pt-4">
+                <h3 className="font-semibold mb-2">Upload Documentation</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  You can attach a PDF document related to this validation (e.g., traffic fine notice, payment receipt)
+                </p>
+                
+                {!uploadedFileUrl ? (
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="file"
+                        id="pdf-upload"
+                        onChange={handleFileChange}
+                        accept="application/pdf"
+                        className="hidden"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        onClick={() => document.getElementById('pdf-upload')?.click()}
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        Select PDF
+                      </Button>
+                      {selectedFile && (
+                        <span className="text-sm flex-1 truncate">{selectedFile.name}</span>
+                      )}
+                    </div>
+
+                    {selectedFile && (
+                      <Button 
+                        type="button"
+                        onClick={uploadFile}
+                        disabled={isUploading}
+                        className="w-full"
+                      >
+                        {isUploading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Document
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border rounded-md p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-5 w-5 text-blue-500" />
+                        <div>
+                          <p className="font-medium">{selectedFile?.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedFile?.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : ''}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          asChild
+                        >
+                          <a href={uploadedFileUrl} target="_blank" rel="noopener noreferrer">
+                            View
+                          </a>
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearUploadedFile}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </CardFooter>

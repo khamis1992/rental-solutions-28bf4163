@@ -14,9 +14,7 @@ import {
   asLeaseId,
   asLeaseIdColumn,
   asStatusColumn,
-  asPaymentStatusColumn,
-  hasData,
-  safelyGetRecordsFromResponse
+  hasData
 } from '@/utils/database-type-helpers';
 import { Payment } from "./PaymentHistory.types";
 
@@ -46,8 +44,6 @@ interface VehicleInfo {
   year?: number;
   color?: string;
 }
-
-type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'cancelled';
 
 export function VehicleAssignmentDialog({
   isOpen,
@@ -86,71 +82,56 @@ export function VehicleAssignmentDialog({
           .single();
           
         if (hasData(vehicleResponse)) {
-          setVehicleInfo(vehicleResponse.data as VehicleInfo);
+          setVehicleInfo(vehicleResponse.data);
         }
       }
       
       // Fetch pending payments
-      const fetchPayments = async () => {
-        try {
-          const pendingStatuses = ['pending', 'overdue', 'partially_paid'];
-          const { data, error } = await supabase
-            .from('unified_payments')
-            .select('*')
-            .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
-            .in('status', asPaymentStatusColumn(pendingStatuses));
-          
-          if (error) throw error;
-          
-          // Safely access the data with proper typing
-          const payments = safelyGetRecordsFromResponse(data);
-          
-          // Process payments with null checking
-          const typedPayments: Payment[] = payments.map(payment => ({
-            id: payment?.id || '',
-            amount: payment?.amount || 0,
-            status: (payment?.status as PaymentStatus) || 'pending',
-            description: payment?.description || '',
-            payment_date: payment?.payment_date ? new Date(payment.payment_date) : undefined,
-            due_date: payment?.due_date ? new Date(payment.due_date) : undefined
-          }));
-          
-          setPendingPayments(typedPayments);
-        } catch (error) {
-          console.error("Error fetching payments:", error);
-          setPendingPayments([]);
-        }
-      };
-      
-      fetchPayments();
+      const paymentsResponse = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .in('status', ['pending', 'overdue']);
+        
+      if (hasData(paymentsResponse)) {
+        const formattedPayments = paymentsResponse.data.map(payment => ({
+          id: payment.id,
+          amount: payment.amount,
+          status: payment.status,
+          description: payment.description,
+          payment_date: payment.payment_date,
+          due_date: payment.due_date
+        }));
+        setPendingPayments(formattedPayments);
+      } else {
+        console.error("Error fetching pending payments:", paymentsResponse.error);
+      }
       
       // Fetch traffic fines
       const finesResponse = await supabase
         .from('traffic_fines')
         .select('*')
         .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
-        .eq('payment_status', asPaymentStatusColumn('pending'));
+        .eq('payment_status', 'pending');
         
       if (hasData(finesResponse)) {
         // Transform the data to ensure payment_status is a proper TrafficFineStatusType
-        const finesData = safelyGetRecordsFromResponse(finesResponse.data);
-        const transformedFines: TrafficFine[] = finesData.map(fine => ({
-          id: fine?.id || '',
-          violationNumber: fine?.violation_number || "",
-          licensePlate: fine?.license_plate || "",
-          violationDate: fine?.violation_date ? new Date(fine.violation_date) : new Date(),
-          fineAmount: fine?.fine_amount || 0,
-          violationCharge: fine?.violation_charge || '',
-          paymentStatus: (fine?.payment_status as TrafficFineStatusType) || 'pending',
-          location: fine?.fine_location || '',
-          vehicleId: fine?.vehicle_id || '',
-          leaseId: fine?.lease_id || '',
-          paymentDate: fine?.payment_date ? new Date(fine.payment_date) : undefined
+        const transformedFines: TrafficFine[] = finesResponse.data.map(fine => ({
+          id: fine.id,
+          violationNumber: fine.violation_number || "",
+          licensePlate: fine.license_plate || "",
+          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+          fineAmount: fine.fine_amount || 0,
+          violationCharge: fine.violation_charge,
+          paymentStatus: fine.payment_status as TrafficFineStatusType,
+          location: fine.fine_location,
+          vehicleId: fine.vehicle_id,
+          leaseId: fine.lease_id,
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
         setTrafficFines(transformedFines);
       } else {
-        console.error("Error fetching traffic fines:", finesResponse?.error);
-        setTrafficFines([]);
+        console.error("Error fetching traffic fines:", finesResponse.error);
       }
       
       // Fetch customer information
@@ -168,7 +149,7 @@ export function VehicleAssignmentDialog({
           .single();
           
         if (hasData(customerResponse)) {
-          setCustomerInfo(customerResponse.data as CustomerInfo);
+          setCustomerInfo(customerResponse.data);
         }
       }
     } catch (error) {
@@ -178,9 +159,11 @@ export function VehicleAssignmentDialog({
     }
   };
 
+  // Check if we need acknowledgments for payments or fines
   const needsPaymentAcknowledgment = pendingPayments.length > 0;
   const needsFinesAcknowledgment = trafficFines.length > 0;
   
+  // Can proceed if no acknowledgments needed, or all are acknowledged
   const canProceed = (!needsPaymentAcknowledgment || acknowledgedPayments) && 
                     (!needsFinesAcknowledgment || acknowledgedFines);
 
@@ -191,14 +174,13 @@ export function VehicleAssignmentDialog({
     onClose();
   };
 
-  const formatDate = (date: Date | string | undefined) => {
+  const formatDate = (date: Date | undefined) => {
     if (!date) return 'N/A';
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
     return new Intl.DateTimeFormat('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
-    }).format(dateObj);
+    }).format(date);
   };
 
   const getStatusBadge = (status: string) => {
@@ -239,6 +221,7 @@ export function VehicleAssignmentDialog({
           </div>
         ) : (
           <>
+            {/* Collapsible Section for Vehicle Information */}
             {vehicleInfo && (
               <Collapsible
                 open={isDetailsOpen}
@@ -286,6 +269,7 @@ export function VehicleAssignmentDialog({
               </Collapsible>
             )}
 
+            {/* Collapsible Section for Payment History */}
             {pendingPayments.length > 0 && (
               <Collapsible
                 open={isPaymentHistoryOpen}

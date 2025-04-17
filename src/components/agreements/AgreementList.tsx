@@ -499,29 +499,6 @@ export const AgreementList = () => {
       },
     },
     {
-      accessorKey: "created_at",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            className="px-0 font-medium"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-          >
-            Created Date
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const createdAt = row.original.created_at;
-        return (
-          <div className="whitespace-nowrap">
-            {createdAt ? format(new Date(createdAt), 'MMM d, yyyy') : 'N/A'}
-          </div>
-        );
-      },
-    },
-    {
       id: "actions",
       cell: ({ row }) => {
         const agreement = row.original;

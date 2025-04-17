@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -50,7 +49,6 @@ import MaintenanceDetailPage from "./pages/MaintenanceDetailPage";
 
 // Legal pages
 import Legal from "./pages/Legal";
-import NewLegalCasePage from "./pages/NewLegalCasePage";
 
 // Traffic Fines pages
 import TrafficFines from "./pages/TrafficFines";
@@ -129,9 +127,8 @@ function App() {
                           <Route path="/maintenance/:id" element={<MaintenanceDetailPage />} />
                           <Route path="/maintenance/edit/:id" element={<EditMaintenance />} />
                           
-                          {/* Legal Management Routes */}
+                          {/* Legal Management Route */}
                           <Route path="/legal" element={<Legal />} />
-                          <Route path="/legal/cases/new" element={<NewLegalCasePage />} />
                           
                           {/* Traffic Fines Management Route */}
                           <Route path="/fines" element={<TrafficFines />} />

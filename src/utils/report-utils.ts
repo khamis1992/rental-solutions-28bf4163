@@ -1,19 +1,8 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
-import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
-import { hasRTLCharacters } from './rtl-utils';
-
-// Import jspdf-autotable package with proper error handling
-try {
-  // Use dynamic import to prevent bundling errors
-  import('jspdf-autotable').catch(err => {
-    console.error('Error loading jspdf-autotable:', err);
-  });
-} catch (err) {
-  console.warn('jspdf-autotable import failed, PDF tables may not work correctly:', err);
-}
 
 /**
  * Generates a CSV string from an array of objects
@@ -93,36 +82,6 @@ export const downloadExcel = (data: Record<string, any>[], filename: string): vo
   downloadCSV(data, filename);
 };
 
-// Function to check if running in browser environment
-const isBrowser = typeof window !== 'undefined';
-
-// Function to load the Arabic font data asynchronously
-const loadArabicFont = async () => {
-  try {
-    // We'll use a standard font with Arabic support that comes with jsPDF
-    return true;
-  } catch (error) {
-    console.error("Failed to load Arabic font:", error);
-    return false;
-  }
-};
-
-/**
- * Configure jspdf for Arabic text support
- */
-export const configureArabicSupport = async (doc: jsPDF): Promise<jsPDF> => {
-  if (!isBrowser) return doc;
-  
-  try {
-    // Use standard fonts that jsPDF supports for Arabic
-    // Providing better fallbacks since we can't rely on loading external fonts
-    return doc;
-  } catch (error) {
-    console.warn("Arabic font support initialization failed:", error);
-    return doc; // Return original doc if font loading fails
-  }
-};
-
 /**
  * Safely adds an image to the PDF, with error handling
  * @param doc PDF document
@@ -140,42 +99,6 @@ const safelyAddImage = (doc: jsPDF, imgPath: string, x: number, y: number, w: nu
   } catch (error) {
     console.warn(`Failed to add image ${imgPath} to PDF:`, error);
     return false;
-  }
-};
-
-/**
- * Safely renders text that may contain Arabic characters
- * @param doc jsPDF instance
- * @param text Text to render (may contain Arabic)
- * @param x X position
- * @param y Y position
- * @param options Text options
- */
-export const renderText = (doc: jsPDF, text: string, x: number, y: number, options: any = {}): void => {
-  // Check if text contains RTL characters (Arabic, Hebrew, etc.)
-  const containsRTL = hasRTLCharacters(text);
-  
-  try {
-    if (containsRTL) {
-      // For RTL text
-      const currentFontSize = doc.getFontSize();
-      
-      // Handle text alignment for RTL
-      if (options.align === 'right' || !options.align) {
-        doc.text(text, x, y, { align: 'right' });
-      } else if (options.align === 'center') {
-        doc.text(text, x, y, { align: 'center' });
-      } else {
-        doc.text(text, x, y);
-      }
-    } else {
-      // For regular LTR text
-      doc.text(text, x, y, options);
-    }
-  } catch (error) {
-    // Fallback to standard text rendering if RTL handling fails
-    console.warn("Failed to render text with RTL support:", error);
-    doc.text(text, x, y, options);
   }
 };
 
@@ -210,9 +133,8 @@ export const addReportHeader = (
     img.src = logoPath;
     
     // Add text instead of image as reliable fallback
-    doc.setFontSize(18);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(44, 62, 80); // Dark blue color
     doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
     
     // Try to add the image if it's available
@@ -222,27 +144,23 @@ export const addReportHeader = (
   } catch (error) {
     console.warn('Failed to add logo to PDF header:', error);
     // Add text instead of image as fallback
-    doc.setFontSize(18);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(44, 62, 80);
     doc.text('ALARAF CAR RENTAL', logoX, logoY + 10);
   }
   
   // Add a separator line
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.5);
+  doc.setDrawColor(200, 200, 200);
   doc.line(14, 30, pageWidth - 14, 30);
   
-  // Add title with improved styling
-  doc.setFontSize(22);
+  // Add title
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(44, 62, 80);
-  renderText(doc, title, pageWidth / 2, 45, { align: 'center' });
+  doc.text(title, pageWidth / 2, 40, { align: 'center' });
   
   // Add date range with updated format
-  doc.setFontSize(12);
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 100, 100);
   
   // Safely format dates with error handling
   let fromDateStr = 'N/A';
@@ -264,12 +182,12 @@ export const addReportHeader = (
     console.error("Error formatting to date:", err);
   }
   
-  renderText(doc, `Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 55, { align: 'center' });
+  doc.text(`Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 50, { align: 'center' });
   
   // Add date of generation with updated format
-  renderText(doc, `Generated on: ${formatDate(new Date())}`, pageWidth / 2, 62, { align: 'center' });
+  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 55, { align: 'center' });
   
-  return 75; // Return next Y position with more space
+  return 65; // Return next Y position
 };
 
 /**
@@ -283,24 +201,21 @@ export const addReportFooter = (doc: jsPDF): void => {
   // Add footer text
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(100, 100, 100);
-  renderText(doc, '© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 15, { align: 'center' });
-  doc.setFontSize(9);
+  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 30, { align: 'center' });
+  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  renderText(doc, 'Quality Service, Premium Experience', pageWidth / 2, pageHeight - 10, { align: 'center' });
+  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
   
-  // Add horizontal line (slightly higher to avoid overlap)
-  doc.setDrawColor(220, 220, 220);
-  doc.setLineWidth(0.5);
+  // Add horizontal line instead of the Arabic text image
+  doc.setDrawColor(200, 200, 200);
   doc.line(14, pageHeight - 20, pageWidth - 14, pageHeight - 20);
   
   // Add page bottom elements with correct spacing/positioning
   doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(150, 150, 150);
-  doc.text('CONFIDENTIAL', 14, pageHeight - 5);
-  renderText(doc, `Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
-  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 5, { align: 'right' });
+  doc.text('CONFIDENTIAL', 14, pageHeight - 10);
+  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 10, { align: 'right' });
 };
 
 /**
@@ -324,79 +239,50 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
  * @param contentGenerator Function that adds content to the document
  * @returns PDF document
  */
-export const generateStandardReport = async (
+export const generateStandardReport = (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
   contentGenerator: (doc: jsPDF, startY: number) => number
-): Promise<jsPDF> => {
+): jsPDF => {
+  // Initialize the PDF document with better error handling
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4'
   });
-
-  // Configure Arabic support
-  await configureArabicSupport(doc);
   
   try {
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+    console.log('Generating standard report:', { title, dateRange });
+    // Add header and get the Y position to start content
+    const startY = addReportHeader(doc, title, dateRange);
     
-    // Improved Header
-    doc.setFillColor(240, 240, 240);
-    doc.rect(0, 0, pageWidth, 25, 'F');
-    
-    // Company Logo or Name
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(44, 62, 80);
-    renderText(doc, 'ALARAF CAR RENTAL', pageWidth / 2, 15, { align: 'center' });
-    
-    // Report Title
-    doc.setFontSize(14);
-    doc.setTextColor(70, 70, 70);
-    renderText(doc, title, pageWidth / 2, 35, { align: 'center' });
-    
-    // Date Range
-    doc.setFontSize(10);
-    const fromDateStr = dateRange.from ? formatDate(dateRange.from) : 'N/A';
-    const toDateStr = dateRange.to ? formatDate(dateRange.to) : 'N/A';
-    renderText(doc, `Report Period: ${fromDateStr} - ${toDateStr}`, pageWidth / 2, 42, { align: 'center' });
-    
-    // Generate content
-    const startY = 50;
+    // Add content using the provided generator function
     const finalY = contentGenerator(doc, startY);
+    console.log('Content generated successfully, final Y position:', finalY);
     
-    // Footer for each page
+    // Apply footer to all pages
     const totalPages = doc.getNumberOfPages();
+    console.log(`Report generated with ${totalPages} pages`);
+    
     for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      
-      // Footer background - ensure it's properly positioned
-      doc.setFillColor(240, 240, 240);
-      doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-      
-      // Footer text
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(100, 100, 100);
-      
-      doc.text('© 2025 ALARAF CAR RENTAL', 15, pageHeight - 6);
-      renderText(doc, 'Quality Service, Premium Experience', pageWidth / 2, pageHeight - 6, { align: 'center' });
-      doc.text(`Page ${i} of ${totalPages}`, pageWidth - 15, pageHeight - 6, { align: 'right' });
+      addReportFooter(doc);
     }
     
     return doc;
   } catch (error) {
     console.error("Error generating standard report:", error);
-    
-    // Error page
+    // Create a simple error document
     doc.deletePage(1);
     doc.addPage();
     doc.setFontSize(16);
     doc.setTextColor(255, 0, 0);
     doc.text("Error Generating Report", 20, 20);
-    
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("An error occurred while generating this report.", 20, 30);
+    doc.text("Please try again or contact support.", 20, 40);
+    doc.text(error instanceof Error ? error.message : 'Unknown error', 20, 50);
     return doc;
   }
 };

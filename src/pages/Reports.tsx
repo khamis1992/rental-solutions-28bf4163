@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -21,7 +20,6 @@ import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { DateRange } from '@/components/ui/date-range-picker';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -33,6 +31,7 @@ const Reports = () => {
   const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
+  // Load maintenance data
   useEffect(() => {
     const fetchMaintenance = async () => {
       try {
@@ -46,15 +45,16 @@ const Reports = () => {
     fetchMaintenance();
   }, []);
   
+  // Debug log to check traffic fines data
   useEffect(() => {
     if (trafficFines) {
       console.log("Traffic fines data loaded in Reports:", trafficFines.length);
     }
   }, [trafficFines]);
   
-  const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    to: new Date()
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    endDate: new Date()
   });
   
   const [isGenerating, setIsGenerating] = useState(false);
@@ -62,12 +62,14 @@ const Reports = () => {
   const handleGenerateScheduledReport = () => {
     setIsGenerating(true);
     
+    // Simulate report generation
     setTimeout(() => {
       setIsGenerating(false);
       toast.success('Scheduled report generated successfully');
     }, 2000);
   };
   
+  // Function to get report data based on selected tab
   const getReportData = () => {
     console.log("Getting report data for:", selectedTab);
     switch (selectedTab) {
@@ -123,11 +125,15 @@ const Reports = () => {
             }
             
             return {
+              id: fine.id,
               violationNumber: fine.violationNumber || 'N/A',
               licensePlate: fine.licensePlate || 'N/A',
               violationDate: violationDate,
+              location: fine.location || 'N/A',
               fineAmount: typeof fine.fineAmount === 'number' ? fine.fineAmount : 0,
-              customerName: fine.customerName || 'Unassigned'
+              paymentStatus: fine.paymentStatus || 'pending',
+              customerName: fine.customerName || 'Unassigned',
+              customerId: fine.customerId || null
             };
           });
         }
@@ -153,7 +159,6 @@ const Reports = () => {
           <span>Scheduled Reports</span>
         </Button>
       }
-      className="pb-20"
     >
       <div className="flex items-center mb-6">
         <SectionHeader 
@@ -171,10 +176,10 @@ const Reports = () => {
         </AlertDescription>
       </Alert>
       
-      <Card className="mb-16">
+      <Card>
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-6 mb-8 space-x-2">
+            <TabsList className="grid grid-cols-6 mb-8">
               <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
               <TabsTrigger value="financial">Financial Report</TabsTrigger>
               <TabsTrigger value="customers">Customer Report</TabsTrigger>
@@ -183,39 +188,36 @@ const Reports = () => {
               <TabsTrigger value="legal">Legal Report</TabsTrigger>
             </TabsList>
             
-            <div className="mb-6 px-4">
+            <div className="mb-6">
               <ReportDownloadOptions 
                 reportType={selectedTab} 
                 getReportData={getReportData} 
-                dateRange={dateRange}
               />
             </div>
             
-            <div className="space-y-4">
-              <TabsContent value="fleet" className="mt-0">
-                <FleetReport />
-              </TabsContent>
-              
-              <TabsContent value="financial" className="mt-0">
-                <FinancialReport />
-              </TabsContent>
-              
-              <TabsContent value="customers" className="mt-0">
-                <CustomerReport />
-              </TabsContent>
-              
-              <TabsContent value="maintenance" className="mt-0">
-                <MaintenanceReport />
-              </TabsContent>
-              
-              <TabsContent value="traffic" className="mt-0">
-                <TrafficFineReport />
-              </TabsContent>
-              
-              <TabsContent value="legal" className="mt-0">
-                <LegalReport />
-              </TabsContent>
-            </div>
+            <TabsContent value="fleet" className="mt-0">
+              <FleetReport />
+            </TabsContent>
+            
+            <TabsContent value="financial" className="mt-0">
+              <FinancialReport />
+            </TabsContent>
+            
+            <TabsContent value="customers" className="mt-0">
+              <CustomerReport />
+            </TabsContent>
+            
+            <TabsContent value="maintenance" className="mt-0">
+              <MaintenanceReport />
+            </TabsContent>
+            
+            <TabsContent value="traffic" className="mt-0">
+              <TrafficFineReport />
+            </TabsContent>
+            
+            <TabsContent value="legal" className="mt-0">
+              <LegalReport />
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
