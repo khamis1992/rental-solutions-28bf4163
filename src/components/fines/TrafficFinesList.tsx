@@ -46,17 +46,6 @@ import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import TrafficFineImport from './TrafficFineImport';
-import TrafficFineEditDialog from './TrafficFineEditDialog';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 
 interface TrafficFinesListProps {
   onAddFine?: () => void;
@@ -65,7 +54,15 @@ interface TrafficFinesListProps {
 
 const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { trafficFines, isLoading, error, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
+  const { 
+    trafficFines, 
+    isLoading, 
+    error, 
+    payTrafficFine, 
+    disputeTrafficFine, 
+    assignToCustomer, 
+    markAsPaid 
+  } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
   const [dataValidation, setDataValidation] = useState<{ valid: boolean; issues: string[] }>({ 
     valid: true, 
@@ -130,7 +127,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handlePayFine = async (id: string) => {
     try {
-      await payTrafficFine.mutate({ id });
+      await payTrafficFine.mutateAsync({ id });
       toast.success("Fine marked as paid successfully");
     } catch (error) {
       console.error("Error paying fine:", error);
@@ -142,7 +139,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handleDisputeFine = async (id: string) => {
     try {
-      await disputeTrafficFine.mutate({ id });
+      await disputeTrafficFine.mutateAsync({ id });
       toast.success("Fine marked as disputed successfully");
     } catch (error) {
       console.error("Error disputing fine:", error);
@@ -179,7 +176,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutate({ id: fine.id });
+          await assignToCustomer({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);

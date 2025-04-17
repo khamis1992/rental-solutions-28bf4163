@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -17,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Calendar, Loader2 } from 'lucide-react';
-import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
+import { useTrafficFines, TrafficFine, TrafficFineCreatePayload } from '@/hooks/use-traffic-fines';
 import { toast } from 'sonner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -137,25 +136,24 @@ const TrafficFineEditDialog: React.FC<TrafficFineEditDialogProps> = ({
     }
 
     try {
-      // Convert Date to string for violationDate
+      // Format the data according to the expected structure
       const submissionData = {
         id: trafficFine.id,
-        violationNumber: data.violationNumber,
-        licensePlate: data.licensePlate,
-        violationDate: data.violationDate.toISOString(), // Convert Date to ISO string
-        fineAmount: data.fineAmount,
-        violationCharge: data.violationCharge || '',
-        location: data.location || '',
-        paymentStatus: data.paymentStatus
+        data: {
+          violationNumber: data.violationNumber,
+          licensePlate: data.licensePlate,
+          violationDate: data.violationDate.toISOString(),
+          fineAmount: data.fineAmount,
+          violationCharge: data.violationCharge || '',
+          location: data.location || '',
+          paymentStatus: data.paymentStatus
+        }
       };
       
-      await updateTrafficFine.mutate(submissionData, {
-        onSuccess: () => {
-          toast.success("Traffic fine updated successfully");
-          setPlateValidationResult(null);
-          onSave();
-        }
-      });
+      await updateTrafficFine.mutateAsync(submissionData);
+      toast.success("Traffic fine updated successfully");
+      setPlateValidationResult(null);
+      onSave();
     } catch (error) {
       toast.error("Failed to update traffic fine", {
         description: error instanceof Error ? error.message : "An unknown error occurred"

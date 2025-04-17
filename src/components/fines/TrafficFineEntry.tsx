@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
@@ -83,11 +82,6 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
     try {
       const result = await validateLicensePlate(plate);
       setPlateValidationResult(result);
-      
-      if (!result.isValid) {
-        // No need to show a toast for validation failures
-        console.log('License plate validation failed:', result.message);
-      }
     } catch (error) {
       console.error('Error validating license plate:', error);
       toast.error('Failed to validate license plate');
@@ -105,28 +99,25 @@ const TrafficFineEntry: React.FC<TrafficFineEntryProps> = ({ onFineSaved }) => {
 
   const onSubmit = async (data: TrafficFineFormData) => {
     try {
-      await createTrafficFine.mutate(data as TrafficFineCreatePayload, {
-        onSuccess: () => {
-          toast.success("Traffic fine created successfully");
-          form.reset({
-            violationNumber: `TF-${Math.floor(Math.random() * 10000)}`,
-            licensePlate: '',
-            violationDate: new Date(),
-            fineAmount: 0,
-            violationCharge: '',
-            location: '',
-            paymentStatus: 'pending',
-          });
-          setPlateValidationResult(null);
-          
-          // Force a refetch to update the list
-          refetch();
-          
-          if (onFineSaved) {
-            onFineSaved();
-          }
-        }
+      await createTrafficFine.mutateAsync(data as TrafficFineCreatePayload);
+      toast.success("Traffic fine created successfully");
+      form.reset({
+        violationNumber: `TF-${Math.floor(Math.random() * 10000)}`,
+        licensePlate: '',
+        violationDate: new Date(),
+        fineAmount: 0,
+        violationCharge: '',
+        location: '',
+        paymentStatus: 'pending',
       });
+      setPlateValidationResult(null);
+      
+      // Force a refetch to update the list
+      refetch();
+      
+      if (onFineSaved) {
+        onFineSaved();
+      }
     } catch (error) {
       toast.error("Failed to create traffic fine", {
         description: error instanceof Error ? error.message : "An unknown error occurred"

@@ -1,10 +1,11 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
-import { CustomerInfo } from '@/types/customer';
+import { CustomerInfo, CustomerStatus } from '@/types/customer';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -72,11 +73,16 @@ const EditCustomer = () => {
     setIsSubmitting(true);
     try {
       console.log("Updating customer with data:", data);
+      
+      // Make sure the status is correctly typed as CustomerStatus
+      const status = data.status as CustomerStatus;
+      
       const updatedCustomer: CustomerInfo = {
         ...data,
         id,
         full_name: data.full_name || '',
-        phone_number: data.phone || '' // Make sure phone_number is set
+        phone_number: data.phone || '', // Make sure phone_number is set
+        status
       };
       
       await updateCustomer.mutateAsync(updatedCustomer);
@@ -129,7 +135,7 @@ const EditCustomer = () => {
       backLink={`/customers/${id}`}
     >
       <CustomerForm 
-        initialData={customer} 
+        initialData={customer as any} 
         onSubmit={handleSubmit} 
         isLoading={isSubmitting} 
       />

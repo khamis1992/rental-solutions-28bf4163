@@ -49,7 +49,14 @@ interface TrafficFinesListProps {
 
 const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
+  const { 
+    trafficFines, 
+    isLoading, 
+    payTrafficFine, 
+    disputeTrafficFine, 
+    assignToCustomer, 
+    markAsPaid 
+  } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
   
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
@@ -99,7 +106,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutate({ id: fine.id });
+          await assignToCustomer({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);

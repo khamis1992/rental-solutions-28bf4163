@@ -1,5 +1,6 @@
-import React from 'react';
-import { usePayments, Payment } from '@/hooks/use-payments';
+
+import React, { useState, useEffect } from 'react';
+import { usePayments } from '@/hooks/use-payments';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,17 @@ import { format } from 'date-fns';
 import { AlertCircle, Plus } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { hasData } from '@/utils/database-type-helpers';
+
+export interface Payment {
+  id: string;
+  amount: number;
+  payment_date?: string;
+  status: string;
+  payment_method?: string;
+  description?: string;
+  lease_id?: string;
+}
 
 interface PaymentListProps {
   agreementId: string;

@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -72,43 +73,102 @@ export function useTrafficFines() {
 
   const trafficFines = trafficFinesData as any[];
 
-  const assignToCustomer = async (fineId: string, customerId: string) => {
-    try {
-      const { error } = await supabase
-        .from('traffic_fines')
-        .update({ customer_id: customerId })
-        .eq('id', fineId);
+  const assignToCustomer = useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      try {
+        const { error } = await supabase
+          .from('traffic_fines')
+          .update({ customer_id: customerId })
+          .eq('id', id);
 
-      if (error) {
-        throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error assigning traffic fine to customer:', error);
+        throw error;
       }
-
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
       toast.success('Traffic fine assigned to customer successfully');
-    } catch (error) {
-      console.error('Error assigning traffic fine to customer:', error);
-      toast.error('Failed to assign traffic fine to customer');
     }
-  };
+  });
 
-  const markAsPaid = async (fineId: string) => {
-    try {
-      const { error } = await supabase
-        .from('traffic_fines')
-        .update({ payment_status: 'paid' })
-        .eq('id', fineId);
+  const markAsPaid = useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      try {
+        const { error } = await supabase
+          .from('traffic_fines')
+          .update({ payment_status: 'paid' })
+          .eq('id', id);
 
-      if (error) {
-        throw new Error(error.message);
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error marking traffic fine as paid:', error);
+        throw error;
       }
-
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
       toast.success('Traffic fine marked as paid successfully');
-    } catch (error) {
-      console.error('Error marking traffic fine as paid:', error);
-      toast.error('Failed to mark traffic fine as paid');
     }
-  };
+  });
+
+  // Add payTrafficFine and disputeTrafficFine mutations
+  const payTrafficFine = useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      try {
+        const { error } = await supabase
+          .from('traffic_fines')
+          .update({ payment_status: 'paid', payment_date: new Date().toISOString() })
+          .eq('id', id);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error paying traffic fine:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      toast.success('Traffic fine marked as paid successfully');
+    }
+  });
+
+  const disputeTrafficFine = useMutation({
+    mutationFn: async ({ id }: { id: string }) => {
+      try {
+        const { error } = await supabase
+          .from('traffic_fines')
+          .update({ payment_status: 'disputed' })
+          .eq('id', id);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return true;
+      } catch (error) {
+        console.error('Error disputing traffic fine:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      toast.success('Traffic fine marked as disputed successfully');
+    }
+  });
 
   // Fix the customer data access in the methods
   const getTrafficFines = async (): Promise<TrafficFine[]> => {
@@ -116,7 +176,10 @@ export function useTrafficFines() {
       // When accessing customer data, make sure to check array items correctly
       return trafficFines.map(fine => {
         const customerInfo = fine.customer_data && Array.isArray(fine.customer_data) && fine.customer_data.length > 0 
-          ? fine.customer_data[0] 
+          ? { 
+            full_name: fine.customer_data[0]?.full_name || 'Unknown', 
+            phone_number: fine.customer_data[0]?.phone_number || 'Unknown' 
+          } 
           : { full_name: 'Unknown', phone_number: 'Unknown' };
           
         return {
@@ -126,7 +189,7 @@ export function useTrafficFines() {
           licensePlate: fine.license_plate,
           fineAmount: fine.fine_amount,
           paymentStatus: fine.payment_status || 'pending',
-          location: fine.fine_location || fine.location,
+          location: fine.location || fine.fine_location,
           violationCharge: fine.violation_charge,
           customerId: fine.customer_id,
           customerName: customerInfo.full_name || 'Unknown',
@@ -167,7 +230,7 @@ export function useTrafficFines() {
   });
 
   const updateTrafficFine = useMutation({
-    mutationFn: async ({id, data}: {id: string, data: Partial<TrafficFineCreatePayload>}) => {
+    mutationFn: async ({ id, data }: { id: string, data: Partial<TrafficFineCreatePayload> }) => {
       const { error } = await supabase
         .from('traffic_fines')
         .update({
@@ -192,9 +255,38 @@ export function useTrafficFines() {
     }
   });
 
-  const validateLicensePlate = async (licensePlate: string): Promise<boolean> => {
+  const validateLicensePlate = async (licensePlate: string): Promise<{ isValid: boolean; message: string; vehicle?: any }> => {
     // Simple validation - in a real application, you'd likely do more verification
-    return !!licensePlate && licensePlate.length > 2;
+    try {
+      if (!licensePlate || licensePlate.length < 3) {
+        return { isValid: false, message: 'License plate must be at least 3 characters' };
+      }
+
+      // Check if the license plate exists in our vehicle database
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('license_plate', licensePlate)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // PGRST116 is when no rows are returned
+          return { isValid: false, message: `No vehicle found with license plate ${licensePlate}` };
+        }
+        throw error;
+      }
+
+      // If found, return the vehicle details
+      return { 
+        isValid: true, 
+        message: `Found vehicle: ${data.make} ${data.model}`, 
+        vehicle: data 
+      };
+    } catch (error) {
+      console.error('Error validating license plate:', error);
+      return { isValid: false, message: 'Error validating license plate' };
+    }
   };
 
   // Add refetch to the returned API
@@ -207,6 +299,8 @@ export function useTrafficFines() {
     createTrafficFine,
     updateTrafficFine,
     validateLicensePlate,
+    payTrafficFine,
+    disputeTrafficFine,
     refetch: () => queryClient.invalidateQueries({ queryKey: ['trafficFines'] })
   };
 }
