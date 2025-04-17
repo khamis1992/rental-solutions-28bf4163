@@ -22,13 +22,15 @@ import { Card, CardContent } from '@/components/ui/card';
 interface AgreementFormProps {
   initialData?: Agreement;
   onSubmit: (data: Agreement) => Promise<void>;
-  isSubmitting?: boolean;
+  isLoading?: boolean;
+  isEditMode?: boolean;
 }
 
-const AgreementForm: React.FC<AgreementFormProps> = ({
+export const AgreementForm: React.FC<AgreementFormProps> = ({
   initialData,
   onSubmit,
-  isSubmitting = false,
+  isLoading = false,
+  isEditMode = false,
 }) => {
   const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
   const { customers, isLoading: isLoadingCustomers } = useCustomers();
@@ -411,8 +413,8 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
 
         <div className="flex justify-end space-x-2">
           <Button variant="outline" type="button" onClick={() => window.history.back()}>Cancel</Button>
-          <Button type="submit" className="bg-primary" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save Agreement"}
+          <Button type="submit" className="bg-primary" disabled={isLoading}>
+            {isLoading ? "Saving..." : "Save Agreement"}
           </Button>
         </div>
       </form>
