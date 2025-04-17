@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -20,6 +21,7 @@ import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
+import { DateRange } from '@/components/ui/date-range-picker';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -50,9 +52,9 @@ const Reports = () => {
     }
   }, [trafficFines]);
   
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    endDate: new Date()
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: new Date()
   });
   
   const [isGenerating, setIsGenerating] = useState(false);
@@ -185,6 +187,7 @@ const Reports = () => {
               <ReportDownloadOptions 
                 reportType={selectedTab} 
                 getReportData={getReportData} 
+                dateRange={dateRange}
               />
             </div>
             

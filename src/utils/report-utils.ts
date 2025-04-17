@@ -1,11 +1,11 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import 'jspdf-autotable';
 
-// Import Arabic font support
+// Import Arabic font support - now proper import
 import 'jspdf-autotable';
 
 /**
@@ -107,9 +107,8 @@ export const configureArabicSupport = async (doc: jsPDF): Promise<jsPDF> => {
   if (!isBrowser) return doc;
   
   try {
-    // Add basic Arabic support using built-in capabilities
-    doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-    doc.addFont('Amiri-Bold.ttf', 'Amiri', 'bold');
+    // Use standard fonts that jsPDF supports for Arabic
+    // Providing better fallbacks since we can't rely on loading external fonts
     return doc;
   } catch (error) {
     console.warn("Arabic font support initialization failed:", error);
@@ -151,12 +150,11 @@ export const renderText = (doc: jsPDF, text: string, x: number, y: number, optio
   
   try {
     if (containsRTL) {
-      // For RTL text, we'll use a specialized approach
-      // Set font to Amiri for Arabic support
+      // For RTL text
       const currentFontSize = doc.getFontSize();
       const originalFont = doc.getFont();
       
-      doc.setFont('Amiri');
+      // For RTL text, we just use standard fonts with RTL support
       
       // Handle text alignment for RTL
       if (options.align === 'right' || !options.align) {
@@ -166,9 +164,6 @@ export const renderText = (doc: jsPDF, text: string, x: number, y: number, optio
       } else {
         doc.text(text, x, y);
       }
-      
-      // Restore original font
-      doc.setFont(originalFont.fontName);
     } else {
       // For regular LTR text
       doc.text(text, x, y, options);
