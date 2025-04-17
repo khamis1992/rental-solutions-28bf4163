@@ -5,7 +5,6 @@ import PageContainer from '@/components/layout/PageContainer';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
 import { Customer } from '@/lib/validation-schemas/customer';
-import { CustomerInfo, CustomerStatus } from '@/types/customer';
 import { toast } from 'sonner';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -13,12 +12,14 @@ const EditCustomer = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getCustomer, updateCustomer } = useCustomers();
-  const [customer, setCustomer] = useState<CustomerInfo | null>(null);
+  const [customer, setCustomer] = useState<Customer | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchAttempts, setFetchAttempts] = useState(0);
 
+  // Use a stable reference to id to prevent useCallback from recreating
+  // the fetchCustomerData function on every render
   const fetchCustomerData = useCallback(async () => {
     if (!id) {
       setError("Customer ID not provided");
@@ -51,12 +52,15 @@ const EditCustomer = () => {
     }
   }, [id, getCustomer, fetchAttempts]);
 
+  // Only fetch data once on initial mount
   useEffect(() => {
+    // Only fetch if we don't already have the customer data
     if (!customer) {
       fetchCustomerData();
     }
   }, [fetchCustomerData, customer]);
 
+  // If first attempt fails, try once more after a delay
   useEffect(() => {
     if (error && fetchAttempts < 1 && !customer) {
       const retryTimer = setTimeout(() => {
@@ -73,19 +77,7 @@ const EditCustomer = () => {
     setIsSubmitting(true);
     try {
       console.log("Updating customer with data:", data);
-      
-      // Make sure the status is correctly typed as CustomerStatus
-      const status = data.status as CustomerStatus;
-      
-      const updatedCustomer: CustomerInfo = {
-        ...data,
-        id,
-        full_name: data.full_name || '',
-        phone_number: data.phone || '', // Make sure phone_number is set
-        status
-      };
-      
-      await updateCustomer.mutateAsync(updatedCustomer);
+      await updateCustomer.mutateAsync({ ...data, id });
       toast.success("Customer updated successfully");
       navigate(`/customers/${id}`);
     } catch (err) {
@@ -135,7 +127,7 @@ const EditCustomer = () => {
       backLink={`/customers/${id}`}
     >
       <CustomerForm 
-        initialData={customer as any} 
+        initialData={customer} 
         onSubmit={handleSubmit} 
         isLoading={isSubmitting} 
       />

@@ -1,43 +1,40 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 import PageContainer from '@/components/layout/PageContainer';
-import { SectionHeader } from '@/components/ui/section-header';
+import { CustomerForm } from '@/components/customers/CustomerForm';
 import { useCustomers } from '@/hooks/use-customers';
+import { Customer } from '@/lib/validation-schemas/customer';
+import { toast } from 'sonner';
 
-const AddCustomer: React.FC = () => {
+const AddCustomer = () => {
   const navigate = useNavigate();
+  const { createCustomer } = useCustomers();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Use addCustomer instead of createCustomer
-  const { addCustomer } = useCustomers();
-  
-  const handleSubmit = async (formData: any) => {
+
+  const handleSubmit = async (data: Customer) => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      
-      // Call the mutation function
-      await addCustomer.mutateAsync(formData);
-      
-      toast.success('Customer added successfully');
+      await createCustomer.mutateAsync(data);
+      toast('Customer added successfully');
       navigate('/customers');
-    } catch (error: any) {
-      toast.error('Failed to add customer', {
-        description: error.message
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      toast('Failed to create customer', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
-    <PageContainer title="Add New Customer">
-      <SectionHeader
-        title="Add New Customer" 
-        description="Enter customer details below"
-      />
-      
-      {/* Add customer form here */}
+    <PageContainer
+      title="Add New Customer"
+      description="Create a new customer record in the system."
+      backLink="/customers"
+    >
+      <CustomerForm onSubmit={handleSubmit} isLoading={isSubmitting} />
     </PageContainer>
   );
 };

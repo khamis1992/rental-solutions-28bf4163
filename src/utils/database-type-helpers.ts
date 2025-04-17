@@ -1,249 +1,210 @@
 
-// Add this function at the top of the file
+import { Database } from "@/types/database.types";
+import { PostgrestSingleResponse, PostgrestResponse } from "@supabase/supabase-js";
+
+// Define a more flexible type system for database operations
+export type DbTables = Database['public']['Tables'];
+export type SchemaName = keyof Database;
+
 /**
- * Checks if a value exists (is not null or undefined)
+ * Universal ID casting function for all table types
+ * This safely converts string IDs to the correct database types
  */
-export function exists<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
+export function asTableId<T extends keyof DbTables>(
+  _table: T,
+  id: string
+): DbTables[T]['Row']['id'] {
+  return id as DbTables[T]['Row']['id'];
 }
 
 /**
- * Checks if a value exists (is not null or undefined)
+ * Cast string values to database column types
+ * Handles type safety for Supabase queries
  */
-export function valueExists<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
+export function asColumnValue<
+  T extends keyof DbTables,
+  K extends keyof DbTables[T]['Row']
+>(
+  _table: T,
+  _column: K,
+  value: string | number | boolean
+): DbTables[T]['Row'][K] {
+  return value as DbTables[T]['Row'][K];
 }
 
 /**
- * Checks if a value is a valid number
+ * Common table ID casting functions with simplified implementation
  */
-export function isNumber(value: any): value is number {
-  return typeof value === 'number' && !isNaN(value);
+export function asAgreementId(id: string): string {
+  return id;
 }
 
-/**
- * Checks if a value is a valid string
- */
-export function isString(value: any): value is string {
-  return typeof value === 'string';
+export function asLeaseId(id: string): string {
+  return id;
 }
 
-/**
- * Safely converts a value to a string
- * Returns an empty string if the value is null or undefined
- */
-export function asString(value: any): string {
-  return value?.toString() || '';
+export function asVehicleId(id: string): string {
+  return id;
 }
 
-/**
- * Safely converts a value to a number
- * Returns 0 if the value is null, undefined, or not a number
- */
-export function asNumber(value: any): number {
-  if (value === null || value === undefined) {
-    return 0;
-  }
-  const num = Number(value);
-  return isNaN(num) ? 0 : num;
+export function asPaymentId(id: string): string {
+  return id;
 }
 
-/**
- * Safely converts a value to a boolean
- * Returns false if the value is null or undefined
- */
-export function asBoolean(value: any): boolean {
-  return !!value;
+export function asProfileId(id: string): string {
+  return id;
 }
 
-/**
- * Safely converts a value to a Date object
- * Returns null if the value is null, undefined, or not a valid date
- */
-export function asDate(value: any): Date | null {
-  if (!value) {
-    return null;
-  }
-  try {
-    const date = new Date(value);
-    return isNaN(date.getTime()) ? null : date;
-  } catch (error) {
-    console.error("Error converting to Date:", error);
-    return null;
-  }
+export function asImportId(id: string): string {
+  return id;
 }
 
-/**
- * Safely converts a value to a database ID (string)
- * Returns an empty string if the value is null or undefined
- */
-export function asDatabaseType<T extends string>(value: any): T | null {
-  if (!value) {
-    return null;
-  }
-  return String(value) as T;
+export function asTrafficFineId(id: string): string {
+  return id;
 }
 
-/**
- * Safely converts a value to a traffic fine ID (string)
- * Returns an empty string if the value is null or undefined
- */
-export function asTrafficFineId(value: any): string {
-  if (!value) {
-    return '';
-  }
-  return String(value);
+export function asCustomerId(id: string): string {
+  return id;
 }
 
-/**
- * Safely converts a value to a lease ID (string)
- * Returns an empty string if the value is null or undefined
- */
-export function asLeaseId(value: any): string {
-  if (!value) {
-    return '';
-  }
-  return String(value);
-}
-
-/**
- * Safely converts a value to a customer ID (string)
- * Returns an empty string if the value is null or undefined
- */
-export function asCustomerId(value: any): string {
-  if (!value) {
-    return '';
-  }
-  return String(value);
-}
-
-/**
- * Safely converts a value to a vehicle ID (string)
- * Returns an empty string if the value is null or undefined
- */
-export function asVehicleId(value: any): string {
-  if (!value) {
-    return '';
-  }
-  return String(value);
-}
-
-/**
- * Safely converts a value to a payment ID (string)
- * Returns an empty string if the value is null or undefined
- */
-export function asPaymentId(value: any): string {
-  if (!value) {
-    return '';
-  }
-  return String(value);
-}
-
-/**
- * Safely converts a value to a legal case ID (string)
- * Returns an empty string if the value is null or undefined
- */
-export function asLegalCaseId(value: any): string {
-  if (!value) {
-    return '';
-  }
-  return String(value);
-}
-
-/**
- * Safely retrieves a property from an object
- * Returns undefined if the object or property is null or undefined
- */
-export function safeProperty<T extends object, K extends keyof T>(obj: T, key: K): T[K] | undefined {
-  if (!obj) {
-    return undefined;
-  }
-  return obj[key];
-}
-
-/**
- * Flattens an array of arrays into a single array
- */
-export function flattenArray<T>(arr: T | T[]): T[] {
-  if (!Array.isArray(arr)) {
-    return [arr]; 
-  }
-  
-  return arr.reduce((result: T[], item) => {
-    if (Array.isArray(item)) {
-      return [...result, ...item];
-    }
-    return [...result, item];
-  }, []);
-}
-
-/**
- * Safely converts a value to a number
- * Returns null if the value is null, undefined, or not a number
- */
-export function toNumber(value: any): number | null {
-  if (value === null || value === undefined) {
-    return null;
-  }
-  const num = Number(value);
-  return isNaN(num) ? null : num;
-}
-
-/**
- * Safely cast a string ID to a database ID type for use in operations
- */
-export function castDbId(id: string): string {
-  return id as string;
-}
-
-/**
- * Cast string ID to UUID format for database operations
- */
-export function castToUUID(id: string): string {
+export function asMaintenanceId(id: string): string {
   return id;
 }
 
 /**
- * Check if a database response has data
+ * Common column ID casting functions for foreign keys and other fields
  */
-export function hasData<T>(response: { data: T | null; error: any }): response is { data: T; error: null } {
-  return !response.error && response.data !== null;
+export function asLeaseIdColumn(id: string): string {
+  return id;
+}
+
+export function asImportIdColumn(id: string): string {
+  return id;
+}
+
+export function asAgreementIdColumn(id: string): string {
+  return id;
+}
+
+export function asTrafficFineIdColumn(id: string): string {
+  return id;
+}
+
+export function asVehicleIdColumn(id: string): string {
+  return id;
+}
+
+export function asAgreementStatusColumn(status: string): string {
+  return status;
+}
+
+export function asPaymentStatusColumn(status: string): string {
+  return status;
+}
+
+export function asVehicleStatusColumn(status: string): string {
+  return status;
 }
 
 /**
- * Check if an object has a specific property
+ * Cast enums and statuses 
  */
-export function hasProperty<T, K extends string>(obj: T, prop: K): obj is T & Record<K, unknown> {
-  return obj !== null && obj !== undefined && Object.prototype.hasOwnProperty.call(obj, prop);
+export function asStatusColumn<T extends keyof DbTables>(
+  status: string,
+  _table: T,
+  _column: keyof DbTables[T]['Row'] & string
+): string {
+  return status;
 }
 
 /**
- * Safely extract data from a response
+ * Type guard to check if response has data
  */
-export function safelyExtractData<T>(response: { data: T | null; error: any }): T | null {
-  if (response.error || !response.data) {
+export function hasResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { data: T; error: null } {
+  return !response?.error && response?.data !== null;
+}
+
+/**
+ * Extract error message from response
+ */
+export function getErrorMessage(error: any): string {
+  return error?.message || 'An error occurred';
+}
+
+/**
+ * Safe access to response data
+ */
+export function safeGetResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): T | null {
+  if (!response || response.error || !response.data) {
     return null;
   }
   return response.data;
 }
 
 /**
- * Type-safe column accessor for lease ID
+ * Helper to safely handle response objects that might be error objects
  */
-export function asLeaseIdColumn(id: string): string {
-  return id;
+export function safelyExtractData<T>(result: any): T | null {
+  if (!result || result.error || !result.data) {
+    return null;
+  }
+  return result.data as T;
 }
 
 /**
- * Type-safe column accessor for status
+ * Type guard to check if a response is valid before accessing properties
+ * Helps avoid "Property does not exist on type" errors
  */
-export function asStatusColumn(status: string): string {
-  return status;
+export function safelyAccessResponseProperty<T, K extends keyof T>(
+  response: { data: T | null; error: any } | null | undefined,
+  key: K,
+  defaultValue?: T[K]
+): T[K] | undefined {
+  if (response && !response.error && response.data && key in response.data) {
+    return (response.data as T)[key];
+  }
+  return defaultValue;
 }
 
 /**
- * Type-safe function for profile ID
+ * Type guard to safely handle Supabase response errors
  */
-export function asProfileId(id: string): string {
-  return id;
+export function handleSupabaseResponse<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): { data: T | null; error: Error | null } {
+  if (response.error) {
+    return { data: null, error: new Error(response.error.message) };
+  }
+  return { data: response.data, error: null };
+}
+
+/**
+ * Safe null checking for database responses
+ */
+export function ensureDataExists<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T>
+): T | null {
+  if (response.error || !response.data) {
+    console.error("Database response error:", response.error);
+    return null;
+  }
+  return response.data;
+}
+
+/**
+ * Type guard to check if a response has data
+ */
+export function hasData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is { data: T; error: null } {
+  return !response?.error && response?.data !== null;
+}
+
+// Add helpers for financial data related to vehicles
+export function asVehicleFinancialData(data: any): any {
+  return data;
 }

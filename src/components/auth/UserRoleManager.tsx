@@ -1,76 +1,96 @@
 
-import React, { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { asProfileId } from '@/utils/database-type-helpers';
+import React, { useState, useEffect } from "react";
+import { Shield, UserCog } from "lucide-react";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface UserRoleManagerProps {
   userId: string;
   currentRole: string;
-  onRoleChanged?: () => void;
+  fullName: string;
+  disabled?: boolean;
 }
 
-export function UserRoleManager({ userId, currentRole, onRoleChanged }: UserRoleManagerProps) {
-  const [role, setRole] = useState(currentRole);
-  const [isUpdating, setIsUpdating] = useState(false);
+export const UserRoleManager = ({ userId, currentRole, fullName, disabled = false }: UserRoleManagerProps) => {
+  const [role, setRole] = useState<string>(currentRole);
+  const [isChanging, setIsChanging] = useState(false);
 
-  const handleRoleChange = (newRole: string) => {
-    setRole(newRole);
-  };
+  // Update the role state when currentRole prop changes
+  useEffect(() => {
+    setRole(currentRole);
+  }, [currentRole]);
 
-  const updateUserRole = async () => {
-    if (role === currentRole) return;
-
-    setIsUpdating(true);
+  const handleRoleChange = async (newRole: string) => {
+    if (newRole === role || disabled) return;
+    
     try {
-      // Cast the update value and ID to any to bypass TypeScript complex type checks
-      const update = { role } as any;
-      const { error } = await supabase
-        .from('profiles')
-        .update(update)
-        .eq('id', asProfileId(userId));
-
-      if (error) throw error;
-
-      toast.success('User role updated successfully');
-      if (onRoleChanged) {
-        onRoleChanged();
+      setIsChanging(true);
+      console.log(`Attempting to update user ${userId} from role ${role} to ${newRole}`);
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", userId)
+        .select("role");
+      
+      if (error) {
+        console.error("Update role error details:", error);
+        throw error;
       }
-    } catch (error) {
-      console.error('Error updating user role:', error);
-      toast.error('Failed to update user role');
+      
+      console.log("Update response:", data);
+      
+      // Only update the local role state if the server update succeeded
+      setRole(newRole);
+      toast.success(`${fullName}'s role updated to ${newRole}`);
+    } catch (error: any) {
+      console.error("Error updating user role:", error.message);
+      toast.error("Failed to update user role: " + error.message);
+      // Reset to the previous role on error
+      setRole(currentRole);
     } finally {
-      setIsUpdating(false);
+      setIsChanging(false);
     }
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <Select value={role} onValueChange={handleRoleChange}>
-        <SelectTrigger className="w-[180px]">
+    <div className="flex items-center space-x-2">
+      {role === "admin" ? (
+        <Shield className="h-4 w-4 text-primary" />
+      ) : (
+        <UserCog className="h-4 w-4 text-blue-500" />
+      )}
+      
+      <Select
+        value={role}
+        onValueChange={handleRoleChange}
+        disabled={disabled || isChanging}
+      >
+        <SelectTrigger className="w-[130px] h-8">
           <SelectValue placeholder="Select role" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="admin">Admin</SelectItem>
-          <SelectItem value="staff">Staff</SelectItem>
-          <SelectItem value="customer">Customer</SelectItem>
+          <SelectItem value="admin" className="flex items-center">
+            <div className="flex items-center">
+              <Shield className="h-4 w-4 mr-2 text-primary" />
+              <span>Admin</span>
+            </div>
+          </SelectItem>
+          <SelectItem value="staff" className="flex items-center">
+            <div className="flex items-center">
+              <UserCog className="h-4 w-4 mr-2 text-blue-500" />
+              <span>Staff</span>
+            </div>
+          </SelectItem>
         </SelectContent>
       </Select>
-      <Button
-        variant="outline"
-        disabled={role === currentRole || isUpdating}
-        onClick={updateUserRole}
-      >
-        {isUpdating ? 'Updating...' : 'Update'}
-      </Button>
     </div>
   );
-}
+};

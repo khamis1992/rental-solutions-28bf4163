@@ -1,5 +1,5 @@
-import React from 'react';
-import { useState } from 'react';
+
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,8 @@ export function VehicleOnboardingWizard({
     documents_verified: false
   });
   const [isProcessing, setIsProcessing] = useState(false);
-  const { addVehicle } = useVehicles();
+  const { useCreate } = useVehicles();
+  const { mutate: createVehicle } = useCreate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
@@ -61,17 +62,10 @@ export function VehicleOnboardingWizard({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     setIsProcessing(true);
-    
     try {
-      const vehicleData = {
-        ...formData,
-        year: Number(formData.year),
-      };
-      
-      await addVehicle(vehicleData);
+      await createVehicle(formData);
       toast.success("Vehicle successfully onboarded");
       onComplete();
       onClose();
@@ -132,7 +126,7 @@ export function VehicleOnboardingWizard({
         <Label htmlFor="insurance_expiry">Insurance Expiry Date</Label>
         <Input type="date" id="insurance_expiry" name="insurance_expiry" value={formData.insurance_expiry} onChange={handleInputChange} />
       </div>
-      <VehicleImageUpload onImageSelected={(file) => console.log('Image selected:', file)} />
+      <VehicleImageUpload onUpload={(url) => console.log('Image uploaded:', url)} />
     </div>
   );
 

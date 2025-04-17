@@ -11,7 +11,7 @@ export type TablesUpdateResponse<T extends keyof Database['public']['Tables']> =
 
 export type DatabaseRecord<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
 
-export const isError = <T>(response: PostgrestSingleResponse<T>): boolean => {
+export const isError = <T>(response: PostgrestSingleResponse<T>): response is { error: Error } => {
   return 'error' in response && response.error !== null;
 };
 

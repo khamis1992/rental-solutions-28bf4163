@@ -1,7 +1,7 @@
 
 import { PostgrestSingleResponse, PostgrestResponse } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
-import { exists } from '@/utils/database-type-helpers';
+import { exists } from '@/utils/response-mapper';
 
 /**
  * Type for database ID that ensures consistent typing across the application
@@ -17,98 +17,117 @@ export function isValidDatabaseId(id: unknown): id is DatabaseId {
 
 /**
  * Safely cast any string ID to the proper database ID type
- * This is a type assertion function that helps TypeScript understand the type
+ * This is a type assertion function that helps TypeScript understand 
+ * the ID is correctly formatted, but doesn't perform runtime validation
  */
-export function asDatabaseId(id: string): DatabaseId {
-  return id;
+export function castToDatabaseId(id: string): DatabaseId {
+  return id as DatabaseId;
 }
 
 /**
- * Type guard to check if a response has data
+ * Type guard to check if a Supabase response has data and is not an error
  */
 export function hasResponseData<T>(
-  response: PostgrestResponse<T> | PostgrestSingleResponse<T> | null | undefined
-): boolean {
-  return !!response && !response.error && response.data !== null;
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
+): response is (PostgrestResponse<T> & { data: T }) {
+  if (!response) return false;
+  if (response.error) return false;
+  return response.data !== null && response.data !== undefined;
 }
 
 /**
- * Type safe accessor for response data
+ * Safely extract data from a Supabase response
+ * Returns null if response is invalid or has an error
  */
-export function getResponseData<T>(
-  response: PostgrestResponse<T> | PostgrestSingleResponse<T> | null | undefined
+export function extractResponseData<T>(
+  response: PostgrestSingleResponse<T> | PostgrestResponse<T> | null | undefined
 ): T | null {
-  if (!response) return null;
-  if (response.error) {
-    console.error('Error in response:', response.error.message);
-    return null;
-  }
-  
-  return response.data as T;
-}
-
-/**
- * Function to safely check if an object has a property
- */
-export function hasObjectProperty<T extends object, K extends string>(
-  obj: T | null | undefined, 
-  prop: K
-): obj is T & Record<K, unknown> {
-  return !!obj && prop in obj;
-}
-
-/**
- * Get a typed property from an object with a default value
- */
-export function getTypedProperty<T, K extends keyof T, D>(
-  obj: T | null | undefined,
-  key: K,
-  defaultValue: D
-): T[K] | D {
-  if (!obj) return defaultValue;
-  const value = obj[key];
-  return value !== undefined && value !== null ? value : defaultValue;
-}
-
-/**
- * Handle Supabase response with proper error logging
- */
-export function handleResponse<T>(response: PostgrestSingleResponse<T>): T | null {
-  if (!response) return null;
-  if (response.error) {
-    console.error('Database error:', response.error);
+  if (!hasResponseData(response)) {
+    if (response?.error) {
+      console.error('Database error:', response.error);
+    }
     return null;
   }
   return response.data;
 }
 
 /**
- * Safe type assertion for potentially undefined values
+ * Type guard to ensure array type
+ * Useful when dealing with potentially unknown response structures
  */
-export function asType<T>(value: unknown, defaultValue: T): T {
-  return (value as T) || defaultValue;
+export function ensureArray<T>(data: T | T[] | null | undefined): T[] {
+  if (data === null || data === undefined) {
+    return [];
+  }
+  return Array.isArray(data) ? data : [data];
 }
 
 /**
- * Function to safely extract array response data
+ * Database table types for easier referencing
  */
-export function safeArrayData<T>(response: PostgrestResponse<T[]> | null): T[] {
-  if (!response || response.error || !response.data) return [] as T[];
-  return response.data as T[];
+export type Tables = Database['public']['Tables'];
+
+/**
+ * Type for payment status from database schema
+ */
+export type PaymentStatusType = Tables['unified_payments']['Row']['status'];
+
+/**
+ * Convert string to strongly typed payment status
+ */
+export function toPaymentStatus(status: string): PaymentStatusType {
+  return status as PaymentStatusType;
 }
 
 /**
- * Ensure a value is an array
+ * Handle Supabase response with proper error logging and type safety
  */
-export function ensureArray<T>(value: T | T[]): T[] {
-  return Array.isArray(value) ? value : [value];
+export function handleDatabaseResponse<T>(response: PostgrestSingleResponse<T> | PostgrestResponse<T>): T | null {
+  if (response?.error) {
+    console.error('Database error:', response.error);
+    return null;
+  }
+  
+  return response?.data || null;
 }
 
 /**
- * Function to safely cast string to numerical ID
+ * Type assertion function to cast string ID to the database table's ID type
  */
-export function asNumericId(id: string | number): number {
-  if (typeof id === 'number') return id;
-  const numId = parseInt(id, 10);
-  return isNaN(numId) ? 0 : numId;
+export function castToTableId<T extends keyof Tables>(id: string, _table: T): Tables[T]['Row']['id'] {
+  return id as Tables[T]['Row']['id'];
+}
+
+/**
+ * Safe way to access properties from a Supabase response that might be an error
+ */
+export function safelyAccessProperty<T, K extends keyof T>(
+  obj: T | null | undefined, 
+  key: K, 
+  defaultValue?: T[K]
+): T[K] | undefined {
+  if (!obj) return defaultValue;
+  return (obj as any)[key] ?? defaultValue;
+}
+
+/**
+ * Type guard to check if an object has a specific property
+ */
+export function hasProperty<T extends object, K extends string>(
+  obj: T,
+  key: K
+): obj is T & Record<K, unknown> {
+  return key in obj;
+}
+
+/**
+ * Creates a strongly typed filter for a specific table column
+ */
+export function createTableColumnFilter<
+  T extends keyof Database['public']['Tables'],
+  C extends keyof Database['public']['Tables'][T]['Row']
+>(table: T, column: C) {
+  return function(value: Database['public']['Tables'][T]['Row'][C]) {
+    return { column: column as string, value };
+  };
 }

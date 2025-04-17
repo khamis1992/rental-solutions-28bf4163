@@ -1,193 +1,179 @@
-import React, { ReactNode } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 
-// Add generic constraint to ensure keyof T values can be rendered
-type ResponsiveTableProps<T extends Record<string, React.ReactNode>> = {
+import React from 'react';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Card } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+
+export interface Column<T> {
+  header: React.ReactNode;
+  accessorKey: keyof T | ((row: T) => React.ReactNode);
+  cell?: (row: T) => React.ReactNode;
+  className?: string;
+  hideOnMobile?: boolean;
+}
+
+interface ResponsiveTableProps<T> {
   data: T[];
-  columns: {
-    header: string;
-    accessor: keyof T;
-    cell?: (item: T) => ReactNode;
-    className?: string;
-  }[];
+  columns: Column<T>[];
+  keyField: keyof T;
+  className?: string;
+  onRowClick?: (row: T) => void;
   isLoading?: boolean;
   emptyMessage?: string;
-  sortable?: boolean;
-  initialSortField?: keyof T;
-  initialSortDirection?: 'asc' | 'desc';
-  onRowClick?: (item: T) => void;
-  rowClassName?: (item: T) => string;
-  showHeader?: boolean;
-  responsive?: boolean;
-  className?: string;
-};
+}
 
-export function ResponsiveTable<T extends Record<string, React.ReactNode>>({ 
+export function ResponsiveTable<T extends {}>({
   data,
   columns,
-  isLoading = false,
-  emptyMessage = "No data available",
-  sortable = false,
-  initialSortField,
-  initialSortDirection = 'asc',
+  keyField,
+  className,
   onRowClick,
-  rowClassName,
-  showHeader = true,
-  responsive = true,
-  className
+  isLoading = false,
+  emptyMessage = "No data available"
 }: ResponsiveTableProps<T>) {
-  const [sortField, setSortField] = React.useState<keyof T | undefined>(initialSortField);
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>(initialSortDirection);
-
-  const handleSort = (accessor: keyof T) => {
-    if (!sortable) return;
-    
-    if (sortField === accessor) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(accessor);
-      setSortDirection('asc');
-    }
-  };
-
-  const sortedData = React.useMemo(() => {
-    if (!sortable || !sortField) return data;
-
-    return [...data].sort((a, b) => {
-      const aValue = a[sortField];
-      const bValue = b[sortField];
-
-      if (aValue === bValue) return 0;
-      
-      // Handle different types of values
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortDirection === 'asc' 
-          ? aValue.localeCompare(bValue) 
-          : bValue.localeCompare(aValue);
-      }
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      
-      if (aValue instanceof Date && bValue instanceof Date) {
-        return sortDirection === 'asc' 
-          ? aValue.getTime() - bValue.getTime() 
-          : bValue.getTime() - aValue.getTime();
-      }
-      
-      // Default comparison for other types
-      const valA = String(aValue);
-      const valB = String(bValue);
-      
-      return sortDirection === 'asc' 
-        ? valA.localeCompare(valB) 
-        : valB.localeCompare(valA);
-    });
-  }, [data, sortField, sortDirection, sortable]);
-
-  // Fix the ReactNode type error at line 126
-  const renderCellContent = (item: T, accessor: keyof T, cell?: (item: T) => ReactNode): ReactNode => {
-    if (cell) {
-      return cell(item);
-    }
-    // Cast the value as ReactNode to fix the type error
-    return item[accessor] as ReactNode;
-  };
+  const isMobile = useIsMobile();
+  
+  // Filter columns for mobile view
+  const visibleColumns = isMobile 
+    ? columns.filter(col => !col.hideOnMobile)
+    : columns;
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full" />
-        <span className="ml-2">Loading...</span>
+      <div className="w-full space-y-4">
+        {isMobile ? (
+          Array(3).fill(0).map((_, i) => (
+            <Card key={i} className="p-4 space-y-2">
+              {Array(2).fill(0).map((_, j) => (
+                <div key={j} className="flex justify-between items-center">
+                  <div className="h-4 bg-gray-200 rounded w-24 animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded w-32 animate-pulse"></div>
+                </div>
+              ))}
+            </Card>
+          ))
+        ) : (
+          <Table className={className}>
+            <TableHeader>
+              <TableRow>
+                {columns.map((column, i) => (
+                  <TableHead key={i} className={column.className}>
+                    {column.header}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array(5).fill(0).map((_, i) => (
+                <TableRow key={i}>
+                  {columns.map((_, j) => (
+                    <TableCell key={j}>
+                      <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     );
   }
 
-  if (!data.length) {
+  if (data.length === 0) {
     return (
-      <div className="text-center p-8 text-muted-foreground">
+      <div className="w-full p-8 text-center text-muted-foreground">
         {emptyMessage}
       </div>
     );
   }
 
-  // Standard table for larger screens
-  if (!responsive) {
+  // Mobile card view
+  if (isMobile) {
     return (
-      <Table className={className}>
-        {showHeader && (
-          <TableHeader>
-            <TableRow>
-              {columns.map((column, index) => (
-                <TableHead 
-                  key={index} 
-                  className={cn(
-                    column.className,
-                    sortable && "cursor-pointer select-none"
-                  )}
-                  onClick={sortable ? () => handleSort(column.accessor) : undefined}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>{column.header}</span>
-                    {sortable && sortField === column.accessor && (
-                      sortDirection === 'asc' ? 
-                        <ChevronUp className="h-4 w-4" /> : 
-                        <ChevronDown className="h-4 w-4" />
-                    )}
-                  </div>
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-        )}
-        <TableBody>
-          {sortedData.map((item, rowIndex) => (
-            <TableRow 
-              key={rowIndex}
+      <div className="space-y-4">
+        {data.map(row => {
+          const key = String(row[keyField]);
+          return (
+            <Card 
+              key={key}
               className={cn(
-                rowClassName && rowClassName(item),
-                onRowClick && "cursor-pointer hover:bg-muted/50"
+                "p-4",
+                onRowClick && "cursor-pointer hover:bg-accent/5"
               )}
-              onClick={onRowClick ? () => onRowClick(item) : undefined}
+              onClick={() => onRowClick?.(row)}
             >
-              {columns.map((column, colIndex) => (
-                <TableCell key={colIndex} className={column.className}>
-                  {renderCellContent(item, column.accessor, column.cell)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              {visibleColumns.map((column, i) => {
+                const accessorFn = typeof column.accessorKey === 'function'
+                  ? column.accessorKey
+                  : (r: T) => r[column.accessorKey as keyof T];
+                
+                const cellContent = column.cell 
+                  ? column.cell(row) 
+                  : accessorFn(row);
+
+                return (
+                  <div key={i} className="flex justify-between py-1 items-center">
+                    <div className="text-sm font-medium">{column.header}</div>
+                    <div className="text-sm">{cellContent}</div>
+                  </div>
+                );
+              })}
+            </Card>
+          );
+        })}
+      </div>
     );
   }
 
-  // Responsive card-like layout for smaller screens
+  // Desktop table view
   return (
-    <div className={cn("space-y-4", className)}>
-      {sortedData.map((item, rowIndex) => (
-        <div 
-          key={rowIndex}
-          className={cn(
-            "border rounded-lg p-4 bg-card",
-            rowClassName && rowClassName(item),
-            onRowClick && "cursor-pointer hover:bg-muted/50"
-          )}
-          onClick={onRowClick ? () => onRowClick(item) : undefined}
-        >
-          {columns.map((column, colIndex) => (
-            <div key={colIndex} className="py-2 flex justify-between items-start border-b last:border-0">
-              <span className="font-medium text-sm text-muted-foreground">{column.header}</span>
-              <div className={cn("text-right", column.className)}>
-                {renderCellContent(item, column.accessor, column.cell)}
-              </div>
-            </div>
+    <Table className={className}>
+      <TableHeader>
+        <TableRow>
+          {columns.map((column, i) => (
+            <TableHead key={i} className={column.className}>
+              {column.header}
+            </TableHead>
           ))}
-        </div>
-      ))}
-    </div>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map(row => {
+          const key = String(row[keyField]);
+          return (
+            <TableRow 
+              key={key}
+              className={onRowClick ? "cursor-pointer hover:bg-accent/5" : undefined}
+              onClick={() => onRowClick?.(row)}
+            >
+              {columns.map((column, i) => {
+                const accessorFn = typeof column.accessorKey === 'function'
+                  ? column.accessorKey
+                  : (r: T) => r[column.accessorKey as keyof T];
+                
+                const cellContent = column.cell 
+                  ? column.cell(row) 
+                  : accessorFn(row);
+
+                return (
+                  <TableCell key={i} className={column.className}>
+                    {cellContent}
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 }

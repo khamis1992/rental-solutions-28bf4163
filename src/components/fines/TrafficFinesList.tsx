@@ -24,7 +24,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import {
+import { 
   AlertTriangle, 
   Car, 
   CheckCircle, 
@@ -37,36 +37,24 @@ import {
   Users,
   AlertCircle,
   Loader2,
-  Upload,
-  Edit,
-  Pencil
+  Upload
 } from 'lucide-react';
-import { useTrafficFines, TrafficFine } from '@/hooks/use-traffic-fines';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { formatCurrency } from '@/lib/utils';
 import { formatDate } from '@/lib/date-utils';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { StatCard } from '@/components/ui/stat-card';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-
-// TrafficFineImport component would be needed - adding a stub here
-const TrafficFineImport = ({ onImportComplete }: { onImportComplete: () => void }) => {
-  return <div>Traffic Fine Import Component</div>;
-};
-
-// TrafficFineEditDialog component would be needed - adding a stub here
-const TrafficFineEditDialog = ({ 
-  trafficFine, 
-  onSave, 
-  onCancel 
-}: { 
-  trafficFine: TrafficFine, 
-  onSave: () => void, 
-  onCancel: () => void 
-}) => {
-  return <div>Traffic Fine Edit Dialog Component</div>;
-};
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import TrafficFineImport from './TrafficFineImport';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface TrafficFinesListProps {
   onAddFine?: () => void;
@@ -75,33 +63,26 @@ interface TrafficFinesListProps {
 
 const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { 
-    trafficFines, 
-    isLoading, 
-    error, 
-    payTrafficFine, 
-    disputeTrafficFine, 
-    assignToCustomer, 
-    markAsPaid 
-  } = useTrafficFines();
+  const { trafficFines, isLoading, error, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
   const [dataValidation, setDataValidation] = useState<{ valid: boolean; issues: string[] }>({ 
     valid: true, 
     issues: [] 
   });
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [selectedFine, setSelectedFine] = useState<TrafficFine | null>(null);
-  const [showEditDialog, setShowEditDialog] = useState(false);
   
+  // Validate the traffic fines data when it loads
   useEffect(() => {
     if (trafficFines && trafficFines.length > 0) {
       validateTrafficFinesData(trafficFines);
     }
   }, [trafficFines]);
   
+  // Data validation function to check for data integrity
   const validateTrafficFinesData = (fines: any[]) => {
     const issues: string[] = [];
     
+    // Check for required fields and data consistency
     fines.forEach((fine, index) => {
       if (!fine.id) {
         issues.push(`Fine at index ${index} is missing ID field`);
@@ -129,6 +110,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
       issues
     });
     
+    // Log issues to console for debugging
     if (issues.length > 0) {
       console.warn('Traffic fines data validation issues:', issues);
     }
@@ -148,7 +130,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handlePayFine = async (id: string) => {
     try {
-      await payTrafficFine.mutateAsync({ id });
+      await payTrafficFine.mutate({ id });
       toast.success("Fine marked as paid successfully");
     } catch (error) {
       console.error("Error paying fine:", error);
@@ -160,7 +142,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
   const handleDisputeFine = async (id: string) => {
     try {
-      await disputeTrafficFine.mutateAsync({ id });
+      await disputeTrafficFine.mutate({ id });
       toast.success("Fine marked as disputed successfully");
     } catch (error) {
       console.error("Error disputing fine:", error);
@@ -197,8 +179,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          // Use mutateAsync instead of mutate to properly wait for each assignment
-          await assignToCustomer.mutateAsync({ id: fine.id });
+          await assignToCustomer.mutate({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -221,16 +202,6 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
     } finally {
       setAssigningFines(false);
     }
-  };
-
-  const handleEditFine = (fine: TrafficFine) => {
-    setSelectedFine(fine);
-    setShowEditDialog(true);
-  };
-
-  const handleEditComplete = () => {
-    setShowEditDialog(false);
-    setSelectedFine(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -268,6 +239,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
     );
   }
 
+  // Display data validation warnings if found
   const renderDataValidationWarning = () => {
     if (!dataValidation.valid && dataValidation.issues.length > 0) {
       return (
@@ -451,11 +423,6 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem 
-                              onClick={() => handleEditFine(fine)}
-                            >
-                              <Pencil className="mr-2 h-4 w-4" /> Edit Fine
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
                               onClick={() => handlePayFine(fine.id)}
                               disabled={fine.paymentStatus === 'paid'}
                             >
@@ -468,7 +435,7 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => assignToCustomer.mutateAsync({ id: fine.id })}
+                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
                               <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer
@@ -490,18 +457,6 @@ const TrafficFinesList = ({ onAddFine, isAutoAssigning = false }: TrafficFinesLi
           </div>
         </CardContent>
       </Card>
-
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        {selectedFine && (
-          <DialogContent>
-            <TrafficFineEditDialog 
-              trafficFine={selectedFine}
-              onSave={handleEditComplete}
-              onCancel={() => setShowEditDialog(false)}
-            />
-          </DialogContent>
-        )}
-      </Dialog>
     </div>
   );
 };

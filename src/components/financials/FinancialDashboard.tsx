@@ -1,4 +1,3 @@
-
 import React, { useMemo, memo } from 'react';
 import { useFinancials } from '@/hooks/use-financials';
 import FinancialSummary from './FinancialSummary';
@@ -116,7 +115,7 @@ const FinancialDashboard = memo(() => {
         netRevenue: displayValues.netRevenue,
         pendingPayments: displayValues.pendingPayments,
         unpaidInvoices: displayValues.pendingPayments,
-        installmentsPending: financialSummary?.installmentsPending || 0,
+        installmentsPending: displayValues.totalExpenses,
         currentMonthDue: financialSummary?.currentMonthDue || 0,
         overdueExpenses: financialSummary?.overdueExpenses || 0
       }} isLoading={isLoadingSummary} />

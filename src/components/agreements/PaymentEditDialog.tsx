@@ -16,8 +16,8 @@ import { Payment } from "./PaymentHistory.types";
 
 interface PaymentEditDialogProps {
   payment: Payment | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean; // Changed from isOpen to open for consistency
+  onOpenChange: (open: boolean) => void; // Changed from onClose to match Shadcn Dialog
   onSaved: () => void;
 }
 

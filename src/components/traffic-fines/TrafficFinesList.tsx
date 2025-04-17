@@ -49,14 +49,7 @@ interface TrafficFinesListProps {
 
 const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const { 
-    trafficFines, 
-    isLoading, 
-    payTrafficFine, 
-    disputeTrafficFine, 
-    assignToCustomer, 
-    markAsPaid 
-  } = useTrafficFines();
+  const { trafficFines, isLoading, payTrafficFine, disputeTrafficFine, assignToCustomer } = useTrafficFines();
   const [assigningFines, setAssigningFines] = useState(false);
   
   const filteredFines = trafficFines ? trafficFines.filter(fine => 
@@ -72,21 +65,11 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
   const unassignedFinesAmount = unassignedFines.reduce((total, fine) => total + fine.fineAmount, 0);
 
   const handlePayFine = (id: string) => {
-    payTrafficFine.mutateAsync({ id }).then(() => {
-      toast.success("Traffic fine marked as paid successfully");
-    }).catch(error => {
-      toast.error("Error paying traffic fine");
-      console.error("Error paying traffic fine:", error);
-    });
+    payTrafficFine.mutate({ id });
   };
 
   const handleDisputeFine = (id: string) => {
-    disputeTrafficFine.mutateAsync({ id }).then(() => {
-      toast.success("Traffic fine marked as disputed successfully");
-    }).catch(error => {
-      toast.error("Error disputing traffic fine");
-      console.error("Error disputing traffic fine:", error);
-    });
+    disputeTrafficFine.mutate({ id });
   };
 
   const handleAutoAssignFines = async () => {
@@ -116,7 +99,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
 
         try {
           console.log(`Assigning fine ${fine.id} with license plate ${fine.licensePlate}`);
-          await assignToCustomer.mutateAsync({ id: fine.id });
+          await assignToCustomer.mutate({ id: fine.id });
           assignedCount++;
         } catch (error) {
           console.error(`Failed to assign fine ${fine.id}:`, error);
@@ -296,7 +279,7 @@ const TrafficFinesList = ({ isAutoAssigning = false }: TrafficFinesListProps) =>
                               <X className="mr-2 h-4 w-4" /> Dispute Fine
                             </DropdownMenuItem>
                             <DropdownMenuItem 
-                              onClick={() => assignToCustomer.mutateAsync({ id: fine.id })}
+                              onClick={() => assignToCustomer.mutate({ id: fine.id })}
                               disabled={!!fine.customerId}
                             >
                               <UserCheck className="mr-2 h-4 w-4" /> Assign to Customer

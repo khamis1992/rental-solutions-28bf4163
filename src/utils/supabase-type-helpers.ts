@@ -9,12 +9,6 @@ export function getResponseData<T>(response: PostgrestSingleResponse<T> | Postgr
     console.error('Error in Supabase response:', response?.error);
     return null;
   }
-  
-  // Handle both single responses and array responses properly
-  if (Array.isArray(response.data)) {
-    return response.data.length > 0 ? response.data[0] : null;
-  }
-  
   return response.data;
 }
 
@@ -23,7 +17,7 @@ export function getResponseData<T>(response: PostgrestSingleResponse<T> | Postgr
  */
 export function hasData<T>(
   response: PostgrestSingleResponse<T> | PostgrestResponse<T>
-): boolean {
+): response is { data: NonNullable<T>; error: null } {
   return !response.error && response.data !== null;
 }
 
@@ -35,17 +29,7 @@ export function handleSupabaseResponse<T>(response: PostgrestSingleResponse<T> |
     console.error('Error in Supabase response:', response.error);
     return null;
   }
-  
-  if (!response.data) {
-    return null;
-  }
-  
-  // Safely handle both single responses and array responses
-  if (Array.isArray(response.data)) {
-    return response.data.length > 0 ? response.data : null;
-  }
-  
-  return response.data;
+  return response.data || null;
 }
 
 /**
@@ -93,7 +77,7 @@ export function castDatabaseId(id: string): SafeId {
 /**
  * Safely check if a response is successful and has data
  */
-export function isSuccessResponse<T>(response: PostgrestResponse<T>): boolean {
+export function isSuccessResponse<T>(response: PostgrestResponse<T>): response is PostgrestResponse<T> & { data: T } {
   return !response.error && response.data !== null;
 }
 
@@ -104,7 +88,7 @@ export function isSuccessResponse<T>(response: PostgrestResponse<T>): boolean {
 export function ensureResponseHasData<T, K extends keyof T>(
   response: PostgrestResponse<T> | { error: any },
   key: K
-): boolean {
+): response is PostgrestResponse<T> & { data: T & Record<K, NonNullable<unknown>> } {
   if ('error' in response && response.error) return false;
   if (!('data' in response) || !response.data) return false;
   return key in response.data;
@@ -120,7 +104,7 @@ export function getResponseValue<T, K extends keyof T, D>(
   defaultValue: D
 ): T[K] | D {
   if (ensureResponseHasData(response, key)) {
-    return (response as any).data[key];
+    return response.data[key];
   }
   return defaultValue;
 }
@@ -133,11 +117,7 @@ export function handleResponseData<T>(response: PostgrestSingleResponse<T> | Pos
     console.error('Error in Supabase response:', response.error);
     return null;
   }
-  // Handle case where response.data could be array or single object
-  if (Array.isArray(response.data)) {
-    return response.data.length > 0 ? response.data[0] : null;
-  }
-  return response.data || null;
+  return response.data;
 }
 
 /**

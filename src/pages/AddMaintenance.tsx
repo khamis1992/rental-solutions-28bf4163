@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MaintenanceForm from '@/components/maintenance/MaintenanceForm';
@@ -10,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const AddMaintenance = () => {
   const navigate = useNavigate();
-  const { addMaintenanceRecord } = useMaintenance();
+  const { create } = useMaintenance();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +33,7 @@ const AddMaintenance = () => {
     return MaintenanceStatus.SCHEDULED;
   };
 
-  const handleSubmit = async (formData) => {
+  const handleSubmit = async (formData: any) => {
     console.log("Form submitted with data:", formData);
     
     setIsSubmitting(true);
@@ -54,7 +55,7 @@ const AddMaintenance = () => {
       // Log the data we're about to submit to help debug any issues
       console.log("Prepared data for submission:", preparedData);
       
-      await addMaintenanceRecord(preparedData);
+      await create.mutateAsync(preparedData);
       
       toast({
         title: "Success",

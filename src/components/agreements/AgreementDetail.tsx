@@ -11,14 +11,14 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-import AgreementTrafficFines from './AgreementTrafficFines';
+import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
 import { supabase } from '@/lib/supabase';
-import type { Payment } from '@/components/agreements/PaymentHistory.types';
+import { Payment } from './PaymentHistory';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -51,7 +51,7 @@ export function AgreementDetail({
 
   const {
     payments = [],
-    isLoading: isLoadingPayments,
+    isLoading,
     fetchPayments
   } = usePayments(agreement?.id);
   
@@ -353,8 +353,8 @@ export function AgreementDetail({
       </div>
 
       {agreement && <PaymentHistory 
-        payments={Array.isArray(payments) ? payments as import('@/components/agreements/PaymentHistory.types').Payment[] : []} 
-        isLoading={isLoadingPayments} 
+        payments={Array.isArray(payments) ? payments : []} 
+        isLoading={isLoading} 
         rentAmount={rentAmount} 
         onPaymentDeleted={() => {
           onPaymentDeleted();

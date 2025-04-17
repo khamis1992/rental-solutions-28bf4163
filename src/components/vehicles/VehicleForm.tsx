@@ -1,110 +1,176 @@
-
 import React, { useState, useEffect } from 'react';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Vehicle, VehicleStatus, VehicleFormData, VehicleType } from '@/types/vehicle';
+import { 
+  Form, 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
+import { CustomButton } from '@/components/ui/custom-button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { Vehicle, VehicleStatus } from '@/types/vehicle';
-import { vehicleSchema } from '@/lib/validation-schemas/vehicle';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+import { useVehicles } from '@/hooks/use-vehicles';
+import VehicleImageUpload from './VehicleImageUpload';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { format, isValid } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
-export interface VehicleFormProps {
-  onSubmit: (data: any) => void;
+const vehicleSchema = z.object({
+  make: z.string().min(1, 'Make is required'),
+  model: z.string().min(1, 'Model is required'),
+  year: z.coerce.number().min(1900, 'Year must be after 1900').max(new Date().getFullYear() + 1, `Year cannot be after ${new Date().getFullYear() + 1}`),
+  license_plate: z.string().min(1, 'License plate is required'),
+  vin: z.string().min(1, 'VIN is required'),
+  status: z.enum(['available', 'rented', 'reserved', 'maintenance', 'police_station', 'accident', 'stolen', 'retired'] as const, {
+    errorMap: () => ({ message: 'Please select a valid status' })
+  }),
+  color: z.string().optional(),
+  mileage: z.coerce.number().min(0, 'Mileage must be a positive number').optional(),
+  location: z.string().optional(),
+  description: z.string().optional(),
+  insurance_company: z.string().optional(),
+  insurance_expiry: z.union([z.string(), z.null()]).optional(),
+  rent_amount: z.coerce.number().min(0, 'Rent amount must be a positive number').optional(),
+  vehicle_type_id: z.union([z.string(), z.literal('none')]).optional(),
+});
+
+type VehicleFormSchema = z.infer<typeof vehicleSchema>;
+
+interface VehicleFormProps {
+  initialData?: Partial<Vehicle>;
+  onSubmit: (data: VehicleFormData) => void;
   isLoading?: boolean;
-  initialData?: Vehicle;
   isEditMode?: boolean;
 }
 
-const VehicleForm: React.FC<VehicleFormProps> = ({ 
-  onSubmit, 
-  isLoading = false,
+const VehicleForm: React.FC<VehicleFormProps> = ({
   initialData,
-  isEditMode = false
+  onSubmit,
+  isLoading = false,
+  isEditMode = false,
 }) => {
-  const [vehicleTypes, setVehicleTypes] = useState([]);
+  // Generate a unique form key that includes the status to force re-render when initialData changes
+  const formKey = React.useMemo(() => 
+    `vehicle-form-${initialData?.id}-${initialData?.updated_at}-${initialData?.status}`, 
+    [initialData?.id, initialData?.updated_at, initialData?.status]
+  );
   
-  // Prepare the default values appropriately
-  const defaultValues = initialData ? {
-    ...initialData,
-    vehicleType_id: initialData.vehicleType?.id  // Map to the correct property name
-  } : {
-    make: '',
-    model: '',
-    year: new Date().getFullYear(),
-    license_plate: '',
-    vin: '',
-    color: '',
-    mileage: 0,
-    status: 'available' as VehicleStatus,
-    description: '',
-    insurance_company: '',
-    insurance_expiry: '',
-    rent_amount: 0,
-    vehicleType_id: '',  // Use correct property name
-    location: ''
+  console.log("VehicleForm rendering with key:", formKey);
+  console.log("VehicleForm initialData:", initialData);
+  console.log("Vehicle status from props:", initialData?.status);
+  
+  const getDefaultValues = () => {
+    const values = {
+      make: initialData?.make || '',
+      model: initialData?.model || '',
+      year: initialData?.year || new Date().getFullYear(),
+      license_plate: initialData?.license_plate || '',
+      vin: initialData?.vin || '',
+      status: (initialData?.status as VehicleStatus) || 'available',
+      color: initialData?.color || '',
+      mileage: initialData?.mileage || 0,
+      location: initialData?.location || '',
+      description: initialData?.description || '',
+      insurance_company: initialData?.insurance_company || '',
+      insurance_expiry: initialData?.insurance_expiry || '',
+      rent_amount: initialData?.rent_amount || 0,
+      vehicle_type_id: initialData?.vehicle_type_id || ''
+    };
+    console.log('VehicleForm computed default values:', values);
+    console.log('Status in default values:', values.status);
+    return values;
   };
-  
-  // Set up the form with Zod validation
-  const form = useForm({
+
+  const form = useForm<VehicleFormSchema>({
     resolver: zodResolver(vehicleSchema),
-    defaultValues
+    defaultValues: getDefaultValues(),
+    mode: 'onBlur' 
   });
 
-  // Fetch vehicle types on component mount
+  const { useVehicleTypes } = useVehicles();
+  const { data: vehicleTypes, isLoading: isLoadingTypes } = useVehicleTypes();
+  
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
+  // Reset form when initialData changes with forced reset
   useEffect(() => {
-    const fetchVehicleTypes = async () => {
-      try {
-        // Mock data for now - would fetch from API in real implementation
-        setVehicleTypes([
-          { id: 'sedan', name: 'Sedan' },
-          { id: 'suv', name: 'SUV' },
-          { id: 'truck', name: 'Truck' },
-          { id: 'van', name: 'Van' }
-        ]);
-      } catch (error) {
-        console.error('Failed to fetch vehicle types:', error);
+    if (initialData) {
+      console.log('Re-initializing form with new data:', initialData);
+      console.log('Current status in initialData:', initialData.status);
+      const values = getDefaultValues();
+      
+      // Force reset with recreated values object to ensure state updates
+      form.reset({...values});
+      
+      // Explicitly update the status field
+      if (initialData.status) {
+        form.setValue('status', initialData.status as VehicleStatus);
       }
-    };
+    }
+  }, [initialData, form]);
 
-    fetchVehicleTypes();
-  }, []);
-
-  const handleSubmit = (data: any) => {
-    // Convert to proper format before submitting
-    const submissionData = {
-      ...data,
-      vehicle_type_id: data.vehicleType_id, // Convert to the key expected by the backend
-    };
-    
-    // Delete the frontend-only field
-    delete submissionData.vehicleType_id;
-    
-    onSubmit(submissionData);
+  const handleFormSubmit = (formValues: VehicleFormSchema) => {
+    try {
+      console.log('Form values before submission:', formValues);
+      console.log('Status value being submitted:', formValues.status);
+      
+      const formData: VehicleFormData = {
+        make: formValues.make,
+        model: formValues.model,
+        year: formValues.year,
+        license_plate: formValues.license_plate,
+        vin: formValues.vin,
+        status: formValues.status,
+        color: formValues.color || undefined,
+        mileage: formValues.mileage,
+        location: formValues.location || undefined,
+        description: formValues.description || undefined,
+        insurance_company: formValues.insurance_company || undefined,
+        insurance_expiry: formValues.insurance_expiry instanceof Date ? 
+          formValues.insurance_expiry.toISOString().split('T')[0] : 
+          formValues.insurance_expiry,
+        rent_amount: formValues.rent_amount,
+        vehicle_type_id: formValues.vehicle_type_id === 'none' ? undefined : formValues.vehicle_type_id,
+        image: selectedImage,
+      };
+      
+      console.log('Processed form data for submission:', formData);
+      onSubmit(formData);
+    } catch (error) {
+      console.error('Error processing form data:', error);
+    }
   };
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <Card key={formKey}>
+      <CardHeader>
+        <CardTitle>{isEditMode ? 'Edit Vehicle' : 'Add New Vehicle'}</CardTitle>
+      </CardHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
+          <CardContent className="space-y-6">
+            {/* Vehicle Image Upload */}
+            <div className="mb-6">
+              <FormLabel className="mb-2 block">Vehicle Image</FormLabel>
+              <VehicleImageUpload 
+                onImageSelected={setSelectedImage}
+                initialImageUrl={initialData?.image_url || initialData?.imageUrl}
+              />
+            </div>
+            
+            {/* Form Fields Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Make Field */}
               <FormField
                 control={form.control}
@@ -113,7 +179,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>Make</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter vehicle make" {...field} />
+                      <Input placeholder="Toyota" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -128,7 +194,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>Model</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter vehicle model" {...field} />
+                      <Input placeholder="Camry" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -143,13 +209,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>Year</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="Enter vehicle year" 
-                        {...field} 
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
-                      />
+                      <Input type="number" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -164,7 +224,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>License Plate</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter license plate" {...field} />
+                      <Input placeholder="ABC-123" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -179,11 +239,50 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>VIN</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter vehicle identification number" {...field} />
+                      <Input placeholder="1HGCM82633A123456" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+              
+              {/* Status Field - With enhanced debugging */}
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => {
+                  console.log("Current status value in form field:", field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select 
+                        onValueChange={(value) => {
+                          console.log(`Status changing from ${field.value} to ${value}`);
+                          field.onChange(value);
+                        }}
+                        value={field.value}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="available">Available</SelectItem>
+                          <SelectItem value="rented">Rented</SelectItem>
+                          <SelectItem value="reserved">Reserved</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                          <SelectItem value="police_station">Police Station</SelectItem>
+                          <SelectItem value="accident">Accident</SelectItem>
+                          <SelectItem value="stolen">Stolen</SelectItem>
+                          <SelectItem value="retired">Retired</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               
               {/* Color Field */}
@@ -194,7 +293,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>Color</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter vehicle color" {...field} />
+                      <Input placeholder="Silver" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -211,120 +310,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                     <FormControl>
                       <Input 
                         type="number" 
-                        placeholder="Enter current mileage" 
                         {...field} 
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? 0 : parseInt(value));
+                        }}
                       />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Status Field */}
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="available">Available</SelectItem>
-                        <SelectItem value="rented">Rented</SelectItem>
-                        <SelectItem value="maintenance">Maintenance</SelectItem>
-                        <SelectItem value="reserved">Reserved</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Insurance Company Field */}
-              <FormField
-                control={form.control}
-                name="insurance_company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Insurance Company</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter insurance company" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Insurance Expiry Field */}
-              <FormField
-                control={form.control}
-                name="insurance_expiry"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Insurance Expiry</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Rent Amount Field */}
-              <FormField
-                control={form.control}
-                name="rent_amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rent Amount</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="Enter rent amount per day" 
-                        {...field} 
-                        value={field.value || ''}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Vehicle Type Field */}
-              <FormField
-                control={form.control}
-                name="vehicleType_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Vehicle Type</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select vehicle type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {vehicleTypes.map((type: any) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -338,8 +330,126 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter vehicle location" {...field} />
+                      <Input placeholder="Main Office" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Insurance Company Field */}
+              <FormField
+                control={form.control}
+                name="insurance_company"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Insurance Company</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Insurance Provider" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Insurance Expiry Date Field */}
+              <FormField
+                control={form.control}
+                name="insurance_expiry"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Insurance Expiry Date</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              isValid(new Date(field.value)) ? 
+                                format(new Date(field.value), "PPP") : 
+                                "Invalid date"
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => {
+                            console.log('Selected date:', date);
+                            field.onChange(date ? format(date, 'yyyy-MM-dd') : '');
+                          }}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Daily Rate Field */}
+              <FormField
+                control={form.control}
+                name="rent_amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Daily Rate ($)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        {...field} 
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? 0 : parseFloat(value));
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Vehicle Type Field */}
+              <FormField
+                control={form.control}
+                name="vehicle_type_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Type</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value || 'none'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select vehicle type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {isLoadingTypes ? (
+                          <SelectItem value="loading">Loading...</SelectItem>
+                        ) : (
+                          vehicleTypes && vehicleTypes.map((type) => (
+                            type.id ? (
+                              <SelectItem key={type.id} value={type.id}>
+                                {type.name} ({type.size})
+                              </SelectItem>
+                            ) : null
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -352,28 +462,35 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Description/Notes</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Enter vehicle description or notes" 
-                      className="resize-none" 
+                      placeholder="Additional information about the vehicle" 
                       {...field} 
-                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+          </CardContent>
+          
+          <CardFooter className="flex justify-between">
+            <CustomButton
+              type="button"
+              variant="outline"
+              onClick={() => window.history.back()}
+            >
+              Cancel
+            </CustomButton>
             
-            <div className="flex justify-end gap-2">
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? 'Saving...' : isEditMode ? 'Update Vehicle' : 'Add Vehicle'}
-              </Button>
-            </div>
-          </form>
-        </Form>
-      </CardContent>
+            <CustomButton type="submit" disabled={isLoading} glossy>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEditMode ? 'Update Vehicle' : 'Add Vehicle'}
+            </CustomButton>
+          </CardFooter>
+        </form>
+      </Form>
     </Card>
   );
 };

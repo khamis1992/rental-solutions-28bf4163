@@ -1,132 +1,85 @@
-import { supabase } from '@/integrations/supabase/client';
-import { Database } from '@/types/database.types';
 
-interface HealthCheckResult {
-  status: 'ok' | 'error' | 'warning';
-  message: string;
-  details?: Record<string, any>;
-  timestamp: string;
-}
+import { supabase, checkSupabaseHealth, checkConnectionWithRetry, monitorDatabaseConnection } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 /**
- * Performs a health check on the database connection
- * @returns A promise that resolves to a health check result
+ * Check the health of the Supabase connection using the client's built-in health check
+ * @returns Promise with health status and optional error message
  */
-export const checkDatabaseHealth = async (): Promise<HealthCheckResult> => {
+export const checkDatabaseHealth = async (): Promise<{ isHealthy: boolean; error?: string }> => {
   try {
-    // Use a public API or method instead of accessing protected property
-    // For example, use a query to check connection
-    const healthCheck = await performHealthCheck();
-    return healthCheck;
-  } catch (error) {
-    console.error("Database health check failed:", error);
+    console.log('Checking database connection health');
+    const result = await checkSupabaseHealth();
+    
+    if (!result.isHealthy) {
+      console.error('Database health check failed:', result.error);
+    } else {
+      console.log(`Database connection is healthy (latency: ${result.latency}ms)`);
+    }
+    
     return { 
-      status: 'error', 
-      message: 'Unable to connect to database',
-      timestamp: new Date().toISOString()
+      isHealthy: result.isHealthy,
+      error: result.error 
     };
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown database error';
+    console.error('Database connection error:', errorMessage);
+    return { isHealthy: false, error: errorMessage };
   }
 };
 
+// Re-export connection retry functionality from the client
+export { checkConnectionWithRetry } from '@/integrations/supabase/client';
+
 /**
- * Performs the actual health check by running a simple query
+ * Monitor database connectivity and show UI feedback
+ * @param onConnectionChange Optional callback that runs when connection status changes
+ * @param pollingIntervalMs How often to check connection (default: 30 seconds)
+ * @returns Function to stop the monitoring
  */
-async function performHealthCheck(): Promise<HealthCheckResult> {
+export { monitorDatabaseConnection } from '@/integrations/supabase/client';
+
+/**
+ * Show database connection status in UI
+ * @param isConnected Current connection status
+ * @returns JSX element or null
+ */
+export const getConnectionErrorMessage = (isConnected: boolean): string | null => {
+  if (!isConnected) {
+    return 'Database connection error. Please check your internet connection and try again.';
+  }
+  return null;
+};
+
+/**
+ * Run diagnostic check of database connection for troubleshooting
+ * @returns Promise with detailed diagnostic information
+ */
+export const runDatabaseDiagnostics = async (): Promise<{
+  isConnected: boolean;
+  latency?: number;
+  error?: string;
+  apiEndpoint: string;
+  clientVersion: string;
+}> => {
   try {
-    // Run a simple query to check if the database is responsive
     const startTime = performance.now();
-    const { data, error } = await supabase.from('system_settings').select('id').limit(1);
+    const health = await checkSupabaseHealth();
     const endTime = performance.now();
     
-    if (error) {
-      return {
-        status: 'error',
-        message: `Database query failed: ${error.message}`,
-        details: { error },
-        timestamp: new Date().toISOString()
-      };
-    }
-    
-    const responseTime = Math.round(endTime - startTime);
-    
-    // Check response time to determine if there might be performance issues
-    let status: 'ok' | 'warning' = 'ok';
-    let message = 'Database connection successful';
-    
-    if (responseTime > 1000) {
-      status = 'warning';
-      message = 'Database connection is slow';
-    }
-    
     return {
-      status,
-      message,
-      details: {
-        responseTime: `${responseTime}ms`,
-        timestamp: new Date().toISOString()
-      },
-      timestamp: new Date().toISOString()
+      isConnected: health.isHealthy,
+      latency: health.latency || Math.round(endTime - startTime),
+      error: health.error,
+      apiEndpoint: supabase.supabaseUrl,
+      clientVersion: '2.38.4' // Version of @supabase/supabase-js
     };
-  } catch (error) {
+  } catch (err) {
     return {
-      status: 'error',
-      message: `Health check failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      timestamp: new Date().toISOString()
+      isConnected: false,
+      error: err instanceof Error ? err.message : 'Unknown error during diagnostics',
+      apiEndpoint: supabase.supabaseUrl,
+      clientVersion: '2.38.4'
     };
-  }
-}
-
-/**
- * Get connection information without exposing sensitive details
- */
-export const getConnectionInfo = () => {
-  return {
-    status: 'connected',
-    // Don't expose protected properties
-    connectionDetails: 'Database connection established',
-    timestamp: new Date().toISOString()
-  };
-};
-
-/**
- * Check if a specific table exists in the database
- */
-export const checkTableExists = async (tableName: string): Promise<boolean> => {
-  try {
-    // Use RPC to check if table exists
-    const { data, error } = await supabase.rpc('check_table_exists', {
-      table_name: tableName
-    });
-    
-    if (error) {
-      console.error(`Error checking if table ${tableName} exists:`, error);
-      return false;
-    }
-    
-    return !!data;
-  } catch (error) {
-    console.error(`Failed to check if table ${tableName} exists:`, error);
-    return false;
-  }
-};
-
-/**
- * Get the row count for a specific table
- */
-export const getTableRowCount = async (tableName: keyof Database['public']['Tables']): Promise<number> => {
-  try {
-    const { count, error } = await supabase
-      .from(tableName)
-      .select('*', { count: 'exact', head: true });
-    
-    if (error) {
-      console.error(`Error getting row count for table ${tableName}:`, error);
-      return 0;
-    }
-    
-    return count || 0;
-  } catch (error) {
-    console.error(`Failed to get row count for table ${tableName}:`, error);
-    return 0;
   }
 };

@@ -21,11 +21,11 @@ export function handleDatabaseResponse<T>(response: PostgrestResponse<T> | Postg
     console.error('Database error:', response.error);
     return null;
   }
-  return response.data as T | null;
+  return response.data || null;
 }
 
 // Type guard for responses
-export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): boolean {
+export function isSuccessResponse<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
   return !response.error && response.data !== null;
 }
 
@@ -35,7 +35,7 @@ export function asTableId<T extends keyof Tables>(table: T, id: string): Tables[
 }
 
 // Type guard for checking if response has data
-export function hasData<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): boolean {
+export function hasData<T>(response: PostgrestResponse<T> | PostgrestSingleResponse<T>): response is { data: T; error: null } {
   return !response.error && response.data !== null;
 }
 
@@ -69,3 +69,4 @@ export type ProfileStatus = ProfileRow['status'];
 export function asStatus<T extends { status: string }>(status: string): T['status'] {
   return status as T['status'];
 }
+

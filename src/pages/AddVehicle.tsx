@@ -1,48 +1,55 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { Car } from 'lucide-react';
-import PageContainer from '@/components/layout/PageContainer';
-import VehicleForm from '@/components/vehicles/VehicleForm';
+import { Car, ArrowLeft } from 'lucide-react';
 import { SectionHeader } from '@/components/ui/section-header';
+import { VehicleOnboardingWizard } from '@/components/vehicles/VehicleOnboardingWizard';
+import PageContainer from '@/components/layout/PageContainer';
 import { useVehicles } from '@/hooks/use-vehicles';
+import { CustomButton } from '@/components/ui/custom-button';
+import { toast } from 'sonner';
 
-const AddVehicle: React.FC = () => {
+const AddVehicle = () => {
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addVehicle } = useVehicles();
+  const { useCreate } = useVehicles();
+  const { mutate: createVehicle, isPending } = useCreate();
   
-  const handleSubmit = async (formData: any) => {
-    try {
-      setIsSubmitting(true);
-      
-      // Call the mutation function
-      await addVehicle(formData);
-      
-      toast.success('Vehicle added successfully');
-      navigate('/vehicles');
-    } catch (error: any) {
-      toast.error('Failed to add vehicle', {
-        description: error.message
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleSubmit = (formData: any) => {
+    createVehicle(formData, {
+      onSuccess: () => {
+        navigate('/vehicles');
+      },
+      onError: (error) => {
+        toast.error('Failed to add vehicle', {
+          description: error instanceof Error ? error.message : 'Unknown error occurred'
+        });
+      }
+    });
   };
   
   return (
-    <PageContainer title="Add New Vehicle">
-      <SectionHeader 
+    <PageContainer>
+      <SectionHeader
         title="Add New Vehicle"
-        description="Enter the details of the new vehicle"
+        description="Add a new vehicle to your fleet"
         icon={Car}
+        actions={
+          <CustomButton 
+            size="sm" 
+            variant="outline" 
+            onClick={() => navigate('/vehicles')}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Vehicles
+          </CustomButton>
+        }
       />
       
       <div className="section-transition">
-        <VehicleForm 
-          onSubmit={handleSubmit}
-          isLoading={isSubmitting}
+        <VehicleOnboardingWizard
+          open={true}
+          onClose={() => navigate('/vehicles')}
+          onComplete={() => navigate('/vehicles')}
         />
       </div>
     </PageContainer>

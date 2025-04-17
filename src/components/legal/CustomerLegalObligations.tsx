@@ -1,83 +1,197 @@
 
-import React from 'react';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { CustomerObligation } from './CustomerLegalObligations.types';
+import React, { useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatDate } from '@/lib/date-utils';
+import LegalCaseDetails from './LegalCaseDetails';
+import { Search, AlertTriangle, Loader2, Plus } from 'lucide-react';
 
-interface CustomerLegalObligationsProps {
-  obligations?: CustomerObligation[];
+export interface CustomerObligation {
+  id: string;
+  customerId: string;
+  customerName: string;
+  description: string;
+  obligationType: string;
+  amount: number;
+  dueDate: Date;
+  urgency: 'low' | 'medium' | 'high' | 'critical';
+  status: string;
+  daysOverdue?: number;
 }
 
-const CustomerLegalObligations: React.FC<CustomerLegalObligationsProps> = ({ 
-  obligations = [] 
-}) => {
-  const renderObligationRows = () => {
-    return obligations.map((obligation: CustomerObligation) => {
-      // Ensure obligation has required type and title properties
-      const safeObligation: CustomerObligation = {
-        ...obligation,
-        type: obligation.type || obligation.obligationType || "UNKNOWN",
-        title: obligation.title || `Obligation #${obligation.id.substring(0, 8)}`
-      };
-      
-      return (
-        <TableRow key={safeObligation.id}>
-          <TableCell className="font-medium">{safeObligation.title}</TableCell>
-          <TableCell>{safeObligation.description}</TableCell>
-          <TableCell>{safeObligation.amount}</TableCell>
-          <TableCell>{safeObligation.dueDate?.toString()}</TableCell>
-          <TableCell>
-            <Badge variant="secondary">{safeObligation.status}</Badge>
-          </TableCell>
-        </TableRow>
-      );
-    });
+export const CustomerLegalObligations = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedObligation, setSelectedObligation] = useState<CustomerObligation | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Empty array for obligations (removed hardcoded data)
+  const obligations: CustomerObligation[] = [];
+
+  // Filter obligations based on search query
+  const filteredObligations = useMemo(() => {
+    return obligations.filter(
+      (obligation) =>
+        obligation.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        obligation.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        obligation.status.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery, obligations]);
+
+  const handleObligationClick = (obligation: CustomerObligation) => {
+    setSelectedObligation(obligation);
   };
 
+  const handleCloseObligation = () => {
+    setSelectedObligation(null);
+  };
+
+  const getUrgencyBadge = (urgency: string) => {
+    switch (urgency) {
+      case 'critical':
+        return <Badge variant="destructive">Critical</Badge>;
+      case 'high':
+        return <Badge className="bg-orange-500 hover:bg-orange-600">High</Badge>;
+      case 'medium':
+        return <Badge className="bg-yellow-500 hover:bg-yellow-600">Medium</Badge>;
+      case 'low':
+      default:
+        return <Badge variant="outline">Low</Badge>;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-green-500 hover:bg-green-600">Completed</Badge>;
+      case 'pending':
+        return <Badge className="bg-blue-500 hover:bg-blue-600">Pending</Badge>;
+      case 'overdue':
+        return <Badge variant="destructive">Overdue</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  // Simulate loading for better UX
+  React.useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Customer Obligations</CardTitle>
+          <CardDescription>Loading customer legal obligations...</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-64">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+            <p className="text-muted-foreground">Loading obligations...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Legal Obligations</CardTitle>
-        <CardDescription>
-          Here are the legal obligations for this customer.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {renderObligationRows()}
-            </TableBody>
-          </Table>
-        </ScrollArea>
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      {selectedObligation ? (
+        <LegalCaseDetails obligation={selectedObligation} onClose={handleCloseObligation} />
+      ) : (
+        <Card>
+          <CardHeader>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <CardTitle>Customer Legal Obligations</CardTitle>
+                <CardDescription>
+                  Manage and track customer legal obligations and requirements
+                </CardDescription>
+              </div>
+              <Button className="w-full md:w-auto">
+                <Plus className="mr-2 h-4 w-4" /> New Obligation
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search obligations..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="hidden md:table-cell">Amount</TableHead>
+                    <TableHead className="hidden md:table-cell">Due Date</TableHead>
+                    <TableHead>Priority</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredObligations.length > 0 ? (
+                    filteredObligations.map((obligation) => (
+                      <TableRow 
+                        key={obligation.id}
+                        className="cursor-pointer"
+                        onClick={() => handleObligationClick(obligation)}
+                      >
+                        <TableCell className="font-medium">{obligation.customerName}</TableCell>
+                        <TableCell>{obligation.description}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {obligation.amount === 0 ? 
+                            'N/A' : 
+                            obligation.amount.toLocaleString('en-US', {
+                              style: 'currency',
+                              currency: 'QAR',
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            })
+                          }
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">{formatDate(obligation.dueDate)}</TableCell>
+                        <TableCell>{getUrgencyBadge(obligation.urgency)}</TableCell>
+                        <TableCell>{getStatusBadge(obligation.status)}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex flex-col items-center justify-center p-4">
+                          <AlertTriangle className="h-8 w-8 text-yellow-500 mb-2" />
+                          <p className="text-lg font-medium">No customer obligations found</p>
+                          <p className="text-muted-foreground mb-4">Start by creating a new customer obligation</p>
+                          <Button>
+                            <Plus className="mr-2 h-4 w-4" /> New Obligation
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

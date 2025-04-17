@@ -1,41 +1,51 @@
 
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { asLeaseId } from '@/utils/database-type-helpers';
+import { asTableId } from '@/lib/uuid-helpers';
+import { hasData } from '@/utils/supabase-type-helpers';
+
+export type TrafficFineStatusType = 'pending' | 'paid' | 'disputed';
 
 export interface TrafficFine {
-  id: any;
-  violationNumber: any;
-  violationDate: any;
-  licensePlate: any;
-  fineAmount: any;
-  paymentStatus: "paid" | "pending" | "disputed";
-  location: any;
-  violationCharge: any;
-  customerId: any;
-  customerName: string;
-  customerPhone: string;
-  paymentDate: any;
-  lease_id?: string;
+  id: string;
+  violationNumber: string;
+  licensePlate?: string;
+  violationDate: Date;
+  fineAmount: number;
+  violationCharge?: string;
+  paymentStatus: TrafficFineStatusType;
+  location?: string;
+  vehicleId?: string;
+  vehicleModel?: string;
+  customerId?: string;
+  customerName?: string;
+  paymentDate?: Date;
+  leaseId?: string;
+  leaseStartDate?: Date;
+  leaseEndDate?: Date;
 }
 
-// Add this interface for createTrafficFine
+export interface TrafficFinePayload {
+  id: string;
+}
+
 export interface TrafficFineCreatePayload {
   violationNumber: string;
-  violationDate: string | Date;
   licensePlate: string;
+  violationDate: Date;
   fineAmount: number;
-  location?: string;
   violationCharge?: string;
-  paymentStatus?: "paid" | "pending" | "disputed";
-  paymentDate?: string | Date | null;
+  location?: string;
+  paymentStatus?: TrafficFineStatusType;
 }
 
-export function useTrafficFines() {
+export const useTrafficFines = () => {
   const queryClient = useQueryClient();
-
-  const { data: trafficFinesData, isLoading, error } = useQuery({
+  
+  // Fetch all traffic fines
+  const { data: trafficFines, isLoading, error } = useQuery({
     queryKey: ['trafficFines'],
     queryFn: async () => {
       try {
@@ -44,304 +54,339 @@ export function useTrafficFines() {
           .select(`
             id,
             violation_number,
-            violation_date,
             license_plate,
+            violation_date,
             fine_amount,
-            payment_status,
-            location,
             violation_charge,
-            customer_id,
-            payment_date,
+            payment_status,
+            fine_location,
+            vehicle_id,
             lease_id,
-            customer_data:profiles (
-              full_name,
-              phone_number
-            )
-          `);
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return data || [];
-      } catch (error) {
-        console.error('Error fetching traffic fines:', error);
-        throw error;
-      }
-    }
-  });
-
-  const trafficFines = trafficFinesData as any[];
-
-  const assignToCustomer = useMutation({
-    mutationFn: async ({ id, customerId }: { id: string; customerId?: string }) => {
-      try {
-        // If customerId is not provided, we'll need to determine it from the license plate
-        let actualCustomerId = customerId;
+            payment_date,
+            assignment_status
+          `)
+          .order('violation_date', { ascending: false });
         
-        if (!actualCustomerId) {
-          // Get the fine details to access the license plate
-          const { data: fineData, error: fineError } = await supabase
-            .from('traffic_fines')
-            .select('license_plate')
-            .eq('id', id)
-            .single();
-          
-          if (fineError || !fineData) {
-            throw new Error('Failed to retrieve fine details');
-          }
-          
-          // Find vehicle by license plate
-          const { data: vehicleData, error: vehicleError } = await supabase
-            .from('vehicles')
-            .select('id')
-            .eq('license_plate', fineData.license_plate)
-            .single();
-          
-          if (vehicleError || !vehicleData) {
-            throw new Error(`No vehicle found with license plate ${fineData.license_plate}`);
-          }
-          
-          // Find active lease for the vehicle
-          const { data: leaseData, error: leaseError } = await supabase
+        if (error) {
+          console.error('Error fetching traffic fines:', error);
+          throw new Error(`Failed to fetch traffic fines: ${error.message}`);
+        }
+
+        if (!data) {
+          return [];
+        }
+        
+        // Get customer information for assigned fines
+        const finesWithLeaseIds = data.filter(fine => fine.lease_id);
+        let customerAndLeaseInfo: Record<string, { 
+          customer_id: string; 
+          customer_name?: string;
+          start_date?: string;
+          end_date?: string;
+        }> = {};
+        
+        if (finesWithLeaseIds.length > 0) {
+          const leaseIds = finesWithLeaseIds.map(fine => fine.lease_id).filter(Boolean);
+          const { data: leases, error: leaseError } = await supabase
             .from('leases')
-            .select('customer_id')
-            .eq('vehicle_id', vehicleData.id)
-            .in('status', ['active', 'pending_payment'])
-            .single();
-          
-          if (leaseError || !leaseData || !leaseData.customer_id) {
-            throw new Error('No active lease found for this vehicle');
+            .select('id, customer_id, start_date, end_date, profiles(full_name)')
+            .in('id', leaseIds as string[]);
+            
+          if (leaseError) {
+            console.error('Error fetching lease information:', leaseError);
+          } else if (leases) {
+            // Create a mapping of lease_id to customer information and lease dates
+            leases.forEach(lease => {
+              if (lease && lease.id) {
+                customerAndLeaseInfo[lease.id] = {
+                  customer_id: lease.customer_id,
+                  customer_name: lease.profiles?.full_name,
+                  start_date: lease.start_date,
+                  end_date: lease.end_date
+                };
+              }
+            });
           }
-          
-          actualCustomerId = leaseData.customer_id;
         }
-
-        const { error } = await supabase
-          .from('traffic_fines')
-          .update({ customer_id: actualCustomerId })
-          .eq('id', id);
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Error assigning traffic fine to customer:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Traffic fine assigned to customer successfully');
-    }
-  });
-
-  const markAsPaid = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
-      try {
-        const { error } = await supabase
-          .from('traffic_fines')
-          .update({ payment_status: 'paid' })
-          .eq('id', id);
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Error marking traffic fine as paid:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Traffic fine marked as paid successfully');
-    }
-  });
-
-  // Add payTrafficFine and disputeTrafficFine mutations
-  const payTrafficFine = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
-      try {
-        const { error } = await supabase
-          .from('traffic_fines')
-          .update({ payment_status: 'paid', payment_date: new Date().toISOString() })
-          .eq('id', id);
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Error paying traffic fine:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Traffic fine marked as paid successfully');
-    }
-  });
-
-  const disputeTrafficFine = useMutation({
-    mutationFn: async ({ id }: { id: string }) => {
-      try {
-        const { error } = await supabase
-          .from('traffic_fines')
-          .update({ payment_status: 'disputed' })
-          .eq('id', id);
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return true;
-      } catch (error) {
-        console.error('Error disputing traffic fine:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Traffic fine marked as disputed successfully');
-    }
-  });
-
-  // Fix the customer data access in the methods
-  const getTrafficFines = async (): Promise<TrafficFine[]> => {
-    try {
-      // When accessing customer data, make sure to check array items correctly
-      return trafficFines.map(fine => {
-        const customerInfo = fine.customer_data && Array.isArray(fine.customer_data) && fine.customer_data.length > 0 
-          ? { 
-            full_name: fine.customer_data[0]?.full_name || 'Unknown', 
-            phone_number: fine.customer_data[0]?.phone_number || 'Unknown' 
-          } 
-          : { full_name: 'Unknown', phone_number: 'Unknown' };
-          
-        return {
+        
+        // Transform the data to match our TrafficFine interface
+        return data.map(fine => ({
           id: fine.id,
-          violationNumber: fine.violation_number,
-          violationDate: fine.violation_date,
+          violationNumber: fine.violation_number || `TF-${Math.floor(Math.random() * 10000)}`,
           licensePlate: fine.license_plate,
-          fineAmount: fine.fine_amount,
-          paymentStatus: fine.payment_status || 'pending',
-          location: fine.location || fine.fine_location,
+          violationDate: fine.violation_date ? new Date(fine.violation_date) : new Date(),
+          fineAmount: fine.fine_amount || 0,
           violationCharge: fine.violation_charge,
-          customerId: fine.customer_id,
-          customerName: customerInfo.full_name || 'Unknown',
-          customerPhone: customerInfo.phone_number || 'Unknown',
-          paymentDate: fine.payment_date,
-          lease_id: fine.lease_id
-        };
-      });
-    } catch (error) {
-      console.error('Error transforming traffic fines data:', error);
-      return [];
+          paymentStatus: (fine.payment_status as TrafficFineStatusType) || 'pending',
+          location: fine.fine_location,
+          vehicleId: fine.vehicle_id,
+          paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined,
+          leaseId: fine.lease_id,
+          // Add customer information if available
+          customerId: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_id : undefined,
+          customerName: fine.lease_id ? customerAndLeaseInfo[fine.lease_id]?.customer_name : undefined,
+          // Add lease dates for validation
+          leaseStartDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.start_date ? 
+            new Date(customerAndLeaseInfo[fine.lease_id].start_date as string) : undefined,
+          leaseEndDate: fine.lease_id && customerAndLeaseInfo[fine.lease_id]?.end_date ?
+            new Date(customerAndLeaseInfo[fine.lease_id].end_date as string) : undefined
+        }));
+      } catch (error) {
+        console.error('Error in traffic fines data fetching:', error);
+        throw error;
+      }
     }
-  };
-
-  // Now add the missing methods
+  });
+  
+  // Create a new traffic fine
   const createTrafficFine = useMutation({
-    mutationFn: async (data: TrafficFineCreatePayload) => {
-      // Implementation for creating a traffic fine
-      const { error } = await supabase.from('traffic_fines').insert([{
-        violation_number: data.violationNumber,
-        violation_date: data.violationDate,
-        license_plate: data.licensePlate,
-        fine_amount: data.fineAmount,
-        location: data.location,
-        violation_charge: data.violationCharge,
-        payment_status: data.paymentStatus || 'pending',
-        payment_date: data.paymentDate || null,
-        created_at: new Date().toISOString()
-      }]);
-
-      if (error) throw error;
-      return true;
+    mutationFn: async (fineData: TrafficFineCreatePayload) => {
+      try {
+        // Ensure licensePlate is present and not empty
+        if (!fineData.licensePlate || fineData.licensePlate.trim() === '') {
+          throw new Error('License plate is required for traffic fines');
+        }
+        
+        // Create payload for database
+        const dbPayload = {
+          violation_number: fineData.violationNumber,
+          license_plate: fineData.licensePlate.trim(),
+          violation_date: fineData.violationDate,
+          fine_amount: fineData.fineAmount,
+          violation_charge: fineData.violationCharge,
+          fine_location: fineData.location,
+          payment_status: fineData.paymentStatus || 'pending',
+          assignment_status: 'pending'
+        };
+        
+        const { data, error } = await supabase
+          .from('traffic_fines')
+          .insert(dbPayload)
+          .select('*')
+          .single();
+          
+        if (error) {
+          throw new Error(`Failed to create traffic fine: ${error.message}`);
+        }
+        
+        return data;
+      } catch (error) {
+        console.error('Error creating traffic fine:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Traffic fine created successfully');
     }
   });
+  
+  // Assign a traffic fine to a customer
+  const assignToCustomer = useMutation({
+    mutationFn: async ({ id }: TrafficFinePayload) => {
+      try {
+        console.log(`Attempting to assign fine ${id} to customer`);
+        
+        // First get the traffic fine details to find license plate and violation date
+        const { data: fine, error: fineError } = await supabase
+          .from('traffic_fines')
+          .select('license_plate, violation_date')
+          .eq('id', id)
+          .single();
+          
+        if (fineError || !fine) {
+          throw new Error(`Failed to fetch fine details: ${fineError?.message || 'No data found'}`);
+        }
+        
+        if (!fine.license_plate) {
+          throw new Error('Cannot assign fine: No license plate information available');
+        }
 
-  const updateTrafficFine = useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: Partial<TrafficFineCreatePayload> }) => {
+        const violationDate = new Date(fine.violation_date);
+        console.log(`Fine violation date: ${violationDate.toISOString()}`);
+        
+        // Find the vehicle with this license plate
+        const { data: vehicleData, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('id')
+          .eq('license_plate', fine.license_plate)
+          .single();
+          
+        if (vehicleError || !vehicleData) {
+          throw new Error(`No vehicle found with license plate ${fine.license_plate}`);
+        }
+        
+        // Find active lease for this vehicle that covers the violation date
+        const { data: leaseData, error: leaseError } = await supabase
+          .from('leases')
+          .select('id, customer_id, start_date, end_date')
+          .eq('vehicle_id', vehicleData.id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+          
+        if (leaseError) {
+          throw new Error(`Error finding leases: ${leaseError.message}`);
+        }
+        
+        if (!leaseData || leaseData.length === 0) {
+          throw new Error(`No active lease found for this vehicle`);
+        }
+
+        // Find a lease where violation date falls between start and end date
+        let matchingLease = null;
+        for (const lease of leaseData) {
+          const startDate = new Date(lease.start_date);
+          const endDate = lease.end_date ? new Date(lease.end_date) : new Date();
+          
+          console.log(`Checking lease ${lease.id}: start=${startDate.toISOString()}, end=${endDate.toISOString()}`);
+          
+          if (violationDate >= startDate && violationDate <= endDate) {
+            matchingLease = lease;
+            break;
+          }
+        }
+        
+        if (!matchingLease) {
+          throw new Error(`Traffic fine date (${violationDate.toLocaleDateString()}) is outside any lease period for this vehicle`);
+        }
+        
+        console.log(`Found matching lease ${matchingLease.id} for the violation date`);
+        
+        // Update the fine with the lease ID
+        const { error: updateError } = await supabase
+          .from('traffic_fines')
+          .update({ 
+            lease_id: matchingLease.id,
+            assignment_status: 'assigned'
+          })
+          .eq('id', id);
+          
+        if (updateError) {
+          throw new Error(`Failed to assign fine: ${updateError.message}`);
+        }
+        
+        return { 
+          success: true, 
+          message: 'Fine assigned to customer successfully',
+          leaseId: matchingLease.id,
+          customerId: matchingLease.customer_id
+        };
+      } catch (error) {
+        console.error('Error assigning fine to customer:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      toast.success('Fine assigned to customer successfully');
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to assign fine', {
+        description: error.message || 'An unexpected error occurred'
+      });
+    }
+  });
+  
+  // Pay a traffic fine
+  const payTrafficFine = useMutation({
+    mutationFn: async ({ id }: TrafficFinePayload) => {
       const { error } = await supabase
         .from('traffic_fines')
-        .update({
-          violation_number: data.violationNumber,
-          violation_date: data.violationDate,
-          license_plate: data.licensePlate,
-          fine_amount: data.fineAmount,
-          location: data.location,
-          violation_charge: data.violationCharge,
-          payment_status: data.paymentStatus,
-          payment_date: data.paymentDate,
-          updated_at: new Date().toISOString()
+        .update({ 
+          payment_status: 'paid',
+          payment_date: new Date().toISOString()
         })
         .eq('id', id);
-
-      if (error) throw error;
-      return true;
+        
+      if (error) {
+        throw new Error(`Failed to pay fine: ${error.message}`);
+      }
+      
+      return { success: true };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
-      toast.success('Traffic fine updated successfully');
     }
   });
-
-  const validateLicensePlate = async (licensePlate: string): Promise<{ isValid: boolean; message: string; vehicle?: any }> => {
-    // Simple validation - in a real application, you'd likely do more verification
-    try {
-      if (!licensePlate || licensePlate.length < 3) {
-        return { isValid: false, message: 'License plate must be at least 3 characters' };
-      }
-
-      // Check if the license plate exists in our vehicle database
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('license_plate', licensePlate)
-        .single();
-
+  
+  // Dispute a traffic fine
+  const disputeTrafficFine = useMutation({
+    mutationFn: async ({ id }: TrafficFinePayload) => {
+      const { error } = await supabase
+        .from('traffic_fines')
+        .update({ payment_status: 'disputed' })
+        .eq('id', id);
+        
       if (error) {
-        if (error.code === 'PGRST116') {
-          // PGRST116 is when no rows are returned
-          return { isValid: false, message: `No vehicle found with license plate ${licensePlate}` };
+        throw new Error(`Failed to dispute fine: ${error.message}`);
+      }
+      
+      return { success: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+    }
+  });
+  
+  // Function to clean up invalid assignments
+  const cleanupInvalidAssignments = useMutation({
+    mutationFn: async () => {
+      try {
+        if (!trafficFines || trafficFines.length === 0) {
+          throw new Error('No traffic fines data available');
         }
+        
+        // Get all fines with invalid date ranges
+        const invalidFines = trafficFines.filter(fine => 
+          fine.leaseId && fine.violationDate && fine.leaseStartDate && 
+          (fine.violationDate < fine.leaseStartDate || 
+           (fine.leaseEndDate && fine.violationDate > fine.leaseEndDate))
+        );
+        
+        if (invalidFines.length === 0) {
+          toast.info('No invalid fine assignments found');
+          return { cleaned: 0 };
+        }
+        
+        const invalidFineIds = invalidFines.map(fine => fine.id);
+        
+        // Clear the lease_id for these fines
+        const { error, count } = await supabase
+          .from('traffic_fines')
+          .update({ 
+            lease_id: null,
+            assignment_status: 'pending'
+          })
+          .in('id', invalidFineIds);
+        
+        if (error) {
+          throw new Error(`Failed to clean up invalid assignments: ${error.message}`);
+        }
+        
+        return { cleaned: invalidFineIds.length };
+      } catch (error) {
+        console.error('Error cleaning up invalid assignments:', error);
         throw error;
       }
-
-      // If found, return the vehicle details
-      return { 
-        isValid: true, 
-        message: `Found vehicle: ${data.make} ${data.model}`, 
-        vehicle: data 
-      };
-    } catch (error) {
-      console.error('Error validating license plate:', error);
-      return { isValid: false, message: 'Error validating license plate' };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['trafficFines'] });
+      toast.success(`Successfully cleaned up ${data.cleaned} invalid fine assignments`);
+    },
+    onError: (error: Error) => {
+      toast.error('Failed to clean up invalid assignments', {
+        description: error.message
+      });
     }
-  };
-
-  // Add refetch to the returned API
+  });
+  
   return {
     trafficFines,
     isLoading,
     error,
     assignToCustomer,
-    markAsPaid,
-    createTrafficFine,
-    updateTrafficFine,
-    validateLicensePlate,
     payTrafficFine,
     disputeTrafficFine,
-    refetch: () => queryClient.invalidateQueries({ queryKey: ['trafficFines'] })
+    createTrafficFine,
+    cleanupInvalidAssignments
   };
-}
+};

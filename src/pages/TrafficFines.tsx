@@ -1,48 +1,67 @@
 
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import PageContainer from '@/components/layout/PageContainer';
-import { SectionHeader } from '@/components/ui/section-header';
-import TrafficFinesList from '@/components/traffic-fines/TrafficFinesList';
-import AddTrafficFine from '@/components/traffic-fines/AddTrafficFine'; 
-import { Badge } from '@/components/ui/badge';
-import { Car, Plus, AlertTriangle } from 'lucide-react';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import React, { useState } from "react";
+import PageContainer from "@/components/layout/PageContainer";
+import { SectionHeader } from "@/components/ui/section-header";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertTriangle, BarChart2, FileText, Search } from "lucide-react";
+import TrafficFinesList from "@/components/fines/TrafficFinesList";
+import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
+import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
+import TrafficFineValidation from "@/components/fines/TrafficFineValidation";
 
-const TrafficFines: React.FC = () => {
-  const [currentTab, setCurrentTab] = useState('list');
-  const [isAutoAssigning, setIsAutoAssigning] = useState(false);
-  const { trafficFines } = useTrafficFines();
+const TrafficFines = () => {
+  const [activeTab, setActiveTab] = useState("list");
   
-  const unassignedCount = trafficFines.filter(fine => !fine.lease_id).length;
+  const handleAddFine = () => {
+    setActiveTab("add");
+  };
   
+  const handleFineSaved = () => {
+    setActiveTab("list");
+  };
+
   return (
-    <PageContainer title="Traffic Fines Management">
+    <PageContainer>
       <SectionHeader
-        title="Traffic Fines" 
-        description="Manage and track traffic fines for your fleet vehicles"
+        title="Traffic Fines Management"
+        description="Record, track, validate, and manage traffic violations"
         icon={AlertTriangle}
-        actions={
-          <Badge variant="outline" className="mr-2 font-normal">
-            {unassignedCount} unassigned fine{unassignedCount !== 1 ? 's' : ''}
-          </Badge>
-        }
       />
       
-      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
-        <div className="flex justify-between items-center mb-4">
-          <TabsList>
-            <TabsTrigger value="list">View All</TabsTrigger>
-            <TabsTrigger value="add">Add New</TabsTrigger>
-          </TabsList>
-        </div>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid grid-cols-1 md:grid-cols-4 w-full">
+          <TabsTrigger value="list" className="flex items-center">
+            <FileText className="h-4 w-4 mr-2" />
+            Fines List
+          </TabsTrigger>
+          <TabsTrigger value="add" className="flex items-center">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            Record New Fine
+          </TabsTrigger>
+          <TabsTrigger value="validate" className="flex items-center">
+            <Search className="h-4 w-4 mr-2" />
+            Fines Validation
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="flex items-center">
+            <BarChart2 className="h-4 w-4 mr-2" />
+            Fine Analytics
+          </TabsTrigger>
+        </TabsList>
         
-        <TabsContent value="list">
-          <TrafficFinesList isAutoAssigning={isAutoAssigning} />
+        <TabsContent value="list" className="space-y-6">
+          <TrafficFinesList onAddFine={handleAddFine} />
         </TabsContent>
         
-        <TabsContent value="add">
-          <AddTrafficFine onSuccess={() => setCurrentTab('list')} />
+        <TabsContent value="add" className="space-y-6">
+          <TrafficFineEntry onFineSaved={handleFineSaved} />
+        </TabsContent>
+        
+        <TabsContent value="validate" className="space-y-6">
+          <TrafficFineValidation />
+        </TabsContent>
+        
+        <TabsContent value="reports" className="space-y-6">
+          <TrafficFineAnalytics />
         </TabsContent>
       </Tabs>
     </PageContainer>

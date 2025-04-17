@@ -1,3 +1,4 @@
+
 /**
  * Testing utilities for traffic fines functionality
  */
@@ -220,9 +221,7 @@ export const validateTrafficFineForAssignment = (fine: TrafficFine): {
   // Date validation
   const violationDate = fine.violationDate;
   const today = new Date();
-  if (new Date(violationDate) > new Date()) {
-    validationErrors.push('Violation date cannot be in the future');
-  }
+  if (violationDate > today) validationErrors.push('Violation date cannot be in the future');
   
   // Business rules
   if (fine.paymentStatus === 'paid') validationErrors.push('Fine is already paid');
