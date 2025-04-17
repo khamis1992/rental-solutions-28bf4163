@@ -145,3 +145,14 @@ export function asAgreementIdFilterParam(id: string): any {
 export function asImportIdParam(id: string): any {
   return id;
 }
+
+/**
+ * Helper to safely extract records from a Supabase response
+ * Returns an empty array if the response is invalid or has an error
+ */
+export function safelyGetRecordsFromResponse<T>(data: T[] | null | undefined): T[] {
+  if (!data) {
+    return [];
+  }
+  return Array.isArray(data) ? data : [];
+}

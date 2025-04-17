@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   asLeaseId,
   asLeaseIdColumn,
   asStatusColumn,
+  asPaymentStatusColumn,
   hasData,
   safelyGetRecordsFromResponse
 } from '@/utils/database-type-helpers';
@@ -129,7 +131,7 @@ export function VehicleAssignmentDialog({
         
       if (hasData(finesResponse)) {
         // Transform the data to ensure payment_status is a proper TrafficFineStatusType
-        const transformedFines: TrafficFine[] = finesResponse.data.map(fine => ({
+        const transformedFines: TrafficFine[] = (finesResponse.data || []).map(fine => ({
           id: fine.id,
           violationNumber: fine.violation_number || "",
           licensePlate: fine.license_plate || "",
@@ -145,6 +147,7 @@ export function VehicleAssignmentDialog({
         setTrafficFines(transformedFines);
       } else {
         console.error("Error fetching traffic fines:", finesResponse.error);
+        setTrafficFines([]);
       }
       
       // Fetch customer information
@@ -185,13 +188,14 @@ export function VehicleAssignmentDialog({
     onClose();
   };
 
-  const formatDate = (date: Date | undefined) => {
+  const formatDate = (date: Date | string | undefined) => {
     if (!date) return 'N/A';
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
     return new Intl.DateTimeFormat('en-US', { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 
-    }).format(date);
+    }).format(dateObj);
   };
 
   const getStatusBadge = (status: string) => {
