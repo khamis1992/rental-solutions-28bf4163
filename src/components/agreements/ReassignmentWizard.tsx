@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -8,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, ArrowRight, CheckCircle2, Info, X, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabase";
 import { VehicleStatusBadge } from './VehicleStatusBadge';
 import { recordVehicleReassignment, transferObligations } from '@/utils/reassignment-utils';
 import { toast } from 'sonner';
@@ -18,8 +17,10 @@ import {
   asLeaseIdColumn, 
   asStatusColumn,
   asPaymentStatusColumn,
-  safelyExtractData
-} from '@/utils/database-type-helpers';
+  safeQuery,
+  safelyExtractData,
+  hasData
+} from '@/utils/supabase-db-helpers';
 
 interface AgreementSummary {
   id: string;
@@ -117,12 +118,13 @@ export function ReassignmentWizard({
         return;
       }
       
-      const sourceDataWithCustomerName = sourceData ? {
-        ...sourceData,
-        customer_name: sourceData.profiles?.full_name
-      } : null;
-      
-      setSourceAgreement(sourceDataWithCustomerName);
+      if (sourceData && sourceData.profiles) {
+        const sourceDataWithCustomerName = {
+          ...sourceData,
+          customer_name: sourceData.profiles?.full_name
+        };
+        setSourceAgreement(sourceDataWithCustomerName);
+      }
       
       // Load target agreement details
       const { data: targetData, error: targetError } = await supabase
@@ -145,12 +147,13 @@ export function ReassignmentWizard({
         return;
       }
       
-      const targetDataWithCustomerName = targetData ? {
-        ...targetData,
-        customer_name: targetData.profiles?.full_name
-      } : null;
-      
-      setTargetAgreement(targetDataWithCustomerName);
+      if (targetData && targetData.profiles) {
+        const targetDataWithCustomerName = {
+          ...targetData,
+          customer_name: targetData.profiles?.full_name
+        };
+        setTargetAgreement(targetDataWithCustomerName);
+      }
       
       // Load vehicle details
       const { data: vehicleData, error: vehicleError } = await supabase
@@ -220,7 +223,7 @@ export function ReassignmentWizard({
       const { error: closeError } = await supabase
         .from('leases')
         .update({ 
-          status: asStatusColumn('leases', 'status', 'closed'), 
+          status: asStatusColumn('closed'), 
           updated_at: new Date().toISOString(),
           notes: reason || `Agreement closed when vehicle was reassigned to agreement ${targetAgreement?.agreement_number}`
         })
@@ -237,7 +240,7 @@ export function ReassignmentWizard({
         .from('leases')
         .update({ 
           vehicle_id: asVehicleId(vehicleId),
-          status: asStatusColumn('leases', 'status', 'active'),
+          status: asStatusColumn('active'),
           updated_at: new Date().toISOString()
         })
         .eq('id', asLeaseId(targetAgreementId));
@@ -542,61 +545,66 @@ export function ReassignmentWizard({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md md:max-w-lg">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Vehicle Reassignment</DialogTitle>
           <DialogDescription>
-            Transfer a vehicle from one agreement to another
+            Reassign a vehicle from one agreement to another
           </DialogDescription>
         </DialogHeader>
         
-        <Tabs value={currentStep} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="review" disabled>
-              Review
-            </TabsTrigger>
-            <TabsTrigger value="options" disabled>
-              Options
-            </TabsTrigger>
-            <TabsTrigger value="confirm" disabled>
-              Confirm
-            </TabsTrigger>
+        <Tabs value={currentStep} className="mt-4">
+          <TabsList className="grid grid-cols-3">
+            <TabsTrigger value="review" disabled>Review</TabsTrigger>
+            <TabsTrigger value="options" disabled>Options</TabsTrigger>
+            <TabsTrigger value="confirm" disabled>Confirm</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="review" className="pt-4">
+          <TabsContent value="review" className="pt-4 pb-2">
             {renderReviewStep()}
           </TabsContent>
           
-          <TabsContent value="options" className="pt-4">
+          <TabsContent value="options" className="pt-4 pb-2">
             {renderOptionsStep()}
           </TabsContent>
           
-          <TabsContent value="confirm" className="pt-4">
+          <TabsContent value="confirm" className="pt-4 pb-2">
             {renderConfirmStep()}
           </TabsContent>
         </Tabs>
         
-        <Separator />
-        
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between sm:space-x-2">
           {currentStep !== 'review' && (
-            <Button variant="outline" onClick={handleBack} disabled={isProcessing}>
+            <Button type="button" variant="outline" onClick={handleBack}>
               Back
             </Button>
           )}
           
           {currentStep !== 'confirm' ? (
-            <Button onClick={handleContinue} disabled={isLoading}>
+            <Button type="button" onClick={handleContinue} disabled={isLoading}>
               Continue
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           ) : (
-            <Button 
-              onClick={handleSubmit} 
-              disabled={!confirmation || isProcessing}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isProcessing ? 'Processing...' : 'Complete Reassignment'}
-            </Button>
+            <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:space-x-2">
+              <div className="flex items-center space-x-2 mb-4 sm:mb-0">
+                <Checkbox 
+                  id="confirm-reassignment" 
+                  checked={confirmation}
+                  onCheckedChange={(checked) => setConfirmation(!!checked)}
+                />
+                <Label htmlFor="confirm-reassignment">
+                  I confirm this vehicle reassignment
+                </Label>
+              </div>
+              <Button 
+                type="button" 
+                disabled={!confirmation || isProcessing} 
+                onClick={handleSubmit}
+              >
+                {isProcessing ? 'Processing...' : 'Complete Reassignment'}
+              </Button>
+            </div>
           )}
         </DialogFooter>
       </DialogContent>
