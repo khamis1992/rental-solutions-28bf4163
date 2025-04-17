@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import PageContainer from '@/components/layout/PageContainer';
 import { SectionHeader } from '@/components/ui/section-header';
@@ -77,11 +78,11 @@ const Reports = () => {
     );
   }
 
-  // Handle error state
-  let errorMessage: string | null = null;
-  if (error) {
+  // Handle error state - using the state variable instead of creating a new one
+  if (error && !errorMessage) {
     if (error && typeof error === 'object' && 'message' in error) {
-      errorMessage = (error as Error).message;
+      // Use setErrorMessage instead of creating a new variable
+      setErrorMessage((error as Error).message);
     }
   }
 
@@ -161,8 +162,8 @@ const Reports = () => {
           <CardContent>
             <div className="space-y-2">
               {vehiclesByType.map((item) => (
-                <div key={item.vehicleType} className="flex items-center justify-between">
-                  <span>{item.vehicleType}</span>
+                <div key={item.type} className="flex items-center justify-between">
+                  <span>{item.type}</span>
                   <Badge variant="secondary">{item.count}</Badge>
                 </div>
               ))}
