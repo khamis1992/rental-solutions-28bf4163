@@ -1,525 +1,299 @@
-import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { format, differenceInMonths } from 'date-fns';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Card, CardContent } from '@/components/ui/card';
-import { generatePdfDocument } from '@/utils/agreementUtils';
-import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { usePaymentGeneration } from '@/hooks/use-payment-generation';
-import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { usePayments } from '@/hooks/use-payments';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
-import LegalCaseCard from './LegalCaseCard';
-import { asDbId, LeaseId } from '@/types/database-types';
+
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { format } from 'date-fns';
+import { 
+  CalendarDays, User, Car, CreditCard, 
+  ClipboardList, FileText, ChevronLeft, 
+  Phone, Mail, MapPin
+} from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { AgreementSummaryHeader } from './AgreementSummaryHeader';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { PaymentHistory } from './PaymentHistory';
+import { LegalCaseCard } from './LegalCaseCard';
+import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementActions } from './AgreementActions';
 import { AgreementTabs } from './AgreementTabs';
+import { AgreementSummaryHeader } from './AgreementSummaryHeader';
+import { useRentAmount } from '@/hooks/use-rent-amount';
+import { useAgreement } from '@/hooks/use-agreements';
+import { supabase } from '@/integrations/supabase/client';
 
-interface AgreementDetailProps {
-  agreement: Agreement | null;
-  onDelete: (id: string) => void;
-  rentAmount: number | null;
-  contractAmount: number | null;
-  onPaymentDeleted: () => void;
-  onDataRefresh: () => void;
-  onGenerateDocument?: () => void;
-  isGeneratingPayment?: boolean;
-  isRunningMaintenance?: boolean;
-  isGeneratingPdf?: boolean;
-  onGeneratePayment?: () => void;
-  onRunMaintenance?: () => void;
-}
+const AgreementDetailPage = () => {
+  const { id } = useParams<{ id: string }>();
+  const { toast } = useToast();
+  const { agreement, isLoading: isAgreementLoading, error: agreementError, refetch: refetchAgreement } = useAgreement(id);
+  const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(id);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
+  const [legalCases, setLegalCases] = useState<any[]>([]);
+  const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
 
-export function AgreementDetail({
-  agreement,
-  onDelete,
-  rentAmount,
-  contractAmount,
-  onPaymentDeleted,
-  onDataRefresh,
-  onGenerateDocument,
-  isGeneratingPayment = false,
-  isRunningMaintenance = false,
-  isGeneratingPdf = false,
-  onGeneratePayment,
-  onRunMaintenance
-}: AgreementDetailProps) {
-  const navigate = useNavigate();
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [lateFeeDetails, setLateFeeDetails] = useState<{
-    amount: number;
-    daysLate: number;
-  } | null>(null);
-  const [selectedPayment, setSelectedPayment] = useState(null);
-
-  const {
-    payments = [],
-    isLoading: isLoadingPayments,
-    fetchPayments
-  } = usePayments(agreement?.id);
-  
-  React.useEffect(() => {
-    if (agreement?.id) {
-      console.log('Fetching payments for agreement:', agreement.id);
+  // Fetch payments when agreement ID changes or after a payment is deleted
+  useEffect(() => {
+    if (id) {
       fetchPayments();
+      fetchLegalCases();
     }
-  }, [agreement?.id, fetchPayments]);
-  
-  const {
-    handleSpecialAgreementPayments
-  } = usePaymentGeneration(agreement, agreement?.id);
+  }, [id]);
 
-  const handleDelete = useCallback(() => {
-    if (agreement) {
-      const typedId = asDbId<LeaseId>(agreement.id);
-      onDelete(typedId);
-    }
-  }, [agreement, onDelete]);
-
-  const confirmDelete = useCallback(() => {
-    if (agreement) {
-      onDelete(agreement.id);
-      setIsDeleteDialogOpen(false);
-    }
-  }, [agreement, onDelete]);
-
-  const handlePrint = useCallback(() => {
-    window.print();
-  }, []);
-
-  const handleEdit = useCallback(() => {
-    if (agreement) {
-      navigate(`/agreements/edit/${agreement.id}`);
-    }
-  }, [agreement, navigate]);
-
-  const handleDownloadPdf = useCallback(async () => {
-    if (agreement) {
-      try {
-        toast.info("Preparing agreement PDF document...");
-        const success = await generatePdfDocument(agreement);
-        if (success) {
-          toast.success("Agreement PDF downloaded successfully");
-        } else {
-          toast.error("Failed to generate PDF");
-        }
-      } catch (error) {
-        console.error("Error generating PDF:", error);
-        toast.error("Failed to generate PDF");
-      }
-    }
-  }, [agreement]);
-
-  const handleGenerateDocument = useCallback(() => {
-    if (agreement && onGenerateDocument) {
-      onGenerateDocument();
-    } else {
-      toast.info("Document generation functionality is being configured");
-    }
-  }, [agreement, onGenerateDocument]);
-
-  const handlePaymentSubmit = useCallback(async (
-    amount: number, 
-    paymentDate: Date, 
-    notes?: string, 
-    paymentMethod?: string, 
-    referenceNumber?: string, 
-    includeLatePaymentFee?: boolean,
-    isPartialPayment?: boolean
-  ) => {
-    if (!agreement && !agreementId) {
-      toast.error("Agreement information is missing");
-      return false;
-    }
-    
-    const queryParams = new URLSearchParams(window.location.search);
-    const paymentId = queryParams.get('paymentId');
-    
+  const fetchPayments = async () => {
+    setIsLoadingPayments(true);
     try {
-      let existingPaymentId: string | null = null;
-      let existingPaymentAmount: number = 0;
-      let existingAmountPaid: number = 0;
-      let existingBalance: number = 0;
+      // Assuming you have a supabase client and unified_payments table
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', id)
+        .order('due_date', { ascending: false });
       
-      if (paymentId) {
-        const { data: existingPayment, error: queryError } = await supabase
-          .from('unified_payments')
-          .select('*')
-          .eq('id', paymentId)
-          .single();
-          
-        if (queryError) {
-          console.error("Error fetching existing payment:", queryError);
-        } else if (existingPayment) {
-          existingPaymentId = existingPayment.id;
-          existingPaymentAmount = existingPayment.amount || 0;
-          existingAmountPaid = existingPayment.amount_paid || 0;
-          existingBalance = existingPayment.balance || 0;
-        }
-      }
+      if (error) throw error;
       
-      let dailyLateFee = 120;
-      if (!agreement) {
-        const { data: leaseData, error: leaseError } = await supabase
-          .from('leases')
-          .select('daily_late_fee')
-          .eq('id', agreementId)
-          .single();
-          
-        if (leaseError) {
-          console.error("Error fetching lease data for late fee:", leaseError);
-        } else if (leaseData) {
-          dailyLateFee = leaseData.daily_late_fee || 120;
-        }
-      } else {
-        dailyLateFee = agreement.daily_late_fee || 120;
-      }
-      
-      let lateFineAmount = 0;
-      let daysLate = 0;
-      
-      if (paymentDate.getDate() > 1) {
-        daysLate = paymentDate.getDate() - 1;
-        lateFineAmount = Math.min(daysLate * dailyLateFee, 3000);
-      }
-      
-      if (existingPaymentId) {
-        const totalPaid = existingAmountPaid + amount;
-        const newBalance = existingPaymentAmount - totalPaid;
-        const newStatus = newBalance <= 0 ? 'completed' : 'partially_paid';
-        
-        const { error: updateError } = await supabase
-          .from('unified_payments')
-          .update({
-            amount_paid: totalPaid,
-            balance: Math.max(0, newBalance),
-            status: newStatus,
-            payment_date: paymentDate.toISOString(),
-            payment_method: paymentMethod
-          })
-          .eq('id', existingPaymentId);
-          
-        if (updateError) {
-          console.error("Error updating payment:", updateError);
-          toast.error("Failed to record additional payment");
-          return false;
-        }
-        
-        toast.success(newStatus === 'completed' ? 
-          "Payment completed successfully!" : 
-          "Additional payment recorded successfully");
-      } else {
-        let paymentStatus = 'completed';
-        let amountPaid = amount;
-        let balance = 0;
-        
-        if (isPartialPayment) {
-          paymentStatus = 'partially_paid';
-          const rentAmount = agreement?.rent_amount || 0;
-          balance = Math.max(0, rentAmount - amount);
-        }
-        
-        const paymentRecord = {
-          lease_id: agreementId,
-          amount: agreement?.rent_amount || 0,
-          amount_paid: amountPaid,
-          balance: balance,
-          payment_date: paymentDate.toISOString(),
-          payment_method: paymentMethod,
-          reference_number: referenceNumber || null,
-          description: notes || `Monthly rent payment for ${agreement?.agreement_number}`,
-          status: paymentStatus,
-          type: 'rent',
-          days_overdue: daysLate,
-          late_fine_amount: lateFineAmount,
-          original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-        };
-        
-        const { data, error } = await supabase
-          .from('unified_payments')
-          .insert(paymentRecord)
-          .select('id')
-          .single();
-        
-        if (error) {
-          console.error("Payment recording error:", error);
-          toast.error("Failed to record payment");
-          return false;
-        }
-        
-        if (lateFineAmount > 0 && includeLatePaymentFee) {
-          const lateFeeRecord = {
-            lease_id: agreementId,
-            amount: lateFineAmount,
-            amount_paid: lateFineAmount,
-            balance: 0,
-            payment_date: paymentDate.toISOString(),
-            payment_method: paymentMethod,
-            reference_number: referenceNumber || null,
-            description: `Late payment fee for ${dateFormat(paymentDate, "MMMM yyyy")} (${daysLate} days late)`,
-            status: 'completed',
-            type: 'LATE_PAYMENT_FEE',
-            late_fine_amount: lateFineAmount,
-            days_overdue: daysLate,
-            original_due_date: new Date(paymentDate.getFullYear(), paymentDate.getMonth(), 1).toISOString()
-          };
-          
-          const { error: lateFeeError } = await supabase
-            .from('unified_payments')
-            .insert(lateFeeRecord);
-          
-          if (lateFeeError) {
-            console.error("Late fee recording error:", lateFeeError);
-            toast.warning("Payment recorded but failed to record late fee");
-          } else {
-            toast.success(isPartialPayment ? 
-              "Partial payment and late fee recorded successfully" : 
-              "Payment and late fee recorded successfully");
-          }
-        } else {
-          toast.success(isPartialPayment ? 
-            "Partial payment recorded successfully" : 
-            "Payment recorded successfully");
-        }
-      }
-      
-      onDataRefresh();
-      fetchPayments();
-      return true;
+      setPayments(data || []);
     } catch (error) {
-      console.error("Unexpected error recording payment:", error);
-      toast.error("An unexpected error occurred while recording payment");
-      return false;
-    }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments, agreementId]);
-
-  const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
-    const months = differenceInMonths(endDate, startDate);
-    return months > 0 ? months : 1;
-  }, []);
-
-  React.useEffect(() => {
-    const today = new Date();
-    if (today.getDate() > 1) {
-      const daysLate = today.getDate() - 1;
-      const lateFeeAmount = Math.min(daysLate * 120, 3000);
-
-      setLateFeeDetails({
-        amount: lateFeeAmount,
-        daysLate: daysLate
+      console.error('Error fetching payments:', error);
+      toast({
+        title: 'Error fetching payments',
+        description: 'Could not load payment history for this agreement',
+        variant: 'destructive',
       });
-    } else {
-      setLateFeeDetails(null);
+    } finally {
+      setIsLoadingPayments(false);
     }
-  }, []);
+  };
 
-  if (!agreement) {
-    return <Alert>
-        <AlertDescription>Agreement details not available.</AlertDescription>
-      </Alert>;
+  const fetchLegalCases = async () => {
+    setIsLoadingLegalCases(true);
+    try {
+      const { data, error } = await supabase
+        .from('legal_cases')
+        .select('*')
+        .eq('agreement_id', id);
+      
+      if (error) throw error;
+      
+      setLegalCases(data || []);
+    } catch (error) {
+      console.error('Error fetching legal cases:', error);
+    } finally {
+      setIsLoadingLegalCases(false);
+    }
+  };
+
+  const handlePaymentDeleted = () => {
+    fetchPayments();
+    // Optionally refetch the agreement to update any related data
+    refetchAgreement();
+  };
+
+  if (isAgreementLoading || !agreement) {
+    return <div className="flex items-center justify-center h-96">Loading agreement details...</div>;
   }
 
-  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
-  const duration = calculateDuration(startDate, endDate);
+  if (agreementError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <h2 className="text-xl font-semibold mb-4">Error Loading Agreement</h2>
+        <p className="text-gray-500 mb-4">{agreementError.message}</p>
+        <Button onClick={() => refetchAgreement()}>Try Again</Button>
+      </div>
+    );
+  }
+
+  const dateFormat = (date: string | Date) => {
+    if (!date) return 'N/A';
+    return format(new Date(date), 'MMM d, yyyy');
+  };
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Summary Header */}
-      <AgreementSummaryHeader 
-        agreement={agreement} 
-        rentAmount={rentAmount} 
-      />
-      
-      {/* Actions Bar */}
-      <AgreementActions
-        onEdit={handleEdit}
-        onDelete={() => setIsDeleteDialogOpen(true)}
-        onDownloadPdf={handleDownloadPdf}
-        onGeneratePayment={onGeneratePayment || (() => {})}
-        onRunMaintenance={onRunMaintenance || (() => {})}
-        onGenerateDocument={handleGenerateDocument}
-        isGeneratingPayment={isGeneratingPayment}
-        isRunningMaintenance={isRunningMaintenance}
-        isGeneratingPdf={isGeneratingPdf}
-        status={agreement.status}
-      />
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      {/* Back button */}
+      <div className="mb-6">
+        <Button variant="ghost" className="gap-2" asChild>
+          <a href="/agreements">
+            <ChevronLeft className="h-4 w-4" /> Back to Agreements
+          </a>
+        </Button>
+      </div>
 
-      {/* Tabbed Interface */}
+      {/* Header with summary info */}
+      <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
+
+      {/* Content with tabs */}
       <AgreementTabs 
         agreement={agreement}
         payments={payments}
         isLoadingPayments={isLoadingPayments}
         rentAmount={rentAmount}
-        onPaymentDeleted={onPaymentDeleted}
+        onPaymentDeleted={handlePaymentDeleted}
         onRefreshPayments={fetchPayments}
       >
-        {/* Overview Tab Content */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Overview content */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          {/* Customer Information */}
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Customer Information</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Customer Information</h3>
+                <Avatar className="h-10 w-10 bg-primary/10">
+                  <AvatarFallback className="text-primary">
+                    {agreement.customers?.full_name ? agreement.customers.full_name.charAt(0) : 'C'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              
               <div className="space-y-4">
                 <div>
-                  <p className="font-medium">Name</p>
-                  <p>{agreement.customers?.full_name || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Email</p>
-                  <p>{agreement.customers?.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Phone</p>
-                  <p>{agreement.customers?.phone_number || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Address</p>
-                  <p>{agreement.customers?.address || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Driver License</p>
-                  <p>{agreement.customers?.driver_license || 'N/A'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Vehicle Information</h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="font-medium">Vehicle</p>
-                  <p>{agreement.vehicles?.make} {agreement.vehicles?.model} ({agreement.vehicles?.year || 'N/A'})</p>
-                </div>
-                <div>
-                  <p className="font-medium">License Plate</p>
-                  <p>{agreement.vehicles?.license_plate}</p>
-                </div>
-                <div>
-                  <p className="font-medium">Color</p>
-                  <p>{agreement.vehicles?.color || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="font-medium">VIN</p>
-                  <p>{agreement.vehicles?.vin || 'N/A'}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        
-          <Card className="md:col-span-2">
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Agreement Details</h3>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-4">
-                  <div>
-                    <p className="font-medium">Rental Period</p>
-                    <p>{format(startDate, "MMMM d, yyyy")} to {format(endDate, "MMMM d, yyyy")}</p>
-                    <p className="text-sm text-muted-foreground mt-1">Duration: {duration} {duration === 1 ? 'month' : 'months'}</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4" />
+                    <span className="font-medium">Name</span>
                   </div>
-                  
-                  <div>
-                    <p className="font-medium">Additional Drivers</p>
-                    <p>{agreement.additional_drivers?.length ? agreement.additional_drivers.join(', ') : 'None'}</p>
-                  </div>
-                  
-                  <div>
-                    <p className="font-medium">Notes</p>
-                    <p className="whitespace-pre-line">{agreement.notes || 'No notes'}</p>
-                  </div>
+                  <p className="text-sm mt-1">{agreement.customers?.full_name || 'N/A'}</p>
                 </div>
                 
-                <div className="space-y-4">
+                {agreement.customers?.phone_number && (
                   <div>
-                    <p className="font-medium">Monthly Rent Amount</p>
-                    <p className="font-semibold">QAR {rentAmount?.toLocaleString() || '0'}</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Phone className="h-4 w-4" />
+                      <span className="font-medium">Phone</span>
+                    </div>
+                    <p className="text-sm mt-1">{agreement.customers.phone_number}</p>
                   </div>
-                  
+                )}
+                
+                {agreement.customers?.email && (
                   <div>
-                    <p className="font-medium">Total Contract Amount</p>
-                    <p className="font-semibold">QAR {contractAmount?.toLocaleString() || agreement.total_amount?.toLocaleString() || '0'}</p>
-                    <p className="text-xs text-muted-foreground">Monthly rent × {duration} months</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Mail className="h-4 w-4" />
+                      <span className="font-medium">Email</span>
+                    </div>
+                    <p className="text-sm mt-1">{agreement.customers.email}</p>
                   </div>
-                  
+                )}
+                
+                {agreement.customers?.address && (
                   <div>
-                    <p className="font-medium">Deposit Amount</p>
-                    <p>QAR {agreement.deposit_amount?.toLocaleString() || '0'}</p>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MapPin className="h-4 w-4" />
+                      <span className="font-medium">Address</span>
+                    </div>
+                    <p className="text-sm mt-1">{agreement.customers.address}</p>
                   </div>
-                  
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Vehicle Information */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Vehicle Details</h3>
+                <Car className="h-5 w-5 text-muted-foreground" />
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   <div>
-                    <p className="font-medium">Terms Accepted</p>
-                    <p>{agreement.terms_accepted ? 'Yes' : 'No'}</p>
+                    <div className="text-sm text-muted-foreground font-medium">Make</div>
+                    <p className="text-sm">{agreement.vehicles?.make || 'N/A'}</p>
                   </div>
-                  
                   <div>
-                    <p className="font-medium">Signature</p>
-                    <p>{agreement.signature_url ? 'Signed' : 'Not signed'}</p>
+                    <div className="text-sm text-muted-foreground font-medium">Model</div>
+                    <p className="text-sm">{agreement.vehicles?.model || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Year</div>
+                    <p className="text-sm">{agreement.vehicles?.year || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Color</div>
+                    <p className="text-sm">{agreement.vehicles?.color || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Plate</div>
+                    <p className="text-sm">{agreement.vehicles?.license_plate || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">VIN</div>
+                    <p className="text-sm truncate">{agreement.vehicles?.vin || 'N/A'}</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Agreement Details */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Agreement Details</h3>
+                <ClipboardList className="h-5 w-5 text-muted-foreground" />
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Agreement #</div>
+                    <p className="text-sm">{agreement.agreement_number}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Status</div>
+                    <p className="text-sm">
+                      <Badge variant={agreement.status === 'active' ? 'success' : 'secondary'}>
+                        {agreement.status.toUpperCase()}
+                      </Badge>
+                    </p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Start Date</div>
+                    <p className="text-sm">{dateFormat(agreement.start_date)}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">End Date</div>
+                    <p className="text-sm">{dateFormat(agreement.end_date)}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Rent Amount</div>
+                    <p className="text-sm">QAR {rentAmount?.toLocaleString() || agreement.rent_amount?.toLocaleString() || 0}</p>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground font-medium">Deposit</div>
+                    <p className="text-sm">QAR {agreement.deposit_amount?.toLocaleString() || 0}</p>
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Payment History Tab Content */}
-        {agreement && <PaymentHistory 
-          payments={Array.isArray(payments) ? payments : []} 
-          isLoading={isLoadingPayments} 
-          rentAmount={rentAmount} 
-          onPaymentDeleted={() => {
-            onPaymentDeleted();
-            fetchPayments();
-          }} 
-          leaseStartDate={agreement.start_date} 
-          leaseEndDate={agreement.end_date} 
-        />}
-
-        {/* Legal Cases Tab Content */}
-        {agreement.id && (
-          <LegalCaseCard agreementId={agreement.id} />
-        )}
-
-        {/* Traffic Fines Tab Content */}
-        {agreement.start_date && agreement.end_date && agreement.id && (
-          <AgreementTrafficFines 
-            agreementId={agreement.id} 
-            startDate={startDate} 
-            endDate={endDate} 
-          />
-        )}
+        
+        {/* Payment history */}
+        <PaymentHistory 
+          payments={payments || []}
+          isLoadingPayments={isLoadingPayments}
+          onPaymentDeleted={handlePaymentDeleted}
+          onRefreshPayments={fetchPayments}
+          agreementId={id}
+        />
+        
+        {/* Legal cases */}
+        <LegalCaseCard 
+          agreementId={id} 
+        />
+        
+        {/* Traffic fines */}
+        <AgreementTrafficFines 
+          agreementId={id}
+        />
       </AgreementTabs>
-
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete agreement {agreement.agreement_number}? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <PaymentEntryDialog 
-        open={isPaymentDialogOpen} 
-        onOpenChange={setIsPaymentDialogOpen} 
-        onSubmit={handlePaymentSubmit} 
-        defaultAmount={rentAmount || 0} 
-        title="Record Rent Payment" 
-        description="Record a new rental payment for this agreement." 
-        lateFeeDetails={lateFeeDetails} 
-        selectedPayment={selectedPayment}
-      />
     </div>
   );
-}
+};
+
+export default AgreementDetailPage;
