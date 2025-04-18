@@ -1,6 +1,5 @@
 
 import { UUID } from '@/types/database-types';
-import { hasData } from '@/utils/supabase-type-helpers';
 
 // Helper functions for converting strings to typed IDs
 export function asLeaseId(id: string): UUID {
@@ -31,8 +30,25 @@ export function asImportId(id: string): UUID {
   return id as UUID;
 }
 
-// Re-export hasData from supabase-type-helpers to fix import issues
-export { hasData };
+// Add missing functions needed by AgreementList.tsx
+export function asAgreementIdColumn(id: string): UUID {
+  return id as UUID;
+}
+
+export function asImportIdColumn(id: string): UUID {
+  return id as UUID;
+}
+
+export function asTrafficFineIdColumn(id: string): UUID {
+  return id as UUID;
+}
+
+// Function to check if Supabase response has data
+export function hasData<T>(
+  response: { data: T | null; error: any } | null | undefined
+): response is { data: T; error: null } {
+  return !!response && !response.error && response.data !== null;
+}
 
 // Function to safely convert string to table ID
 export function asTableId(id: string): UUID {
@@ -55,4 +71,3 @@ export function safelyExtractData<T>(response: any): T | null {
   }
   return response.data as T;
 }
-

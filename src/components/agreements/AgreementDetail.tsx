@@ -16,24 +16,42 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PaymentHistory } from './PaymentHistory';
-import { LegalCaseCard } from './LegalCaseCard';
+// Fix import to use default export
+import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementActions } from './AgreementActions';
 import { AgreementTabs } from './AgreementTabs';
 import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { useAgreement } from '@/hooks/use-agreements';
+// Fix hook import
+import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
+import { asLeaseId, asTableId } from '@/utils/database-type-helpers';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
-  const { agreement, isLoading: isAgreementLoading, error: agreementError, refetch: refetchAgreement } = useAgreement(id);
+  // Fix hook usage
+  const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
+  const [agreement, setAgreement] = useState<any>(null);
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(id);
   const [payments, setPayments] = useState<any[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
+
+  // Fetch agreement data
+  useEffect(() => {
+    if (id) {
+      const fetchAgreementData = async () => {
+        const data = await getAgreement(id);
+        if (data) {
+          setAgreement(data);
+        }
+      };
+      fetchAgreementData();
+    }
+  }, [id, getAgreement]);
 
   // Fetch payments when agreement ID changes or after a payment is deleted
   useEffect(() => {
@@ -46,11 +64,11 @@ const AgreementDetailPage = () => {
   const fetchPayments = async () => {
     setIsLoadingPayments(true);
     try {
-      // Assuming you have a supabase client and unified_payments table
+      // Use asLeaseId for type safety
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', id)
+        .eq('lease_id', asLeaseId(id || ''))
         .order('due_date', { ascending: false });
       
       if (error) throw error;
@@ -71,10 +89,11 @@ const AgreementDetailPage = () => {
   const fetchLegalCases = async () => {
     setIsLoadingLegalCases(true);
     try {
+      // Use asTableId for type safety
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('agreement_id', id);
+        .eq('agreement_id', asTableId(id || ''));
       
       if (error) throw error;
       
@@ -88,8 +107,15 @@ const AgreementDetailPage = () => {
 
   const handlePaymentDeleted = () => {
     fetchPayments();
-    // Optionally refetch the agreement to update any related data
-    refetchAgreement();
+  };
+
+  const refetchAgreement = async () => {
+    if (id) {
+      const data = await getAgreement(id);
+      if (data) {
+        setAgreement(data);
+      }
+    }
   };
 
   if (isAgreementLoading || !agreement) {
@@ -100,7 +126,7 @@ const AgreementDetailPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-96">
         <h2 className="text-xl font-semibold mb-4">Error Loading Agreement</h2>
-        <p className="text-gray-500 mb-4">{agreementError.message}</p>
+        <p className="text-gray-500 mb-4">{agreementError instanceof Error ? agreementError.message : String(agreementError)}</p>
         <Button onClick={() => refetchAgreement()}>Try Again</Button>
       </div>
     );
@@ -273,23 +299,25 @@ const AgreementDetailPage = () => {
           </Card>
         </div>
         
-        {/* Payment history */}
+        {/* Payment history - Pass correct props matching the interface */}
         <PaymentHistory 
           payments={payments || []}
-          isLoadingPayments={isLoadingPayments}
           onPaymentDeleted={handlePaymentDeleted}
-          onRefreshPayments={fetchPayments}
-          agreementId={id}
+          leaseStartDate={agreement.start_date}
+          leaseEndDate={agreement.end_date}
+          rentAmount={rentAmount}
         />
         
         {/* Legal cases */}
         <LegalCaseCard 
-          agreementId={id} 
+          agreementId={id || ''} 
         />
         
-        {/* Traffic fines */}
+        {/* Traffic fines - Pass required props */}
         <AgreementTrafficFines 
-          agreementId={id}
+          agreementId={id || ''}
+          startDate={agreement.start_date}
+          endDate={agreement.end_date}
         />
       </AgreementTabs>
     </div>

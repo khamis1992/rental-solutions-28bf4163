@@ -31,9 +31,8 @@ export interface Payment {
   due_date?: string;
 }
 
-interface PaymentHistoryProps {
+export interface PaymentHistoryProps {
   payments: Payment[];
-  isLoading?: boolean;
   rentAmount?: number | null;
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
@@ -42,7 +41,6 @@ interface PaymentHistoryProps {
 
 export function PaymentHistory({
   payments = [],
-  isLoading = false,
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
@@ -154,11 +152,7 @@ export function PaymentHistory({
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center h-52">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : payments.length > 0 ? (
+        {payments.length > 0 ? (
           <DataTable columns={columns} data={sortedPayments} />
         ) : (
           <div className="text-center p-8 text-muted-foreground">

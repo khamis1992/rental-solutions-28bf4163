@@ -1,115 +1,123 @@
 
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
-import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { DataTable } from '@/components/ui/data-table';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, FileCheck } from 'lucide-react';
+import { asTableId } from '@/utils/database-type-helpers';
 
-interface AgreementTrafficFinesProps {
+export interface AgreementTrafficFinesProps {
   agreementId: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: string | Date | null;
+  endDate: string | Date | null;
 }
 
 export function AgreementTrafficFines({ agreementId, startDate, endDate }: AgreementTrafficFinesProps) {
-  const { isLoading, trafficFines } = useTrafficFines();
-  const [showLoader, setShowLoader] = useState(false);
-
+  const { toast } = useToast();
+  const [trafficFines, setTrafficFines] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   useEffect(() => {
-    // Initial loading state is managed by the hook
-    setShowLoader(isLoading);
-  }, [isLoading]);
-
-  const handleRefresh = async () => {
-    setShowLoader(true);
-    // Wait a moment for visual feedback
-    setTimeout(() => {
-      setShowLoader(false);
-    }, 1000);
-  };
-
-  if (isLoading || showLoader) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // Filter traffic fines for this agreement if needed
-  const filteredFines = trafficFines ? trafficFines.filter(fine => 
-    fine.leaseId === agreementId
-  ) : [];
-
-  if (!filteredFines || filteredFines.length === 0) {
-    return (
-      <div className="space-y-4">
-        <p className="text-center py-4 text-muted-foreground">
-          No traffic fines recorded for this rental period.
-        </p>
-        <div className="flex justify-center">
-          <Button onClick={handleRefresh} variant="outline" size="sm">
-            Check for new fines
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              <th className="text-left py-3 px-4">Date</th>
-              <th className="text-left py-3 px-4">Location</th>
-              <th className="text-left py-3 px-4">Violation</th>
-              <th className="text-right py-3 px-4">Amount</th>
-              <th className="text-right py-3 px-4">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredFines.map((fine) => (
-              <tr key={fine.id} className="border-b hover:bg-muted/50">
-                <td className="py-3 px-4">
-                  {fine.violationDate 
-                    ? format(new Date(fine.violationDate), 'dd MMM yyyy') 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4">{fine.location || 'N/A'}</td>
-                <td className="py-3 px-4">{fine.violationCharge || 'N/A'}</td>
-                <td className="py-3 px-4 text-right">
-                  {fine.fineAmount 
-                    ? `QAR ${fine.fineAmount.toLocaleString()}` 
-                    : 'N/A'}
-                </td>
-                <td className="py-3 px-4 text-right">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    fine.paymentStatus === 'paid' 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {fine.paymentStatus === 'paid' ? 'Paid' : 'Pending'}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    if (agreementId) {
+      fetchTrafficFines();
+    }
+  }, [agreementId]);
+  
+  const fetchTrafficFines = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('traffic_fines')
+        .select('*')
+        .eq('agreement_id', asTableId(agreementId));
       
-      <div className="flex justify-between items-center pt-4">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            Showing {filteredFines.length} fine{filteredFines.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-        
-        <Button onClick={handleRefresh} variant="outline" size="sm">
-          Refresh
-        </Button>
-      </div>
-    </div>
+      if (error) {
+        throw error;
+      }
+      
+      setTrafficFines(data || []);
+    } catch (error) {
+      console.error('Error fetching traffic fines:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not load traffic fines data',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      return dateString;
+    }
+  };
+  
+  const columns = [
+    {
+      accessorKey: 'violation_number',
+      header: 'Violation Number',
+    },
+    {
+      accessorKey: 'violation_date',
+      header: 'Date',
+      cell: ({ row }) => formatDate(row.original.violation_date),
+    },
+    {
+      accessorKey: 'license_plate',
+      header: 'License Plate',
+    },
+    {
+      accessorKey: 'fine_amount',
+      header: 'Fine Amount',
+      cell: ({ row }) => `QAR ${row.original.fine_amount?.toLocaleString() || '0'}`,
+    },
+    {
+      accessorKey: 'violation_charge',
+      header: 'Violation',
+      cell: ({ row }) => row.original.violation_charge || 'N/A',
+    },
+    {
+      accessorKey: 'payment_status',
+      header: 'Status',
+      cell: ({ row }) => (
+        <Badge variant={row.original.payment_status === 'paid' ? 'success' : 'destructive'}>
+          {row.original.payment_status === 'paid' ? (
+            <><FileCheck className="h-3 w-3 mr-1" /> PAID</>
+          ) : (
+            <><AlertTriangle className="h-3 w-3 mr-1" /> UNPAID</>
+          )}
+        </Badge>
+      ),
+    },
+  ];
+  
+  return (
+    <Card className="my-8">
+      <CardHeader>
+        <CardTitle>Traffic Fines</CardTitle>
+        <CardDescription>Traffic violations during the rental period</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : trafficFines.length > 0 ? (
+          <DataTable columns={columns} data={trafficFines} />
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No traffic fines found for this agreement.
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
