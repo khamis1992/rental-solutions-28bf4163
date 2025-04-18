@@ -1,14 +1,13 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
@@ -18,7 +17,7 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
-import { ensureArray } from '@/lib/type-helpers';
+import ParticleBackground from '@/components/ui/particle-background';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -31,10 +30,10 @@ const AgreementDetailPage = () => {
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  // Ensure we properly handle the payments array with type safety
   const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
 
   const fetchAgreementData = async () => {
@@ -181,36 +180,14 @@ const AgreementDetailPage = () => {
       title="Agreement Details"
       description="View and manage rental agreement details"
       backLink="/agreements"
-      actions={
-        <>
-          {agreement && agreement.status === AgreementStatus.ACTIVE && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGeneratePayment}
-              disabled={isGeneratingPayment}
-              className="gap-2 mr-2"
-            >
-              <Calendar className="h-4 w-4" />
-              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRunMaintenanceJob}
-            disabled={isRunningMaintenance}
-            className="gap-2"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
-          </Button>
-        </>
-      }
     >
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <ParticleBackground />
+      </div>
+      
       {isLoading ? (
         <div className="space-y-6">
-          <Skeleton className="h-12 w-2/3" />
+          <Skeleton className="h-36 w-full" />
           <div className="grid gap-6 md:grid-cols-2">
             <Skeleton className="h-64 w-full" />
             <Skeleton className="h-64 w-full" />
@@ -227,6 +204,11 @@ const AgreementDetailPage = () => {
             onPaymentDeleted={refreshAgreementData}
             onDataRefresh={refreshAgreementData}
             onGenerateDocument={handleGenerateDocument}
+            isGeneratingPayment={isGeneratingPayment}
+            isRunningMaintenance={isRunningMaintenance}
+            isGeneratingPdf={isGeneratingPdf}
+            onGeneratePayment={handleGeneratePayment}
+            onRunMaintenance={handleRunMaintenanceJob}
           />
           
           <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
