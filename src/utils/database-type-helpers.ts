@@ -12,7 +12,7 @@ export type SchemaName = keyof Database;
  */
 export function asTableId<T extends keyof DbTables>(
   _table: T,
-  id: string
+  id: string | uuid | null | undefined
 ): DbTables[T]['Row']['id'] {
   return id as DbTables[T]['Row']['id'];
 }
@@ -27,71 +27,74 @@ export function asColumnValue<
 >(
   _table: T,
   _column: K,
-  value: string | number | boolean
+  value: string | number | boolean | null | undefined
 ): DbTables[T]['Row'][K] {
   return value as DbTables[T]['Row'][K];
 }
 
+// Type for UUID values
+export type uuid = string;
+
 /**
  * Common table ID casting functions with simplified implementation
  */
-export function asAgreementId(id: string): string {
-  return id;
+export function asAgreementId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asLeaseId(id: string): string {
-  return id;
+export function asLeaseId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asVehicleId(id: string): string {
-  return id;
+export function asVehicleId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asPaymentId(id: string): string {
-  return id;
+export function asPaymentId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asProfileId(id: string): string {
-  return id;
+export function asProfileId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asImportId(id: string): string {
-  return id;
+export function asImportId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asTrafficFineId(id: string): string {
-  return id;
+export function asTrafficFineId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asCustomerId(id: string): string {
-  return id;
+export function asCustomerId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asMaintenanceId(id: string): string {
-  return id;
+export function asMaintenanceId(id: string | uuid): uuid {
+  return id as uuid;
 }
 
 /**
  * Common column ID casting functions for foreign keys and other fields
  */
-export function asLeaseIdColumn(id: string): string {
-  return id;
+export function asLeaseIdColumn(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asImportIdColumn(id: string): string {
-  return id;
+export function asImportIdColumn(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asAgreementIdColumn(id: string): string {
-  return id;
+export function asAgreementIdColumn(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asTrafficFineIdColumn(id: string): string {
-  return id;
+export function asTrafficFineIdColumn(id: string | uuid): uuid {
+  return id as uuid;
 }
 
-export function asVehicleIdColumn(id: string): string {
-  return id;
+export function asVehicleIdColumn(id: string | uuid): uuid {
+  return id as uuid;
 }
 
 export function asAgreementStatusColumn(status: string): string {

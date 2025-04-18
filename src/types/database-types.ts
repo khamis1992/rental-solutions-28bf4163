@@ -22,5 +22,8 @@ export function asDbId<T>(id: string): T {
   return id as T;
 }
 
+// Define a type for UUID to make conversions more explicit
+export type UUID = string;
+
 // Export the utility functions from our new helper file
 export * from '@/utils/database-type-helpers';
