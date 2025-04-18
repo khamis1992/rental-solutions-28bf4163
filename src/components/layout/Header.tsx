@@ -1,9 +1,7 @@
 
 import React from 'react';
-import { Bell, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -44,14 +42,6 @@ const Header = ({ onToggleSidebar, isSidebarOpen = true }: HeaderProps) => {
           </div>
           <div className="hidden md:block ml-4 font-medium text-lg">Rental Solutions</div>
         </div>
-      </div>
-      
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full"></span>
-          <span className="sr-only">Notifications</span>
-        </Button>
       </div>
     </header>
   );
