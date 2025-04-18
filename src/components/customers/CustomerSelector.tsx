@@ -50,15 +50,7 @@ const CustomerSelector = ({
           return;
         }
         
-        // Ensure all required fields are present, use default values for missing ones
-        const formattedCustomers = (data || []).map(item => ({
-          id: item.id || '',
-          full_name: item.full_name || 'Unknown',
-          email: item.email || '',
-          phone_number: item.phone_number || '',
-        }));
-        
-        setCustomers(formattedCustomers as CustomerInfo[]);
+        setCustomers(data as CustomerInfo[]);
       } catch (error) {
         console.error('Error in fetchCustomers:', error);
       } finally {
