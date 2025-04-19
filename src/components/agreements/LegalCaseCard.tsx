@@ -1,14 +1,20 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { DataTable } from '@/components/ui/data-table';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertCircle, Pencil, Plus, Info, Shield, AlertTriangle, Clock, BarChart2 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { DataTable } from '@/components/ui/data-table';
+import { format } from 'date-fns';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { asLeaseId, asProfileId, asCustomerIdColumn, asLegalCaseId } from '@/utils/database-type-helpers';
 import { UUID } from '@/types/database-types';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -18,108 +24,95 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
   const { toast } = useToast();
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [customer, setCustomer] = useState<any>(null);
+  const [customerData, setCustomerData] = useState<any>(null);
   
-  // Fetch legal cases related to this agreement
   useEffect(() => {
-    const fetchLegalCases = async () => {
+    const fetchData = async () => {
+      if (!agreementId) return;
+      
       try {
-        setIsLoading(true);
-        // First get the lease to find the customer_id
-        const leaseResponse = await supabase
+        const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', agreementId as UUID);
+          .eq('id', asLeaseId(agreementId))
+          .single();
         
-        if (leaseResponse.error || !leaseResponse.data || leaseResponse.data.length === 0) {
-          console.error("Could not find lease:", leaseResponse.error);
-          return;
+        if (agreementError || !agreementData) {
+          throw new Error('Failed to get customer ID from agreement');
         }
         
-        const customerId = leaseResponse.data[0]?.customer_id;
-        
-        if (!customerId) {
-          console.error("No customer ID found for lease");
-          return;
-        }
-        
-        // Then fetch customer details
+        // Get customer details
+        const customerId = agreementData.customer_id;
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', customerId as UUID)
+          .eq('id', asProfileId(customerId))
           .single();
-          
-        if (customerError) {
-          console.error("Error fetching customer:", customerError);
-        } else {
-          setCustomer(customerData);
-        }
-          
-        // Get legal cases for this customer
-        const { data: casesData, error: casesError } = await supabase
+        
+        if (customerError) throw customerError;
+        setCustomerData(customerData);
+        
+        // Fetch legal cases for this customer
+        const { data: cases, error: casesError } = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', customerId as UUID);
-          
-        if (casesError) {
-          console.error("Error fetching legal cases:", casesError);
-          toast({
-            title: 'Error',
-            description: 'Could not load legal cases',
-            variant: 'destructive'
-          });
-        } else {
-          setLegalCases(casesData || []);
-        }
+          .eq('customer_id', asCustomerIdColumn(customerId));
+        
+        if (casesError) throw casesError;
+        setLegalCases(cases || []);
       } catch (error) {
-        console.error("Error in legal cases fetch:", error);
+        console.error('Error fetching legal case data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load legal case information",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     };
     
-    if (agreementId) {
-      fetchLegalCases();
-    }
+    fetchData();
   }, [agreementId, toast]);
   
-  const handleResolveCase = async (id: string) => {
+  const handleCaseStatusUpdate = async (caseId: string, newStatus: string) => {
     try {
-      const updateData: any = {
-        status: 'resolved',
-        resolution_notes: 'Case closed by admin',
-        resolution_date: new Date().toISOString(),
-      };
-      
       const { error } = await supabase
         .from('legal_cases')
-        .update(updateData)
-        .eq('id', id as UUID);
-        
-      if (error) {
-        throw error;
-      }
+        .update({ 
+          status: newStatus, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', asLegalCaseId(caseId));
       
-      // Update local state
-      setLegalCases(prevCases => 
-        prevCases.map(c => c.id === id ? { ...c, ...updateData } : c)
-      );
+      if (error) throw error;
       
       toast({
-        title: 'Success',
-        description: 'Case has been resolved',
+        title: "Success",
+        description: "Case status updated successfully",
       });
+      
+      // Refresh cases
+      if (customerData?.id) {
+        const { data, error: refreshError } = await supabase
+          .from('legal_cases')
+          .select('*')
+          .eq('customer_id', customerData.id);
+        
+        if (!refreshError) {
+          setLegalCases(data || []);
+        }
+      }
     } catch (error) {
-      console.error('Error resolving case:', error);
+      console.error('Error updating case status:', error);
       toast({
-        title: 'Error',
-        description: 'Could not resolve the case',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to update case status",
+        variant: "destructive",
       });
     }
   };
-  
+
   const getStatusBadge = (status: string) => {
     switch(status) {
       case 'pending_reminder':
@@ -163,7 +156,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
           <Button 
             variant="outline" 
             size="sm" 
-            onClick={() => handleResolveCase(row.original.id)}
+            onClick={() => handleCaseStatusUpdate(row.original.id, 'resolved')}
           >
             Resolve
           </Button>
@@ -177,13 +170,13 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
       <CardHeader>
         <CardTitle>Legal Cases</CardTitle>
         <CardDescription>
-          {customer?.full_name ? `Legal cases for ${customer.full_name}` : 'Legal cases for this agreement'}
+          Legal cases associated with this agreement
         </CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <Loader2 className="animate-spin h-6 w-6" />
           </div>
         ) : legalCases.length > 0 ? (
           <DataTable columns={columns} data={legalCases} />

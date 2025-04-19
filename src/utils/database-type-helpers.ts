@@ -19,16 +19,32 @@ export function asImportId(id: UUID): UUID {
   return id;
 }
 
+export function asTrafficFineId(id: UUID): UUID {
+  return id;
+}
+
+export function asVehicleId(id: UUID): UUID {
+  return id;
+}
+
+export function asCustomerId(id: UUID): UUID {
+  return id;
+}
+
+export function asProfileId(id: UUID): UUID {
+  return id;
+}
+
+export function asLegalCaseId(id: UUID): UUID {
+  return id;
+}
+
+// Column helper functions
 export function asTrafficFineIdColumn(id: UUID): UUID {
   return id;
 }
 
 export function asLeaseIdColumn(id: UUID): UUID {
-  return id;
-}
-
-// Additional helper functions needed
-export function asTableId(table: string, id: string): string {
   return id;
 }
 
@@ -40,7 +56,16 @@ export function asImportIdColumn(id: UUID): UUID {
   return id;
 }
 
-export function asStatusColumn(status: string): string {
+export function asCustomerIdColumn(id: UUID): UUID {
+  return id;
+}
+
+// Additional helper functions needed
+export function asTableId(table: string, id: string): string {
+  return id;
+}
+
+export function asStatusColumn(table: string, column: string, status: string): string {
   return status;
 }
 
