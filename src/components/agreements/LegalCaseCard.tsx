@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
-import { hasData } from '@/utils/database-type-helpers';
+import { asTableId } from '@/utils/database-type-helpers';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -32,7 +32,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
           .eq('id', agreementId)
           .single();
         
-        if (!hasData(leaseResponse)) {
+        if (!leaseResponse.data || leaseResponse.error) {
           console.error("Could not find lease:", leaseResponse.error);
           return;
         }
@@ -88,7 +88,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
       
       const { error } = await supabase
         .from('legal_cases')
-        .update(updateData as any)
+        .update(updateData)
         .eq('id', id);
         
       if (error) {

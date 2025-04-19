@@ -63,7 +63,7 @@ export function AgreementTabs({
             // Find the LegalCaseCard component and only render it
             if (React.isValidElement(child) && 
                 child.props && 
-                child.props.agreementId === agreement.id &&
+                child.props.agreementId &&
                 // @ts-ignore - checking component display name  
                 (child.type.displayName === 'LegalCaseCard' || 
                  // @ts-ignore
@@ -85,7 +85,7 @@ export function AgreementTabs({
             // Find the AgreementTrafficFines component and only render it
             if (React.isValidElement(child) && 
                 child.props && 
-                child.props.agreementId === agreement.id &&
+                child.props.agreementId &&
                 // @ts-ignore - checking component type
                 (child.type.displayName === 'AgreementTrafficFines' || 
                  // @ts-ignore
