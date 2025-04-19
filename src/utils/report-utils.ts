@@ -161,8 +161,7 @@ export const addReportHeader = (
   doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(44, 62, 80);
-  const processedTitle = await processArabicText(title);
-    doc.text(processedTitle, pageWidth / 2, 45, { align: 'center' });
+  doc.text(title, pageWidth / 2, 45, { align: 'center' });
   
   // Add date range with updated format
   doc.setFontSize(12);
@@ -249,13 +248,11 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
  * @param contentGenerator Function that adds content to the document
  * @returns PDF document
  */
-import { processArabicText, validateArabicRendering } from './arabic-text-utils';
-
-export const generateStandardReport = async (
+export const generateStandardReport = (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
   contentGenerator: (doc: jsPDF, startY: number) => number
-): Promise<jsPDF> => {
+): jsPDF => {
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
