@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Pencil, Plus, Info, Shield, AlertTriangle, Clock, BarChart2 } from 'lucide-react';
+import { Loader2, AlertCircle, Pencil, Plus, Info, Shield, AlertTriangle, Clock, BarChart2, Ban, Check } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DataTable } from '@/components/ui/data-table';
 import { format } from 'date-fns';
@@ -12,9 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { asLeaseId, asProfileId, asCustomerIdColumn, asLegalCaseId } from '@/utils/database-type-helpers';
 import { UUID } from '@/types/database-types';
-import { hasData } from '@/utils/supabase-type-helpers';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -34,7 +33,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', asLeaseId(agreementId))
+          .eq('id', agreementId)
           .single();
         
         if (agreementError || !agreementData) {
@@ -46,7 +45,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', asProfileId(customerId))
+          .eq('id', customerId)
           .single();
         
         if (customerError) throw customerError;
@@ -56,7 +55,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: cases, error: casesError } = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', asCustomerIdColumn(customerId));
+          .eq('customer_id', customerId);
         
         if (casesError) throw casesError;
         setLegalCases(cases || []);
@@ -83,7 +82,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
           status: newStatus, 
           updated_at: new Date().toISOString() 
         })
-        .eq('id', asLegalCaseId(caseId));
+        .eq('id', caseId);
       
       if (error) throw error;
       

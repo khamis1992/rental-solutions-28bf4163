@@ -7,7 +7,6 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, FileCheck } from 'lucide-react';
-import { asLeaseIdColumn } from '@/utils/database-type-helpers';
 import { UUID } from '@/types/database-types';
 
 export interface AgreementTrafficFinesProps {
@@ -34,7 +33,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
       const { data, error } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(agreementId));
+        .eq('lease_id', agreementId);
       
       if (error) {
         throw error;
