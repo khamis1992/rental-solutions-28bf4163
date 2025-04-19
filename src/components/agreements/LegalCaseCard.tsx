@@ -8,7 +8,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
-import { asTableId } from '@/utils/database-type-helpers';
 import { UUID } from '@/types/database-types';
 
 interface LegalCaseCardProps {
@@ -30,7 +29,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const leaseResponse = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', asTableId(agreementId));
+          .eq('id', agreementId as UUID);
         
         if (leaseResponse.error || !leaseResponse.data || leaseResponse.data.length === 0) {
           console.error("Could not find lease:", leaseResponse.error);
@@ -48,7 +47,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', customerId)
+          .eq('id', customerId as UUID)
           .single();
           
         if (customerError) {
@@ -61,7 +60,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: casesData, error: casesError } = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', customerId);
+          .eq('customer_id', customerId as UUID);
           
         if (casesError) {
           console.error("Error fetching legal cases:", casesError);
@@ -96,7 +95,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
       const { error } = await supabase
         .from('legal_cases')
         .update(updateData)
-        .eq('id', asTableId(id));
+        .eq('id', id as UUID);
         
       if (error) {
         throw error;

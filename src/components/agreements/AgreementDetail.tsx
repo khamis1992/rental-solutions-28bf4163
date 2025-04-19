@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -23,9 +22,8 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { asTableId } from '@/utils/database-type-helpers';
-import { Payment } from './PaymentHistory.types';
 import { UUID } from '@/types/database-types';
+import { Payment } from './PaymentHistory.types';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -63,11 +61,11 @@ const AgreementDetail = () => {
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asTableId(id || ''));
+        .eq('lease_id', id as UUID);
       
       if (error) throw error;
       
-      setPayments(data as Payment[] || []);
+      setPayments(data as Payment[]);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
@@ -93,7 +91,7 @@ const AgreementDetail = () => {
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('customer_id', agreement.customers.id);
+        .eq('customer_id', agreement.customers.id as UUID);
       
       if (error) throw error;
       

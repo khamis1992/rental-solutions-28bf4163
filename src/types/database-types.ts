@@ -22,7 +22,7 @@ export function asDbId<T>(id: string): T {
   return id as T;
 }
 
-// Import UUID type from database-type-helpers instead of exporting it here
+// Import UUID type from database-type-helpers
 import { UUID, asTableId, hasData, asLeaseId, asPaymentId, asVehicleId, asCustomerId, 
   asAgreementId, asImportId, asLeaseIdColumn, asAgreementIdColumn, asImportIdColumn, 
   asTrafficFineIdColumn, asStatusColumn, asPaymentStatusColumn, safelyExtractData } from '@/utils/database-type-helpers';
