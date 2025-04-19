@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -63,9 +62,7 @@ const AgreementDetail = () => {
 
       <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
 
-      <AgreementTabs 
-        agreement={agreement}
-      >
+      <AgreementTabs agreement={agreement}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <Card>
             <CardContent className="p-6">
@@ -200,12 +197,6 @@ const AgreementDetail = () => {
             </CardContent>
           </Card>
         </div>
-
-        <AgreementTrafficFines 
-          agreementId={id || ''}
-          startDate={agreement.start_date}
-          endDate={agreement.end_date}
-        />
       </AgreementTabs>
     </div>
   );
