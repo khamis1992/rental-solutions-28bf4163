@@ -35,17 +35,17 @@ const FinancialReport = () => {
         expense: 0
       };
     }
-
+    
     const amount = transaction.amount || 0;
-
+    
     acc[category].total += amount;
-
+    
     if (transaction.type === 'income') {
       acc[category].income += amount;
     } else {
       acc[category].expense += amount;
     }
-
+    
     return acc;
   }, {});
 
