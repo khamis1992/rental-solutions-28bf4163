@@ -98,7 +98,7 @@ export function PaymentEntryDialog({
         .from('unified_payments')
         .select('*')
         .eq('lease_id', agreementId)
-        .in('status', ['pending', 'partially_paid'])
+        .in('status', ['pending', 'partially_paid', 'overdue']) // Added 'overdue' to include overdue payments
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -157,8 +157,14 @@ export function PaymentEntryDialog({
     // Find the selected payment to auto-fill amount
     const payment = pendingPayments.find(p => p.id === paymentId);
     if (payment) {
-      // For partially paid payments, use the balance
-      setAmount(payment.balance || payment.amount || 0);
+      // For payments with balance of 0 or null/undefined, use the amount property instead
+      // This handles overdue payments that might have balance set to 0
+      const paymentAmount = (payment.balance && payment.balance > 0) 
+        ? payment.balance 
+        : (payment.amount || 0);
+      
+      setAmount(paymentAmount);
+      
       // Auto-check partial payment if applicable
       setIsPartialPayment(false);
     }
@@ -192,6 +198,8 @@ export function PaymentEntryDialog({
       status = " (Partially Paid)";
     } else if (payment.status === 'pending') {
       status = " (Pending)";
+    } else if (payment.status === 'overdue') {
+      status = " (Overdue)";
     }
     
     return `${desc}${status} - ${payment.amount_paid ? 

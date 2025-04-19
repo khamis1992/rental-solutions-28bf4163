@@ -9,13 +9,16 @@ import FinancialReport from '@/components/reports/FinancialReport';
 import CustomerReport from '@/components/reports/CustomerReport';
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import LegalReport from '@/components/reports/LegalReport';
+import TrafficFinesReport from '@/components/reports/TrafficFinesReport';
 import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
 import { SectionHeader } from '@/components/ui/section-header';
-import { FileText, Download, Calendar, AlertCircle } from 'lucide-react';
+import { FileText, Download, Calendar, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
 import { useFinancials } from '@/hooks/use-financials';
 import { useCustomers } from '@/hooks/use-customers';
 import { useMaintenance } from '@/hooks/use-maintenance';
+import { useAgreements } from '@/hooks/use-agreements';
+import { useTrafficFines } from '@/hooks/use-traffic-fines';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -27,6 +30,8 @@ const Reports = () => {
   const { transactions } = useFinancials();
   const { customers } = useCustomers();
   const { getAllRecords } = useMaintenance();
+  const { agreements } = useAgreements();
+  const { trafficFines } = useTrafficFines();
   const [maintenanceData, setMaintenanceData] = useState([]);
   
   useEffect(() => {
@@ -59,7 +64,72 @@ const Reports = () => {
     }, 2000);
   };
   
-  const getReportData = () => {
+  const getFinancialReportData = () => {
+    if (!agreements) return [];
+    
+    try {
+      const reportData = agreements.map(agreement => {
+        const paymentsForAgreement = transactions ? transactions.filter(t => 
+          t.lease_id === agreement.id) : [];
+        
+        const finesForAgreement = trafficFines ? 
+          trafficFines.filter(fine => fine.leaseId === agreement.id) : [];
+        
+        const totalPaid = paymentsForAgreement.reduce((sum, payment) => {
+          const isPaid = 
+            payment.status === 'completed' || 
+            payment.status === 'success' || 
+            payment.status.toLowerCase() === 'paid';
+          return isPaid ? sum + (payment.amount || 0) : sum;
+        }, 0);
+          
+        const outstandingBalance = (agreement.total_amount || 0) - totalPaid;
+        
+        const totalFinesAmount = finesForAgreement.reduce((sum, fine) => 
+          sum + (fine.fineAmount || 0), 0);
+          
+        const paidFinesAmount = finesForAgreement.reduce((sum, fine) => 
+          fine.paymentStatus === 'paid' ? sum + (fine.fineAmount || 0) : sum, 0);
+          
+        const outstandingFines = totalFinesAmount - paidFinesAmount;
+        
+        let paymentStatus = 'Paid';
+        if (outstandingBalance > 0) {
+          paymentStatus = 'Partially Paid';
+        } 
+        if (totalPaid === 0) {
+          paymentStatus = 'Unpaid';
+        }
+        
+        const lastPayment = paymentsForAgreement.length > 0 ? 
+          paymentsForAgreement.sort((a, b) => {
+            const dateA = a.date ? new Date(a.date).getTime() : 0;
+            const dateB = b.date ? new Date(b.date).getTime() : 0;
+            return dateB - dateA;
+          })[0] : null;
+        
+        return {
+          ...agreement,
+          payments: paymentsForAgreement,
+          fines: finesForAgreement,
+          totalPaid,
+          outstandingBalance,
+          totalFinesAmount,
+          paidFinesAmount,
+          outstandingFines,
+          paymentStatus,
+          lastPaymentDate: lastPayment?.date || null
+        };
+      });
+      
+      return reportData;
+    } catch (error) {
+      console.error('Error preparing financial report data:', error);
+      return [];
+    }
+  };
+  
+  const getReportData = (): Record<string, any>[] => {
     switch (selectedTab) {
       case 'fleet':
         return vehicles.map(v => ({
@@ -71,7 +141,7 @@ const Reports = () => {
           daily_rate: v.dailyRate
         }));
       case 'financial':
-        return transactions;
+        return getFinancialReportData();
       case 'customers':
         return customers.map(customer => ({
           id: customer.id,
@@ -96,8 +166,20 @@ const Reports = () => {
           service_provider: record.service_provider || record.performed_by || 'N/A',
           notes: record.notes || 'N/A'
         }));
+      case 'trafficFines':
+        if (!trafficFines) return [];
+        const assignedFines = trafficFines.filter(fine => fine.customerId);
+        return assignedFines.map(fine => ({
+          customer_name: fine.customerName || 'Unknown',
+          violation_number: fine.violationNumber || 'N/A',
+          license_plate: fine.licensePlate || 'N/A',
+          violation_date: fine.violationDate,
+          amount: fine.fineAmount,
+          status: fine.paymentStatus,
+          violation_charge: fine.violationCharge || 'N/A',
+          location: fine.location || 'N/A'
+        }));
       case 'legal':
-        // Legal reports data would be implemented here
         return [];
       default:
         return [];
@@ -138,11 +220,12 @@ const Reports = () => {
       <Card>
         <CardContent className="pt-6">
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-            <TabsList className="grid grid-cols-5 mb-8">
+            <TabsList className="grid grid-cols-6 mb-8">
               <TabsTrigger value="fleet">Fleet Report</TabsTrigger>
               <TabsTrigger value="financial">Financial Report</TabsTrigger>
               <TabsTrigger value="customers">Customer Report</TabsTrigger>
               <TabsTrigger value="maintenance">Maintenance Report</TabsTrigger>
+              <TabsTrigger value="trafficFines">Traffic Fines</TabsTrigger>
               <TabsTrigger value="legal">Legal Report</TabsTrigger>
             </TabsList>
             
@@ -167,6 +250,10 @@ const Reports = () => {
             
             <TabsContent value="maintenance" className="mt-0">
               <MaintenanceReport />
+            </TabsContent>
+            
+            <TabsContent value="trafficFines" className="mt-0">
+              <TrafficFinesReport />
             </TabsContent>
             
             <TabsContent value="legal" className="mt-0">

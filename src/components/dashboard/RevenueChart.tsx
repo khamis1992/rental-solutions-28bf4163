@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '@/lib/utils';
@@ -7,15 +7,16 @@ import { formatCurrency } from '@/lib/utils';
 interface RevenueChartProps {
   data: { name: string; revenue: number }[];
   fullWidth?: boolean;
+  showTooltip?: boolean;
 }
 
-const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) => {
+const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false, showTooltip = true }) => {
   // Get current month name for dynamic title
   const currentMonth = new Date().toLocaleString('default', { month: 'long' });
   
-  // Memoize data processing to avoid unnecessary recalculations
-  const completeData = useMemo(() => {
-    if (!data || data.length === 0) return [];
+  // Ensure we have data to display, showing at least the last 6 months
+  const ensureCompleteData = (inputData: { name: string; revenue: number }[]) => {
+    if (!inputData || inputData.length === 0) return [];
     
     // List of expected months (last 6 months)
     const months = [];
@@ -27,7 +28,7 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
     
     // Create a map of existing data
     const dataMap: Record<string, number> = {};
-    data.forEach(item => {
+    inputData.forEach(item => {
       dataMap[item.name] = item.revenue;
     });
     
@@ -36,7 +37,9 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
       name: month,
       revenue: dataMap[month] || 0
     }));
-  }, [data]);
+  };
+  
+  const completeData = ensureCompleteData(data);
 
   return (
     <Card className={`card-transition ${fullWidth ? 'col-span-full' : 'col-span-3'}`}>
@@ -74,15 +77,17 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, fullWidth = false }) 
                 tick={{ fill: '#64748b', fontSize: 12 }}
                 tickFormatter={(value) => formatCurrency(value).split('.')[0]} // Remove decimals for Y-axis labels
               />
-              <Tooltip 
-                formatter={(value: number) => [formatCurrency(value), 'Revenue']}
-                contentStyle={{
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '0.5rem',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}
-              />
+              {showTooltip && (
+                <Tooltip 
+                  formatter={(value: number) => [formatCurrency(value), 'Revenue']}
+                  contentStyle={{
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '0.5rem',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+              )}
               <Area 
                 type="monotone" 
                 dataKey="revenue" 
