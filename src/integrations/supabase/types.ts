@@ -4132,6 +4132,33 @@ export type Database = {
           },
         ]
       }
+      legal_case_history_backup: {
+        Row: {
+          action: string
+          case_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          performed_by: string | null
+        }
+        Insert: {
+          action: string
+          case_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          performed_by?: string | null
+        }
+        Update: {
+          action?: string
+          case_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          performed_by?: string | null
+        }
+        Relationships: []
+      }
       legal_case_types: {
         Row: {
           created_at: string
@@ -4160,6 +4187,68 @@ export type Database = {
         Relationships: []
       }
       legal_cases: {
+        Row: {
+          amount_owed: number | null
+          assigned_to: string | null
+          case_type: string
+          created_at: string
+          customer_id: string
+          description: string | null
+          escalation_date: string | null
+          id: string
+          last_reminder_sent: string | null
+          priority: string | null
+          reminder_count: number | null
+          resolution_date: string | null
+          resolution_notes: string | null
+          status: Database["public"]["Enums"]["legal_case_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          amount_owed?: number | null
+          assigned_to?: string | null
+          case_type: string
+          created_at?: string
+          customer_id: string
+          description?: string | null
+          escalation_date?: string | null
+          id?: string
+          last_reminder_sent?: string | null
+          priority?: string | null
+          reminder_count?: number | null
+          resolution_date?: string | null
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["legal_case_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          amount_owed?: number | null
+          assigned_to?: string | null
+          case_type?: string
+          created_at?: string
+          customer_id?: string
+          description?: string | null
+          escalation_date?: string | null
+          id?: string
+          last_reminder_sent?: string | null
+          priority?: string | null
+          reminder_count?: number | null
+          resolution_date?: string | null
+          resolution_notes?: string | null
+          status?: Database["public"]["Enums"]["legal_case_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_legal_cases_profiles"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legal_cases_backup: {
         Row: {
           amount_owed: number | null
           assigned_to: string | null
@@ -4671,6 +4760,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_settlements_backup: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          id: string
+          paid_amount: number | null
+          payment_plan: Json | null
+          payments: Json | null
+          receipt_url: string | null
+          signed_by_company: boolean | null
+          signed_by_customer: boolean | null
+          signed_date: string | null
+          status: string | null
+          terms: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          paid_amount?: number | null
+          payment_plan?: Json | null
+          payments?: Json | null
+          receipt_url?: string | null
+          signed_by_company?: boolean | null
+          signed_by_customer?: boolean | null
+          signed_date?: string | null
+          status?: string | null
+          terms: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          paid_amount?: number | null
+          payment_plan?: Json | null
+          payments?: Json | null
+          receipt_url?: string | null
+          signed_by_company?: boolean | null
+          signed_by_customer?: boolean | null
+          signed_date?: string | null
+          status?: string | null
+          terms?: string
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       legal_templates: {
         Row: {
@@ -7859,44 +7999,48 @@ export type Database = {
       }
       traffic_fine_validations: {
         Row: {
+          batch_id: string | null
           created_at: string | null
           created_by: string | null
           error_message: string | null
           fine_id: string | null
           id: string
-          result: Json | null
+          license_plate: string
+          result: Json
           status: string
+          updated_at: string | null
           validation_date: string | null
+          validation_source: string | null
         }
         Insert: {
+          batch_id?: string | null
           created_at?: string | null
           created_by?: string | null
           error_message?: string | null
           fine_id?: string | null
           id?: string
-          result?: Json | null
-          status: string
+          license_plate: string
+          result: Json
+          status?: string
+          updated_at?: string | null
           validation_date?: string | null
+          validation_source?: string | null
         }
         Update: {
+          batch_id?: string | null
           created_at?: string | null
           created_by?: string | null
           error_message?: string | null
           fine_id?: string | null
           id?: string
-          result?: Json | null
+          license_plate?: string
+          result?: Json
           status?: string
+          updated_at?: string | null
           validation_date?: string | null
+          validation_source?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "traffic_fine_validations_fine_id_fkey"
-            columns: ["fine_id"]
-            isOneToOne: false
-            referencedRelation: "traffic_fines"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       traffic_fines: {
         Row: {
@@ -10229,6 +10373,16 @@ export type Database = {
       is_valid_date: {
         Args: { date_str: string }
         Returns: boolean
+      }
+      log_traffic_fine_validation: {
+        Args: {
+          p_license_plate: string
+          p_result: Json
+          p_status?: string
+          p_fine_id?: string
+          p_batch_id?: string
+        }
+        Returns: string
       }
       merge_customer_records: {
         Args: { primary_id: string; duplicate_ids: string[] }
