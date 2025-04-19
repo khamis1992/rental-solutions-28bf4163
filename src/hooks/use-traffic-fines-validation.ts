@@ -1,7 +1,9 @@
+
 import { useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
-interface ValidationResult {
+// Export the interface so it can be used in other components
+export interface ValidationResult {
   validation_date: string;
   result: {
     has_fine?: boolean;
