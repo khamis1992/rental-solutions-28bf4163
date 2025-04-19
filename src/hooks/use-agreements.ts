@@ -1,4 +1,4 @@
-
+import { useState, useEffect, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Agreement, agreementSchema } from '@/lib/validation-schemas/agreement';
@@ -23,7 +23,7 @@ export type SimpleAgreement = {
 };
 
 // Remove recursive type and simplify
-export function useAgreements(params?: { query?: string; status?: string }) {
+export function useAgreements(params?: { query?: string; status?: string; vehicle_id?: string; customer_id?: string }) {
   const queryClient = useQueryClient();
 
   const getAgreements = async (): Promise<SimpleAgreement[]> => {
@@ -249,6 +249,3 @@ export function useAgreements(params?: { query?: string; status?: string }) {
     setSearchParams
   };
 }
-
-// Add missing useState and useCallback imports
-import { useState, useEffect, useCallback } from 'react';

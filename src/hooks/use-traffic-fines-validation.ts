@@ -1,5 +1,5 @@
 
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 // Export the interface so it can be used in other components
@@ -13,9 +13,53 @@ export interface ValidationResult {
   error_message?: string;
   license_plate: string;
   fine_id?: string;
+  validationSource?: string;
+  validationDate?: string;
+  licensePlate?: string;
+  hasFine?: boolean;
+  details?: string;
 }
 
 export function useTrafficFinesValidation() {
+  const [validationHistory, setValidationHistory] = useState<ValidationResult[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchValidationHistory = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('traffic_fine_validations')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching validation history:', error);
+        return;
+      }
+
+      // Transform data to include camelCase properties for compatibility
+      const processedData = data.map((item: ValidationResult) => ({
+        ...item,
+        validationDate: item.validation_date,
+        licensePlate: item.license_plate,
+        hasFine: item.result?.has_fine || false,
+        details: item.result?.details || '',
+        validationSource: 'MOI Traffic System'
+      }));
+
+      setValidationHistory(processedData);
+    } catch (error) {
+      console.error('Error in fetchValidationHistory:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchValidationHistory();
+  }, [fetchValidationHistory]);
+
   const validateLicensePlate = useCallback(async (licenseNumber: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('validate-traffic-fines', {
@@ -113,5 +157,12 @@ export function useTrafficFinesValidation() {
     }
   }, []);
 
-  return { validateLicensePlate, checkValidationResult };
+  const validateTrafficFine = useCallback(async (licensePlate: string) => {
+    const result = await validateLicensePlate(licensePlate);
+    // Refresh the validation history after a new validation
+    fetchValidationHistory();
+    return result;
+  }, [validateLicensePlate, fetchValidationHistory]);
+
+  return { validateLicensePlate, checkValidationResult, validateTrafficFine, validationHistory, isLoading };
 }
