@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,8 +7,7 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, FileCheck } from 'lucide-react';
-import { asLeaseIdColumn } from '@/utils/database-type-helpers';
-import { UUID } from '@/types/database-types';
+import { UUID } from '@/utils/database-type-helpers';
 
 export interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -33,7 +33,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
       const { data, error } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(agreementId));
+        .eq('lease_id', agreementId as UUID);
       
       if (error) {
         throw error;
