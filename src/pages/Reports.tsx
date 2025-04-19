@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -10,7 +9,7 @@ import CustomerReport from '@/components/reports/CustomerReport';
 import MaintenanceReport from '@/components/reports/MaintenanceReport';
 import LegalReport from '@/components/reports/LegalReport';
 import TrafficFinesReport from '@/components/reports/TrafficFinesReport';
-import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import { ReportDownloadOptions } from '@/components/reports/ReportDownloadOptions';
 import { SectionHeader } from '@/components/ui/section-header';
 import { FileText, Download, Calendar, AlertCircle, AlertTriangle } from 'lucide-react';
 import { useFleetReport } from '@/hooks/use-fleet-report';
@@ -231,7 +230,8 @@ const Reports = () => {
             
             <div className="mb-6">
               <ReportDownloadOptions 
-                reportType={selectedTab} 
+                reportType={selectedTab}
+                fileNamePrefix={`${selectedTab}-report`}
                 getReportData={getReportData} 
               />
             </div>

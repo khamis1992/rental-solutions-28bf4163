@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { StatCard } from '@/components/ui/stat-card';
@@ -8,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/use-customers';
 import { formatCurrency } from '@/lib/utils';
-import ReportDownloadOptions from '@/components/reports/ReportDownloadOptions';
+import { ReportDownloadOptions } from '@/components/reports/ReportDownloadOptions';
 
 const CustomerReport = () => {
   const {
@@ -108,12 +107,15 @@ const CustomerReport = () => {
   }
   return <div className="space-y-8">
       <div className="flex items-center mb-6">
-        
         <h2 className="text-xl font-bold">Customer Analytics Dashboard</h2>
       </div>
       
       <div className="mb-6">
-        <ReportDownloadOptions reportType="customers" getReportData={getReportData} />
+        <ReportDownloadOptions 
+          reportType="customers" 
+          fileNamePrefix="customer-report"
+          getReportData={getReportData} 
+        />
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -202,6 +204,7 @@ const CustomerReport = () => {
       </Card>
     </div>;
 };
+
 const CustomerStatusBadge = ({
   status
 }: {
@@ -217,4 +220,5 @@ const CustomerStatusBadge = ({
       {status.replace('_', ' ')}
     </Badge>;
 };
+
 export default CustomerReport;

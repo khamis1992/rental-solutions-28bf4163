@@ -1,293 +1,227 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { AgreementDetail } from '@/components/agreements/AgreementDetail';
-import PageContainer from '@/components/layout/PageContainer';
-import { useAgreements } from '@/hooks/use-agreements';
-import { Skeleton } from '@/components/ui/skeleton';
-import { toast } from 'sonner';
-import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { useRentAmount } from '@/hooks/use-rent-amount';
-import { AlertTriangle, Calendar, RefreshCcw } from 'lucide-react';
+
+import React, { useState, useEffect } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
-import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
-import { supabase } from '@/lib/supabase';
-import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
-import { getDateObject } from '@/lib/date-utils';
-import { usePayments } from '@/hooks/use-payments';
-import { fixAgreementPayments } from '@/lib/supabase';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { useAgreements } from '@/hooks/use-agreements';
+import { format } from 'date-fns';
+import { ArrowLeft, FileText, Car, User, CalendarDays, CircleDollarSign, Edit, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CheckCheck, AlertTriangle } from 'lucide-react';
 
 const AgreementDetailPage = () => {
+  const [agreement, setAgreement] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { getAgreement, deleteAgreement } = useAgreements();
-  const [agreement, setAgreement] = useState<Agreement | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
-  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
-  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
-  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-
-  const { rentAmount, contractAmount } = useRentAmount(agreement, id);
-  
-  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', rentAmount);
-
-  const fetchAgreementData = async () => {
-    if (!id) return;
-
-    try {
-      setIsLoading(true);
-      const data = await getAgreement(id);
-      
-      if (data) {
-        const adaptedAgreement = adaptSimpleToFullAgreement(data);
-        
-        if (adaptedAgreement.start_date) {
-          const safeDate = getDateObject(adaptedAgreement.start_date);
-          adaptedAgreement.start_date = safeDate || new Date();
-        }
-        
-        if (adaptedAgreement.end_date) {
-          const safeDate = getDateObject(adaptedAgreement.end_date);
-          adaptedAgreement.end_date = safeDate || new Date();
-        }
-        
-        if (adaptedAgreement.created_at) {
-          const safeDate = getDateObject(adaptedAgreement.created_at);
-          adaptedAgreement.created_at = safeDate;
-        }
-        
-        if (adaptedAgreement.updated_at) {
-          const safeDate = getDateObject(adaptedAgreement.updated_at);
-          adaptedAgreement.updated_at = safeDate;
-        }
-        
-        setAgreement(adaptedAgreement);
-        fetchPayments();
-      } else {
-        toast.error("Agreement not found");
-        navigate("/agreements");
-      }
-    } catch (error) {
-      console.error('Error fetching agreement:', error);
-      toast.error('Failed to load agreement details');
-    } finally {
-      setIsLoading(false);
-      setHasAttemptedFetch(true);
-    }
-  };
+  const { getAgreement } = useAgreements();
 
   useEffect(() => {
-    if (id && (!hasAttemptedFetch || refreshTrigger > 0)) {
-      fetchAgreementData();
-    }
-  }, [id, refreshTrigger]);
-
-  useEffect(() => {
-    if (id && !isLoading && agreement && payments && payments.length > 0) {
-      const paymentDates = payments
-        .filter(p => p.original_due_date)
-        .map(p => {
-          const date = new Date(p.original_due_date as string);
-          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        });
-      
-      const monthCounts = paymentDates.reduce((acc, date) => {
-        acc[date] = (acc[date] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-      
-      const hasDuplicates = Object.values(monthCounts).some(count => count > 1);
-      
-      if (hasDuplicates) {
-        console.log("Detected duplicate payments - will fix automatically");
-        fixAgreementPayments(id).then(() => {
-          fetchPayments();
-        });
-      }
-    }
-  }, [id, isLoading, agreement, payments]);
-
-  const handleDelete = async (agreementId: string) => {
-    try {
-      await deleteAgreement.mutateAsync(agreementId);
-      toast.success("Agreement deleted successfully");
-      navigate("/agreements");
-    } catch (error) {
-      console.error("Error deleting agreement:", error);
-      toast.error("Failed to delete agreement");
-    }
-  };
-
-  const handleDeleteConfirmation = () => {
-    if (!id) return;
-    setDeleteDialogOpen(true);
-  };
-
-  const refreshAgreementData = () => {
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  const handleGenerateDocument = () => {
-    setIsDocumentDialogOpen(true);
-  };
-
-  const handleGeneratePayment = async () => {
-    if (!id || !agreement) return;
+    const fetchAgreement = async () => {
+      if (!id) return;
     
-    setIsGeneratingPayment(true);
-    try {
-      const result = await forceGeneratePaymentForAgreement(supabase, id);
-      
-      if (result.success) {
-        toast.success("Payment schedule generated successfully");
-        refreshAgreementData();
-      } else {
-        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
+      setLoading(true);
+      try {
+        const data = await getAgreement(id);
+        if (data) {
+          setAgreement(data);
+        } else {
+          setError('Agreement not found');
+        }
+      } catch (err) {
+        console.error('Error fetching agreement details:', err);
+        setError('Failed to load agreement details');
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error generating payment:", error);
-      toast.error("Failed to generate payment schedule");
-    } finally {
-      setIsGeneratingPayment(false);
-    }
-  };
+    };
 
-  const handleRunMaintenanceJob = async () => {
-    if (!id) return;
-    
-    setIsRunningMaintenance(true);
-    try {
-      toast.info("Running payment maintenance check...");
-      const result = await manuallyRunPaymentMaintenance();
-      
-      if (result.success) {
-        toast.success(result.message || "Payment schedule maintenance completed");
-        refreshAgreementData();
-        fetchPayments();
-      } else {
-        toast.error(result.message || "Payment maintenance failed");
-      }
-    } catch (error) {
-      console.error("Error running maintenance job:", error);
-      toast.error("Failed to run maintenance job");
-    } finally {
-      setIsRunningMaintenance(false);
-    }
-  };
+    fetchAgreement();
+  }, [id, getAgreement]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading agreement details...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Card>
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>Failed to load agreement details. Please try again later.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!agreement) {
+    return <div className="flex items-center justify-center h-screen">Agreement not found.</div>;
+  }
+
+  // Ensure we have customer data, whether it comes from customers or profiles
+  const customerData = agreement.customers || agreement.profiles;
 
   return (
-    <PageContainer
-      title="Agreement Details"
-      description="View and manage rental agreement details"
-      backLink="/agreements"
-      actions={
-        <>
-          {agreement && agreement.status === AgreementStatus.ACTIVE && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleGeneratePayment}
-              disabled={isGeneratingPayment}
-              className="gap-2 mr-2"
-            >
-              <Calendar className="h-4 w-4" />
-              {isGeneratingPayment ? "Generating..." : "Generate Payment Schedule"}
-            </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRunMaintenanceJob}
-            disabled={isRunningMaintenance}
-            className="gap-2"
-          >
-            <RefreshCcw className="h-4 w-4" />
-            {isRunningMaintenance ? "Running..." : "Run Payment Maintenance"}
+    <div className="container mx-auto py-10">
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <Button asChild variant="ghost">
+            <Link to="/agreements" className="flex items-center">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Agreements
+            </Link>
           </Button>
-        </>
-      }
-    >
-      {isLoading ? (
-        <div className="space-y-6">
-          <Skeleton className="h-12 w-2/3" />
-          <div className="grid gap-6 md:grid-cols-2">
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-64 w-full" />
-            <Skeleton className="h-96 w-full md:col-span-2" />
-          </div>
+          <h2 className="text-3xl font-bold mt-2">Agreement Details</h2>
         </div>
-      ) : agreement ? (
-        <>
-          <AgreementDetail 
-            agreement={agreement}
-            onDelete={handleDeleteConfirmation}
-            rentAmount={rentAmount}
-            contractAmount={contractAmount}
-            onPaymentDeleted={refreshAgreementData}
-            onDataRefresh={refreshAgreementData}
-            onGenerateDocument={handleGenerateDocument}
-          />
-          
-          <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
-            <DialogContent className="max-w-4xl">
-              <InvoiceGenerator 
-                recordType="agreement" 
-                recordId={agreement.id} 
-                onClose={() => setIsDocumentDialogOpen(false)} 
-              />
-            </DialogContent>
-          </Dialog>
+        <Button asChild variant="outline">
+          <Link to={`/agreements/edit/${agreement.id}`} className="flex items-center">
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Agreement
+          </Link>
+        </Button>
+      </div>
 
-          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Agreement</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete agreement {agreement.agreement_number}?
-                  This action cannot be undone and will permanently remove all associated data including payments and records.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => handleDelete(agreement.id)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
-      ) : (
-        <div className="text-center py-12">
-          <div className="flex items-center justify-center mb-4">
-            <AlertTriangle className="h-12 w-12 text-amber-500" />
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <FileText className="mr-2 h-5 w-5" />
+            Agreement Information
+          </CardTitle>
+          <CardDescription>Details about this rental agreement</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div>
+            <h4 className="font-semibold">Agreement Number</h4>
+            <p>{agreement.agreement_number || 'N/A'}</p>
           </div>
-          <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>
-          <p className="text-muted-foreground mb-4">
-            The agreement you're looking for doesn't exist or has been removed.
-          </p>
-          <Button variant="outline" onClick={() => navigate("/agreements")}>
-            Return to Agreements
-          </Button>
-        </div>
-      )}
-    </PageContainer>
+          <div>
+            <h4 className="font-semibold">Status</h4>
+            <Badge
+              variant={
+                agreement.status === 'active' ? 'success' :
+                agreement.status === 'pending' ? 'warning' :
+                agreement.status === 'cancelled' ? 'destructive' :
+                agreement.status === 'closed' ? 'outline' :
+                agreement.status === 'expired' ? 'secondary' :
+                'default'
+              }
+              className="capitalize"
+            >
+              {agreement.status}
+            </Badge>
+          </div>
+          <div>
+            <h4 className="font-semibold">Start Date</h4>
+            <p>{agreement.start_date ? format(new Date(agreement.start_date), 'PPP') : 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">End Date</h4>
+            <p>{agreement.end_date ? format(new Date(agreement.end_date), 'PPP') : 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Total Amount</h4>
+            <p>{agreement.total_amount ? `QAR ${agreement.total_amount.toLocaleString()}` : 'N/A'}</p>
+          </div>
+          <div>
+            <h4 className="font-semibold">Deposit Amount</h4>
+            <p>{agreement.deposit_amount ? `QAR ${agreement.deposit_amount.toLocaleString()}` : 'N/A'}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <Car className="mr-2 h-5 w-5" />
+            Vehicle Information
+          </CardTitle>
+          <CardDescription>Details about the rented vehicle</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {agreement.vehicles ? (
+            <div className="grid gap-4">
+              <div>
+                <h4 className="font-semibold">Make & Model</h4>
+                <p>{agreement.vehicles.make} {agreement.vehicles.model}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">License Plate</h4>
+                <p>{agreement.vehicles.license_plate}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Year</h4>
+                <p>{agreement.vehicles.year}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No vehicle information available.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <User className="mr-2 h-5 w-5" />
+            Customer Information
+          </CardTitle>
+          <CardDescription>Details about the customer renting the vehicle</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {customerData ? (
+            <div className="grid gap-4">
+              <div>
+                <h4 className="font-semibold">Full Name</h4>
+                <p>{customerData.full_name}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Email</h4>
+                <p>{customerData.email}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Phone</h4>
+                <p>{customerData.phone_number || customerData.phone}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">No customer information available.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <CalendarDays className="mr-2 h-5 w-5" />
+            Rental Period
+          </CardTitle>
+          <CardDescription>Start and end dates of the rental agreement</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
+            <div>
+              <h4 className="font-semibold">Start Date</h4>
+              <p>{agreement.start_date ? format(new Date(agreement.start_date), 'PPP') : 'N/A'}</p>
+            </div>
+            <div>
+              <h4 className="font-semibold">End Date</h4>
+              <p>{agreement.end_date ? format(new Date(agreement.end_date), 'PPP') : 'N/A'}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

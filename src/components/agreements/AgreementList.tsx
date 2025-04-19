@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement, AgreementSearchParams } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -74,7 +74,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface AgreementListProps {
@@ -82,6 +82,7 @@ interface AgreementListProps {
 }
 
 export function AgreementList({ searchQuery = '' }: AgreementListProps) {
+  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -103,11 +104,15 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements({ query: searchQuery, status: statusFilter });
+  } = useAgreements();
   
   useEffect(() => {
-    setSearchParams(prev => ({ ...prev, query: searchQuery }));
-  }, [searchQuery, setSearchParams]);
+    setSearchParams({
+      ...searchParams,
+      query: searchQuery,
+      status: statusFilter
+    });
+  }, [searchQuery, statusFilter, setSearchParams, searchParams]);
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -116,7 +121,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     { id: 'created_at', desc: true }
   ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
-  const navigate = useNavigate();
 
   useEffect(() => {
     setRowSelection({});
@@ -132,7 +136,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id as string
+      index => agreements[parseInt(index)].id
     );
     
     console.log("Selected IDs for deletion:", selectedIds);
@@ -142,7 +146,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
-        console.log(`Starting deletion process for agreement ${id}`);
         
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
@@ -252,10 +255,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     }
   };
 
-  const columns = [
+  const columns: ColumnDef<SimpleAgreement>[] = [
     {
       id: "select",
-      header: ({ table }: any) => (
+      header: ({ table }) => (
         <Checkbox
           checked={
             table.getIsAllPageRowsSelected() ||
@@ -265,7 +268,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           aria-label="Select all"
         />
       ),
-      cell: ({ row }: any) => (
+      cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value) => row.toggleSelected(!!value)}
@@ -282,12 +285,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         <div className="font-medium">
           <Link 
             to={`/agreements/${row.original.id}`}
-            className="font-medium text-primary hover:underline"
-            onClick={(e) => {
-              e.preventDefault();
-              console.log("Navigating to agreement detail:", row.original.id);
-              navigate(`/agreements/${row.original.id}`);
-            }}
+            className="font-medium text-primary hover:underline relative z-10"
           >
             {row.getValue("agreement_number")}
           </Link>
@@ -295,16 +293,16 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       ),
     },
     {
-      accessorKey: "customers.full_name",
+      accessorKey: "profiles.full_name",
       header: "Customer",
       cell: ({ row }) => {
-        const customer = row.original.customers;
+        const customer = row.original.customers || row.original.profiles;
         return (
           <div>
             {customer && customer.id ? (
               <Link 
                 to={`/customers/${customer.id}`}
-                className="hover:underline"
+                className="hover:underline relative z-10"
               >
                 {customer.full_name || 'N/A'}
               </Link>
@@ -325,7 +323,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             {vehicle && vehicle.id ? (
               <Link 
                 to={`/vehicles/${vehicle.id}`}
-                className="hover:underline"
+                className="hover:underline relative z-10"
               >
                 {vehicle.make && vehicle.model ? (
                   <div className="flex items-center">
@@ -345,7 +343,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             ) : row.original.vehicle_id ? (
               <Link 
                 to={`/vehicles/${row.original.vehicle_id}`}
-                className="hover:underline text-amber-600"
+                className="hover:underline text-amber-600 relative z-10"
               >
                 Vehicle ID: {row.original.vehicle_id}
               </Link>
@@ -448,23 +446,30 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="z-50">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link to={`/agreements/${agreement.id}`}>
-                  View details
-                </Link>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/agreements/${agreement.id}`);
+                }}
+              >
+                View details
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link to={`/agreements/edit/${agreement.id}`}>
-                  Edit agreement
-                </Link>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/agreements/edit/${agreement.id}`);
+                }}
+              >
+                Edit agreement
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setSingleDeleteId(agreement.id);
                   setSingleDeleteNumber(agreement.agreement_number);
                   setSingleDeleteDialogOpen(true);
@@ -479,8 +484,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
+  const tableData = agreements || [];
+
   const table = useReactTable({
-    data: agreements || [],
+    data: tableData,
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -497,16 +504,33 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       pagination,
     },
     manualPagination: false,
-    pageCount: Math.ceil((agreements?.length || 0) / 10),
+    pageCount: Math.ceil((tableData.length || 0) / 10),
   });
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    setSearchParams(prev => ({ ...prev, status: value }));
+    setSearchParams({
+      ...searchParams,
+      status: value
+    });
   };
 
   const selectedCount = Object.keys(rowSelection).length;
-
+  
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Error loading agreements</AlertTitle>
+        <AlertDescription>
+          {error instanceof Error 
+            ? error.message 
+            : "An unknown error occurred while loading agreements. Please try again."}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -520,11 +544,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
-              <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
-              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
-              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
-              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -548,14 +572,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </Button>
         </div>
       </div>
-      
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
-        </Alert>
-      )}
       
       {(searchQuery || statusFilter !== 'all') && (
         <div className="flex items-center text-sm text-muted-foreground mb-1">
@@ -605,14 +621,15 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                   ))}
                 </TableRow>
               ))
-            ) : table.getRowModel().rows?.length ? (
+            ) : tableData.length > 0 ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="relative"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className="relative">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -636,7 +653,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         </Table>
       </div>
       
-      {agreements && agreements.length > 0 && (
+      {tableData.length > 0 && (
         <Pagination>
           <PaginationContent>
             <PaginationItem>
@@ -696,10 +713,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleBulkDelete();
-              }}
+              onClick={() => handleBulkDelete()}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >

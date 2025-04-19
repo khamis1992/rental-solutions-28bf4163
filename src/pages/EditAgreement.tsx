@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AgreementForm from '@/components/agreements/AgreementForm';
@@ -20,6 +19,7 @@ const EditAgreement = () => {
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuth();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Guard against multiple fetches in rapid succession
@@ -44,10 +44,9 @@ const EditAgreement = () => {
           toast.error("Agreement not found");
           navigate("/agreements");
         }
-      } catch (error) {
-        console.error("Error fetching agreement for edit:", error);
-        toast.error("Failed to load agreement details");
-        navigate("/agreements");
+      } catch (err) {
+        console.error('Error fetching agreement:', err);
+        setError('Failed to load agreement data');
       } finally {
         setIsLoading(false);
         setHasAttemptedFetch(true);
