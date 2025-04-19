@@ -205,12 +205,12 @@ const AgreementDetail = () => {
       <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
       
       <AgreementActions
-        onEdit={() => {}} // TODO: Implement edit handler
-        onDelete={() => {}} // TODO: Implement delete handler
-        onDownloadPdf={() => {}} // TODO: Implement PDF download
+        onEdit={() => {}} 
+        onDelete={() => {}} 
+        onDownloadPdf={() => {}} 
         onGeneratePayment={handleGeneratePayment}
         onRunMaintenance={handleRunMaintenanceJob}
-        onGenerateDocument={() => {}} // TODO: Implement document generation
+        onGenerateDocument={() => {}} 
         isGeneratingPayment={isGeneratingPayment}
         isRunningMaintenance={isRunningMaintenance}
         status={agreement?.status || 'pending'}
@@ -221,10 +221,11 @@ const AgreementDetail = () => {
         payments={payments}
         isLoadingPayments={isLoadingPayments}
         rentAmount={rentAmount}
-        onPaymentDeleted={handlePaymentDeleted}
+        onPaymentDeleted={() => fetchPaymentsHook()}
         onRefreshPayments={fetchPaymentsHook}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+          
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -358,24 +359,6 @@ const AgreementDetail = () => {
             </CardContent>
           </Card>
         </div>
-        
-        <PaymentHistory 
-          payments={payments || []}
-          onPaymentDeleted={handlePaymentDeleted}
-          leaseStartDate={agreement.start_date}
-          leaseEndDate={agreement.end_date}
-          rentAmount={rentAmount}
-        />
-        
-        <LegalCaseCard 
-          agreementId={id || ''} 
-        />
-        
-        <AgreementTrafficFines 
-          agreementId={id || ''}
-          startDate={agreement.start_date}
-          endDate={agreement.end_date}
-        />
       </AgreementTabs>
     </div>
   );

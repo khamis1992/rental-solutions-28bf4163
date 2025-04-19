@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import PageContainer from "@/components/layout/PageContainer";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -8,9 +7,14 @@ import TrafficFinesList from "@/components/fines/TrafficFinesList";
 import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 import TrafficFineValidation from "@/components/fines/TrafficFineValidation";
+import { useParams } from "react-router-dom";
+import AgreementTrafficFines from "@/components/agreements/AgreementTrafficFines";
+import { useAgreements } from "@/hooks/useAgreements";
 
 const TrafficFines = () => {
+  const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("list");
+  const { agreement } = useAgreements();
   
   const handleAddFine = () => {
     setActiveTab("add");
@@ -49,6 +53,13 @@ const TrafficFines = () => {
         </TabsList>
         
         <TabsContent value="list" className="space-y-6">
+          {id && (
+            <AgreementTrafficFines 
+              agreementId={id}
+              startDate={agreement?.start_date}
+              endDate={agreement?.end_date}
+            />
+          )}
           <TrafficFinesList onAddFine={handleAddFine} />
         </TabsContent>
         
