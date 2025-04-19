@@ -232,20 +232,35 @@ export const addTextWithRtlSupport = async (
   const processedText = await processPdfText(text);
   const isRtl = containsRtlCharacters(processedText);
   
-  // Switch to Arabic font if needed
+  // Always add Arabic font for RTL text
   if (isRtl || options?.useArabicFont) {
-    doc.setFont('Amiri', doc.getFont().fontStyle);
-  }
-  
-  // Add the text
-  doc.text(processedText, x, y, { 
-    align: options?.align || 'left',
-    isInputRtl: isRtl
-  });
-  
-  // Switch back to default font
-  if (isRtl || options?.useArabicFont) {
-    doc.setFont('helvetica', doc.getFont().fontStyle);
+    // Add Arabic font support
+    doc.addFont('https://cdn.jsdelivr.net/npm/@fontsource/noto-naskh-arabic/files/noto-naskh-arabic-arabic-400-normal.woff', 'Noto Naskh Arabic', 'normal');
+    doc.setFont('Noto Naskh Arabic');
+    
+    // Calculate position for RTL text
+    const textWidth = doc.getTextWidth(processedText);
+    let finalX = x;
+    
+    if (options?.align === 'right' || (!options?.align && isRtl)) {
+      finalX = doc.internal.pageSize.getWidth() - x - textWidth;
+    } else if (options?.align === 'center') {
+      finalX = (doc.internal.pageSize.getWidth() - textWidth) / 2;
+    }
+    
+    // Add the text with RTL support
+    doc.text(processedText, finalX, y, { 
+      align: 'left', // We handle alignment manually for RTL
+      isInputRtl: true
+    });
+    
+    // Switch back to default font
+    doc.setFont('helvetica', 'normal');
+  } else {
+    // Non-RTL text handling
+    doc.text(processedText, x, y, { 
+      align: options?.align || 'left'
+    });
   }
 };
 
