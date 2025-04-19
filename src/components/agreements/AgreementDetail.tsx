@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { 
   CalendarDays, User, Car, CreditCard, 
   ClipboardList, FileText, ChevronLeft, 
-  Phone, Mail, MapPin
+  Phone, Mail, MapPin, Gavel, AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { PaymentHistory } from './PaymentHistory';
-import LegalCaseCard from './LegalCaseCard';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementActions } from './AgreementActions';
-import { AgreementTabs } from './AgreementTabs';
 import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -26,7 +22,6 @@ import { supabase } from '@/lib/supabase';
 import { fixAgreementPayments } from '@/lib/supabase';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { UUID } from '@/utils/database-type-helpers';
-import { Payment } from './PaymentHistory.types';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -216,15 +211,36 @@ const AgreementDetail = () => {
         status={agreement?.status || 'pending'}
       />
 
-      <AgreementTabs
-        agreement={agreement}
-        payments={payments}
-        isLoadingPayments={isLoadingPayments}
-        rentAmount={rentAmount}
-        onPaymentDeleted={handlePaymentDeleted}
-        onRefreshPayments={fetchPaymentsHook}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+        <Button
+          variant="outline"
+          className="flex items-center gap-2"
+          onClick={() => navigate(`/agreements/${id}/payments`)}
+        >
+          <CreditCard className="h-4 w-4" />
+          View Payment History
+        </Button>
+
+        <Button
+          variant="outline"
+          className="flex items-center gap-2"
+          onClick={() => navigate(`/agreements/${id}/legal`)}
+        >
+          <Gavel className="h-4 w-4" />
+          View Legal Cases
+        </Button>
+
+        <Button
+          variant="outline"
+          className="flex items-center gap-2"
+          onClick={() => navigate(`/agreements/${id}/fines`)}
+        >
+          <AlertTriangle className="h-4 w-4" />
+          View Traffic Fines
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -358,25 +374,6 @@ const AgreementDetail = () => {
             </CardContent>
           </Card>
         </div>
-        
-        <PaymentHistory 
-          payments={payments || []}
-          onPaymentDeleted={handlePaymentDeleted}
-          leaseStartDate={agreement.start_date}
-          leaseEndDate={agreement.end_date}
-          rentAmount={rentAmount}
-        />
-        
-        <LegalCaseCard 
-          agreementId={id || ''} 
-        />
-        
-        <AgreementTrafficFines 
-          agreementId={id || ''}
-          startDate={agreement.start_date}
-          endDate={agreement.end_date}
-        />
-      </AgreementTabs>
     </div>
   );
 };
