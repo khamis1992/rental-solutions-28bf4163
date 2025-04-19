@@ -1,17 +1,15 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Calendar, CalendarIcon, Trash2 } from 'lucide-react';
+import { Calendar, CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { useCallback } from 'react';
 import { asPaymentId } from '@/utils/database-type-helpers';
+import { PaymentEntryDialog } from './PaymentEntryDialog';
 
-// Make sure to export the Payment type to fix the error 
-// in AgreementDetail.tsx
 export interface Payment {
   id: string;
   amount: number;
@@ -49,6 +47,7 @@ export function PaymentHistory({
   leaseEndDate
 }: PaymentHistoryProps) {
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
   const handleDelete = useCallback(async (paymentId: string) => {
     try {
@@ -139,6 +138,17 @@ export function PaymentHistory({
     },
   ];
 
+  const handlePaymentSubmit = (
+    amount: number, 
+    paymentDate: Date, 
+    notes?: string, 
+    paymentMethod?: string, 
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean
+  ) => {
+    setIsPaymentDialogOpen(false);
+  };
+
   return (
     <Card className="my-8">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -146,11 +156,21 @@ export function PaymentHistory({
           <CardTitle>Payment History</CardTitle>
           <CardDescription>View all transactions for this agreement</CardDescription>
         </div>
-        <div className="flex items-center space-x-2">
-          <CalendarIcon className="h-5 w-5 text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">
-            Monthly Rent: QAR {rentAmount?.toLocaleString() || '0'}
-          </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <CalendarIcon className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              Monthly Rent: QAR {rentAmount?.toLocaleString() || '0'}
+            </span>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setIsPaymentDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Payment
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -166,6 +186,15 @@ export function PaymentHistory({
           </div>
         )}
       </CardContent>
+
+      <PaymentEntryDialog
+        open={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        onSubmit={handlePaymentSubmit}
+        defaultAmount={rentAmount || 0}
+        title="Record Payment"
+        description="Enter payment details to record a payment"
+      />
     </Card>
   );
 }
