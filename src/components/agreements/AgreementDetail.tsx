@@ -21,11 +21,12 @@ const AgreementDetail = () => {
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const { 
     payments, 
     isLoading: isLoadingPayments, 
-    fetchPayments: fetchPaymentsHook,
+    fetchPayments,
     addPayment,
     updatePayment,
     deletePayment
@@ -41,13 +42,13 @@ const AgreementDetail = () => {
       };
       fetchAgreementData();
     }
-  }, [id, getAgreement]);
+  }, [id, getAgreement, refreshTrigger]);
 
   useEffect(() => {
     if (id) {
-      fetchPaymentsHook();
+      fetchPayments();
     }
-  }, [id, fetchPaymentsHook]);
+  }, [id, fetchPayments, refreshTrigger]);
 
   const handlePaymentSubmit = async (
     amount: number,
@@ -69,8 +70,8 @@ const AgreementDetail = () => {
       });
       
       setIsPaymentDialogOpen(false);
-      refetchAgreement();
-      fetchPaymentsHook();
+      // Trigger refresh of both agreement and payment data
+      setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error("Error recording payment:", error);
       toast({
@@ -82,12 +83,7 @@ const AgreementDetail = () => {
   };
 
   const refetchAgreement = async () => {
-    if (id) {
-      const data = await getAgreement(id);
-      if (data) {
-        setAgreement(data);
-      }
-    }
+    setRefreshTrigger(prev => prev + 1);
   };
 
   const handleGeneratePayment = async () => {
@@ -137,7 +133,6 @@ const AgreementDetail = () => {
           variant: "default",
         });
         refetchAgreement();
-        fetchPaymentsHook();
       } else {
         toast({
           title: "Error",
@@ -162,6 +157,8 @@ const AgreementDetail = () => {
       agreement={agreement}
       isLoading={isAgreementLoading}
       rentAmount={rentAmount}
+      payments={payments}
+      isLoadingPayments={isLoadingPayments}
       isGeneratingPayment={isGeneratingPayment}
       isRunningMaintenance={isRunningMaintenance}
       isDocumentDialogOpen={isDocumentDialogOpen}
@@ -171,6 +168,8 @@ const AgreementDetail = () => {
       onGeneratePayment={handleGeneratePayment}
       onRunMaintenanceJob={handleRunMaintenanceJob}
       onHandlePaymentSubmit={handlePaymentSubmit}
+      onPaymentDeleted={() => setRefreshTrigger(prev => prev + 1)}
+      onRefreshPayments={() => setRefreshTrigger(prev => prev + 1)}
       navigate={navigate}
     />
   );

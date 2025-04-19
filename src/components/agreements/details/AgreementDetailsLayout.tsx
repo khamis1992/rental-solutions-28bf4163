@@ -11,12 +11,16 @@ import { AgreementTabs } from '../AgreementTabs';
 import { AgreementSummaryHeader } from '../AgreementSummaryHeader';
 import { AgreementActions } from '../AgreementActions';
 import ParticleBackground from '@/components/ui/particle-background';
-import { PaymentEntryDialog } from '@/components/payments/PaymentEntryDialog';
+import { PaymentEntryDialog } from '../PaymentEntryDialog';
+import { PaymentHistory } from '../PaymentHistory';
+import { Payment } from '../PaymentHistory.types';
 
 interface AgreementDetailsLayoutProps {
   agreement: Agreement | null;
   isLoading: boolean;
   rentAmount: number | null;
+  payments?: Payment[];
+  isLoadingPayments?: boolean;
   isGeneratingPayment: boolean;
   isRunningMaintenance: boolean;
   isDocumentDialogOpen: boolean;
@@ -35,6 +39,8 @@ interface AgreementDetailsLayoutProps {
     isPartialPayment?: boolean,
     targetPaymentId?: string
   ) => void;
+  onPaymentDeleted: () => void;
+  onRefreshPayments: () => void;
   navigate: (path: string) => void;
 }
 
@@ -42,6 +48,8 @@ export function AgreementDetailsLayout({
   agreement,
   isLoading,
   rentAmount,
+  payments = [],
+  isLoadingPayments = false,
   isGeneratingPayment,
   isRunningMaintenance,
   isDocumentDialogOpen,
@@ -51,6 +59,8 @@ export function AgreementDetailsLayout({
   onGeneratePayment,
   onRunMaintenanceJob,
   onHandlePaymentSubmit,
+  onPaymentDeleted,
+  onRefreshPayments,
   navigate,
 }: AgreementDetailsLayoutProps) {
   
@@ -113,7 +123,22 @@ export function AgreementDetailsLayout({
         status={agreement?.status || 'pending'}
       />
 
-      <AgreementTabs agreement={agreement} />
+      <AgreementTabs 
+        agreement={agreement}
+        payments={payments}
+        isLoadingPayments={isLoadingPayments}
+        rentAmount={rentAmount}
+        onPaymentDeleted={onPaymentDeleted}
+        onRefreshPayments={onRefreshPayments}
+      >
+        <PaymentHistory
+          payments={payments}
+          rentAmount={rentAmount}
+          onPaymentDeleted={onPaymentDeleted}
+          leaseStartDate={agreement.start_date}
+          leaseEndDate={agreement.end_date}
+        />
+      </AgreementTabs>
 
       <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
         <DialogContent className="max-w-4xl">
