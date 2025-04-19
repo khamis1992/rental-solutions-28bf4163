@@ -30,7 +30,7 @@ export function asImportId(id: string): UUID {
   return id as UUID;
 }
 
-// Add missing functions needed by AgreementList.tsx
+// Add functions needed by AgreementList.tsx
 export function asAgreementIdColumn(id: string): UUID {
   return id as UUID;
 }

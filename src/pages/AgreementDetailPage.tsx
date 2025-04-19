@@ -1,5 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+// Import the named export AgreementDetail
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';

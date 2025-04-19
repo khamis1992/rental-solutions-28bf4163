@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -16,22 +15,19 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PaymentHistory } from './PaymentHistory';
-// Fix import to use default export
 import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementActions } from './AgreementActions';
 import { AgreementTabs } from './AgreementTabs';
 import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-// Fix hook import
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { asLeaseId, asTableId } from '@/utils/database-type-helpers';
+import { asLeaseId, asTableId, hasData } from '@/utils/database-type-helpers';
 
-const AgreementDetailPage = () => {
+export const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
-  // Fix hook usage
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
   const [agreement, setAgreement] = useState<any>(null);
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(id);
@@ -40,7 +36,6 @@ const AgreementDetailPage = () => {
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
 
-  // Fetch agreement data
   useEffect(() => {
     if (id) {
       const fetchAgreementData = async () => {
@@ -53,7 +48,6 @@ const AgreementDetailPage = () => {
     }
   }, [id, getAgreement]);
 
-  // Fetch payments when agreement ID changes or after a payment is deleted
   useEffect(() => {
     if (id) {
       fetchPayments();
@@ -64,11 +58,10 @@ const AgreementDetailPage = () => {
   const fetchPayments = async () => {
     setIsLoadingPayments(true);
     try {
-      // Use asLeaseId for type safety
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseId(id || ''))
+        .eq('lease_id', id || '')
         .order('due_date', { ascending: false });
       
       if (error) throw error;
@@ -89,11 +82,10 @@ const AgreementDetailPage = () => {
   const fetchLegalCases = async () => {
     setIsLoadingLegalCases(true);
     try {
-      // Use asTableId for type safety
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('agreement_id', asTableId(id || ''));
+        .eq('agreement_id', id || '');
       
       if (error) throw error;
       
@@ -139,7 +131,6 @@ const AgreementDetailPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
-      {/* Back button */}
       <div className="mb-6">
         <Button variant="ghost" className="gap-2" asChild>
           <a href="/agreements">
@@ -148,10 +139,8 @@ const AgreementDetailPage = () => {
         </Button>
       </div>
 
-      {/* Header with summary info */}
       <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
 
-      {/* Content with tabs */}
       <AgreementTabs 
         agreement={agreement}
         payments={payments}
@@ -160,9 +149,7 @@ const AgreementDetailPage = () => {
         onPaymentDeleted={handlePaymentDeleted}
         onRefreshPayments={fetchPayments}
       >
-        {/* Overview content */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-          {/* Customer Information */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -216,7 +203,6 @@ const AgreementDetailPage = () => {
             </CardContent>
           </Card>
           
-          {/* Vehicle Information */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -255,7 +241,6 @@ const AgreementDetailPage = () => {
             </CardContent>
           </Card>
           
-          {/* Agreement Details */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -299,7 +284,6 @@ const AgreementDetailPage = () => {
           </Card>
         </div>
         
-        {/* Payment history - Pass correct props matching the interface */}
         <PaymentHistory 
           payments={payments || []}
           onPaymentDeleted={handlePaymentDeleted}
@@ -308,12 +292,10 @@ const AgreementDetailPage = () => {
           rentAmount={rentAmount}
         />
         
-        {/* Legal cases */}
         <LegalCaseCard 
           agreementId={id || ''} 
         />
         
-        {/* Traffic fines - Pass required props */}
         <AgreementTrafficFines 
           agreementId={id || ''}
           startDate={agreement.start_date}
@@ -324,4 +306,4 @@ const AgreementDetailPage = () => {
   );
 };
 
-export default AgreementDetailPage;
+export default AgreementDetail;
