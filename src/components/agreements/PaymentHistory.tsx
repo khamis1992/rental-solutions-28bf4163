@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Calendar, CalendarIcon, Trash2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { useCallback } from 'react';
+import { asPaymentId } from '@/utils/database-type-helpers';
 
 // Make sure to export the Payment type to fix the error 
 // in AgreementDetail.tsx
@@ -30,8 +31,9 @@ export interface Payment {
   due_date?: string;
 }
 
-export interface PaymentHistoryProps {
+interface PaymentHistoryProps {
   payments: Payment[];
+  isLoading?: boolean;
   rentAmount?: number | null;
   onPaymentDeleted: () => void;
   leaseStartDate?: string | Date | null;
@@ -40,6 +42,7 @@ export interface PaymentHistoryProps {
 
 export function PaymentHistory({
   payments = [],
+  isLoading = false,
   rentAmount,
   onPaymentDeleted,
   leaseStartDate,
@@ -53,7 +56,7 @@ export function PaymentHistory({
       const { error } = await supabase
         .from('unified_payments')
         .delete()
-        .eq('id', paymentId);
+        .eq('id', asPaymentId(paymentId));
 
       if (error) {
         toast.error(`Failed to delete payment: ${error.message}`);
@@ -151,7 +154,11 @@ export function PaymentHistory({
         </div>
       </CardHeader>
       <CardContent>
-        {payments.length > 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-52">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
+        ) : payments.length > 0 ? (
           <DataTable columns={columns} data={sortedPayments} />
         ) : (
           <div className="text-center p-8 text-muted-foreground">

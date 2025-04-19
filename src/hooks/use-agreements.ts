@@ -347,40 +347,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     gcTime: 900000,
   });
 
-  // Add the fetchAgreement function that will be used by the useAgreement hook
-  const fetchAgreement = async (id: string | undefined) => {
-    if (!id) {
-      throw new Error('Agreement ID is required');
-    }
-    const agreement = await getAgreement(id);
-    if (!agreement) {
-      throw new Error('Agreement not found');
-    }
-    return agreement;
-  };
-
-  // Add the useAgreement hook
-  const useAgreement = (id: string | undefined) => {
-    const {
-      data: agreement,
-      isLoading,
-      error,
-      refetch
-    } = useQuery({
-      queryKey: ['agreement', id],
-      queryFn: () => fetchAgreement(id),
-      enabled: !!id,
-      staleTime: 300000, // 5 minutes
-    });
-    
-    return {
-      agreement,
-      isLoading,
-      error,
-      refetch
-    };
-  };
-
   return {
     agreements,
     isLoading,
@@ -391,12 +357,5 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     createAgreement,
     updateAgreement,
     deleteAgreement,
-    useAgreement,
   };
-};
-
-// Export the useAgreement hook for direct import
-export const useAgreement = (id: string | undefined) => {
-  const { useAgreement: agreementHook } = useAgreements();
-  return agreementHook(id);
 };
