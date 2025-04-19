@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAgreements } from '@/hooks/use-agreements';
-import { castDbId } from '@/lib/supabase-types';
-import { 
-  asTableId, 
-  asAgreementIdColumn, 
-  asLeaseIdColumn, 
-  asImportIdColumn,
-  asTrafficFineIdColumn 
-} from '@/utils/database-type-helpers';
 import { 
   ColumnDef, 
   flexRender, 
@@ -83,7 +75,6 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
-import { UUID, ensureUUID } from '@/types/database-types';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
@@ -190,38 +181,36 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
 
 const fetchItemRelatedMetrics = async (agreementId: string) => {
   try {
-    const validId = ensureUUID(agreementId);
-    
     const { count: overduePaymentCount } = await supabase
       .from('overdue_payments')
       .select('*', { count: 'exact', head: true })
-      .eq('agreement_id', validId);
+      .eq('agreement_id', agreementId);
 
     const { count: totalPaymentsCount } = await supabase
       .from('unified_payments')
       .select('*', { count: 'exact', head: true })
-      .eq('lease_id', validId);
+      .eq('lease_id', agreementId);
 
     const { count: importRevertCount } = await supabase
       .from('agreement_import_reverts')
       .select('*', { count: 'exact', head: true })
-      .eq('import_id', validId);
+      .eq('import_id', agreementId);
 
     const { count: importRevertWithDeletedCount } = await supabase
       .from('agreement_import_reverts')
       .select('*', { count: 'exact', head: true })
-      .eq('import_id', validId)
+      .eq('import_id', agreementId)
       .gt('deleted_count', 0);
 
     const { count: trafficFineCount } = await supabase
       .from('traffic_fines')
       .select('*', { count: 'exact', head: true })
-      .eq('agreement_id', validId);
+      .eq('agreement_id', agreementId);
 
     const { count: unpaidTrafficFineCount } = await supabase
       .from('traffic_fines')
       .select('*', { count: 'exact', head: true })
-      .eq('agreement_id', validId)
+      .eq('agreement_id', agreementId)
       .eq('payment_status', 'pending');
 
     return {
@@ -246,25 +235,24 @@ const fetchItemRelatedMetrics = async (agreementId: string) => {
 };
 
 const fetchAgreementMetrics = async (agreementId: string) => {
-  const validId = ensureUUID(agreementId);
   try {
     const { data: overdueData } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', validId)
+      .eq('agreement_id', agreementId)
       .limit(1);
 
     const { data: paymentsData } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', validId)
+      .eq('lease_id', agreementId)
       .order('created_at', { ascending: false })
       .limit(3);
 
     const { data: importRevertsData } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', validId)
+      .eq('import_id', agreementId)
       .order('created_at', { ascending: false })
       .limit(1);
 
@@ -273,14 +261,14 @@ const fetchAgreementMetrics = async (agreementId: string) => {
     const { data: trafficFinesData } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', validId)
+      .eq('agreement_id', agreementId)
       .order('created_at', { ascending: false })
       .limit(3);
 
     const { data: unpaidFinesData } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', validId)
+      .eq('agreement_id', agreementId)
       .eq('payment_status', 'pending')
       .order('created_at', { ascending: false })
       .limit(3);
@@ -425,7 +413,7 @@ export const AgreementList = () => {
         const { error } = await supabase
           .from('leases')
           .delete()
-          .eq('id', asTableId('leases', id));
+          .eq('id', id);
         
         if (error) {
           console.error(`Failed to delete agreement ${id}:`, error);

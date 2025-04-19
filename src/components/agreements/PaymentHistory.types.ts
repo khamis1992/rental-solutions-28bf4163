@@ -1,5 +1,6 @@
 
-import { UUID } from '@/types/database-types';
+// Import UUID type from our database helpers
+import { UUID } from '@/utils/database-type-helpers';
 
 export interface Payment {
   id: UUID;

@@ -8,12 +8,12 @@ import {
   Phone, Mail, MapPin
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PaymentHistory } from './PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
@@ -23,7 +23,6 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { UUID, castToUUID, ensureUUID } from '@/types/database-types';
 import { Payment } from './PaymentHistory.types';
 
 const AgreementDetail = () => {
@@ -59,18 +58,15 @@ const AgreementDetail = () => {
   const fetchPayments = async () => {
     setIsLoadingPayments(true);
     try {
-      // Ensure we have a properly typed UUID for the database query
-      const validId = id ? ensureUUID(id) : null;
-      if (!validId) throw new Error('Invalid agreement ID');
-      
+      // Use string directly without type conversion for the query
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', validId);
+        .eq('lease_id', id);
       
       if (error) throw error;
       
-      // Cast the response data to our Payment type
+      // Explicitly type the response data as Payment[] to resolve the type mismatch
       setPayments((data || []) as Payment[]);
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -94,13 +90,11 @@ const AgreementDetail = () => {
         return;
       }
       
-      // Ensure we have a properly typed UUID for the customer ID
-      const validCustomerId = ensureUUID(agreement.customers.id);
-      
+      // Use string directly without type conversion
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('customer_id', validCustomerId);
+        .eq('customer_id', agreement.customers.id);
       
       if (error) throw error;
       
@@ -319,6 +313,12 @@ const AgreementDetail = () => {
       </AgreementTabs>
     </div>
   );
+};
+
+// Helper function to format dates
+const dateFormat = (date: string | Date) => {
+  if (!date) return 'N/A';
+  return format(new Date(date), 'MMM d, yyyy');
 };
 
 export default AgreementDetail;

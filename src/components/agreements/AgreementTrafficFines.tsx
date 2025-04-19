@@ -6,8 +6,6 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, FileCheck } from 'lucide-react';
-import { asTrafficFineIdColumn } from '@/utils/database-type-helpers';
-import { UUID, ensureUUID } from '@/types/database-types';
 
 export interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -30,14 +28,11 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     try {
       setIsLoading(true);
       
-      // Ensure we have a properly typed UUID for the database query
-      const validAgreementId = ensureUUID(agreementId);
-      
-      // Cast the agreementId to UUID type explicitly to avoid type issues
+      // Use string ID directly without type conversion
       const { data, error } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', validAgreementId);
+        .eq('agreement_id', agreementId);
       
       if (error) {
         throw error;
@@ -73,7 +68,15 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     {
       accessorKey: 'violation_date',
       header: 'Date',
-      cell: ({ row }: { row: any }) => formatDate(row.original.violation_date),
+      cell: ({ row }: { row: any }) => {
+        const dateString = row.original.violation_date;
+        if (!dateString) return 'N/A';
+        try {
+          return format(new Date(dateString), 'MMM d, yyyy');
+        } catch (error) {
+          return dateString;
+        }
+      },
     },
     {
       accessorKey: 'license_plate',
