@@ -24,6 +24,7 @@ import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
 import { Payment } from './PaymentHistory.types';
+import { hasData } from '@/utils/database-type-helpers';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
