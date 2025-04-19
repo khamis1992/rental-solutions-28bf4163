@@ -100,10 +100,7 @@ export function AgreementTrafficFines({
         </Badge>
   }];
   return <Card className="my-8">
-      <CardHeader>
-        <CardTitle>Traffic Fines</CardTitle>
-        <CardDescription>Traffic violations during the rental period</CardDescription>
-      </CardHeader>
+      
       
     </Card>;
 }
