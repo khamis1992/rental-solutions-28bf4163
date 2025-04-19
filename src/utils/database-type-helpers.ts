@@ -2,7 +2,19 @@
 // Define the UUID type directly here to avoid circular imports
 export type UUID = string;
 
-// Helper functions for converting strings to typed IDs
+// Helper function for consistent type casting of UUIDs
+export function castToUUID(id: string | undefined | null): UUID | null {
+  if (!id) return null;
+  return id as UUID;
+}
+
+// Helper function to ensure we have a valid UUID for queries
+export function ensureUUID(id: string | undefined | null): UUID {
+  if (!id) throw new Error('Invalid ID: null or undefined');
+  return id as UUID;
+}
+
+// Original helper functions with improved implementation
 export function asLeaseId(id: string): UUID {
   return id as UUID;
 }
@@ -31,7 +43,7 @@ export function asImportId(id: string): UUID {
   return id as UUID;
 }
 
-// Add functions needed by AgreementList.tsx
+// Helper functions for column-specific IDs
 export function asAgreementIdColumn(id: string): UUID {
   return id as UUID;
 }

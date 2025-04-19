@@ -83,6 +83,7 @@ import {
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { UUID, ensureUUID } from '@/types/database-types';
 
 const fetchOverduePayments = async (agreementId: string) => {
   try {
@@ -184,6 +185,124 @@ const fetchTrafficFinesByAgreementId = async (agreementId: string) => {
     }
   } catch (err) {
     console.error("Error fetching traffic fines by agreement ID:", err);
+  }
+};
+
+const fetchItemRelatedMetrics = async (agreementId: string) => {
+  try {
+    const validId = ensureUUID(agreementId);
+    
+    const { count: overduePaymentCount } = await supabase
+      .from('overdue_payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('agreement_id', validId);
+
+    const { count: totalPaymentsCount } = await supabase
+      .from('unified_payments')
+      .select('*', { count: 'exact', head: true })
+      .eq('lease_id', validId);
+
+    const { count: importRevertCount } = await supabase
+      .from('agreement_import_reverts')
+      .select('*', { count: 'exact', head: true })
+      .eq('import_id', validId);
+
+    const { count: importRevertWithDeletedCount } = await supabase
+      .from('agreement_import_reverts')
+      .select('*', { count: 'exact', head: true })
+      .eq('import_id', validId)
+      .gt('deleted_count', 0);
+
+    const { count: trafficFineCount } = await supabase
+      .from('traffic_fines')
+      .select('*', { count: 'exact', head: true })
+      .eq('agreement_id', validId);
+
+    const { count: unpaidTrafficFineCount } = await supabase
+      .from('traffic_fines')
+      .select('*', { count: 'exact', head: true })
+      .eq('agreement_id', validId)
+      .eq('payment_status', 'pending');
+
+    return {
+      overduePaymentCount: overduePaymentCount || 0,
+      totalPaymentsCount: totalPaymentsCount || 0,
+      importRevertCount: importRevertCount || 0,
+      importRevertWithDeletedCount: importRevertWithDeletedCount || 0,
+      trafficFineCount: trafficFineCount || 0,
+      unpaidTrafficFineCount: unpaidTrafficFineCount || 0
+    };
+  } catch (error) {
+    console.error("Error fetching metrics:", error);
+    return {
+      overduePaymentCount: 0,
+      totalPaymentsCount: 0,
+      importRevertCount: 0,
+      importRevertWithDeletedCount: 0,
+      trafficFineCount: 0,
+      unpaidTrafficFineCount: 0
+    };
+  }
+};
+
+const fetchAgreementMetrics = async (agreementId: string) => {
+  const validId = ensureUUID(agreementId);
+  try {
+    const { data: overdueData } = await supabase
+      .from('overdue_payments')
+      .select('*')
+      .eq('agreement_id', validId)
+      .limit(1);
+
+    const { data: paymentsData } = await supabase
+      .from('unified_payments')
+      .select('*')
+      .eq('lease_id', validId)
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    const { data: importRevertsData } = await supabase
+      .from('agreement_import_reverts')
+      .select('*')
+      .eq('import_id', validId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const hasImportReverts = importRevertsData && importRevertsData.length > 0;
+    
+    const { data: trafficFinesData } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('agreement_id', validId)
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    const { data: unpaidFinesData } = await supabase
+      .from('traffic_fines')
+      .select('*')
+      .eq('agreement_id', validId)
+      .eq('payment_status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(3);
+
+    return {
+      overdueData,
+      paymentsData,
+      importRevertsData,
+      hasImportReverts,
+      trafficFinesData,
+      unpaidFinesData
+    };
+  } catch (error) {
+    console.error("Error fetching agreement metrics:", error);
+    return {
+      overdueData: null,
+      paymentsData: null,
+      importRevertsData: null,
+      hasImportReverts: false,
+      trafficFinesData: null,
+      unpaidFinesData: null
+    };
   }
 };
 

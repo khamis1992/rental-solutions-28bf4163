@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -22,7 +23,7 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { UUID } from '@/types/database-types';
+import { UUID, castToUUID, ensureUUID } from '@/types/database-types';
 import { Payment } from './PaymentHistory.types';
 
 const AgreementDetail = () => {
@@ -58,14 +59,19 @@ const AgreementDetail = () => {
   const fetchPayments = async () => {
     setIsLoadingPayments(true);
     try {
+      // Ensure we have a properly typed UUID for the database query
+      const validId = id ? ensureUUID(id) : null;
+      if (!validId) throw new Error('Invalid agreement ID');
+      
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', id as UUID);
+        .eq('lease_id', validId);
       
       if (error) throw error;
       
-      setPayments(data as Payment[]);
+      // Cast the response data to our Payment type
+      setPayments((data || []) as Payment[]);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
@@ -88,10 +94,13 @@ const AgreementDetail = () => {
         return;
       }
       
+      // Ensure we have a properly typed UUID for the customer ID
+      const validCustomerId = ensureUUID(agreement.customers.id);
+      
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('customer_id', agreement.customers.id as UUID);
+        .eq('customer_id', validCustomerId);
       
       if (error) throw error;
       

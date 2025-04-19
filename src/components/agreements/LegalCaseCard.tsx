@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
-import { UUID } from '@/types/database-types';
+import { UUID, ensureUUID } from '@/types/database-types';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -26,10 +26,12 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
       try {
         setIsLoading(true);
         // First get the lease to find the customer_id
+        const validAgreementId = ensureUUID(agreementId);
+        
         const leaseResponse = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', agreementId as UUID);
+          .eq('id', validAgreementId);
         
         if (leaseResponse.error || !leaseResponse.data || leaseResponse.data.length === 0) {
           console.error("Could not find lease:", leaseResponse.error);
@@ -44,10 +46,11 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         }
         
         // Then fetch customer details
+        const validCustomerId = ensureUUID(customerId);
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', customerId as UUID)
+          .eq('id', validCustomerId)
           .single();
           
         if (customerError) {
@@ -60,7 +63,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: casesData, error: casesError } = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', customerId as UUID);
+          .eq('customer_id', validCustomerId);
           
         if (casesError) {
           console.error("Error fetching legal cases:", casesError);
@@ -92,10 +95,11 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         resolution_date: new Date().toISOString(),
       };
       
+      const validCaseId = ensureUUID(id);
       const { error } = await supabase
         .from('legal_cases')
         .update(updateData)
-        .eq('id', id as UUID);
+        .eq('id', validCaseId);
         
       if (error) {
         throw error;
