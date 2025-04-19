@@ -22,8 +22,7 @@ import {
   ChevronLeft,
   UserCog,
   Sliders,
-  Car,
-  FileCode
+  Car
 } from "lucide-react";
 import { useProfile } from "@/contexts/ProfileContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -230,7 +229,7 @@ const Sidebar = () => {
                       to="/settings"
                       icon={<UserCog className="h-5 w-5" />}
                       label="User Settings"
-                      isActive={isActive('/settings') && !isActive('/settings/system') && !isActive('/settings/api')}
+                      isActive={isActive('/settings') && !isActive('/settings/system')}
                     />
                     
                     <NavLink
@@ -239,13 +238,6 @@ const Sidebar = () => {
                       label="System Settings"
                       isActive={isActive('/settings/system')}
                     />
-
-                    <NavLink
-                      to="/settings/api"
-                      icon={<FileCode className="h-5 w-5" />}
-                      label="API Management"
-                      isActive={isActive('/settings/api')}
-                    />
                   </>
                 )}
                 
@@ -253,13 +245,13 @@ const Sidebar = () => {
                   <NavGroup 
                     label="Settings" 
                     icon={<Settings className="h-5 w-5" />}
-                    defaultOpen={hasActiveChild(['/settings', '/settings/system', '/settings/api'])}
+                    defaultOpen={hasActiveChild(['/settings', '/settings/system'])}
                   >
                     <Link
                       to="/settings"
                       className={cn(
                         "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                        isActive('/settings') && !isActive('/settings/system') && !isActive('/settings/api') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
+                        isActive('/settings') && !isActive('/settings/system') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
                       )}
                     >
                       <UserCog className="h-4 w-4" />
@@ -275,17 +267,6 @@ const Sidebar = () => {
                     >
                       <Sliders className="h-4 w-4" />
                       <span>System Settings</span>
-                    </Link>
-
-                    <Link
-                      to="/settings/api"
-                      className={cn(
-                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
-                        isActive('/settings/api') ? "bg-blue-600 text-white" : "text-gray-200 hover:bg-gray-800"
-                      )}
-                    >
-                      <FileCode className="h-4 w-4" />
-                      <span>API Management</span>
                     </Link>
                   </NavGroup>
                 )}

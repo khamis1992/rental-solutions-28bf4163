@@ -48,7 +48,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, SimpleAgreement, AgreementSearchParams } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
@@ -74,7 +74,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 
 interface AgreementListProps {
@@ -90,9 +90,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     pageIndex: 0,
     pageSize: 10,
   });
-  const [singleDeleteId, setSingleDeleteId] = useState<string | null>(null);
-  const [singleDeleteNumber, setSingleDeleteNumber] = useState<string | null>(null);
-  const [singleDeleteDialogOpen, setSingleDeleteDialogOpen] = useState(false);
   
   const queryClient = useQueryClient();
   
@@ -103,15 +100,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     searchParams, 
     setSearchParams,
     deleteAgreement 
-  } = useAgreements();
+  } = useAgreements({ query: searchQuery, status: statusFilter });
   
   useEffect(() => {
-    setSearchParams({
-      ...searchParams,
-      query: searchQuery,
-      status: statusFilter
-    });
-  }, [searchQuery, statusFilter, setSearchParams, searchParams]);
+    setSearchParams(prev => ({ ...prev, query: searchQuery }));
+  }, [searchQuery, setSearchParams]);
   
   const { useRealtimeUpdates: useVehicleRealtimeUpdates } = useVehicles();
   useVehicleRealtimeUpdates();
@@ -136,7 +129,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id
+      index => agreements[parseInt(index)].id as string
     );
     
     console.log("Selected IDs for deletion:", selectedIds);
@@ -146,6 +139,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     
     for (const id of selectedIds) {
       try {
+        console.log(`Starting deletion process for agreement ${id}`);
         
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
@@ -241,21 +235,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     queryClient.invalidateQueries({ queryKey: ['agreements'] });
   };
 
-  const handleSingleDelete = async () => {
-    if (!singleDeleteId) return;
-    
-    try {
-      await deleteAgreement.mutateAsync(singleDeleteId);
-      setSingleDeleteDialogOpen(false);
-      setSingleDeleteId(null);
-      setSingleDeleteNumber(null);
-    } catch (error) {
-      console.error("Error deleting agreement:", error);
-      toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
-  };
-
-  const columns: ColumnDef<SimpleAgreement>[] = [
+  const columns: ColumnDef<any>[] = [
     {
       id: "select",
       header: ({ table }) => (
@@ -286,7 +266,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           <Link 
             to={`/agreements/${row.original.id}`}
             className="font-medium text-primary hover:underline"
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
               console.log("Navigating to agreement detail:", row.original.id);
               navigate(`/agreements/${row.original.id}`);
             }}
@@ -297,10 +278,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       ),
     },
     {
-      accessorKey: "profiles.full_name",
+      accessorKey: "customers.full_name",
       header: "Customer",
       cell: ({ row }) => {
-        const customer = row.original.customers || row.original.profiles;
+        const customer = row.original.customers;
         return (
           <div>
             {customer && customer.id ? (
@@ -467,9 +448,9 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
                 onClick={() => {
-                  setSingleDeleteId(agreement.id);
-                  setSingleDeleteNumber(agreement.agreement_number);
-                  setSingleDeleteDialogOpen(true);
+                  if (window.confirm(`Are you sure you want to delete agreement ${agreement.agreement_number}?`)) {
+                    deleteAgreement.mutate(agreement.id as string);
+                  }
                 }}
               >
                 Delete agreement
@@ -481,10 +462,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     },
   ];
 
-  const tableData = agreements || [];
-
   const table = useReactTable({
-    data: tableData,
+    data: agreements || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -501,33 +480,16 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
       pagination,
     },
     manualPagination: false,
-    pageCount: Math.ceil((tableData.length || 0) / 10),
+    pageCount: Math.ceil((agreements?.length || 0) / 10),
   });
 
   const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
-    setSearchParams({
-      ...searchParams,
-      status: value
-    });
+    setSearchParams(prev => ({ ...prev, status: value }));
   };
 
   const selectedCount = Object.keys(rowSelection).length;
-  
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertTitle>Error loading agreements</AlertTitle>
-        <AlertDescription>
-          {error instanceof Error 
-            ? error.message 
-            : "An unknown error occurred while loading agreements. Please try again."}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -569,6 +531,14 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           </Button>
         </div>
       </div>
+      
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error instanceof Error ? error.message : String(error)}</AlertDescription>
+        </Alert>
+      )}
       
       {(searchQuery || statusFilter !== 'all') && (
         <div className="flex items-center text-sm text-muted-foreground mb-1">
@@ -618,7 +588,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                   ))}
                 </TableRow>
               ))
-            ) : tableData.length > 0 ? (
+            ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.id}
@@ -649,7 +619,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         </Table>
       </div>
       
-      {tableData.length > 0 && (
+      {agreements && agreements.length > 0 && (
         <Pagination>
           <PaginationContent>
             <PaginationItem>
@@ -724,32 +694,6 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
               ) : (
                 'Delete Agreements'
               )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={singleDeleteDialogOpen} onOpenChange={setSingleDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Agreement</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete agreement {singleDeleteNumber}?
-              This action cannot be undone and will permanently remove all associated data including payments and records.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setSingleDeleteId(null);
-              setSingleDeleteNumber(null);
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleSingleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
