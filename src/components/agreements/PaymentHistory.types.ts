@@ -1,5 +1,5 @@
+
 import { UUID } from '@/utils/database-type-helpers';
-import { Database } from '@/types/database.types';
 
 /**
  * Payment interface definition with required fields exposed
@@ -24,7 +24,7 @@ export interface Payment {
 }
 
 // Database-specific payment type
-export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
+export type DbPayment = any; // Replace with actual Database type when available
 
 /**
  * Extended payment interface with additional fields

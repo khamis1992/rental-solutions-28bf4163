@@ -6,7 +6,7 @@ import {
   ClipboardList, FileText, ChevronLeft, 
   Phone, Mail, MapPin
 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -25,7 +25,7 @@ import { usePayments } from '@/hooks/use-payments';
 import { supabase } from '@/lib/supabase';
 import { fixAgreementPayments } from '@/lib/supabase';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
-import { UUID } from '@/types/database-types';
+import { UUID } from '@/utils/database-type-helpers';
 import { Payment } from './PaymentHistory.types';
 
 const AgreementDetail = () => {
@@ -37,7 +37,16 @@ const AgreementDetail = () => {
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(agreement, id || '');
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
+  
+  const { 
+    payments, 
+    isLoading: isLoadingPayments, 
+    fetchPayments: fetchPaymentsHook, 
+    addPayment,
+    updatePayment,
+    deletePayment
+  } = usePayments(id || '');
+  
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
 
@@ -55,38 +64,14 @@ const AgreementDetail = () => {
 
   useEffect(() => {
     if (id) {
-      fetchPayments();
+      fetchPaymentsHook();
       fetchLegalCases();
     }
-  }, [id]);
-
-  const fetchPayments = async () => {
-    setIsLoadingPayments(true);
-    try {
-      const { data, error } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', id as UUID);
-      
-      if (error) throw error;
-      
-      setPayments(data as Payment[]);
-    } catch (error) {
-      console.error('Error fetching payments:', error);
-      toast({
-        title: 'Error fetching payments',
-        description: 'Could not load payment history for this agreement',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoadingPayments(false);
-    }
-  };
+  }, [id, fetchPaymentsHook]);
 
   const fetchLegalCases = async () => {
     setIsLoadingLegalCases(true);
     try {
-      // For the legal_cases table, query by customer_id instead of agreement_id
       if (!agreement?.customers?.id) {
         console.log("No customer ID available yet for legal cases query");
         setIsLoadingLegalCases(false);
@@ -109,7 +94,7 @@ const AgreementDetail = () => {
   };
 
   const handlePaymentDeleted = () => {
-    fetchPayments();
+    fetchPaymentsHook();
   };
 
   const refetchAgreement = async () => {
@@ -148,14 +133,26 @@ const AgreementDetail = () => {
       const result = await forceGeneratePaymentForAgreement(supabase, id);
       
       if (result.success) {
-        toast.success("Payment schedule generated successfully");
+        toast({
+          title: "Success",
+          description: "Payment schedule generated successfully",
+          variant: "default",
+        });
         refetchAgreement();
       } else {
-        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
+        toast({
+          title: "Error",
+          description: `Failed to generate payment: ${result.message || 'Unknown error'}`,
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error generating payment:", error);
-      toast.error("Failed to generate payment schedule");
+      toast({
+        title: "Error",
+        description: "Failed to generate payment schedule",
+        variant: "destructive",
+      });
     } finally {
       setIsGeneratingPayment(false);
     }
@@ -169,15 +166,27 @@ const AgreementDetail = () => {
       const result = await fixAgreementPayments(id);
       
       if (result.success) {
-        toast.success(result.message || "Payment maintenance completed");
+        toast({
+          title: "Success",
+          description: result.message || "Payment maintenance completed",
+          variant: "default",
+        });
         refetchAgreement();
-        fetchPayments();
+        fetchPaymentsHook();
       } else {
-        toast.error(result.message || "Payment maintenance failed");
+        toast({
+          title: "Error",
+          description: result.message || "Payment maintenance failed",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error running maintenance job:", error);
-      toast.error("Failed to run maintenance job");
+      toast({
+        title: "Error",
+        description: "Failed to run maintenance job",
+        variant: "destructive",
+      });
     } finally {
       setIsRunningMaintenance(false);
     }
@@ -212,8 +221,8 @@ const AgreementDetail = () => {
         payments={payments}
         isLoadingPayments={isLoadingPayments}
         rentAmount={rentAmount}
-        onPaymentDeleted={() => fetchPayments()}
-        onRefreshPayments={fetchPayments}
+        onPaymentDeleted={handlePaymentDeleted}
+        onRefreshPayments={fetchPaymentsHook}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <Card>

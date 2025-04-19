@@ -1,8 +1,9 @@
+
 import { useSupabaseQuery, useSupabaseMutation } from './use-supabase-query';
 import { supabase } from '@/lib/supabase';
 import { hasData } from '@/utils/database-type-helpers';
 import { Payment } from '@/components/agreements/PaymentHistory.types';
-import { asLeaseIdColumn, asPaymentId } from '@/utils/database-type-helpers';
+import { asLeaseIdColumn, asPaymentId, UUID } from '@/utils/database-type-helpers';
 
 export const usePayments = (agreementId?: string) => {
   const { data, isLoading, error, refetch } = useSupabaseQuery(
