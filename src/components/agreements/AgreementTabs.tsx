@@ -4,7 +4,7 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { Payment } from './PaymentHistory.types';
 
 interface AgreementTabsProps {
-  agreement: Agreement;
+  agreement: Agreement | null;
   children: React.ReactNode;
   payments: Payment[];
   isLoadingPayments: boolean;

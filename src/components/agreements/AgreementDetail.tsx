@@ -47,7 +47,7 @@ const AgreementDetail = () => {
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
 
   const { agreement, isLoading: isAgreementLoading, error: agreementError } = useAgreement(id);
-  const [localAgreement, setAgreement] = useState<any>(null);
+  const [localAgreement, setLocalAgreement] = useState<any>(null);
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(localAgreement, id || '');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
@@ -56,7 +56,7 @@ const AgreementDetail = () => {
 
   useEffect(() => {
     if (agreement) {
-      setAgreement(agreement);
+      setLocalAgreement(agreement);
     }
   }, [agreement]);
 
@@ -73,11 +73,13 @@ const AgreementDetail = () => {
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', id);
+        .eq('lease_id', id || '');
       
       if (error) throw error;
       
-      setPayments((data || []) as Payment[]);
+      // Cast to Payment[] to match expected type
+      const typedPayments = (data || []) as unknown as Payment[];
+      setPayments(typedPayments);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
@@ -120,7 +122,7 @@ const AgreementDetail = () => {
 
   const refetchAgreement = async () => {
     if (id && agreement) {
-      setAgreement(agreement);
+      setLocalAgreement(agreement);
     }
   };
 
@@ -206,10 +208,54 @@ const AgreementDetail = () => {
     </div>
   );
 
-  const dateFormat = (date: string | Date) => {
+  const dateFormat = (date: string | Date | undefined | null) => {
     if (!date) return 'N/A';
-    return format(new Date(date), 'MMM d, yyyy');
+    try {
+      return format(new Date(date), 'MMM d, yyyy');
+    } catch (err) {
+      return 'Invalid date';
+    }
   };
+
+  if (isAgreementLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-6">
+          <Button variant="ghost" className="gap-2" asChild>
+            <a href="/agreements">
+              <ChevronLeft className="h-4 w-4" /> Back to Agreements
+            </a>
+          </Button>
+        </div>
+        <div className="animate-pulse">
+          <div className="h-28 bg-slate-200 rounded-lg mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div className="h-64 bg-slate-200 rounded-lg"></div>
+            <div className="h-64 bg-slate-200 rounded-lg"></div>
+            <div className="h-64 bg-slate-200 rounded-lg"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (agreementError) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="mb-6">
+          <Button variant="ghost" className="gap-2" asChild>
+            <a href="/agreements">
+              <ChevronLeft className="h-4 w-4" /> Back to Agreements
+            </a>
+          </Button>
+        </div>
+        <div className="bg-red-50 border border-red-200 p-6 rounded-lg text-center">
+          <h2 className="text-lg font-medium text-red-800">Error loading agreement</h2>
+          <p className="text-red-600 mt-2">Please try again or contact support if the problem persists.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">

@@ -6,12 +6,14 @@ import { Agreement } from '@/lib/validation-schemas/agreement';
 import { Badge } from '@/components/ui/badge';
 
 interface AgreementSummaryHeaderProps {
-  agreement: Agreement;
+  agreement: Agreement | null;
   rentAmount: number | null;
 }
 
 export function AgreementSummaryHeader({ agreement, rentAmount }: AgreementSummaryHeaderProps) {
-  const formattedStatus = (status: string) => {
+  const formattedStatus = (status: string | undefined) => {
+    if (!status) return <Badge variant="outline">UNKNOWN</Badge>;
+    
     switch (status.toLowerCase()) {
       case 'active':
         return <Badge variant="success">ACTIVE</Badge>;
@@ -30,8 +32,43 @@ export function AgreementSummaryHeader({ agreement, rentAmount }: AgreementSumma
     }
   };
 
-  const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
-  const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
+  // If agreement is null, show a loading or placeholder state
+  if (!agreement) {
+    return (
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg p-6 shadow-sm border border-slate-200">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                Loading Agreement...
+              </h1>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Make sure start_date and end_date are valid Date objects
+  let startDate, endDate;
+  
+  try {
+    startDate = agreement.start_date instanceof Date 
+      ? agreement.start_date 
+      : agreement.start_date ? new Date(agreement.start_date) : new Date();
+  } catch (error) {
+    console.error('Error parsing start_date:', error);
+    startDate = new Date();
+  }
+  
+  try {
+    endDate = agreement.end_date instanceof Date 
+      ? agreement.end_date 
+      : agreement.end_date ? new Date(agreement.end_date) : new Date();
+  } catch (error) {
+    console.error('Error parsing end_date:', error);
+    endDate = new Date();
+  }
 
   return (
     <div className="bg-gradient-to-r from-slate-50 to-slate-100 rounded-lg p-6 shadow-sm border border-slate-200">
