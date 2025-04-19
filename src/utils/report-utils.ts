@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
+import { processArabicText, validateArabicRendering } from './arabic-text-utils';
 
 /**
  * Generates a CSV string from an array of objects
@@ -108,13 +109,13 @@ const safelyAddImage = (doc: jsPDF, imgPath: string, x: number, y: number, w: nu
  * @param doc jsPDF document instance
  * @param title Report title
  * @param dateRange Date range for the report
- * @returns Y position after adding header elements
+ * @returns Promise resolving to Y position after adding header elements
  */
-export const addReportHeader = (
+export const addReportHeader = async (
   doc: jsPDF, 
   title: string, 
   dateRange: { from: Date | undefined; to: Date | undefined }
-): number => {
+): Promise<number> => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Set logo coordinates and dimensions
@@ -162,7 +163,7 @@ export const addReportHeader = (
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(44, 62, 80);
   const processedTitle = await processArabicText(title);
-    doc.text(processedTitle, pageWidth / 2, 45, { align: 'center' });
+  doc.text(processedTitle, pageWidth / 2, 45, { align: 'center' });
   
   // Add date range with updated format
   doc.setFontSize(12);
@@ -249,8 +250,6 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
  * @param contentGenerator Function that adds content to the document
  * @returns PDF document
  */
-import { processArabicText, validateArabicRendering } from './arabic-text-utils';
-
 export const generateStandardReport = async (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
@@ -276,10 +275,11 @@ export const generateStandardReport = async (
     doc.setTextColor(44, 62, 80);
     doc.text('ALARAF CAR RENTAL', pageWidth / 2, 15, { align: 'center' });
     
-    // Report Title
+    // Process and add Report Title with Arabic text support
+    const processedTitle = await processArabicText(title);
     doc.setFontSize(14);
     doc.setTextColor(70, 70, 70);
-    doc.text(title, pageWidth / 2, 35, { align: 'center' });
+    doc.text(processedTitle, pageWidth / 2, 35, { align: 'center' });
     
     // Date Range
     doc.setFontSize(10);
