@@ -1,4 +1,3 @@
-
 import { Database } from "@/types/database.types";
 import { PostgrestSingleResponse, PostgrestResponse } from "@supabase/supabase-js";
 
@@ -15,21 +14,6 @@ export function asTableId<T extends keyof DbTables>(
   id: string | uuid | null | undefined
 ): DbTables[T]['Row']['id'] {
   return id as DbTables[T]['Row']['id'];
-}
-
-/**
- * Cast string values to database column types
- * Handles type safety for Supabase queries
- */
-export function asColumnValue<
-  T extends keyof DbTables,
-  K extends keyof DbTables[T]['Row']
->(
-  _table: T,
-  _column: K,
-  value: string | number | boolean | null | undefined
-): DbTables[T]['Row'][K] {
-  return value as DbTables[T]['Row'][K];
 }
 
 // Type for UUID values
