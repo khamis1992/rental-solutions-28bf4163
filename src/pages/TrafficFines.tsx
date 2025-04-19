@@ -9,7 +9,7 @@ import TrafficFineEntry from "@/components/fines/TrafficFineEntry";
 import TrafficFineAnalytics from "@/components/fines/TrafficFineAnalytics";
 import TrafficFineValidation from "@/components/fines/TrafficFineValidation";
 import { useParams } from "react-router-dom";
-import AgreementTrafficFines from "@/components/agreements/AgreementTrafficFines";
+import { AgreementTrafficFines } from "@/components/agreements/AgreementTrafficFines";
 import { useAgreement } from "@/hooks/use-agreements";
 
 const TrafficFines = () => {
