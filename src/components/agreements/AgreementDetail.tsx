@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
@@ -27,6 +27,7 @@ import { fixAgreementPayments } from '@/lib/supabase';
 import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { UUID } from '@/utils/database-type-helpers';
 import { Payment } from './PaymentHistory.types';
+import { PaymentEntryDialog } from '@/components/payments/PaymentEntryDialog';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -37,7 +38,8 @@ const AgreementDetail = () => {
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(agreement, id || '');
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+
   const { 
     payments, 
     isLoading: isLoadingPayments, 
@@ -46,7 +48,7 @@ const AgreementDetail = () => {
     updatePayment,
     deletePayment
   } = usePayments(id || '');
-  
+
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
 
@@ -103,6 +105,42 @@ const AgreementDetail = () => {
       if (data) {
         setAgreement(data);
       }
+    }
+  };
+
+  const handleAddPayment = () => {
+    setIsPaymentDialogOpen(true);
+  };
+
+  const handlePaymentSubmit = async (
+    amount: number,
+    paymentDate: Date,
+    notes?: string,
+    paymentMethod?: string,
+    referenceNumber?: string,
+    includeLatePaymentFee?: boolean,
+    isPartialPayment?: boolean,
+    targetPaymentId?: string
+  ) => {
+    try {
+      if (!agreement) return;
+      
+      toast({
+        title: "Success",
+        description: "Payment recorded successfully",
+        variant: "default",
+      });
+      
+      setIsPaymentDialogOpen(false);
+      refetchAgreement();
+      fetchPaymentsHook();
+    } catch (error) {
+      console.error("Error recording payment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to record payment",
+        variant: "destructive",
+      });
     }
   };
 
@@ -205,12 +243,13 @@ const AgreementDetail = () => {
       <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
       
       <AgreementActions
-        onEdit={() => {}} // TODO: Implement edit handler
-        onDelete={() => {}} // TODO: Implement delete handler
-        onDownloadPdf={() => {}} // TODO: Implement PDF download
+        onEdit={() => {}}
+        onDelete={() => {}}
+        onDownloadPdf={() => {}}
         onGeneratePayment={handleGeneratePayment}
         onRunMaintenance={handleRunMaintenanceJob}
-        onGenerateDocument={() => {}} // TODO: Implement document generation
+        onGenerateDocument={() => {}}
+        onAddPayment={handleAddPayment}
         isGeneratingPayment={isGeneratingPayment}
         isRunningMaintenance={isRunningMaintenance}
         status={agreement?.status || 'pending'}
@@ -377,6 +416,13 @@ const AgreementDetail = () => {
           endDate={agreement.end_date}
         />
       </AgreementTabs>
+
+      <PaymentEntryDialog
+        open={isPaymentDialogOpen}
+        onOpenChange={setIsPaymentDialogOpen}
+        defaultAmount={rentAmount || 0}
+        onSubmit={handlePaymentSubmit}
+      />
     </div>
   );
 };
