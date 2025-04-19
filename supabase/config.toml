@@ -3,3 +3,6 @@ project_id = "vqdlsidkucrownbfuouq"
 
 [functions.validate-traffic-fine]
 verify_jwt = true
+
+[functions.process-arabic-text]
+verify_jwt = true
