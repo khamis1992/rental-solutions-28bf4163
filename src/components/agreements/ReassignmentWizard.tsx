@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -19,7 +20,6 @@ import {
   asPaymentStatusColumn,
   safelyExtractData
 } from '@/utils/database-type-helpers';
-import { UUID } from '@/utils/database-type-helpers';
 
 interface AgreementSummary {
   id: string;
@@ -47,7 +47,14 @@ interface ReassignmentWizardProps {
   onComplete: () => void;
 }
 
-export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgreementId, vehicleId, onComplete }: ReassignmentWizardProps) => {
+export function ReassignmentWizard({
+  open,
+  onClose,
+  sourceAgreementId,
+  targetAgreementId,
+  vehicleId,
+  onComplete
+}: ReassignmentWizardProps) {
   const [currentStep, setCurrentStep] = useState<string>('review');
   const [sourceAgreement, setSourceAgreement] = useState<AgreementSummary | null>(null);
   const [targetAgreement, setTargetAgreement] = useState<AgreementSummary | null>(null);
@@ -86,95 +93,101 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
     setConfirmation(false);
   };
 
-  const fetchAgreementData = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('leases')
-        .select(`
-          id,
-          agreement_number,
-          start_date,
-          end_date,
-          rent_amount,
-          status,
-          profiles:customer_id(*)
-        `)
-        .eq('id', id as UUID)
-        .single();
-      
-      if (error) throw error;
-      
-      if (data) {
-        const agreementData = {
-          ...data,
-          customer: data.profiles
-        };
-        return agreementData;
-      }
-      
-      return null;
-    } catch (error) {
-      console.error("Error fetching agreement data:", error);
-      return null;
-    }
-  };
-
-  const fetchVehicleData = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', id as UUID)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error("Error fetching vehicle data:", error);
-      return null;
-    }
-  };
-
-  const fetchPayments = async (agreementId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('unified_payments')
-        .select('*')
-        .eq('lease_id', agreementId as UUID);
-      
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error("Error fetching payments:", error);
-      return [];
-    }
-  };
-
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const sourceAgreementData = await fetchAgreementData(sourceAgreementId);
-      const targetAgreementData = await fetchAgreementData(targetAgreementId);
-      const vehicleData = await fetchVehicleData(vehicleId);
+      // Load source agreement details
+      const { data: sourceData, error: sourceError } = await supabase
+        .from('leases')
+        .select(`
+          id, 
+          agreement_number, 
+          start_date, 
+          end_date, 
+          status, 
+          customer_id, 
+          vehicle_id,
+          profiles:customer_id (full_name)
+        `)
+        .eq('id', asLeaseId(sourceAgreementId))
+        .single();
+        
+      if (sourceError) {
+        console.error("Error loading source agreement:", sourceError);
+        return;
+      }
       
-      setSourceAgreement(sourceAgreementData);
-      setTargetAgreement(targetAgreementData);
+      const sourceDataWithCustomerName = sourceData ? {
+        ...sourceData,
+        customer_name: sourceData.profiles?.full_name
+      } : null;
+      
+      setSourceAgreement(sourceDataWithCustomerName);
+      
+      // Load target agreement details
+      const { data: targetData, error: targetError } = await supabase
+        .from('leases')
+        .select(`
+          id, 
+          agreement_number, 
+          start_date, 
+          end_date, 
+          status, 
+          customer_id, 
+          vehicle_id,
+          profiles:customer_id (full_name)
+        `)
+        .eq('id', asLeaseId(targetAgreementId))
+        .single();
+        
+      if (targetError) {
+        console.error("Error loading target agreement:", targetError);
+        return;
+      }
+      
+      const targetDataWithCustomerName = targetData ? {
+        ...targetData,
+        customer_name: targetData.profiles?.full_name
+      } : null;
+      
+      setTargetAgreement(targetDataWithCustomerName);
+      
+      // Load vehicle details
+      const { data: vehicleData, error: vehicleError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', asVehicleId(vehicleId))
+        .single();
+        
+      if (vehicleError) {
+        console.error("Error loading vehicle details:", vehicleError);
+        return;
+      }
+      
       setVehicleDetails(vehicleData);
       
-      const paymentsData = await fetchPayments(sourceAgreementId);
-      const payments = safelyExtractData(paymentsData) || [];
-      const pendingCount = Array.isArray(payments) ? 
-        payments.filter(p => p.status === 'pending').length : 0;
-      const overdueCount = Array.isArray(payments) ? 
-        payments.filter(p => p.status === 'overdue').length : 0;
-      const totalAmount = Array.isArray(payments) ? 
-        payments.reduce((sum, p) => sum + (p.amount || 0), 0) : 0;
-      
-      setPaymentsSummary({
-        pending: pendingCount,
-        overdue: overdueCount,
-        total_amount: totalAmount
-      });
+      // Get payment summary
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('unified_payments')
+        .select('id, status, amount')
+        .eq('lease_id', asLeaseIdColumn(sourceAgreementId))
+        .in('status', [asPaymentStatusColumn('pending'), asPaymentStatusColumn('overdue')]);
+        
+      if (!paymentsError && paymentsData) {
+        const payments = safelyExtractData(paymentsData) || [];
+        const pendingCount = Array.isArray(payments) ? 
+          payments.filter(p => p.status === 'pending').length : 0;
+        const overdueCount = Array.isArray(payments) ? 
+          payments.filter(p => p.status === 'overdue').length : 0;
+        const totalAmount = Array.isArray(payments) ? 
+          payments.reduce((sum, p) => sum + (p.amount || 0), 0) : 0;
+        
+        setPaymentsSummary({
+          pending: pendingCount,
+          overdue: overdueCount,
+          total_amount: totalAmount
+        });
+      }
     } catch (error) {
       console.error("Error in loadData:", error);
     } finally {
@@ -203,6 +216,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
     
     setIsProcessing(true);
     try {
+      // 1. Close the source agreement
       const { error: closeError } = await supabase
         .from('leases')
         .update({ 
@@ -218,6 +232,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         return;
       }
       
+      // 2. Assign vehicle to target agreement
       const { error: assignError } = await supabase
         .from('leases')
         .update({ 
@@ -233,6 +248,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         return;
       }
       
+      // 3. Record the vehicle reassignment
       await recordVehicleReassignment({
         sourceAgreementId,
         sourceAgreementNumber: sourceAgreement?.agreement_number || '',
@@ -243,10 +259,12 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         transferObligations: transferPayments
       });
       
+      // 4. Transfer payments if requested
       if (transferPayments) {
         await transferObligations(sourceAgreementId, targetAgreementId);
       }
       
+      // 5. Generate documents if requested
       if (generateDocs) {
         toast.info("Document generation feature will be implemented in a future update");
       }
@@ -373,6 +391,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         </div>
       </div>
       
+      {/* Financial Impact */}
       {(paymentsSummary.pending > 0 || paymentsSummary.overdue > 0) && (
         <div className="bg-amber-50 border border-amber-200 rounded-md p-4">
           <div className="flex items-start">
@@ -395,6 +414,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
   
   const renderOptionsStep = () => (
     <div className="space-y-6">
+      {/* Options for handling payments */}
       {(paymentsSummary.pending > 0 || paymentsSummary.overdue > 0) && (
         <div className="border rounded-md p-4">
           <h3 className="text-sm font-medium mb-3">Payment Handling</h3>
@@ -416,6 +436,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         </div>
       )}
       
+      {/* Document generation */}
       <div className="border rounded-md p-4">
         <h3 className="text-sm font-medium mb-3">Documentation</h3>
         <div className="flex items-top space-x-2">
@@ -435,6 +456,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         </div>
       </div>
       
+      {/* Reason field */}
       <div className="border rounded-md p-4">
         <h3 className="text-sm font-medium mb-3">Reason for Reassignment</h3>
         <Textarea 
@@ -449,6 +471,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
   
   const renderConfirmStep = () => (
     <div className="space-y-6">
+      {/* Summary */}
       <div className="bg-slate-50 p-4 rounded-md">
         <h3 className="text-sm font-medium mb-3">Reassignment Summary</h3>
         <div className="space-y-3 text-sm">
@@ -487,6 +510,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         </div>
       </div>
       
+      {/* Warning */}
       <div className="bg-red-50 border border-red-200 rounded-md p-4">
         <div className="flex items-start">
           <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 mr-2 flex-shrink-0" />
@@ -500,6 +524,7 @@ export const ReassignmentWizard = ({ open, onClose, sourceAgreementId, targetAgr
         </div>
       </div>
       
+      {/* Confirmation checkbox */}
       <div className="border rounded-md p-4">
         <div className="flex items-top space-x-2">
           <Checkbox 
