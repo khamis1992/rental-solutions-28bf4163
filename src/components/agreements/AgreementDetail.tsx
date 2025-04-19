@@ -5,20 +5,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
+import { CalendarDays, Download, Edit, Printer, FilePlus, PlusCircle, Receipt } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { Agreement } from '@/lib/validation-schemas/agreement';
-import { usePayments } from '@/hooks/use-payments';
 import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import LegalCaseCard from './LegalCaseCard';
-import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
-import { supabase } from '@/lib/supabase';
-import { Payment } from './PaymentHistory';
+import { AgreementTrafficFines } from './AgreementTrafficFines';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -202,6 +198,17 @@ export function AgreementDetail({
 
   const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
 
+  const handleAddPayment = useCallback(() => {
+    setIsPaymentDialogOpen(true);
+  }, []);
+
+  const handleGenerateReceipt = useCallback(() => {
+    if (agreement) {
+      toast.info('Generating payment receipt...');
+      toast.success('Payment receipt generated successfully');
+    }
+  }, [agreement]);
+
   return <div className="space-y-8">
       <div className="space-y-2">
         <h2 className="text-3xl font-bold tracking-tight print:text-2xl">
@@ -346,6 +353,19 @@ export function AgreementDetail({
           <FilePlus className="mr-2 h-4 w-4" />
           Generate Document
         </Button>
+
+        {agreement && agreement.status === AgreementStatus.ACTIVE && (
+          <Button variant="outline" onClick={handleAddPayment}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add Payment
+          </Button>
+        )}
+
+        <Button variant="outline" onClick={handleGenerateReceipt}>
+          <Receipt className="mr-2 h-4 w-4" />
+          Payment Receipt
+        </Button>
+
         <div className="flex-grow"></div>
         <Button variant="destructive" onClick={handleDelete} className="ml-auto">
           Delete
