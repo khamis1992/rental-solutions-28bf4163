@@ -199,7 +199,24 @@ const TrafficFineValidation = () => {
       
       const result = await validateTrafficFine(licensePlate);
       
-      setValidationResults(result);
+      // Create a properly formatted ValidationResult object
+      const validationResult: ValidationResult = {
+        validation_date: new Date().toISOString(),
+        result: {
+          has_fine: result.hasFine,
+          details: result.details
+        },
+        status: result.status,
+        license_plate: licensePlate,
+        // Include the camelCase properties for component compatibility
+        hasFine: result.hasFine,
+        details: result.details,
+        validationDate: new Date().toISOString(),
+        licensePlate: licensePlate,
+        validationSource: 'MOI Traffic System'
+      };
+      
+      setValidationResults(validationResult);
       toast.success(`Validation complete for license plate ${licensePlate}`);
       
       // Update fines status based on validation results
