@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { DownloadCloud, FileSpreadsheet, FilePdf, Loader2 } from 'lucide-react';
+import { DownloadCloud, FileSpreadsheet, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateStandardReport } from '@/utils/report-utils';
 import { jsPDF } from 'jspdf';
@@ -269,7 +268,7 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         {isLoading.pdf ? (
           <Loader2 className="h-4 w-4 mr-1 animate-spin" />
         ) : (
-          <FilePdf className="h-4 w-4 mr-1" />
+          <FileText className="h-4 w-4 mr-1" />
         )}
         <span>PDF</span>
       </Button>
