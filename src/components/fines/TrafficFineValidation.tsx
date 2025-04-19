@@ -52,14 +52,14 @@ const ValidationInstructions = () => (
 
 const ValidationResultCard = ({ result }: { result: ValidationResult }) => (
   <Card className="mt-4 border-2 overflow-hidden">
-    <div className={`h-2 w-full ${result.hasFine || result.result?.has_fine ? 'bg-destructive' : 'bg-green-500'}`}></div>
+    <div className={`h-2 w-full ${result.hasFine ? 'bg-destructive' : 'bg-green-500'}`}></div>
     <CardHeader className="pb-2">
       <div className="flex justify-between items-start">
         <CardTitle className="text-lg">
-          {result.hasFine || result.result?.has_fine ? 'Traffic Fine Detected' : 'No Traffic Fines Found'}
+          {result.hasFine ? 'Traffic Fine Detected' : 'No Traffic Fines Found'}
         </CardTitle>
-        <Badge className={result.hasFine || result.result?.has_fine ? "bg-red-500" : "bg-green-500"} variant="secondary">
-          {result.hasFine || result.result?.has_fine ? (
+        <Badge className={result.hasFine ? "bg-red-500" : "bg-green-500"} variant="secondary">
+          {result.hasFine ? (
             <><AlertTriangle className="mr-1 h-3 w-3" /> Fine Found</>
           ) : (
             <><CheckCircle className="mr-1 h-3 w-3" /> Clear</>
@@ -67,7 +67,7 @@ const ValidationResultCard = ({ result }: { result: ValidationResult }) => (
         </Badge>
       </div>
       <CardDescription>
-        Validation performed on {new Date(result.validation_date || result.validationDate || '').toLocaleString()}
+        Validation performed on {new Date(result.validationDate).toLocaleString()}
       </CardDescription>
     </CardHeader>
     <Separator />
@@ -77,26 +77,26 @@ const ValidationResultCard = ({ result }: { result: ValidationResult }) => (
           <Car className="h-4 w-4 text-muted-foreground" />
           <div>
             <p className="text-xs text-muted-foreground font-medium">License Plate</p>
-            <p className="font-medium">{result.license_plate || result.licensePlate}</p>
+            <p className="font-medium">{result.licensePlate}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Globe className="h-4 w-4 text-muted-foreground" />
           <div>
             <p className="text-xs text-muted-foreground font-medium">Source</p>
-            <p className="font-medium">{result.validationSource || 'MOI Traffic System'}</p>
+            <p className="font-medium">{result.validationSource}</p>
           </div>
         </div>
       </div>
       
-      {(result.details || result.result?.details) && (
+      {result.details && (
         <div className="mt-4">
           <p className="text-xs text-muted-foreground font-medium">Details</p>
-          <p className="text-sm">{result.details || result.result?.details}</p>
+          <p className="text-sm">{result.details}</p>
         </div>
       )}
 
-      {(result.hasFine || result.result?.has_fine) && (
+      {result.hasFine && (
         <Alert className="mt-4" variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Action Required</AlertTitle>
@@ -199,24 +199,7 @@ const TrafficFineValidation = () => {
       
       const result = await validateTrafficFine(licensePlate);
       
-      // Create a properly formatted ValidationResult object
-      const validationResult: ValidationResult = {
-        validation_date: new Date().toISOString(),
-        result: {
-          has_fine: result.hasFine,
-          details: result.details
-        },
-        status: result.status,
-        license_plate: licensePlate,
-        // Include the camelCase properties for component compatibility
-        hasFine: result.hasFine,
-        details: result.details,
-        validationDate: new Date().toISOString(),
-        licensePlate: licensePlate,
-        validationSource: 'MOI Traffic System'
-      };
-      
-      setValidationResults(validationResult);
+      setValidationResults(result);
       toast.success(`Validation complete for license plate ${licensePlate}`);
       
       // Update fines status based on validation results

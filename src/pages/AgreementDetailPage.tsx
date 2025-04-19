@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
@@ -31,7 +30,6 @@ const AgreementDetailPage = () => {
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
   const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
   const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  const [isProcessingArabicText, setIsProcessingArabicText] = useState(false);
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
@@ -112,15 +110,6 @@ const AgreementDetailPage = () => {
       }
     }
   }, [id, isLoading, agreement, payments]);
-  
-  // Check DeepSeek AI service availability when component mounts
-  useEffect(() => {
-    const checkArabicService = async () => {
-      await ArabicTextService.checkServiceAvailability();
-    };
-    
-    checkArabicService();
-  }, []);
 
   const handleDelete = async (agreementId: string) => {
     try {
@@ -141,64 +130,23 @@ const AgreementDetailPage = () => {
     if (!agreement) return;
     
     try {
-      setIsProcessingArabicText(true);
-      toast.info("Processing Arabic text with DeepSeek AI...");
-      
       // Process all Arabic text fields through DeepSeek AI first
-      const customerName = agreement.customers?.full_name || '';
-      const vehicleMake = agreement.vehicles?.make || '';
-      const vehicleModel = agreement.vehicles?.model || '';
-      
-      console.log(`Processing Arabic text for customer: "${customerName}"`);
-      console.log(`Processing Arabic text for vehicle: "${vehicleMake} ${vehicleModel}"`);
-      
-      // Process customer name with DeepSeek AI
-      const processedCustomerName = await ArabicTextService.processText(
-        customerName, 
-        'customer name'
-      );
-      
-      if (processedCustomerName !== customerName) {
-        console.log(`Customer name processed: "${customerName}" -> "${processedCustomerName}"`);
-        if (agreement.customers) {
-          agreement.customers.full_name = processedCustomerName;
-        }
-      }
-      
-      // Process vehicle details with DeepSeek AI
-      const vehicleDetails = `${vehicleMake} ${vehicleModel}`;
-      const processedVehicleDetails = await ArabicTextService.processText(
-        vehicleDetails,
-        'vehicle details'
-      );
-      
-      if (processedVehicleDetails !== vehicleDetails && agreement.vehicles) {
-        console.log(`Vehicle details processed: "${vehicleDetails}" -> "${processedVehicleDetails}"`);
-        
-        // Split processed text back into make and model
-        const parts = processedVehicleDetails.split(' ');
-        if (parts.length >= 2) {
-          agreement.vehicles.make = parts[0];
-          agreement.vehicles.model = parts.slice(1).join(' ');
-        }
-      }
-      
-      // Also process any notes or description fields
-      if (agreement.notes) {
-        const processedNotes = await ArabicTextService.processText(agreement.notes, 'agreement notes');
-        if (processedNotes !== agreement.notes) {
-          console.log(`Agreement notes processed successfully`);
-          agreement.notes = processedNotes;
-        }
-      }
-      
-      setIsProcessingArabicText(false);
+      const processedData = {
+        customerName: await ArabicTextService.processText(agreement.customers?.full_name || '', 'customer name'),
+        vehicleDetails: await ArabicTextService.processText(
+          `${agreement.vehicles?.make} ${agreement.vehicles?.model}`,
+          'vehicle details'
+        ),
+        // Add any other Arabic text fields that need processing
+      };
+
       setIsDocumentDialogOpen(true);
       
+      // Pass processed data to document generation
+      
     } catch (error) {
-      console.error('Error processing Arabic text:', error);
-      toast.error('Failed to process Arabic text');
-      setIsProcessingArabicText(false);
+      console.error('Error generating document:', error);
+      toast.error('Failed to generate document');
     }
   };
 
