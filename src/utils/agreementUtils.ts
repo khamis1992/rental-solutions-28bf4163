@@ -1,9 +1,17 @@
+
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { format, differenceInMonths } from 'date-fns';
+
+// We need to augment the jsPDF type to include autotable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 const processArabicText = (text) => {
   // Add any necessary Arabic text processing here (e.g., normalization, shaping).
@@ -158,11 +166,11 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     addArticle('Article 2 - Vehicle Information:', 'Party One hereby rents to Party Two the following vehicle:');
     doc.text(`Vehicle Type:`, leftMargin + 15, y);
     y += lineHeight;
-    doc.text(`License Plate Number: ${vehiclePlate}`, leftMargin + 15, y);
+    doc.text(`License Plate Number: ${agreement.vehicles?.license_plate || 'N/A'}`, leftMargin + 15, y);
     y += lineHeight;
-    doc.text(`VIN: ${vehicleVin}`, leftMargin + 15, y);
+    doc.text(`VIN: ${agreement.vehicles?.vin || 'N/A'}`, leftMargin + 15, y);
     y += lineHeight;
-    doc.text(`Model: ${vehicleModel} - ${vehicleMake}`, leftMargin + 15, y);
+    doc.text(`Model: ${agreement.vehicles?.model || 'N/A'} - ${agreement.vehicles?.make || 'N/A'}`, leftMargin + 15, y);
     y += lineHeight * 2;
 
     addArticle('Article 3 - Rental Duration:', `The rental duration of this Agreement is ${duration}, commencing from the effective date of this Agreement. The Agreement is non-renewable and will terminate upon the expiration of the term. Party Two may not terminate the Agreement before its expiration without written consent from Party One.`);
@@ -228,7 +236,7 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
 
     doc.setFont('helvetica', 'normal');
     doc.text('Represented by Mr. Khamees Hashem Al-Jaber', leftMargin, y);
-    doc.text(`Represented by Mr. ${customerName}`, leftMargin + 100, y);
+    doc.text(`Represented by Mr. ${agreement.customers?.full_name || 'N/A'}`, leftMargin + 100, y);
 
     // Save the PDF with the agreement number
     doc.save(`Rental_Agreement-${agreement.agreement_number}.pdf`);
