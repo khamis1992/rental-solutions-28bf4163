@@ -10,7 +10,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -23,14 +22,14 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { asLeaseId, asTableId, hasData } from '@/utils/database-type-helpers';
+import { asLeaseId, asTableId } from '@/utils/database-type-helpers';
 
-export const AgreementDetail = () => {
+const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
   const [agreement, setAgreement] = useState<any>(null);
-  const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(id);
+  const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(id || '');
   const [payments, setPayments] = useState<any[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [legalCases, setLegalCases] = useState<any[]>([]);
@@ -61,7 +60,7 @@ export const AgreementDetail = () => {
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', id || '')
+        .eq('lease_id', asTableId(id || ''))
         .order('due_date', { ascending: false });
       
       if (error) throw error;
@@ -85,7 +84,7 @@ export const AgreementDetail = () => {
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('agreement_id', id || '');
+        .eq('agreement_id', asTableId(id || ''));
       
       if (error) throw error;
       

@@ -68,7 +68,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     {
       accessorKey: 'violation_date',
       header: 'Date',
-      cell: ({ row }) => formatDate(row.original.violation_date),
+      cell: ({ row }: { row: any }) => formatDate(row.original.violation_date),
     },
     {
       accessorKey: 'license_plate',
@@ -77,17 +77,17 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     {
       accessorKey: 'fine_amount',
       header: 'Fine Amount',
-      cell: ({ row }) => `QAR ${row.original.fine_amount?.toLocaleString() || '0'}`,
+      cell: ({ row }: { row: any }) => `QAR ${row.original.fine_amount?.toLocaleString() || '0'}`,
     },
     {
       accessorKey: 'violation_charge',
       header: 'Violation',
-      cell: ({ row }) => row.original.violation_charge || 'N/A',
+      cell: ({ row }: { row: any }) => row.original.violation_charge || 'N/A',
     },
     {
       accessorKey: 'payment_status',
       header: 'Status',
-      cell: ({ row }) => (
+      cell: ({ row }: { row: any }) => (
         <Badge variant={row.original.payment_status === 'paid' ? 'success' : 'destructive'}>
           {row.original.payment_status === 'paid' ? (
             <><FileCheck className="h-3 w-3 mr-1" /> PAID</>

@@ -114,7 +114,7 @@ export function AgreementTabs({
           </TabsList>
           {tabs.map((tab) => (
             <TabsContent key={tab.id} value={tab.id} className="animate-fade-in">
-              {tab.id === "overview" ? children : tab.content}
+              {tab.content}
             </TabsContent>
           ))}
         </Tabs>
