@@ -9,14 +9,6 @@ import { Loader2 } from "lucide-react";
 import { TrafficFine, TrafficFineStatusType } from "@/hooks/use-traffic-fines";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
-import {
-  asVehicleId,
-  asLeaseId,
-  asLeaseIdColumn,
-  asStatusColumn,
-  hasData
-} from '@/utils/database-type-helpers';
-import { Payment } from "./PaymentHistory.types";
 
 interface VehicleAssignmentDialogProps {
   isOpen: boolean;
@@ -27,6 +19,15 @@ interface VehicleAssignmentDialogProps {
     id: string;
     agreement_number: string;
   };
+}
+
+interface Payment {
+  id: string;
+  amount: number;
+  status: string;
+  description?: string;
+  payment_date?: Date;
+  due_date?: Date;
 }
 
 interface CustomerInfo {
@@ -75,48 +76,50 @@ export function VehicleAssignmentDialog({
     try {
       // Fetch vehicle information
       if (vehicleId) {
-        const vehicleResponse = await supabase
+        const { data: vehicleData, error: vehicleError } = await supabase
           .from('vehicles')
           .select('id, make, model, license_plate, year, color')
-          .eq('id', asVehicleId(vehicleId))
+          .eq('id', vehicleId)
           .single();
           
-        if (hasData(vehicleResponse)) {
-          setVehicleInfo(vehicleResponse.data);
+        if (!vehicleError && vehicleData) {
+          setVehicleInfo(vehicleData);
         }
       }
       
       // Fetch pending payments
-      const paymentsResponse = await supabase
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .eq('lease_id', existingAgreement.id)
         .in('status', ['pending', 'overdue']);
         
-      if (hasData(paymentsResponse)) {
-        const formattedPayments = paymentsResponse.data.map(payment => ({
+      if (paymentsError) {
+        console.error("Error fetching pending payments:", paymentsError);
+      } else {
+        const formattedPayments = paymentsData?.map(payment => ({
           id: payment.id,
           amount: payment.amount,
           status: payment.status,
           description: payment.description,
-          payment_date: payment.payment_date,
-          due_date: payment.due_date
-        }));
+          payment_date: payment.payment_date ? new Date(payment.payment_date) : undefined,
+          due_date: payment.due_date ? new Date(payment.due_date) : undefined
+        })) || [];
         setPendingPayments(formattedPayments);
-      } else {
-        console.error("Error fetching pending payments:", paymentsResponse.error);
       }
       
       // Fetch traffic fines
-      const finesResponse = await supabase
+      const { data: finesData, error: finesError } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(existingAgreement.id))
+        .eq('lease_id', existingAgreement.id)
         .eq('payment_status', 'pending');
         
-      if (hasData(finesResponse)) {
+      if (finesError) {
+        console.error("Error fetching traffic fines:", finesError);
+      } else {
         // Transform the data to ensure payment_status is a proper TrafficFineStatusType
-        const transformedFines: TrafficFine[] = finesResponse.data.map(fine => ({
+        const transformedFines: TrafficFine[] = (finesData || []).map(fine => ({
           id: fine.id,
           violationNumber: fine.violation_number || "",
           licensePlate: fine.license_plate || "",
@@ -130,26 +133,24 @@ export function VehicleAssignmentDialog({
           paymentDate: fine.payment_date ? new Date(fine.payment_date) : undefined
         }));
         setTrafficFines(transformedFines);
-      } else {
-        console.error("Error fetching traffic fines:", finesResponse.error);
       }
       
       // Fetch customer information
-      const agreementResponse = await supabase
+      const { data: agreementData, error: agreementError } = await supabase
         .from('leases')
         .select('customer_id')
-        .eq('id', asLeaseId(existingAgreement.id))
+        .eq('id', existingAgreement.id)
         .single();
         
-      if (hasData(agreementResponse) && agreementResponse.data?.customer_id) {
-        const customerResponse = await supabase
+      if (!agreementError && agreementData?.customer_id) {
+        const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('id, full_name, email, phone_number')
-          .eq('id', agreementResponse.data.customer_id)
+          .eq('id', agreementData.customer_id)
           .single();
           
-        if (hasData(customerResponse)) {
-          setCustomerInfo(customerResponse.data);
+        if (!customerError && customerData) {
+          setCustomerInfo(customerData);
         }
       }
     } catch (error) {

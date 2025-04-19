@@ -1,137 +1,322 @@
-
-import React, { useState, useEffect } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { format } from 'date-fns';
-import { Button } from '@/components/ui/button';
-import { CustomButton } from '@/components/ui/custom-button';
-import { DatePicker } from '@/components/ui/date-picker';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from "@/components/ui/checkbox";
-import { Agreement, agreementSchema, AgreementStatus } from '@/lib/validation-schemas/agreement';
-import { useCustomers } from '@/hooks/use-customers';
-import { useVehicles } from '@/hooks/use-vehicles';
-import { toast } from 'sonner';
-import { Switch } from "@/components/ui/switch";
-import { Skeleton } from '@/components/ui/skeleton';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { format } from "date-fns";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { CalendarIcon, CheckCircle, InfoIcon, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
+import { agreementSchema } from "@/lib/validation-schemas/agreement";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface AgreementFormProps {
-  initialData?: Agreement;
-  onSubmit: (data: Agreement) => Promise<void>;
-  isSubmitting?: boolean;
+  onSubmit: (data: any) => void;
+  isSubmitting: boolean;
+  initialData?: any;
+  standardTemplateExists?: boolean;
+  isCheckingTemplate?: boolean;
 }
 
-const AgreementForm: React.FC<AgreementFormProps> = ({
-  initialData,
-  onSubmit,
-  isSubmitting = false,
-}) => {
-  const [termsAccepted, setTermsAccepted] = useState(initialData?.terms_accepted || false);
-  const { customers, isLoading: isLoadingCustomers } = useCustomers();
-  const vehiclesHook = useVehicles();
-  const { data: vehicles, isLoading: isLoadingVehicles } = vehiclesHook.useList();
-  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+const formSchema = z.object({
+  agreement_number: z.string().min(1, "Agreement number is required"),
+  start_date: z.date(),
+  end_date: z.date(),
+  customer_id: z.string().min(1, "Customer is required"),
+  vehicle_id: z.string().min(1, "Vehicle is required"),
+  status: z.enum(["draft", "active", "pending", "expired", "cancelled", "closed"]),
+  rent_amount: z.number().positive("Rent amount must be positive"),
+  deposit_amount: z.number().nonnegative("Deposit amount must be non-negative"),
+  total_amount: z.number().positive("Total amount must be positive"),
+  daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
+  agreement_duration: z.string().optional(),
+  notes: z.string().optional(),
+  terms_accepted: z.boolean().default(false),
+});
 
-  // Initialize form with default values
-  const form = useForm<Agreement>({
-    resolver: zodResolver(agreementSchema),
-    defaultValues: {
-      ...initialData || {
-        customer_id: '',
-        vehicle_id: '',
-        start_date: new Date(),
-        end_date: new Date(),
-        status: 'draft',
-        agreement_number: '',
-        total_amount: 0,
-        deposit_amount: 0,
-        rent_amount: 0,
-        daily_late_fee: 120,
-        notes: '',
-        additional_drivers: [],
-      }
+const AgreementForm = ({
+  onSubmit,
+  isSubmitting,
+  initialData,
+  standardTemplateExists = true,
+  isCheckingTemplate = false,
+}: AgreementFormProps) => {
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
+  const [durationMonths, setDurationMonths] = useState<number>(12);
+
+  const generateAgreementNumber = () => {
+    const prefix = "AGR";
+    const timestamp = Date.now().toString().slice(-6);
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, "0");
+    return `${prefix}-${timestamp}-${random}`;
+  };
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: initialData || {
+      agreement_number: generateAgreementNumber(),
+      start_date: new Date(),
+      end_date: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+      status: "draft" as const,
+      rent_amount: 0,
+      deposit_amount: 0,
+      total_amount: 0,
+      daily_late_fee: 120,
+      agreement_duration: "12 months",
+      notes: "",
+      terms_accepted: false,
     },
   });
 
-  // Make sure to set the ID from initialData
   useEffect(() => {
-    if (initialData?.id) {
-      form.setValue('id', initialData.id);
-    }
+    const fetchCustomers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("role", "customer");
 
-    // Ensure rent_amount is correctly set
-    if (initialData?.rent_amount) {
-      console.log("Setting rent_amount from initialData:", initialData.rent_amount);
-      form.setValue('rent_amount', initialData.rent_amount);
-    }
+        if (error) {
+          throw error;
+        }
 
-    // Set vehicle_id if it exists
-    if (initialData?.vehicle_id) {
-      console.log("Setting vehicle_id from initialData:", initialData.vehicle_id);
-      form.setValue('vehicle_id', initialData.vehicle_id);
-      
-      // If we have vehicle information, set the selected vehicle
-      if (initialData.vehicles) {
-        console.log("Setting selected vehicle from initialData:", initialData.vehicles);
-        setSelectedVehicle(initialData.vehicles);
+        setCustomers(data || []);
+      } catch (error) {
+        console.error("Error fetching customers:", error);
       }
-    }
-  }, [initialData, form]);
+    };
 
-  // When vehicle is selected, update selected vehicle state
-  const handleVehicleChange = (vehicleId: string) => {
-    if (vehicles && Array.isArray(vehicles)) {
-      const vehicle = vehicles.find(v => v.id === vehicleId);
-      if (vehicle) {
-        setSelectedVehicle(vehicle);
+    fetchCustomers();
+  }, []);
+
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("vehicles")
+          .select("*")
+          .eq("status", "available");
+
+        if (error) {
+          throw error;
+        }
+
+        setVehicles(data || []);
+      } catch (error) {
+        console.error("Error fetching vehicles:", error);
       }
-    }
-  };
+    };
 
-  const handleSubmit = async (data: Agreement) => {
+    fetchVehicles();
+  }, []);
+
+  const handleCustomerChange = async (customerId: string) => {
     try {
-      if (!termsAccepted) {
-        toast.error("You must accept the terms and conditions");
-        return;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", customerId)
+        .single();
+
+      if (error) {
+        throw error;
       }
-      
-      // We'll handle the terms separately from the form data
-      // to avoid sending it to the database
-      const finalData = {
-        ...data,
-        terms_accepted: termsAccepted,
-        id: initialData?.id
-      };
-      
-      await onSubmit(finalData);
+
+      setSelectedCustomer(data);
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
-      toast.error("Failed to save agreement");
+      console.error("Error fetching customer details:", error);
     }
   };
 
-  const statusOptions = [
-    { label: "Draft", value: AgreementStatus.DRAFT },
-    { label: "Pending", value: AgreementStatus.PENDING },
-    { label: "Active", value: AgreementStatus.ACTIVE },
-    { label: "Expired", value: AgreementStatus.EXPIRED },
-    { label: "Cancelled", value: AgreementStatus.CANCELLED },
-    { label: "Closed", value: AgreementStatus.CLOSED }
-  ];
+  const handleVehicleChange = async (vehicleId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("*")
+        .eq("id", vehicleId)
+        .single();
 
-  const isEdit = !!initialData?.id;
+      if (error) {
+        throw error;
+      }
+
+      setSelectedVehicle(data);
+      form.setValue("rent_amount", data.rent_amount || 0);
+      calculateTotalAmount(data.rent_amount || 0, form.getValues("deposit_amount"));
+    } catch (error) {
+      console.error("Error fetching vehicle details:", error);
+    }
+  };
+
+  const updateEndDate = (startDate: Date, months: number) => {
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + months);
+    form.setValue("end_date", endDate);
+    form.setValue("agreement_duration", `${months} months`);
+    calculateTotalAmount(form.getValues("rent_amount"), form.getValues("deposit_amount"));
+  };
+
+  const calculateTotalAmount = (rentAmount: number, depositAmount: number) => {
+    const months = durationMonths || 12;
+    const total = (rentAmount * months) + depositAmount;
+    form.setValue("total_amount", total);
+  };
+
+  const handleFormSubmit = (data: z.infer<typeof formSchema>) => {
+    const finalData = {
+      ...data,
+      customer_data: selectedCustomer,
+      vehicle_data: selectedVehicle,
+      deposit_amount: data.deposit_amount,
+      terms_accepted: true
+    };
+    
+    onSubmit(finalData);
+  };
+
+  const startDate = form.watch("start_date");
+  const rentAmount = form.watch("rent_amount");
+  const depositAmount = form.watch("deposit_amount");
+
+  useEffect(() => {
+    calculateTotalAmount(rentAmount, depositAmount);
+  }, [rentAmount, depositAmount, durationMonths]);
+
+  const renderTemplateStatus = () => {
+    if (isCheckingTemplate) {
+      return (
+        <div className="mt-4 p-3 bg-blue-50 text-blue-800 rounded-md border border-blue-200 flex items-center">
+          <div className="w-8 h-8 rounded-full bg-blue-100 mr-3 flex items-center justify-center">
+            <InfoIcon className="h-4 w-4 text-blue-500" />
+          </div>
+          <div>
+            <p className="font-medium">Checking Template Status</p>
+            <p className="text-sm">Verifying if the standard agreement template exists...</p>
+          </div>
+        </div>
+      );
+    }
+    
+    if (!standardTemplateExists) {
+      return (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Template Not Found</AlertTitle>
+          <AlertDescription>
+            The standard agreement template "agreement temp" was not found in the database.
+            The agreement will use the default template format.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    
+    return (
+      <div className="mt-4 p-3 bg-green-50 text-green-800 rounded-md border border-green-200 flex items-center">
+        <div className="w-8 h-8 rounded-full bg-green-100 mr-3 flex items-center justify-center">
+          <CheckCircle className="h-4 w-4 text-green-500" />
+        </div>
+        <div>
+          <p className="font-medium">Using Standard Template</p>
+          <p className="text-sm">The agreement will use the standard template from the database.</p>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAgreementPreview = () => {
+    if (!(selectedCustomer && selectedVehicle)) {
+      return null;
+    }
+    
+    return (
+      <div className="space-y-4 pt-4 border-t">
+        <h3 className="text-lg font-medium">Agreement Preview</h3>
+        
+        <div className="bg-muted p-4 rounded-md text-sm">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-bold text-base">AGREEMENT TEMPLATE PREVIEW</h4>
+          </div>
+          
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Template Information</AlertTitle>
+            <AlertDescription>
+              {standardTemplateExists ? 
+                "Using the standard 'agreement temp' template from the database." : 
+                "Standard template not found. Using default format."}
+            </AlertDescription>
+          </Alert>
+          
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border p-3 rounded-md">
+              <h5 className="font-semibold mb-2">Customer Data</h5>
+              <p><code>{"{{CUSTOMER_NAME}}"}</code>: {selectedCustomer.full_name}</p>
+              <p><code>{"{{CUSTOMER_EMAIL}}"}</code>: {selectedCustomer.email}</p>
+              <p><code>{"{{CUSTOMER_PHONE}}"}</code>: {selectedCustomer.phone_number}</p>
+              <p><code>{"{{CUSTOMER_LICENSE}}"}</code>: {selectedCustomer.driver_license}</p>
+              <p><code>{"{{CUSTOMER_NATIONALITY}}"}</code>: {selectedCustomer.nationality}</p>
+            </div>
+            
+            <div className="border p-3 rounded-md">
+              <h5 className="font-semibold mb-2">Vehicle Data</h5>
+              <p><code>{"{{VEHICLE_MAKE}}"}</code>: {selectedVehicle.make}</p>
+              <p><code>{"{{VEHICLE_MODEL}}"}</code>: {selectedVehicle.model}</p>
+              <p><code>{"{{VEHICLE_PLATE}}"}</code>: {selectedVehicle.license_plate}</p>
+              <p><code>{"{{VEHICLE_VIN}}"}</code>: {selectedVehicle.vin}</p>
+              <p><code>{"{{VEHICLE_YEAR}}"}</code>: {selectedVehicle.year}</p>
+            </div>
+          </div>
+          
+          <div className="mt-4 border p-3 rounded-md">
+            <h5 className="font-semibold mb-2">Agreement Data</h5>
+            <div className="grid grid-cols-2 gap-2">
+              <p><code>{"{{AGREEMENT_NUMBER}}"}</code>: {form.getValues("agreement_number")}</p>
+              <p><code>{"{{START_DATE}}"}</code>: {format(form.getValues("start_date"), "PPP")}</p>
+              <p><code>{"{{END_DATE}}"}</code>: {format(form.getValues("end_date"), "PPP")}</p>
+              <p><code>{"{{RENT_AMOUNT}}"}</code>: {form.getValues("rent_amount")} QAR</p>
+              <p><code>{"{{DEPOSIT_AMOUNT}}"}</code>: {form.getValues("deposit_amount")} QAR</p>
+              <p><code>{"{{TOTAL_AMOUNT}}"}</code>: {form.getValues("total_amount")} QAR</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pb-10">
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold mb-4">Agreement Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        {renderTemplateStatus()}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Agreement Details</h3>
+            
             <FormField
               control={form.control}
               name="agreement_number"
@@ -139,21 +324,128 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                 <FormItem>
                   <FormLabel>Agreement Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="AGR-XXXXXX" {...field} disabled={isEdit} />
+                    <Input {...field} disabled />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            
+            <FormField
+              control={form.control}
+              name="start_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Start Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          if (date) {
+                            updateEndDate(date, durationMonths);
+                          }
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormItem>
+              <FormLabel>Duration (Months)</FormLabel>
+              <Select 
+                value={durationMonths.toString()} 
+                onValueChange={(value) => {
+                  const months = parseInt(value);
+                  setDurationMonths(months);
+                  updateEndDate(form.getValues("start_date"), months);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select duration" />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 3, 6, 12, 24, 36].map((month) => (
+                    <SelectItem key={month} value={month.toString()}>
+                      {month} {month === 1 ? "month" : "months"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormItem>
+            
+            <FormField
+              control={form.control}
+              name="end_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>End Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                        disabled={(date) => date < form.getValues("start_date")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="status"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
+                  <Select 
+                    onValueChange={field.onChange} 
                     defaultValue={field.value}
                   >
                     <FormControl>
@@ -162,9 +454,42 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {statusOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
+                      <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Customer & Vehicle</h3>
+            
+            <FormField
+              control={form.control}
+              name="customer_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Customer</FormLabel>
+                  <Select 
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      handleCustomerChange(value);
+                    }} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select customer" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {customers.map((customer) => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.full_name}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -173,255 +498,163 @@ const AgreementForm: React.FC<AgreementFormProps> = ({
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="customer_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Customer</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a customer" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {isLoadingCustomers ? (
-                        <SelectItem value="loading" disabled>
-                          <Skeleton className="h-5 w-full" />
-                        </SelectItem>
-                      ) : customers && Array.isArray(customers) && customers.length > 0 ? (
-                        customers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.full_name}
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-customers" disabled>
-                          No customers available
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            
+            {selectedCustomer && (
+              <div className="bg-muted p-3 rounded-md text-sm">
+                <p><strong>Email:</strong> {selectedCustomer.email}</p>
+                <p><strong>Phone:</strong> {selectedCustomer.phone_number}</p>
+                <p><strong>Driver License:</strong> {selectedCustomer.driver_license}</p>
+                <p><strong>Nationality:</strong> {selectedCustomer.nationality}</p>
+              </div>
+            )}
+            
             <FormField
               control={form.control}
               name="vehicle_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Vehicle</FormLabel>
-                  <Select
+                  <Select 
                     onValueChange={(value) => {
                       field.onChange(value);
                       handleVehicleChange(value);
-                    }}
+                    }} 
                     defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a vehicle" />
+                        <SelectValue placeholder="Select vehicle" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {isLoadingVehicles ? (
-                        <SelectItem value="loading" disabled>
-                          <Skeleton className="h-5 w-full" />
+                      {vehicles.map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.make} {vehicle.model} ({vehicle.license_plate})
                         </SelectItem>
-                      ) : vehicles && Array.isArray(vehicles) && vehicles.length > 0 ? (
-                        vehicles.map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.make} {vehicle.model} ({vehicle.license_plate})
-                          </SelectItem>
-                        ))
-                      ) : (
-                        <SelectItem value="no-vehicles" disabled>
-                          No vehicles available
-                        </SelectItem>
-                      )}
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
+            {selectedVehicle && (
+              <div className="bg-muted p-3 rounded-md text-sm">
+                <p><strong>Make:</strong> {selectedVehicle.make}</p>
+                <p><strong>Model:</strong> {selectedVehicle.model}</p>
+                <p><strong>License Plate:</strong> {selectedVehicle.license_plate}</p>
+                <p><strong>VIN:</strong> {selectedVehicle.vin}</p>
+              </div>
+            )}
           </div>
-
-          {/* Display selected vehicle details */}
-          {selectedVehicle && (
-            <Card className="mt-4 bg-slate-50">
-              <CardContent className="pt-4">
-                <h3 className="font-medium mb-2">Selected Vehicle Information</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex">
-                    <span className="font-semibold w-24">Make:</span>
-                    <span>{selectedVehicle.make}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="font-semibold w-24">Model:</span>
-                    <span>{selectedVehicle.model}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="font-semibold w-24">Plate:</span>
-                    <span>{selectedVehicle.license_plate}</span>
-                  </div>
-                  <div className="flex">
-                    <span className="font-semibold w-24">Year:</span>
-                    <span>{selectedVehicle.year}</span>
-                  </div>
-                  {selectedVehicle.color && (
-                    <div className="flex">
-                      <span className="font-semibold w-24">Color:</span>
-                      <span>{selectedVehicle.color}</span>
-                    </div>
-                  )}
-                  {selectedVehicle.vin && (
-                    <div className="flex">
-                      <span className="font-semibold w-24">VIN:</span>
-                      <span>{selectedVehicle.vin}</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
-
-        <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h2 className="text-xl font-semibold mb-4">Contract Terms & Dates</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="start_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Start Date</FormLabel>
-                  <DatePicker
-                    date={field.value instanceof Date ? field.value : new Date(field.value)}
-                    setDate={(date) => {
-                      if (date) {
-                        field.onChange(date);
-                      }
-                    }}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="end_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>End Date</FormLabel>
-                  <DatePicker
-                    date={field.value instanceof Date ? field.value : new Date(field.value)}
-                    setDate={(date) => {
-                      if (date) {
-                        field.onChange(date);
-                      }
-                    }}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+        
+        <div className="space-y-4 pt-4 border-t">
+          <h3 className="text-lg font-medium">Payment Information</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
               name="rent_amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Monthly Rent (QAR)</FormLabel>
+                  <FormLabel>Monthly Rent Amount</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
+            
             <FormField
               control={form.control}
               name="deposit_amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Security Deposit (QAR)</FormLabel>
+                  <FormLabel>Deposit Amount</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="total_amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Total Contract Value (QAR)</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+            
             <FormField
               control={form.control}
               name="daily_late_fee"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Daily Late Fee (QAR)</FormLabel>
+                  <FormLabel>Daily Late Fee</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem className="col-span-2">
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Additional notes or comments" {...field} />
+                    <Input 
+                      type="number" 
+                      {...field} 
+                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
-
-          <div className="flex items-center space-x-2 mt-4">
-            <Switch 
-              id="terms" 
-              checked={termsAccepted}
-              onCheckedChange={setTermsAccepted}
-            />
-            <label htmlFor="terms" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              I confirm that all agreement terms have been explained to the customer
-            </label>
-          </div>
+          
+          <FormField
+            control={form.control}
+            name="total_amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Total Contract Amount</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    {...field} 
+                    disabled 
+                    className="font-bold"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <textarea 
+                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-
-        <div className="flex justify-end space-x-2">
-          <Button variant="outline" type="button" onClick={() => window.history.back()}>Cancel</Button>
-          <Button type="submit" className="bg-primary" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save Agreement"}
+        
+        {renderAgreementPreview()}
+        
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="w-full md:w-auto"
+          >
+            {isSubmitting ? "Creating Agreement..." : "Create Agreement"}
           </Button>
         </div>
       </form>

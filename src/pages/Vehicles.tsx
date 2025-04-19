@@ -11,7 +11,7 @@ import { VehicleFilterParams, VehicleStatus } from '@/types/vehicle';
 import { useVehicles } from '@/hooks/use-vehicles';
 import { toast } from 'sonner';
 
-// Define valid statuses based on app enum
+// Define valid statuses based on database enum
 const VALID_STATUSES: VehicleStatus[] = [
   'available',
   'rented',
@@ -39,7 +39,6 @@ const Vehicles = () => {
     if (statusFromUrl && statusFromUrl !== 'all') {
       // Validate that the status is a valid enum value
       if (VALID_STATUSES.includes(statusFromUrl as VehicleStatus)) {
-        // Use the app status value in our filter
         setFilters(prevFilters => ({ 
           ...prevFilters,
           status: statusFromUrl as VehicleStatus
@@ -67,11 +66,8 @@ const Vehicles = () => {
     // Convert from VehicleFilterValues to VehicleFilterParams
     const convertedFilters: VehicleFilterParams = {};
     
-    if (newFilters.status && newFilters.status !== 'all') {
-      // Ensure we're using the application VehicleStatus type
+    if (newFilters.status && newFilters.status !== 'all') 
       convertedFilters.status = newFilters.status as VehicleStatus;
-      console.log(`Setting status filter: ${newFilters.status}`);
-    }
     
     if (newFilters.make && newFilters.make !== 'all') 
       convertedFilters.make = newFilters.make;
@@ -87,53 +83,39 @@ const Vehicles = () => {
       convertedFilters.vehicle_type_id = newFilters.category;
     }
     
-    // Handle search parameter - specifically for VIN
-    if (newFilters.search && newFilters.search.trim() !== '') {
-      convertedFilters.search = newFilters.search.trim();
-    }
-    
     setFilters(convertedFilters);
   };
   
   return (
     <PageContainer>
-      <div className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <SectionHeader
-            title="Vehicle Management"
-            description="Manage your fleet inventory"
-            icon={Car}
-            className="md:mb-0"
-          />
-          <div className="flex justify-end">
-            <CustomButton size="sm" glossy onClick={handleAddVehicle}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Vehicle
-            </CustomButton>
-          </div>
-        </div>
-        
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex-1">
-            <VehicleFilters 
-              onFilterChange={handleFilterChange} 
-              initialValues={{
-                status: filters.status || 'all',
-                make: filters.make || 'all',
-                location: filters.location || 'all',
-                year: filters.year?.toString() || 'all',
-                category: filters.vehicle_type_id || 'all',
-                search: filters.search || ''
-              }}
-            />
-          </div>
-        </div>
-        
-        <VehicleGrid 
-          onSelectVehicle={handleSelectVehicle} 
-          filter={filters}
-        />
-      </div>
+      <SectionHeader
+        title="Vehicle Management"
+        description="Manage your fleet inventory"
+        icon={Car}
+        actions={
+          <CustomButton size="sm" glossy onClick={handleAddVehicle}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Vehicle
+          </CustomButton>
+        }
+      />
+      
+      <VehicleFilters 
+        onFilterChange={handleFilterChange} 
+        initialValues={{
+          status: filters.status || 'all',
+          make: filters.make || 'all',
+          location: filters.location || 'all',
+          year: filters.year?.toString() || 'all',
+          category: filters.vehicle_type_id || 'all'
+        }}
+        className="mb-6"
+      />
+      
+      <VehicleGrid 
+        onSelectVehicle={handleSelectVehicle} 
+        filter={filters}
+      />
     </PageContainer>
   );
 };

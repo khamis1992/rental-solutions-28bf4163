@@ -1,43 +1,21 @@
 
 export interface LegalCase {
   id: string;
+  case_number: string;
+  title: string;
+  description: string;
   customer_id: string;
-  case_type: LegalCaseType;
-  status: LegalCaseStatus | null;
-  amount_owed: number;
-  priority: CasePriority | null;
-  assigned_to: string | null;
-  description: string | null;
+  customer_name: string;
+  status: 'pending' | 'active' | 'closed' | 'settled';
+  hearing_date: string;
+  court_location?: string;
+  assigned_attorney?: string;
+  opposing_party?: string;
+  case_type: 'contract_dispute' | 'traffic_violation' | 'insurance_claim' | 'customer_complaint' | 'other';
+  documents?: string[];
+  amount_claimed?: number;
+  amount_settled?: number;
   created_at: string;
   updated_at: string;
-  resolution_date: string | null;
-  resolution_notes: string | null;
-  profiles?: {
-    full_name: string;
-    email: string | null;
-    phone_number: string | null;
-  };
-}
-
-export enum LegalCaseType {
-  PAYMENT_DEFAULT = 'payment_default',
-  CONTRACT_BREACH = 'contract_breach',
-  VEHICLE_DAMAGE = 'vehicle_damage',
-  TRAFFIC_VIOLATION = 'traffic_violation',
-  DOCUMENT_FRAUD = 'document_fraud',
-  INSURANCE_CLAIM = 'insurance_claim',
-  OTHER = 'other'
-}
-
-export enum LegalCaseStatus {
-  ACTIVE = 'active',
-  PENDING = 'pending',
-  RESOLVED = 'resolved',
-  ESCALATED = 'escalated'
-}
-
-export enum CasePriority {
-  HIGH = 'high',
-  MEDIUM = 'medium',
-  LOW = 'low'
+  notes?: string;
 }

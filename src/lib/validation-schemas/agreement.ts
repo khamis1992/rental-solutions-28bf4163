@@ -27,8 +27,7 @@ export const agreementSchema = z.object({
   daily_late_fee: z.number().nonnegative("Daily late fee must be non-negative"),
   agreement_duration: z.string().optional(),
   notes: z.string().optional(),
-  // Mark as optional with a default value so it's available in the UI but not sent to DB
-  terms_accepted: z.boolean().default(false).optional(),
+  terms_accepted: z.boolean().default(false),
 });
 
 // Enum for payment status
@@ -65,10 +64,10 @@ export interface Agreement {
   notes?: string;
   customers?: any;
   vehicles?: any;
-  terms_accepted?: boolean;
-  additional_drivers?: string[];
-  rent_amount?: number;
-  daily_late_fee?: number;
+  terms_accepted: boolean;
+  additional_drivers: string[];
+  rent_amount?: number; // Added this property to fix the error
+  daily_late_fee?: number; // Added for consistency
 }
 
 // Function to force generate payment for a specific agreement
@@ -155,7 +154,8 @@ export const forceGeneratePaymentForAgreement = async (
         payment_date: null,
         original_due_date: dueDate.toISOString(),
         days_overdue: daysOverdue,
-        late_fine_amount: lateFineAmount // Using late_fine_amount instead of daily_late_fee
+        late_fine_amount: lateFineAmount,
+        daily_late_fee: dailyLateFee
       })
       .select()
       .single();

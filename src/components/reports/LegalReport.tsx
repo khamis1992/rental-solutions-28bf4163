@@ -1,224 +1,230 @@
 
-import React from 'react';
-import { useLegalCases } from '@/hooks/legal/useLegalCases';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
-import { Loader2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
-import { formatDistance } from 'date-fns';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { useLegalDocuments, useComplianceItems } from '@/hooks/use-legal';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
-// Define colors for the pie chart
-const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1', '#8B5CF6'];
+// Mock data - in production, this would come from the use-legal hook
+const MOCK_COMPLIANCE_DATA = [
+  { month: 'Jan', compliance: 92, nonCompliance: 8 },
+  { month: 'Feb', compliance: 88, nonCompliance: 12 },
+  { month: 'Mar', compliance: 95, nonCompliance: 5 },
+  { month: 'Apr', compliance: 90, nonCompliance: 10 },
+  { month: 'May', compliance: 85, nonCompliance: 15 },
+  { month: 'Jun', compliance: 93, nonCompliance: 7 },
+];
+
+const MOCK_CASE_DATA = [
+  { name: 'Contract Disputes', count: 12, resolved: 8, pending: 4 },
+  { name: 'Document Violations', count: 7, resolved: 5, pending: 2 },
+  { name: 'Insurance Claims', count: 15, resolved: 9, pending: 6 },
+  { name: 'Customer Complaints', count: 10, resolved: 7, pending: 3 },
+  { name: 'Traffic Violations', count: 18, resolved: 14, pending: 4 }
+];
 
 const LegalReport = () => {
-  const { cases, loading, error } = useLegalCases();
+  const [reportType, setReportType] = useState('compliance');
+  const [timeRange, setTimeRange] = useState('6months');
+  const { documents, loading: docsLoading } = useLegalDocuments();
+  const { items, loading: itemsLoading } = useComplianceItems();
+  const isLoading = docsLoading || itemsLoading;
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Loading legal case data...</p>
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-40" />
+        <Skeleton className="h-[300px] w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
+          <Skeleton className="h-28" />
         </div>
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <div className="rounded-md bg-red-50 p-4 my-4">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <h3 className="text-sm font-medium text-red-800">Error loading legal cases</h3>
-            <div className="mt-2 text-sm text-red-700">
-              <p>{error}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Prepare status distribution data for chart
-  const statusCounts: Record<string, number> = {};
-  cases.forEach(legalCase => {
-    const status = legalCase.status || 'unknown';
-    statusCounts[status] = (statusCounts[status] || 0) + 1;
-  });
-
-  const statusData = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-  
-  // Prepare case type distribution data for chart
-  const typeCounts: Record<string, number> = {};
-  cases.forEach(legalCase => {
-    const caseType = legalCase.case_type || 'unknown';
-    typeCounts[caseType] = (typeCounts[caseType] || 0) + 1;
-  });
-
-  const typeData = Object.entries(typeCounts).map(([name, value]) => ({ name, value }));
-
-  // Calculate total amount owed
-  const totalAmountOwed = cases.reduce((sum, c) => sum + (c.amount_owed || 0), 0);
-  
-  // Get recent cases
-  const recentCases = [...cases]
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 5);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Legal Case Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Case Type Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={typeData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="value" fill="#6366F1" name="Number of Cases" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-xl font-semibold">Legal Reports</h2>
+          <p className="text-muted-foreground">
+            Analyze legal compliance and case metrics
+          </p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Select value={reportType} onValueChange={setReportType}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Report Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="compliance">Compliance Report</SelectItem>
+              <SelectItem value="cases">Case Analysis</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Time Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="3months">Last 3 Months</SelectItem>
+              <SelectItem value="6months">Last 6 Months</SelectItem>
+              <SelectItem value="1year">Last Year</SelectItem>
+              <SelectItem value="all">All Time</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Legal Cases</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentCases.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Case Type</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentCases.map((item) => {
-                  const customerName = item.profiles?.full_name || 'Unknown Customer';
-                  const createdAt = new Date(item.created_at);
-                  const timeAgo = formatDistance(createdAt, new Date(), { addSuffix: true });
-                  
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>{customerName}</TableCell>
-                      <TableCell>{item.case_type}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={item.status} />
-                      </TableCell>
-                      <TableCell>
-                        {item.amount_owed ? formatCurrency(item.amount_owed) : 'N/A'}
-                      </TableCell>
-                      <TableCell>{timeAgo}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-6 text-muted-foreground">No legal cases found</div>
-          )}
-        </CardContent>
-      </Card>
+      
+      {reportType === 'compliance' && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Compliance Rate Over Time</CardTitle>
+              <CardDescription>
+                Monthly compliance and non-compliance percentages
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={MOCK_COMPLIANCE_DATA}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="compliance" stackId="a" fill="#22c55e" name="Compliant %" />
+                    <Bar dataKey="nonCompliance" stackId="a" fill="#ef4444" name="Non-Compliant %" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Document Compliance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold">91%</span>
+                  <Badge className="bg-green-100 text-green-800">+2.4%</Badge>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2">54 documents expiring within 30 days</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Regulation Adherence</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold">87%</span>
+                  <Badge className="bg-yellow-100 text-yellow-800">-1.2%</Badge>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2">3 policy updates required</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Risk Exposure Index</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold">Low</span>
+                  <Badge className="bg-green-100 text-green-800">Improved</Badge>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2">Last assessment: 7 days ago</p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
+      
+      {reportType === 'cases' && (
+        <>
+          <Card>
+            <CardHeader>
+              <CardTitle>Legal Cases by Type</CardTitle>
+              <CardDescription>
+                Distribution of legal cases and their resolution status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={MOCK_CASE_DATA}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="resolved" fill="#22c55e" name="Resolved" />
+                    <Bar dataKey="pending" fill="#f59e0b" name="Pending" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Average Resolution Time</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold">14 days</span>
+                  <Badge className="bg-green-100 text-green-800">-2 days</Badge>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2">Improved from previous period</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Active Cases</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold">19</span>
+                  <Badge className="bg-yellow-100 text-yellow-800">+3</Badge>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2">5 high priority cases</p>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Case Success Rate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center">
+                  <span className="text-2xl font-bold">76%</span>
+                  <Badge className="bg-green-100 text-green-800">+4%</Badge>
+                </div>
+                <p className="text-muted-foreground text-sm mt-2">Based on last 50 closed cases</p>
+              </CardContent>
+            </Card>
+          </div>
+        </>
+      )}
     </div>
-  );
-};
-
-const StatusBadge = ({ status }: { status: string | null }) => {
-  let variant = 'default';
-  
-  switch (status) {
-    case 'pending_reminder':
-      variant = 'outline'; // Gray
-      break;
-    case 'reminder_sent':
-      variant = 'secondary'; // Muted
-      break;
-    case 'escalated':
-      variant = 'destructive'; // Red
-      break;
-    case 'in_progress':
-      variant = 'warning'; // Amber/orange
-      break;
-    case 'resolved':
-      variant = 'success'; // Green
-      break;
-    default:
-      variant = 'outline';
-  }
-  
-  return (
-    <Badge variant={variant as any}>
-      {status?.replace('_', ' ') || 'Unknown'}
-    </Badge>
   );
 };
 

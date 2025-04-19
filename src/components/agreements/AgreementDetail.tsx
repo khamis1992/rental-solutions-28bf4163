@@ -1,24 +1,21 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
+import { CalendarDays, Download, Edit, Printer, DollarSign, FilePlus } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
+import { LegalCaseCard } from './LegalCaseCard';
+import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
-import LegalCaseCard from './LegalCaseCard';
-import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
-import { supabase } from '@/lib/supabase';
-import { Payment } from './PaymentHistory';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -50,28 +47,26 @@ export function AgreementDetail({
   const [selectedPayment, setSelectedPayment] = useState(null);
 
   const {
-    payments = [],
-    isLoading,
+    payments,
+    isLoadingPayments,
     fetchPayments
-  } = usePayments(agreement?.id);
-  
+  } = usePayments(agreement?.id, rentAmount);
+  console.log('Agreement ID from AgreementDetail:', agreement?.id);
+  console.log('Payments from usePayments:', payments);
+  console.log('Loading state:', isLoadingPayments);
   useEffect(() => {
     if (agreement?.id) {
       console.log('Fetching payments for agreement:', agreement.id);
       fetchPayments();
     }
   }, [agreement?.id, fetchPayments]);
-  
   const {
     handleSpecialAgreementPayments
   } = usePaymentGeneration(agreement, agreement?.id);
 
   const handleDelete = useCallback(() => {
-    if (agreement) {
-      const typedId = asDbId<LeaseId>(agreement.id);
-      onDelete(typedId);
-    }
-  }, [agreement, onDelete]);
+    setIsDeleteDialogOpen(true);
+  }, []);
 
   const confirmDelete = useCallback(() => {
     if (agreement) {
@@ -109,6 +104,10 @@ export function AgreementDetail({
       }
     }
   }, [agreement]);
+
+  const handleRecordPayment = useCallback(() => {
+    setIsPaymentDialogOpen(true);
+  }, []);
 
   const handleGenerateDocument = useCallback(() => {
     if (agreement && onGenerateDocument) {
@@ -346,27 +345,20 @@ export function AgreementDetail({
           <FilePlus className="mr-2 h-4 w-4" />
           Generate Document
         </Button>
+        <Button variant="default" className="bg-blue-500 hover:bg-blue-600" onClick={handleRecordPayment}>
+          <DollarSign className="mr-2 h-4 w-4" />
+          Record Payment
+        </Button>
         <div className="flex-grow"></div>
         <Button variant="destructive" onClick={handleDelete} className="ml-auto">
           Delete
         </Button>
       </div>
 
-      {agreement && <PaymentHistory 
-        payments={Array.isArray(payments) ? payments : []} 
-        isLoading={isLoading} 
-        rentAmount={rentAmount} 
-        onPaymentDeleted={() => {
-          onPaymentDeleted();
-          fetchPayments();
-        }} 
-        leaseStartDate={agreement.start_date} 
-        leaseEndDate={agreement.end_date} 
-      />}
-
-      {agreement.start_date && agreement.end_date && (
-        <LegalCaseCard agreementId={agreement.id} />
-      )}
+      {agreement && <PaymentHistory payments={payments || []} isLoading={isLoadingPayments} rentAmount={rentAmount} onPaymentDeleted={() => {
+      onPaymentDeleted();
+      fetchPayments();
+    }} leaseStartDate={agreement.start_date} leaseEndDate={agreement.end_date} />}
 
       {agreement.start_date && agreement.end_date && <Card>
           <CardHeader>

@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AgreementDetail } from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
-import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
+import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { Agreement, forceGeneratePaymentForAgreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
@@ -18,7 +17,6 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
-import { ensureArray } from '@/lib/type-helpers';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,8 +32,7 @@ const AgreementDetailPage = () => {
 
   const { rentAmount, contractAmount } = useRentAmount(agreement, id);
   
-  // Ensure we properly handle the payments array with type safety
-  const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
+  const { payments, isLoadingPayments, fetchPayments } = usePayments(id || '', rentAmount);
 
   const fetchAgreementData = async () => {
     if (!id) return;
@@ -89,7 +86,7 @@ const AgreementDetailPage = () => {
   }, [id, refreshTrigger]);
 
   useEffect(() => {
-    if (id && !isLoading && agreement && Array.isArray(payments) && payments.length > 0) {
+    if (id && !isLoading && agreement && payments && payments.length > 0) {
       const paymentDates = payments
         .filter(p => p.original_due_date)
         .map(p => {

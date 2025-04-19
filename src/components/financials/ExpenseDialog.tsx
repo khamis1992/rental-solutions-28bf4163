@@ -109,7 +109,7 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
   React.useEffect(() => {
     const interval = form.getValues('recurringInterval');
     const isRecurringValue = form.getValues('isRecurring');
-
+    
     if (isRecurringValue && interval) {
       const currentDate = form.getValues('date') || new Date();
       const nextDate = calculateNextPaymentDate(interval, currentDate);
@@ -147,21 +147,12 @@ const ExpenseDialog: React.FC<ExpenseDialogProps> = ({
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            Enter the expense details or scan a receipt below.
+            Enter the expense details below.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="mb-4">
-              <ReceiptScanner
-                onScanComplete={(data) => {
-                  form.setValue('amount', data.amount);
-                  form.setValue('date', data.date);
-                  form.setValue('description', data.description);
-                }}
-              />
-            </div>
             <FormField
               control={form.control}
               name="amount"

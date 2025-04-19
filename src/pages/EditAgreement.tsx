@@ -6,12 +6,10 @@ import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { Agreement } from '@/lib/validation-schemas/agreement';
 import { updateAgreementWithCheck } from '@/utils/agreement-utils';
 import { adaptSimpleToFullAgreement } from '@/utils/agreement-utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRentAmount } from '@/hooks/use-rent-amount'; 
-import { supabase } from '@/integrations/supabase/client';
 
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,12 +19,10 @@ const EditAgreement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [updateProgress, setUpdateProgress] = useState<string | null>(null);
   const { user } = useAuth();
-  const { rentAmount } = useRentAmount(agreement, id);
-  const [vehicleData, setVehicleData] = useState<any>(null);
 
   useEffect(() => {
+    // Guard against multiple fetches in rapid succession
     if (hasAttemptedFetch) return;
     
     const fetchAgreement = async () => {
@@ -42,16 +38,8 @@ const EditAgreement = () => {
         const data = await getAgreement(id);
         console.log("Fetched agreement data:", data);
         if (data) {
-          const fullAgreement = adaptSimpleToFullAgreement(data);
-          console.log("Converted to full agreement:", fullAgreement);
-          setAgreement(fullAgreement);
-          
-          if (data.vehicle_id && (!data.vehicles || !Object.keys(data.vehicles).length)) {
-            fetchVehicleDetails(data.vehicle_id);
-          } else if (data.vehicles) {
-            console.log("Vehicle data already included:", data.vehicles);
-            setVehicleData(data.vehicles);
-          }
+          // Convert SimpleAgreement to Agreement type
+          setAgreement(adaptSimpleToFullAgreement(data));
         } else {
           toast.error("Agreement not found");
           navigate("/agreements");
@@ -69,120 +57,31 @@ const EditAgreement = () => {
     fetchAgreement();
   }, [id, getAgreement, navigate, hasAttemptedFetch]);
 
-  const fetchVehicleDetails = async (vehicleId: string) => {
-    try {
-      console.log("Fetching vehicle details for ID:", vehicleId);
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .eq('id', vehicleId)
-        .single();
-        
-      if (error) {
-        console.error("Error fetching vehicle details:", error);
-        return;
-      }
-      
-      if (data) {
-        console.log("Fetched vehicle data:", data);
-        setVehicleData(data);
-        
-        setAgreement(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            vehicles: data,
-            vehicle_make: data.make,
-            vehicle_model: data.model,
-            license_plate: data.license_plate
-          };
-        });
-      }
-    } catch (error) {
-      console.error("Error in fetchVehicleDetails:", error);
-    }
-  };
-
-  useEffect(() => {
-    if (rentAmount && agreement && !agreement.rent_amount) {
-      console.log("Setting rent amount from hook:", rentAmount);
-      setAgreement(prev => prev ? { ...prev, rent_amount: rentAmount } : null);
-    }
-  }, [rentAmount, agreement]);
-
   const handleSubmit = async (updatedAgreement: Agreement) => {
     if (!id) return;
     
     try {
       setIsSubmitting(true);
-      setUpdateProgress(null);
       
-      // Check if the status is being changed to active or closed
+      // Check if status is being changed to active
       const isChangingToActive = updatedAgreement.status === 'active' && 
                               agreement?.status !== 'active';
-      const isChangingToClosed = updatedAgreement.status === 'closed' && 
-                              agreement?.status !== 'closed';
-      
-      // Set initial processing message
+                              
       if (isChangingToActive) {
-        setUpdateProgress("Preparing to activate agreement...");
-        toast.info("Activating agreement...");
-      } else if (isChangingToClosed) {
-        setUpdateProgress("Preparing to close agreement...");
-        toast.info("Closing agreement...");
-      } else {
-        setUpdateProgress("Updating agreement...");
+        console.log("Status is being changed to active, payment schedule will be generated");
       }
       
-      const { terms_accepted, additional_drivers, ...agreementData } = updatedAgreement;
-      
-      const updateData = {
-        ...agreementData,
-        id: id
-      };
-      
-      // Use a timeout to handle potential hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("Operation timed out")), 30000);
-      });
-      
-      // Set up status update event handlers to track progress
-      const statusUpdateCallback = (status: string) => {
-        setUpdateProgress(status);
-      };
-      
-      try {
-        // Execute the operation with a timeout
-        await Promise.race([
-          updateAgreementWithCheck(
-            { id, data: updateData },
-            user?.id,
-            () => {
-              setUpdateProgress("Agreement updated successfully!");
-              toast.success("Agreement updated successfully");
-              navigate(`/agreements/${id}`);
-            },
-            (error: any) => {
-              console.error("Error updating agreement:", error);
-              setUpdateProgress(null);
-              toast.error(`Failed to update: ${error.message || "Unknown error"}`);
-              setIsSubmitting(false);
-            },
-            statusUpdateCallback // Pass the callback to track status updates
-          ),
-          timeoutPromise
-        ]);
-      } catch (timeoutError) {
-        console.error("Operation timed out:", timeoutError);
-        toast.error("Operation timed out. The system might still be processing your request.");
-        setIsSubmitting(false);
-        setUpdateProgress(null);
-      }
+      await updateAgreementWithCheck(
+        { id, data: updatedAgreement },
+        user?.id, // Pass the user ID for audit tracking
+        () => navigate(`/agreements/${id}`), // Success callback
+        (error: any) => console.error("Error updating agreement:", error) // Error callback
+      );
     } catch (error) {
-      console.error("Error in handleSubmit:", error);
+      console.error("Error updating agreement:", error);
       toast.error("Failed to update agreement");
+    } finally {
       setIsSubmitting(false);
-      setUpdateProgress(null);
     }
   };
 
@@ -198,24 +97,11 @@ const EditAgreement = () => {
           <Skeleton className="h-96 w-full" />
         </div>
       ) : agreement ? (
-        <>
-          {updateProgress && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded mb-4">
-              <p className="flex items-center">
-                <span className="animate-pulse mr-2">⏳</span>
-                <span>{updateProgress}</span>
-              </p>
-            </div>
-          )}
-          <AgreementForm 
-            initialData={{
-              ...agreement,
-              vehicles: vehicleData || agreement.vehicles
-            }} 
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
-          />
-        </>
+        <AgreementForm 
+          initialData={agreement} 
+          onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
+        />
       ) : (
         <div className="text-center py-12">
           <h3 className="text-lg font-semibold mb-2">Agreement not found</h3>

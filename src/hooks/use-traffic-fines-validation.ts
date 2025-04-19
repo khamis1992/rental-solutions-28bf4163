@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { BasicMutationResult } from '@/utils/type-utils';
 
 export interface ValidationResult {
   licensePlate: string;
@@ -20,7 +19,7 @@ export const useTrafficFinesValidation = () => {
   // Fetch validation history
   const { data: validationHistory, isLoading, error } = useQuery({
     queryKey: ['trafficFineValidations'],
-    queryFn: async (): Promise<ValidationResult[]> => {
+    queryFn: async () => {
       try {
         const { data, error } = await supabase
           .from('traffic_fine_validations')
@@ -66,24 +65,14 @@ export const useTrafficFinesValidation = () => {
     staleTime: 5 * 60 * 1000 // 5 minutes
   });
   
-  // Track validation attempts - simplified return type to avoid deep type instantiation
-  interface ValidationAttempt {
-    id: string;
-    license_plate: string;
-    validation_date: string;
-    status: string;
-  }
-
-  const incrementValidationAttempt = async (licensePlate: string): Promise<ValidationAttempt | null> => {
-    if (typeof licensePlate !== 'string' || !licensePlate.trim()) {
-      throw new Error('Invalid license plate format');
-    }
-
+  // Track validation attempts - simplified to avoid deep type instantiation
+  const incrementValidationAttempt = async (licensePlate: string) => {
     try {
+      // Check if we have previous validations for this license plate
       const { data: existingValidations, error: queryError } = await supabase
         .from('traffic_fine_validations')
-        .select('id, license_plate, validation_date, status')
-        .eq('license_plate', licensePlate.trim())
+        .select('id')
+        .eq('license_plate', licensePlate)
         .maybeSingle();
       
       if (queryError) {
@@ -98,7 +87,7 @@ export const useTrafficFinesValidation = () => {
     }
   };
   
-  // Validate traffic fine - explicitly specify return type to avoid deep type instantiation
+  // Validate traffic fine - simplified function signature to avoid deep type instantiation
   const validateTrafficFine = async (licensePlate: string): Promise<ValidationResult> => {
     try {
       // Log validation attempt
@@ -141,7 +130,7 @@ export const useTrafficFinesValidation = () => {
     }
   };
   
-  // Batch validate multiple license plates
+  // Batch validate multiple license plates - NEW PHASE 3 FEATURE
   const batchValidateTrafficFines = async (licensePlates: string[]): Promise<ValidationResult[]> => {
     const results: ValidationResult[] = [];
     const failures: string[] = [];
@@ -174,7 +163,7 @@ export const useTrafficFinesValidation = () => {
     return results;
   };
   
-  // Manually validate a specific fine by ID - using BasicMutationResult to avoid type issues
+  // Manually validate a specific fine by ID - use simpler type signatures
   const validateFineById = useMutation({
     mutationFn: async (fineId: string) => {
       try {
@@ -190,7 +179,7 @@ export const useTrafficFinesValidation = () => {
         
         const result = await validateTrafficFine(fine.license_plate);
         
-        // Update fine status based on validation results
+        // Update fine status based on validation results - NEW PHASE 3 FEATURE
         if (!result.hasFine) {
           // If no fine found in validation system, update status to paid
           const { error: updateError } = await supabase
@@ -222,10 +211,9 @@ export const useTrafficFinesValidation = () => {
     }
   });
   
-  // Check and update status for all pending fines - using BasicMutationResult type
+  // Check and update status for all pending fines - NEW PHASE 3 FEATURE
   const updateAllPendingFines = useMutation({
-    // Fix TypeScript error by accepting an empty object parameter
-    mutationFn: async (_: any = {}) => {
+    mutationFn: async () => {
       try {
         // Get all pending fines
         const { data: pendingFines, error: fetchError } = await supabase
