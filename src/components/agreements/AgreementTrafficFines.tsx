@@ -7,7 +7,8 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, FileCheck } from 'lucide-react';
-import { hasData } from '@/utils/database-type-helpers';
+import { asTrafficFineIdColumn } from '@/utils/database-type-helpers';
+import { UUID } from '@/types/database-types';
 
 export interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -30,11 +31,11 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     try {
       setIsLoading(true);
       
-      // Use string ID directly without type assertions
+      // Cast the agreementId to UUID type explicitly to avoid type issues
       const { data, error } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('agreement_id', agreementId);
+        .eq('lease_id', agreementId as UUID);
       
       if (error) {
         throw error;
@@ -70,15 +71,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     {
       accessorKey: 'violation_date',
       header: 'Date',
-      cell: ({ row }: { row: any }) => {
-        const dateString = row.original.violation_date;
-        if (!dateString) return 'N/A';
-        try {
-          return format(new Date(dateString), 'MMM d, yyyy');
-        } catch (error) {
-          return dateString;
-        }
-      },
+      cell: ({ row }: { row: any }) => formatDate(row.original.violation_date),
     },
     {
       accessorKey: 'license_plate',

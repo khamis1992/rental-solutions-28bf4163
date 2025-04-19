@@ -7,12 +7,12 @@ import {
   Phone, Mail, MapPin
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { PaymentHistory } from './PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
@@ -22,8 +22,8 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
+import { UUID } from '@/types/database-types';
 import { Payment } from './PaymentHistory.types';
-import { hasData } from '@/utils/database-type-helpers';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,16 +58,14 @@ const AgreementDetail = () => {
   const fetchPayments = async () => {
     setIsLoadingPayments(true);
     try {
-      // Use string directly without type assertions
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', id);
+        .eq('lease_id', id as UUID);
       
       if (error) throw error;
       
-      // Type casting for compatibility with the Payment type
-      setPayments((data || []) as Payment[]);
+      setPayments(data as Payment[]);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
@@ -90,11 +88,10 @@ const AgreementDetail = () => {
         return;
       }
       
-      // Use string directly without type assertions
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('customer_id', agreement.customers.id);
+        .eq('customer_id', agreement.customers.id as UUID);
       
       if (error) throw error;
       
@@ -313,12 +310,6 @@ const AgreementDetail = () => {
       </AgreementTabs>
     </div>
   );
-};
-
-// Helper function to format dates
-const dateFormat = (date: string | Date) => {
-  if (!date) return 'N/A';
-  return format(new Date(date), 'MMM d, yyyy');
 };
 
 export default AgreementDetail;
