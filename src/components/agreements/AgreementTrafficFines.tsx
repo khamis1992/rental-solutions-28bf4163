@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
@@ -34,7 +34,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
       const { data, error } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('agreement_id', agreementId);
+        .eq('lease_id', agreementId);
       
       if (error) {
         throw error;

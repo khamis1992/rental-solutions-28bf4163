@@ -1,5 +1,5 @@
 
-import { UUID, ensureUUID } from '@/types/database-types';
+import { UUID, ensureUUID } from '@/utils/database-type-helpers';
 import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
 
 /**
@@ -8,11 +8,11 @@ import { PostgrestFilterBuilder } from '@supabase/postgrest-js';
  */
 export function safeQuery<T extends Record<string, any>>(
   query: PostgrestFilterBuilder<any, any, T>,
-  column: keyof T,
+  column: keyof T | string,
   value: string | UUID | null | undefined
 ): PostgrestFilterBuilder<any, any, T> {
   if (!value) throw new Error(`Invalid value for column: ${String(column)}`);
-  return query.eq(column as string, ensureUUID(value));
+  return query.eq(column as string, value);
 }
 
 /**

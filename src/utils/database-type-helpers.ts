@@ -9,7 +9,7 @@ export function castToUUID(id: string | undefined | null): UUID | null {
 }
 
 // Helper function to ensure we have a valid UUID for queries
-export function ensureUUID(id: string | undefined | null): UUID {
+export function ensureUUID(id: string | UUID | undefined | null): UUID {
   if (!id) throw new Error('Invalid ID: null or undefined');
   return id as UUID;
 }
