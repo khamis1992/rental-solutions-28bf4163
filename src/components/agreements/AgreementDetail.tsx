@@ -23,15 +23,16 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { asTableId } from '@/utils/database-type-helpers';
+import { asTableId, UUID } from '@/utils/database-type-helpers';
+import { Payment } from './PaymentHistory.types';
 
-export const AgreementDetail = () => {
+const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
   const [agreement, setAgreement] = useState<any>(null);
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(id || '');
-  const [payments, setPayments] = useState<any[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
@@ -61,8 +62,7 @@ export const AgreementDetail = () => {
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
-        .eq('lease_id', asTableId(id || ''))
-        .order('due_date', { ascending: false });
+        .eq('lease_id', asTableId(id || ''));
       
       if (error) throw error;
       
@@ -82,10 +82,17 @@ export const AgreementDetail = () => {
   const fetchLegalCases = async () => {
     setIsLoadingLegalCases(true);
     try {
+      // For the legal_cases table, query by customer_id instead of agreement_id
+      if (!agreement?.customers?.id) {
+        console.log("No customer ID available yet for legal cases query");
+        setIsLoadingLegalCases(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('agreement_id', asTableId(id || ''));
+        .eq('customer_id', agreement.customers.id);
       
       if (error) throw error;
       

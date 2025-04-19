@@ -55,6 +55,9 @@ export function asTableId(id: string): UUID {
   return id as UUID;
 }
 
+// Export UUID type to avoid circular dependencies
+export { UUID };
+
 // Functions for column assertions in queries
 export function asStatusColumn(status: string): string {
   return status;

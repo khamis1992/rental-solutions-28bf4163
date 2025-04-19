@@ -2,7 +2,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface MobileTabsProps {
   tabs: {
@@ -65,25 +65,27 @@ export function MobileTabs({
       
       {/* Visible on desktop */}
       <div className="hidden md:block">
-        <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
+        <Tabs defaultValue={defaultValue || tabs[0].id}>
+          <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
+            {tabs.map((tab) => (
+              <TabsTrigger 
+                key={tab.id} 
+                value={tab.id}
+                className="flex items-center gap-1"
+                onClick={() => handleTabChange(tab.id)}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          
           {tabs.map((tab) => (
-            <TabsTrigger 
-              key={tab.id} 
-              value={tab.id}
-              className="flex items-center gap-1"
-              onClick={() => handleTabChange(tab.id)}
-            >
-              {tab.icon}
-              <span>{tab.label}</span>
-            </TabsTrigger>
+            <TabsContent key={tab.id} value={tab.id}>
+              {tab.content}
+            </TabsContent>
           ))}
-        </TabsList>
-        
-        {tabs.map((tab) => (
-          <TabsContent key={tab.id} value={tab.id}>
-            {tab.content}
-          </TabsContent>
-        ))}
+        </Tabs>
       </div>
     </div>
   );

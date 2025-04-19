@@ -1,7 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-// Import the default export (not named export) from AgreementDetail
 import AgreementDetail from '@/components/agreements/AgreementDetail';
 import PageContainer from '@/components/layout/PageContainer';
 import { useAgreements } from '@/hooks/use-agreements';
@@ -198,20 +196,7 @@ const AgreementDetailPage = () => {
         </div>
       ) : agreement ? (
         <>
-          <AgreementDetail 
-            agreement={agreement}
-            onDelete={handleDelete}
-            rentAmount={rentAmount}
-            contractAmount={contractAmount}
-            onPaymentDeleted={refreshAgreementData}
-            onDataRefresh={refreshAgreementData}
-            onGenerateDocument={handleGenerateDocument}
-            isGeneratingPayment={isGeneratingPayment}
-            isRunningMaintenance={isRunningMaintenance}
-            isGeneratingPdf={isGeneratingPdf}
-            onGeneratePayment={handleGeneratePayment}
-            onRunMaintenance={handleRunMaintenanceJob}
-          />
+          <AgreementDetail />
           
           <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
             <DialogContent className="max-w-4xl">

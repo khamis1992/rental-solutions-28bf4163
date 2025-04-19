@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
-import { asTableId } from '@/utils/database-type-helpers';
+import { asTableId, UUID } from '@/utils/database-type-helpers';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -86,7 +86,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
   
   const handleResolveCase = async (id: string) => {
     try {
-      const updateData = {
+      const updateData: any = {
         status: 'resolved',
         resolution_notes: 'Case closed by admin',
         resolution_date: new Date().toISOString(),
