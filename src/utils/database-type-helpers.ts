@@ -2,61 +2,61 @@
 export type UUID = string;
 
 // Type assertion helper functions that are safe for Supabase queries
-export function asLeaseId(id: UUID): UUID {
-  return id;
+export function asLeaseId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asPaymentId(id: UUID): UUID {
-  return id;
+export function asPaymentId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asAgreementId(id: UUID): UUID {
-  return id; 
+export function asAgreementId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asImportId(id: UUID): UUID {
-  return id;
+export function asImportId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asTrafficFineId(id: UUID): UUID {
-  return id;
+export function asTrafficFineId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asVehicleId(id: UUID): UUID {
-  return id;
+export function asVehicleId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asCustomerId(id: UUID): UUID {
-  return id;
+export function asCustomerId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asProfileId(id: UUID): UUID {
-  return id;
+export function asProfileId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asLegalCaseId(id: UUID): UUID {
-  return id;
+export function asLegalCaseId(id: UUID | string): UUID {
+  return id as UUID;
 }
 
 // Column helper functions
-export function asTrafficFineIdColumn(id: UUID): UUID {
-  return id;
+export function asTrafficFineIdColumn(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asLeaseIdColumn(id: UUID): UUID {
-  return id;
+export function asLeaseIdColumn(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asAgreementIdColumn(id: UUID): UUID {
-  return id;
+export function asAgreementIdColumn(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asImportIdColumn(id: UUID): UUID {
-  return id;
+export function asImportIdColumn(id: UUID | string): UUID {
+  return id as UUID;
 }
 
-export function asCustomerIdColumn(id: UUID): UUID {
-  return id;
+export function asCustomerIdColumn(id: UUID | string): UUID {
+  return id as UUID;
 }
 
 // Additional helper functions needed

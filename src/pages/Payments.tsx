@@ -8,11 +8,13 @@ import { useParams } from 'react-router-dom';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreement } from '@/hooks/use-agreements';
 import { DollarSign } from 'lucide-react';
+import { hasData } from '@/utils/database-type-helpers';
+import { UUID } from '@/types/database-types';
 
 const Payments = () => {
   const { id } = useParams<{ id: string }>();
   const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
-  const { agreement } = useAgreement(id);
+  const { agreement } = useAgreement(id as UUID);
   const { rentAmount } = useRentAmount(agreement, id || '');
 
   return (
