@@ -81,7 +81,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', agreementId)
+      .eq('agreement_id', agreementId) // Use string ID directly
       .single();
     
     if (error) {
@@ -99,7 +99,7 @@ const fetchPayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('unified_payments')
       .select('*')
-      .eq('lease_id', agreementId);
+      .eq('lease_id', agreementId); // Use string ID directly
     
     if (error) {
       console.error("Error fetching payments:", error);
@@ -116,7 +116,7 @@ const fetchImportReverts = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', importId); // Use string ID directly
     
     if (error) {
       console.error("Error fetching import reverts:", error);
@@ -133,7 +133,7 @@ const getImportRevertStatus = async (importId: string) => {
     const { data, error } = await supabase
       .from('agreement_import_reverts')
       .select('*')
-      .eq('import_id', importId);
+      .eq('import_id', importId); // Use string ID directly
     
     if (error) {
       console.error("Error fetching import revert status:", error);
@@ -150,7 +150,7 @@ const fetchTrafficFines = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('traffic_fines')
       .select('*')
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', agreementId); // Use string ID directly
     
     if (error) {
       console.error("Error fetching traffic fines:", error);
@@ -184,33 +184,33 @@ const fetchItemRelatedMetrics = async (agreementId: string) => {
     const { count: overduePaymentCount } = await supabase
       .from('overdue_payments')
       .select('*', { count: 'exact', head: true })
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', agreementId); // Use string ID directly
 
     const { count: totalPaymentsCount } = await supabase
       .from('unified_payments')
       .select('*', { count: 'exact', head: true })
-      .eq('lease_id', agreementId);
+      .eq('lease_id', agreementId); // Use string ID directly
 
     const { count: importRevertCount } = await supabase
       .from('agreement_import_reverts')
       .select('*', { count: 'exact', head: true })
-      .eq('import_id', agreementId);
+      .eq('import_id', agreementId); // Use string ID directly
 
     const { count: importRevertWithDeletedCount } = await supabase
       .from('agreement_import_reverts')
       .select('*', { count: 'exact', head: true })
-      .eq('import_id', agreementId)
+      .eq('import_id', agreementId) // Use string ID directly
       .gt('deleted_count', 0);
 
     const { count: trafficFineCount } = await supabase
       .from('traffic_fines')
       .select('*', { count: 'exact', head: true })
-      .eq('agreement_id', agreementId);
+      .eq('agreement_id', agreementId); // Use string ID directly
 
     const { count: unpaidTrafficFineCount } = await supabase
       .from('traffic_fines')
       .select('*', { count: 'exact', head: true })
-      .eq('agreement_id', agreementId)
+      .eq('agreement_id', agreementId) // Use string ID directly
       .eq('payment_status', 'pending');
 
     return {

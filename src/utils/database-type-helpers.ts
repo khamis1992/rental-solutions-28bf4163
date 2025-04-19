@@ -19,8 +19,8 @@ export function asLeaseId(id: string): UUID {
   return id as UUID;
 }
 
-export function asLeaseIdColumn(id: string): UUID {
-  return id as UUID;
+export function asLeaseIdColumn(id: string): string {
+  return id;
 }
 
 export function asPaymentId(id: string): UUID {
@@ -44,16 +44,16 @@ export function asImportId(id: string): UUID {
 }
 
 // Helper functions for column-specific IDs
-export function asAgreementIdColumn(id: string): UUID {
-  return id as UUID;
+export function asAgreementIdColumn(id: string): string {
+  return id;
 }
 
-export function asImportIdColumn(id: string): UUID {
-  return id as UUID;
+export function asImportIdColumn(id: string): string {
+  return id;
 }
 
-export function asTrafficFineIdColumn(id: string): UUID {
-  return id as UUID;
+export function asTrafficFineIdColumn(id: string): string {
+  return id;
 }
 
 // Function to check if Supabase response has data

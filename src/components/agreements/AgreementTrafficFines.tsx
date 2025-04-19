@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +7,7 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, FileCheck } from 'lucide-react';
+import { hasData } from '@/utils/database-type-helpers';
 
 export interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -28,7 +30,7 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     try {
       setIsLoading(true);
       
-      // Use string ID directly without type conversion
+      // Use string ID directly without type assertions
       const { data, error } = await supabase
         .from('traffic_fines')
         .select('*')

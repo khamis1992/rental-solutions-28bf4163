@@ -59,7 +59,7 @@ const AgreementDetail = () => {
   const fetchPayments = async () => {
     setIsLoadingPayments(true);
     try {
-      // Use string directly without type conversion for the query
+      // Use string directly without type assertions
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
@@ -67,7 +67,7 @@ const AgreementDetail = () => {
       
       if (error) throw error;
       
-      // Explicitly type the response data as Payment[] to resolve the type mismatch
+      // Use type assertion to ensure Payment[] type
       setPayments((data || []) as Payment[]);
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -91,7 +91,7 @@ const AgreementDetail = () => {
         return;
       }
       
-      // Use string directly without type conversion
+      // Use string directly without type assertions
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
