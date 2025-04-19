@@ -23,76 +23,26 @@ export function asDbId<T>(id: string): T {
 }
 
 // Import UUID type from database-type-helpers
-export type UUID = string;
+import { UUID, asTableId, hasData, asLeaseId, asPaymentId, asVehicleId, asCustomerId, 
+  asAgreementId, asImportId, asLeaseIdColumn, asAgreementIdColumn, asImportIdColumn, 
+  asTrafficFineIdColumn, asStatusColumn, asPaymentStatusColumn, safelyExtractData } from '@/utils/database-type-helpers';
 
-// Type assertion helper functions that are safe for Supabase queries
-export function asLeaseId(id: UUID): UUID {
-  return id;
-}
-
-export function asPaymentId(id: UUID): UUID {
-  return id;
-}
-
-export function asAgreementId(id: UUID): UUID {
-  return id; 
-}
-
-export function asImportId(id: UUID): UUID {
-  return id;
-}
-
-export function asTrafficFineId(id: UUID): UUID {
-  return id;
-}
-
-export function asVehicleId(id: UUID): UUID {
-  return id;
-}
-
-export function asCustomerId(id: UUID): UUID {
-  return id;
-}
-
-export function asProfileId(id: UUID): UUID {
-  return id;
-}
-
-export function asLegalCaseId(id: UUID): UUID {
-  return id;
-}
-
-// Column helper functions
-export function asTrafficFineIdColumn(id: UUID): UUID {
-  return id;
-}
-
-export function asLeaseIdColumn(id: UUID): UUID {
-  return id;
-}
-
-export function asAgreementIdColumn(id: UUID): UUID {
-  return id;
-}
-
-export function asImportIdColumn(id: UUID): UUID {
-  return id;
-}
-
-export function asCustomerIdColumn(id: UUID): UUID {
-  return id;
-}
-
-// Helper function to safely extract data from Supabase queries
-export function hasData<T>(
-  response: { data: T | null; error: any } | null | undefined
-): response is { data: T; error: null } {
-  return !!response && !response.error && response.data !== null;
-}
-
-export function safelyExtractData<T>(response: { data: T | null; error: any } | null | undefined): T | null {
-  if (!response || response.error || !response.data) {
-    return null;
-  }
-  return response.data;
-}
+// Re-export imported types and functions
+export {
+  UUID,
+  asTableId,
+  hasData,
+  asLeaseId,
+  asPaymentId,
+  asVehicleId,
+  asCustomerId,
+  asAgreementId,
+  asImportId,
+  asLeaseIdColumn,
+  asAgreementIdColumn,
+  asImportIdColumn,
+  asTrafficFineIdColumn,
+  asStatusColumn,
+  asPaymentStatusColumn,
+  safelyExtractData
+};

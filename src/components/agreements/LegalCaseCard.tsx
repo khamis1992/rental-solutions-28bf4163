@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Pencil, Plus, Info, Shield, AlertTriangle, Clock, BarChart2, Ban, Check } from 'lucide-react';
+import { Loader2, AlertCircle, Pencil, Plus, Info, Shield, AlertTriangle, Clock, BarChart2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { DataTable } from '@/components/ui/data-table';
 import { format } from 'date-fns';
@@ -13,7 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UUID, asLeaseId, asProfileId, asCustomerIdColumn, asLegalCaseId } from '@/types/database-types';
+import { asLeaseId, asProfileId, asCustomerIdColumn, asLegalCaseId } from '@/utils/database-type-helpers';
+import { UUID } from '@/types/database-types';
+import { hasData } from '@/utils/supabase-type-helpers';
 
 interface LegalCaseCardProps {
   agreementId: string;

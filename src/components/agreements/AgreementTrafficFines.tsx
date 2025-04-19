@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,8 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, FileCheck } from 'lucide-react';
-import { UUID, asLeaseIdColumn } from '@/types/database-types';
+import { asLeaseIdColumn } from '@/utils/database-type-helpers';
+import { UUID } from '@/types/database-types';
 
 export interface AgreementTrafficFinesProps {
   agreementId: string;

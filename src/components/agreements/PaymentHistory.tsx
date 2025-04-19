@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Calendar, CalendarIcon, Trash2 } from 'lucide-react';
 import { DataTable } from '@/components/ui/data-table';
 import { useCallback } from 'react';
-import { asPaymentId } from '@/types/database-types';
+import { asPaymentId } from '@/utils/database-type-helpers';
 
 // Make sure to export the Payment type to fix the error 
 // in AgreementDetail.tsx

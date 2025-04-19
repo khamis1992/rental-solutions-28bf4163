@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Route } from 'react-router-dom';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -5,8 +6,6 @@ import Agreements from '@/pages/Agreements';
 import AgreementDetailPage from '@/pages/AgreementDetailPage';
 import AddAgreement from '@/pages/AddAgreement';
 import EditAgreement from '@/pages/EditAgreement';
-import Payments from '@/pages/Payments';
-import TrafficFines from '@/pages/TrafficFines';
 
 export const AgreementRoutes = [
   <Route 
@@ -42,24 +41,6 @@ export const AgreementRoutes = [
     element={
       <ProtectedRoute>
         <AgreementDetailPage />
-      </ProtectedRoute>
-    } 
-  />,
-  <Route 
-    key="agreement-payments" 
-    path="agreements/:id/payments" 
-    element={
-      <ProtectedRoute>
-        <Payments />
-      </ProtectedRoute>
-    } 
-  />,
-  <Route 
-    key="agreement-fines" 
-    path="agreements/:id/fines" 
-    element={
-      <ProtectedRoute>
-        <TrafficFines />
       </ProtectedRoute>
     } 
   />
