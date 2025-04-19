@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -6,17 +5,20 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, Download, Edit, Printer, FilePlus, PlusCircle, Receipt } from 'lucide-react';
+import { CalendarDays, Download, Edit, Printer, FilePlus } from 'lucide-react';
 import { generatePdfDocument } from '@/utils/agreementUtils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { usePaymentGeneration } from '@/hooks/use-payment-generation';
 import { PaymentEntryDialog } from './PaymentEntryDialog';
-import { PaymentHistory } from '@/components/agreements/PaymentHistory';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
-import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
-import { asDbId, LeaseId } from '@/types/database-types';
+import { Agreement } from '@/lib/validation-schemas/agreement';
+import { usePayments } from '@/hooks/use-payments';
+import { PaymentHistory } from '@/components/agreements/PaymentHistory';
+import LegalCaseCard from './LegalCaseCard';
+import { asDbId, AgreementId, LeaseId } from '@/types/database-types';
+import { supabase } from '@/lib/supabase';
+import { Payment } from './PaymentHistory';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -47,10 +49,18 @@ export function AgreementDetail({
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
-  // Import payments from parent component instead of using usePayments hook
-  // We'll handle payments with the callbacks provided in props
-  const payments = [];
-  const isLoading = false;
+  const {
+    payments = [],
+    isLoading,
+    fetchPayments
+  } = usePayments(agreement?.id);
+  
+  useEffect(() => {
+    if (agreement?.id) {
+      console.log('Fetching payments for agreement:', agreement.id);
+      fetchPayments();
+    }
+  }, [agreement?.id, fetchPayments]);
   
   const {
     handleSpecialAgreementPayments
@@ -58,7 +68,7 @@ export function AgreementDetail({
 
   const handleDelete = useCallback(() => {
     if (agreement) {
-      const typedId = agreement.id;
+      const typedId = asDbId<LeaseId>(agreement.id);
       onDelete(typedId);
     }
   }, [agreement, onDelete]);
@@ -131,7 +141,7 @@ export function AgreementDetail({
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
-          // Use onDataRefresh instead of fetchPayments since we're not using usePayments hook
+          fetchPayments();
           toast.success("Payment recorded successfully");
         }
       } catch (error) {
@@ -139,7 +149,7 @@ export function AgreementDetail({
         toast.error("Failed to record payment");
       }
     }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
+  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
@@ -191,17 +201,6 @@ export function AgreementDetail({
   };
 
   const createdDate = agreement.created_at instanceof Date ? agreement.created_at : new Date(agreement.created_at || new Date());
-
-  const handleAddPayment = useCallback(() => {
-    setIsPaymentDialogOpen(true);
-  }, []);
-
-  const handleGenerateReceipt = useCallback(() => {
-    if (agreement) {
-      toast.info('Generating payment receipt...');
-      toast.success('Payment receipt generated successfully');
-    }
-  }, [agreement]);
 
   return <div className="space-y-8">
       <div className="space-y-2">
@@ -347,19 +346,6 @@ export function AgreementDetail({
           <FilePlus className="mr-2 h-4 w-4" />
           Generate Document
         </Button>
-
-        {agreement && agreement.status === AgreementStatus.ACTIVE && (
-          <Button variant="outline" onClick={handleAddPayment}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Payment
-          </Button>
-        )}
-
-        <Button variant="outline" onClick={handleGenerateReceipt}>
-          <Receipt className="mr-2 h-4 w-4" />
-          Payment Receipt
-        </Button>
-
         <div className="flex-grow"></div>
         <Button variant="destructive" onClick={handleDelete} className="ml-auto">
           Delete
@@ -370,7 +356,10 @@ export function AgreementDetail({
         payments={Array.isArray(payments) ? payments : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount} 
-        onPaymentDeleted={onPaymentDeleted} 
+        onPaymentDeleted={() => {
+          onPaymentDeleted();
+          fetchPayments();
+        }} 
         leaseStartDate={agreement.start_date} 
         leaseEndDate={agreement.end_date} 
       />}
