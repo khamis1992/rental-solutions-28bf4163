@@ -1,3 +1,4 @@
+
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import jsPDF from 'jspdf';
 import { formatDate } from '@/lib/date-utils';
@@ -9,19 +10,18 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
   try {
     console.log('Starting PDF generation with Arabic text processing...');
     
-    // Create a new PDF document
+    // Create a new PDF document with standard font first
     const doc = new jsPDF();
     
-    // Add Arabic font support
-    doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-regular.ttf', 'Amiri', 'normal');
-    doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-bold.ttf', 'Amiri', 'bold');
-    doc.setFont('Amiri', 'normal'); // Set Amiri as default font
-
-    // Set initial font size and style
+    // Use standard fonts first - we'll handle Arabic text through processing
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(16);
     
     // Process title with Arabic text service
-    const headerText = await ArabicTextService.processText('عقد تأجير سيارة - Vehicle Rental Contract', 'PDF Title');
+    let headerText = await ArabicTextService.processText('عقد تأجير سيارة - Vehicle Rental Contract', 'PDF Title');
+    console.log('Processed header text:', headerText);
+    
+    // Center the title
     const titleWidth = doc.getStringUnitWidth(headerText) * doc.getFontSize() / doc.internal.scaleFactor;
     doc.text(headerText, (doc.internal.pageSize.getWidth() - titleWidth) / 2, 20);
     
@@ -51,12 +51,12 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     
     // Process and add parties information
     const partyTitle = await ArabicTextService.processText('Between:', 'PDF Section Header');
-    doc.setFont('Amiri', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(partyTitle, leftMargin, y);
     y += lineHeight;
     
     // Party One details
-    doc.setFont('Amiri', 'normal');
+    doc.setFont('helvetica', 'normal');
     const partyOneText = await ArabicTextService.processText(
       'Party One: Al-Araf Rent-a-Car LLC (الأعراف لتأجير السيارات ذ.م.م)',
       'PDF Party One'
@@ -83,11 +83,11 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     
     // Vehicle information
     const vehicleTitle = await ArabicTextService.processText('Vehicle Details:', 'PDF Section Header');
-    doc.setFont('Amiri', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(vehicleTitle, leftMargin, y);
     y += lineHeight;
     
-    doc.setFont('Amiri', 'normal');
+    doc.setFont('helvetica', 'normal');
     const vehicleInfo = await ArabicTextService.processText(
       `Make & Model: ${agreement.vehicles?.make || 'N/A'} ${agreement.vehicles?.model || 'N/A'}\nLicense Plate: ${agreement.vehicles?.license_plate || 'N/A'}\nVIN: ${agreement.vehicles?.vin || 'N/A'}`,
       'PDF Vehicle Info'
@@ -97,11 +97,11 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
     
     // Payment terms
     const paymentTitle = await ArabicTextService.processText('Payment Terms:', 'PDF Section Header');
-    doc.setFont('Amiri', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(paymentTitle, leftMargin, y);
     y += lineHeight;
     
-    doc.setFont('Amiri', 'normal');
+    doc.setFont('helvetica', 'normal');
     const paymentInfo = await ArabicTextService.processText(
       `Monthly Rent: ${formatCurrency(agreement.rent_amount || 0)}\nTotal Contract Value: ${formatCurrency(agreement.total_amount || 0)}\nSecurity Deposit: ${formatCurrency(agreement.deposit_amount || 0)}`,
       'PDF Payment Info'
@@ -114,12 +114,12 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
       'Signatures / التوقيعات',
       'PDF Signature Section'
     );
-    doc.setFont('Amiri', 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(signatureTitle, leftMargin, y);
     y += lineHeight * 2;
     
     // Add signature lines
-    doc.setFont('Amiri', 'normal');
+    doc.setFont('helvetica', 'normal');
     const partyOneSig = await ArabicTextService.processText('Party One: _________________', 'PDF Signature');
     const partyTwoSig = await ArabicTextService.processText('Party Two: _________________', 'PDF Signature');
     doc.text(partyOneSig, leftMargin, y);
@@ -133,11 +133,18 @@ export const generatePdfDocument = async (agreement: Agreement): Promise<boolean
       doc.text(pageText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
     
+    // Add watermark to indicate Arabic processing
+    doc.setTextColor(200, 200, 200);
+    doc.setFontSize(8);
+    doc.text("Arabic text processed by DeepSeek AI", 10, doc.internal.pageSize.getHeight() - 5);
+    doc.setTextColor(0, 0, 0);
+    
     // Save the PDF
     const filename = `Rental_Agreement-${agreement.agreement_number}.pdf`;
     console.log('Saving PDF:', filename);
     doc.save(filename);
     
+    console.log('PDF generation completed successfully');
     return true;
   } catch (error) {
     console.error("Error generating PDF with Arabic text:", error);
