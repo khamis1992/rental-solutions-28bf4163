@@ -1,5 +1,6 @@
 
-import { UUID } from '@/types/database-types';
+// Define the UUID type directly here to avoid circular imports
+export type UUID = string;
 
 // Helper functions for converting strings to typed IDs
 export function asLeaseId(id: string): UUID {
@@ -54,9 +55,6 @@ export function hasData<T>(
 export function asTableId(id: string): UUID {
   return id as UUID;
 }
-
-// Export UUID type to avoid circular dependencies
-export { UUID };
 
 // Functions for column assertions in queries
 export function asStatusColumn(status: string): string {

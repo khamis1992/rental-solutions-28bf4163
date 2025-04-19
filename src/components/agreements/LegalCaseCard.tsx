@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
-import { asTableId, UUID } from '@/utils/database-type-helpers';
+import { asTableId } from '@/utils/database-type-helpers';
+import { UUID } from '@/types/database-types';
 
 interface LegalCaseCardProps {
   agreementId: string;

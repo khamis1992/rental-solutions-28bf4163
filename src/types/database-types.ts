@@ -22,8 +22,27 @@ export function asDbId<T>(id: string): T {
   return id as T;
 }
 
-// Define a type for UUID to make conversions more explicit
-export type UUID = string;
+// Import UUID type from database-type-helpers instead of exporting it here
+import { UUID, asTableId, hasData, asLeaseId, asPaymentId, asVehicleId, asCustomerId, 
+  asAgreementId, asImportId, asLeaseIdColumn, asAgreementIdColumn, asImportIdColumn, 
+  asTrafficFineIdColumn, asStatusColumn, asPaymentStatusColumn, safelyExtractData } from '@/utils/database-type-helpers';
 
-// Export the utility functions from our new helper file
-export * from '@/utils/database-type-helpers';
+// Re-export imported types and functions
+export {
+  UUID,
+  asTableId,
+  hasData,
+  asLeaseId,
+  asPaymentId,
+  asVehicleId,
+  asCustomerId,
+  asAgreementId,
+  asImportId,
+  asLeaseIdColumn,
+  asAgreementIdColumn,
+  asImportIdColumn,
+  asTrafficFineIdColumn,
+  asStatusColumn,
+  asPaymentStatusColumn,
+  safelyExtractData
+};

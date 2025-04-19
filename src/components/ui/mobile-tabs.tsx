@@ -65,14 +65,13 @@ export function MobileTabs({
       
       {/* Visible on desktop */}
       <div className="hidden md:block">
-        <Tabs defaultValue={defaultValue || tabs[0].id}>
+        <Tabs defaultValue={defaultValue || tabs[0].id} value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1">
             {tabs.map((tab) => (
               <TabsTrigger 
                 key={tab.id} 
                 value={tab.id}
                 className="flex items-center gap-1"
-                onClick={() => handleTabChange(tab.id)}
               >
                 {tab.icon}
                 <span>{tab.label}</span>

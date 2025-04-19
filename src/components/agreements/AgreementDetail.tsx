@@ -23,15 +23,16 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { asTableId, UUID } from '@/utils/database-type-helpers';
+import { asTableId } from '@/utils/database-type-helpers';
 import { Payment } from './PaymentHistory.types';
+import { UUID } from '@/types/database-types';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
   const [agreement, setAgreement] = useState<any>(null);
-  const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(id || '');
+  const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(agreement, id || '');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [legalCases, setLegalCases] = useState<any[]>([]);
@@ -66,7 +67,7 @@ const AgreementDetail = () => {
       
       if (error) throw error;
       
-      setPayments(data || []);
+      setPayments(data as Payment[] || []);
     } catch (error) {
       console.error('Error fetching payments:', error);
       toast({
