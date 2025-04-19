@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { UUID } from '@/types/database-types';
+import { UUID, asLeaseId, asProfileId, asCustomerIdColumn, asLegalCaseId } from '@/types/database-types';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -33,7 +33,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: agreementData, error: agreementError } = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', agreementId)
+          .eq('id', asLeaseId(agreementId))
           .single();
         
         if (agreementError || !agreementData) {
@@ -45,7 +45,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', customerId)
+          .eq('id', asProfileId(customerId))
           .single();
         
         if (customerError) throw customerError;
@@ -55,7 +55,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: cases, error: casesError } = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', customerId);
+          .eq('customer_id', asCustomerIdColumn(customerId));
         
         if (casesError) throw casesError;
         setLegalCases(cases || []);
@@ -82,7 +82,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
           status: newStatus, 
           updated_at: new Date().toISOString() 
         })
-        .eq('id', caseId);
+        .eq('id', asLegalCaseId(caseId));
       
       if (error) throw error;
       

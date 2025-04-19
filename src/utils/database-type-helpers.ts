@@ -1,8 +1,7 @@
-
 // Define the UUID type directly here to avoid circular imports
 export type UUID = string;
 
-// Helper functions for converting strings to typed IDs
+// Type assertion helper functions that are safe for Supabase queries
 export function asLeaseId(id: UUID): UUID {
   return id;
 }

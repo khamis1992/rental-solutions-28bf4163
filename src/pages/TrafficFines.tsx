@@ -15,7 +15,7 @@ import { useAgreement } from "@/hooks/use-agreements";
 const TrafficFines = () => {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState("list");
-  const { agreement } = useAgreement(id);
+  const { agreement, isLoading, error } = useAgreement(id);
   
   const handleAddFine = () => {
     setActiveTab("add");
