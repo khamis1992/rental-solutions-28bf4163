@@ -51,15 +51,12 @@ import MaintenanceDetailPage from "./pages/MaintenanceDetailPage";
 // Legal pages
 import Legal from "./pages/Legal";
 import NewLegalCasePage from "./pages/NewLegalCasePage";
-import LegalCasesPage from "./pages/legal/LegalCasesPage";
 
 // Traffic Fines pages
 import TrafficFines from "./pages/TrafficFines";
-import TrafficFinesPage from "./pages/traffic/TrafficFinesPage";
 
 // Financials pages
 import Financials from "./pages/Financials";
-import PaymentHistoryPage from "./pages/payments/PaymentHistoryPage";
 
 // Reports pages
 import Reports from "./pages/Reports";
@@ -67,9 +64,6 @@ import ScheduledReports from "./pages/ScheduledReports";
 
 // System Settings pages
 import SystemSettings from "./pages/SystemSettings";
-
-// Import Agreement routes
-import { AgreementRoutes } from "./routes/AgreementRoutes";
 
 import initializeApp from "./utils/app-initializer";
 
@@ -124,7 +118,10 @@ function App() {
                           <Route path="/customers/edit/:id" element={<EditCustomer />} />
                           
                           {/* Agreement Management Routes */}
-                          {AgreementRoutes}
+                          <Route path="/agreements" element={<Agreements />} />
+                          <Route path="/agreements/add" element={<AddAgreement />} />
+                          <Route path="/agreements/edit/:id" element={<EditAgreement />} />
+                          <Route path="/agreements/:id" element={<AgreementDetailPage />} />
                           
                           {/* Maintenance Management Routes */}
                           <Route path="/maintenance" element={<Maintenance />} />
@@ -177,6 +174,6 @@ function App() {
       </BrowserRouter>
     </QueryClientProvider>
   );
-}
+};
 
 export default App;

@@ -6,9 +6,6 @@ import Agreements from '@/pages/Agreements';
 import AgreementDetailPage from '@/pages/AgreementDetailPage';
 import AddAgreement from '@/pages/AddAgreement';
 import EditAgreement from '@/pages/EditAgreement';
-import PaymentHistoryPage from '@/pages/payments/PaymentHistoryPage';
-import LegalCasesPage from '@/pages/legal/LegalCasesPage';
-import TrafficFinesPage from '@/pages/traffic/TrafficFinesPage';
 
 export const AgreementRoutes = [
   <Route 
@@ -44,33 +41,6 @@ export const AgreementRoutes = [
     element={
       <ProtectedRoute>
         <AgreementDetailPage />
-      </ProtectedRoute>
-    } 
-  />,
-  <Route 
-    key="agreement-payments" 
-    path="agreements/:id/payments" 
-    element={
-      <ProtectedRoute>
-        <PaymentHistoryPage />
-      </ProtectedRoute>
-    } 
-  />,
-  <Route 
-    key="agreement-legal" 
-    path="agreements/:id/legal" 
-    element={
-      <ProtectedRoute>
-        <LegalCasesPage />
-      </ProtectedRoute>
-    } 
-  />,
-  <Route 
-    key="agreement-fines" 
-    path="agreements/:id/fines" 
-    element={
-      <ProtectedRoute>
-        <TrafficFinesPage />
       </ProtectedRoute>
     } 
   />

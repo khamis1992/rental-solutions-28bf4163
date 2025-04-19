@@ -1,4 +1,3 @@
-
 // Define the UUID type directly here to avoid circular imports
 export type UUID = string;
 
