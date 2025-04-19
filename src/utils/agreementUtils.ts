@@ -7,236 +7,140 @@ import { ArabicTextService } from '@/utils/arabic-text-service';
 
 export const generatePdfDocument = async (agreement: Agreement): Promise<boolean> => {
   try {
+    console.log('Starting PDF generation with Arabic text processing...');
+    
     // Create a new PDF document
     const doc = new jsPDF();
     
     // Add Arabic font support
     doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-regular.ttf', 'Amiri', 'normal');
     doc.addFont('https://unpkg.com/amiri@0.114.0/amiri-bold.ttf', 'Amiri', 'bold');
+    doc.setFont('Amiri', 'normal'); // Set Amiri as default font
 
-    // Set font size and style for the header
+    // Set initial font size and style
     doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-
-    // Process and add header text
-    const headerText = await ArabicTextService.processText('Vehicle Rental Contract', 'PDF Title');
-    doc.text(headerText, 105, 20, { align: 'center' });
+    
+    // Process title with Arabic text service
+    const headerText = await ArabicTextService.processText('عقد تأجير سيارة - Vehicle Rental Contract', 'PDF Title');
+    const titleWidth = doc.getStringUnitWidth(headerText) * doc.getFontSize() / doc.internal.scaleFactor;
+    doc.text(headerText, (doc.internal.pageSize.getWidth() - titleWidth) / 2, 20);
     
     // Format dates
     const startDate = agreement.start_date instanceof Date ? agreement.start_date : new Date(agreement.start_date);
     const endDate = agreement.end_date instanceof Date ? agreement.end_date : new Date(agreement.end_date);
     
-    // Calculate agreement duration in months
+    // Calculate agreement duration
     const durationMonths = differenceInMonths(endDate, startDate);
     const duration = `${durationMonths} ${durationMonths === 1 ? 'month' : 'months'}`;
     
     // Start position for text
     let y = 30;
     const leftMargin = 20;
-    const lineHeight = 5;
+    const lineHeight = 7;
     
     // Set regular font for body text
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
     
-    // Add contract introduction with Arabic text processing
+    // Add contract introduction
     const introText = await ArabicTextService.processText(
-      `This vehicle rental agreement ("the Agreement") is made and executed as of the date ${formatDate(startDate)}.`,
+      `This vehicle rental agreement ("Agreement") is made on ${formatDate(startDate)}`,
       'PDF Agreement Intro'
     );
     doc.text(introText, leftMargin, y);
     y += lineHeight * 2;
     
-    // Parties section
-    doc.setFont('helvetica', 'bold');
-    const betweenText = await ArabicTextService.processText('Between:', 'PDF Section Header');
-    doc.text(betweenText, leftMargin, y);
-    y += lineHeight * 2;
+    // Process and add parties information
+    const partyTitle = await ArabicTextService.processText('Between:', 'PDF Section Header');
+    doc.setFont('Amiri', 'bold');
+    doc.text(partyTitle, leftMargin, y);
+    y += lineHeight;
     
-    doc.setFont('helvetica', 'normal');
+    // Party One details
+    doc.setFont('Amiri', 'normal');
     const partyOneText = await ArabicTextService.processText(
-      'Party One: Al-Araf Rent-a-Car LLC, a limited liability company legally registered under the laws of Qatar, with commercial registration number 146832 and located at Umm Salal Ali, Doha, Qatar, P.O. Box 36126. Represented by Mr. Khamees Hashem Al-Jaber, the authorized signatory for the company, referred to hereafter as the Lessor | Party One.',
+      'Party One: Al-Araf Rent-a-Car LLC (الأعراف لتأجير السيارات ذ.م.م)',
       'PDF Party One'
     );
+    const partyOneDetails = await ArabicTextService.processText(
+      'Commercial Registration: 146832, Located at: Umm Salal Ali, Doha, Qatar',
+      'PDF Party One Details'
+    );
     
-    // Handle long text wrapping
-    const splitPartyOne = doc.splitTextToSize(partyOneText, 170);
-    doc.text(splitPartyOne, leftMargin, y);
-    y += splitPartyOne.length * lineHeight + lineHeight;
-    
-    const andText = await ArabicTextService.processText('And:', 'PDF Separator');
-    doc.text(andText, leftMargin, y);
+    doc.text(partyOneText, leftMargin, y);
+    y += lineHeight;
+    doc.text(partyOneDetails, leftMargin + 5, y);
     y += lineHeight * 2;
     
+    // Party Two details
     const customerName = agreement.customers?.full_name || 'N/A';
-    const customerLicense = agreement.customers?.driver_license || 'N/A';
-    const customerNationality = agreement.customers?.nationality || 'N/A';
-    const customerEmail = agreement.customers?.email || 'N/A';
-    const customerPhone = agreement.customers?.phone_number || 'N/A';
-    
-    // Process party two information
-    const partyTwoText = await ArabicTextService.processText(
-      `Party Two: ${customerName}, holder of driver's license ${customerLicense}, nationality ${customerNationality}, residing in Qatar, email ${customerEmail}, mobile number ${customerPhone}. Referred to hereafter as the Lessee | Party Two.`,
+    const customerInfo = await ArabicTextService.processText(
+      `Party Two: ${customerName}\nDriver's License: ${agreement.customers?.driver_license || 'N/A'}\nNationality: ${agreement.customers?.nationality || 'N/A'}`,
       'PDF Party Two'
     );
     
-    const splitPartyTwo = doc.splitTextToSize(partyTwoText, 170);
-    doc.text(splitPartyTwo, leftMargin, y);
-    y += splitPartyTwo.length * lineHeight + lineHeight;
+    doc.text(customerInfo, leftMargin, y);
+    y += lineHeight * 4;
     
-    const partiesText = await ArabicTextService.processText(
-      'Each party shall individually be referred to as a "Party" and collectively as the "Parties."',
-      'PDF Parties Definition'
-    );
-    doc.text(partiesText, leftMargin, y);
-    y += lineHeight * 2;
-    
-    // Process and add preamble
-    doc.setFont('helvetica', 'bold');
-    const preambleTitle = await ArabicTextService.processText('Preamble', 'PDF Section Header');
-    doc.text(preambleTitle, leftMargin, y);
-    y += lineHeight * 2;
-    
-    doc.setFont('helvetica', 'normal');
-    const preambleIntro = await ArabicTextService.processText(
-      'Party One is a legally licensed car rental company and owns the vehicle described below:',
-      'PDF Preamble'
-    );
-    doc.text(preambleIntro, leftMargin, y);
-    y += lineHeight * 2;
-    
-    // Vehicle information with Arabic text processing
-    const vehicleMake = agreement.vehicles?.make || 'N/A';
-    const vehicleModel = agreement.vehicles?.model || 'N/A';
-    const vehiclePlate = agreement.vehicles?.license_plate || 'N/A';
-    const vehicleVin = agreement.vehicles?.vin || 'N/A';
-    
-    // Process vehicle information text
-    const vehicleInfoTexts = await Promise.all([
-      ArabicTextService.processText(`Vehicle Type:`, 'PDF Vehicle Info'),
-      ArabicTextService.processText(`License Plate Number: ${vehiclePlate}`, 'PDF Vehicle Info'),
-      ArabicTextService.processText(`VIN: ${vehicleVin}`, 'PDF Vehicle Info'),
-      ArabicTextService.processText(`Vehicle Model: ${vehicleModel} - ${vehicleMake}`, 'PDF Vehicle Info')
-    ]);
-    
-    // Add vehicle information
-    vehicleInfoTexts.forEach(text => {
-      doc.text(text, leftMargin, y);
-      y += lineHeight;
-    });
+    // Vehicle information
+    const vehicleTitle = await ArabicTextService.processText('Vehicle Details:', 'PDF Section Header');
+    doc.setFont('Amiri', 'bold');
+    doc.text(vehicleTitle, leftMargin, y);
     y += lineHeight;
-
-    // Continue with preamble
-    const preambleText = await ArabicTextService.processText(
-      'And whereas Party Two wishes to rent this vehicle from Party One under the terms and conditions of this Agreement, and Party One agrees to rent the vehicle to Party Two, both Parties hereby agree to the following:',
-      'PDF Preamble Conclusion'
+    
+    doc.setFont('Amiri', 'normal');
+    const vehicleInfo = await ArabicTextService.processText(
+      `Make & Model: ${agreement.vehicles?.make || 'N/A'} ${agreement.vehicles?.model || 'N/A'}\nLicense Plate: ${agreement.vehicles?.license_plate || 'N/A'}\nVIN: ${agreement.vehicles?.vin || 'N/A'}`,
+      'PDF Vehicle Info'
     );
-    const splitPreamble = doc.splitTextToSize(preambleText, 170);
-    doc.text(splitPreamble, leftMargin, y);
-    y += splitPreamble.length * lineHeight + lineHeight;
+    doc.text(vehicleInfo, leftMargin + 5, y);
+    y += lineHeight * 4;
     
-    // Process and add articles
-    const articles = [
-      {
-        title: 'Article 1:',
-        content: 'The preamble above forms an integral part of this Agreement and shall be interpreted within its terms and conditions.'
-      },
-      {
-        title: 'Article 2 - Vehicle Information:',
-        content: 'Party One hereby rents to Party Two the following vehicle:'
-      }
-    ];
-    
-    for (const article of articles) {
-      if (y > 250) {
-        doc.addPage();
-        y = 20;
-      }
-      
-      doc.setFont('helvetica', 'bold');
-      const articleTitle = await ArabicTextService.processText(article.title, 'PDF Article Title');
-      doc.text(articleTitle, leftMargin, y);
-      y += lineHeight;
-      
-      doc.setFont('helvetica', 'normal');
-      const articleContent = await ArabicTextService.processText(article.content, 'PDF Article Content');
-      doc.text(articleContent, leftMargin + 15, y);
-      y += lineHeight * 2;
-    }
-    
-    // Process and add payment terms
-    if (y > 230) {
-      doc.addPage();
-      y = 20;
-    }
-
-    // Add payment terms
+    // Payment terms
     const paymentTitle = await ArabicTextService.processText('Payment Terms:', 'PDF Section Header');
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Amiri', 'bold');
     doc.text(paymentTitle, leftMargin, y);
-    y += lineHeight * 2;
-
-    doc.setFont('helvetica', 'normal');
+    y += lineHeight;
+    
+    doc.setFont('Amiri', 'normal');
     const paymentInfo = await ArabicTextService.processText(
-      `Monthly Payment: ${formatCurrency(agreement.rent_amount || 0)}
-Total Contract Value: ${formatCurrency(agreement.total_amount || 0)}
-Security Deposit: ${formatCurrency(agreement.deposit_amount || 0)}`,
+      `Monthly Rent: ${formatCurrency(agreement.rent_amount || 0)}\nTotal Contract Value: ${formatCurrency(agreement.total_amount || 0)}\nSecurity Deposit: ${formatCurrency(agreement.deposit_amount || 0)}`,
       'PDF Payment Info'
     );
-    
-    const paymentLines = paymentInfo.split('\n');
-    paymentLines.forEach(line => {
-      doc.text(line, leftMargin + 15, y);
-      y += lineHeight;
-    });
+    doc.text(paymentInfo, leftMargin + 5, y);
+    y += lineHeight * 4;
     
     // Add signature section
-    if (y > 240) {
-      doc.addPage();
-      y = 20;
-    }
-    
-    const signatureHeader = await ArabicTextService.processText(
-      'In witness whereof, this Agreement is signed by the Parties in two copies, one for each Party.',
+    const signatureTitle = await ArabicTextService.processText(
+      'Signatures / التوقيعات',
       'PDF Signature Section'
     );
+    doc.setFont('Amiri', 'bold');
+    doc.text(signatureTitle, leftMargin, y);
+    y += lineHeight * 2;
     
-    doc.setFont('helvetica', 'bold');
-    doc.text(signatureHeader, leftMargin, y);
-    y += lineHeight * 3;
-    
-    const [partyOneSignature, partyTwoSignature] = await Promise.all([
-      ArabicTextService.processText('Party One:', 'PDF Signature'),
-      ArabicTextService.processText('Party Two:', 'PDF Signature')
-    ]);
-    
-    doc.text(partyOneSignature, leftMargin, y);
-    doc.text(partyTwoSignature, leftMargin + 100, y);
-    y += lineHeight;
-    
-    const [representerOne, representerTwo] = await Promise.all([
-      ArabicTextService.processText('Represented by Mr. Khamees Hashem Al-Jaber', 'PDF Signature'),
-      ArabicTextService.processText(`Represented by ${customerName}`, 'PDF Signature')
-    ]);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.text(representerOne, leftMargin, y);
-    doc.text(representerTwo, leftMargin + 100, y);
+    // Add signature lines
+    doc.setFont('Amiri', 'normal');
+    const partyOneSig = await ArabicTextService.processText('Party One: _________________', 'PDF Signature');
+    const partyTwoSig = await ArabicTextService.processText('Party Two: _________________', 'PDF Signature');
+    doc.text(partyOneSig, leftMargin, y);
+    doc.text(partyTwoSig, doc.internal.pageSize.getWidth() - leftMargin - 80, y);
     
     // Add page numbers
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      const pageText = await ArabicTextService.processText(`Page ${i} of ${pageCount}`, 'PDF Page Numbers');
-      doc.text(pageText, doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 10, { align: 'center' });
+      const pageText = await ArabicTextService.processText(`Page ${i} of ${totalPages}`, 'PDF Page Numbers');
+      doc.text(pageText, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
     }
     
-    // Save the PDF with the agreement number
-    doc.save(`Rental_Agreement-${agreement.agreement_number}.pdf`);
+    // Save the PDF
+    const filename = `Rental_Agreement-${agreement.agreement_number}.pdf`;
+    console.log('Saving PDF:', filename);
+    doc.save(filename);
     
     return true;
   } catch (error) {
-    console.error("Error generating PDF:", error);
+    console.error("Error generating PDF with Arabic text:", error);
     return false;
   }
 };
