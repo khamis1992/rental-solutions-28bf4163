@@ -72,11 +72,19 @@ export const downloadExcel = (data: Record<string, any>[], filename: string): vo
  * @param dateRange Date range for the report
  * @returns Y position after adding header elements
  */
+// Helper function to handle Arabic text
+const processArabicText = (text: string): string => {
+  // Reverse combining characters and handle special cases
+  return text.split('').reverse().join('');
+};
+
 export const addReportHeader = (
   doc: jsPDF, 
   title: string, 
   dateRange: { from: Date | undefined; to: Date | undefined }
 ): number => {
+  // Set Arabic font for the header
+  doc.setFont('Cairo');
   const pageWidth = doc.internal.pageSize.getWidth();
   
   // Add company logo
@@ -158,8 +166,26 @@ export const generateStandardReport = (
   dateRange: { from: Date | undefined; to: Date | undefined },
   contentGenerator: (doc: jsPDF, startY: number) => number
 ): jsPDF => {
-  // Initialize the PDF document
-  const doc = new jsPDF();
+  // Initialize the PDF document with Arabic font support
+  const doc = new jsPDF({
+    fonts: [
+      {
+        source: 'https://fonts.gstatic.com/s/cairo/v28/SLXgc1nY6HkvangtZmpQdkhzfH5lkSs2SgRjCAGMQ1z0hL4-a1BiDg.ttf',
+        family: 'Cairo',
+        style: 'normal',
+        weight: 400
+      }
+    ],
+    putOnlyUsedFonts: true,
+    orientation: 'portrait'
+  });
+  
+  // Add Arabic font support
+  doc.addFont('Cairo', 'Arabic');
+  doc.setFont('Cairo');
+  
+  // Enable right-to-left text support
+  doc.setR2L(true);
   
   // Add header and get the Y position to start content
   const startY = addReportHeader(doc, title, dateRange);
