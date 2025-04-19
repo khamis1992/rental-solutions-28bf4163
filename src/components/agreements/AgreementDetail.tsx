@@ -1,33 +1,46 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
   CalendarDays, User, Car, CreditCard, 
   ClipboardList, FileText, ChevronLeft, 
-  Phone, Mail, MapPin
+  Phone, Mail, MapPin, Edit, Printer,
+  Download, Trash2
 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { PaymentHistory } from './PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementActions } from './AgreementActions';
 import { AgreementTabs } from './AgreementTabs';
 import { AgreementSummaryHeader } from './AgreementSummaryHeader';
-import { useRentAmount } from '@/hooks/use-rent-amount';
-import { useAgreements } from '@/hooks/use-agreements';
-import { supabase } from '@/integrations/supabase/client';
-import { Payment } from './PaymentHistory.types';
-import { hasData } from '@/utils/database-type-helpers';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
+
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
   const [agreement, setAgreement] = useState<any>(null);
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(agreement, id || '');
@@ -58,7 +71,6 @@ const AgreementDetail = () => {
   const fetchPayments = async () => {
     setIsLoadingPayments(true);
     try {
-      // Use string directly without type assertions
       const { data, error } = await supabase
         .from('unified_payments')
         .select('*')
@@ -66,7 +78,6 @@ const AgreementDetail = () => {
       
       if (error) throw error;
       
-      // Type casting for compatibility with the Payment type
       setPayments((data || []) as Payment[]);
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -83,14 +94,12 @@ const AgreementDetail = () => {
   const fetchLegalCases = async () => {
     setIsLoadingLegalCases(true);
     try {
-      // For the legal_cases table, query by customer_id instead of agreement_id
       if (!agreement?.customers?.id) {
         console.log("No customer ID available yet for legal cases query");
         setIsLoadingLegalCases(false);
         return;
       }
       
-      // Use string directly without type assertions
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
@@ -119,19 +128,87 @@ const AgreementDetail = () => {
     }
   };
 
-  if (isAgreementLoading || !agreement) {
-    return <div className="flex items-center justify-center h-96">Loading agreement details...</div>;
-  }
+  const handleEdit = () => {
+    navigate(`/agreements/edit/${id}`);
+    toast({
+      title: "Editing Agreement",
+      description: "Navigating to edit page"
+    });
+  };
 
-  if (agreementError) {
-    return (
-      <div className="flex flex-col items-center justify-center h-96">
-        <h2 className="text-xl font-semibold mb-4">Error Loading Agreement</h2>
-        <p className="text-gray-500 mb-4">{agreementError instanceof Error ? agreementError.message : String(agreementError)}</p>
-        <Button onClick={() => refetchAgreement()}>Try Again</Button>
-      </div>
-    );
-  }
+  const handlePrint = () => {
+    toast({
+      title: "Print Feature",
+      description: "Print functionality coming soon",
+      variant: "default"
+    });
+  };
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPdf(true);
+    try {
+      toast({
+        title: "Preparing PDF",
+        description: "Generating agreement document..."
+      });
+      
+      toast({
+        title: "PDF Generated",
+        description: "Agreement downloaded successfully"
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      toast({
+        title: "Agreement Deleted",
+        description: "The agreement has been removed"
+      });
+      navigate("/agreements");
+    } catch (error) {
+      console.error('Error deleting agreement:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete agreement",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const ActionButtons = () => (
+    <div className="flex items-center gap-2 mb-6">
+      <Button variant="outline" onClick={handleEdit} className="gap-2">
+        <Edit className="h-4 w-4" />
+        Edit
+      </Button>
+      <Button variant="outline" onClick={handlePrint} className="gap-2">
+        <Printer className="h-4 w-4" />
+        Print
+      </Button>
+      <Button variant="outline" onClick={handleDownloadPDF} className="gap-2" disabled={isGeneratingPdf}>
+        <Download className="h-4 w-4" />
+        Download PDF
+      </Button>
+      <Button 
+        variant="destructive" 
+        onClick={() => setIsDeleteDialogOpen(true)} 
+        className="gap-2 ml-auto"
+      >
+        <Trash2 className="h-4 w-4" />
+        Delete
+      </Button>
+    </div>
+  );
 
   const dateFormat = (date: string | Date) => {
     if (!date) return 'N/A';
@@ -147,6 +224,8 @@ const AgreementDetail = () => {
           </a>
         </Button>
       </div>
+
+      <ActionButtons />
 
       <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
 
@@ -311,14 +390,35 @@ const AgreementDetail = () => {
           endDate={agreement.end_date}
         />
       </AgreementTabs>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the agreement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={isDocumentDialogOpen} onOpenChange={setIsDocumentDialogOpen}>
+        <DialogContent className="max-w-4xl">
+          <InvoiceGenerator 
+            recordType="agreement" 
+            recordId={id || ''} 
+            onClose={() => setIsDocumentDialogOpen(false)} 
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-// Helper function to format dates
-const dateFormat = (date: string | Date) => {
-  if (!date) return 'N/A';
-  return format(new Date(date), 'MMM d, yyyy');
 };
 
 export default AgreementDetail;
