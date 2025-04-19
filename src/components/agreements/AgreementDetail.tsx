@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -24,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useAgreement } from '@/hooks/use-agreements';
 import { PaymentHistory } from './PaymentHistory';
 import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
@@ -32,6 +34,9 @@ import { AgreementTabs } from './AgreementTabs';
 import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import InvoiceGenerator from '@/components/invoices/InvoiceGenerator';
+import { supabase } from '@/integrations/supabase/client';
+import { useRentAmount } from '@/hooks/use-rent-amount';
+import { Payment } from './PaymentHistory.types';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,25 +46,19 @@ const AgreementDetail = () => {
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const [isDocumentDialogOpen, setIsDocumentDialogOpen] = useState(false);
 
-  const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
-  const [agreement, setAgreement] = useState<any>(null);
-  const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(agreement, id || '');
+  const { agreement, isLoading: isAgreementLoading, error: agreementError } = useAgreement(id);
+  const [localAgreement, setAgreement] = useState<any>(null);
+  const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(localAgreement, id || '');
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
 
   useEffect(() => {
-    if (id) {
-      const fetchAgreementData = async () => {
-        const data = await getAgreement(id);
-        if (data) {
-          setAgreement(data);
-        }
-      };
-      fetchAgreementData();
+    if (agreement) {
+      setAgreement(agreement);
     }
-  }, [id, getAgreement]);
+  }, [agreement]);
 
   useEffect(() => {
     if (id) {
@@ -94,7 +93,7 @@ const AgreementDetail = () => {
   const fetchLegalCases = async () => {
     setIsLoadingLegalCases(true);
     try {
-      if (!agreement?.customers?.id) {
+      if (!localAgreement?.customers?.id) {
         console.log("No customer ID available yet for legal cases query");
         setIsLoadingLegalCases(false);
         return;
@@ -103,7 +102,7 @@ const AgreementDetail = () => {
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('customer_id', agreement.customers.id);
+        .eq('customer_id', localAgreement.customers.id);
       
       if (error) throw error;
       
@@ -120,11 +119,8 @@ const AgreementDetail = () => {
   };
 
   const refetchAgreement = async () => {
-    if (id) {
-      const data = await getAgreement(id);
-      if (data) {
-        setAgreement(data);
-      }
+    if (id && agreement) {
+      setAgreement(agreement);
     }
   };
 
@@ -227,10 +223,10 @@ const AgreementDetail = () => {
 
       <ActionButtons />
 
-      <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
+      <AgreementSummaryHeader agreement={localAgreement} rentAmount={rentAmount} />
 
       <AgreementTabs 
-        agreement={agreement}
+        agreement={localAgreement}
         payments={payments}
         isLoadingPayments={isLoadingPayments}
         rentAmount={rentAmount}
@@ -244,7 +240,7 @@ const AgreementDetail = () => {
                 <h3 className="text-lg font-semibold">Customer Information</h3>
                 <Avatar className="h-10 w-10 bg-primary/10">
                   <AvatarFallback className="text-primary">
-                    {agreement.customers?.full_name ? agreement.customers.full_name.charAt(0) : 'C'}
+                    {localAgreement?.customers?.full_name ? localAgreement.customers.full_name.charAt(0) : 'C'}
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -255,36 +251,36 @@ const AgreementDetail = () => {
                     <User className="h-4 w-4" />
                     <span className="font-medium">Name</span>
                   </div>
-                  <p className="text-sm mt-1">{agreement.customers?.full_name || 'N/A'}</p>
+                  <p className="text-sm mt-1">{localAgreement?.customers?.full_name || 'N/A'}</p>
                 </div>
                 
-                {agreement.customers?.phone_number && (
+                {localAgreement?.customers?.phone_number && (
                   <div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Phone className="h-4 w-4" />
                       <span className="font-medium">Phone</span>
                     </div>
-                    <p className="text-sm mt-1">{agreement.customers.phone_number}</p>
+                    <p className="text-sm mt-1">{localAgreement.customers.phone_number}</p>
                   </div>
                 )}
                 
-                {agreement.customers?.email && (
+                {localAgreement?.customers?.email && (
                   <div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Mail className="h-4 w-4" />
                       <span className="font-medium">Email</span>
                     </div>
-                    <p className="text-sm mt-1">{agreement.customers.email}</p>
+                    <p className="text-sm mt-1">{localAgreement.customers.email}</p>
                   </div>
                 )}
                 
-                {agreement.customers?.address && (
+                {localAgreement?.customers?.address && (
                   <div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <MapPin className="h-4 w-4" />
                       <span className="font-medium">Address</span>
                     </div>
-                    <p className="text-sm mt-1">{agreement.customers.address}</p>
+                    <p className="text-sm mt-1">{localAgreement.customers.address}</p>
                   </div>
                 )}
               </div>
@@ -302,27 +298,27 @@ const AgreementDetail = () => {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Make</div>
-                    <p className="text-sm">{agreement.vehicles?.make || 'N/A'}</p>
+                    <p className="text-sm">{localAgreement?.vehicles?.make || 'N/A'}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Model</div>
-                    <p className="text-sm">{agreement.vehicles?.model || 'N/A'}</p>
+                    <p className="text-sm">{localAgreement?.vehicles?.model || 'N/A'}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Year</div>
-                    <p className="text-sm">{agreement.vehicles?.year || 'N/A'}</p>
+                    <p className="text-sm">{localAgreement?.vehicles?.year || 'N/A'}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Color</div>
-                    <p className="text-sm">{agreement.vehicles?.color || 'N/A'}</p>
+                    <p className="text-sm">{localAgreement?.vehicles?.color || 'N/A'}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Plate</div>
-                    <p className="text-sm">{agreement.vehicles?.license_plate || 'N/A'}</p>
+                    <p className="text-sm">{localAgreement?.vehicles?.license_plate || 'N/A'}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">VIN</div>
-                    <p className="text-sm truncate">{agreement.vehicles?.vin || 'N/A'}</p>
+                    <p className="text-sm truncate">{localAgreement?.vehicles?.vin || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -340,31 +336,31 @@ const AgreementDetail = () => {
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Agreement #</div>
-                    <p className="text-sm">{agreement.agreement_number}</p>
+                    <p className="text-sm">{localAgreement?.agreement_number}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Status</div>
                     <p className="text-sm">
-                      <Badge variant={agreement.status === 'active' ? 'success' : 'secondary'}>
-                        {agreement.status.toUpperCase()}
+                      <Badge variant={localAgreement?.status === 'active' ? 'success' : 'secondary'}>
+                        {localAgreement?.status?.toUpperCase()}
                       </Badge>
                     </p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Start Date</div>
-                    <p className="text-sm">{dateFormat(agreement.start_date)}</p>
+                    <p className="text-sm">{localAgreement?.start_date ? dateFormat(localAgreement.start_date) : 'N/A'}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">End Date</div>
-                    <p className="text-sm">{dateFormat(agreement.end_date)}</p>
+                    <p className="text-sm">{localAgreement?.end_date ? dateFormat(localAgreement.end_date) : 'N/A'}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Rent Amount</div>
-                    <p className="text-sm">QAR {rentAmount?.toLocaleString() || agreement.rent_amount?.toLocaleString() || 0}</p>
+                    <p className="text-sm">QAR {rentAmount?.toLocaleString() || localAgreement?.rent_amount?.toLocaleString() || 0}</p>
                   </div>
                   <div>
                     <div className="text-sm text-muted-foreground font-medium">Deposit</div>
-                    <p className="text-sm">QAR {agreement.deposit_amount?.toLocaleString() || 0}</p>
+                    <p className="text-sm">QAR {localAgreement?.deposit_amount?.toLocaleString() || 0}</p>
                   </div>
                 </div>
               </div>
@@ -375,8 +371,8 @@ const AgreementDetail = () => {
         <PaymentHistory 
           payments={payments || []}
           onPaymentDeleted={handlePaymentDeleted}
-          leaseStartDate={agreement.start_date}
-          leaseEndDate={agreement.end_date}
+          leaseStartDate={localAgreement?.start_date}
+          leaseEndDate={localAgreement?.end_date}
           rentAmount={rentAmount}
         />
         
@@ -386,8 +382,8 @@ const AgreementDetail = () => {
         
         <AgreementTrafficFines 
           agreementId={id || ''}
-          startDate={agreement.start_date}
-          endDate={agreement.end_date}
+          startDate={localAgreement?.start_date}
+          endDate={localAgreement?.end_date}
         />
       </AgreementTabs>
 
