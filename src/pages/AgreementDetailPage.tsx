@@ -17,7 +17,6 @@ import { manuallyRunPaymentMaintenance } from '@/lib/supabase';
 import { getDateObject } from '@/lib/date-utils';
 import { usePayments } from '@/hooks/use-payments';
 import { fixAgreementPayments } from '@/lib/supabase';
-import { ArabicTextService } from '@/utils/arabic-text-service';
 
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -126,28 +125,8 @@ const AgreementDetailPage = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  const handleGenerateDocument = async () => {
-    if (!agreement) return;
-    
-    try {
-      // Process all Arabic text fields through DeepSeek AI first
-      const processedData = {
-        customerName: await ArabicTextService.processText(agreement.customers?.full_name || '', 'customer name'),
-        vehicleDetails: await ArabicTextService.processText(
-          `${agreement.vehicles?.make} ${agreement.vehicles?.model}`,
-          'vehicle details'
-        ),
-        // Add any other Arabic text fields that need processing
-      };
-
-      setIsDocumentDialogOpen(true);
-      
-      // Pass processed data to document generation
-      
-    } catch (error) {
-      console.error('Error generating document:', error);
-      toast.error('Failed to generate document');
-    }
+  const handleGenerateDocument = () => {
+    setIsDocumentDialogOpen(true);
   };
 
   const handleGeneratePayment = async () => {
