@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -67,7 +66,7 @@ const AgreementDetail = () => {
       
       if (error) throw error;
       
-      // Use type assertion to ensure Payment[] type
+      // Type casting for compatibility with the Payment type
       setPayments((data || []) as Payment[]);
     } catch (error) {
       console.error('Error fetching payments:', error);

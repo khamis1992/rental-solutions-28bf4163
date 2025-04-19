@@ -1,5 +1,5 @@
 
-// Define the UUID type directly here to avoid circular imports
+// Define the UUID type for use throughout the application
 export type UUID = string;
 
 // Helper function for consistent type casting of UUIDs

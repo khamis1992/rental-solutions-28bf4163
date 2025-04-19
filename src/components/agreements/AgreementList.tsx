@@ -81,8 +81,7 @@ const fetchOverduePayments = async (agreementId: string) => {
     const { data, error } = await supabase
       .from('overdue_payments')
       .select('*')
-      .eq('agreement_id', agreementId) // Use string ID directly
-      .single();
+      .eq('agreement_id', agreementId); // Use string ID directly
     
     if (error) {
       console.error("Error fetching overdue payments:", error);
@@ -338,7 +337,7 @@ export const AgreementList = () => {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)].id
+      index => agreements[parseInt(index)].id as string
     );
     
     console.log("Selected IDs for deletion:", selectedIds);

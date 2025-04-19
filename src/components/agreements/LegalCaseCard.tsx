@@ -8,7 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Check, Clock, Ban, AlertTriangle } from 'lucide-react';
-import { UUID, ensureUUID } from '@/types/database-types';
+import { UUID, ensureUUID } from '@/utils/database-type-helpers';
 
 interface LegalCaseCardProps {
   agreementId: string;
@@ -26,7 +26,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
       try {
         setIsLoading(true);
         // First get the lease to find the customer_id
-        const validAgreementId = ensureUUID(agreementId);
+        const validAgreementId = agreementId;
         
         const leaseResponse = await supabase
           .from('leases')
@@ -46,7 +46,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         }
         
         // Then fetch customer details
-        const validCustomerId = ensureUUID(customerId);
+        const validCustomerId = customerId;
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('*')
@@ -95,7 +95,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         resolution_date: new Date().toISOString(),
       };
       
-      const validCaseId = ensureUUID(id);
+      const validCaseId = id;
       const { error } = await supabase
         .from('legal_cases')
         .update(updateData)
