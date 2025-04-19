@@ -3,8 +3,8 @@ import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MobileTabs } from '@/components/ui/mobile-tabs';
 import { FileText, CreditCard, Gavel, AlertTriangle } from 'lucide-react';
-import { Payment } from '../agreements/PaymentHistory';
 import { Agreement } from '@/lib/validation-schemas/agreement';
+import { Payment } from './PaymentHistory.types';
 
 interface AgreementTabsProps {
   agreement: Agreement;
@@ -64,7 +64,7 @@ export function AgreementTabs({
             if (React.isValidElement(child) && 
                 child.props && 
                 child.props.agreementId &&
-                // @ts-ignore - checking component display name  
+                // @ts-ignore - checking component type
                 (child.type.displayName === 'LegalCaseCard' || 
                  // @ts-ignore
                  child.type.name === 'LegalCaseCard')) {

@@ -29,19 +29,25 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const leaseResponse = await supabase
           .from('leases')
           .select('customer_id')
-          .eq('id', asTableId(agreementId))
-          .single();
+          .eq('id', asTableId(agreementId));
         
-        if (!leaseResponse.data || leaseResponse.error) {
+        if (leaseResponse.error || !leaseResponse.data || leaseResponse.data.length === 0) {
           console.error("Could not find lease:", leaseResponse.error);
           return;
         }
         
-        // Then fetch legal cases for that customer
+        const customerId = leaseResponse.data[0]?.customer_id;
+        
+        if (!customerId) {
+          console.error("No customer ID found for lease");
+          return;
+        }
+        
+        // Then fetch customer details
         const { data: customerData, error: customerError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', leaseResponse.data.customer_id)
+          .eq('id', customerId)
           .single();
           
         if (customerError) {
@@ -54,7 +60,7 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         const { data: casesData, error: casesError } = await supabase
           .from('legal_cases')
           .select('*')
-          .eq('customer_id', leaseResponse.data.customer_id);
+          .eq('customer_id', customerId);
           
         if (casesError) {
           console.error("Error fetching legal cases:", casesError);
@@ -86,10 +92,9 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
         resolution_date: new Date().toISOString(),
       };
       
-      // Use as any to bypass type checking for now
       const { error } = await supabase
         .from('legal_cases')
-        .update(updateData as any)
+        .update(updateData)
         .eq('id', asTableId(id));
         
       if (error) {

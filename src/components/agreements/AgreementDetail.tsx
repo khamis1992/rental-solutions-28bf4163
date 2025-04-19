@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -22,9 +23,9 @@ import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
 import { supabase } from '@/integrations/supabase/client';
-import { asLeaseId, asTableId } from '@/utils/database-type-helpers';
+import { asTableId } from '@/utils/database-type-helpers';
 
-const AgreementDetail = () => {
+export const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
