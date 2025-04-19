@@ -82,7 +82,6 @@ interface AgreementListProps {
 }
 
 export function AgreementList({ searchQuery = '' }: AgreementListProps) {
-  const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -121,6 +120,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     { id: 'created_at', desc: true }
   ]);
   const [columnFilters, setColumnFiltersState] = useState<ColumnFiltersState>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setRowSelection({});
@@ -285,7 +285,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
         <div className="font-medium">
           <Link 
             to={`/agreements/${row.original.id}`}
-            className="font-medium text-primary hover:underline relative z-10"
+            className="font-medium text-primary hover:underline"
+            onClick={() => {
+              console.log("Navigating to agreement detail:", row.original.id);
+              navigate(`/agreements/${row.original.id}`);
+            }}
           >
             {row.getValue("agreement_number")}
           </Link>
@@ -302,7 +306,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             {customer && customer.id ? (
               <Link 
                 to={`/customers/${customer.id}`}
-                className="hover:underline relative z-10"
+                className="hover:underline"
               >
                 {customer.full_name || 'N/A'}
               </Link>
@@ -323,7 +327,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             {vehicle && vehicle.id ? (
               <Link 
                 to={`/vehicles/${vehicle.id}`}
-                className="hover:underline relative z-10"
+                className="hover:underline"
               >
                 {vehicle.make && vehicle.model ? (
                   <div className="flex items-center">
@@ -343,7 +347,7 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             ) : row.original.vehicle_id ? (
               <Link 
                 to={`/vehicles/${row.original.vehicle_id}`}
-                className="hover:underline text-amber-600 relative z-10"
+                className="hover:underline text-amber-600"
               >
                 Vehicle ID: {row.original.vehicle_id}
               </Link>
@@ -446,30 +450,23 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="z-50">
+            <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/agreements/${agreement.id}`);
-                }}
-              >
-                View details
+              <DropdownMenuItem asChild>
+                <Link to={`/agreements/${agreement.id}`}>
+                  View details
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/agreements/edit/${agreement.id}`);
-                }}
-              >
-                Edit agreement
+              <DropdownMenuItem asChild>
+                <Link to={`/agreements/edit/${agreement.id}`}>
+                  Edit agreement
+                </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
+                onClick={() => {
                   setSingleDeleteId(agreement.id);
                   setSingleDeleteNumber(agreement.agreement_number);
                   setSingleDeleteDialogOpen(true);
@@ -544,11 +541,11 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value={AgreementStatus.ACTIVE}>Active</SelectItem>
+              <SelectItem value={AgreementStatus.DRAFT}>Draft</SelectItem>
+              <SelectItem value={AgreementStatus.PENDING}>Pending</SelectItem>
+              <SelectItem value={AgreementStatus.EXPIRED}>Expired</SelectItem>
+              <SelectItem value={AgreementStatus.CANCELLED}>Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -626,10 +623,9 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
-                  className="relative"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="relative">
+                    <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
@@ -713,7 +709,10 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => handleBulkDelete()}
+              onClick={(e) => {
+                e.preventDefault();
+                handleBulkDelete();
+              }}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
