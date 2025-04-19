@@ -10,8 +10,8 @@ interface ReportDownloadOptionsProps {
   reportType: string;
   getReportData: () => any[];
   dateRange?: {
-    from?: Date;
-    to?: Date;
+    from: Date | undefined;
+    to: Date | undefined;
   };
 }
 
@@ -26,7 +26,6 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
     pdf: false
   });
 
-  // Get date formatted for filenames (YYYY-MM-DD)
   const getFormattedDate = () => {
     const date = new Date();
     return date.toISOString().split('T')[0];
@@ -46,7 +45,6 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
   const handleDownloadCSV = async () => {
     setIsLoading(prev => ({ ...prev, csv: true }));
     try {
-      // Import dynamically to reduce initial load time
       const { downloadCSV } = await import('@/utils/report-utils');
       
       const data = getReportData();
@@ -69,7 +67,6 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
   const handleDownloadExcel = async () => {
     setIsLoading(prev => ({ ...prev, excel: true }));
     try {
-      // Import dynamically to reduce initial load time
       const { downloadExcel } = await import('@/utils/report-utils');
       
       const data = getReportData();
@@ -98,7 +95,6 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         return;
       }
       
-      // Pre-process all text data for Arabic support
       await ArabicTextService.processBatch(
         data.flatMap(item => Object.values(item).filter(val => typeof val === 'string')),
         `PDF ${reportType} report`
@@ -107,34 +103,30 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
       const reportTitle = getReportTitle();
       const fileName = `${reportType}_report_${getFormattedDate()}.pdf`;
       
-      // Dynamic PDF content generation based on report type
-      const doc = await generateStandardReport(reportTitle, dateRange, async (doc, startY) => {
-        // This function will be different based on report type
+      const doc = await generateStandardReport(reportTitle, {
+        from: dateRange?.from || new Date(),
+        to: dateRange?.to || new Date()
+      }, async (doc, startY) => {
         let y = startY + 10;
         
-        // Get column definitions based on first item
         const columns = Object.keys(data[0]).map(key => ({
           key,
           header: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
         }));
         
-        // Process all headers for Arabic text
         const processedHeaders = await Promise.all(
           columns.map(col => ArabicTextService.processText(col.header, 'PDF Report Headers'))
         );
         
-        // Add table headers
         doc.setFillColor(240, 240, 240);
         doc.setFont('helvetica', 'bold');
         doc.rect(20, y, doc.internal.pageSize.getWidth() - 40, 10, 'F');
         
-        // Calculate column widths
         const columnCount = columns.length;
         const pageWidth = doc.internal.pageSize.getWidth();
-        const tableWidth = pageWidth - 40; // 20px margin on each side
+        const tableWidth = pageWidth - 40;
         const columnWidth = tableWidth / columnCount;
         
-        // Add headers with adjusted positions
         for (let i = 0; i < processedHeaders.length; i++) {
           const x = 20 + (i * columnWidth) + (columnWidth / 2);
           doc.text(processedHeaders[i], x, y + 7, { align: 'center' });
@@ -143,19 +135,15 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
         y += 10;
         doc.setFont('helvetica', 'normal');
         
-        // Add data rows with alternating colors
         for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
-          // Add a new page if needed
           if (y > doc.internal.pageSize.getHeight() - 40) {
             doc.addPage();
             y = 20;
             
-            // Re-draw header on new page
             doc.setFillColor(240, 240, 240);
             doc.setFont('helvetica', 'bold');
             doc.rect(20, y, doc.internal.pageSize.getWidth() - 40, 10, 'F');
             
-            // Add headers with adjusted positions
             for (let i = 0; i < processedHeaders.length; i++) {
               const x = 20 + (i * columnWidth) + (columnWidth / 2);
               doc.text(processedHeaders[i], x, y + 7, { align: 'center' });
@@ -165,30 +153,25 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
             doc.setFont('helvetica', 'normal');
           }
           
-          // Alternating row colors
           if (rowIndex % 2 === 1) {
             doc.setFillColor(245, 245, 245);
             doc.rect(20, y, doc.internal.pageSize.getWidth() - 40, 10, 'F');
           }
           
-          // Process cell values for Arabic text support
           const rowData = data[rowIndex];
           const cellValues = await Promise.all(
             columns.map(col => {
               const value = rowData[col.key];
-              // Convert to string and process if it's a string
               return typeof value === 'string' 
                 ? ArabicTextService.processText(value, 'PDF Report Cell') 
                 : String(value !== null && value !== undefined ? value : '');
             })
           );
           
-          // Add cell values
           for (let colIndex = 0; colIndex < cellValues.length; colIndex++) {
             const x = 20 + (colIndex * columnWidth) + (columnWidth / 2);
             const cellText = cellValues[colIndex];
             
-            // Truncate long text
             let displayText = cellText;
             if (displayText.length > 20) {
               displayText = displayText.substring(0, 17) + '...';
@@ -200,7 +183,6 @@ const ReportDownloadOptions: React.FC<ReportDownloadOptionsProps> = ({
           y += 10;
         }
         
-        // Add summary
         y += 10;
         doc.setFont('helvetica', 'bold');
         const summaryTitle = await ArabicTextService.processText('Report Summary', 'PDF Report');
