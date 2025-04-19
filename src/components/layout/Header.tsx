@@ -1,8 +1,8 @@
-
 import React from 'react';
 import { Bell, Settings, Search, User, Languages } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { AIBadge } from "@/components/ui/ai-badge";
+import { ArabicTextStatus } from "@/components/ui/arabic-text-status";
 
 const Header = () => {
   return <header className="w-full h-16 px-6 flex items-center justify-between bg-white/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
@@ -21,12 +21,9 @@ const Header = () => {
       </div>
       
       <div className="flex items-center space-x-2">
-        <div className="flex items-center bg-green-50 text-green-600 px-2 py-1 rounded-md text-xs gap-1">
-          <Languages className="h-3 w-3" />
-          <span>Arabic Text Support</span>
-          <AIBadge className="ml-1 bg-green-600 text-white" />
-        </div>
+        <ArabicTextStatus />
       </div>
     </header>;
 };
+
 export default Header;
