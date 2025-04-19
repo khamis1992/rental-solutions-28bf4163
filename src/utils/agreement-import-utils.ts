@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
+import { callRpcFunction } from '@/utils/rpc-helpers';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { toast } from 'sonner';
 import { previewCSVFile } from '@/utils/csv-utils';
@@ -112,18 +113,9 @@ export const createImportLog = async (
 ): Promise<string | null> => {
   try {
     // Check if the overwrite_existing column exists in the table
-    const { data: columnInfo, error: columnCheckError } = await supabase
-      .rpc('column_exists', { table_name: 'agreement_imports', column_name: 'overwrite_existing' });
+    const hasOverwriteColumn = await checkColumnExists('agreement_imports', 'overwrite_existing');
     
-    const hasOverwriteColumn = columnInfo === true;
-    
-    if (columnCheckError) {
-      console.warn("Unable to check for column existence:", columnCheckError);
-      // Proceed anyway with a basic insert without the overwrite flag
-    }
-
-    // If overwriteExisting is true and the column exists, handle existing imports
-    if (overwriteExisting && hasOverwriteColumn) {
+    if (hasOverwriteColumn) {
       const { data: existingImports } = await supabase
         .from('agreement_imports')
         .select('id')
@@ -253,4 +245,19 @@ export const getImportErrors = async (importId: string) => {
   }
 
   return data;
+};
+
+// Check if a column exists
+export const checkColumnExists = async (table: string, column: string) => {
+  try {
+    const result = await callRpcFunction('column_exists', { 
+      p_table_name: table, 
+      p_column_name: column 
+    });
+    
+    return !!result;
+  } catch (error) {
+    console.error(`Error checking if column ${column} exists in table ${table}:`, error);
+    return false;
+  }
 };

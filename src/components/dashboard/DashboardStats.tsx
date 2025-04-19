@@ -1,72 +1,84 @@
 
-import React from 'react';
-import { Car, DollarSign, Users, FileText } from 'lucide-react';
-import { StatCard } from '@/components/ui/stat-card';
-import { DashboardStats as DashboardStatsType } from '@/hooks/use-dashboard';
-import { formatCurrency } from '@/lib/utils';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { formatCurrency } from "@/lib/utils";
+import { TrendingUp, TrendingDown, Users, Car, FileText, AlertCircle } from "lucide-react";
 
 interface DashboardStatsProps {
-  stats?: DashboardStatsType;
+  customerCount?: number;
+  vehicleCount?: number;
+  agreementCount?: number;
+  monthlyRevenue?: number;
+  overduePayments?: number;
+  isLoading: boolean;
 }
 
-const DashboardStats: React.FC<DashboardStatsProps> = ({ stats }) => {
-  const navigate = useNavigate();
-  
-  if (!stats) return null;
-  
+export function DashboardStats({
+  customerCount,
+  vehicleCount,
+  agreementCount,
+  monthlyRevenue,
+  overduePayments,
+  isLoading
+}: DashboardStatsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 section-transition">
-      <StatCard
-        title="Total Vehicles"
-        value={stats.vehicleStats.total.toString()}
-        description={`Available: ${stats.vehicleStats.available}`}
-        icon={Car}
-        iconColor="text-blue-500"
-        trend={stats.vehicleStats.available > 0 ? 
-          Math.round((stats.vehicleStats.available / stats.vehicleStats.total) * 100) : 0}
-        trendLabel="availability rate"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/vehicles')}
-      />
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-7 w-20" />
+          ) : (
+            <div className="text-2xl font-bold">{customerCount || 0}</div>
+          )}
+        </CardContent>
+      </Card>
       
-      <StatCard
-        title="Revenue"
-        value={formatCurrency(stats.financialStats.currentMonthRevenue)}
-        description="This month"
-        icon={DollarSign}
-        iconColor="text-green-500"
-        trend={stats.financialStats.revenueGrowth}
-        trendLabel="vs last month"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/financials')}
-      />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
+          <Car className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-7 w-20" />
+          ) : (
+            <div className="text-2xl font-bold">{vehicleCount || 0}</div>
+          )}
+        </CardContent>
+      </Card>
       
-      <StatCard
-        title="Active Customers"
-        value={stats.customerStats.active.toString()}
-        description={`Total: ${stats.customerStats.total}`}
-        icon={Users}
-        iconColor="text-violet-500"
-        trend={stats.customerStats.growth}
-        trendLabel="vs last month"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/customers')}
-      />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Active Agreements</CardTitle>
+          <FileText className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-7 w-20" />
+          ) : (
+            <div className="text-2xl font-bold">{agreementCount || 0}</div>
+          )}
+        </CardContent>
+      </Card>
       
-      <StatCard
-        title="Contracts"
-        value={stats.agreementStats.active.toString()}
-        description="Active agreements"
-        icon={FileText}
-        iconColor="text-amber-500"
-        trend={stats.agreementStats.growth}
-        trendLabel="vs last month"
-        className="cursor-pointer hover:shadow-md transition-shadow"
-        onClick={() => navigate('/agreements')}
-      />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <Skeleton className="h-7 w-28" />
+          ) : (
+            <div className="text-2xl font-bold">{formatCurrency(monthlyRevenue || 0)}</div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default DashboardStats;
+}
