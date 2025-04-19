@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
   CalendarDays, User, Car, ChevronLeft, 
-  Phone, Mail, MapPin
+  Phone, Mail, MapPin, Clipboard
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from "@/components/ui/button";
@@ -45,7 +46,7 @@ const AgreementDetail = () => {
       <div className="flex flex-col items-center justify-center h-96">
         <h2 className="text-xl font-semibold mb-4">Error Loading Agreement</h2>
         <p className="text-gray-500 mb-4">{agreementError instanceof Error ? agreementError.message : String(agreementError)}</p>
-        <Button onClick={() => refetchAgreement()}>Try Again</Button>
+        <Button onClick={() => getAgreement(id || '')}>Try Again</Button>
       </div>
     );
   }
@@ -161,7 +162,7 @@ const AgreementDetail = () => {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Agreement Details</h3>
-                <ClipboardList className="h-5 w-5 text-muted-foreground" />
+                <Clipboard className="h-5 w-5 text-muted-foreground" />
               </div>
               
               <div className="space-y-4">
