@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
   CalendarDays, User, Car, CreditCard, 
@@ -21,18 +21,23 @@ import { AgreementTabs } from './AgreementTabs';
 import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
-import { supabase } from '@/integrations/supabase/client';
+import { usePayments } from '@/hooks/use-payments';
+import { supabase } from '@/lib/supabase';
+import { fixAgreementPayments } from '@/lib/supabase';
+import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
 import { UUID } from '@/types/database-types';
 import { Payment } from './PaymentHistory.types';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
   const [agreement, setAgreement] = useState<any>(null);
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(agreement, id || '');
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
+  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
+  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
+  const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
 
@@ -135,6 +140,49 @@ const AgreementDetail = () => {
     return format(new Date(date), 'MMM d, yyyy');
   };
 
+  const handleGeneratePayment = async () => {
+    if (!id || !agreement) return;
+    
+    setIsGeneratingPayment(true);
+    try {
+      const result = await forceGeneratePaymentForAgreement(supabase, id);
+      
+      if (result.success) {
+        toast.success("Payment schedule generated successfully");
+        refetchAgreement();
+      } else {
+        toast.error(`Failed to generate payment: ${result.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Error generating payment:", error);
+      toast.error("Failed to generate payment schedule");
+    } finally {
+      setIsGeneratingPayment(false);
+    }
+  };
+
+  const handleRunMaintenanceJob = async () => {
+    if (!id) return;
+    
+    setIsRunningMaintenance(true);
+    try {
+      const result = await fixAgreementPayments(id);
+      
+      if (result.success) {
+        toast.success(result.message || "Payment maintenance completed");
+        refetchAgreement();
+        fetchPayments();
+      } else {
+        toast.error(result.message || "Payment maintenance failed");
+      }
+    } catch (error) {
+      console.error("Error running maintenance job:", error);
+      toast.error("Failed to run maintenance job");
+    } finally {
+      setIsRunningMaintenance(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-6">
@@ -146,13 +194,25 @@ const AgreementDetail = () => {
       </div>
 
       <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
+      
+      <AgreementActions
+        onEdit={() => {}} // TODO: Implement edit handler
+        onDelete={() => {}} // TODO: Implement delete handler
+        onDownloadPdf={() => {}} // TODO: Implement PDF download
+        onGeneratePayment={handleGeneratePayment}
+        onRunMaintenance={handleRunMaintenanceJob}
+        onGenerateDocument={() => {}} // TODO: Implement document generation
+        isGeneratingPayment={isGeneratingPayment}
+        isRunningMaintenance={isRunningMaintenance}
+        status={agreement?.status || 'pending'}
+      />
 
-      <AgreementTabs 
+      <AgreementTabs
         agreement={agreement}
         payments={payments}
         isLoadingPayments={isLoadingPayments}
         rentAmount={rentAmount}
-        onPaymentDeleted={handlePaymentDeleted}
+        onPaymentDeleted={() => fetchPayments()}
         onRefreshPayments={fetchPayments}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">

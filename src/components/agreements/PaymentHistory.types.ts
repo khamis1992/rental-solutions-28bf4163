@@ -1,11 +1,11 @@
-
+import { UUID } from '@/utils/database-type-helpers';
 import { Database } from '@/types/database.types';
 
 /**
  * Payment interface definition with required fields exposed
  */
 export interface Payment {
-  id: string;
+  id: UUID;
   amount: number;
   payment_date: string | null;
   payment_method?: string;
@@ -15,7 +15,7 @@ export interface Payment {
   status?: string;
   late_fine_amount?: number;
   days_overdue?: number;
-  lease_id?: string;
+  lease_id?: UUID;
   original_due_date?: string | null;
   amount_paid?: number;
   balance?: number;
@@ -30,8 +30,8 @@ export type DbPayment = Database['public']['Tables']['unified_payments']['Row'];
  * Extended payment interface with additional fields
  */
 export interface ExtendedPayment extends Payment {
-  id: string;
-  lease_id?: string;
+  id: UUID;
+  lease_id?: UUID;
   amount: number;
   amount_paid?: number;
   balance?: number;
