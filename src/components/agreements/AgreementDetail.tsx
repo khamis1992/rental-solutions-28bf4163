@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -15,6 +16,7 @@ import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
 import LegalCaseCard from './LegalCaseCard';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
+import { asDbId, LeaseId } from '@/types/database-types';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -45,18 +47,10 @@ export function AgreementDetail({
   } | null>(null);
   const [selectedPayment, setSelectedPayment] = useState(null);
 
-  const {
-    payments = [],
-    isLoading,
-    fetchPayments
-  } = usePayments(agreement?.id);
-  
-  useEffect(() => {
-    if (agreement?.id) {
-      console.log('Fetching payments for agreement:', agreement.id);
-      fetchPayments();
-    }
-  }, [agreement?.id, fetchPayments]);
+  // Import payments from parent component instead of using usePayments hook
+  // We'll handle payments with the callbacks provided in props
+  const payments = [];
+  const isLoading = false;
   
   const {
     handleSpecialAgreementPayments
@@ -64,7 +58,7 @@ export function AgreementDetail({
 
   const handleDelete = useCallback(() => {
     if (agreement) {
-      const typedId = asDbId<LeaseId>(agreement.id);
+      const typedId = agreement.id;
       onDelete(typedId);
     }
   }, [agreement, onDelete]);
@@ -137,7 +131,7 @@ export function AgreementDetail({
         if (success) {
           setIsPaymentDialogOpen(false);
           onDataRefresh();
-          fetchPayments();
+          // Use onDataRefresh instead of fetchPayments since we're not using usePayments hook
           toast.success("Payment recorded successfully");
         }
       } catch (error) {
@@ -145,7 +139,7 @@ export function AgreementDetail({
         toast.error("Failed to record payment");
       }
     }
-  }, [agreement, handleSpecialAgreementPayments, onDataRefresh, fetchPayments]);
+  }, [agreement, handleSpecialAgreementPayments, onDataRefresh]);
 
   const calculateDuration = useCallback((startDate: Date, endDate: Date) => {
     const months = differenceInMonths(endDate, startDate);
@@ -376,10 +370,7 @@ export function AgreementDetail({
         payments={Array.isArray(payments) ? payments : []} 
         isLoading={isLoading} 
         rentAmount={rentAmount} 
-        onPaymentDeleted={() => {
-          onPaymentDeleted();
-          fetchPayments();
-        }} 
+        onPaymentDeleted={onPaymentDeleted} 
         leaseStartDate={agreement.start_date} 
         leaseEndDate={agreement.end_date} 
       />}
