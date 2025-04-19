@@ -1,48 +1,38 @@
-
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { 
   CalendarDays, User, Car, CreditCard, 
   ClipboardList, FileText, ChevronLeft, 
-  Phone, Mail, MapPin, Gavel, AlertTriangle
+  Phone, Mail, MapPin
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PaymentHistory } from './PaymentHistory';
+import LegalCaseCard from './LegalCaseCard';
+import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { AgreementActions } from './AgreementActions';
+import { AgreementTabs } from './AgreementTabs';
 import { AgreementSummaryHeader } from './AgreementSummaryHeader';
 import { useRentAmount } from '@/hooks/use-rent-amount';
 import { useAgreements } from '@/hooks/use-agreements';
-import { usePayments } from '@/hooks/use-payments';
-import { supabase } from '@/lib/supabase';
-import { fixAgreementPayments } from '@/lib/supabase';
-import { forceGeneratePaymentForAgreement } from '@/lib/validation-schemas/agreement';
-import { UUID } from '@/utils/database-type-helpers';
+import { supabase } from '@/integrations/supabase/client';
+import { Payment } from './PaymentHistory.types';
+import { hasData } from '@/utils/database-type-helpers';
 
 const AgreementDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const { getAgreement, isLoading: isAgreementLoading, error: agreementError } = useAgreements();
   const [agreement, setAgreement] = useState<any>(null);
   const { rentAmount, isLoading: isRentAmountLoading } = useRentAmount(agreement, id || '');
-  const [isGeneratingPayment, setIsGeneratingPayment] = useState(false);
-  const [isRunningMaintenance, setIsRunningMaintenance] = useState(false);
-  
-  const { 
-    payments, 
-    isLoading: isLoadingPayments, 
-    fetchPayments: fetchPaymentsHook, 
-    addPayment,
-    updatePayment,
-    deletePayment
-  } = usePayments(id || '');
-  
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoadingPayments, setIsLoadingPayments] = useState(true);
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoadingLegalCases, setIsLoadingLegalCases] = useState(true);
 
@@ -60,24 +50,51 @@ const AgreementDetail = () => {
 
   useEffect(() => {
     if (id) {
-      fetchPaymentsHook();
+      fetchPayments();
       fetchLegalCases();
     }
-  }, [id, fetchPaymentsHook]);
+  }, [id]);
+
+  const fetchPayments = async () => {
+    setIsLoadingPayments(true);
+    try {
+      // Use string directly without type assertions
+      const { data, error } = await supabase
+        .from('unified_payments')
+        .select('*')
+        .eq('lease_id', id);
+      
+      if (error) throw error;
+      
+      // Type casting for compatibility with the Payment type
+      setPayments((data || []) as Payment[]);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      toast({
+        title: 'Error fetching payments',
+        description: 'Could not load payment history for this agreement',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  };
 
   const fetchLegalCases = async () => {
     setIsLoadingLegalCases(true);
     try {
+      // For the legal_cases table, query by customer_id instead of agreement_id
       if (!agreement?.customers?.id) {
         console.log("No customer ID available yet for legal cases query");
         setIsLoadingLegalCases(false);
         return;
       }
       
+      // Use string directly without type assertions
       const { data, error } = await supabase
         .from('legal_cases')
         .select('*')
-        .eq('customer_id', agreement.customers.id as UUID);
+        .eq('customer_id', agreement.customers.id);
       
       if (error) throw error;
       
@@ -90,7 +107,7 @@ const AgreementDetail = () => {
   };
 
   const handlePaymentDeleted = () => {
-    fetchPaymentsHook();
+    fetchPayments();
   };
 
   const refetchAgreement = async () => {
@@ -121,73 +138,6 @@ const AgreementDetail = () => {
     return format(new Date(date), 'MMM d, yyyy');
   };
 
-  const handleGeneratePayment = async () => {
-    if (!id || !agreement) return;
-    
-    setIsGeneratingPayment(true);
-    try {
-      const result = await forceGeneratePaymentForAgreement(supabase, id);
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Payment schedule generated successfully",
-          variant: "default",
-        });
-        refetchAgreement();
-      } else {
-        toast({
-          title: "Error",
-          description: `Failed to generate payment: ${result.message || 'Unknown error'}`,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error generating payment:", error);
-      toast({
-        title: "Error",
-        description: "Failed to generate payment schedule",
-        variant: "destructive",
-      });
-    } finally {
-      setIsGeneratingPayment(false);
-    }
-  };
-
-  const handleRunMaintenanceJob = async () => {
-    if (!id) return;
-    
-    setIsRunningMaintenance(true);
-    try {
-      const result = await fixAgreementPayments(id);
-      
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: result.message || "Payment maintenance completed",
-          variant: "default",
-        });
-        refetchAgreement();
-        fetchPaymentsHook();
-      } else {
-        toast({
-          title: "Error",
-          description: result.message || "Payment maintenance failed",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error running maintenance job:", error);
-      toast({
-        title: "Error",
-        description: "Failed to run maintenance job",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRunningMaintenance(false);
-    }
-  };
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <div className="mb-6">
@@ -199,49 +149,16 @@ const AgreementDetail = () => {
       </div>
 
       <AgreementSummaryHeader agreement={agreement} rentAmount={rentAmount} />
-      
-      <AgreementActions
-        onEdit={() => {}} // TODO: Implement edit handler
-        onDelete={() => {}} // TODO: Implement delete handler
-        onDownloadPdf={() => {}} // TODO: Implement PDF download
-        onGeneratePayment={handleGeneratePayment}
-        onRunMaintenance={handleRunMaintenanceJob}
-        onGenerateDocument={() => {}} // TODO: Implement document generation
-        isGeneratingPayment={isGeneratingPayment}
-        isRunningMaintenance={isRunningMaintenance}
-        status={agreement?.status || 'pending'}
-      />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-        <Button
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={() => navigate(`/agreements/${id}/payments`)}
-        >
-          <CreditCard className="h-4 w-4" />
-          View Payment History
-        </Button>
-
-        <Button
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={() => navigate(`/agreements/${id}/legal`)}
-        >
-          <Gavel className="h-4 w-4" />
-          View Legal Cases
-        </Button>
-
-        <Button
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={() => navigate(`/agreements/${id}/fines`)}
-        >
-          <AlertTriangle className="h-4 w-4" />
-          View Traffic Fines
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      <AgreementTabs 
+        agreement={agreement}
+        payments={payments}
+        isLoadingPayments={isLoadingPayments}
+        rentAmount={rentAmount}
+        onPaymentDeleted={handlePaymentDeleted}
+        onRefreshPayments={fetchPayments}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -375,8 +292,33 @@ const AgreementDetail = () => {
             </CardContent>
           </Card>
         </div>
+        
+        <PaymentHistory 
+          payments={payments || []}
+          onPaymentDeleted={handlePaymentDeleted}
+          leaseStartDate={agreement.start_date}
+          leaseEndDate={agreement.end_date}
+          rentAmount={rentAmount}
+        />
+        
+        <LegalCaseCard 
+          agreementId={id || ''} 
+        />
+        
+        <AgreementTrafficFines 
+          agreementId={id || ''}
+          startDate={agreement.start_date}
+          endDate={agreement.end_date}
+        />
+      </AgreementTabs>
     </div>
   );
+};
+
+// Helper function to format dates
+const dateFormat = (date: string | Date) => {
+  if (!date) return 'N/A';
+  return format(new Date(date), 'MMM d, yyyy');
 };
 
 export default AgreementDetail;

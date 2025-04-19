@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,8 +7,7 @@ import { format } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, FileCheck } from 'lucide-react';
-import { asLeaseIdColumn } from '@/utils/database-type-helpers';
-import { UUID } from '@/types/database-types';
+import { hasData } from '@/utils/database-type-helpers';
 
 export interface AgreementTrafficFinesProps {
   agreementId: string;
@@ -30,10 +30,11 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     try {
       setIsLoading(true);
       
+      // Use string ID directly without type assertions
       const { data, error } = await supabase
         .from('traffic_fines')
         .select('*')
-        .eq('lease_id', asLeaseIdColumn(agreementId));
+        .eq('agreement_id', agreementId);
       
       if (error) {
         throw error;
@@ -69,7 +70,15 @@ export function AgreementTrafficFines({ agreementId, startDate, endDate }: Agree
     {
       accessorKey: 'violation_date',
       header: 'Date',
-      cell: ({ row }: { row: any }) => formatDate(row.original.violation_date),
+      cell: ({ row }: { row: any }) => {
+        const dateString = row.original.violation_date;
+        if (!dateString) return 'N/A';
+        try {
+          return format(new Date(dateString), 'MMM d, yyyy');
+        } catch (error) {
+          return dateString;
+        }
+      },
     },
     {
       accessorKey: 'license_plate',
