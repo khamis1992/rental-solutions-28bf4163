@@ -9,8 +9,8 @@ import { Payment } from './PaymentHistory.types';
 interface AgreementTabsProps {
   agreement: Agreement;
   children: React.ReactNode;
-  payments: Payment[];
-  isLoadingPayments: boolean;
+  payments?: Payment[];
+  isLoadingPayments?: boolean;
   rentAmount: number | null;
   onPaymentDeleted: () => void;
   onRefreshPayments: () => void;
@@ -19,8 +19,8 @@ interface AgreementTabsProps {
 export function AgreementTabs({
   agreement,
   children,
-  payments,
-  isLoadingPayments,
+  payments = [],
+  isLoadingPayments = false,
   rentAmount,
   onPaymentDeleted,
   onRefreshPayments

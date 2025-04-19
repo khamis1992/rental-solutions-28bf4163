@@ -1,4 +1,3 @@
-
 // Define the UUID type directly here to avoid circular imports
 export type UUID = string;
 
@@ -40,19 +39,19 @@ export function asLegalCaseId(id: UUID): UUID {
 }
 
 // Column helper functions
-export function asTrafficFineIdColumn(id: UUID): UUID {
+export function asTrafficFineIdColumn(id: string | UUID): UUID {
   return id;
 }
 
-export function asLeaseIdColumn(id: UUID): UUID {
+export function asLeaseIdColumn(id: string | UUID): UUID {
   return id;
 }
 
-export function asAgreementIdColumn(id: UUID): UUID {
+export function asAgreementIdColumn(id: string | UUID): UUID {
   return id;
 }
 
-export function asImportIdColumn(id: UUID): UUID {
+export function asImportIdColumn(id: string | UUID): UUID {
   return id;
 }
 
@@ -61,8 +60,8 @@ export function asCustomerIdColumn(id: UUID): UUID {
 }
 
 // Additional helper functions needed
-export function asTableId(table: string, id: string): string {
-  return id;
+export function asTableId(table: string, id: string | UUID): UUID {
+  return id as UUID;
 }
 
 export function asStatusColumn(table: string, column: string, status: string): string {

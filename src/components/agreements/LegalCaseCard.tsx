@@ -1,130 +1,77 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/button';
-import { Loader2, AlertCircle, Pencil, Plus, Info, Shield, AlertTriangle, Clock, BarChart2 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
-import { DataTable } from '@/components/ui/data-table';
+import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { asLeaseId, asProfileId, asCustomerIdColumn, asLegalCaseId } from '@/utils/database-type-helpers';
-import { UUID } from '@/types/database-types';
-import { hasData } from '@/utils/supabase-type-helpers';
+import { AlertTriangle, FileCheck, Ban, Check } from 'lucide-react';
+import { asLeaseIdColumn } from '@/utils/database-type-helpers';
+import type { UUID } from '@/types/database-types';
 
 interface LegalCaseCardProps {
-  agreementId: string;
+  agreementId: string | UUID;
 }
 
-const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
+export default function LegalCaseCard({ agreementId }: LegalCaseCardProps) {
   const { toast } = useToast();
   const [legalCases, setLegalCases] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [customerData, setCustomerData] = useState<any>(null);
   
   useEffect(() => {
-    const fetchData = async () => {
-      if (!agreementId) return;
-      
-      try {
-        const { data: agreementData, error: agreementError } = await supabase
-          .from('leases')
-          .select('customer_id')
-          .eq('id', asLeaseId(agreementId))
-          .single();
-        
-        if (agreementError || !agreementData) {
-          throw new Error('Failed to get customer ID from agreement');
-        }
-        
-        // Get customer details
-        const customerId = agreementData.customer_id;
-        const { data: customerData, error: customerError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', asProfileId(customerId))
-          .single();
-        
-        if (customerError) throw customerError;
-        setCustomerData(customerData);
-        
-        // Fetch legal cases for this customer
-        const { data: cases, error: casesError } = await supabase
-          .from('legal_cases')
-          .select('*')
-          .eq('customer_id', asCustomerIdColumn(customerId));
-        
-        if (casesError) throw casesError;
-        setLegalCases(cases || []);
-      } catch (error) {
-        console.error('Error fetching legal case data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load legal case information",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [agreementId, toast]);
+    if (agreementId) {
+      fetchLegalCases();
+    }
+  }, [agreementId]);
   
-  const handleCaseStatusUpdate = async (caseId: string, newStatus: string) => {
+  const fetchLegalCases = async () => {
     try {
-      const { error } = await supabase
-        .from('legal_cases')
-        .update({ 
-          status: newStatus, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', asLegalCaseId(caseId));
+      setIsLoading(true);
       
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Case status updated successfully",
-      });
-      
-      // Refresh cases
-      if (customerData?.id) {
-        const { data, error: refreshError } = await supabase
+      const { data: agreement } = await supabase
+        .from('leases')
+        .select('customer_id')
+        .eq('id', asLeaseIdColumn(agreementId))
+        .single();
+
+      if (agreement?.customer_id) {
+        const { data, error } = await supabase
           .from('legal_cases')
-          .select('*')
-          .eq('customer_id', customerData.id);
+          .select(`
+            *,
+            profiles:customer_id (
+              full_name,
+              email,
+              phone_number
+            )
+          `)
+          .eq('customer_id', agreement.customer_id);
         
-        if (!refreshError) {
-          setLegalCases(data || []);
+        if (error) {
+          throw error;
         }
+        
+        setLegalCases(data || []);
       }
     } catch (error) {
-      console.error('Error updating case status:', error);
+      console.error('Error fetching legal cases:', error);
       toast({
-        title: "Error",
-        description: "Failed to update case status",
-        variant: "destructive",
+        title: 'Error',
+        description: 'Could not load legal cases data',
+        variant: 'destructive'
       });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'pending_reminder':
-        return <Badge variant="outline" className="flex items-center gap-1"><Clock className="h-3 w-3" /> Pending Reminder</Badge>;
-      case 'awaiting_response':
-        return <Badge variant="warning" className="flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> Awaiting Response</Badge>;
-      case 'escalated':
-        return <Badge variant="destructive" className="flex items-center gap-1"><Ban className="h-3 w-3" /> Escalated</Badge>;
-      case 'resolved':
-        return <Badge variant="success" className="flex items-center gap-1"><Check className="h-3 w-3" /> Resolved</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
+  
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
+      return dateString;
     }
   };
   
@@ -136,7 +83,15 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
     {
       accessorKey: 'status',
       header: 'Status',
-      cell: ({ row }: { row: any }) => getStatusBadge(row.original.status),
+      cell: ({ row }: { row: any }) => (
+        <Badge variant={row.original.status === 'resolved' ? 'success' : 'destructive'}>
+          {row.original.status === 'resolved' ? (
+            <><FileCheck className="h-3 w-3 mr-1" /> RESOLVED</>
+          ) : (
+            <><AlertTriangle className="h-3 w-3 mr-1" /> PENDING</>
+          )}
+        </Badge>
+      ),
     },
     {
       accessorKey: 'amount_owed',
@@ -146,37 +101,20 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
     {
       accessorKey: 'created_at',
       header: 'Created',
-      cell: ({ row }: { row: any }) => format(new Date(row.original.created_at), 'MMM d, yyyy'),
-    },
-    {
-      id: 'actions',
-      header: 'Actions',
-      cell: ({ row }: { row: any }) => (
-        row.original.status !== 'resolved' ? (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => handleCaseStatusUpdate(row.original.id, 'resolved')}
-          >
-            Resolve
-          </Button>
-        ) : null
-      ),
-    },
+      cell: ({ row }: { row: any }) => formatDate(row.original.created_at),
+    }
   ];
   
   return (
     <Card className="my-8">
       <CardHeader>
         <CardTitle>Legal Cases</CardTitle>
-        <CardDescription>
-          Legal cases associated with this agreement
-        </CardDescription>
+        <CardDescription>Legal cases associated with this agreement</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
-            <Loader2 className="animate-spin h-6 w-6" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : legalCases.length > 0 ? (
           <DataTable columns={columns} data={legalCases} />
@@ -188,6 +126,4 @@ const LegalCaseCard: React.FC<LegalCaseCardProps> = ({ agreementId }) => {
       </CardContent>
     </Card>
   );
-};
-
-export default LegalCaseCard;
+}
