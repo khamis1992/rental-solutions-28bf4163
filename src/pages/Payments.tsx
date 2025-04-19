@@ -6,14 +6,13 @@ import { PaymentHistory } from '@/components/agreements/PaymentHistory';
 import { usePayments } from '@/hooks/use-payments';
 import { useParams } from 'react-router-dom';
 import { useRentAmount } from '@/hooks/use-rent-amount';
-import { useAgreements } from '@/hooks/use-agreements';
+import { useAgreement } from '@/hooks/use-agreements';
 import { DollarSign } from 'lucide-react';
 
 const Payments = () => {
   const { id } = useParams<{ id: string }>();
   const { payments, isLoading: isLoadingPayments, fetchPayments } = usePayments(id || '');
-  const { getAgreement } = useAgreements();
-  const [agreement] = React.useState<any>(null);
+  const { agreement } = useAgreement(id);
   const { rentAmount } = useRentAmount(agreement, id || '');
 
   return (
