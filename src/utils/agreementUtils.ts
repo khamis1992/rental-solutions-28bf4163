@@ -1,6 +1,6 @@
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable'; // Import for tables if needed.
+import 'jspdf-autotable';
 import { formatDate } from '@/lib/date-utils';
 import { formatCurrency } from '@/lib/utils';
 import { format, differenceInMonths } from 'date-fns';
