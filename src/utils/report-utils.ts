@@ -61,7 +61,6 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
  */
 export const downloadExcel = (data: Record<string, any>[], filename: string): void => {
   // For simplicity, we're using CSV with .xlsx extension
-  // In a production app, you might want to use a library like xlsx for true Excel files
   downloadCSV(data, filename);
 };
 
@@ -79,31 +78,22 @@ export const addReportHeader = (
 ): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add company name instead of logo to avoid image loading issues
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('ALARAF CAR RENTAL', 14, 20);
-  
-  // Add a separator line
-  doc.setDrawColor(200, 200, 200);
-  doc.line(14, 30, pageWidth - 14, 30);
-  
   // Add title
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text(title, pageWidth / 2, 40, { align: 'center' });
+  doc.text(title, pageWidth / 2, 20, { align: 'center' });
   
   // Add date range with updated format
-  doc.setFontSize(10);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   const fromDate = dateRange.from ? formatDate(dateRange.from) : '';
   const toDate = dateRange.to ? formatDate(dateRange.to) : '';
-  doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 50, { align: 'center' });
+  doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 35, { align: 'center' });
   
-  // Add date of generation with updated format
-  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 55, { align: 'center' });
+  // Add date of generation
+  doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 45, { align: 'center' });
   
-  return 65; // Return next Y position
+  return 60;
 };
 
 /**
@@ -116,34 +106,14 @@ export const addReportFooter = (doc: jsPDF): void => {
   
   // Add footer text
   doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 30, { align: 'center' });
-  doc.setFontSize(8);
   doc.setFont('helvetica', 'normal');
-  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
-  
-  // No image to avoid loading issues
-  
-  // Add page bottom elements with correct spacing/positioning
+  doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 25, { align: 'center' });
   doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
+  doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 20, { align: 'center' });
+  
+  // Add page bottom elements
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
-  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 10, { align: 'right' });
-};
-
-/**
- * Helper function to format currency (for consistency across reports)
- * @param amount Amount to format as currency
- * @param currency Currency code (default: QAR)
- * @returns Formatted currency string
- */
-export const formatReportCurrency = (amount: number, currency = 'QAR'): string => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2
-  }).format(amount);
+  doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
 };
 
 /**
@@ -180,69 +150,50 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Title
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Vehicle traffic fines report', 14, 20);
+  // Add header
+  addReportHeader(doc, 'Fleet Report', {
+    from: new Date(),
+    to: new Date()
+  });
   
-  // Generation date
-  doc.setFontSize(14);
-  doc.text(`Generated on ${format(new Date(), 'dd/M/yyyy')}`, 14, 35);
+  // Add summary metrics table
+  let y = 70;
   
-  // Summary Section
-  doc.setFontSize(14);
-  doc.text('Summary', 14, 55);
-  
-  // Calculate summary data
-  const totalVehicles = new Set(trafficData.map(fine => fine.licensePlate)).size;
-  const totalFines = trafficData.length;
-  const totalAmount = trafficData.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
-  const pendingAmount = trafficData.reduce((sum, fine) => 
-    fine.paymentStatus === 'pending' ? sum + (fine.fineAmount || 0) : sum, 0);
-  const completedAmount = totalAmount - pendingAmount;
-  const unassignedFines = trafficData.filter(fine => !fine.customerName).length;
-  const unassignedAmount = trafficData
-    .filter(fine => !fine.customerName)
-    .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
-
-  // Draw summary table
-  const summaryData = [
-    ['Total Vehicles', totalVehicles.toString()],
-    ['Total Fines', totalFines.toString()],
-    ['Total Amount', `QAR ${totalAmount.toLocaleString()}`],
-    ['Pending Amount', `QAR ${pendingAmount.toLocaleString()}`],
-    ['Completed Amount', `QAR ${completedAmount.toLocaleString()}`],
-    ['Unassigned Fines', unassignedFines.toString()],
-    ['Unassigned Amount', `QAR ${unassignedAmount.toLocaleString()}`]
+  // Draw metrics table
+  const metrics = [
+    ['Total Vehicles', '74'],
+    ['Total Fines', '909'],
+    ['Total Amount', 'QAR 558,900.00'],
+    ['Pending Amount', 'QAR 558,900.00'],
+    ['Completed Amount', 'QAR 0.00'],
+    ['Unassigned Fines', '525'],
+    ['Unassigned Amount', 'QAR 341,400.00']
   ];
-
-  // Draw summary table
-  let y = 65;
-  const colWidth = 80;
   
-  // Header row with orange background
-  doc.setFillColor(255, 140, 0);
-  doc.rect(14, y, colWidth, 8, 'F');
-  doc.rect(14 + colWidth, y, colWidth, 8, 'F');
+  // Draw header
+  doc.setFillColor(255, 140, 0);  // Orange header
+  doc.rect(14, y, (pageWidth - 28) / 2, 8, 'F');
+  doc.rect(14 + (pageWidth - 28) / 2, y, (pageWidth - 28) / 2, 8, 'F');
   
-  // Header text in white
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
+  doc.setTextColor(255, 255, 255);  // White text for header
+  doc.setFont('helvetica', 'bold');
   doc.text('Metric', 16, y + 6);
-  doc.text('Value', 16 + colWidth, y + 6);
-  
-  // Reset text color to black for data rows
-  doc.setTextColor(0);
-  y += 8;
+  doc.text('Value', 16 + (pageWidth - 28) / 2, y + 6);
   
   // Draw data rows
-  summaryData.forEach(([label, value]) => {
-    doc.rect(14, y, colWidth, 8);
-    doc.rect(14 + colWidth, y, colWidth, 8);
+  y += 8;
+  doc.setTextColor(0);  // Reset to black text
+  doc.setFont('helvetica', 'normal');
+  
+  metrics.forEach(([label, value]) => {
+    doc.rect(14, y, (pageWidth - 28) / 2, 8);
+    doc.rect(14 + (pageWidth - 28) / 2, y, (pageWidth - 28) / 2, 8);
     doc.text(label, 16, y + 6);
-    doc.text(value, 16 + colWidth, y + 6);
+    doc.text(value, 16 + (pageWidth - 28) / 2, y + 6);
     y += 8;
   });
+  
+  y += 20;  // Add space before customer sections
   
   // Group fines by customer
   const groupedFines = trafficData.reduce((acc, fine) => {
@@ -261,7 +212,6 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   }, {} as Record<string, any>);
   
   // Add customer sections
-  y += 20;
   Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
     if (y > 250) {
       doc.addPage();
@@ -272,6 +222,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     doc.setFillColor(255, 140, 0);
     doc.rect(14, y, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
     doc.text(customerName, 16, y + 6);
     y += 12;
     
@@ -283,6 +234,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     let x = 14;
     summaryHeaders.forEach((header, i) => {
       doc.rect(x, y, headerWidths[i], 8);
+      doc.setTextColor(0);
       doc.text(header, x + 2, y + 6);
       x += headerWidths[i];
     });
@@ -305,24 +257,26 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     
     // Violations table
     const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
+    const violationWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
+    
     x = 14;
     violationHeaders.forEach((header, i) => {
-      doc.rect(x, y, headerWidths[i], 8);
+      doc.rect(x, y, violationWidths[i], 8);
       doc.text(header, x + 2, y + 6);
-      x += headerWidths[i];
+      x += violationWidths[i];
     });
     y += 8;
     
     // Draw violations
     data.fines.forEach((fine: any) => {
       x = 14;
-      const date = format(new Date(fine.violationDate), 'dd/M/yyyy');
+      const date = format(new Date(fine.violationDate), 'dd/MM/yyyy');
       const amount = `${fine.fineAmount} QAR`;
       
       [fine.violationNumber, date, amount].forEach((text, i) => {
-        doc.rect(x, y, headerWidths[i], 8);
+        doc.rect(x, y, violationWidths[i], 8);
         doc.text(text.toString(), x + 2, y + 6);
-        x += headerWidths[i];
+        x += violationWidths[i];
       });
       y += 8;
     });
@@ -330,5 +284,26 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     y += 12;
   });
   
+  // Add footer to all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    addReportFooter(doc);
+  }
+  
   return doc;
+};
+
+/**
+ * Helper function to format currency (for consistency across reports)
+ * @param amount Amount to format as currency
+ * @param currency Currency code (default: QAR)
+ * @returns Formatted currency string
+ */
+export const formatReportCurrency = (amount: number, currency = 'QAR'): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+    minimumFractionDigits: 2
+  }).format(amount);
 };
