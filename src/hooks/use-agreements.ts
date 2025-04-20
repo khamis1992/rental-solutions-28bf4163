@@ -10,7 +10,7 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType, SafeQueryResult } from '@/utils/type-utils';
+import { SafeQueryResult } from '@/utils/type-utils';
 
 export type SimpleAgreement = {
   id: string;
@@ -18,7 +18,7 @@ export type SimpleAgreement = {
   vehicle_id: string;
   start_date: Date;
   end_date: Date;
-  status: string;
+  status: DatabaseAgreementStatus;
   agreement_number?: string;
   total_amount?: number;
   deposit_amount?: number;
@@ -129,7 +129,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
+      const mappedStatus = data.status as DatabaseAgreementStatus;
 
       const agreement: SimpleAgreement = {
         id: data.id,

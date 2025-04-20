@@ -3,25 +3,42 @@ import { toast } from 'sonner';
 import { DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
-// Helper function to adapt SimpleAgreement to Agreement type for detail pages
-export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement) => {
-  return {
-    ...simpleAgreement,
+/**
+ * Adapts a SimpleAgreement to the full Agreement type
+ * @param simpleAgreement The simplified agreement data from API/DB
+ * @returns Full Agreement object with proper typing
+ */
+export const adaptSimpleToFullAgreement = (simpleAgreement: any): Agreement => {
+  const agreement: Agreement = {
     id: simpleAgreement.id,
     customer_id: simpleAgreement.customer_id,
     vehicle_id: simpleAgreement.vehicle_id,
-    start_date: simpleAgreement.start_date ? new Date(simpleAgreement.start_date) : new Date(),
-    end_date: simpleAgreement.end_date ? new Date(simpleAgreement.end_date) : new Date(),
+    start_date: simpleAgreement.start_date,
+    end_date: simpleAgreement.end_date,
     status: simpleAgreement.status,
-    created_at: simpleAgreement.created_at ? new Date(simpleAgreement.created_at) : undefined,
-    updated_at: simpleAgreement.updated_at ? new Date(simpleAgreement.updated_at) : undefined,
-    total_amount: simpleAgreement.total_amount || 0,
-    deposit_amount: simpleAgreement.deposit_amount || 0,
-    agreement_number: simpleAgreement.agreement_number || '',
-    notes: simpleAgreement.notes || '',
-    terms_accepted: true,
-    additional_drivers: [],
+    agreement_number: simpleAgreement.agreement_number,
+    total_amount: simpleAgreement.total_amount,
+    rent_amount: simpleAgreement.rent_amount,
+    deposit_amount: simpleAgreement.deposit_amount,
+    notes: simpleAgreement.notes,
+    created_at: simpleAgreement.created_at,
+    updated_at: simpleAgreement.updated_at,
+    signature_url: simpleAgreement.signature_url,
+    customer_name: simpleAgreement.customers?.full_name,
+    license_plate: simpleAgreement.vehicles?.license_plate,
+    vehicle_make: simpleAgreement.vehicles?.make,
+    vehicle_model: simpleAgreement.vehicles?.model,
+    vehicle_year: simpleAgreement.vehicles?.year,
+    customers: simpleAgreement.customers,
+    vehicles: simpleAgreement.vehicles,
+    agreement_duration: simpleAgreement.agreement_duration || '',
+    monthly_payment: simpleAgreement.monthly_payment,
+    daily_late_fee: simpleAgreement.daily_late_fee || 120,
+    terms_accepted: simpleAgreement.terms_accepted || false,
+    additional_drivers: simpleAgreement.additional_drivers || [],
   };
+  
+  return agreement;
 };
 
 // Force generate payment for an agreement

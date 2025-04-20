@@ -1,4 +1,5 @@
 
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -31,9 +32,9 @@ export const useAIAnalysis = (agreementId?: string) => {
     if (!agreementId) return null;
 
     try {
-      // Use 'analysis' table instead of 'ai_analysis'
+      // The table is named 'ai_analysis' in the database, not 'analysis'
       const { data, error } = await supabase
-        .from('analysis')
+        .from('ai_analysis')
         .select('*')
         .eq('agreement_id', agreementId)
         .order('created_at', { ascending: false });

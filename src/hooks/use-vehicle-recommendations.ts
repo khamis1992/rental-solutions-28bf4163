@@ -3,8 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { AIRecommendation, AIRecommendationRequest } from '@/types/ai-recommendation';
-import { FlattenType, SafeQueryResult } from '@/utils/type-utils';
+import { SafeQueryResult } from '@/utils/type-utils';
 
 export interface VehiclePreferences {
   size?: string;
@@ -31,8 +30,7 @@ export const useVehicleRecommendations = (customerId?: string) => {
     if (!customerId) return [];
 
     try {
-      // Use 'recommendations' table instead of 'ai_recommendations'
-      // This appears to be a table naming mismatch with the Supabase schema
+      // The table is named 'recommendations' in the database schema
       const { data, error } = await supabase
         .from('recommendations')
         .select('*')
