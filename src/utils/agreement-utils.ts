@@ -1,8 +1,8 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DB_AGREEMENT_STATUS, Agreement } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
+import { DatabaseRecord, SafeSupabaseQuery } from '@/utils/type-utils';
 
 /**
  * Adapts a SimpleAgreement to the full Agreement type

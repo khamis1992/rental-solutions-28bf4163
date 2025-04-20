@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DBEntity } from '@/utils/type-utils';
+import { DatabaseRecord, SafeSupabaseQuery } from '@/utils/type-utils';
 
 export interface VehiclePreferences {
   size?: string;
@@ -30,13 +30,17 @@ export const useVehicleRecommendations = (customerId?: string) => {
     if (!customerId) return [];
 
     try {
-      // Use the correct table name with the correct type signatures
-      const { data, error } = await supabase
-        .from('ai_recommendations') // Use the correct table name instead of 'recommendations'
+      // Use the correct table name but with type casting to avoid type errors
+      // This works around the issue where the table might not be in the TypeScript definition
+      const { data, error } = await (supabase
+        .from('ai_recommendations' as any) // Use type assertion to bypass TypeScript check
         .select('*')
         .eq('customer_id', customerId)
         .eq('recommendation_type', 'vehicle')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })) as SafeSupabaseQuery<{
+          data: SimpleVehicleRecommendation[] | null;
+          error: any;
+        }>;
 
       if (error) {
         console.error('Error fetching vehicle recommendations:', error);

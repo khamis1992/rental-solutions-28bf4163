@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DBEntity } from '@/utils/type-utils';
+import { DatabaseRecord, SafeSupabaseQuery } from '@/utils/type-utils';
 
 // Simplified interface to avoid deep type instantiation
 export interface AIAnalysis {
@@ -21,12 +21,15 @@ export const useAIAnalysis = (agreementId?: string) => {
     if (!agreementId) return null;
 
     try {
-      // Use the correct table name for AI analysis
-      const { data, error } = await supabase
-        .from('ai_analysis') // Using the correct table name
+      // Use type assertion to work around TypeScript table definition limitations
+      const { data, error } = await (supabase
+        .from('ai_analysis' as any) // Use type assertion to bypass TypeScript check
         .select('*')
         .eq('agreement_id', agreementId)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })) as SafeSupabaseQuery<{
+          data: AIAnalysis[] | null;
+          error: any;
+        }>;
 
       if (error) {
         console.error('Error fetching AI analysis:', error);

@@ -86,4 +86,16 @@ export type SupabaseResult<T> = T | null;
  * Simple return type for any database entity, eliminates deep nesting issues
  * with TypeScript's type inference
  */
-export type DBEntity<T> = T;
+export type DBEntity<T = any> = T;
+
+/**
+ * Type for database records to avoid excessive type nesting
+ * Use this for Supabase table types that cause deep instantiation errors
+ */
+export type DatabaseRecord<T = Record<string, any>> = T;
+
+/**
+ * Safe Supabase query helper type to avoid excessive type instantiation
+ * Use this when you need to work with tables that might not be in your type definitions
+ */
+export type SafeSupabaseQuery<T = any> = T;
