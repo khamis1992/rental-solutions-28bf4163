@@ -1,8 +1,8 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Agreement, 
-  BaseAgreement,
   DatabaseAgreementStatus,
   DB_AGREEMENT_STATUS,
   AgreementStatus,
@@ -10,7 +10,7 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SafeQueryResult } from '@/utils/type-utils';
+import { DBEntity } from '@/utils/type-utils';
 
 export type SimpleAgreement = {
   id: string;
@@ -158,7 +158,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const fetchAgreements = async (): Promise<SafeQueryResult<SimpleAgreement[]>> => {
+  // Using a more simplified return type to avoid deep instantiation
+  const fetchAgreements = async (): Promise<SimpleAgreement[] | null> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {

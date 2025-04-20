@@ -1,6 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
+import { DB_AGREEMENT_STATUS, Agreement } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
 /**

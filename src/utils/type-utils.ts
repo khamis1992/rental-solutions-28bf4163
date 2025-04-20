@@ -78,13 +78,12 @@ export type DatabaseResponse<T> = T[] | null;
 export type SafeQueryResult<T> = T | null;
 
 /**
- * Type for Supabase table names that are known to exist in our schema
- * This helps ensure we're using valid table names
+ * Simple return type for Supabase queries to avoid excessive type nesting
  */
-export type KnownTableName = 
-  | 'leases'
-  | 'profiles'
-  | 'vehicles'
-  | 'unified_payments'
-  | 'recommendations'
-  | 'analysis';
+export type SupabaseResult<T> = T | null;
+
+/**
+ * Simple return type for any database entity, eliminates deep nesting issues
+ * with TypeScript's type inference
+ */
+export type DBEntity<T> = T;

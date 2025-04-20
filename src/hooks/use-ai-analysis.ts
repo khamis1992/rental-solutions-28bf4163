@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SafeQueryResult } from '@/utils/type-utils';
+import { DBEntity } from '@/utils/type-utils';
 
 // Simplified interface to avoid deep type instantiation
 export interface AIAnalysis {
@@ -16,25 +16,14 @@ export interface AIAnalysis {
   status: string;
 }
 
-// Use a simple type alias to avoid nested type issues
-type SimpleAIAnalysis = {
-  id: string;
-  agreement_id: string;
-  analysis_type: string;
-  content: any;
-  created_at: string;
-  confidence_score: number;
-  status: string;
-};
-
 export const useAIAnalysis = (agreementId?: string) => {
-  const fetchAnalysis = async (): Promise<SafeQueryResult<SimpleAIAnalysis[]>> => {
+  const fetchAnalysis = async (): Promise<AIAnalysis[] | null> => {
     if (!agreementId) return null;
 
     try {
-      // The table is named 'ai_analysis' in the database, not 'analysis'
+      // Use the correct table name for AI analysis
       const { data, error } = await supabase
-        .from('ai_analysis')
+        .from('ai_analysis') // Using the correct table name
         .select('*')
         .eq('agreement_id', agreementId)
         .order('created_at', { ascending: false });
@@ -44,7 +33,7 @@ export const useAIAnalysis = (agreementId?: string) => {
         throw error;
       }
 
-      return data as SimpleAIAnalysis[];
+      return data as AIAnalysis[];
     } catch (err) {
       console.error('Error in fetchAnalysis:', err);
       throw err;
