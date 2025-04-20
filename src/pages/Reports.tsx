@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -102,15 +101,35 @@ const Reports = () => {
       case 'legal':
         return [];
       case 'traffic-fines':
-        return trafficFines?.map(fine => ({
-          vehicleModel: fine.vehicleId ? `${fine.make} ${fine.model}` : 'N/A',
-          licensePlate: fine.licensePlate || 'N/A',
-          customerName: fine.customerName || 'N/A',
-          agreementNumber: fine.leaseId || 'N/A',
-          fineCount: 1,
-          fineAmount: fine.fineAmount || 0,
-          paymentStatus: fine.paymentStatus || 'pending'
-        })) || [];
+        if (!trafficFines) return [];
+        
+        const groupedByCustomer = trafficFines.reduce((acc, fine) => {
+          const customerKey = fine.customerName || 'Unassigned';
+          if (!acc[customerKey]) {
+            acc[customerKey] = {
+              customerName: fine.customerName || 'Unassigned',
+              licensePlates: new Set(),
+              fineCount: 0,
+              totalAmount: 0,
+              fines: []
+            };
+          }
+          
+          acc[customerKey].licensePlates.add(fine.licensePlate || 'N/A');
+          acc[customerKey].fineCount++;
+          acc[customerKey].totalAmount += fine.fineAmount || 0;
+          acc[customerKey].fines.push(fine);
+          
+          return acc;
+        }, {} as Record<string, any>);
+
+        return Object.values(groupedByCustomer).map(group => ({
+          customerName: group.customerName,
+          licensePlates: Array.from(group.licensePlates).join(', '),
+          fineCount: group.fineCount,
+          totalAmount: group.totalAmount,
+          paymentStatus: group.fines.every((f: any) => f.paymentStatus === 'paid') ? 'Paid' : 'Pending'
+        }));
       default:
         return [];
     }

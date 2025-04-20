@@ -1,4 +1,3 @@
-
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -183,7 +182,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   // Add report title
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('Vehicle Traffic Fines Report', 14, 20);
+  doc.text('Traffic Fines Report by Customer', 14, 20);
   
   // Add generation date
   doc.setFontSize(10);
@@ -195,29 +194,17 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   doc.text('Summary', 14, 45);
   
   // Calculate summary data
-  const totalVehicles = new Set(trafficData.map((fine: any) => fine.licensePlate)).size;
-  const totalFines = trafficData.length;
-  const totalAmount = trafficData.reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
-  const pendingAmount = trafficData
-    .filter((fine: any) => fine.paymentStatus === 'pending')
-    .reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
-  const completedAmount = trafficData
-    .filter((fine: any) => fine.paymentStatus === 'completed')
-    .reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
-  const unassignedFines = trafficData.filter((fine: any) => !fine.customerId).length;
-  const unassignedAmount = trafficData
-    .filter((fine: any) => !fine.customerId)
-    .reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
+  const totalCustomers = trafficData.length;
+  const totalFines = trafficData.reduce((sum, customer) => sum + customer.fineCount, 0);
+  const totalAmount = trafficData.reduce((sum, customer) => sum + customer.totalAmount, 0);
+  const pendingCustomers = trafficData.filter(customer => customer.paymentStatus === 'Pending').length;
 
   // Draw summary table
   const summaryData = [
-    ['Total Vehicles', totalVehicles.toString()],
+    ['Total Customers', totalCustomers.toString()],
     ['Total Fines', totalFines.toString()],
     ['Total Amount', `QAR ${totalAmount.toFixed(2)}`],
-    ['Pending Amount', `QAR ${pendingAmount.toFixed(2)}`],
-    ['Completed Amount', `QAR ${completedAmount.toFixed(2)}`],
-    ['Unassigned Fines', unassignedFines.toString()],
-    ['Unassigned Amount', `QAR ${unassignedAmount.toFixed(2)}`]
+    ['Customers with Pending Fines', pendingCustomers.toString()]
   ];
 
   let y = 55;
@@ -241,12 +228,12 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     y += 7;
   });
 
-  // Add fines table
+  // Add customer details table
   y += 15;
 
   // Table headers
-  const headers = ['Vehicle', 'License Plate', 'Customer', 'Agreement #', 'Fine Count', 'Total Fine'];
-  const columnWidths = [40, 25, 40, 30, 20, 30];
+  const headers = ['Customer Name', 'License Plates', 'Fine Count', 'Total Amount', 'Status'];
+  const columnWidths = [60, 50, 25, 35, 25];
   
   doc.setFillColor(255, 140, 0);
   let x = 14;
@@ -261,9 +248,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   y += 7;
   doc.setTextColor(0);
 
-  const sortedFines = [...trafficData].sort((a, b) => (b.fineAmount || 0) - (a.fineAmount || 0));
-
-  sortedFines.forEach((fine: any) => {
+  trafficData.forEach((customer: any) => {
     if (y > 270) {
       doc.addPage();
       y = 20;
@@ -283,12 +268,11 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     
     x = 14;
     const rowData = [
-      fine.vehicleModel || 'N/A',
-      fine.licensePlate || 'N/A',
-      fine.customerName || 'N/A',
-      fine.agreementNumber || 'N/A',
-      fine.fineCount?.toString() || '1',
-      `QAR ${fine.fineAmount?.toFixed(2) || '0.00'}`
+      customer.customerName,
+      customer.licensePlates,
+      customer.fineCount.toString(),
+      `QAR ${customer.totalAmount.toFixed(2)}`,
+      customer.paymentStatus
     ];
     
     rowData.forEach((text, i) => {
