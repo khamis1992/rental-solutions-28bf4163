@@ -1,0 +1,129 @@
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { DatabaseAgreementStatus, DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
+
+interface VehicleAgreement {
+  id: string;
+  vehicle_id: string;
+  customer_id: string;
+  status: DatabaseAgreementStatus;
+  created_at: string;
+}
+
+export const checkAndUpdateConflictingAgreements = async (): Promise<{
+  success: boolean;
+  updatedCount: number;
+  message: string;
+}> => {
+  try {
+    console.log("Starting agreement status check for conflicting vehicle assignments");
+    
+    // Get all active agreements
+    const { data: activeAgreements, error: fetchError } = await supabase
+      .from('leases')
+      .select('id, vehicle_id, customer_id, status, created_at')
+      .in('status', ['active', 'pending_payment', 'pending_deposit'])
+      .order('created_at', { ascending: false });
+
+    if (fetchError) {
+      console.error("Error fetching agreements:", fetchError);
+      return {
+        success: false,
+        updatedCount: 0,
+        message: `Error fetching agreements: ${fetchError.message}`
+      };
+    }
+
+    if (!activeAgreements || activeAgreements.length === 0) {
+      return {
+        success: true,
+        updatedCount: 0,
+        message: "No active agreements found to check"
+      };
+    }
+
+    // Group agreements by vehicle_id
+    const agreementsByVehicle = activeAgreements.reduce((acc, agreement) => {
+      if (!acc[agreement.vehicle_id]) {
+        acc[agreement.vehicle_id] = [];
+      }
+      acc[agreement.vehicle_id].push(agreement);
+      return acc;
+    }, {} as Record<string, VehicleAgreement[]>);
+
+    let updatedCount = 0;
+
+    // Check each vehicle's agreements
+    for (const [vehicleId, agreements] of Object.entries(agreementsByVehicle)) {
+      if (agreements.length > 1) {
+        // Sort by created_at in descending order (newest first)
+        const sortedAgreements = agreements.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+
+        // Keep the newest agreement active, cancel all others
+        const [newestAgreement, ...olderAgreements] = sortedAgreements;
+
+        console.log(`Vehicle ${vehicleId} has ${agreements.length} active agreements. Keeping newest (${newestAgreement.id}) and cancelling others.`);
+
+        // Update older agreements to cancelled status
+        for (const agreement of olderAgreements) {
+          const { error: updateError } = await supabase
+            .from('leases')
+            .update({ 
+              status: DB_AGREEMENT_STATUS.CANCELLED,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', agreement.id);
+
+          if (updateError) {
+            console.error(`Error updating agreement ${agreement.id}:`, updateError);
+            continue;
+          }
+
+          updatedCount++;
+          console.log(`Updated agreement ${agreement.id} to cancelled status`);
+        }
+      }
+    }
+
+    const message = updatedCount > 0 
+      ? `Updated ${updatedCount} conflicting agreements to cancelled status`
+      : "No conflicting agreements found";
+
+    return {
+      success: true,
+      updatedCount,
+      message
+    };
+  } catch (error) {
+    console.error("Unexpected error in checkAndUpdateConflictingAgreements:", error);
+    return {
+      success: false,
+      updatedCount: 0,
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+};
+
+// Function to run the check manually (can be triggered from UI)
+export const runAgreementStatusCheck = async (): Promise<void> => {
+  try {
+    toast.info("Checking for conflicting vehicle agreements...");
+    
+    const result = await checkAndUpdateConflictingAgreements();
+    
+    if (result.success) {
+      if (result.updatedCount > 0) {
+        toast.success(result.message);
+      } else {
+        toast.info(result.message);
+      }
+    } else {
+      toast.error(result.message);
+    }
+  } catch (error) {
+    console.error("Error in runAgreementStatusCheck:", error);
+    toast.error("Failed to check agreement statuses");
+  }
+};
