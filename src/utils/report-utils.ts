@@ -55,14 +55,18 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
 };
 
 /**
- * Formats data for Excel download (uses CSV for simplicity)
- * @param data Array of objects to download as Excel
+ * Downloads data as a CSV file
+ * @param data Array of objects to download as CSV
  * @param filename Name for the downloaded file
  */
 export const downloadExcel = (data: Record<string, any>[], filename: string): void => {
   // For simplicity, we're using CSV with .xlsx extension
   downloadCSV(data, filename);
 };
+
+const PAGE_HEIGHT = 297; // A4 height in mm
+const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
+const CONTENT_MARGIN = 14; // Left/right margin in mm
 
 /**
  * Generates a PDF report header with company logo
@@ -109,7 +113,7 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFontSize(8);
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 20, { align: 'center' });
   
-  // Add page bottom elements
+  // Add page bottom elements with proper spacing
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
   doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
   doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 15, { align: 'right' });
@@ -148,17 +152,24 @@ export const generateStandardReport = (
 export const generateTrafficFinesReport = (trafficData: any[]) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  let currentY = 20;
 
   // Add header
-  addReportHeader(doc, 'Fleet Report', {
-    from: new Date(),
-    to: new Date()
-  });
-
-  // Add summary metrics table
-  let y = 70;
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Fleet Report', pageWidth / 2, currentY, { align: 'center' });
   
-  // Draw metrics table with orange header
+  // Add report period
+  currentY += 15;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Report Period: ${format(new Date(), 'MMMM dd, yyyy')} - ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
+  
+  currentY += 10;
+  doc.text(`Generated on: ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
+  
+  // Draw metrics table
+  currentY += 20;
   const metrics = [
     ['Total Vehicles', '74'],
     ['Total Fines', '909'],
@@ -170,27 +181,34 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   ];
 
   // Draw header row with orange background
-  doc.setFillColor(255, 140, 0); // Orange color
-  doc.rect(14, y, (pageWidth - 28), 8, 'F');
-  doc.setTextColor(255, 255, 255); // White text
+  doc.setFillColor(255, 140, 0);
+  doc.rect(14, currentY, pageWidth - 28, 8, 'F');
+  doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
-  doc.text('Metric', 16, y + 6);
-  doc.text('Value', pageWidth / 2, y + 6);
+  doc.text('Metric', 16, currentY + 6);
+  doc.text('Value', pageWidth / 2, currentY + 6);
 
   // Draw data rows
-  y += 8;
-  doc.setTextColor(0); // Reset to black text
+  currentY += 8;
+  doc.setTextColor(0);
   doc.setFont('helvetica', 'normal');
   
   metrics.forEach(([label, value]) => {
-    doc.rect(14, y, (pageWidth - 28) / 2, 8);
-    doc.rect(14 + (pageWidth - 28) / 2, y, (pageWidth - 28) / 2, 8);
-    doc.text(label, 16, y + 6);
-    doc.text(value, 16 + (pageWidth - 28) / 2, y + 6);
-    y += 8;
+    // Check if we need a new page
+    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT) {
+      doc.addPage();
+      currentY = 20;
+      addReportFooter(doc);
+    }
+    
+    doc.rect(14, currentY, (pageWidth - 28) / 2, 8);
+    doc.rect(14 + (pageWidth - 28) / 2, currentY, (pageWidth - 28) / 2, 8);
+    doc.text(label, 16, currentY + 6);
+    doc.text(value, 16 + (pageWidth - 28) / 2, currentY + 6);
+    currentY += 8;
   });
   
-  y += 20; // Add space before customer sections
+  currentY += 20;
 
   // Group fines by customer
   const groupedFines = trafficData.reduce((acc, fine) => {
@@ -199,7 +217,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
       acc[customerKey] = {
         fines: [],
         totalAmount: 0,
-        vehicles: new Set(),
+        vehicles: new Set()
       };
     }
     acc[customerKey].fines.push(fine);
@@ -210,74 +228,88 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
 
   // Add customer sections
   Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
-    if (y > 250) {
+    // Check if we need a new page
+    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
       doc.addPage();
-      y = 20;
+      currentY = 20;
+      addReportFooter(doc);
     }
     
     // Draw customer header with orange background
     doc.setFillColor(255, 140, 0);
-    doc.rect(14, y, pageWidth - 28, 8, 'F');
+    doc.rect(14, currentY, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text(customerName, 16, y + 6);
-    y += 12;
+    doc.text(customerName, 16, currentY + 6);
+    currentY += 12;
 
-    // Vehicle summary
+    // Vehicle summary header
     const headerWidths = [(pageWidth - 28) / 2, (pageWidth - 28) / 2];
     
-    // Draw header row
-    let x = 14;
-    ['Vehicle Number', 'Total fines amount'].forEach((header, i) => {
-      doc.rect(x, y, headerWidths[i], 8);
-      doc.setTextColor(0);
-      doc.text(header, x + 2, y + 6);
-      x += headerWidths[i];
-    });
-    y += 8;
-
-    // Draw vehicle data
+    // Draw headers
     Array.from(data.vehicles).forEach((vehicle: string) => {
-      x = 14;
-      const fineAmount = `${data.totalAmount} QAR`;
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 20) {
+        doc.addPage();
+        currentY = 20;
+        addReportFooter(doc);
+      }
+
+      let x = 14;
+      const vehicleData = [vehicle, `${data.totalAmount} QAR`];
       
-      [vehicle, fineAmount].forEach((text, i) => {
-        doc.rect(x, y, headerWidths[i], 8);
-        doc.text(text.toString(), x + 2, y + 6);
+      vehicleData.forEach((text, i) => {
+        doc.rect(x, currentY, headerWidths[i], 8);
+        doc.setTextColor(0);
+        doc.text(text.toString(), x + 2, currentY + 6);
         x += headerWidths[i];
       });
-      y += 8;
+      currentY += 8;
     });
 
-    y += 4;
+    currentY += 4;
 
     // Violations table
-    const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
-    const violationWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
-    
-    x = 14;
-    violationHeaders.forEach((header, i) => {
-      doc.rect(x, y, violationWidths[i], 8);
-      doc.text(header, x + 2, y + 6);
-      x += violationWidths[i];
-    });
-    y += 8;
+    if (data.fines.length > 0) {
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
+        doc.addPage();
+        currentY = 20;
+        addReportFooter(doc);
+      }
 
-    // Draw violations
-    data.fines.forEach((fine: any) => {
-      x = 14;
-      const date = format(new Date(fine.violationDate), 'dd/MM/yyyy');
-      const amount = `${fine.fineAmount} QAR`;
+      // Headers for violations
+      const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
+      const violationWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
       
-      [fine.violationNumber, date, amount].forEach((text, i) => {
-        doc.rect(x, y, violationWidths[i], 8);
-        doc.text(text.toString(), x + 2, y + 6);
+      let x = 14;
+      violationHeaders.forEach((header, i) => {
+        doc.rect(x, currentY, violationWidths[i], 8);
+        doc.text(header, x + 2, currentY + 6);
         x += violationWidths[i];
       });
-      y += 8;
-    });
+      currentY += 8;
+
+      // Draw violations
+      data.fines.forEach((fine: any) => {
+        if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 10) {
+          doc.addPage();
+          currentY = 20;
+          addReportFooter(doc);
+        }
+
+        x = 14;
+        const date = format(new Date(fine.violationDate), 'dd/MM/yyyy');
+        const amount = `${fine.fineAmount} QAR`;
+        
+        [fine.violationNumber, date, amount].forEach((text, i) => {
+          doc.rect(x, currentY, violationWidths[i], 8);
+          doc.text(text.toString(), x + 2, currentY + 6);
+          x += violationWidths[i];
+        });
+        currentY += 8;
+      });
+    }
     
-    y += 12;
+    currentY += 12;
   });
 
   // Add footer to all pages
