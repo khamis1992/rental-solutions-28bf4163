@@ -1,11 +1,9 @@
-
 import { z } from 'zod';
 
 // Database agreement status values
 export const DB_AGREEMENT_STATUS = {
   ACTIVE: 'active',
   PENDING_PAYMENT: 'pending_payment',
-  PENDING_DEPOSIT: 'pending_deposit',
   COMPLETED: 'completed',
   TERMINATED: 'terminated',
   CANCELLED: 'cancelled',
@@ -16,9 +14,9 @@ export const DB_AGREEMENT_STATUS = {
 // Frontend-friendly status mapping
 export const AgreementStatus = {
   ACTIVE: 'active',
-  PENDING: 'pending_payment', // Maps to both pending_payment and pending_deposit
+  PENDING: 'pending_payment',
   CANCELLED: 'cancelled',
-  CLOSED: 'completed', // Maps to both completed and terminated
+  CLOSED: 'completed',
   EXPIRED: 'archived',
   DRAFT: 'draft'
 } as const;
@@ -36,7 +34,6 @@ export const agreementSchema = z.object({
   status: z.enum([
     'active',
     'pending_payment',
-    'pending_deposit',
     'completed',
     'terminated',
     'cancelled',
@@ -93,7 +90,6 @@ export const mapDBStatusToFrontend = (dbStatus: DatabaseAgreementStatus): Fronte
     case DB_AGREEMENT_STATUS.ACTIVE:
       return AgreementStatus.ACTIVE;
     case DB_AGREEMENT_STATUS.PENDING_PAYMENT:
-    case DB_AGREEMENT_STATUS.PENDING_DEPOSIT:
       return AgreementStatus.PENDING;
     case DB_AGREEMENT_STATUS.CANCELLED:
       return AgreementStatus.CANCELLED;

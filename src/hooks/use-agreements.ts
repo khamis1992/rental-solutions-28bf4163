@@ -11,7 +11,6 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Simplified type to avoid excessive deep instantiation
 export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
   total_amount?: number;
@@ -123,7 +122,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      // Use the helper function to map status
       const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
 
       const agreement: SimpleAgreement = {
@@ -171,7 +169,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             query = query.eq('status', DB_AGREEMENT_STATUS.ACTIVE);
             break;
           case AgreementStatus.PENDING:
-            query = query.or(`status.eq.${DB_AGREEMENT_STATUS.PENDING_PAYMENT},status.eq.${DB_AGREEMENT_STATUS.PENDING_DEPOSIT}`);
+            query = query.eq('status', DB_AGREEMENT_STATUS.PENDING_PAYMENT);
             break;
           case AgreementStatus.CANCELLED:
             query = query.eq('status', DB_AGREEMENT_STATUS.CANCELLED);
@@ -203,9 +201,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.query && searchParams.query.trim() !== '') {
         const searchQuery = searchParams.query.trim().toLowerCase();
         
-        // First try to get any agreements where the vehicle license plate matches the query
         if (searchQuery) {
-          // Use a join pattern that ensures we don't lose the related data
           const { data: vehicleIds, error: vehicleError } = await supabase
             .from('vehicles')
             .select('id')
@@ -214,12 +210,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           if (vehicleError) {
             console.error("Error searching vehicles:", vehicleError);
           } else if (vehicleIds && vehicleIds.length > 0) {
-            // If we found matching vehicles, filter leases by those vehicle IDs
             const ids = vehicleIds.map(v => v.id);
             query = query.in('vehicle_id', ids);
             console.log("Filtering by vehicle IDs:", ids);
           } else {
-            // If no vehicles match, try to match against customer names
             query = query.ilike('profiles.full_name', `%${searchQuery}%`);
           }
         }
@@ -290,7 +284,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       console.log(`Starting deletion process for agreement ${id}`);
       
       try {
-        // Step 1: Delete related overdue_payments records first (foreign key constraint)
         const { error: overduePaymentsDeleteError } = await supabase
           .from('overdue_payments')
           .delete()
@@ -300,7 +293,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
         }
         
-        // Step 2: Delete related unified_payments records
         const { error: paymentDeleteError } = await supabase
           .from('unified_payments')
           .delete()
@@ -310,7 +302,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
         }
         
-        // Step 3: Delete related import revert records
         const { data: relatedReverts } = await supabase
           .from('agreement_import_reverts')
           .select('id')
@@ -327,7 +318,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           }
         }
         
-        // Step 4: Check for any other potential related records
         const { data: trafficFines, error: trafficFinesError } = await supabase
           .from('traffic_fines')
           .select('id')
@@ -344,7 +334,6 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
           }
         }
         
-        // Finally: Delete the agreement itself
         const { error } = await supabase
           .from('leases')
           .delete()
@@ -373,8 +362,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes
-    gcTime: 900000, // 15 minutes
+    staleTime: 600000,
+    gcTime: 900000,
   });
 
   return {
