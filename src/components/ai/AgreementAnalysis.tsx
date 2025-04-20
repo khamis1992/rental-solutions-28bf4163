@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,6 +28,15 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
     });
   };
 
+  const formatQAR = (amount: number) => {
+    return new Intl.NumberFormat('en-QA', {
+      style: 'currency',
+      currency: 'QAR',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  };
+
   const renderAnalysisContent = (type: string) => {
     const relevantAnalysis = analysis?.filter(a => a.analysis_type === type);
     
@@ -56,7 +64,6 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
       );
     }
 
-    // Sort by date, most recent first
     const sortedAnalysis = [...relevantAnalysis].sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
@@ -69,10 +76,8 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
         const rawContent = latestAnalysis.content.choices[0].message.content;
         
         try {
-          // First try to parse as JSON
           const jsonContent = JSON.parse(rawContent);
           
-          // Render differently based on analysis type
           switch (type) {
             case 'status_recommendation':
               content = (
@@ -103,15 +108,29 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
             case 'payment_prediction':
               content = (
                 <div className="space-y-4">
-                  <div className="flex items-center">
+                  <div className="flex items-center justify-between">
                     <div className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getPaymentRiskColor(jsonContent.paymentRiskLevel)}`}>
                       {jsonContent.paymentRiskLevel.toUpperCase()} RISK
                     </div>
-                    <span className="ml-2 text-sm text-muted-foreground">
-                      {Math.round(jsonContent.onTimePaymentProbability * 100)}% on-time probability
+                    <span className="text-sm">
+                      Expected payment reliability: {Math.round(jsonContent.onTimePaymentProbability * 100)}%
                     </span>
                   </div>
+                  
+                  {jsonContent.nextPaymentAmount && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-sm font-medium">Next Payment Details:</div>
+                      <div className="text-lg font-semibold text-primary">
+                        {formatQAR(jsonContent.nextPaymentAmount)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Due on: {format(new Date(jsonContent.nextPaymentDate), 'MMMM d, yyyy')}
+                      </div>
+                    </div>
+                  )}
+                  
                   <p className="text-sm">{jsonContent.reasoning}</p>
+                  
                   {jsonContent.recommendedActions && (
                     <div>
                       <h4 className="font-medium text-sm mb-2">Recommended Actions:</h4>
@@ -129,13 +148,24 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
             case 'risk_assessment':
               content = (
                 <div className="space-y-4">
-                  <div className="flex items-center">
-                    <div className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getRiskLevelColor(jsonContent.riskLevel)}`}>
-                      {jsonContent.riskLevel.toUpperCase()}
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getRiskLevelColor(jsonContent.riskLevel)}`}>
+                        {jsonContent.riskLevel.toUpperCase()}
+                      </div>
+                      <span className="text-sm font-medium">
+                        Risk Score: {jsonContent.overallRiskScore}/100
+                      </span>
                     </div>
-                    <span className="ml-2 text-sm text-muted-foreground">
-                      Risk Score: {jsonContent.overallRiskScore}/100
-                    </span>
+                    
+                    {jsonContent.financialExposure && (
+                      <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="text-sm text-muted-foreground">Total Financial Exposure</div>
+                        <div className="text-lg font-semibold text-primary">
+                          {formatQAR(jsonContent.financialExposure)}
+                        </div>
+                      </div>
+                    )}
                   </div>
                   
                   <div>
@@ -197,11 +227,9 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
               break;
               
             default:
-              // Fallback for any other type or if JSON structure doesn't match expectations
               content = <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-60 bg-gray-50 p-2 rounded">{JSON.stringify(jsonContent, null, 2)}</pre>;
           }
         } catch (e) {
-          // If not valid JSON, just show as formatted text
           content = <p className="text-sm whitespace-pre-line">{rawContent}</p>;
         }
       } else {

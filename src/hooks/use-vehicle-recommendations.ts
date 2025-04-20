@@ -3,22 +3,13 @@ import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { AIRecommendation, AIRecommendationRequest } from '@/types/ai-recommendation';
 
 export interface VehiclePreferences {
   size?: string;
   type?: string;
   priceRange?: string;
   features?: string[];
-}
-
-export interface VehicleRecommendation {
-  id: string;
-  customer_id: string;
-  recommendation_type: string;
-  content: any;
-  created_at: string;
-  preferred_attributes?: VehiclePreferences;
-  status: string;
 }
 
 export const useVehicleRecommendations = (customerId?: string) => {
@@ -39,13 +30,13 @@ export const useVehicleRecommendations = (customerId?: string) => {
       throw error;
     }
 
-    return data as VehicleRecommendation[];
+    return data as AIRecommendation[];
   };
 
   const recommendationsQuery = useQuery({
     queryKey: ['vehicle-recommendations', customerId],
     queryFn: fetchRecommendations,
-    enabled: !!customerId,
+    enabled: !!customerId
   });
 
   const requestRecommendation = async (params: {
@@ -55,7 +46,7 @@ export const useVehicleRecommendations = (customerId?: string) => {
   }) => {
     try {
       setIsRequesting(true);
-      const { data, error } = await supabase.functions.invoke('ai-vehicle-recommendation', {
+      const { data, error } = await supabase.functions.invoke<AIRecommendation>('ai-vehicle-recommendation', {
         body: {
           customerId: params.customerId,
           rentalDuration: params.rentalDuration,
@@ -80,8 +71,8 @@ export const useVehicleRecommendations = (customerId?: string) => {
       toast.success('Vehicle recommendations generated successfully');
       recommendationsQuery.refetch();
     },
-    onError: (error) => {
-      toast.error(`Failed to generate vehicle recommendations: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    onError: (error: Error) => {
+      toast.error(`Failed to generate vehicle recommendations: ${error.message}`);
     }
   });
 
