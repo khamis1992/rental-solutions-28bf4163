@@ -7,3 +7,9 @@ export interface AgreementBasicInfo {
   status: string;
   vehicle_id: string;
 }
+
+// Add more specific types to prevent deep type instantiation
+export interface AgreementSummary extends AgreementBasicInfo {
+  customerName?: string;
+  vehicleLicensePlate?: string;
+}

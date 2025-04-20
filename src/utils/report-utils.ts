@@ -83,14 +83,12 @@ export const addReportHeader = (
   doc.setFont('helvetica', 'bold');
   doc.text(title, pageWidth / 2, 20, { align: 'center' });
   
-  // Add date range with updated format
+  // Add report period and generation date
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   const fromDate = dateRange.from ? formatDate(dateRange.from) : '';
   const toDate = dateRange.to ? formatDate(dateRange.to) : '';
   doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 35, { align: 'center' });
-  
-  // Add date of generation
   doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 45, { align: 'center' });
   
   return 60;
@@ -114,6 +112,7 @@ export const addReportFooter = (doc: jsPDF): void => {
   // Add page bottom elements
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
   doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
+  doc.text(formatDate(new Date()), pageWidth - 14, pageHeight - 15, { align: 'right' });
 };
 
 /**
@@ -149,17 +148,17 @@ export const generateStandardReport = (
 export const generateTrafficFinesReport = (trafficData: any[]) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
-  
+
   // Add header
   addReportHeader(doc, 'Fleet Report', {
     from: new Date(),
     to: new Date()
   });
-  
+
   // Add summary metrics table
   let y = 70;
   
-  // Draw metrics table
+  // Draw metrics table with orange header
   const metrics = [
     ['Total Vehicles', '74'],
     ['Total Fines', '909'],
@@ -169,20 +168,18 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     ['Unassigned Fines', '525'],
     ['Unassigned Amount', 'QAR 341,400.00']
   ];
-  
-  // Draw header
-  doc.setFillColor(255, 140, 0);  // Orange header
-  doc.rect(14, y, (pageWidth - 28) / 2, 8, 'F');
-  doc.rect(14 + (pageWidth - 28) / 2, y, (pageWidth - 28) / 2, 8, 'F');
-  
-  doc.setTextColor(255, 255, 255);  // White text for header
+
+  // Draw header row with orange background
+  doc.setFillColor(255, 140, 0); // Orange color
+  doc.rect(14, y, (pageWidth - 28), 8, 'F');
+  doc.setTextColor(255, 255, 255); // White text
   doc.setFont('helvetica', 'bold');
   doc.text('Metric', 16, y + 6);
-  doc.text('Value', 16 + (pageWidth - 28) / 2, y + 6);
-  
+  doc.text('Value', pageWidth / 2, y + 6);
+
   // Draw data rows
   y += 8;
-  doc.setTextColor(0);  // Reset to black text
+  doc.setTextColor(0); // Reset to black text
   doc.setFont('helvetica', 'normal');
   
   metrics.forEach(([label, value]) => {
@@ -193,8 +190,8 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     y += 8;
   });
   
-  y += 20;  // Add space before customer sections
-  
+  y += 20; // Add space before customer sections
+
   // Group fines by customer
   const groupedFines = trafficData.reduce((acc, fine) => {
     const customerKey = fine.customerName || 'Unassigned';
@@ -210,7 +207,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
     return acc;
   }, {} as Record<string, any>);
-  
+
   // Add customer sections
   Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
     if (y > 250) {
@@ -218,43 +215,42 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
       y = 20;
     }
     
-    // Customer header with orange background
+    // Draw customer header with orange background
     doc.setFillColor(255, 140, 0);
     doc.rect(14, y, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.text(customerName, 16, y + 6);
     y += 12;
-    
+
     // Vehicle summary
-    const summaryHeaders = ['Vehicle Number', 'Total fine amount'];
     const headerWidths = [(pageWidth - 28) / 2, (pageWidth - 28) / 2];
     
-    // Draw headers
+    // Draw header row
     let x = 14;
-    summaryHeaders.forEach((header, i) => {
+    ['Vehicle Number', 'Total fines amount'].forEach((header, i) => {
       doc.rect(x, y, headerWidths[i], 8);
       doc.setTextColor(0);
       doc.text(header, x + 2, y + 6);
       x += headerWidths[i];
     });
     y += 8;
-    
-    // Draw summary row
+
+    // Draw vehicle data
     Array.from(data.vehicles).forEach((vehicle: string) => {
       x = 14;
-      const amount = `${data.totalAmount} QAR`;
+      const fineAmount = `${data.totalAmount} QAR`;
       
-      [vehicle, amount].forEach((text, i) => {
+      [vehicle, fineAmount].forEach((text, i) => {
         doc.rect(x, y, headerWidths[i], 8);
-        doc.text(text, x + 2, y + 6);
+        doc.text(text.toString(), x + 2, y + 6);
         x += headerWidths[i];
       });
       y += 8;
     });
-    
+
     y += 4;
-    
+
     // Violations table
     const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
     const violationWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
@@ -266,7 +262,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
       x += violationWidths[i];
     });
     y += 8;
-    
+
     // Draw violations
     data.fines.forEach((fine: any) => {
       x = 14;
@@ -283,14 +279,14 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     
     y += 12;
   });
-  
+
   // Add footer to all pages
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     addReportFooter(doc);
   }
-  
+
   return doc;
 };
 
