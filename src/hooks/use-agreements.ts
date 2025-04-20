@@ -1,8 +1,8 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   Agreement, 
+  BaseAgreement,
   DatabaseAgreementStatus,
   DB_AGREEMENT_STATUS,
   AgreementStatus,
@@ -10,15 +10,8 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SafeSupabaseQuery, DatabaseRecord } from '@/utils/type-utils';
 
-export type SimpleAgreement = {
-  id: string;
-  customer_id: string;
-  vehicle_id: string;
-  start_date: Date;
-  end_date: Date;
-  status: DatabaseAgreementStatus;
+export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
   total_amount?: number;
   deposit_amount?: number;
@@ -129,7 +122,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      const mappedStatus = data.status as DatabaseAgreementStatus;
+      const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
 
       const agreement: SimpleAgreement = {
         id: data.id,
@@ -158,8 +151,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  // Using a more simplified return type to avoid deep instantiation
-  const fetchAgreements = async (): Promise<SimpleAgreement[] | null> => {
+  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
@@ -228,11 +220,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       }
 
       console.log("Executing Supabase query...");
-      // Cast the result to a generic type to avoid excessive type instantiation
-      const { data, error } = await query as SafeSupabaseQuery<{
-        data: DatabaseRecord[] | null;
-        error: any;
-      }>;
+      const { data, error } = await query;
 
       if (error) {
         console.error("Error fetching agreements:", error);

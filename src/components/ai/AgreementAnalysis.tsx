@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,12 +7,6 @@ import { useAIAnalysis } from '@/hooks/use-ai-analysis';
 import { Loader2, Brain, AlertCircle, BarChart3, Car, Calendar } from 'lucide-react';
 import { AIBadge } from '@/components/ui/ai-badge';
 import { format } from 'date-fns';
-import {
-  StatusRecommendation,
-  PaymentPrediction,
-  RiskAssessment,
-  AgreementHealth
-} from '@/types/ai-recommendation';
 
 interface AgreementAnalysisProps {
   agreementId: string;
@@ -32,15 +27,6 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
       agreementId,
       analysisType: analysisType as any
     });
-  };
-
-  const formatQAR = (amount: number) => {
-    return new Intl.NumberFormat('en-QA', {
-      style: 'currency',
-      currency: 'QAR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(amount);
   };
 
   const renderAnalysisContent = (type: string) => {
@@ -70,227 +56,159 @@ export const AgreementAnalysis = ({ agreementId }: AgreementAnalysisProps) => {
       );
     }
 
-    const latestAnalysis = [...relevantAnalysis].sort((a, b) => 
+    // Sort by date, most recent first
+    const sortedAnalysis = [...relevantAnalysis].sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    )[0];
-
-    let content = null;
+    );
+    
+    const latestAnalysis = sortedAnalysis[0];
+    let content;
     
     try {
       if (latestAnalysis.content?.choices?.[0]?.message?.content) {
         const rawContent = latestAnalysis.content.choices[0].message.content;
-        const jsonContent = JSON.parse(rawContent);
         
-        switch (type) {
-          case 'status_recommendation':
-            const statusData = jsonContent as StatusRecommendation;
-            content = (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-card rounded-lg border">
-                  <div className="flex items-center gap-2">
-                    <div className={`px-4 py-2 rounded-full text-white font-medium ${getStatusColor(statusData.recommendedStatus)}`}>
-                      {statusData.recommendedStatus}
+        try {
+          // First try to parse as JSON
+          const jsonContent = JSON.parse(rawContent);
+          
+          // Render differently based on analysis type
+          switch (type) {
+            case 'status_recommendation':
+              content = (
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <div className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getStatusColor(jsonContent.recommendedStatus)}`}>
+                      {jsonContent.recommendedStatus}
                     </div>
-                    <span className="text-sm font-medium">
-                      {Math.round(statusData.confidence * 100)}% confidence
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      {Math.round(jsonContent.confidence * 100)}% confidence
                     </span>
                   </div>
-                </div>
-                
-                <div className="p-4 bg-card rounded-lg border">
-                  <h4 className="font-medium mb-2">Analysis</h4>
-                  <p className="text-sm text-muted-foreground">{statusData.reasoning}</p>
-                </div>
-
-                {statusData.actionItems && statusData.actionItems.length > 0 && (
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="font-medium mb-2">Recommended Actions</h4>
-                    <ul className="space-y-2">
-                      {statusData.actionItems.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            );
-            break;
-            
-          case 'payment_prediction':
-            const paymentData = jsonContent as PaymentPrediction;
-            content = (
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="text-sm font-medium mb-2">Payment Risk Level</h4>
-                    <div className={`inline-flex px-3 py-1 rounded-full text-white text-sm font-medium ${getPaymentRiskColor(paymentData.paymentRiskLevel)}`}>
-                      {paymentData.paymentRiskLevel.toUpperCase()} RISK
+                  <p className="text-sm">{jsonContent.reasoning}</p>
+                  {jsonContent.actionItems && jsonContent.actionItems.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Recommended Actions:</h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {jsonContent.actionItems.map((item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
                     </div>
+                  )}
+                </div>
+              );
+              break;
+              
+            case 'payment_prediction':
+              content = (
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <div className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getPaymentRiskColor(jsonContent.paymentRiskLevel)}`}>
+                      {jsonContent.paymentRiskLevel.toUpperCase()} RISK
+                    </div>
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      {Math.round(jsonContent.onTimePaymentProbability * 100)}% on-time probability
+                    </span>
+                  </div>
+                  <p className="text-sm">{jsonContent.reasoning}</p>
+                  {jsonContent.recommendedActions && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Recommended Actions:</h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {jsonContent.recommendedActions.map((item: string, i: number) => (
+                          <li key={i}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              );
+              break;
+              
+            case 'risk_assessment':
+              content = (
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <div className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getRiskLevelColor(jsonContent.riskLevel)}`}>
+                      {jsonContent.riskLevel.toUpperCase()}
+                    </div>
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      Risk Score: {jsonContent.overallRiskScore}/100
+                    </span>
                   </div>
                   
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="text-sm font-medium mb-2">Payment Reliability</h4>
-                    <div className="text-2xl font-bold">
-                      {Math.round(paymentData.onTimePaymentProbability * 100)}%
-                    </div>
-                  </div>
-                </div>
-
-                {paymentData.nextPaymentAmount && (
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="font-medium mb-2">Next Payment</h4>
-                    <div className="text-2xl font-bold text-primary">
-                      {formatQAR(paymentData.nextPaymentAmount)}
-                    </div>
-                    {paymentData.nextPaymentDate && (
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Due on {format(new Date(paymentData.nextPaymentDate), 'MMMM d, yyyy')}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="p-4 bg-card rounded-lg border">
-                  <h4 className="font-medium mb-2">Analysis</h4>
-                  <p className="text-sm text-muted-foreground">{paymentData.reasoning}</p>
-                </div>
-
-                {paymentData.recommendedActions && (
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="font-medium mb-2">Recommended Actions</h4>
-                    <ul className="space-y-2">
-                      {paymentData.recommendedActions.map((item, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          <span>{item}</span>
-                        </li>
+                  <div>
+                    <h4 className="font-medium text-sm mb-2">Key Risk Factors:</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      {jsonContent.keyRiskFactors.map((factor: string, i: number) => (
+                        <li key={i}>{factor}</li>
                       ))}
                     </ul>
-                  </div>
-                )}
-              </div>
-            );
-            break;
-            
-          case 'risk_assessment':
-            const riskData = jsonContent as RiskAssessment;
-            content = (
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="text-sm font-medium mb-2">Risk Level</h4>
-                    <div className={`inline-flex px-3 py-1 rounded-full text-white text-sm font-medium ${getRiskLevelColor(riskData.riskLevel)}`}>
-                      {riskData.riskLevel.toUpperCase()}
-                    </div>
                   </div>
                   
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="text-sm font-medium mb-2">Risk Score</h4>
-                    <div className="text-2xl font-bold">{riskData.overallRiskScore}/100</div>
+                  <div>
+                    <h4 className="font-medium text-sm mb-2">Mitigation Recommendations:</h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                      {jsonContent.mitigationRecommendations.map((rec: string, i: number) => (
+                        <li key={i}>{rec}</li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
-
-                {riskData.financialExposure && (
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="font-medium mb-2">Financial Exposure</h4>
-                    <div className="text-2xl font-bold text-primary">
-                      {formatQAR(riskData.financialExposure)}
+              );
+              break;
+              
+            case 'agreement_health':
+              content = (
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <div className={`px-3 py-1 rounded-full text-white text-sm font-medium ${getHealthScoreColor(jsonContent.healthScore)}`}>
+                      Health Score: {jsonContent.healthScore}/100
                     </div>
-                  </div>
-                )}
-
-                <div className="p-4 bg-card rounded-lg border">
-                  <h4 className="font-medium mb-2">Key Risk Factors</h4>
-                  <ul className="space-y-2">
-                    {riskData.keyRiskFactors.map((factor, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                        <span>{factor}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="p-4 bg-card rounded-lg border">
-                  <h4 className="font-medium mb-2">Mitigation Recommendations</h4>
-                  <ul className="space-y-2">
-                    {riskData.mitigationRecommendations.map((rec, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                        <span>{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            );
-            break;
-            
-          case 'agreement_health':
-            const healthData = jsonContent as AgreementHealth;
-            content = (
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="text-sm font-medium mb-2">Health Score</h4>
-                    <div className={`inline-flex px-3 py-1 rounded-full text-white text-sm font-medium ${getHealthScoreColor(healthData.healthScore)}`}>
-                      {healthData.healthScore}/100
-                    </div>
+                    <span className="ml-2 text-sm font-medium">
+                      {jsonContent.compliance ? '✅ Compliant' : '❌ Non-compliant'}
+                    </span>
                   </div>
                   
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="text-sm font-medium mb-2">Compliance Status</h4>
-                    <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                      healthData.compliance ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {healthData.compliance ? '✓ Compliant' : '✗ Non-compliant'}
+                  {jsonContent.issues && jsonContent.issues.length > 0 && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Issues Found:</h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {jsonContent.issues.map((issue: string, i: number) => (
+                          <li key={i}>{issue}</li>
+                        ))}
+                      </ul>
                     </div>
-                  </div>
+                  )}
+                  
+                  {jsonContent.recommendations && (
+                    <div>
+                      <h4 className="font-medium text-sm mb-2">Recommendations:</h4>
+                      <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {jsonContent.recommendations.map((rec: string, i: number) => (
+                          <li key={i}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
-
-                {healthData.issues && healthData.issues.length > 0 && (
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="font-medium mb-2">Issues Found</h4>
-                    <ul className="space-y-2">
-                      {healthData.issues.map((issue, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          <span>{issue}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {healthData.recommendations && (
-                  <div className="p-4 bg-card rounded-lg border">
-                    <h4 className="font-medium mb-2">Recommendations</h4>
-                    <ul className="space-y-2">
-                      {healthData.recommendations.map((rec, i) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <div className="mt-1 h-2 w-2 rounded-full bg-primary flex-shrink-0" />
-                          <span>{rec}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            );
-            break;
+              );
+              break;
+              
+            default:
+              // Fallback for any other type or if JSON structure doesn't match expectations
+              content = <pre className="text-xs whitespace-pre-wrap overflow-auto max-h-60 bg-gray-50 p-2 rounded">{JSON.stringify(jsonContent, null, 2)}</pre>;
+          }
+        } catch (e) {
+          // If not valid JSON, just show as formatted text
+          content = <p className="text-sm whitespace-pre-line">{rawContent}</p>;
         }
+      } else {
+        content = <p className="text-sm text-muted-foreground">No content available</p>;
       }
     } catch (e) {
-      console.error('Error parsing analysis content:', e);
-      content = (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-          <h4 className="text-red-800 font-medium mb-2">Error</h4>
-          <p className="text-sm text-red-600">Failed to parse analysis content</p>
-        </div>
-      );
+      content = <p className="text-sm text-muted-foreground">Error displaying analysis</p>;
     }
     
     return (

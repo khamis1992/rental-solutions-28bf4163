@@ -1,11 +1,8 @@
 
-import { useState, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DatabaseRecord, SafeSupabaseQuery } from '@/utils/type-utils';
 
-// Simplified interface to avoid deep type instantiation
 export interface AIAnalysis {
   id: string;
   agreement_id: string;
@@ -17,30 +14,21 @@ export interface AIAnalysis {
 }
 
 export const useAIAnalysis = (agreementId?: string) => {
-  const fetchAnalysis = async (): Promise<AIAnalysis[] | null> => {
+  const fetchAnalysis = async () => {
     if (!agreementId) return null;
 
-    try {
-      // Use type assertion to work around TypeScript table definition limitations
-      const { data, error } = await (supabase
-        .from('ai_analysis' as any) // Use type assertion to bypass TypeScript check
-        .select('*')
-        .eq('agreement_id', agreementId)
-        .order('created_at', { ascending: false })) as SafeSupabaseQuery<{
-          data: AIAnalysis[] | null;
-          error: any;
-        }>;
+    const { data, error } = await supabase
+      .from('ai_analysis')
+      .select('*')
+      .eq('agreement_id', agreementId)
+      .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching AI analysis:', error);
-        throw error;
-      }
-
-      return data as AIAnalysis[];
-    } catch (err) {
-      console.error('Error in fetchAnalysis:', err);
-      throw err;
+    if (error) {
+      console.error('Error fetching AI analysis:', error);
+      throw error;
     }
+
+    return data as AIAnalysis[];
   };
 
   const requestNewAnalysis = async (params: {
@@ -78,7 +66,7 @@ export const useAIAnalysis = (agreementId?: string) => {
       toast.success('AI analysis completed successfully');
       analysisQuery.refetch();
     },
-    onError: (error: any) => {
+    onError: (error) => {
       toast.error(`Failed to complete AI analysis: ${error.message}`);
     }
   });
