@@ -1,58 +1,37 @@
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Agreement, AgreementStatus } from '@/lib/validation-schemas/agreement';
+import { 
+  Agreement, 
+  BaseAgreement,
+  DatabaseAgreementStatus,
+  FrontendAgreementStatus,
+  mapDBStatusToFrontend 
+} from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { doesLicensePlateMatch, isLicensePlatePattern } from '@/utils/searchUtils';
-import { FlattenType } from '@/utils/type-utils';
 
 // Simplified type to avoid excessive deep instantiation
-export type SimpleAgreement = {
-  id: string;
-  customer_id: string;
-  vehicle_id: string;
-  start_date?: string | null;
-  end_date?: string | null;
-  agreement_type?: string;
+export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
-  status?: string;
   total_amount?: number;
-  monthly_payment?: number;
-  agreement_duration?: any;
-  customer_name?: string;
-  license_plate?: string;
-  vehicle_make?: string;
-  vehicle_model?: string;
-  vehicle_year?: number;
-  created_at?: string;
-  updated_at?: string;
-  signature_url?: string;
   deposit_amount?: number;
   notes?: string;
-  customers?: any;
-  vehicles?: any;
-};
-
-// Function to convert database status to AgreementStatus enum value
-export const mapDBStatusToEnum = (dbStatus: string): typeof AgreementStatus[keyof typeof AgreementStatus] => {
-  switch(dbStatus) {
-    case 'active':
-      return AgreementStatus.ACTIVE;
-    case 'pending_payment':
-    case 'pending_deposit':
-      return AgreementStatus.PENDING;
-    case 'cancelled':
-      return AgreementStatus.CANCELLED;
-    case 'completed':
-    case 'terminated':
-      return AgreementStatus.CLOSED;
-    case 'archived':
-      return AgreementStatus.EXPIRED;
-    case 'draft':
-      return AgreementStatus.DRAFT;
-    default:
-      return AgreementStatus.DRAFT;
-  }
+  customers?: {
+    id: string;
+    full_name?: string;
+    email?: string;
+    phone_number?: string;
+  };
+  vehicles?: {
+    id: string;
+    make?: string;
+    model?: string;
+    license_plate?: string;
+    image_url?: string;
+    year?: number;
+    color?: string;
+    vin?: string;
+  };
 };
 
 interface SearchParams {
@@ -141,14 +120,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       }
 
       // Use the helper function to map status
-      const mappedStatus = mapDBStatusToEnum(data.status);
+      const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
 
       const agreement: SimpleAgreement = {
         id: data.id,
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
-        start_date: data.start_date,
-        end_date: data.end_date,
+        start_date: new Date(data.start_date),
+        end_date: new Date(data.end_date),
         status: mappedStatus,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -184,22 +163,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
-          case AgreementStatus.ACTIVE:
+          case FrontendAgreementStatus.ACTIVE:
             query = query.eq('status', 'active');
             break;
-          case AgreementStatus.PENDING:
+          case FrontendAgreementStatus.PENDING:
             query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
             break;
-          case AgreementStatus.CANCELLED:
+          case FrontendAgreementStatus.CANCELLED:
             query = query.eq('status', 'cancelled');
             break;
-          case AgreementStatus.CLOSED:
+          case FrontendAgreementStatus.CLOSED:
             query = query.or('status.eq.completed,status.eq.terminated');
             break;
-          case AgreementStatus.EXPIRED:
+          case FrontendAgreementStatus.EXPIRED:
             query = query.eq('status', 'archived');
             break;
-          case AgreementStatus.DRAFT:
+          case FrontendAgreementStatus.DRAFT:
             query = query.filter('status', 'eq', 'draft');
             break;
           default:
@@ -257,28 +236,20 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: SimpleAgreement[] = data.map(item => {
-        // Use the helper function to map status
-        const mappedStatus = mapDBStatusToEnum(item.status);
-
-        return {
-          id: item.id,
-          customer_id: item.customer_id,
-          vehicle_id: item.vehicle_id,
-          start_date: item.start_date,
-          end_date: item.end_date,
-          status: mappedStatus,
-          created_at: item.created_at,
-          updated_at: item.updated_at,
-          total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0,
-          agreement_number: item.agreement_number || '',
-          notes: item.notes || '',
-          customers: item.profiles,
-          vehicles: item.vehicles,
-          signature_url: (item as any).signature_url
-        };
-      });
+      const agreements: SimpleAgreement[] = data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: new Date(item.start_date),
+        end_date: new Date(item.end_date),
+        status: mapDBStatusToFrontend(item.status as DatabaseAgreementStatus),
+        agreement_number: item.agreement_number || '',
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.deposit_amount || 0,
+        notes: item.notes || '',
+        customers: item.profiles,
+        vehicles: item.vehicles
+      }));
 
       return agreements;
     } catch (err) {
