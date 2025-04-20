@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
-interface ValidationResult {
+export interface ValidationResult {
   id: string;
   license_plate: string;
   validation_date: string;
@@ -14,7 +14,7 @@ interface ValidationResult {
   error_message?: string;
 }
 
-interface ValidationAttempt {
+export interface ValidationAttempt {
   id: string;
   license_plate: string;
   attempt_count: number;
@@ -55,14 +55,12 @@ export const useTrafficFinesValidation = () => {
       try {
         const { data: validation, error } = await supabase
           .from('traffic_fine_validations')
-          .insert([
-            {
-              license_plate,
-              validation_source: 'manual',
-              result: { status: 'completed' },
-              status: 'completed'
-            }
-          ])
+          .insert([{
+            license_plate,
+            validation_source: 'manual',
+            result: { status: 'completed' },
+            status: 'completed'
+          }])
           .select()
           .single();
 

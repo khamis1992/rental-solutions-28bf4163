@@ -172,11 +172,11 @@ export const generateStandardReport = (
 };
 
 /**
- * Generate a Vehicle Traffic Fines Report
- * @param finesData Array of fines data
- * @returns PDF document
+ * Generate a Traffic Fines Report
+ * @param trafficData Array of traffic fine data
+ * @returns jsPDF document
  */
-export const generateTrafficFinesReport = (finesData: any[]) => {
+export const generateTrafficFinesReport = (trafficData: any) => {
   const doc = new jsPDF();
   
   // Add report title
@@ -189,25 +189,25 @@ export const generateTrafficFinesReport = (finesData: any[]) => {
   doc.setFont('helvetica', 'normal');
   doc.text(`Generated on: ${formatDate(new Date())}`, 14, 30);
   
-  // Add summary section title
+  // Add summary section
   doc.setFontSize(12);
   doc.text('Summary', 14, 45);
   
   // Calculate summary data
-  const totalVehicles = new Set(finesData.map(fine => fine.licensePlate)).size;
-  const totalFines = finesData.length;
-  const totalAmount = finesData.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
-  const pendingAmount = finesData
-    .filter(fine => fine.paymentStatus === 'pending')
-    .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
-  const completedAmount = finesData
-    .filter(fine => fine.paymentStatus === 'paid')
-    .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
-  const unassignedFines = finesData.filter(fine => !fine.customerId).length;
-  const unassignedAmount = finesData
-    .filter(fine => !fine.customerId)
-    .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
-  
+  const totalVehicles = new Set(trafficData.map((fine: any) => fine.licensePlate)).size;
+  const totalFines = trafficData.length;
+  const totalAmount = trafficData.reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
+  const pendingAmount = trafficData
+    .filter((fine: any) => fine.paymentStatus === 'pending')
+    .reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
+  const completedAmount = trafficData
+    .filter((fine: any) => fine.paymentStatus === 'completed')
+    .reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
+  const unassignedFines = trafficData.filter((fine: any) => !fine.customerId).length;
+  const unassignedAmount = trafficData
+    .filter((fine: any) => !fine.customerId)
+    .reduce((sum: number, fine: any) => sum + (fine.fineAmount || 0), 0);
+
   // Draw summary table
   const summaryData = [
     ['Total Vehicles', totalVehicles.toString()],
@@ -218,17 +218,17 @@ export const generateTrafficFinesReport = (finesData: any[]) => {
     ['Unassigned Fines', unassignedFines.toString()],
     ['Unassigned Amount', `QAR ${unassignedAmount.toFixed(2)}`]
   ];
-  
+
   let y = 55;
   doc.setFillColor(255, 140, 0); // Orange header background
   doc.rect(14, y, 80, 7, 'F');
   doc.rect(94, y, 80, 7, 'F');
-  
-  // Add header
+
+  // Add table headers
   doc.setTextColor(255, 255, 255); // White text for header
   doc.text('Metric', 16, y + 5);
   doc.text('Value', 96, y + 5);
-  
+
   // Add data rows
   doc.setTextColor(0); // Reset to black text
   y += 7;
@@ -239,10 +239,10 @@ export const generateTrafficFinesReport = (finesData: any[]) => {
     doc.text(row[1], 96, y + 5);
     y += 7;
   });
-  
-  // Add details table
+
+  // Add fines table
   y += 15;
-  
+
   // Table headers
   const headers = ['Vehicle', 'License Plate', 'Customer', 'Agreement #', 'Fine Count', 'Total Fine'];
   const columnWidths = [40, 25, 40, 30, 20, 30];
@@ -255,12 +255,14 @@ export const generateTrafficFinesReport = (finesData: any[]) => {
     doc.text(header, x + 2, y + 5);
     x += columnWidths[i];
   });
-  
+
   // Table data
   y += 7;
   doc.setTextColor(0);
-  
-  finesData.forEach(fine => {
+
+  const sortedFines = [...trafficData].sort((a, b) => (b.fineAmount || 0) - (a.fineAmount || 0));
+
+  sortedFines.forEach((fine: any) => {
     if (y > 270) {
       doc.addPage();
       y = 20;
@@ -295,6 +297,6 @@ export const generateTrafficFinesReport = (finesData: any[]) => {
     });
     y += 7;
   });
-  
+
   return doc;
 };
