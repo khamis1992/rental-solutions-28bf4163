@@ -252,13 +252,11 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
         fines: [],
         totalAmount: 0,
         vehicles: new Set(),
-        agreements: new Set()
       };
     }
     acc[customerKey].fines.push(fine);
     acc[customerKey].totalAmount += fine.fineAmount || 0;
     if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
-    if (fine.agreementNumber) acc[customerKey].agreements.add(fine.agreementNumber);
     return acc;
   }, {} as Record<string, any>);
   
@@ -277,10 +275,9 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     doc.text(customerName, 16, y + 6);
     y += 12;
     
-    // Vehicle and Agreement summary
-    doc.setTextColor(0);
-    const summaryHeaders = ['Vehicle Number', 'Agreement number', 'Total fine amount'];
-    const headerWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
+    // Vehicle summary
+    const summaryHeaders = ['Vehicle Number', 'Total fine amount'];
+    const headerWidths = [(pageWidth - 28) / 2, (pageWidth - 28) / 2];
     
     // Draw headers
     let x = 14;
@@ -294,10 +291,9 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     // Draw summary row
     Array.from(data.vehicles).forEach((vehicle: string) => {
       x = 14;
-      const agreement = Array.from(data.agreements)[0] || '';
       const amount = `${data.totalAmount} QAR`;
       
-      [vehicle, agreement, amount].forEach((text, i) => {
+      [vehicle, amount].forEach((text, i) => {
         doc.rect(x, y, headerWidths[i], 8);
         doc.text(text, x + 2, y + 6);
         x += headerWidths[i];
