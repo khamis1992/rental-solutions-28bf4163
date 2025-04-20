@@ -3,13 +3,3 @@ project_id = "vqdlsidkucrownbfuouq"
 
 [functions.ai-analysis]
 verify_jwt = true
-
-[functions.ai-risk-assessment]
-verify_jwt = true
-
-[functions.ai-vehicle-recommendation]
-verify_jwt = true
-
-[functions.ai-payment-prediction]
-verify_jwt = true
-
