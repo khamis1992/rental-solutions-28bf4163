@@ -54,3 +54,13 @@ export interface AIRecommendationRequest {
   content?: Record<string, any>;
 }
 
+// Database schema for Supabase tables
+export interface AIRecommendationSchema {
+  id: string;
+  customer_id: string;
+  recommendation_type: string;
+  content: AIRecommendationContent;
+  created_at: string;
+  preferred_attributes?: Record<string, any>;
+  status: string;
+}

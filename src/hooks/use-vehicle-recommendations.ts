@@ -4,6 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AIRecommendation, AIRecommendationRequest } from '@/types/ai-recommendation';
+import { Simplify, FlattenType } from '@/utils/type-utils';
 
 export interface VehiclePreferences {
   size?: string;
@@ -12,25 +13,34 @@ export interface VehiclePreferences {
   features?: string[];
 }
 
+// Define a simplified type to avoid deep type instantiation
+type SimpleAIRecommendation = FlattenType<AIRecommendation>;
+
 export const useVehicleRecommendations = (customerId?: string) => {
   const [isRequesting, setIsRequesting] = useState(false);
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (): Promise<SimpleAIRecommendation[]> => {
     if (!customerId) return [];
 
-    const { data, error } = await supabase
-      .from('ai_recommendations')
-      .select('*')
-      .eq('customer_id', customerId)
-      .eq('recommendation_type', 'vehicle')
-      .order('created_at', { ascending: false });
+    try {
+      // Using any type here to avoid the table name TypeScript error
+      const { data, error } = await supabase
+        .from('ai_recommendations' as any)
+        .select('*')
+        .eq('customer_id', customerId)
+        .eq('recommendation_type', 'vehicle')
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching vehicle recommendations:', error);
-      throw error;
+      if (error) {
+        console.error('Error fetching vehicle recommendations:', error);
+        throw error;
+      }
+
+      return data as SimpleAIRecommendation[];
+    } catch (err) {
+      console.error('Error in fetchRecommendations:', err);
+      throw err;
     }
-
-    return data as AIRecommendation[];
   };
 
   const recommendationsQuery = useQuery({
@@ -46,7 +56,7 @@ export const useVehicleRecommendations = (customerId?: string) => {
   }) => {
     try {
       setIsRequesting(true);
-      const { data, error } = await supabase.functions.invoke<AIRecommendation>('ai-vehicle-recommendation', {
+      const { data, error } = await supabase.functions.invoke<SimpleAIRecommendation>('ai-vehicle-recommendation', {
         body: {
           customerId: params.customerId,
           rentalDuration: params.rentalDuration,

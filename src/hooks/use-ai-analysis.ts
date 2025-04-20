@@ -2,6 +2,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FlattenType } from '@/utils/type-utils';
 
 export interface AIAnalysis {
   id: string;
@@ -13,22 +14,30 @@ export interface AIAnalysis {
   status: string;
 }
 
+// Flatten the type to avoid deep instantiation issues
+type SimpleAIAnalysis = FlattenType<AIAnalysis>;
+
 export const useAIAnalysis = (agreementId?: string) => {
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = async (): Promise<SimpleAIAnalysis[] | null> => {
     if (!agreementId) return null;
 
-    const { data, error } = await supabase
-      .from('ai_analysis')
-      .select('*')
-      .eq('agreement_id', agreementId)
-      .order('created_at', { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from('ai_analysis' as any)
+        .select('*')
+        .eq('agreement_id', agreementId)
+        .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching AI analysis:', error);
-      throw error;
+      if (error) {
+        console.error('Error fetching AI analysis:', error);
+        throw error;
+      }
+
+      return data as SimpleAIAnalysis[];
+    } catch (err) {
+      console.error('Error in fetchAnalysis:', err);
+      throw err;
     }
-
-    return data as AIAnalysis[];
   };
 
   const requestNewAnalysis = async (params: {
@@ -66,7 +75,7 @@ export const useAIAnalysis = (agreementId?: string) => {
       toast.success('AI analysis completed successfully');
       analysisQuery.refetch();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error(`Failed to complete AI analysis: ${error.message}`);
     }
   });

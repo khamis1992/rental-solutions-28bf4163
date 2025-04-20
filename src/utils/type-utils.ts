@@ -59,3 +59,8 @@ export type PaginatedResponse<T> = {
 export type FlattenType<T> = {
   [P in keyof T]: T[P];
 };
+
+/**
+ * Simple type for functions that return promises
+ */
+export type AsyncFunction<T, R = void> = (params: T) => Promise<R>;

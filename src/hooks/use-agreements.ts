@@ -10,8 +10,9 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FlattenType } from '@/utils/type-utils';
 
-export type SimpleAgreement = BaseAgreement & {
+export type SimpleAgreement = FlattenType<BaseAgreement & {
   agreement_number?: string;
   total_amount?: number;
   deposit_amount?: number;
@@ -35,7 +36,7 @@ export type SimpleAgreement = BaseAgreement & {
     vin?: string;
   };
   signature_url?: string;
-};
+}>;
 
 interface SearchParams {
   query?: string;
