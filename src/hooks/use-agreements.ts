@@ -4,7 +4,8 @@ import {
   Agreement, 
   BaseAgreement,
   DatabaseAgreementStatus,
-  FrontendAgreementStatus,
+  DB_AGREEMENT_STATUS,
+  AgreementStatus,
   mapDBStatusToFrontend 
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +17,8 @@ export type SimpleAgreement = BaseAgreement & {
   total_amount?: number;
   deposit_amount?: number;
   notes?: string;
+  created_at?: Date;
+  updated_at?: Date;
   customers?: {
     id: string;
     full_name?: string;
@@ -32,6 +35,7 @@ export type SimpleAgreement = BaseAgreement & {
     color?: string;
     vin?: string;
   };
+  signature_url?: string;
 };
 
 interface SearchParams {
@@ -129,8 +133,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         start_date: new Date(data.start_date),
         end_date: new Date(data.end_date),
         status: mappedStatus,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
+        created_at: data.created_at ? new Date(data.created_at) : undefined,
+        updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
         total_amount: data.total_amount || 0,
         deposit_amount: data.deposit_amount || 0, 
         agreement_number: data.agreement_number || '',
@@ -163,22 +167,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
-          case FrontendAgreementStatus.ACTIVE:
+          case AgreementStatus.ACTIVE:
             query = query.eq('status', 'active');
             break;
-          case FrontendAgreementStatus.PENDING:
+          case AgreementStatus.PENDING:
             query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
             break;
-          case FrontendAgreementStatus.CANCELLED:
+          case AgreementStatus.CANCELLED:
             query = query.eq('status', 'cancelled');
             break;
-          case FrontendAgreementStatus.CLOSED:
+          case AgreementStatus.CLOSED:
             query = query.or('status.eq.completed,status.eq.terminated');
             break;
-          case FrontendAgreementStatus.EXPIRED:
+          case AgreementStatus.EXPIRED:
             query = query.eq('status', 'archived');
             break;
-          case FrontendAgreementStatus.DRAFT:
+          case AgreementStatus.DRAFT:
             query = query.filter('status', 'eq', 'draft');
             break;
           default:
@@ -248,7 +252,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         deposit_amount: item.deposit_amount || 0,
         notes: item.notes || '',
         customers: item.profiles,
-        vehicles: item.vehicles
+        vehicles: item.vehicles,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+        updated_at: item.updated_at ? new Date(item.updated_at) : undefined
       }));
 
       return agreements;

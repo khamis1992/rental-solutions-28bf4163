@@ -128,3 +128,85 @@ export const mapFrontendToDB = (frontendStatus: FrontendAgreementStatus): Databa
       return DB_AGREEMENT_STATUS.DRAFT;
   }
 };
+
+// Add the missing forceGeneratePaymentForAgreement function
+export const forceGeneratePaymentForAgreement = async (
+  supabase: any, 
+  agreementId: string, 
+  specificDate?: Date
+): Promise<{ success: boolean; message?: string }> => {
+  try {
+    console.log(`Forcing payment generation for agreement ${agreementId}`);
+    
+    // First, get the agreement details
+    const { data: agreement, error: agreementError } = await supabase
+      .from('leases')
+      .select('rent_amount, agreement_number, start_date, status, daily_late_fee')
+      .eq('id', agreementId)
+      .single();
+      
+    if (agreementError) {
+      console.error("Error fetching agreement for payment generation:", agreementError);
+      return { 
+        success: false, 
+        message: `Failed to fetch agreement details: ${agreementError.message}`
+      };
+    }
+    
+    if (!agreement) {
+      return { 
+        success: false, 
+        message: "Agreement not found"
+      };
+    }
+    
+    // Check if rent amount is set
+    if (!agreement.rent_amount || agreement.rent_amount <= 0) {
+      return { 
+        success: false, 
+        message: "Agreement has no valid rent amount set"
+      };
+    }
+    
+    // Calculate payment due date, typically the first of the month
+    // If specificDate is provided, use that instead
+    const now = new Date();
+    const paymentDate = specificDate || new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Create a payment record
+    const { data: payment, error: paymentError } = await supabase
+      .from('unified_payments')
+      .insert([{
+        lease_id: agreementId,
+        amount: agreement.rent_amount,
+        due_date: paymentDate,
+        status: 'pending',
+        type: 'rent',
+        description: `Monthly rent payment for ${agreement.agreement_number}`,
+        original_due_date: paymentDate
+      }])
+      .select()
+      .single();
+      
+    if (paymentError) {
+      console.error("Error creating payment record:", paymentError);
+      return { 
+        success: false, 
+        message: `Failed to create payment: ${paymentError.message}`
+      };
+    }
+    
+    console.log(`Successfully created payment record for agreement ${agreementId}:`, payment);
+    
+    return {
+      success: true,
+      message: "Payment schedule generated successfully"
+    };
+  } catch (error) {
+    console.error("Unexpected error in forceGeneratePaymentForAgreement:", error);
+    return { 
+      success: false, 
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+};

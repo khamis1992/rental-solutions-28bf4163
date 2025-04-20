@@ -12,7 +12,7 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement): Ag
     vehicle_id: simpleAgreement.vehicle_id,
     start_date: simpleAgreement.start_date ? new Date(simpleAgreement.start_date) : new Date(),
     end_date: simpleAgreement.end_date ? new Date(simpleAgreement.end_date) : new Date(),
-    status: simpleAgreement.status as typeof AgreementStatus[keyof typeof AgreementStatus],
+    status: simpleAgreement.status,
     created_at: simpleAgreement.created_at ? new Date(simpleAgreement.created_at) : undefined,
     updated_at: simpleAgreement.updated_at ? new Date(simpleAgreement.updated_at) : undefined,
     total_amount: simpleAgreement.total_amount || 0,
