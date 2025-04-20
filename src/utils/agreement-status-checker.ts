@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DatabaseAgreementStatus, DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
@@ -22,7 +23,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
     const { data: activeAgreements, error: fetchError } = await supabase
       .from('leases')
       .select('id, vehicle_id, customer_id, status, created_at')
-      .in('status', ['active', 'pending_payment', 'pending_deposit'])
+      .in('status', [DB_AGREEMENT_STATUS.ACTIVE, DB_AGREEMENT_STATUS.PENDING_PAYMENT, DB_AGREEMENT_STATUS.PENDING_DEPOSIT])
       .order('created_at', { ascending: false });
 
     if (fetchError) {
@@ -47,7 +48,7 @@ export const checkAndUpdateConflictingAgreements = async (): Promise<{
       if (!acc[agreement.vehicle_id]) {
         acc[agreement.vehicle_id] = [];
       }
-      acc[agreement.vehicle_id].push(agreement);
+      acc[agreement.vehicle_id].push(agreement as VehicleAgreement);
       return acc;
     }, {} as Record<string, VehicleAgreement[]>);
 

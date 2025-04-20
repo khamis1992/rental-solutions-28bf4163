@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -168,22 +169,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       if (searchParams.status && searchParams.status !== 'all') {
         switch(searchParams.status) {
           case AgreementStatus.ACTIVE:
-            query = query.eq('status', 'active');
+            query = query.eq('status', DB_AGREEMENT_STATUS.ACTIVE);
             break;
           case AgreementStatus.PENDING:
-            query = query.or('status.eq.pending_payment,status.eq.pending_deposit');
+            query = query.or(`status.eq.${DB_AGREEMENT_STATUS.PENDING_PAYMENT},status.eq.${DB_AGREEMENT_STATUS.PENDING_DEPOSIT}`);
             break;
           case AgreementStatus.CANCELLED:
-            query = query.eq('status', 'cancelled');
+            query = query.eq('status', DB_AGREEMENT_STATUS.CANCELLED);
             break;
           case AgreementStatus.CLOSED:
-            query = query.or('status.eq.completed,status.eq.terminated');
+            query = query.or(`status.eq.${DB_AGREEMENT_STATUS.COMPLETED},status.eq.${DB_AGREEMENT_STATUS.TERMINATED}`);
             break;
           case AgreementStatus.EXPIRED:
-            query = query.eq('status', 'archived');
+            query = query.eq('status', DB_AGREEMENT_STATUS.ARCHIVED);
             break;
           case AgreementStatus.DRAFT:
-            query = query.filter('status', 'eq', 'draft');
+            query = query.filter('status', 'eq', DB_AGREEMENT_STATUS.DRAFT);
             break;
           default:
             if (typeof searchParams.status === 'string') {
@@ -246,7 +247,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         vehicle_id: item.vehicle_id,
         start_date: new Date(item.start_date),
         end_date: new Date(item.end_date),
-        status: mapDBStatusToFrontend(item.status as DatabaseAgreementStatus),
+        status: item.status as DatabaseAgreementStatus,
         agreement_number: item.agreement_number || '',
         total_amount: item.total_amount || 0,
         deposit_amount: item.deposit_amount || 0,
@@ -369,8 +370,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   const { data: agreements, isLoading, error } = useQuery({
     queryKey: ['agreements', searchParams],
     queryFn: fetchAgreements,
-    staleTime: 600000, // 10 minutes (increased from 5 minutes)
-    gcTime: 900000, // 15 minutes (increased from 10 minutes)
+    staleTime: 600000, // 10 minutes
+    gcTime: 900000, // 15 minutes
   });
 
   return {
@@ -381,7 +382,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     setSearchParams,
     getAgreement,
     createAgreement,
-    updateAgreement,
+    updateAgreement: updateAgreementMutation,
     deleteAgreement,
   };
 };
