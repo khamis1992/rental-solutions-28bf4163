@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -269,10 +268,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the excessive type instantiation by using a simpler type for the mutation
+  type UpdateAgreementParams = { 
+    id: string; 
+    data: Record<string, any> 
+  };
+
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Record<string, any> }) => {
-      console.log("Update mutation called with:", { id, data });
+    mutationFn: async (params: UpdateAgreementParams) => {
+      console.log("Update mutation called with:", params);
       return {};
     },
     onSuccess: () => {

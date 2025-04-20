@@ -1,6 +1,6 @@
 
 import PageContainer from '@/components/layout/PageContainer';
-import { CustomerDetail } from '@/components/customers/CustomerDetail';
+import CustomerDetail from '@/components/customers/CustomerDetail';
 
 const CustomerDetailPage = () => {
   return (
