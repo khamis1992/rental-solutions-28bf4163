@@ -10,7 +10,7 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DBEntity } from '@/utils/type-utils';
+import { SafeSupabaseQuery, DatabaseRecord } from '@/utils/type-utils';
 
 export type SimpleAgreement = {
   id: string;
@@ -228,7 +228,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       }
 
       console.log("Executing Supabase query...");
-      const { data, error } = await query;
+      // Cast the result to a generic type to avoid excessive type instantiation
+      const { data, error } = await query as SafeSupabaseQuery<{
+        data: DatabaseRecord[] | null;
+        error: any;
+      }>;
 
       if (error) {
         console.error("Error fetching agreements:", error);
