@@ -1,3 +1,4 @@
+
 import { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, differenceInMonths } from 'date-fns';
@@ -16,6 +17,7 @@ import { PaymentHistory } from './PaymentHistory';
 import { AgreementTrafficFines } from './AgreementTrafficFines';
 import { Agreement } from '@/lib/validation-schemas/agreement';
 import { usePayments } from '@/hooks/use-payments';
+import { AgreementAnalysis } from '@/components/ai/AgreementAnalysis';
 
 interface AgreementDetailProps {
   agreement: Agreement | null;
@@ -330,6 +332,9 @@ export function AgreementDetail({
           </div>
         </CardContent>
       </Card>
+
+      {/* Add AI Analysis component */}
+      <AgreementAnalysis agreementId={agreement.id} />
 
       <div className="flex flex-wrap items-center gap-4 mb-4 print:hidden">
         <Button variant="outline" onClick={handleEdit}>
