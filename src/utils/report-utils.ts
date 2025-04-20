@@ -178,113 +178,161 @@ export const generateStandardReport = (
  */
 export const generateTrafficFinesReport = (trafficData: any[]) => {
   const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add report title
-  doc.setFontSize(18);
+  // Title
+  doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('Traffic Fines Report by Customer', 14, 20);
+  doc.text('Vehicle traffic fines report', 14, 20);
   
-  // Add generation date
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Generated on: ${formatDate(new Date())}`, 14, 30);
+  // Generation date
+  doc.setFontSize(14);
+  doc.text(`Generated on ${format(new Date(), 'dd/M/yyyy')}`, 14, 35);
   
-  // Add summary section
-  doc.setFontSize(12);
-  doc.text('Summary', 14, 45);
+  // Summary Section
+  doc.setFontSize(14);
+  doc.text('Summary', 14, 55);
   
   // Calculate summary data
-  const totalCustomers = trafficData.length;
-  const totalFines = trafficData.reduce((sum, customer) => sum + customer.fineCount, 0);
-  const totalAmount = trafficData.reduce((sum, customer) => sum + customer.totalAmount, 0);
-  const pendingCustomers = trafficData.filter(customer => customer.paymentStatus === 'Pending').length;
+  const totalVehicles = new Set(trafficData.map(fine => fine.licensePlate)).size;
+  const totalFines = trafficData.length;
+  const totalAmount = trafficData.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
+  const pendingAmount = trafficData.reduce((sum, fine) => 
+    fine.paymentStatus === 'pending' ? sum + (fine.fineAmount || 0) : sum, 0);
+  const completedAmount = totalAmount - pendingAmount;
+  const unassignedFines = trafficData.filter(fine => !fine.customerName).length;
+  const unassignedAmount = trafficData
+    .filter(fine => !fine.customerName)
+    .reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
 
   // Draw summary table
   const summaryData = [
-    ['Total Customers', totalCustomers.toString()],
+    ['Total Vehicles', totalVehicles.toString()],
     ['Total Fines', totalFines.toString()],
-    ['Total Amount', `QAR ${totalAmount.toFixed(2)}`],
-    ['Customers with Pending Fines', pendingCustomers.toString()]
+    ['Total Amount', `QAR ${totalAmount.toLocaleString()}`],
+    ['Pending Amount', `QAR ${pendingAmount.toLocaleString()}`],
+    ['Completed Amount', `QAR ${completedAmount.toLocaleString()}`],
+    ['Unassigned Fines', unassignedFines.toString()],
+    ['Unassigned Amount', `QAR ${unassignedAmount.toLocaleString()}`]
   ];
 
-  let y = 55;
-  doc.setFillColor(255, 140, 0); // Orange header background
-  doc.rect(14, y, 80, 7, 'F');
-  doc.rect(94, y, 80, 7, 'F');
-
-  // Add table headers
-  doc.setTextColor(255, 255, 255); // White text for header
-  doc.text('Metric', 16, y + 5);
-  doc.text('Value', 96, y + 5);
-
-  // Add data rows
-  doc.setTextColor(0); // Reset to black text
-  y += 7;
-  summaryData.forEach(row => {
-    doc.rect(14, y, 80, 7);
-    doc.rect(94, y, 80, 7);
-    doc.text(row[0], 16, y + 5);
-    doc.text(row[1], 96, y + 5);
-    y += 7;
-  });
-
-  // Add customer details table
-  y += 15;
-
-  // Table headers
-  const headers = ['Customer Name', 'License Plates', 'Fine Count', 'Total Amount', 'Status'];
-  const columnWidths = [60, 50, 25, 35, 25];
+  // Draw summary table
+  let y = 65;
+  const colWidth = 80;
   
+  // Header row with orange background
   doc.setFillColor(255, 140, 0);
-  let x = 14;
-  headers.forEach((header, i) => {
-    doc.rect(x, y, columnWidths[i], 7, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.text(header, x + 2, y + 5);
-    x += columnWidths[i];
-  });
-
-  // Table data
-  y += 7;
+  doc.rect(14, y, colWidth, 8, 'F');
+  doc.rect(14 + colWidth, y, colWidth, 8, 'F');
+  
+  // Header text in white
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(12);
+  doc.text('Metric', 16, y + 6);
+  doc.text('Value', 16 + colWidth, y + 6);
+  
+  // Reset text color to black for data rows
   doc.setTextColor(0);
-
-  trafficData.forEach((customer: any) => {
-    if (y > 270) {
+  y += 8;
+  
+  // Draw data rows
+  summaryData.forEach(([label, value]) => {
+    doc.rect(14, y, colWidth, 8);
+    doc.rect(14 + colWidth, y, colWidth, 8);
+    doc.text(label, 16, y + 6);
+    doc.text(value, 16 + colWidth, y + 6);
+    y += 8;
+  });
+  
+  // Group fines by customer
+  const groupedFines = trafficData.reduce((acc, fine) => {
+    const customerKey = fine.customerName || 'Unassigned';
+    if (!acc[customerKey]) {
+      acc[customerKey] = {
+        fines: [],
+        totalAmount: 0,
+        vehicles: new Set(),
+        agreements: new Set()
+      };
+    }
+    acc[customerKey].fines.push(fine);
+    acc[customerKey].totalAmount += fine.fineAmount || 0;
+    if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
+    if (fine.agreementNumber) acc[customerKey].agreements.add(fine.agreementNumber);
+    return acc;
+  }, {} as Record<string, any>);
+  
+  // Add customer sections
+  y += 20;
+  Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
+    if (y > 250) {
       doc.addPage();
       y = 20;
-      
-      // Add headers to new page
-      x = 14;
-      doc.setFillColor(255, 140, 0);
-      headers.forEach((header, i) => {
-        doc.rect(x, y, columnWidths[i], 7, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.text(header, x + 2, y + 5);
-        x += columnWidths[i];
-      });
-      doc.setTextColor(0);
-      y += 7;
     }
     
-    x = 14;
-    const rowData = [
-      customer.customerName,
-      customer.licensePlates,
-      customer.fineCount.toString(),
-      `QAR ${customer.totalAmount.toFixed(2)}`,
-      customer.paymentStatus
-    ];
+    // Customer header with orange background
+    doc.setFillColor(255, 140, 0);
+    doc.rect(14, y, pageWidth - 28, 8, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.text(customerName, 16, y + 6);
+    y += 12;
     
-    rowData.forEach((text, i) => {
-      doc.rect(x, y, columnWidths[i], 7);
-      doc.text(text, x + 2, y + 5);
-      x += columnWidths[i];
+    // Vehicle and Agreement summary
+    doc.setTextColor(0);
+    const summaryHeaders = ['Vehicle Number', 'Agreement number', 'Total fine amount'];
+    const headerWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
+    
+    // Draw headers
+    let x = 14;
+    summaryHeaders.forEach((header, i) => {
+      doc.rect(x, y, headerWidths[i], 8);
+      doc.text(header, x + 2, y + 6);
+      x += headerWidths[i];
     });
-    y += 7;
+    y += 8;
+    
+    // Draw summary row
+    Array.from(data.vehicles).forEach((vehicle: string) => {
+      x = 14;
+      const agreement = Array.from(data.agreements)[0] || '';
+      const amount = `${data.totalAmount} QAR`;
+      
+      [vehicle, agreement, amount].forEach((text, i) => {
+        doc.rect(x, y, headerWidths[i], 8);
+        doc.text(text, x + 2, y + 6);
+        x += headerWidths[i];
+      });
+      y += 8;
+    });
+    
+    y += 4;
+    
+    // Violations table
+    const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
+    x = 14;
+    violationHeaders.forEach((header, i) => {
+      doc.rect(x, y, headerWidths[i], 8);
+      doc.text(header, x + 2, y + 6);
+      x += headerWidths[i];
+    });
+    y += 8;
+    
+    // Draw violations
+    data.fines.forEach((fine: any) => {
+      x = 14;
+      const date = format(new Date(fine.violationDate), 'dd/M/yyyy');
+      const amount = `${fine.fineAmount} QAR`;
+      
+      [fine.violationNumber, date, amount].forEach((text, i) => {
+        doc.rect(x, y, headerWidths[i], 8);
+        doc.text(text.toString(), x + 2, y + 6);
+        x += headerWidths[i];
+      });
+      y += 8;
+    });
+    
+    y += 12;
   });
-
-  // Add footer
-  addReportFooter(doc);
-
+  
   return doc;
 };
