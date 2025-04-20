@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AIRecommendation, AIRecommendationRequest } from '@/types/ai-recommendation';
-import { Simplify, FlattenType } from '@/utils/type-utils';
+import { Simplify, FlattenType, SafeQueryResult } from '@/utils/type-utils';
 
 export interface VehiclePreferences {
   size?: string;
@@ -19,13 +19,12 @@ type SimpleAIRecommendation = FlattenType<AIRecommendation>;
 export const useVehicleRecommendations = (customerId?: string) => {
   const [isRequesting, setIsRequesting] = useState(false);
 
-  const fetchRecommendations = async (): Promise<SimpleAIRecommendation[]> => {
+  const fetchRecommendations = async (): Promise<SafeQueryResult<SimpleAIRecommendation[]>> => {
     if (!customerId) return [];
 
     try {
-      // Using any type here to avoid the table name TypeScript error
       const { data, error } = await supabase
-        .from('ai_recommendations' as any)
+        .from('ai_recommendations')
         .select('*')
         .eq('customer_id', customerId)
         .eq('recommendation_type', 'vehicle')

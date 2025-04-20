@@ -64,3 +64,15 @@ export type FlattenType<T> = {
  * Simple type for functions that return promises
  */
 export type AsyncFunction<T, R = void> = (params: T) => Promise<R>;
+
+/**
+ * Helper type for Supabase query responses to handle error cases
+ * This helps with type conversion from Supabase responses
+ */
+export type DatabaseResponse<T> = T[] | any[];
+
+/**
+ * Type for safely handling Supabase query results that might return errors
+ * @template T The expected successful return type
+ */
+export type SafeQueryResult<T> = T | null;

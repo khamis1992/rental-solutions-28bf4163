@@ -54,7 +54,7 @@ export interface AIRecommendationRequest {
   content?: Record<string, any>;
 }
 
-// Database schema for Supabase tables
+// Database schema type for Supabase tables
 export interface AIRecommendationSchema {
   id: string;
   customer_id: string;

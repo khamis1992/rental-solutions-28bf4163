@@ -10,7 +10,7 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType } from '@/utils/type-utils';
+import { FlattenType, SafeQueryResult } from '@/utils/type-utils';
 
 export type SimpleAgreement = FlattenType<BaseAgreement & {
   agreement_number?: string;
@@ -152,7 +152,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     }
   };
 
-  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
+  const fetchAgreements = async (): Promise<SafeQueryResult<SimpleAgreement[]>> => {
     console.log("Fetching agreements with params:", searchParams);
 
     try {
