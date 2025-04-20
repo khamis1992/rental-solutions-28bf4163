@@ -1,5 +1,5 @@
 
 project_id = "vqdlsidkucrownbfuouq"
 
-[functions.validate-traffic-fine]
+[functions.ai-analysis]
 verify_jwt = true
