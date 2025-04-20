@@ -2,8 +2,9 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType, SafeQueryResult } from '@/utils/type-utils';
+import { SafeQueryResult } from '@/utils/type-utils';
 
+// Simplified interface to avoid deep type instantiation
 export interface AIAnalysis {
   id: string;
   agreement_id: string;
@@ -14,16 +15,25 @@ export interface AIAnalysis {
   status: string;
 }
 
-// Flatten the type to avoid deep instantiation issues
-type SimpleAIAnalysis = FlattenType<AIAnalysis>;
+// Use a simple type alias to avoid nested type issues
+type SimpleAIAnalysis = {
+  id: string;
+  agreement_id: string;
+  analysis_type: string;
+  content: any;
+  created_at: string;
+  confidence_score: number;
+  status: string;
+};
 
 export const useAIAnalysis = (agreementId?: string) => {
   const fetchAnalysis = async (): Promise<SafeQueryResult<SimpleAIAnalysis[]>> => {
     if (!agreementId) return null;
 
     try {
+      // Use 'analysis' table instead of 'ai_analysis'
       const { data, error } = await supabase
-        .from('ai_analysis')
+        .from('analysis')
         .select('*')
         .eq('agreement_id', agreementId)
         .order('created_at', { ascending: false });

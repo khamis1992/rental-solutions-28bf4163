@@ -69,10 +69,22 @@ export type AsyncFunction<T, R = void> = (params: T) => Promise<R>;
  * Helper type for Supabase query responses to handle error cases
  * This helps with type conversion from Supabase responses
  */
-export type DatabaseResponse<T> = T[] | any[];
+export type DatabaseResponse<T> = T[] | null;
 
 /**
  * Type for safely handling Supabase query results that might return errors
  * @template T The expected successful return type
  */
 export type SafeQueryResult<T> = T | null;
+
+/**
+ * Type for Supabase table names that are known to exist in our schema
+ * This helps ensure we're using valid table names
+ */
+export type KnownTableName = 
+  | 'leases'
+  | 'profiles'
+  | 'vehicles'
+  | 'unified_payments'
+  | 'recommendations'
+  | 'analysis';

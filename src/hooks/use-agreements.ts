@@ -12,7 +12,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { FlattenType, SafeQueryResult } from '@/utils/type-utils';
 
-export type SimpleAgreement = FlattenType<BaseAgreement & {
+export type SimpleAgreement = {
+  id: string;
+  customer_id: string;
+  vehicle_id: string;
+  start_date: Date;
+  end_date: Date;
+  status: string;
   agreement_number?: string;
   total_amount?: number;
   deposit_amount?: number;
@@ -36,7 +42,7 @@ export type SimpleAgreement = FlattenType<BaseAgreement & {
     vin?: string;
   };
   signature_url?: string;
-}>;
+};
 
 interface SearchParams {
   query?: string;

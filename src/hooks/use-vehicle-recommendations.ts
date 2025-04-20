@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AIRecommendation, AIRecommendationRequest } from '@/types/ai-recommendation';
-import { Simplify, FlattenType, SafeQueryResult } from '@/utils/type-utils';
+import { FlattenType, SafeQueryResult } from '@/utils/type-utils';
 
 export interface VehiclePreferences {
   size?: string;
@@ -14,7 +14,15 @@ export interface VehiclePreferences {
 }
 
 // Define a simplified type to avoid deep type instantiation
-type SimpleAIRecommendation = FlattenType<AIRecommendation>;
+type SimpleAIRecommendation = {
+  id: string;
+  customer_id: string;
+  recommendation_type: string;
+  content: any;
+  created_at: string;
+  preferred_attributes?: Record<string, any>;
+  status: string;
+};
 
 export const useVehicleRecommendations = (customerId?: string) => {
   const [isRequesting, setIsRequesting] = useState(false);
@@ -23,8 +31,10 @@ export const useVehicleRecommendations = (customerId?: string) => {
     if (!customerId) return [];
 
     try {
+      // Use 'recommendations' table instead of 'ai_recommendations'
+      // This appears to be a table naming mismatch with the Supabase schema
       const { data, error } = await supabase
-        .from('ai_recommendations')
+        .from('recommendations')
         .select('*')
         .eq('customer_id', customerId)
         .eq('recommendation_type', 'vehicle')
