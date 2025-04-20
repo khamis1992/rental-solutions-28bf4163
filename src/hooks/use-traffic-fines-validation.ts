@@ -11,6 +11,8 @@ export interface ValidationResult {
   validation_source: string;
   result: any;
   status: string;
+  has_fine: boolean;
+  details?: string;
   error_message?: string;
 }
 
@@ -59,7 +61,9 @@ export const useTrafficFinesValidation = () => {
             license_plate,
             validation_source: 'manual',
             result: { status: 'completed' },
-            status: 'completed'
+            status: 'completed',
+            has_fine: Math.random() > 0.5, // Simulating random result for demo purposes
+            details: 'Validation completed'
           }])
           .select()
           .single();
@@ -80,10 +84,21 @@ export const useTrafficFinesValidation = () => {
     }
   });
 
+  const validateTrafficFine = async (licensePlate: string) => {
+    try {
+      setIsValidating(true);
+      const result = await validateFine.mutateAsync({ license_plate: licensePlate });
+      return result;
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
   return {
     validationHistory,
     validationAttempts,
     validateFine,
+    validateTrafficFine,
     isValidating,
     isLoading
   };

@@ -7,9 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon, FileDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
-import { addReportHeader, addReportFooter, downloadCSV, downloadExcel, generateStandardReport } from '@/utils/report-utils';
+import { 
+  addReportHeader, 
+  addReportFooter, 
+  downloadCSV, 
+  downloadExcel, 
+  generateStandardReport, 
+  generateTrafficFinesReport 
+} from '@/utils/report-utils';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -29,7 +36,6 @@ const ReportDownloadOptions = ({
   });
   const [fileFormat, setFileFormat] = useState('pdf');
   const [isGenerating, setIsGenerating] = useState(false);
-  const { toast } = useToast();
 
   const handleDownload = async () => {
     try {
@@ -43,60 +49,66 @@ const ReportDownloadOptions = ({
       
       // Generate report based on file format
       if (fileFormat === 'pdf') {
-        // Use the standardized report generator instead of creating a PDF directly
-        const doc = generateStandardReport(
-          title,
-          dateRange,
-          (doc, startY) => {
-            // Add content based on report type
-            let yPos = startY;
-            
-            // Add summary section heading
-            doc.setFontSize(14);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Report Summary:', 14, yPos);
-            yPos += 10;
-            
-            // Add content specific to each report type
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'normal');
-            
-            switch (reportType) {
-              case 'fleet':
-                doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
-                doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
-                doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
-                break;
-              case 'financial':
-                doc.text('• Revenue Summary', 20, yPos); yPos += 10;
-                doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                doc.text('• Profit Margin', 20, yPos); yPos += 10;
-                doc.text('• Financial Projections', 20, yPos); yPos += 10;
-                break;
-              case 'customers':
-                doc.text('• Customer Demographics', 20, yPos); yPos += 10;
-                doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
-                doc.text('• Top Customers', 20, yPos); yPos += 10;
-                break;
-              case 'maintenance':
-                doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
-                doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
-                doc.text('• Maintenance History', 20, yPos); yPos += 10;
-                break;
-              default:
-                doc.text('No data available for this report type.', 20, yPos);
+        // Special case for traffic fines report
+        if (reportType === 'traffic-fines') {
+          const doc = generateTrafficFinesReport(reportData);
+          doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        } else {
+          // Use the standardized report generator for other reports
+          const doc = generateStandardReport(
+            title,
+            dateRange,
+            (doc, startY) => {
+              // Add content based on report type
+              let yPos = startY;
+              
+              // Add summary section heading
+              doc.setFontSize(14);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Report Summary:', 14, yPos);
+              yPos += 10;
+              
+              // Add content specific to each report type
+              doc.setFontSize(12);
+              doc.setFont('helvetica', 'normal');
+              
+              switch (reportType) {
+                case 'fleet':
+                  doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
+                  doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
+                  doc.text('• Active Rentals', 20, yPos); yPos += 10;
+                  doc.text('• Vehicles in Maintenance', 20, yPos); yPos += 10;
+                  doc.text('• Fleet Performance Analysis', 20, yPos); yPos += 10;
+                  break;
+                case 'financial':
+                  doc.text('• Revenue Summary', 20, yPos); yPos += 10;
+                  doc.text('• Expense Analysis', 20, yPos); yPos += 10;
+                  doc.text('• Profit Margin', 20, yPos); yPos += 10;
+                  doc.text('• Financial Projections', 20, yPos); yPos += 10;
+                  break;
+                case 'customers':
+                  doc.text('• Customer Demographics', 20, yPos); yPos += 10;
+                  doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
+                  doc.text('• Rental Frequency Analysis', 20, yPos); yPos += 10;
+                  doc.text('• Top Customers', 20, yPos); yPos += 10;
+                  break;
+                case 'maintenance':
+                  doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
+                  doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
+                  doc.text('• Upcoming Maintenance', 20, yPos); yPos += 10;
+                  doc.text('• Maintenance History', 20, yPos); yPos += 10;
+                  break;
+                default:
+                  doc.text('No data available for this report type.', 20, yPos);
+              }
+              
+              return yPos; // Return the final y position
             }
-            
-            return yPos; // Return the final y position
-          }
-        );
-        
-        // Save the PDF
-        doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+          );
+          
+          // Save the PDF
+          doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+        }
       } else if (fileFormat === 'excel') {
         downloadExcel(reportData, `${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
       } else if (fileFormat === 'csv') {
@@ -104,27 +116,23 @@ const ReportDownloadOptions = ({
       }
       
       // Show success toast notification
-      toast({
-        title: "Report downloaded successfully!",
-        description: `Your ${reportType} report has been downloaded.`,
-        variant: "default"
+      toast.success("Report downloaded successfully!", {
+        description: `Your ${reportType} report has been downloaded.`
       });
     } catch (error) {
       console.error('Error generating report:', error);
-      toast({
-        title: "Download failed",
-        description: "There was a problem generating your report. Please try again.",
-        variant: "destructive"
+      toast.error("Download failed", {
+        description: "There was a problem generating your report. Please try again."
       });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  return <div className="space-y-4">
+  return (
+    <div className="space-y-4">
       <div className="flex flex-col">
         <div className="flex items-center justify-between mb-2">
-          
           
         </div>
         
@@ -172,8 +180,8 @@ const ReportDownloadOptions = ({
       
       <div className="mt-6 pt-4 border-t flex flex-col items-center">
         
-        
       </div>
-    </div>;
+    </div>
+  );
 };
 export default ReportDownloadOptions;

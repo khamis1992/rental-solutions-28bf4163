@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -79,8 +80,10 @@ export const addReportHeader = (
 ): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
   
-  // Add company logo
-  doc.addImage('/lovable-uploads/737e8bf3-01cb-4104-9d28-4e2775eb9efd.png', 'PNG', 14, 10, 40, 15);
+  // Add company name instead of logo to avoid image loading issues
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ALARAF CAR RENTAL', 14, 20);
   
   // Add a separator line
   doc.setDrawColor(200, 200, 200);
@@ -120,9 +123,7 @@ export const addReportFooter = (doc: jsPDF): void => {
   doc.setFont('helvetica', 'normal');
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 25, { align: 'center' });
   
-  // Add footer logo - removed as per image example
-  // Only show the Arabic text image at the right side
-  doc.addImage('/lovable-uploads/d6cc5f20-2b4e-4882-a50c-2377f75ff46d.png', 'PNG', pageWidth - 80, pageHeight - 30, 70, 15);
+  // No image to avoid loading issues
   
   // Add page bottom elements with correct spacing/positioning
   doc.setFontSize(8);
@@ -176,7 +177,7 @@ export const generateStandardReport = (
  * @param trafficData Array of traffic fine data
  * @returns jsPDF document
  */
-export const generateTrafficFinesReport = (trafficData: any) => {
+export const generateTrafficFinesReport = (trafficData: any[]) => {
   const doc = new jsPDF();
   
   // Add report title
@@ -297,6 +298,9 @@ export const generateTrafficFinesReport = (trafficData: any) => {
     });
     y += 7;
   });
+
+  // Add footer
+  addReportFooter(doc);
 
   return doc;
 };

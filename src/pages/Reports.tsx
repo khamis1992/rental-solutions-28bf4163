@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -19,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
+import { generateTrafficFinesReport } from '@/utils/report-utils';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -101,13 +103,13 @@ const Reports = () => {
         return [];
       case 'traffic-fines':
         return trafficFines?.map(fine => ({
-          vehicleModel: fine.vehicleModel,
-          licensePlate: fine.licensePlate,
-          customerName: fine.customerName,
-          agreementNumber: fine.agreementNumber,
+          vehicleModel: fine.vehicleId ? `${fine.make} ${fine.model}` : 'N/A',
+          licensePlate: fine.licensePlate || 'N/A',
+          customerName: fine.customerName || 'N/A',
+          agreementNumber: fine.leaseId || 'N/A',
           fineCount: 1,
-          fineAmount: fine.fineAmount,
-          paymentStatus: fine.paymentStatus
+          fineAmount: fine.fineAmount || 0,
+          paymentStatus: fine.paymentStatus || 'pending'
         })) || [];
       default:
         return [];
