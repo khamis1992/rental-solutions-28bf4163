@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -10,7 +11,6 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { FlattenType } from '@/utils/type-utils';
 
 export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
@@ -37,8 +37,6 @@ export type SimpleAgreement = BaseAgreement & {
   };
   signature_url?: string;
 };
-
-export type FlattenedAgreement = FlattenType<SimpleAgreement>;
 
 interface SearchParams {
   query?: string;
@@ -237,29 +235,22 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      const agreements: SimpleAgreement[] = [];
-      
-      for (const item of data) {
-        const rawStatus = item.status as string;
-        const mappedStatus = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
-        
-        agreements.push({
-          id: item.id,
-          customer_id: item.customer_id,
-          vehicle_id: item.vehicle_id,
-          start_date: new Date(item.start_date),
-          end_date: new Date(item.end_date),
-          status: mappedStatus,
-          agreement_number: item.agreement_number || '',
-          total_amount: item.total_amount || 0,
-          deposit_amount: item.deposit_amount || 0,
-          notes: item.notes || '',
-          customers: item.profiles,
-          vehicles: item.vehicles,
-          created_at: item.created_at ? new Date(item.created_at) : undefined,
-          updated_at: item.updated_at ? new Date(item.updated_at) : undefined
-        });
-      }
+      const agreements: SimpleAgreement[] = data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: new Date(item.start_date),
+        end_date: new Date(item.end_date),
+        status: item.status as DatabaseAgreementStatus,
+        agreement_number: item.agreement_number || '',
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.deposit_amount || 0,
+        notes: item.notes || '',
+        customers: item.profiles,
+        vehicles: item.vehicles,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+        updated_at: item.updated_at ? new Date(item.updated_at) : undefined
+      }));
 
       return agreements;
     } catch (err) {
@@ -277,10 +268,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Record<string, any> 
   };
 
-  const updateAgreementMutation = useMutation<SimpleAgreement, Error, UpdateAgreementParams>({
-    mutationFn: async ({ id, data }: UpdateAgreementParams) => {
-      console.log("Update mutation called with:", { id, data });
-      return {} as SimpleAgreement;
+  const updateAgreementMutation = useMutation({
+    mutationFn: async (params: UpdateAgreementParams) => {
+      console.log("Update mutation called with:", params);
+      return {};
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
