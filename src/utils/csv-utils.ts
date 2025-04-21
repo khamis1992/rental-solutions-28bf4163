@@ -1,16 +1,22 @@
-
 import { prepareArabicText, containsArabic } from './arabic-text-utils';
 
 /**
- * Utility functions for CSV file operations
+ * Utility functions for CSV file operations with proper Arabic text encoding
  */
 
 /**
- * Encode text for CSV, handling Arabic text properly
+ * Encode text for CSV, handling Arabic text properly with UTF-8 encoding
  */
 export function encodeCSVText(text: string): string {
   if (!text) return '';
-  const preparedText = containsArabic(text) ? prepareArabicText(text) : text;
+  
+  // Convert to UTF-8
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder('utf-8');
+  const bytes = encoder.encode(text);
+  const decodedText = decoder.decode(bytes);
+  
+  const preparedText = containsArabic(decodedText) ? prepareArabicText(decodedText) : decodedText;
   return preparedText;
 }
 
@@ -32,16 +38,16 @@ export function formatCSVValue(value: any): string {
 }
 
 /**
- * Generate and download a CSV template file
+ * Generate and download a CSV template file with proper encoding
  */
 export function downloadCSVTemplate(fields: string[], filename: string): void {
   const headers = fields.map(field => formatCSVValue(field)).join(',');
-  const csvContent = `\uFEFF${headers}\n`; // Add BOM for Excel compatibility
+  const csvContent = '\ufeff' + headers + '\n'; // Add BOM for UTF-8
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = filename;
+  link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -117,19 +123,21 @@ export function generateCSV(data: Record<string, any>[]): string {
     )
   ];
 
-  return `\uFEFF${csvRows.join('\n')}`; // Add BOM for Excel compatibility
+  return '\ufeff' + csvRows.join('\n'); // Add BOM for Excel compatibility
 }
 
+/**
+ * Download CSV with proper Arabic text encoding
+ */
 export function downloadCSV(data: Record<string, any>[], filename: string): void {
   const csv = generateCSV(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
-

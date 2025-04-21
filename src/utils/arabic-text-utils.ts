@@ -1,17 +1,23 @@
 
 import { jsPDF } from 'jspdf';
 
-// Bidirectional text handling
+// Bidirectional text handling with proper encoding
 function getBidiText(text: string): string {
   return '\u202B' + text + '\u202C';
 }
 
-// Prepare Arabic text for PDF rendering
+// Prepare Arabic text for PDF rendering with proper encoding
 export const prepareArabicText = (text: string): string => {
   if (!text) return '';
   
   try {
-    const normalizedText = text
+    // First convert text to UTF-8
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder('utf-8');
+    const bytes = encoder.encode(text);
+    const decodedText = decoder.decode(bytes);
+
+    const normalizedText = decodedText
       .normalize('NFKD')
       // Remove tashkeel (diacritics)
       .replace(/[\u0653-\u065F]/g, '')
@@ -32,7 +38,7 @@ export const prepareArabicText = (text: string): string => {
   }
 };
 
-// Configure PDF document for Arabic support
+// Configure PDF document for Arabic support with enhanced encoding
 export async function configureArabicPDF(doc: jsPDF): Promise<void> {
   try {
     // Set font for Arabic support
@@ -41,7 +47,7 @@ export async function configureArabicPDF(doc: jsPDF): Promise<void> {
     doc.setLanguage('ar');
     doc.setFontSize(12);
 
-    // Override text rendering method to handle Arabic text
+    // Override text rendering method to handle Arabic text with proper encoding
     const originalText = doc.text.bind(doc);
     doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
       if (!text) return doc;
@@ -63,7 +69,7 @@ export async function configureArabicPDF(doc: jsPDF): Promise<void> {
         return doc;
       }
 
-      // Handle single string
+      // Handle single string with proper encoding
       try {
         const processed = formatMixedText(prepareArabicText(text.toString()));
         return originalText(processed, x, y, defaultOptions);
@@ -88,14 +94,19 @@ export const containsArabic = (text: string): boolean => {
   return arabicPattern.test(text);
 };
 
-// Format mixed text (Arabic/English)
+// Format mixed text (Arabic/English) with proper encoding
 export function formatMixedText(text: string): string {
   if (!text) return '';
 
-  // Handle the entire text as one unit for better RTL support
-  if (containsArabic(text)) {
-    return '\u202B' + prepareArabicText(text) + '\u202C';
-  }
-  return text;
-}
+  // Convert text to UTF-8
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder('utf-8');
+  const bytes = encoder.encode(text);
+  const decodedText = decoder.decode(bytes);
 
+  // Handle the entire text as one unit for better RTL support
+  if (containsArabic(decodedText)) {
+    return '\u202B' + prepareArabicText(decodedText) + '\u202C';
+  }
+  return decodedText;
+}

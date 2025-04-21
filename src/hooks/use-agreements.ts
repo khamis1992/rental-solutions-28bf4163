@@ -268,7 +268,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
   type UpdateAgreementData = Record<string, any>;
   type UpdateAgreementParams = { 
     id: string; 
-    data: UpdateAgreementData
+    data: UpdateAgreementData;
   };
 
   const updateAgreementMutation = useMutation({
