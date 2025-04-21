@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -253,7 +254,7 @@ const ReportDownloadOptions = ({
         )}
 
         {isTrafficFinesPdf ? (
-          <TrafficFinesPdfDownloadLink fines={getReportData()} />
+          <TrafficFinesPdfDownloadLink fines={getReportData ? getReportData() : []} />
         ) : (
           <Button onClick={handleDownload} disabled={isGenerating}>
             <FileDown className="mr-2 h-4 w-4" />

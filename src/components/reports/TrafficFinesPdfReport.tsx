@@ -14,6 +14,8 @@ import {
 Font.register({
   family: 'Cairo',
   src: 'https://fonts.gstatic.com/s/cairo/v20/SLXVc1nY6HkvangtZmpcWmhzfH5lWWgcQyyS4J0.ttf',
+  fontWeight: 'normal',
+  format: 'truetype'
 });
 
 const styles = StyleSheet.create({
@@ -160,18 +162,18 @@ export const TrafficFinesPdfDocument = ({ fines }: TrafficFinesPdfReportProps) =
 /**
  * Utility: Renders a download button for PDF using React PDF
  */
-export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfReportProps['fines'] }> = ({ fines }) => (
-  <PDFDownloadLink 
-    document={<TrafficFinesPdfDocument fines={fines} />}
-    fileName={`traffic_fines_report_${new Date().toISOString().slice(0,10)}.pdf`}
-    style={{
-      textDecoration: 'none',
-      display: 'inline-block'
-    }}
-  >
-    {/* Fix: Use ReactNode as children instead of function */}
-    Download PDF
-  </PDFDownloadLink>
-);
+export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfReportProps['fines'] }> = ({ fines }) => {
+  return (
+    <div className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 cursor-pointer">
+      <PDFDownloadLink 
+        document={<TrafficFinesPdfDocument fines={fines} />}
+        fileName={`traffic_fines_report_${new Date().toISOString().slice(0,10)}.pdf`}
+        className="no-underline text-white"
+      >
+        {({ loading }) => loading ? "Generating..." : "Download PDF"}
+      </PDFDownloadLink>
+    </div>
+  );
+};
 
 export default TrafficFinesPdfDownloadLink;
