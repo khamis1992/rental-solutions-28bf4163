@@ -281,6 +281,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Record<string, any> 
   };
 
+  // Fix the type instantiation error in this mutation
   const updateAgreementMutation = useMutation({
     mutationFn: async (params: UpdateAgreementParams) => {
       console.log("Update mutation called with:", params);
