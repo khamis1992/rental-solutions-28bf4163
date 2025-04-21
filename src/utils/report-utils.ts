@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/date-utils';
 import { prepareArabicText, containsArabic, configureArabicPDF, formatMixedText } from '@/utils/arabic-text-utils';
 
 // Define interfaces for the traffic fines data
-interface TrafficFineData {
+export interface TrafficFineData {
   customerName?: string;
   licensePlate?: string;
   agreementNumber?: string;
@@ -17,7 +17,7 @@ interface TrafficFineData {
   leaseId?: string;
 }
 
-interface CustomerFineGroup {
+export interface CustomerFineGroup {
   fines: TrafficFineData[];
   totalAmount: number;
   vehicles: Set<string>;
@@ -228,7 +228,7 @@ export const generateTrafficFinesReport = async (trafficData: TrafficFineData[] 
   const unassignedAmount = unassignedFines.reduce((sum, fine) => sum + (fine.fineAmount || 0), 0);
 
   // Add try-catch blocks for database operations
-  let metrics = [];
+  let metrics: [string, string][] = [];
   try {
     metrics = [
       ['Total Fines', totalFines.toString()],

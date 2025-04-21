@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -264,16 +263,14 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
-  // Fix the Type instantiation error by using a simplified type
-  type UpdateAgreementData = Record<string, any>;
-  type UpdateAgreementParams = { 
-    id: string; 
-    data: UpdateAgreementData;
-  };
+  interface UpdateAgreementParams {
+    id: string;
+    data: Record<string, any>;
+  }
 
   const updateAgreementMutation = useMutation({
-    mutationFn: async (params: UpdateAgreementParams) => {
-      console.log("Update mutation called with:", params);
+    mutationFn: async ({ id, data }: UpdateAgreementParams) => {
+      console.log("Update mutation called with:", { id, data });
       return {};
     },
     onSuccess: () => {
