@@ -75,18 +75,33 @@ async function setupArabicFont(doc: jsPDF) {
   // Override text rendering method
   const originalText = doc.text.bind(doc);
   doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
+    if (!text) return doc;
+    
+    const defaultOptions = { align: 'right', ...options };
+    
     // Handle array of strings
     if (Array.isArray(text)) {
       text.forEach((line, i) => {
-        const processed = formatMixedText(prepareArabicText(line));
-        originalText(processed, x, y + (i * (doc.getLineHeight() || 5)), { ...options, align: 'right' });
+        if (!line) return;
+        try {
+          const processed = formatMixedText(prepareArabicText(line.toString()));
+          originalText(processed, x, y + (i * (doc.getLineHeight() || 5)), defaultOptions);
+        } catch (error) {
+          console.error('Error processing text line:', error);
+          originalText(line.toString(), x, y + (i * (doc.getLineHeight() || 5)), defaultOptions);
+        }
       });
       return doc;
     }
 
     // Handle single string
-    const processed = formatMixedText(prepareArabicText(text));
-    return originalText(processed, x, y, { ...options, align: 'right' });
+    try {
+      const processed = formatMixedText(prepareArabicText(text.toString()));
+      return originalText(processed, x, y, defaultOptions);
+    } catch (error) {
+      console.error('Error processing text:', error);
+      return originalText(text.toString(), x, y, defaultOptions);
+    }
   };
 }
 const CONTENT_MARGIN = 14; // Left/right margin in mm

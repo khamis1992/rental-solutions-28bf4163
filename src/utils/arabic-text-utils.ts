@@ -9,15 +9,26 @@ function getBidiText(text: string): string {
 export const prepareArabicText = (text: string): string => {
   if (!text) return '';
   
-  return text
-    .normalize('NFKD')
-    // Remove tashkeel (diacritics)
-    .replace(/[\u0653-\u065F]/g, '')
-    // Normalize Arabic presentation forms
-    .replace(/[\uFB50-\uFDFF\uFE70-\uFEFF]/g, c => {
-      const n = c.charCodeAt(0);
-      return String.fromCharCode(n - 0xFB50 + 0x0600);
-    });
+  try {
+    const normalizedText = text
+      .normalize('NFKD')
+      // Remove tashkeel (diacritics)
+      .replace(/[\u0653-\u065F]/g, '')
+      // Normalize Arabic presentation forms
+      .replace(/[\uFB50-\uFDFF\uFE70-\uFEFF]/g, c => {
+        const n = c.charCodeAt(0);
+        return String.fromCharCode(n - 0xFB50 + 0x0600);
+      })
+      // Add RTL marks for mixed text
+      .split(' ')
+      .map(word => containsArabic(word) ? `\u202B${word}\u202C` : word)
+      .join(' ');
+      
+    return normalizedText;
+  } catch (error) {
+    console.error('Error preparing Arabic text:', error);
+    return text;
+  }
 };
 
 // Configure PDF document for Arabic support
