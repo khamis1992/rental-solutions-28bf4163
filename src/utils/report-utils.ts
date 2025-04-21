@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
+import { registerAmiriFont } from './jspdf-arabic-font';
 
 /**
  * Generates a CSV string from an array of objects
@@ -124,23 +125,39 @@ export const addReportFooter = (doc: jsPDF): void => {
  * @param title Report title
  * @param dateRange Date range for the report 
  * @param contentGenerator Function that adds content to the document
+ * @param localeOptions (optional) Language/font configuration: { rtl: boolean, font: string }
  * @returns PDF document
  */
 export const generateStandardReport = (
   title: string,
   dateRange: { from: Date | undefined; to: Date | undefined },
-  contentGenerator: (doc: jsPDF, startY: number) => number
+  contentGenerator: (doc: jsPDF, startY: number, options?: { rtl?: boolean; font?: string }) => number,
+  localeOptions?: { rtl?: boolean; font?: string }
 ): jsPDF => {
+  // Register Amiri font for Arabic/RTL if required
+  if (localeOptions?.font === 'Amiri') {
+    registerAmiriFont();
+  }
+
   const doc = new jsPDF();
+
+  // Set font and RTL if specified
+  if (localeOptions?.font === 'Amiri') {
+    doc.setFont('Amiri');
+  }
+  if (localeOptions?.rtl) {
+    (doc as any).setR2L && (doc as any).setR2L(true); // Provide RTL support if plugin exists, or handle logic yourself below.
+  }
+
   const startY = addReportHeader(doc, title, dateRange);
-  contentGenerator(doc, startY);
-  
+  contentGenerator(doc, startY, localeOptions);
+
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     addReportFooter(doc);
   }
-  
+
   return doc;
 };
 
