@@ -162,6 +162,86 @@ export const generateStandardReport = (
 };
 
 /**
+ * Add bilingual text to a PDF document (English and Arabic)
+ * @param doc jsPDF document instance
+ * @param englishText Text in English
+ * @param arabicText Text in Arabic (will be rendered right-to-left)
+ * @param x X-coordinate
+ * @param y Y-coordinate
+ * @param options Formatting options
+ * @returns Updated Y position after adding text
+ */
+export const addBilingualText = (
+  doc: jsPDF,
+  englishText: string,
+  arabicText: string,
+  x: number,
+  y: number,
+  options?: { 
+    englishFont?: string; 
+    arabicFont?: string; 
+    fontSize?: number;
+    spacing?: number;
+    maxWidth?: number;
+    align?: 'left' | 'center' | 'right';
+  }
+): number => {
+  // Apply default options
+  const opts = {
+    englishFont: 'helvetica',
+    arabicFont: 'Amiri',
+    fontSize: 12,
+    spacing: 7,
+    maxWidth: 0,
+    align: 'left' as const,
+    ...options
+  };
+  
+  // Save current font state
+  const currentFont = doc.getFont();
+  const currentFontSize = doc.getFontSize();
+  
+  // Set font size
+  doc.setFontSize(opts.fontSize);
+  
+  // Add English text
+  doc.setFont(opts.englishFont);
+  doc.text(englishText, x, y, { 
+    maxWidth: opts.maxWidth || undefined, 
+    align: opts.align
+  });
+  
+  // Add Arabic text with RTL support
+  doc.setFont(opts.arabicFont);
+  
+  // Enable RTL for Arabic text
+  const prevR2L = (doc as any).getR2L?.() || false;
+  (doc as any).setR2L?.(true);
+  
+  // Calculate position for right-aligned Arabic text if needed
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const textX = opts.align === 'right' ? x : 
+               opts.align === 'center' ? pageWidth / 2 : 
+               pageWidth - x - CONTENT_MARGIN;
+  
+  // Add Arabic text
+  doc.text(arabicText, textX, y + opts.spacing, { 
+    maxWidth: opts.maxWidth || undefined, 
+    align: opts.align === 'left' ? 'right' : opts.align
+  });
+  
+  // Restore RTL setting
+  (doc as any).setR2L?.(prevR2L);
+  
+  // Restore font settings
+  doc.setFont(currentFont);
+  doc.setFontSize(currentFontSize);
+  
+  // Return next Y position
+  return y + opts.spacing * 2;
+};
+
+/**
  * Generate a Traffic Fines Report
  * @param trafficData Array of traffic fine data
  * @returns jsPDF document
