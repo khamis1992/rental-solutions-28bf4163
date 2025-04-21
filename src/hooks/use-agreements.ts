@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -239,31 +240,12 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
 
       console.log(`Found ${data.length} agreements`, data);
 
-      // Create a simpler type to avoid deep type instantiation
-      type SimpleAgreementItem = {
-        id: string;
-        customer_id: string;
-        vehicle_id: string;
-        start_date: Date;
-        end_date: Date;
-        status: string; // Changed from AgreementStatus to string to avoid the error
-        agreement_number: string;
-        total_amount: number;
-        deposit_amount: number;
-        notes: string;
-        customers: any;
-        vehicles: any;
-        created_at?: Date;
-        updated_at?: Date;
-      };
-
-      // Map data to simplified objects to avoid excessive type instantiation
+      // Use basic object type to avoid nested type instantiation
       const agreements = data.map(item => {
-        // Fix the type instantiation issue by using explicit casting
         const rawStatus = item.status as string;
         const mappedStatus = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
         
-        // Create the agreement object as a simple flat object
+        // Create a plain object without explicit typing to avoid deep instantiation
         return {
           id: item.id,
           customer_id: item.customer_id,
@@ -282,8 +264,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         };
       });
 
-      // Cast to the expected return type using double assertion to avoid deep instantiation
-      return agreements as any[] as SimpleAgreement[];
+      // Use type assertion directly to SimpleAgreement[] without intermediate steps
+      return agreements as SimpleAgreement[];
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
       throw err;
