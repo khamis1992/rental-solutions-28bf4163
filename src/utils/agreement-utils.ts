@@ -1,6 +1,7 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { DB_AGREEMENT_STATUS } from '@/lib/validation-schemas/agreement';
+import { DB_AGREEMENT_STATUS, DatabaseAgreementStatus } from '@/lib/validation-schemas/agreement';
 import { SimpleAgreement } from '@/hooks/use-agreements';
 
 // Helper function to adapt SimpleAgreement to Agreement type for detail pages
@@ -12,7 +13,7 @@ export const adaptSimpleToFullAgreement = (simpleAgreement: SimpleAgreement) => 
     vehicle_id: simpleAgreement.vehicle_id,
     start_date: simpleAgreement.start_date ? new Date(simpleAgreement.start_date) : new Date(),
     end_date: simpleAgreement.end_date ? new Date(simpleAgreement.end_date) : new Date(),
-    status: simpleAgreement.status,
+    status: simpleAgreement.status as DatabaseAgreementStatus,
     created_at: simpleAgreement.created_at ? new Date(simpleAgreement.created_at) : undefined,
     updated_at: simpleAgreement.updated_at ? new Date(simpleAgreement.updated_at) : undefined,
     total_amount: simpleAgreement.total_amount || 0,

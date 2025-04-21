@@ -20,7 +20,7 @@ export type SimpleAgreement = {
   vehicle_id: string;
   start_date: Date;
   end_date: Date;
-  status: string;
+  status: DatabaseAgreementStatus;
   agreement_number?: string;
   total_amount?: number;
   deposit_amount?: number;
@@ -134,7 +134,9 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         }
       }
 
-      const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
+      // Convert raw status string to DatabaseAgreementStatus
+      const dbStatus = data.status as DatabaseAgreementStatus;
+      const mappedStatus = mapDBStatusToFrontend(dbStatus);
 
       const agreement: SimpleAgreement = {
         id: data.id,
@@ -142,7 +144,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         vehicle_id: data.vehicle_id,
         start_date: new Date(data.start_date),
         end_date: new Date(data.end_date),
-        status: mappedStatus,
+        status: dbStatus,
         created_at: data.created_at ? new Date(data.created_at) : undefined,
         updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
         total_amount: data.total_amount || 0,
