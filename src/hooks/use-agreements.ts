@@ -1,13 +1,11 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { createClient } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-const supabase = createClient();
-
 // Type for agreement search parameters that avoids deep recursion
-interface AgreementSearchParams {
+export interface AgreementSearchParams {
   query?: string;
   status?: string;
   vehicleId?: string;
@@ -17,7 +15,7 @@ interface AgreementSearchParams {
 }
 
 // Define what an agreement looks like (simplified version to avoid recursion)
-interface Agreement {
+export interface Agreement {
   id: string;
   customerName?: string;
   customerContact?: string;
@@ -31,12 +29,14 @@ interface Agreement {
   // Add other fields as needed, but don't create recursive references
 }
 
-export function useAgreements() {
+export function useAgreements(initialParams?: Partial<AgreementSearchParams>) {
   const [searchParams, setSearchParams] = useState<AgreementSearchParams>({
-    query: '',
-    status: 'all',
-    page: 1,
-    limit: 10,
+    query: initialParams?.query || '',
+    status: initialParams?.status || 'all',
+    page: initialParams?.page || 1,
+    limit: initialParams?.limit || 10,
+    vehicleId: initialParams?.vehicleId,
+    customerId: initialParams?.customerId
   });
 
   const queryClient = useQueryClient();
@@ -156,6 +156,26 @@ export function useAgreements() {
     return updateAgreementMutation.mutate({ id, data: { status } });
   };
 
+  // Mutation for deleting an agreement
+  const deleteAgreement = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('leases')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      toast.success('Agreement deleted successfully');
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to delete agreement: ${error.message}`);
+    }
+  });
+
   // Fetch on mount and when search params change
   useEffect(() => {
     refetch();
@@ -171,5 +191,7 @@ export function useAgreements() {
     useAgreement,
     updateAgreementMutation,
     updateAgreementStatus,
+    deleteAgreement,
+    getAgreement: getAgreementById // Alias to maintain backward compatibility
   };
 }

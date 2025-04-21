@@ -21,7 +21,7 @@ import { fixAgreementPayments } from '@/lib/supabase';
 const AgreementDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAgreement, deleteAgreement } = useAgreements();
+  const { getAgreementById, deleteAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -39,7 +39,7 @@ const AgreementDetailPage = () => {
 
     try {
       setIsLoading(true);
-      const data = await getAgreement(id);
+      const data = await getAgreementById(id);
       
       if (data) {
         const adaptedAgreement = adaptSimpleToFullAgreement(data);
