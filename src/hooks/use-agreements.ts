@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -247,7 +246,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         vehicle_id: string;
         start_date: Date;
         end_date: Date;
-        status: AgreementStatus;
+        status: string; // Changed from AgreementStatus to string to avoid the error
         agreement_number: string;
         total_amount: number;
         deposit_amount: number;
@@ -259,7 +258,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
       };
 
       // Map data to simplified objects to avoid excessive type instantiation
-      const agreements: SimpleAgreementItem[] = data.map(item => {
+      const agreements = data.map(item => {
         // Fix the type instantiation issue by using explicit casting
         const rawStatus = item.status as string;
         const mappedStatus = mapDBStatusToFrontend(rawStatus as DatabaseAgreementStatus);
@@ -283,8 +282,8 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         };
       });
 
-      // Cast to the expected return type
-      return agreements as SimpleAgreement[];
+      // Cast to the expected return type using double assertion to avoid deep instantiation
+      return agreements as any[] as SimpleAgreement[];
     } catch (err) {
       console.error("Unexpected error in fetchAgreements:", err);
       throw err;
