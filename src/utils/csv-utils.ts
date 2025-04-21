@@ -5,9 +5,39 @@ import { prepareArabicText, containsArabic } from './arabic-text-utils';
  */
 
 /**
+ * Encode text for CSV, handling Arabic text properly
+ */
+export function encodeCSVText(text: string): string {
+  if (!text) return '';
+
+  // Handle Arabic text
+  if (containsArabic(text)) {
+    const normalizedText = prepareArabicText(text);
+    // Ensure proper encoding
+    const encoded = new TextEncoder().encode(normalizedText);
+    return new TextDecoder('utf-8').decode(encoded);
+  }
+  return text;
+}
+
+/**
+ * Format a value for CSV export
+ */
+export function formatCSVValue(value: any): string {
+  if (value === null || value === undefined) return '';
+
+  const stringValue = String(value);
+
+  // If the value contains quotes, commas, or newlines, wrap it in quotes and escape existing quotes
+  if (stringValue.includes('"') || stringValue.includes(',') || stringValue.includes('\n')) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  return stringValue;
+}
+
+/**
  * Generate and download a CSV template file
- * @param fields Array of field names to use as headers
- * @param filename Name of the file to download
  */
 export function downloadCSVTemplate(fields: string[], filename: string): void {
   // Generate CSV headers
@@ -39,11 +69,6 @@ export function downloadCSVTemplate(fields: string[], filename: string): void {
 
 /**
  * Parse a CSV file to an array of objects
- * Type-safe version to avoid deep type instantiation errors
- * 
- * @param file The File object to parse
- * @param headerMap Map of CSV headers to object properties
- * @returns Promise resolving to array of parsed objects
  */
 export function parseCSVFile<T extends Record<string, any>>(
   file: File, 
@@ -117,9 +142,6 @@ export function parseCSVFile<T extends Record<string, any>>(
 
 /**
  * Preview the first few rows of a CSV file
- * @param file The File object to preview
- * @param maxRows Maximum number of rows to return (default: 5)
- * @returns Promise resolving to array with headers and rows
  */
 export function previewCSVFile(file: File, maxRows: number = 5): Promise<{headers: string[], rows: string[][]}> {
   return new Promise((resolve, reject) => {
@@ -189,38 +211,8 @@ export function previewCSVFile(file: File, maxRows: number = 5): Promise<{header
 }
 
 /**
- * Format a value for CSV export
- * @param value The value to format
- * @returns Properly formatted CSV value
+ * Generate CSV from data
  */
-export function formatCSVValue(value: any): string {
-  if (value === null || value === undefined) return '';
-
-  const stringValue = String(value);
-
-  // If the value contains quotes, commas, or newlines, wrap it in quotes and escape existing quotes
-  if (stringValue.includes('"') || stringValue.includes(',') || stringValue.includes('\n')) {
-    return `"${stringValue.replace(/"/g, '""')}"`;
-  }
-
-  return stringValue;
-}
-
-
-import { prepareArabicText, containsArabic } from './arabic-text-utils';
-
-export function encodeCSVText(text: string): string {
-  if (!text) return '';
-
-  // Handle Arabic text
-  if (containsArabic(text)) {
-    // Ensure proper encoding
-    const encoded = new TextEncoder().encode(text);
-    return new TextDecoder('utf-8').decode(encoded);
-  }
-  return text;
-}
-
 export function generateCSV(data: Record<string, any>[]): string {
   if (!data || data.length === 0) return '';
 
