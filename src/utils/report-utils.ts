@@ -488,7 +488,6 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
   }).format(amount);
 };
 
-
 // Placeholder for a more robust Arabic text writing function.  This needs to be replaced with actual implementation.
 const writeArabicText = (doc: jsPDF, text: string, x: number, y: number, options: any) => {
   console.log("writeArabicText called with:", text, x, y, options);

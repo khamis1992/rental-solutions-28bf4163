@@ -76,3 +76,22 @@ export function testArabicSupport(doc: jsPDF): boolean {
     return false;
   }
 }
+
+/**
+ * Safely sets the R2L (Right-to-Left) mode for a PDF document
+ * @param doc jsPDF document instance
+ * @param isRTL boolean to enable or disable RTL mode
+ * @returns boolean indicating if the operation was successful
+ */
+export function safeSetRTL(doc: jsPDF, isRTL: boolean): boolean {
+  try {
+    if (typeof (doc as any).setR2L === 'function') {
+      (doc as any).setR2L(isRTL);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("Failed to set RTL mode:", error);
+    return false;
+  }
+}
