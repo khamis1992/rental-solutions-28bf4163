@@ -215,7 +215,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
             query = query.in('vehicle_id', ids);
             console.log("Filtering by vehicle IDs:", ids);
           } else {
-            query = query.ilike('profiles.full_name', `%${searchQuery}%`);
+            query = query.or(`profiles.full_name.ilike.%${searchQuery}%`);
           }
         }
       }
@@ -241,7 +241,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         vehicle_id: item.vehicle_id,
         start_date: new Date(item.start_date),
         end_date: new Date(item.end_date),
-        status: item.status as DatabaseAgreementStatus,
+        status: mapDBStatusToFrontend(item.status as DatabaseAgreementStatus),
         agreement_number: item.agreement_number || '',
         total_amount: item.total_amount || 0,
         deposit_amount: item.deposit_amount || 0,
