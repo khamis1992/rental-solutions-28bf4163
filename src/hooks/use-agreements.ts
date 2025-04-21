@@ -1,221 +1,371 @@
 
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { 
+  Agreement, 
+  BaseAgreement,
+  DatabaseAgreementStatus,
+  DB_AGREEMENT_STATUS,
+  AgreementStatus,
+  mapDBStatusToFrontend 
+} from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// Define the agreement status enum to avoid reference errors
-export enum AgreementStatus {
-  ACTIVE = 'active',
-  DRAFT = 'draft',
-  PENDING = 'pending',
-  EXPIRED = 'expired',
-  CANCELLED = 'cancelled',
-  CLOSED = 'closed',
-  TERMINATED = 'terminated',
-  ARCHIVED = 'archived'
-}
-
-// Type for agreement search parameters that avoids deep recursion
-export interface AgreementSearchParams {
-  query?: string;
-  status?: string;
-  vehicleId?: string;
-  customerId?: string;
-  page?: number;
-  limit?: number;
-}
-
-// Define what an agreement looks like (simplified version to avoid recursion)
-export interface Agreement {
-  id: string;
-  customerName?: string;
-  customerContact?: string;
-  startDate?: string;
-  endDate?: string;
-  amount?: number;
-  status?: string;
-  licensePlate?: string;
-  vehicleId?: string;
-  customerId?: string;
+export type SimpleAgreement = BaseAgreement & {
+  agreement_number?: string;
+  total_amount?: number;
+  deposit_amount?: number;
+  notes?: string;
   created_at?: Date;
   updated_at?: Date;
-  total_amount?: number;
-  rent_amount?: number;
-  // Add other fields as needed, but don't create recursive references
-}
+  customers?: {
+    id: string;
+    full_name?: string;
+    email?: string;
+    phone_number?: string;
+  };
+  vehicles?: {
+    id: string;
+    make?: string;
+    model?: string;
+    license_plate?: string;
+    image_url?: string;
+    year?: number;
+    color?: string;
+    vin?: string;
+  };
+  signature_url?: string;
+};
 
-// Simple agreement interface to avoid deep recursion
-export interface SimpleAgreement {
-  id: string;
-  customer_id?: string;
-  vehicle_id?: string;
-  start_date?: string | Date;
-  end_date?: string | Date;
+interface SearchParams {
+  query?: string;
   status?: string;
-  total_amount?: number;
-  created_at?: string | Date;
-  updated_at?: string | Date;
-  rent_amount?: number;
-  deposit_amount?: number;
-  agreement_number?: string;
-  notes?: string;
-  vehicles?: any;
-  customers?: any;
-  lease_payments?: any[];
+  vehicle_id?: string;
+  customer_id?: string;
 }
 
-export function useAgreements(initialParams?: Partial<AgreementSearchParams>) {
-  const [searchParams, setSearchParams] = useState<AgreementSearchParams>({
-    query: initialParams?.query || '',
-    status: initialParams?.status || 'all',
-    page: initialParams?.page || 1,
-    limit: initialParams?.limit || 10,
-    vehicleId: initialParams?.vehicleId,
-    customerId: initialParams?.customerId
-  });
-
+export const useAgreements = (initialFilters: SearchParams = {}) => {
+  const [searchParams, setSearchParams] = useState<SearchParams>(initialFilters);
   const queryClient = useQueryClient();
 
-  // Main query for agreement list
-  const {
-    data: agreements,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['agreements', searchParams],
-    queryFn: async () => {
-      try {
-        let query = supabase.from('leases').select(`
-          *,
-          vehicles(id, make, model, licensePlate),
-          customers(id, firstName, lastName, phone)
-        `);
-
-        // Apply filters
-        if (searchParams.query) {
-          query = query.or(
-            `vehicles.licensePlate.ilike.%${searchParams.query}%,customers.firstName.ilike.%${searchParams.query}%,customers.lastName.ilike.%${searchParams.query}%`
-          );
-        }
-
-        if (searchParams.status && searchParams.status !== 'all') {
-          query = query.eq('status', searchParams.status);
-        }
-        
-        if (searchParams.vehicleId) {
-          query = query.eq('vehicleId', searchParams.vehicleId);
-        }
-        
-        if (searchParams.customerId) {
-          query = query.eq('customerId', searchParams.customerId);
-        }
-
-        // Apply pagination
-        const from = (searchParams.page! - 1) * searchParams.limit!;
-        const to = from + searchParams.limit! - 1;
-        query = query.range(from, to);
-
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        return data || [];
-      } catch (error: any) {
-        console.error('Error fetching agreements:', error.message);
-        throw new Error(error.message);
-      }
-    },
-  });
-
-  // Function to get a specific agreement
-  const getAgreementById = async (id: string) => {
+  const getAgreement = async (id: string): Promise<SimpleAgreement | null> => {
     try {
+      console.log(`Fetching agreement details for ID: ${id}`);
+
+      if (!id || id.trim() === '') {
+        console.error("Invalid agreement ID provided");
+        toast.error("Invalid agreement ID");
+        return null;
+      }
+
       const { data, error } = await supabase
+        .from('leases')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching agreement from Supabase:", error);
+        toast.error(`Failed to load agreement details: ${error.message}`);
+        return null;
+      }
+
+      if (!data) {
+        console.error(`No lease data found for ID: ${id}`);
+        return null;
+      }
+
+      console.log("Raw lease data from Supabase:", data);
+
+      let customerData = null;
+      let vehicleData = null;
+
+      if (data.customer_id) {
+        try {
+          const { data: customer, error: customerError } = await supabase
+            .from('profiles')
+            .select('id, full_name, email, phone_number, driver_license, nationality, address')
+            .eq('id', data.customer_id)
+            .maybeSingle();
+
+          if (customerError) {
+            console.error("Error fetching customer:", customerError);
+          } else if (customer) {
+            console.log("Customer data fetched:", customer);
+            customerData = customer;
+          } else {
+            console.log(`No customer found with ID: ${data.customer_id}`);
+          }
+        } catch (customerFetchError) {
+          console.error("Error in customer data fetch:", customerFetchError);
+        }
+      }
+
+      if (data.vehicle_id) {
+        try {
+          const { data: vehicle, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('id, make, model, license_plate, image_url, year, color, vin')
+            .eq('id', data.vehicle_id)
+            .maybeSingle();
+
+          if (vehicleError) {
+            console.error("Error fetching vehicle:", vehicleError);
+          } else if (vehicle) {
+            console.log("Vehicle data fetched:", vehicle);
+            vehicleData = vehicle;
+          } else {
+            console.log(`No vehicle found with ID: ${data.vehicle_id}`);
+          }
+        } catch (vehicleFetchError) {
+          console.error("Error in vehicle data fetch:", vehicleFetchError);
+        }
+      }
+
+      const mappedStatus = mapDBStatusToFrontend(data.status as DatabaseAgreementStatus);
+
+      const agreement: SimpleAgreement = {
+        id: data.id,
+        customer_id: data.customer_id,
+        vehicle_id: data.vehicle_id,
+        start_date: new Date(data.start_date),
+        end_date: new Date(data.end_date),
+        status: mappedStatus,
+        created_at: data.created_at ? new Date(data.created_at) : undefined,
+        updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
+        total_amount: data.total_amount || 0,
+        deposit_amount: data.deposit_amount || 0, 
+        agreement_number: data.agreement_number || '',
+        notes: data.notes || '',
+        customers: customerData,
+        vehicles: vehicleData,
+        signature_url: (data as any).signature_url
+      };
+
+      console.log("Transformed agreement data:", agreement);
+      return agreement;
+    } catch (err) {
+      console.error("Unexpected error in getAgreement:", err);
+      toast.error("An unexpected error occurred while loading agreement details");
+      return null;
+    }
+  };
+
+  const fetchAgreements = async (): Promise<SimpleAgreement[]> => {
+    console.log("Fetching agreements with params:", searchParams);
+
+    try {
+      let query = supabase
         .from('leases')
         .select(`
           *,
-          vehicles(id, make, model, licensePlate, year, color, dailyRate),
-          customers(id, firstName, lastName, email, phone, idNumber),
-          lease_payments(id, amount, status, dueDate, paymentDate, notes, paymentMethod)
-        `)
-        .eq('id', id)
-        .single();
+          profiles:customer_id (id, full_name, email, phone_number),
+          vehicles:vehicle_id (id, make, model, license_plate, image_url, year, color, vin)
+        `);
 
-      if (error) throw error;
-      return data as SimpleAgreement;
-    } catch (error: any) {
-      console.error('Error fetching agreement:', error.message);
-      throw new Error(error.message);
+      if (searchParams.status && searchParams.status !== 'all') {
+        switch(searchParams.status) {
+          case AgreementStatus.ACTIVE:
+            query = query.eq('status', DB_AGREEMENT_STATUS.ACTIVE);
+            break;
+          case AgreementStatus.PENDING:
+            query = query.eq('status', DB_AGREEMENT_STATUS.PENDING_PAYMENT);
+            break;
+          case AgreementStatus.CANCELLED:
+            query = query.eq('status', DB_AGREEMENT_STATUS.CANCELLED);
+            break;
+          case AgreementStatus.CLOSED:
+            query = query.or(`status.eq.${DB_AGREEMENT_STATUS.COMPLETED},status.eq.${DB_AGREEMENT_STATUS.TERMINATED}`);
+            break;
+          case AgreementStatus.EXPIRED:
+            query = query.eq('status', DB_AGREEMENT_STATUS.ARCHIVED);
+            break;
+          case AgreementStatus.DRAFT:
+            query = query.filter('status', 'eq', DB_AGREEMENT_STATUS.DRAFT);
+            break;
+          default:
+            if (typeof searchParams.status === 'string') {
+              query = query.filter('status', 'eq', searchParams.status);
+            }
+        }
+      }
+
+      if (searchParams.vehicle_id) {
+        query = query.eq('vehicle_id', searchParams.vehicle_id);
+      }
+
+      if (searchParams.customer_id) {
+        query = query.eq('customer_id', searchParams.customer_id);
+      }
+
+      if (searchParams.query && searchParams.query.trim() !== '') {
+        const searchQuery = searchParams.query.trim().toLowerCase();
+        
+        if (searchQuery) {
+          const { data: vehicleIds, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('id')
+            .ilike('license_plate', `%${searchQuery}%`);
+          
+          if (vehicleError) {
+            console.error("Error searching vehicles:", vehicleError);
+          } else if (vehicleIds && vehicleIds.length > 0) {
+            const ids = vehicleIds.map(v => v.id);
+            query = query.in('vehicle_id', ids);
+            console.log("Filtering by vehicle IDs:", ids);
+          } else {
+            query = query.ilike('profiles.full_name', `%${searchQuery}%`);
+          }
+        }
+      }
+
+      console.log("Executing Supabase query...");
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error fetching agreements:", error);
+        throw new Error(`Failed to fetch agreements: ${error.message}`);
+      }
+
+      if (!data || data.length === 0) {
+        console.log("No agreements found with the given filters");
+        return [];
+      }
+
+      console.log(`Found ${data.length} agreements`, data);
+
+      const agreements: SimpleAgreement[] = data.map(item => ({
+        id: item.id,
+        customer_id: item.customer_id,
+        vehicle_id: item.vehicle_id,
+        start_date: new Date(item.start_date),
+        end_date: new Date(item.end_date),
+        status: item.status as DatabaseAgreementStatus,
+        agreement_number: item.agreement_number || '',
+        total_amount: item.total_amount || 0,
+        deposit_amount: item.deposit_amount || 0,
+        notes: item.notes || '',
+        customers: item.profiles,
+        vehicles: item.vehicles,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+        updated_at: item.updated_at ? new Date(item.updated_at) : undefined
+      }));
+
+      return agreements;
+    } catch (err) {
+      console.error("Unexpected error in fetchAgreements:", err);
+      throw err;
     }
   };
 
-  // Query for a specific agreement
-  const useAgreement = (id?: string) => {
-    return useQuery({
-      queryKey: ['agreement', id],
-      queryFn: () => getAgreementById(id!),
-      enabled: !!id,
-    });
+  const createAgreement = async (data: Partial<SimpleAgreement>) => {
+    return {} as SimpleAgreement;
   };
 
-  // Mutation for updating agreement
+  type UpdateAgreementParams = { 
+    id: string; 
+    data: Record<string, any> 
+  };
+
   const updateAgreementMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: any }) => {
-      try {
-        const { data: updatedData, error } = await supabase
-          .from('leases')
-          .update(data)
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return updatedData;
-      } catch (error: any) {
-        console.error('Error updating agreement:', error.message);
-        throw new Error(error.message);
-      }
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['agreements'] });
-      queryClient.invalidateQueries({ queryKey: ['agreement', data.id] });
-      toast.success('Agreement updated successfully');
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to update agreement: ${error.message}`);
-    },
-  });
-
-  // Function to update agreement status
-  const updateAgreementStatus = (id: string, status: string) => {
-    return updateAgreementMutation.mutate({ id, data: { status } });
-  };
-
-  // Mutation for deleting an agreement
-  const deleteAgreement = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('leases')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-      return id;
+    mutationFn: async (params: UpdateAgreementParams) => {
+      console.log("Update mutation called with:", params);
+      return {};
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });
-      toast.success('Agreement deleted successfully');
     },
-    onError: (error: any) => {
-      toast.error(`Failed to delete agreement: ${error.message}`);
-    }
   });
 
-  // Fetch on mount and when search params change
-  useEffect(() => {
-    refetch();
-  }, [searchParams, refetch]);
+  const updateAgreement = updateAgreementMutation;
+
+  const deleteAgreement = useMutation({
+    mutationFn: async (id: string) => {
+      console.log(`Starting deletion process for agreement ${id}`);
+      
+      try {
+        const { error: overduePaymentsDeleteError } = await supabase
+          .from('overdue_payments')
+          .delete()
+          .eq('agreement_id', id);
+          
+        if (overduePaymentsDeleteError) {
+          console.error(`Failed to delete related overdue payments for ${id}:`, overduePaymentsDeleteError);
+        }
+        
+        const { error: paymentDeleteError } = await supabase
+          .from('unified_payments')
+          .delete()
+          .eq('lease_id', id);
+          
+        if (paymentDeleteError) {
+          console.error(`Failed to delete related payments for ${id}:`, paymentDeleteError);
+        }
+        
+        const { data: relatedReverts } = await supabase
+          .from('agreement_import_reverts')
+          .select('id')
+          .eq('import_id', id);
+          
+        if (relatedReverts && relatedReverts.length > 0) {
+          const { error: revertDeleteError } = await supabase
+            .from('agreement_import_reverts')
+            .delete()
+            .eq('import_id', id);
+            
+          if (revertDeleteError) {
+            console.error(`Failed to delete related revert records for ${id}:`, revertDeleteError);
+          }
+        }
+        
+        const { data: trafficFines, error: trafficFinesError } = await supabase
+          .from('traffic_fines')
+          .select('id')
+          .eq('agreement_id', id);
+          
+        if (!trafficFinesError && trafficFines && trafficFines.length > 0) {
+          const { error: finesDeleteError } = await supabase
+            .from('traffic_fines')
+            .delete()
+            .eq('agreement_id', id);
+            
+          if (finesDeleteError) {
+            console.error(`Failed to delete related traffic fines for ${id}:`, finesDeleteError);
+          }
+        }
+        
+        const { error } = await supabase
+          .from('leases')
+          .delete()
+          .eq('id', id);
+          
+        if (error) {
+          console.error(`Failed to delete agreement ${id}:`, error);
+          throw new Error(`Failed to delete agreement: ${error.message}`);
+        }
+        
+        return id;
+      } catch (error) {
+        console.error('Error in deleteAgreement:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success('Agreement deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete agreement: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    },
+  });
+
+  const { data: agreements, isLoading, error } = useQuery({
+    queryKey: ['agreements', searchParams],
+    queryFn: fetchAgreements,
+    staleTime: 600000,
+    gcTime: 900000,
+  });
 
   return {
     agreements,
@@ -223,11 +373,9 @@ export function useAgreements(initialParams?: Partial<AgreementSearchParams>) {
     error,
     searchParams,
     setSearchParams,
-    getAgreementById,
-    useAgreement,
-    updateAgreementMutation,
-    updateAgreementStatus,
+    getAgreement,
+    createAgreement,
+    updateAgreement: updateAgreementMutation,
     deleteAgreement,
-    getAgreement: getAgreementById // Alias to maintain backward compatibility
   };
-}
+};

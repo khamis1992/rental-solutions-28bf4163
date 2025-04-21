@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -49,8 +48,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAgreements, AgreementSearchParams, AgreementStatus } from '@/hooks/use-agreements';
+import { useAgreements, SimpleAgreement } from '@/hooks/use-agreements';
 import { useVehicles } from '@/hooks/use-vehicles';
+import { AgreementStatus } from '@/lib/validation-schemas/agreement';
 import { format } from 'date-fns';
 import { formatCurrency } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -80,12 +80,6 @@ import { useQueryClient } from '@tanstack/react-query';
 interface AgreementListProps {
   searchQuery?: string;
 }
-
-// Define simplified types for the bulk delete function to avoid recursive types
-type SimpleAgreementData = {
-  id: string;
-  agreement_number?: string;
-};
 
 export function AgreementList({ searchQuery = '' }: AgreementListProps) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -135,8 +129,8 @@ export function AgreementList({ searchQuery = '' }: AgreementListProps) {
     setIsDeleting(true);
     
     const selectedIds = Object.keys(rowSelection).map(
-      index => agreements[parseInt(index)]?.id as string
-    ).filter(Boolean);
+      index => agreements[parseInt(index)].id as string
+    );
     
     console.log("Selected IDs for deletion:", selectedIds);
     

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageContainer from '@/components/layout/PageContainer';
@@ -20,17 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { useTrafficFines } from '@/hooks/use-traffic-fines';
-import TrafficFinesPdfDownloadLink from '@/components/reports/TrafficFinesPdfReport';
-
-// Define interface for traffic fines data
-interface TrafficFineData {
-  customerName?: string;
-  licensePlate?: string;
-  violationNumber?: string;
-  violationDate?: string | Date;
-  fineAmount?: number;
-  paymentStatus?: string;
-}
+import { generateTrafficFinesReport } from '@/utils/report-utils';
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -72,8 +61,7 @@ const Reports = () => {
     }, 2000);
   };
   
-  // Type-safe implementation to fix error TS2322
-  const getReportData = (): Record<string, any>[] | TrafficFineData[] => {
+  const getReportData = () => {
     switch (selectedTab) {
       case 'fleet':
         return vehicles.map(v => ({
@@ -118,6 +106,7 @@ const Reports = () => {
         return trafficFines.map(fine => ({
           customerName: fine.customerName || 'Unassigned',
           licensePlate: fine.licensePlate,
+          agreementNumber: fine.leaseId,
           violationNumber: fine.violationNumber,
           violationDate: fine.violationDate,
           fineAmount: fine.fineAmount,
@@ -127,20 +116,6 @@ const Reports = () => {
       default:
         return [];
     }
-  };
-
-  // Get traffic fines data in the correct format for the PDF
-  const getTrafficFinesData = (): TrafficFineData[] => {
-    if (!trafficFines) return [];
-    
-    return trafficFines.map(fine => ({
-      customerName: fine.customerName || 'Unassigned',
-      licensePlate: fine.licensePlate,
-      violationNumber: fine.violationNumber,
-      violationDate: fine.violationDate,
-      fineAmount: fine.fineAmount,
-      paymentStatus: fine.paymentStatus
-    }));
   };
 
   return (
@@ -223,18 +198,10 @@ const Reports = () => {
                     </p>
                   </div>
                   
-                  <div className="mb-4">
-                    <h4 className="text-sm font-semibold mb-2">Download PDF Report</h4>
-                    <TrafficFinesPdfDownloadLink fines={getTrafficFinesData()} />
-                  </div>
-                  
-                  <div className="mt-6">
-                    <h4 className="text-sm font-semibold mb-2">Other Export Options</h4>
-                    <ReportDownloadOptions
-                      reportType="traffic-fines"
-                      getReportData={getReportData}
-                    />
-                  </div>
+                  <ReportDownloadOptions
+                    reportType="traffic-fines"
+                    getReportData={getReportData}
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

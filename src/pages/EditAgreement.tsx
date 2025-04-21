@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AgreementForm from '@/components/agreements/AgreementForm';
@@ -13,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 const EditAgreement = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAgreementById } = useAgreements();
+  const { getAgreement } = useAgreements();
   const [agreement, setAgreement] = useState<Agreement | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasAttemptedFetch, setHasAttemptedFetch] = useState(false);
@@ -34,7 +35,7 @@ const EditAgreement = () => {
       console.log("Fetching agreement with ID:", id);
       setIsLoading(true);
       try {
-        const data = await getAgreementById(id);
+        const data = await getAgreement(id);
         console.log("Fetched agreement data:", data);
         if (data) {
           // Convert SimpleAgreement to Agreement type
@@ -54,7 +55,7 @@ const EditAgreement = () => {
     };
 
     fetchAgreement();
-  }, [id, getAgreementById, navigate, hasAttemptedFetch]);
+  }, [id, getAgreement, navigate, hasAttemptedFetch]);
 
   const handleSubmit = async (updatedAgreement: Agreement) => {
     if (!id) return;
