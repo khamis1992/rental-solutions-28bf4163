@@ -18,7 +18,7 @@ import {
   generateTrafficFinesReport,
   addBilingualText
 } from '@/utils/report-utils';
-import { testArabicSupport } from '@/utils/jspdf-arabic-font';
+import { testArabicSupport, registerArabicSupport } from '@/utils/jspdf-arabic-font';
 
 interface ReportDownloadOptionsProps {
   reportType: string;
@@ -73,86 +73,96 @@ const ReportDownloadOptions = ({
         try {
           console.log(`Generating ${reportType} PDF report with ${reportData.length} records`);
           
-          // Test PDF Arabic support first
+          // First, try a simple test document to see if Arabic is supported
           if (isArabic) {
+            console.log("Testing Arabic text support in PDF...");
             const testDoc = new jsPDF();
+            registerArabicSupport(testDoc);
             const arabicSupported = testArabicSupport(testDoc);
-            if (!arabicSupported) {
-              console.warn("Arabic support test failed. Arabic text may not render correctly.");
-            }
+            console.log("Arabic support test:", arabicSupported ? "Passed" : "Failed");
           }
           
           // Handle report generation with safe fallbacks
           if (reportType === 'traffic-fines') {
-            const doc = generateTrafficFinesReport(reportData, 
-              isArabic ? { rtl: true } : undefined
-            );
-            doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            try {
+              const doc = generateTrafficFinesReport(reportData, 
+                isArabic ? { rtl: true } : undefined
+              );
+              doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            } catch (error) {
+              console.error("Error generating traffic fines report:", error);
+              throw new Error("Failed to generate the traffic fines report");
+            }
           } else {
             // Use the standardized report generator for other reports
-            const doc = generateStandardReport(
-              title,
-              dateRange,
-              (doc, startY) => {
-                // Add basic content without font issues
-                let yPos = startY;
-                doc.setFontSize(14);
-                doc.setFont('helvetica', 'bold');
-                doc.text('Report Summary:', 14, yPos);
-                
-                if (isArabic) {
-                  // Add Arabic title below English title using our bilingual text helper
-                  const arabicTitle = arabicTitles[reportType] || 'تقرير';
-                  yPos = addBilingualText(doc, 'Report Summary:', arabicTitle, 14, yPos + 10);
-                } else {
-                  yPos += 10;
-                }
-                
-                // Add simple content based on report type
-                doc.setFontSize(12);
-                doc.setFont('helvetica', 'normal');
-                
-                // Add report-specific content
-                switch(reportType) {
-                  case 'fleet':
-                    doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
-                    doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
-                    doc.text('• Active Rentals', 20, yPos); yPos += 10;
-                    break;
-                  case 'financial':
-                    doc.text('• Revenue Summary', 20, yPos); yPos += 10;
-                    doc.text('• Expense Analysis', 20, yPos); yPos += 10;
-                    break;
-                  case 'customers':
-                    doc.text('• Customer Demographics', 20, yPos); yPos += 10;
-                    doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
-                    break;
-                  case 'maintenance':
-                    doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
-                    doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
-                    break;
-                  case 'legal':
-                    doc.text('• Legal Cases Summary', 20, yPos); yPos += 10;
-                    doc.text('• Compliance Reports', 20, yPos); yPos += 10;
-                    break;
-                  default:
-                    doc.text('No data available for this report type.', 20, yPos);
-                }
-                
-                return yPos;
-              },
-              isArabic ? { rtl: true } : undefined
-            );
-            
-            // Save the PDF
-            doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            try {
+              const doc = generateStandardReport(
+                title,
+                dateRange,
+                (doc, startY) => {
+                  // Add basic content without font issues
+                  let yPos = startY;
+                  doc.setFontSize(14);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text('Report Summary:', 14, yPos);
+                  
+                  if (isArabic) {
+                    // Add Arabic title below English title using our bilingual text helper
+                    const arabicTitle = arabicTitles[reportType] || 'تقرير';
+                    yPos = addBilingualText(doc, 'Report Summary:', arabicTitle, 14, yPos + 10);
+                  } else {
+                    yPos += 10;
+                  }
+                  
+                  // Add simple content based on report type
+                  doc.setFontSize(12);
+                  doc.setFont('helvetica', 'normal');
+                  
+                  // Add report-specific content
+                  switch(reportType) {
+                    case 'fleet':
+                      doc.text('• Total Vehicles in Fleet', 20, yPos); yPos += 10;
+                      doc.text('• Vehicle Utilization Rate', 20, yPos); yPos += 10;
+                      doc.text('• Active Rentals', 20, yPos); yPos += 10;
+                      break;
+                    case 'financial':
+                      doc.text('• Revenue Summary', 20, yPos); yPos += 10;
+                      doc.text('• Expense Analysis', 20, yPos); yPos += 10;
+                      break;
+                    case 'customers':
+                      doc.text('• Customer Demographics', 20, yPos); yPos += 10;
+                      doc.text('• Customer Satisfaction Scores', 20, yPos); yPos += 10;
+                      break;
+                    case 'maintenance':
+                      doc.text('• Maintenance Schedule', 20, yPos); yPos += 10;
+                      doc.text('• Maintenance Costs', 20, yPos); yPos += 10;
+                      break;
+                    case 'legal':
+                      doc.text('• Legal Cases Summary', 20, yPos); yPos += 10;
+                      doc.text('• Compliance Reports', 20, yPos); yPos += 10;
+                      break;
+                    default:
+                      doc.text('No data available for this report type.', 20, yPos);
+                  }
+                  
+                  return yPos;
+                },
+                isArabic ? { rtl: true } : undefined
+              );
+              
+              // Save the PDF
+              doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+            } catch (error) {
+              console.error("Error generating standard report:", error);
+              throw new Error("Failed to generate the report");
+            }
           }
           console.log("PDF report generated successfully");
           
         } catch (error) {
           console.error("PDF generation error:", error);
           toast.error("Error generating PDF", {
-            description: "There was a problem with the PDF generation. Try another format."
+            description: "Try using CSV or Excel format instead."
           });
           setIsGenerating(false);
           return;

@@ -257,8 +257,8 @@ export const generateTrafficFinesReport = (
   safeSetFont(doc, 'helvetica', 'normal');
 
   metrics.forEach(([label, value]) => {
-    // Check if we need a new page
-    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT) {
+    // Check if we need a new page - modified to add more buffer space
+    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 5) {
       doc.addPage();
       currentY = 20;
       addReportFooter(doc);
@@ -291,8 +291,8 @@ export const generateTrafficFinesReport = (
 
   // Add customer sections
   Object.entries(groupedFines).forEach(([customerName, data]: [string, any]) => {
-    // Check if we need a new page
-    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
+    // Check if we need a new page - with increased buffer space
+    if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 45) {
       doc.addPage();
       currentY = 20;
       addReportFooter(doc);
@@ -311,7 +311,7 @@ export const generateTrafficFinesReport = (
     
     // Draw headers
     Array.from(data.vehicles).forEach((vehicle: string) => {
-      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 20) {
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 25) {
         doc.addPage();
         currentY = 20;
         addReportFooter(doc);
@@ -333,7 +333,9 @@ export const generateTrafficFinesReport = (
 
     // Violations table
     if (data.fines.length > 0) {
-      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 40) {
+      // Check if there's enough space for the table headers and at least one row
+      // If not, start a new page
+      if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 45) {
         doc.addPage();
         currentY = 20;
         addReportFooter(doc);
@@ -353,7 +355,8 @@ export const generateTrafficFinesReport = (
 
       // Draw violations
       data.fines.forEach((fine: any) => {
-        if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 10) {
+        // Check if we need a new page with increased buffer space
+        if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 15) {
           doc.addPage();
           currentY = 20;
           addReportFooter(doc);
@@ -429,8 +432,8 @@ export const addBilingualText = (
   try {
     if (typeof (doc as any).getR2L === 'function') {
       prevR2L = (doc as any).getR2L();
+      safeSetRTL(doc, false);
     }
-    safeSetRTL(doc, false);
   } catch (e) {
     console.log('R2L not supported', e);
   }
@@ -475,10 +478,7 @@ export const addBilingualText = (
 };
 
 /**
- * Helper function to format currency (for consistency across reports)
- * @param amount Amount to format as currency
- * @param currency Currency code (default: QAR)
- * @returns Formatted currency string
+ * Helper function to format currency
  */
 export const formatReportCurrency = (amount: number, currency = 'QAR'): string => {
   return new Intl.NumberFormat('en-US', {

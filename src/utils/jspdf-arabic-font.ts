@@ -11,14 +11,13 @@ const ARABIC_UNICODE_RANGE = {
 };
 
 /**
- * Registers a standard font that supports Arabic
- * This is a simplified approach that relies on the browser's built-in font support
+ * Registers Arabic support for jsPDF
+ * Uses best available approach for the current environment
  */
 export function registerArabicSupport(doc: jsPDF): void {
   try {
-    // Use a standard font that's more likely to support Arabic
-    // Most systems have Arial which has decent Arabic support
-    doc.addFont('standard', 'normal', 'NotoSans', 'normal');
+    // Use a standard font and rely on browser's built-in support
+    doc.setFont('helvetica');
     
     // Configure RTL support if available
     if (typeof (doc as any).setR2L === 'function') {
