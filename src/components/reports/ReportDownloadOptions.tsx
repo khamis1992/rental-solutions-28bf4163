@@ -15,8 +15,7 @@ import {
   downloadCSV, 
   downloadExcel, 
   generateStandardReport, 
-  generateTrafficFinesReport,
-  addBilingualText
+  generateTrafficFinesReport
 } from '@/utils/report-utils';
 
 interface ReportDownloadOptionsProps {
@@ -46,6 +45,14 @@ const ReportDownloadOptions = ({
       // Get data for the report
       const reportData = getReportData ? getReportData() : [];
       
+      if (!reportData || reportData.length === 0) {
+        toast.warning("No data available", {
+          description: "There is no data available for this report."
+        });
+        setIsGenerating(false);
+        return;
+      }
+      
       // Format title based on report type
       const title = `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`;
       
@@ -62,6 +69,7 @@ const ReportDownloadOptions = ({
       // Generate report based on file format
       if (fileFormat === 'pdf') {
         try {
+          console.log(`Generating ${reportType} PDF report with ${reportData.length} records`);
           // Handle report generation with safe fallbacks
           if (reportType === 'traffic-fines') {
             const doc = generateTrafficFinesReport(reportData, 
@@ -119,11 +127,13 @@ const ReportDownloadOptions = ({
             // Save the PDF
             doc.save(`${reportType}_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
           }
+          console.log("PDF report generated successfully");
         } catch (error) {
           console.error("PDF generation error:", error);
           toast.error("Error generating PDF", {
             description: "There was a problem with the PDF generation. Try another format."
           });
+          setIsGenerating(false);
           return;
         }
       } else if (fileFormat === 'excel') {

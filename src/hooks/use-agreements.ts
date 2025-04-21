@@ -277,10 +277,10 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     data: Record<string, any> 
   };
 
-  const updateAgreementMutation = useMutation<any, Error, UpdateAgreementParams>({
-    mutationFn: async (params: UpdateAgreementParams) => {
-      console.log("Update mutation called with:", params);
-      return {};
+  const updateAgreementMutation = useMutation<SimpleAgreement, Error, UpdateAgreementParams>({
+    mutationFn: async ({ id, data }: UpdateAgreementParams) => {
+      console.log("Update mutation called with:", { id, data });
+      return {} as SimpleAgreement;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['agreements'] });

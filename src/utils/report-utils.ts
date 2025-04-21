@@ -444,7 +444,7 @@ export const addBilingualText = (
   });
   
   // For Arabic, just render it in the default font rather than trying to use Amiri
-  const prevR2L = false;
+  let prevR2L = false;
   try {
     if (typeof (doc as any).getR2L === 'function') {
       prevR2L = (doc as any).getR2L();
