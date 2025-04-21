@@ -69,10 +69,9 @@ const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
 
 // Add Arabic font support
 function setupArabicFont(doc: jsPDF) {
-  doc.addFileToVFS('Amiri-Regular.ttf', amiriFont);
-  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
-  doc.setFont('Amiri');
-  doc.setR2L(true); // Enable right-to-left for Arabic
+  import('@/utils/arabic-text-utils').then(({ prepareArabicText, configureArabicPDF }) => {
+    configureArabicPDF(doc);
+  });
 }
 const CONTENT_MARGIN = 14; // Left/right margin in mm
 
@@ -159,6 +158,7 @@ export const generateStandardReport = (
  */
 export const generateTrafficFinesReport = (trafficData: any[]) => {
   const doc = new jsPDF();
+  setupArabicFont(doc);
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
