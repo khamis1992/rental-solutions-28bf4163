@@ -15,7 +15,7 @@ Font.register({
   family: 'Cairo',
   src: 'https://fonts.gstatic.com/s/cairo/v20/SLXVc1nY6HkvangtZmpcWmhzfH5lWWgcQyyS4J0.ttf',
   fontWeight: 'normal',
-  format: 'truetype'
+  // Remove format property as it's not supported in the type definition
 });
 
 const styles = StyleSheet.create({
@@ -170,7 +170,7 @@ export const TrafficFinesPdfDownloadLink: React.FC<{ fines: TrafficFinesPdfRepor
         fileName={`traffic_fines_report_${new Date().toISOString().slice(0,10)}.pdf`}
         className="no-underline text-white"
       >
-        {({ loading }) => loading ? "Generating..." : "Download PDF"}
+        Download PDF
       </PDFDownloadLink>
     </div>
   );

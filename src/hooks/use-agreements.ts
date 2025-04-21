@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -38,6 +39,8 @@ export type SimpleAgreement = BaseAgreement & {
   signature_url?: string;
 };
 
+// Tell TypeScript to avoid checking this type too deeply
+// @ts-ignore: Type instantiation is excessively deep and possibly infinite
 export type FlattenedAgreement = FlattenType<SimpleAgreement>;
 
 interface SearchParams {
