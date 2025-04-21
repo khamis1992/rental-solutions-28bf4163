@@ -1,3 +1,5 @@
+import { prepareArabicText, containsArabic } from './arabic-text-utils';
+
 /**
  * Utility functions for CSV file operations
  */
@@ -204,46 +206,59 @@ export function formatCSVValue(value: any): string {
   return stringValue;
 }
 
-/**
- * Generate a CSV file from an array of objects
- * @param data Array of objects to convert to CSV
- * @param headers Optional custom headers (defaults to Object.keys of first item)
- * @returns CSV content as a string
- */
-export function generateCSV(data: Record<string, any>[], headers?: string[]): string {
-  if (data.length === 0) return '';
 
-  // Use provided headers or extract from first object
-  const csvHeaders = headers || Object.keys(data[0]);
+import { prepareArabicText, containsArabic } from './arabic-text-utils';
 
-  // Generate CSV content
-  const headerRow = csvHeaders.join(',');
-  const rows = data.map(item => 
-    csvHeaders.map(header => formatCSVValue(item[header])).join(',')
-  );
+export function encodeCSVText(text: string): string {
+  if (!text) return '';
 
-  return [headerRow, ...rows].join('\n');
+  // Handle Arabic text
+  if (containsArabic(text)) {
+    // Ensure proper encoding
+    const encoded = new TextEncoder().encode(text);
+    return new TextDecoder('utf-8').decode(encoded);
+  }
+  return text;
 }
 
-/**
- * Download data as a CSV file
- * @param data Array of objects to convert to CSV
- * @param filename Name of the file to download
- * @param headers Optional custom headers (defaults to Object.keys of first item)
- */
-export function downloadCSV(data: Record<string, any>[], filename: string, headers?: string[]): void {
-  const csvContent = generateCSV(data, headers);
-  // Add UTF-8 BOM for Excel compatibility
-  const BOM = '\uFEFF';
-  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+export function generateCSV(data: Record<string, any>[]): string {
+  if (!data || data.length === 0) return '';
+
+  // Add BOM for UTF-8
+  let csv = '\ufeff';
+
+  // Get headers
+  const headers = Object.keys(data[0]);
+  csv += headers.join(',') + '\n';
+
+  // Add data rows
+  data.forEach(item => {
+    const row = headers.map(header => {
+      const value = item[header] === null || item[header] === undefined ? '' : item[header];
+      const processedValue = encodeCSVText(String(value));
+
+      // Escape quotes and wrap in quotes if contains comma or quote
+      if (processedValue.includes(',') || processedValue.includes('"')) {
+        return `"${processedValue.replace(/"/g, '""')}"`;
+      }
+      return processedValue;
+    });
+
+    csv += row.join(',') + '\n';
+  });
+
+  return csv;
+}
+
+export function downloadCSV(data: Record<string, any>[], filename: string): void {
+  const csv = generateCSV(data);
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement('a');
-  link.href = url;
+  link.setAttribute('href', url);
   link.setAttribute('download', filename);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
 }

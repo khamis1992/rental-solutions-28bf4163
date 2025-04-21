@@ -68,10 +68,18 @@ const PAGE_HEIGHT = 297; // A4 height in mm
 const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
 
 // Add Arabic font support
-function setupArabicFont(doc: jsPDF) {
-  import('@/utils/arabic-text-utils').then(({ prepareArabicText, configureArabicPDF }) => {
-    configureArabicPDF(doc);
-  });
+async function setupArabicFont(doc: jsPDF) {
+  const { configureArabicPDF, prepareArabicText } = await import('@/utils/arabic-text-utils');
+  configureArabicPDF(doc);
+  
+  // Override text rendering method
+  const originalText = doc.text.bind(doc);
+  doc.text = function(text: string | string[], x: number, y: number, options?: any): jsPDF {
+    const processedText = Array.isArray(text) 
+      ? text.map(t => prepareArabicText(t))
+      : prepareArabicText(text);
+    return originalText(processedText, x, y, options);
+  };
 }
 const CONTENT_MARGIN = 14; // Left/right margin in mm
 
