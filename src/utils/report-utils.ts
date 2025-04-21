@@ -66,6 +66,14 @@ export const downloadExcel = (data: Record<string, any>[], filename: string): vo
 
 const PAGE_HEIGHT = 297; // A4 height in mm
 const FOOTER_HEIGHT = 30; // Space reserved for footer in mm
+
+// Add Arabic font support
+function setupArabicFont(doc: jsPDF) {
+  doc.addFileToVFS('Amiri-Regular.ttf', amiriFont);
+  doc.addFont('Amiri-Regular.ttf', 'Amiri', 'normal');
+  doc.setFont('Amiri');
+  doc.setR2L(true); // Enable right-to-left for Arabic
+}
 const CONTENT_MARGIN = 14; // Left/right margin in mm
 
 /**
