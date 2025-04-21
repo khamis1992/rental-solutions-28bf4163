@@ -1,3 +1,4 @@
+
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
@@ -244,22 +245,41 @@ export const addBilingualText = (
 /**
  * Generate a Traffic Fines Report
  * @param trafficData Array of traffic fine data
+ * @param options Optional settings for localization (rtl and font)
  * @returns jsPDF document
  */
-export const generateTrafficFinesReport = (trafficData: any[]) => {
+export const generateTrafficFinesReport = (
+  trafficData: any[], 
+  options?: { rtl?: boolean; font?: string }
+): jsPDF => {
+  // Register Amiri font for Arabic/RTL if required
+  if (options?.font === 'Amiri') {
+    registerAmiriFont();
+  }
+
   const doc = new jsPDF();
+  
+  // Set font and RTL if specified
+  if (options?.font) {
+    doc.setFont(options.font);
+  }
+  
+  if (options?.rtl) {
+    (doc as any).setR2L && (doc as any).setR2L(true);
+  }
+  
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
   // Add header
   doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(options?.font || 'helvetica', 'bold');
   doc.text('Fleet Report', pageWidth / 2, currentY, { align: 'center' });
   
   // Add report period
   currentY += 15;
   doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(options?.font || 'helvetica', 'normal');
   doc.text(`Report Period: ${format(new Date(), 'MMMM dd, yyyy')} - ${format(new Date(), 'MMMM dd, yyyy')}`, pageWidth / 2, currentY, { align: 'center' });
   
   currentY += 10;
@@ -281,14 +301,14 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
   doc.setFillColor(255, 140, 0);
   doc.rect(14, currentY, pageWidth - 28, 8, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont(options?.font || 'helvetica', 'bold');
   doc.text('Metric', 16, currentY + 6);
   doc.text('Value', pageWidth / 2, currentY + 6);
 
   // Draw data rows
   currentY += 8;
   doc.setTextColor(0);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont(options?.font || 'helvetica', 'normal');
   
   metrics.forEach(([label, value]) => {
     // Check if we need a new page
@@ -336,7 +356,7 @@ export const generateTrafficFinesReport = (trafficData: any[]) => {
     doc.setFillColor(255, 140, 0);
     doc.rect(14, currentY, pageWidth - 28, 8, 'F');
     doc.setTextColor(255, 255, 255);
-    doc.setFont('helvetica', 'bold');
+    doc.setFont(options?.font || 'helvetica', 'bold');
     doc.text(customerName, 16, currentY + 6);
     currentY += 12;
 
