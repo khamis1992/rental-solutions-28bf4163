@@ -4,6 +4,25 @@ import { format } from 'date-fns';
 import { formatDate } from '@/lib/date-utils';
 import { prepareArabicText, containsArabic, configureArabicPDF, formatMixedText } from '@/utils/arabic-text-utils';
 
+// Define interfaces for the traffic fines data
+interface TrafficFineData {
+  customerName?: string;
+  licensePlate?: string;
+  agreementNumber?: string;
+  violationNumber?: string;
+  violationDate?: Date | string;
+  fineAmount?: number;
+  paymentStatus?: string;
+  customerId?: string;
+  leaseId?: string;
+}
+
+interface CustomerFineGroup {
+  fines: TrafficFineData[];
+  totalAmount: number;
+  vehicles: Set<string>;
+}
+
 /**
  * Generates a CSV string from an array of objects
  * @param data Array of objects to convert to CSV
@@ -170,7 +189,7 @@ export const generateStandardReport = async (
  * @param trafficData Array of traffic fine data
  * @returns jsPDF document
  */
-export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
+export const generateTrafficFinesReport = async (trafficData: TrafficFineData[] = []) => {
   if (!Array.isArray(trafficData)) {
     console.error('Invalid traffic data provided');
     throw new Error('Invalid traffic data format');
@@ -265,25 +284,25 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
   currentY += 20;
 
   // Group fines by customer with error handling
-  const groupedFines = (trafficData || []).reduce((acc, fine) => {
+  const groupedFines: Record<string, CustomerFineGroup> = {};
+  
+  for (const fine of trafficData) {
     try {
       const customerKey = fine.customerName || 'Unassigned';
-      if (!acc[customerKey]) {
-        acc[customerKey] = {
+      if (!groupedFines[customerKey]) {
+        groupedFines[customerKey] = {
           fines: [],
           totalAmount: 0,
-          vehicles: new Set()
+          vehicles: new Set<string>()
         };
       }
-      acc[customerKey].fines.push(fine);
-      acc[customerKey].totalAmount += fine.fineAmount || 0;
-      if (fine.licensePlate) acc[customerKey].vehicles.add(fine.licensePlate);
-      return acc;
+      groupedFines[customerKey].fines.push(fine);
+      groupedFines[customerKey].totalAmount += fine.fineAmount || 0;
+      if (fine.licensePlate) groupedFines[customerKey].vehicles.add(fine.licensePlate);
     } catch (error) {
       console.error('Error processing fine:', error, fine);
-      return acc;
     }
-  }, {} as { [key: string]: { fines: any[], totalAmount: number, vehicles: Set<string> } });
+  }
 
   // Add customer sections
   for (const [customerName, data] of Object.entries(groupedFines)) {
@@ -358,7 +377,7 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
       currentY += 8;
 
       // Draw violations
-      data.fines.forEach((fine: any) => {
+      data.fines.forEach((fine: TrafficFineData) => {
         if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 10) {
           doc.addPage();
           currentY = 20;
@@ -366,10 +385,14 @@ export const generateTrafficFinesReport = async (trafficData: any[] = []) => {
         }
 
         x = 14;
-        const date = format(new Date(fine.violationDate), 'dd/MM/yyyy');
-        const amount = `${fine.fineAmount} QAR`;
+        const date = fine.violationDate ? 
+                     (fine.violationDate instanceof Date ? 
+                      format(fine.violationDate, 'dd/MM/yyyy') : 
+                      format(new Date(fine.violationDate), 'dd/MM/yyyy')) : 
+                     '';
+        const amount = `${fine.fineAmount || 0} QAR`;
 
-        [fine.violationNumber, date, amount].forEach((text, i) => {
+        [fine.violationNumber || '', date, amount].forEach((text, i) => {
           doc.rect(x, currentY, violationWidths[i], 8);
           
           // Process text for potential Arabic content

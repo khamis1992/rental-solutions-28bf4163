@@ -11,6 +11,7 @@ import {
 } from '@/lib/validation-schemas/agreement';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { FlattenType } from '@/utils/type-utils';
 
 export type SimpleAgreement = BaseAgreement & {
   agreement_number?: string;
@@ -130,7 +131,7 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
         customer_id: data.customer_id,
         vehicle_id: data.vehicle_id,
         start_date: new Date(data.start_date),
-        end_date: new Date(data.end_date),
+        end_date: data.end_date ? new Date(data.end_date) : undefined,
         status: mappedStatus,
         created_at: data.created_at ? new Date(data.created_at) : undefined,
         updated_at: data.updated_at ? new Date(data.updated_at) : undefined,
@@ -263,9 +264,11 @@ export const useAgreements = (initialFilters: SearchParams = {}) => {
     return {} as SimpleAgreement;
   };
 
+  // Fix the Type instantiation error by using a simplified type
+  type UpdateAgreementData = Record<string, any>;
   type UpdateAgreementParams = { 
     id: string; 
-    data: Record<string, any> 
+    data: UpdateAgreementData
   };
 
   const updateAgreementMutation = useMutation({
