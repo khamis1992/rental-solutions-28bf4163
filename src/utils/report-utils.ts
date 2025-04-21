@@ -10,30 +10,30 @@ import { registerArabicSupport, safeSetRTL, testArabicSupport } from './jspdf-ar
  */
 export const generateCSV = (data: Record<string, any>[]): string => {
   if (!data || data.length === 0) return '';
-  
+
   // Get headers from the first object
   const headers = Object.keys(data[0]);
-  
+
   // Create CSV header row
   let csv = headers.join(',') + '\n';
-  
+
   // Add data rows
   data.forEach(item => {
     const row = headers.map(header => {
       // Handle values that might contain commas or quotes
       const value = item[header] === null || item[header] === undefined ? '' : item[header];
       const valueStr = String(value);
-      
+
       // Escape quotes and wrap in quotes if contains comma or quote
       if (valueStr.includes(',') || valueStr.includes('"')) {
         return `"${valueStr.replace(/"/g, '""')}"`;
       }
       return valueStr;
     });
-    
+
     csv += row.join(',') + '\n';
   });
-  
+
   return csv;
 };
 
@@ -46,7 +46,7 @@ export const downloadCSV = (data: Record<string, any>[], filename: string): void
   const csv = generateCSV(data);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
-  
+
   const link = document.createElement('a');
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
@@ -82,12 +82,12 @@ export const addReportHeader = (
   dateRange: { from: Date | undefined; to: Date | undefined }
 ): number => {
   const pageWidth = doc.internal.pageSize.getWidth();
-  
+
   // Add title
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
   doc.text(title, pageWidth / 2, 20, { align: 'center' });
-  
+
   // Add report period and generation date
   doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
@@ -95,7 +95,7 @@ export const addReportHeader = (
   const toDate = dateRange.to ? formatDate(dateRange.to) : '';
   doc.text(`Report Period: ${fromDate} - ${toDate}`, pageWidth / 2, 35, { align: 'center' });
   doc.text(`Generated on: ${formatDate(new Date())}`, pageWidth / 2, 45, { align: 'center' });
-  
+
   return 60;
 };
 
@@ -106,14 +106,14 @@ export const addReportHeader = (
 export const addReportFooter = (doc: jsPDF): void => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  
+
   // Add footer text
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('© 2025 ALARAF CAR RENTAL', pageWidth / 2, pageHeight - 25, { align: 'center' });
   doc.setFontSize(8);
   doc.text('Quality Service, Premium Experience', pageWidth / 2, pageHeight - 20, { align: 'center' });
-  
+
   // Add page bottom elements with proper spacing
   doc.text('CONFIDENTIAL', 14, pageHeight - 10);
   doc.text(`Page ${doc.getNumberOfPages()}`, pageWidth - 14, pageHeight - 10, { align: 'right' });
@@ -136,19 +136,19 @@ export const generateStandardReport = (
 ): jsPDF => {
   // Create PDF document
   const doc = new jsPDF();
-  
+
   // Setup Arabic support if RTL is enabled
   if (localeOptions?.rtl) {
     registerArabicSupport(doc);
-    
+
     // Test if Arabic is supported
     const arabicSupported = testArabicSupport(doc);
     console.log("Arabic support test result:", arabicSupported);
   }
-  
+
   // Set standard font
   doc.setFont('helvetica');
-  
+
   const startY = addReportHeader(doc, title, dateRange);
   contentGenerator(doc, startY, localeOptions);
 
@@ -177,7 +177,7 @@ const safeSetFont = (doc: jsPDF, fontName?: string, fontStyle?: string) => {
         return;
       }
     }
-    
+
     // Fallback to helvetica if fontName invalid or not available
     if (fontStyle) {
       doc.setFont('helvetica', fontStyle);
@@ -196,7 +196,7 @@ export const generateTrafficFinesReport = (
 ): jsPDF => {
   // Create document
   const doc = new jsPDF();
-  
+
   // Configure Arabic support if RTL is enabled
   if (options?.rtl) {
     registerArabicSupport(doc);
@@ -263,14 +263,14 @@ export const generateTrafficFinesReport = (
       currentY = 20;
       addReportFooter(doc);
     }
-    
+
     doc.rect(14, currentY, (pageWidth - 28) / 2, 8);
     doc.rect(14 + (pageWidth - 28) / 2, currentY, (pageWidth - 28) / 2, 8);
     doc.text(label, 16, currentY + 6);
     doc.text(value, 16 + (pageWidth - 28) / 2, currentY + 6);
     currentY += 8;
   });
-  
+
   currentY += 20;
 
   // Group fines by customer
@@ -297,7 +297,7 @@ export const generateTrafficFinesReport = (
       currentY = 20;
       addReportFooter(doc);
     }
-    
+
     // Draw customer header with orange background
     doc.setFillColor(255, 140, 0);
     doc.rect(14, currentY, pageWidth - 28, 8, 'F');
@@ -308,7 +308,7 @@ export const generateTrafficFinesReport = (
 
     // Vehicle summary header
     const headerWidths = [(pageWidth - 28) / 2, (pageWidth - 28) / 2];
-    
+
     // Draw headers
     Array.from(data.vehicles).forEach((vehicle: string) => {
       if (currentY > PAGE_HEIGHT - FOOTER_HEIGHT - 25) {
@@ -319,7 +319,7 @@ export const generateTrafficFinesReport = (
 
       let x = 14;
       const vehicleData = [vehicle, `${data.totalAmount} QAR`];
-      
+
       vehicleData.forEach((text, i) => {
         doc.rect(x, currentY, headerWidths[i], 8);
         doc.setTextColor(0);
@@ -344,7 +344,7 @@ export const generateTrafficFinesReport = (
       // Headers for violations
       const violationHeaders = ['Violation number', 'Violation Date', 'Violation amount'];
       const violationWidths = [(pageWidth - 28) / 3, (pageWidth - 28) / 3, (pageWidth - 28) / 3];
-      
+
       let x = 14;
       violationHeaders.forEach((header, i) => {
         doc.rect(x, currentY, violationWidths[i], 8);
@@ -365,7 +365,7 @@ export const generateTrafficFinesReport = (
         x = 14;
         const date = format(new Date(fine.violationDate), 'dd/MM/yyyy');
         const amount = `${fine.fineAmount} QAR`;
-        
+
         [fine.violationNumber, date, amount].forEach((text, i) => {
           doc.rect(x, currentY, violationWidths[i], 8);
           doc.text(text.toString(), x + 2, currentY + 6);
@@ -374,7 +374,7 @@ export const generateTrafficFinesReport = (
         currentY += 8;
       });
     }
-    
+
     currentY += 12;
   });
 
@@ -416,17 +416,17 @@ export const addBilingualText = (
     align: 'left' as const,
     ...options
   };
-  
+
   // Save current font state
   const currentFont = doc.getFont();
   const currentFontSize = doc.getFontSize();
-  
+
   // Set font size
   doc.setFontSize(opts.fontSize);
-  
+
   // Add English text
   safeSetFont(doc, 'helvetica');
-  
+
   // Make sure RTL is off for English
   let prevR2L = false;
   try {
@@ -437,42 +437,42 @@ export const addBilingualText = (
   } catch (e) {
     console.log('R2L not supported', e);
   }
-  
+
   doc.text(englishText, x, y, { 
     maxWidth: opts.maxWidth || undefined, 
     align: opts.align
   });
-  
+
   // Switch to RTL for Arabic
   try {
     safeSetRTL(doc, true);
   } catch (e) {
     console.log('R2L not supported for Arabic text', e);
   }
-  
+
   // Calculate position for Arabic text
   const pageWidth = doc.internal.pageSize.getWidth();
   const textX = opts.align === 'right' ? x : 
                opts.align === 'center' ? pageWidth / 2 : 
                pageWidth - x - CONTENT_MARGIN;
-  
+
   // Add Arabic text
   doc.text(arabicText, textX, y + opts.spacing, { 
     maxWidth: opts.maxWidth || undefined, 
     align: opts.align === 'left' ? 'right' : opts.align
   });
-  
+
   // Restore RTL setting
   try {
     safeSetRTL(doc, prevR2L);
   } catch (e) {
     console.log('Error restoring R2L setting', e);
   }
-  
+
   // Restore font settings
   safeSetFont(doc, currentFont.fontName);
   doc.setFontSize(currentFontSize);
-  
+
   // Return next Y position
   return y + opts.spacing * 2;
 };
@@ -486,4 +486,11 @@ export const formatReportCurrency = (amount: number, currency = 'QAR'): string =
     currency: currency,
     minimumFractionDigits: 2
   }).format(amount);
+};
+
+
+// Placeholder for a more robust Arabic text writing function.  This needs to be replaced with actual implementation.
+const writeArabicText = (doc: jsPDF, text: string, x: number, y: number, options: any) => {
+  console.log("writeArabicText called with:", text, x, y, options);
+  doc.text(text, x, y, options);
 };

@@ -12,14 +12,17 @@ const ARABIC_UNICODE_RANGE = {
 
 /**
  * Registers Arabic support for jsPDF
- * Uses best available approach for the current environment
  */
 export function registerArabicSupport(doc: jsPDF): void {
   try {
-    // Use a standard font and rely on browser's built-in support
-    doc.setFont('helvetica');
+    // Add Amiri font for better Arabic support
+    doc.addFont('https://cdn.jsdelivr.net/npm/amiri@0.114.0/amiri-regular.ttf', 'Amiri', 'normal');
+    doc.addFont('https://cdn.jsdelivr.net/npm/amiri@0.114.0/amiri-bold.ttf', 'Amiri', 'bold');
     
-    // Configure RTL support if available
+    // Set default font to Amiri
+    doc.setFont('Amiri');
+    
+    // Enable RTL support
     if (typeof (doc as any).setR2L === 'function') {
       (doc as any).setR2L(true);
     }
@@ -27,31 +30,44 @@ export function registerArabicSupport(doc: jsPDF): void {
     console.log("Arabic support configured for PDF generation");
   } catch (error) {
     console.error("Error configuring Arabic support:", error);
+    // Fallback to built-in font
+    doc.setFont('helvetica');
   }
 }
 
 /**
- * Helper function to safely set R2L mode in jsPDF
- * @param doc The jsPDF document
- * @param isRTL Whether to enable RTL mode
+ * Helper function to handle Arabic text in PDFs
  */
-export function safeSetRTL(doc: jsPDF, isRTL: boolean): void {
+export function writeArabicText(doc: jsPDF, text: string, x: number, y: number, options: any = {}): void {
   try {
-    if (typeof (doc as any).setR2L === 'function') {
-      (doc as any).setR2L(isRTL);
+    const isRTL = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(text);
+    
+    if (isRTL) {
+      doc.setFont('Amiri');
+      // Calculate position for RTL text
+      const textWidth = doc.getTextWidth(text);
+      const finalX = options.align === 'right' ? x : (doc.internal.pageSize.getWidth() - x - textWidth);
+      
+      doc.text(text, finalX, y, { 
+        align: 'left',
+        isInputRtl: true,
+        ...options
+      });
+    } else {
+      doc.text(text, x, y, options);
     }
   } catch (error) {
-    console.error("Error setting R2L mode:", error);
+    console.error("Error writing Arabic text:", error);
+    // Fallback to standard text
+    doc.text(text, x, y, options);
   }
 }
 
 /**
- * Uses getStringUnitWidth to detect if Arabic characters are properly supported
- * @param doc The jsPDF document
- * @returns Whether Arabic is supported
+ * Tests if Arabic text is properly supported
  */
 export function testArabicSupport(doc: jsPDF): boolean {
-  const arabicText = 'مرحبا بالعالم'; // "Hello World" in Arabic
+  const arabicText = 'مرحبا بالعالم';
   try {
     const width = doc.getStringUnitWidth(arabicText);
     return width > 0;
